@@ -4,11 +4,11 @@
 
 <h1 align="center">MedAutoScience 医学自动科研平台</h1>
 
-<p align="center"><strong>从专病数据到投稿交付的自动科研平台</strong></p>
+<p align="center"><strong>A publication-oriented platform from disease data to submission-ready manuscripts</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/%E5%AE%9A%E4%BD%8D-%E5%8C%BB%E5%AD%A6%E7%A0%94%E7%A9%B6%E5%B9%B3%E5%8F%B0-0B8BD9" alt="定位 医学研究平台" />
-  <img src="https://img.shields.io/badge/%E6%96%87%E6%A1%A3%20%2F%20%E7%A8%BF%E4%BB%B6-%E4%B8%AD%E6%96%87%E6%96%87%E6%A1%A3%20%2F%20%E8%8B%B1%E6%96%87%E7%A8%BF%E4%BB%B6-1E8FB3" alt="文档 中文文档 / 英文稿件" />
+  <img src="https://img.shields.io/badge/Position-Medical%20Research%20Platform-0B8BD9" alt="Position Medical Research Platform" />
+  <img src="https://img.shields.io/badge/Docs%20%2F%20Manuscripts-Chinese%20Docs%20%2F%20English%20Manuscripts-1E8FB3" alt="Docs Chinese Docs / English Manuscripts" />
 </p>
 
 <p align="center">
