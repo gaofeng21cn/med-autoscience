@@ -125,6 +125,7 @@
 - 研究路线偏置：[policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
 
 首页不再直接展示 CLI 命令、JSON payload 和部署细节；这些内容统一下沉到上述文档，供 Agent 调用和人类审计。
+其中，`guides/` 用于放随仓库发布的稳定技术指南；`docs/` 更偏内部设计稿与 agent 工作过程记录，不作为公开主入口。
 </details>
 
 ## 当前边界
