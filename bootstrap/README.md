@@ -102,8 +102,10 @@ cd med-autoscience
 PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli validate-public-registry --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests/<study-id>
 ```
 
 如果只想单独检查或重覆写 overlay，也可以直接运行：

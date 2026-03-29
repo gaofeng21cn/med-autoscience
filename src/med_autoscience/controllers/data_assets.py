@@ -10,6 +10,19 @@ PRIVATE_REGISTRY_BASENAME = "registry.json"
 PUBLIC_REGISTRY_BASENAME = "registry.json"
 IMPACT_REPORT_BASENAME = "latest_impact_report.json"
 PRIVATE_DIFF_REPORT_SCHEMA_VERSION = 1
+PUBLIC_REGISTRY_SCHEMA_VERSION = 2
+PUBLIC_DATASET_ALLOWED_ROLES = {
+    "external_validation",
+    "cohort_extension",
+    "mechanistic_extension",
+    "benchmark_transfer",
+}
+PUBLIC_DATASET_ALLOWED_STATUSES = {
+    "candidate",
+    "screened",
+    "accepted",
+    "rejected",
+}
 
 
 def _data_assets_root(workspace_root: Path) -> Path:
@@ -90,6 +103,14 @@ def _normalize_dict(value: object) -> dict[str, object]:
     return value if isinstance(value, dict) else {}
 
 
+def _normalize_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
+
+
 def _list_release_files(version_root: Path) -> list[Path]:
     return sorted(path for path in version_root.rglob("*") if path.is_file())
 
@@ -141,6 +162,85 @@ def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
         for version_root in sorted(path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")):
             releases.append(_build_private_release(family_id=family_root.name, version_root=version_root))
     return releases
+
+
+def _normalize_public_dataset_entry(item: object) -> dict[str, object]:
+    payload = _normalize_dict(item)
+    roles = [role for role in _normalize_string_list(payload.get("roles")) if role in PUBLIC_DATASET_ALLOWED_ROLES]
+    status = payload.get("status") if isinstance(payload.get("status"), str) else "candidate"
+    normalized = {
+        "dataset_id": payload.get("dataset_id") if isinstance(payload.get("dataset_id"), str) else None,
+        "source_type": payload.get("source_type") if isinstance(payload.get("source_type"), str) else None,
+        "accession": payload.get("accession") if isinstance(payload.get("accession"), str) else None,
+        "disease": payload.get("disease") if isinstance(payload.get("disease"), str) else None,
+        "modality": _normalize_string_list(payload.get("modality")),
+        "endpoints": _normalize_string_list(payload.get("endpoints")),
+        "roles": roles,
+        "target_families": _normalize_string_list(payload.get("target_families")),
+        "target_dataset_ids": _normalize_string_list(payload.get("target_dataset_ids")),
+        "target_study_archetypes": _normalize_string_list(payload.get("target_study_archetypes")),
+        "cohort_size": _normalize_int(payload.get("cohort_size")),
+        "license": payload.get("license") if isinstance(payload.get("license"), str) else None,
+        "access_url": payload.get("access_url") if isinstance(payload.get("access_url"), str) else None,
+        "status": status if status in PUBLIC_DATASET_ALLOWED_STATUSES else "candidate",
+        "rationale": payload.get("rationale") if isinstance(payload.get("rationale"), str) else None,
+        "notes": _normalize_string_list(payload.get("notes")),
+    }
+    errors: list[str] = []
+    if not normalized["dataset_id"]:
+        errors.append("missing_dataset_id")
+    if not normalized["source_type"]:
+        errors.append("missing_source_type")
+    if not normalized["roles"]:
+        errors.append("missing_roles")
+    if not (
+        normalized["target_families"]
+        or normalized["target_dataset_ids"]
+        or normalized["target_study_archetypes"]
+    ):
+        errors.append("missing_target_scope")
+    normalized["validation"] = {
+        "is_valid": not errors,
+        "errors": errors,
+    }
+    return normalized
+
+
+def _normalize_public_registry_payload(payload: dict) -> dict[str, object]:
+    datasets_value = payload.get("datasets")
+    datasets: list[dict[str, object]] = []
+    if isinstance(datasets_value, list):
+        datasets = [_normalize_public_dataset_entry(item) for item in datasets_value]
+    return {
+        "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
+        "datasets": datasets,
+    }
+
+
+def _load_public_registry(workspace_root: Path) -> dict[str, object]:
+    public_path = _public_registry_path(workspace_root)
+    payload = _load_json(public_path, default={"schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION, "datasets": []})
+    normalized = _normalize_public_registry_payload(payload)
+    if payload != normalized:
+        _write_json(public_path, normalized)
+    return normalized
+
+
+def validate_public_registry(*, workspace_root: Path) -> dict[str, object]:
+    payload = _load_public_registry(workspace_root)
+    datasets = payload["datasets"]
+    assert isinstance(datasets, list)
+    valid_dataset_count = sum(1 for item in datasets if isinstance(item, dict) and item.get("validation", {}).get("is_valid"))
+    invalid_dataset_count = len(datasets) - valid_dataset_count
+    return {
+        "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
+        "workspace_root": str(workspace_root),
+        "registry_path": str(_public_registry_path(workspace_root)),
+        "dataset_count": len(datasets),
+        "valid_dataset_count": valid_dataset_count,
+        "invalid_dataset_count": invalid_dataset_count,
+        "datasets": datasets,
+    }
 
 
 def _private_diff_count(workspace_root: Path) -> int:
@@ -309,7 +409,7 @@ def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
     _write_json(_private_registry_path(workspace_root), private_payload)
 
     public_path = _public_registry_path(workspace_root)
-    public_payload = _load_json(public_path, default={"schema_version": 1, "datasets": []})
+    public_payload = _load_public_registry(workspace_root)
     _write_json(public_path, public_payload)
 
     impact_path = _impact_report_path(workspace_root)
@@ -324,6 +424,12 @@ def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
         "public": {
             "registry_path": str(public_path),
             "dataset_count": len(public_payload["datasets"]),
+            "valid_dataset_count": sum(
+                1 for item in public_payload["datasets"] if item.get("validation", {}).get("is_valid")
+            ),
+            "invalid_dataset_count": sum(
+                1 for item in public_payload["datasets"] if not item.get("validation", {}).get("is_valid")
+            ),
         },
         "impact": {
             "report_path": str(impact_path),
@@ -337,7 +443,7 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
     public_path = _public_registry_path(workspace_root)
     impact_path = _impact_report_path(workspace_root)
     private_payload = _load_json(private_path, default={"schema_version": 1, "releases": []})
-    public_payload = _load_json(public_path, default={"schema_version": 1, "datasets": []})
+    public_payload = _load_public_registry(workspace_root)
     return {
         "workspace_root": str(workspace_root),
         "layout_ready": private_path.exists() and public_path.exists(),
@@ -352,6 +458,13 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
             "registry_path": str(public_path),
             "registry_exists": public_path.exists(),
             "dataset_count": len(public_payload["datasets"]),
+            "schema_version": public_payload["schema_version"],
+            "valid_dataset_count": sum(
+                1 for item in public_payload["datasets"] if item.get("validation", {}).get("is_valid")
+            ),
+            "invalid_dataset_count": sum(
+                1 for item in public_payload["datasets"] if not item.get("validation", {}).get("is_valid")
+            ),
         },
         "impact": {
             "report_path": str(impact_path),
@@ -400,7 +513,7 @@ def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
 def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     init_data_assets(workspace_root=workspace_root)
     private_payload = _load_json(_private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
-    public_payload = _load_json(_public_registry_path(workspace_root), default={"schema_version": 1, "datasets": []})
+    public_payload = _load_public_registry(workspace_root)
     latest_versions = _latest_versions_by_family(private_payload["releases"])
     diff_cache: dict[tuple[str, str, str], dict[str, object]] = {}
 
@@ -448,6 +561,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             public_matches = [
                 dataset
                 for dataset in public_payload.get("datasets", [])
+                if dataset.get("validation", {}).get("is_valid")
                 if dataset_id in dataset.get("target_dataset_ids", []) or family_id in dataset.get("target_families", [])
             ]
             if public_matches:
@@ -464,6 +578,15 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     "upgrade_diff_report_path": upgrade_diff_report_path,
                     "upgrade_diff_report_exists": upgrade_diff_report_exists,
                     "public_support_count": len(public_matches),
+                    "public_support_dataset_ids": [item.get("dataset_id") for item in public_matches],
+                    "public_support_roles": sorted(
+                        {
+                            role
+                            for item in public_matches
+                            for role in (item.get("roles") or [])
+                            if isinstance(role, str)
+                        }
+                    ),
                 }
             )
         study_reports.append(

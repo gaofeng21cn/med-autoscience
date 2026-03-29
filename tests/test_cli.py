@@ -188,6 +188,44 @@ def test_diff_private_release_command_dispatches_controller(monkeypatch, tmp_pat
     assert "/tmp/report.json" in captured.out
 
 
+def test_validate_public_registry_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_validate(*, workspace_root: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        return {"invalid_dataset_count": 0, "dataset_count": 2}
+
+    monkeypatch.setattr(cli.data_assets, "validate_public_registry", fake_validate)
+
+    exit_code = cli.main(["validate-public-registry", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"dataset_count": 2' in captured.out
+
+
+def test_data_asset_gate_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_controller(*, quest_root: Path, apply: bool) -> dict:
+        called["quest_root"] = quest_root
+        called["apply"] = apply
+        return {"status": "blocked", "blockers": ["outdated_private_release"], "report_json": "/tmp/data_gate.json"}
+
+    monkeypatch.setattr(cli.data_asset_gate, "run_controller", fake_run_controller)
+
+    exit_code = cli.main(["data-asset-gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "q001"
+    assert called["apply"] is True
+    assert '"outdated_private_release"' in captured.out
+
+
 def test_tooluniverse_status_command_dispatches_adapter(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

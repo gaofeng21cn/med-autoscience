@@ -55,6 +55,31 @@
 
 这部分强调的是“有明确用途再引入”，而不是为了堆工作量而装饰性加入。
 
+当前 public registry 使用 schema v2，并建议显式维护：
+
+- `dataset_id`
+- `source_type`
+- `accession`
+- `disease`
+- `modality`
+- `endpoints`
+- `roles`
+- `target_families`
+- `target_dataset_ids`
+- `target_study_archetypes`
+- `cohort_size`
+- `license`
+- `access_url`
+- `status`
+- `rationale`
+- `notes`
+
+其中：
+
+- `roles` 当前用于表达 `external_validation`、`cohort_extension`、`mechanistic_extension`、`benchmark_transfer`
+- 至少应有一类 target scope，用于说明该公开数据面向哪些 family / dataset / archetype
+- registry 中只有通过校验的 public dataset 才会进入 impact 评估
+
 ## 3. 数据影响评估
 
 用于评估：
@@ -70,6 +95,11 @@
 私有版本差异报告默认写入：
 
 - `portfolio/data_assets/private/diffs/<family>/<from_version>__<to_version>.json`
+
+当 quest 已进入 runtime 时，平台还会额外提供 quest 级 `data_asset_gate`，用于在以下情形下阻断无意义继续推进：
+
+- 当前 study 绑定的是落后于最新私有版本的旧 freeze
+- 当前 study 已出现新的 public-data 扩展机会，但尚未明确是否纳入
 
 ## 4. ToolUniverse 适配
 

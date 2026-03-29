@@ -194,3 +194,35 @@ def test_scan_runtime_only_processes_active_quests(tmp_path: Path) -> None:
 
     assert sorted(seen) == ["q-active", "q-running"]
     assert sorted(result["scanned_quests"]) == ["q-active", "q-running"]
+
+
+def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return {
+            "status": "blocked",
+            "blockers": ["outdated_private_release"],
+            "study_id": quest_root.name,
+            "report_json": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.md"),
+            "intervention_enqueued": apply,
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["data_asset_gate"]["action"] == "applied"
+    assert second["controllers"]["data_asset_gate"]["action"] == "suppressed"
+    assert calls == [False, True, False]

@@ -73,7 +73,7 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     public_registry = json.loads(
         (workspace_root / "portfolio" / "data_assets" / "public" / "registry.json").read_text(encoding="utf-8")
     )
-    assert public_registry == {"schema_version": 1, "datasets": []}
+    assert public_registry == {"schema_version": 2, "datasets": []}
 
 
 def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_public_support(tmp_path: Path) -> None:
@@ -277,3 +277,81 @@ def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release
     assert dataset["private_version_status"] == "older_than_latest"
     assert dataset["upgrade_diff_report_exists"] is True
     assert dataset["upgrade_diff_report_path"].endswith("master/v2026-03-28__v2026-04-10.json")
+
+
+def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.parent.mkdir(parents=True, exist_ok=True)
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "datasets": [
+                    {
+                        "dataset_id": "geo-gse000001",
+                        "source_type": "GEO",
+                        "accession": "GSE000001",
+                        "roles": ["external_validation"],
+                        "target_families": ["master"],
+                        "target_dataset_ids": ["nfpitnet_master"],
+                        "status": "candidate",
+                        "rationale": "Can be used for external validation.",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    module.init_data_assets(workspace_root=workspace_root)
+
+    public_registry = json.loads(public_registry_path.read_text(encoding="utf-8"))
+    assert public_registry["schema_version"] == 2
+    dataset = public_registry["datasets"][0]
+    assert dataset["roles"] == ["external_validation"]
+    assert dataset["target_study_archetypes"] == []
+    assert dataset["modality"] == []
+    assert dataset["validation"]["is_valid"] is True
+
+
+def test_validate_public_registry_reports_invalid_entries(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.parent.mkdir(parents=True, exist_ok=True)
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "datasets": [
+                    {
+                        "dataset_id": "bad-public-dataset",
+                        "source_type": "GEO",
+                        "roles": [],
+                        "target_families": [],
+                        "target_dataset_ids": [],
+                        "target_study_archetypes": [],
+                        "status": "candidate",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.validate_public_registry(workspace_root=workspace_root)
+
+    assert result["schema_version"] == 2
+    assert result["dataset_count"] == 1
+    assert result["invalid_dataset_count"] == 1
+    assert result["datasets"][0]["validation"]["is_valid"] is False
+    assert "missing_roles" in result["datasets"][0]["validation"]["errors"]
+    assert "missing_target_scope" in result["datasets"][0]["validation"]["errors"]

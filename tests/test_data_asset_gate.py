@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+
+def dump_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def make_workspace_with_quest(tmp_path: Path, *, study_id: str = "002-early-residual-risk") -> tuple[Path, Path]:
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "deepscientist" / "runtime" / "quests" / study_id
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": study_id,
+            "status": "running",
+            "active_run_id": "run-1",
+        },
+    )
+    (quest_root / "quest.yaml").write_text(f"quest_id: {study_id}\n", encoding="utf-8")
+    (workspace_root / "studies" / study_id).mkdir(parents=True, exist_ok=True)
+    (workspace_root / "studies" / study_id / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    return workspace_root, quest_root
+
+
+def write_dataset_manifest(path: Path, *, dataset_id: str, relative_path: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            [
+                "dataset_inputs:",
+                f"  - dataset_id: {dataset_id}",
+                f"    path: {relative_path}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+    (workspace_root / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
+    (workspace_root / "datasets" / "master" / "v2026-04-10").mkdir(parents=True, exist_ok=True)
+    (workspace_root / "datasets" / "master" / "v2026-03-28" / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (workspace_root / "datasets" / "master" / "v2026-04-10" / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "outdated_private_release" in report["blockers"]
+    assert report["study_id"] == "002-early-residual-risk"
+
+
+def test_run_controller_enqueues_message_when_public_extension_available(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+    (workspace_root / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
+    (workspace_root / "datasets" / "master" / "v2026-03-28" / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+    dump_json(
+        workspace_root / "portfolio" / "data_assets" / "public" / "registry.json",
+        {
+            "schema_version": 2,
+            "datasets": [
+                {
+                    "dataset_id": "geo-gse000001",
+                    "source_type": "GEO",
+                    "accession": "GSE000001",
+                    "roles": ["external_validation"],
+                    "target_families": ["master"],
+                    "target_dataset_ids": ["nfpitnet_master"],
+                    "status": "candidate",
+                    "rationale": "Can be used for external validation.",
+                }
+            ],
+        },
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    assert result["status"] == "blocked"
+    assert result["intervention_enqueued"] is True
+    assert len(queue["pending"]) == 1
+    assert "public-data extension" in queue["pending"][0]["content"]

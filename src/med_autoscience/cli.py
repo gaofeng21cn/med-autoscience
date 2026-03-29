@@ -11,6 +11,7 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience.controllers import (
+    data_asset_gate,
     data_assets,
     medical_publication_surface,
     publication_gate,
@@ -62,11 +63,18 @@ def build_parser() -> argparse.ArgumentParser:
     assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
     assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
 
+    validate_public_registry_parser = subparsers.add_parser("validate-public-registry")
+    validate_public_registry_parser.add_argument("--workspace-root", required=True)
+
     diff_private_release_parser = subparsers.add_parser("diff-private-release")
     diff_private_release_parser.add_argument("--workspace-root", required=True)
     diff_private_release_parser.add_argument("--family-id", required=True)
     diff_private_release_parser.add_argument("--from-version", required=True)
     diff_private_release_parser.add_argument("--to-version", required=True)
+
+    data_asset_gate_parser = subparsers.add_parser("data-asset-gate")
+    data_asset_gate_parser.add_argument("--quest-root", required=True)
+    data_asset_gate_parser.add_argument("--apply", action="store_true")
 
     tooluniverse_status_parser = subparsers.add_parser("tooluniverse-status")
     tooluniverse_status_parser.add_argument("--workspace-root", type=str)
@@ -153,12 +161,25 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "validate-public-registry":
+        result = data_assets.validate_public_registry(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "diff-private-release":
         result = data_assets.build_private_release_diff(
             workspace_root=Path(args.workspace_root),
             family_id=args.family_id,
             from_version=args.from_version,
             to_version=args.to_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "data-asset-gate":
+        result = data_asset_gate.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

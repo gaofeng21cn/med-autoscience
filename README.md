@@ -105,11 +105,13 @@
 PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /path/to/workspace
 PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /path/to/workspace
 PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli validate-public-registry --workspace-root /path/to/workspace
 PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /path/to/workspace --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /path/to/runtime/quests/002-early-residual-risk
 ```
 
-这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`。
+这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`，而 quest 级 `data-asset-gate` 会把数据过期或 public-data 扩展机会直接上升成 runtime 控制信号。
 
 ## 最小部署
 
