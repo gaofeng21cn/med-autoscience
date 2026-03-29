@@ -18,6 +18,7 @@
 4. runtime watch controller
 5. study delivery sync
 6. data assets controller
+7. DeepScientist upstream upgrade check
 
 对应的 Python 实现在包内：
 
@@ -28,6 +29,7 @@
 - `src/med_autoscience/controllers/study_delivery_sync.py`
 - `src/med_autoscience/controllers/data_assets.py`
 - `src/med_autoscience/controllers/data_asset_updates.py`
+- `src/med_autoscience/controllers/deepscientist_upgrade_check.py`
 
 对应测试：
 
@@ -38,6 +40,7 @@
 - `tests/test_study_delivery_sync.py`
 - `tests/test_data_assets.py`
 - `tests/test_data_asset_updates.py`
+- `tests/test_deepscientist_upgrade_check.py`
 
 当前迁移策略是：
 
@@ -51,6 +54,13 @@
   - 负责 layout 初始化、状态汇总、public registry 校验、impact 评估、private release diff
 - `data_asset_updates`
   - 负责统一的 Agent mutation 入口、mutation log 写入，以及 mutation 后的 refresh 汇总
+
+对于 `DeepScientist` 本体升级，当前 controller 采取的是“先审计、后升级”的策略：
+
+- `deepscientist_upgrade_check`
+  - 不直接执行升级
+  - 先统一检查 repo 配置、Git 状态、workspace contract 和医学 overlay 状态
+  - 输出机器可读 decision，供 Agent 判断是否进入真实升级流程
 
 后续优先顺序：
 

@@ -63,6 +63,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"studies_root: {report.profile.studies_root}",
         f"portfolio_root: {report.profile.portfolio_root}",
         f"deepscientist_runtime_root: {report.profile.deepscientist_runtime_root}",
+        f"deepscientist_repo_root: {report.profile.deepscientist_repo_root or '<unset>'}",
         f"default_publication_profile: {report.profile.default_publication_profile}",
         f"default_citation_style: {report.profile.default_citation_style}",
         (
@@ -97,6 +98,7 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"studies_root: {profile.studies_root}",
         f"portfolio_root: {profile.portfolio_root}",
         f"deepscientist_runtime_root: {profile.deepscientist_runtime_root}",
+        f"deepscientist_repo_root: {profile.deepscientist_repo_root or '<unset>'}",
         f"default_publication_profile: {profile.default_publication_profile}",
         f"default_citation_style: {profile.default_citation_style}",
         (

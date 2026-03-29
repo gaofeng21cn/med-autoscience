@@ -48,6 +48,7 @@ python3 --version
 - `studies_root`
 - `portfolio_root`
 - `deepscientist_runtime_root`
+- `deepscientist_repo_root`
 - `default_publication_profile`
 - `default_citation_style`
 - `enable_medical_overlay`
@@ -83,6 +84,8 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study
 - `studies_exists: true`
 - `portfolio_exists: true`
 - `deepscientist_runtime_exists: true`
+
+如果同时配置了 `deepscientist_repo_root`，`doctor` 和 `show-profile` 也会把它显示出来，方便 Agent 在升级前核对源码仓库位置。
 
 ### 5. 显示 profile
 
@@ -126,7 +129,18 @@ cd med-autoscience
 PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli install-medical-overlay --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile profiles/my-study.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
 ```
+
+`deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `DeepScientist`，而是在真正升级前先回答几件事：
+
+- profile 是否已经显式绑定本机 `DeepScientist` 源码仓库
+- 当前 checkout 是否是干净的 Git 工作树
+- 当前 branch 是否仍然适合作为运行时主线
+- `origin/main` 相对本机 checkout 是否已经有新提交
+- 医学 overlay 当前是否仍处于 `overlay_applied` 状态，还是已经被 upstream 覆写或漂移
+
+这一步的输出是机器可读 JSON，适合给 Agent 作为“现在该不该升级”的前置门控，而不是靠人工目测仓库状态。
 
 ## 当前范围
 

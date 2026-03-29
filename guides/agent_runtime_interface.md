@@ -168,9 +168,54 @@ Agent 在真正推进研究前，应先确认 workspace 已正确接入。最短
 PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
 ```
 
 如果这些环境还没接好，不要急着调用研究阶段接口，因为很多状态落盘路径都依赖 workspace contract。
+
+## DeepScientist 上游升级检查
+
+当 Agent 发现 `DeepScientist` 上游有新提交，或者准备把本机运行时切到新的 upstream 版本时，不应直接原地升级。推荐先执行：
+
+```bash
+PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
+```
+
+这个检查会统一汇总：
+
+- `repo_check`
+  - `deepscientist_repo_root` 是否已配置
+  - 目标目录是否存在、是否是 Git repo
+  - 当前 branch、`HEAD`、`origin/main`
+  - 相对 `origin/main` 的 `ahead_count / behind_count`
+  - 当前工作树是否干净
+- `workspace_check`
+  - 当前 workspace / runtime / deepscientist runtime contract 是否仍然完整
+- `overlay_check`
+  - 医学 overlay 是否仍然全部处于 `overlay_applied`
+
+核心目标是把“上游有更新”与“现在适合升级”分开判断。
+
+典型 `decision` 含义如下：
+
+- `upgrade_available`
+  - upstream 有新提交，且当前 repo / workspace / overlay 状态允许进入升级流程
+- `needs_branch_review`
+  - 当前 checkout 不在稳定主线，或已经带有本地领先提交，不应直接把它当成生产运行时升级面
+- `blocked_dirty_repo`
+  - 本地 `DeepScientist` repo 有未提交改动，应先清理
+- `overlay_reapply_needed`
+  - 当前没有 upstream 更新，但医学 overlay 已不再处于理想状态，应先重覆写
+- `up_to_date`
+  - 当前既没有检测到 upstream 更新，也没有 overlay 漂移
+
+对于 Agent 来说，推荐流程是：
+
+1. 先跑 `deepscientist-upgrade-check`
+2. 只在结果明确允许时，才去更新 `DeepScientist` 本体
+3. 更新后重新跑 `deepscientist-upgrade-check`
+4. 必要时执行 `reapply-medical-overlay`
+5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
 ## 审计与人类复核
 

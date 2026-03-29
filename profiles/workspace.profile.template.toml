@@ -4,6 +4,7 @@ runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests"
 studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime"
+deepscientist_repo_root = "/ABS/PATH/TO/DeepScientist"
 default_publication_profile = "general_medical_journal"
 default_citation_style = "AMA"
 enable_medical_overlay = true
