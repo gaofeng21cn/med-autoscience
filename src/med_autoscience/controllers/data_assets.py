@@ -157,7 +157,9 @@ def _latest_versions_by_family(releases: list[dict[str, object]]) -> dict[str, s
 
 def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    dataset_inputs = payload.get("dataset_inputs", [])
+    dataset_inputs = payload.get("dataset_inputs")
+    if dataset_inputs is None:
+        dataset_inputs = payload.get("locked_inputs", [])
     if not isinstance(dataset_inputs, list):
         return []
     normalized: list[dict[str, object]] = []
@@ -185,6 +187,9 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             dataset_id = str(item.get("dataset_id", ""))
             source_path = str(item.get("path", ""))
             family_id, version_id = _extract_family_version(source_path)
+            manifest_version = item.get("version")
+            if isinstance(manifest_version, str) and manifest_version:
+                version_id = manifest_version
             latest_version = latest_versions.get(family_id) if family_id is not None else None
             if family_id is None or version_id is None:
                 private_status = "unversioned_path"

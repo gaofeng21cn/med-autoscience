@@ -99,3 +99,29 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
     report_path = workspace_root / "portfolio" / "data_assets" / "impact" / "latest_impact_report.json"
     assert report_path.exists()
 
+
+def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    (workspace_root / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
+    manifest_path = workspace_root / "studies" / "001-lineage-pfs" / "data_input" / "dataset_manifest.yaml"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        "\n".join(
+            [
+                "study_id: 001-lineage-pfs",
+                "locked_inputs:",
+                "  - dataset_id: nfpitnet_master",
+                "    version: v2026-03-28",
+                "    path: ../../../datasets/master/v2026-03-28/nfpitnet_analysis_deidentified.csv",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    assert result["study_count"] == 1
+    assert result["studies"][0]["dataset_inputs"][0]["dataset_id"] == "nfpitnet_master"
+    assert result["studies"][0]["dataset_inputs"][0]["private_version_status"] == "up_to_date"
