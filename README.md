@@ -8,7 +8,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/%E5%AE%9A%E4%BD%8D-%E5%8C%BB%E5%AD%A6%E7%A0%94%E7%A9%B6%E5%B9%B3%E5%8F%B0-0B8BD9" alt="定位 医学研究平台" />
-  <img src="https://img.shields.io/badge/%E4%B8%BB%E8%AF%AD%E8%A8%80-%E4%B8%AD%E6%96%87-1E9FB3" alt="主语言 中文" />
+  <img src="https://img.shields.io/badge/%E6%96%87%E6%A1%A3-%E4%B8%AD%E6%96%87%E4%BC%98%E5%85%88-1E9FB3" alt="文档 中文优先" />
+  <img src="https://img.shields.io/badge/%E7%A8%BF%E4%BB%B6-%E9%BB%98%E8%AE%A4%E8%8B%B1%E6%96%87-1772B8" alt="稿件 默认英文" />
   <img src="https://img.shields.io/badge/%E7%9B%AE%E6%A0%87-%E5%8F%AF%E6%8A%95%E7%A8%BF%E5%8C%BB%E5%AD%A6%E8%AE%BA%E6%96%87-165D9C" alt="目标 可投稿医学论文" />
 </p>
 
