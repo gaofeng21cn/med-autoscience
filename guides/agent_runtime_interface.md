@@ -2,6 +2,9 @@
 
 这份文档写给 `Codex` 等 Agent 以及需要审阅 Agent 行为的技术合作者。
 
+它属于仓库的稳定技术指南层，因此放在 `guides/` 下。
+与之相对，`docs/` 更偏内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
+
 `MedAutoScience` 对外可以继续称为医学自动科研平台，但它的本质是一个 `Agent-first, human-auditable` 的医学自动科研运行层：
 
 - 人类负责提出研究任务、提供数据、审阅结果和做关键决策

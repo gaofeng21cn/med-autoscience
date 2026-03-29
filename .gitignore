@@ -9,4 +9,5 @@ build/
 profiles/*.local.toml
 !profiles/*.template.toml
 RTK.md
+# Internal agent working notes, specs, and plans are kept under docs/ and are not part of the published repo surface.
 docs/

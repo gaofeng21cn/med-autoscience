@@ -16,6 +16,12 @@
 - 优先通过 profile、overlay、controller 影响 `DeepScientist`，避免直接修改 `DeepScientist core`。
 - 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到技术文档或控制器说明，而不是让首页退化成命令手册。
 
+## 文档分层
+
+- `guides/` 放可随仓库发布的稳定技术指南，面向 Agent 与技术协作者。
+- `docs/` 放内部设计稿、spec、plan 和 agent 工作过程产物，默认不作为公开发布面的一部分。
+- 不要把需要公开引用的稳定指南继续放回 `docs/`；优先放到 `guides/`。
+
 ## 数据与状态变更
 
 - 读状态优先于做变更。
