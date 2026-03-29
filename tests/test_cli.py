@@ -598,6 +598,71 @@ def test_medical_publication_surface_command_dispatches_controller(monkeypatch, 
     assert '"status": "clear"' in captured.out
 
 
+def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_controller(
+        *,
+        quest_root: Path,
+        apply: bool,
+        outbox_path: Path | None = None,
+        daemon_url: str | None = None,
+        accepted_figures: dict[str, str] | None = None,
+        figure_tickets: dict[str, str] | None = None,
+        required_routes: list[str] | None = None,
+        min_figure_mentions: int = 12,
+        min_reference_count: int = 12,
+        recent_window: int = 120,
+        source: str = "medautosci-figure-loop-guard",
+    ) -> dict:
+        called["quest_root"] = quest_root
+        called["apply"] = apply
+        called["accepted_figures"] = accepted_figures
+        called["figure_tickets"] = figure_tickets
+        called["required_routes"] = required_routes
+        called["min_figure_mentions"] = min_figure_mentions
+        called["min_reference_count"] = min_reference_count
+        called["recent_window"] = recent_window
+        called["source"] = source
+        return {"status": "blocked", "blockers": ["figure_loop_budget_exceeded"]}
+
+    monkeypatch.setattr(cli.figure_loop_guard, "run_controller", fake_run_controller)
+
+    exit_code = cli.main(
+        [
+            "figure-loop-guard",
+            "--quest-root",
+            str(tmp_path / "q001"),
+            "--apply",
+            "--accepted-figure",
+            "F4B=teacher accepted",
+            "--figure-ticket",
+            "F3C=text overflow",
+            "--required-route",
+            "literature_scout",
+            "--min-figure-mentions",
+            "3",
+            "--min-reference-count",
+            "12",
+            "--recent-window",
+            "120",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "q001"
+    assert called["apply"] is True
+    assert called["accepted_figures"] == {"F4B": "teacher accepted"}
+    assert called["figure_tickets"] == {"F3C": "text overflow"}
+    assert called["required_routes"] == ["literature_scout"]
+    assert called["min_figure_mentions"] == 3
+    assert called["min_reference_count"] == 12
+    assert called["recent_window"] == 120
+    assert '"figure_loop_budget_exceeded"' in captured.out
+
+
 def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

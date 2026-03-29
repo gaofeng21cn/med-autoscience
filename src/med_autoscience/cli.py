@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
+    figure_loop_guard,
     medical_publication_surface,
     publication_gate,
     reference_papers as reference_papers_controller,
@@ -52,6 +53,20 @@ def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
     if payload_file:
         return json.loads(Path(payload_file).read_text(encoding="utf-8"))
     return json.loads(payload_json)
+
+
+def _parse_key_value_pairs(values: list[str]) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    for raw in values:
+        item = str(raw).strip()
+        if not item:
+            continue
+        if "=" in item:
+            key, note = item.split("=", 1)
+        else:
+            key, note = item, ""
+        parsed[key.strip().upper()] = note.strip()
+    return parsed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -143,6 +158,19 @@ def build_parser() -> argparse.ArgumentParser:
     surface_parser.add_argument("--quest-root", required=True)
     surface_parser.add_argument("--apply", action="store_true")
     surface_parser.add_argument("--daemon-url", default="http://127.0.0.1:20999")
+
+    figure_loop_guard_parser = subparsers.add_parser("figure-loop-guard")
+    figure_loop_guard_parser.add_argument("--quest-root", required=True)
+    figure_loop_guard_parser.add_argument("--apply", action="store_true")
+    figure_loop_guard_parser.add_argument("--outbox-path", type=str)
+    figure_loop_guard_parser.add_argument("--daemon-url", type=str)
+    figure_loop_guard_parser.add_argument("--accepted-figure", action="append", default=[])
+    figure_loop_guard_parser.add_argument("--figure-ticket", action="append", default=[])
+    figure_loop_guard_parser.add_argument("--required-route", action="append", default=[])
+    figure_loop_guard_parser.add_argument("--min-figure-mentions", type=int, default=12)
+    figure_loop_guard_parser.add_argument("--min-reference-count", type=int, default=12)
+    figure_loop_guard_parser.add_argument("--recent-window", type=int, default=120)
+    figure_loop_guard_parser.add_argument("--source", default="medautosci-figure-loop-guard")
 
     delivery_parser = subparsers.add_parser("sync-study-delivery")
     delivery_parser.add_argument("--paper-root", required=True)
@@ -326,6 +354,23 @@ def main(argv: list[str] | None = None) -> int:
             quest_root=Path(args.quest_root),
             apply=args.apply,
             daemon_url=args.daemon_url,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "figure-loop-guard":
+        result = figure_loop_guard.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
+            outbox_path=Path(args.outbox_path) if args.outbox_path else None,
+            daemon_url=args.daemon_url,
+            accepted_figures=_parse_key_value_pairs(list(args.accepted_figure or [])),
+            figure_tickets=_parse_key_value_pairs(list(args.figure_ticket or [])),
+            required_routes=list(args.required_route or []),
+            min_figure_mentions=int(args.min_figure_mentions),
+            min_reference_count=int(args.min_reference_count),
+            recent_window=int(args.recent_window),
+            source=str(args.source),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

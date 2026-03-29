@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 from med_autoscience.adapters import report_store
 from med_autoscience.adapters.deepscientist import runtime
-from med_autoscience.controllers import data_asset_gate, medical_publication_surface, publication_gate
+from med_autoscience.controllers import data_asset_gate, figure_loop_guard, medical_publication_surface, publication_gate
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -24,6 +24,7 @@ def build_default_controller_runners() -> dict[str, ControllerRunner]:
         "data_asset_gate": data_asset_gate.run_controller,
         "publication_gate": publication_gate.run_controller,
         "medical_publication_surface": medical_publication_surface.run_controller,
+        "figure_loop_guard": figure_loop_guard.run_controller,
     }
 
 
@@ -59,6 +60,14 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
             "outdated_dataset_ids": result.get("outdated_dataset_ids") or [],
             "unresolved_dataset_ids": result.get("unresolved_dataset_ids") or [],
             "public_support_dataset_ids": result.get("public_support_dataset_ids") or [],
+        }
+    elif controller_name == "figure_loop_guard":
+        payload = {
+            "status": result.get("status"),
+            "blockers": result.get("blockers") or [],
+            "dominant_figure_id": result.get("dominant_figure_id"),
+            "dominant_figure_mentions": result.get("dominant_figure_mentions"),
+            "reference_count": result.get("reference_count"),
         }
     else:
         payload = result

@@ -56,6 +56,12 @@ def test_applies_new_blocker_once(tmp_path: Path) -> None:
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
 
+def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    runners = module.build_default_controller_runners()
+    assert "figure_loop_guard" in runners
+
+
 def test_suppresses_duplicate_blocker(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
@@ -90,6 +96,40 @@ def test_suppresses_duplicate_blocker(tmp_path: Path) -> None:
 
     assert first["controllers"]["medical_publication_surface"]["action"] == "applied"
     assert second["controllers"]["medical_publication_surface"]["action"] == "suppressed"
+    assert calls == [False, True, False]
+
+
+def test_suppresses_duplicate_figure_loop_guard_blocker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return {
+            "status": "blocked",
+            "blockers": ["figure_loop_budget_exceeded"],
+            "dominant_figure_id": "F4B",
+            "dominant_figure_mentions": 18,
+            "reference_count": 7,
+            "report_json": str(quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.md"),
+            "intervention_enqueued": apply,
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"figure_loop_guard": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"figure_loop_guard": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["figure_loop_guard"]["action"] == "applied"
+    assert second["controllers"]["figure_loop_guard"]["action"] == "suppressed"
     assert calls == [False, True, False]
 
 
