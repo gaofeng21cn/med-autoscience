@@ -14,6 +14,7 @@ def write_profile(path: Path) -> None:
                 'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
                 'deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime"',
+                'deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -103,6 +104,28 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
     assert "q001" in captured.out
+
+
+def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_run_upgrade_check(profile, *, refresh: bool) -> dict:
+        called["profile"] = profile
+        called["refresh"] = refresh
+        return {"decision": "upgrade_available", "recommended_actions": ["pull_origin_main_then_reapply_medical_overlay"]}
+
+    monkeypatch.setattr(cli.deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
+
+    exit_code = cli.main(["deepscientist-upgrade-check", "--profile", str(profile_path), "--refresh"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
+    assert called["refresh"] is True
+    assert '"decision": "upgrade_available"' in captured.out
 
 
 def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

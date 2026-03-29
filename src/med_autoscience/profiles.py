@@ -17,6 +17,7 @@ class WorkspaceProfile:
     studies_root: Path
     portfolio_root: Path
     deepscientist_runtime_root: Path
+    deepscientist_repo_root: Path | None
     default_publication_profile: str
     default_citation_style: str
     enable_medical_overlay: bool
@@ -37,6 +38,11 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         studies_root=Path(payload["studies_root"]).expanduser().resolve(),
         portfolio_root=Path(payload["portfolio_root"]).expanduser().resolve(),
         deepscientist_runtime_root=Path(payload["deepscientist_runtime_root"]).expanduser().resolve(),
+        deepscientist_repo_root=(
+            Path(payload["deepscientist_repo_root"]).expanduser().resolve()
+            if payload.get("deepscientist_repo_root")
+            else None
+        ),
         default_publication_profile=str(payload["default_publication_profile"]),
         default_citation_style=str(payload["default_citation_style"]),
         enable_medical_overlay=bool(payload.get("enable_medical_overlay", True)),

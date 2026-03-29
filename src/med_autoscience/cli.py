@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
+    deepscientist_upgrade_check,
     figure_loop_guard,
     medical_publication_surface,
     publication_gate,
@@ -191,6 +192,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
+
+    deepscientist_upgrade_check_parser = subparsers.add_parser("deepscientist-upgrade-check")
+    deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
+    deepscientist_upgrade_check_parser.add_argument("--refresh", action="store_true")
     return parser
 
 
@@ -206,6 +211,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "show-profile":
         profile = load_profile(args.profile)
         print(render_profile(profile), end="")
+        return 0
+
+    if args.command == "deepscientist-upgrade-check":
+        profile = load_profile(args.profile)
+        result = deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "watch":

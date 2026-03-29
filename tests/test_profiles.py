@@ -15,6 +15,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
                 'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
                 'deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime"',
+                'deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -47,6 +48,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
 
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert profile.deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -88,6 +90,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.load_profile(profile_path)
 
+    assert profile.deepscientist_repo_root is None
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "global"
     assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
