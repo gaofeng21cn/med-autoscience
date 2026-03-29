@@ -112,7 +112,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-ro
 PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /path/to/runtime/quests/002-early-residual-risk
 ```
 
-这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`，startup 阶段的数据准备度摘要会写到 `portfolio/data_assets/startup/latest_startup_data_readiness.json`，而 quest 级 `data-asset-gate` 会把数据过期或 public-data 扩展机会直接上升成 runtime 控制信号。
+这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`，startup 阶段的数据准备度摘要会写到 `portfolio/data_assets/startup/latest_startup_data_readiness.json`。quest 级 `data-asset-gate` 采用双层信号：私有数据过期或契约未闭合属于 hard block，public-data 扩展机会属于 advisory，不再单独中断主实验。
 
 ## 最小部署
 

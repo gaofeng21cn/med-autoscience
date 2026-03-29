@@ -88,6 +88,7 @@ def _study_summary(impact_report: dict[str, Any], *, actionable_public_datasets:
         )
         has_unresolved_contract = any(
             dataset.get("private_version_status") in {"unversioned_path", "family_not_registered"}
+            or dataset.get("private_contract_status") in {"directory_scan_only", "release_not_registered"}
             for dataset in dataset_inputs
             if isinstance(dataset, dict)
         )

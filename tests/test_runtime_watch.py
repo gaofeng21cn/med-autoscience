@@ -226,3 +226,76 @@ def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:
     assert first["controllers"]["data_asset_gate"]["action"] == "applied"
     assert second["controllers"]["data_asset_gate"]["action"] == "suppressed"
     assert calls == [False, True, False]
+
+
+def test_applies_data_asset_gate_advisory_once(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return {
+            "status": "advisory",
+            "blockers": [],
+            "advisories": ["public_data_extension_available"],
+            "study_id": quest_root.name,
+            "public_support_dataset_ids": ["geo-gse000001"],
+            "report_json": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.md"),
+            "intervention_enqueued": apply,
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["data_asset_gate"]["status"] == "advisory"
+    assert first["controllers"]["data_asset_gate"]["action"] == "applied"
+    assert second["controllers"]["data_asset_gate"]["action"] == "suppressed"
+    assert calls == [False, True, False]
+
+
+def test_reapplies_data_asset_gate_when_unresolved_dataset_ids_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+    state = {"unresolved_dataset_ids": ["ds_a"]}
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return {
+            "status": "blocked",
+            "blockers": ["unresolved_private_data_contract"],
+            "advisories": [],
+            "study_id": quest_root.name,
+            "outdated_dataset_ids": [],
+            "unresolved_dataset_ids": list(state["unresolved_dataset_ids"]),
+            "public_support_dataset_ids": [],
+            "report_json": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "data_asset_gate" / "latest.md"),
+            "intervention_enqueued": apply,
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+    state["unresolved_dataset_ids"] = ["ds_b"]
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"data_asset_gate": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["data_asset_gate"]["action"] == "applied"
+    assert second["controllers"]["data_asset_gate"]["action"] == "applied"
+    assert calls == [False, True, False, True]

@@ -128,6 +128,62 @@ def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_p
     assert report_path.exists()
 
 
+def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+    module.init_data_assets(workspace_root=workspace_root)
+
+    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "datasets": [
+                    {
+                        "dataset_id": "geo-gse000009",
+                        "source_type": "GEO",
+                        "accession": "GSE000009",
+                        "roles": ["external_validation"],
+                        "target_families": ["master"],
+                        "target_dataset_ids": ["nfpitnet_master"],
+                        "status": "rejected",
+                        "rationale": "Rejected after screening.",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    assert result["study_count"] == 1
+    study = result["studies"][0]
+    assert study["status"] == "clear"
+    dataset = study["dataset_inputs"][0]
+    assert dataset["public_support_count"] == 0
+    assert dataset["public_support_dataset_ids"] == []
+
+
 def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
@@ -153,6 +209,28 @@ def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path
     assert result["study_count"] == 1
     assert result["studies"][0]["dataset_inputs"][0]["dataset_id"] == "nfpitnet_master"
     assert result["studies"][0]["dataset_inputs"][0]["private_version_status"] == "up_to_date"
+
+
+def test_assess_data_asset_impact_marks_directory_scan_release_as_unresolved_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    assert result["study_count"] == 1
+    study = result["studies"][0]
+    assert study["status"] == "review_needed"
+    dataset = study["dataset_inputs"][0]
+    assert dataset["private_version_status"] == "up_to_date"
+    assert dataset["private_contract_status"] == "directory_scan_only"
 
 
 def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_path: Path) -> None:

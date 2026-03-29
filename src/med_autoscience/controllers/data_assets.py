@@ -496,6 +496,16 @@ def _latest_versions_by_family(releases: list[dict[str, object]]) -> dict[str, s
     return latest
 
 
+def _release_index(releases: list[dict[str, object]]) -> dict[tuple[str, str], dict[str, object]]:
+    index: dict[tuple[str, str], dict[str, object]] = {}
+    for release in releases:
+        family_id = release.get("family_id")
+        version_id = release.get("version_id")
+        if isinstance(family_id, str) and isinstance(version_id, str):
+            index[(family_id, version_id)] = release
+    return index
+
+
 def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     dataset_inputs = payload.get("dataset_inputs")
@@ -515,6 +525,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     private_payload = _load_json(_private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
     public_payload = _load_public_registry(workspace_root)
     latest_versions = _latest_versions_by_family(private_payload["releases"])
+    release_index = _release_index(private_payload["releases"])
     diff_cache: dict[tuple[str, str, str], dict[str, object]] = {}
 
     studies_root = workspace_root / "studies"
@@ -533,6 +544,11 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             if isinstance(manifest_version, str) and manifest_version:
                 version_id = manifest_version
             latest_version = latest_versions.get(family_id) if family_id is not None else None
+            bound_release = (
+                release_index.get((family_id, version_id))
+                if isinstance(family_id, str) and isinstance(version_id, str)
+                else None
+            )
             if family_id is None or version_id is None:
                 private_status = "unversioned_path"
             elif latest_version is None:
@@ -542,6 +558,15 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             else:
                 private_status = "older_than_latest"
                 overall_status = "review_needed"
+            if family_id is None or version_id is None:
+                private_contract_status = None
+            elif bound_release is None:
+                private_contract_status = "release_not_registered"
+                overall_status = "review_needed"
+            else:
+                private_contract_status = str(bound_release.get("contract_status") or "directory_scan_only")
+                if private_contract_status != "manifest_backed":
+                    overall_status = "review_needed"
             upgrade_diff_report_path: str | None = None
             upgrade_diff_report_exists = False
             if family_id is not None and version_id is not None and latest_version is not None and latest_version != version_id:
@@ -562,6 +587,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                 dataset
                 for dataset in public_payload.get("datasets", [])
                 if dataset.get("validation", {}).get("is_valid")
+                if dataset.get("status") != "rejected"
                 if dataset_id in dataset.get("target_dataset_ids", []) or family_id in dataset.get("target_families", [])
             ]
             if public_matches:
@@ -575,6 +601,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     "version_id": version_id,
                     "latest_private_version": latest_version,
                     "private_version_status": private_status,
+                    "private_contract_status": private_contract_status,
                     "upgrade_diff_report_path": upgrade_diff_report_path,
                     "upgrade_diff_report_exists": upgrade_diff_report_exists,
                     "public_support_count": len(public_matches),
