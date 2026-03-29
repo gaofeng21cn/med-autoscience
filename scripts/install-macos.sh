@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly RELEASE_VERSION="0.1.0a3"
-readonly WHEEL_FILENAME="med_autoscience-0.1.0a3-py3-none-any.whl"
-readonly RELEASE_BASE_URL="https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a3"
+readonly RELEASE_VERSION="0.1.0a4"
+readonly WHEEL_FILENAME="med_autoscience-0.1.0a4-py3-none-any.whl"
+readonly RELEASE_BASE_URL="https://github.com/gaofeng21cn/med-autoscience/releases/download/v0.1.0a4"
 readonly LOCAL_BIN_DIR="${HOME}/.local/bin"
 readonly UV_INSTALL_SCRIPT_URL="https://astral.sh/uv/install.sh"
 CLEANUP_DIR=""
