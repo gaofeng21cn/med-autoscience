@@ -4,6 +4,14 @@
 
 目标是让一台新电脑尽快具备运行 `MedAutoScience` 的基本条件，而不是在界面里手动点来点去。
 
+`MedAutoScience` 默认按 `Agent-first, human-auditable` 设计：
+
+- Agent 调用 CLI / controller 作为稳定执行面
+- 人类主要提供任务、数据和审阅反馈
+- 底层状态更新应优先通过结构化 payload 驱动，而不是直接手改 registry
+
+因此，这里的 bootstrap 说明主要是给 Agent 看“如何接入并接管一个医学 workspace”，不是要求医生自己维护运行细节。
+
 ## 预期前提
 
 - 仓库已 clone 到本机任意工作目录
@@ -94,7 +102,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-st
 
 - 检查 profile 指向的 workspace / runtime 是否可见
 - 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
-- 初始化并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
+- 通过 controller 统一刷新并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
 
 如果想单独重跑数据资产层，也可以继续显式执行：
 
@@ -105,6 +113,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-roo
 PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli validate-public-registry --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli startup-data-readiness --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli apply-data-asset-update --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --payload-file /tmp/data_update.json
 PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
 PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests/<study-id>
@@ -138,3 +147,4 @@ PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile 
 - 一键 bootstrap 脚本
 - workspace-local thin entry layer 的模板化与自动生成
 - 新课题启动/选题的统一入口
+- 更高层的 Agent 调用适配，使自然语言任务更容易落到结构化 controller payload

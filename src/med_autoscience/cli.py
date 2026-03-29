@@ -13,6 +13,7 @@ from med_autoscience.doctor import (
 from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
+    data_asset_updates as data_asset_updates_controller,
     medical_publication_surface,
     publication_gate,
     runtime_watch,
@@ -39,6 +40,16 @@ def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
         "quest_root": Path(args.quest_root) if getattr(args, "quest_root", None) else None,
         "skill_ids": None,
     }
+
+
+def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
+    payload_file = getattr(args, "payload_file", None)
+    payload_json = getattr(args, "payload_json", None)
+    if bool(payload_file) == bool(payload_json):
+        raise SystemExit("Specify exactly one of --payload-file or --payload-json")
+    if payload_file:
+        return json.loads(Path(payload_file).read_text(encoding="utf-8"))
+    return json.loads(payload_json)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,6 +81,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     startup_data_readiness_parser = subparsers.add_parser("startup-data-readiness")
     startup_data_readiness_parser.add_argument("--workspace-root", required=True)
+
+    apply_data_asset_update_parser = subparsers.add_parser("apply-data-asset-update")
+    apply_data_asset_update_parser.add_argument("--workspace-root", required=True)
+    apply_data_asset_update_parser.add_argument("--payload-file", type=str)
+    apply_data_asset_update_parser.add_argument("--payload-json", type=str)
 
     diff_private_release_parser = subparsers.add_parser("diff-private-release")
     diff_private_release_parser.add_argument("--workspace-root", required=True)
@@ -187,6 +203,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "apply-data-asset-update":
+        result = data_asset_updates_controller.apply_data_asset_update(
+            workspace_root=Path(args.workspace_root),
+            payload=_load_json_payload_from_args(args),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "diff-private-release":
         result = data_assets.build_private_release_diff(
             workspace_root=Path(args.workspace_root),
@@ -292,11 +316,7 @@ def main(argv: list[str] | None = None) -> int:
             overlay_install = overlay_installer.install_medical_overlay(**overlay_request)
             overlay_status = overlay_installer.describe_medical_overlay(**overlay_request)
         workspace_root = profile.workspace_root
-        data_assets_init = data_assets.init_data_assets(workspace_root=workspace_root)
-        public_validation = data_assets.validate_public_registry(workspace_root=workspace_root)
-        impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
-        startup_data_readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=workspace_root)
-        data_assets_status = data_assets.data_assets_status(workspace_root=workspace_root)
+        data_assets_refresh = data_asset_updates_controller.refresh_data_assets(workspace_root=workspace_root)
         result = {
             "profile": profile.name,
             "doctor": {
@@ -315,16 +335,7 @@ def main(argv: list[str] | None = None) -> int:
             },
             "overlay_install": overlay_install,
             "overlay_status": overlay_status,
-            "data_assets": {
-                "init": data_assets_init,
-                "status": data_assets_status,
-                "public_validation": public_validation,
-                "impact_report": {
-                    "study_count": impact_report.get("study_count"),
-                    "report_path": str(data_assets._impact_report_path(workspace_root)),
-                },
-                "startup_data_readiness": startup_data_readiness,
-            },
+            "data_assets": data_assets_refresh,
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

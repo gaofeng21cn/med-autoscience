@@ -1,6 +1,7 @@
 __all__ = [
     "data_asset_gate",
     "data_assets",
+    "data_asset_updates",
     "startup_data_readiness",
     "publication_gate",
     "medical_publication_surface",

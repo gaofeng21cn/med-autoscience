@@ -213,6 +213,36 @@ def test_validate_public_registry_command_dispatches_controller(monkeypatch, tmp
     assert '"dataset_count": 2' in captured.out
 
 
+def test_apply_data_asset_update_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+    payload_file = tmp_path / "payload.json"
+    payload_file.write_text('{"action":"refresh_all"}\n', encoding="utf-8")
+
+    def fake_apply(*, workspace_root: Path, payload: dict) -> dict:
+        called["workspace_root"] = workspace_root
+        called["payload"] = payload
+        return {"status": "applied", "action": payload["action"]}
+
+    monkeypatch.setattr(cli.data_asset_updates_controller, "apply_data_asset_update", fake_apply)
+
+    exit_code = cli.main(
+        [
+            "apply-data-asset-update",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+            "--payload-file",
+            str(payload_file),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["payload"] == {"action": "refresh_all"}
+    assert '"action": "refresh_all"' in captured.out
+
+
 def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -638,42 +668,22 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
         calls["status_default_citation_style"] = default_citation_style
         return {"all_targets_ready": True}
 
-    def fake_init_data_assets(*, workspace_root: Path) -> dict:
-        calls.setdefault("call_order", []).append("init_data_assets")
-        calls["init_data_assets_workspace_root"] = workspace_root
-        return {"private": {"release_count": 1}}
-
-    def fake_data_assets_status(*, workspace_root: Path) -> dict:
-        calls.setdefault("call_order", []).append("data_assets_status")
-        calls["data_assets_status_workspace_root"] = workspace_root
-        return {"layout_ready": True}
-
-    def fake_validate_public_registry(*, workspace_root: Path) -> dict:
-        calls.setdefault("call_order", []).append("validate_public_registry")
-        calls["validate_public_registry_workspace_root"] = workspace_root
-        return {"valid_dataset_count": 1}
-
-    def fake_assess_data_asset_impact(*, workspace_root: Path) -> dict:
-        calls.setdefault("call_order", []).append("assess_data_asset_impact")
-        calls["assess_data_asset_impact_workspace_root"] = workspace_root
+    def fake_refresh_data_assets(*, workspace_root: Path) -> dict:
+        calls["refresh_data_assets_workspace_root"] = workspace_root
         return {
-            "study_count": 2,
-            "studies": [{"study_id": "002", "status": "review_needed"}],
-            "report_path": "/tmp/impact.json",
+            "init": {"private": {"release_count": 1}},
+            "status": {"layout_ready": True},
+            "public_validation": {"valid_dataset_count": 1},
+            "impact_report": {"study_count": 2, "report_path": "/tmp/impact.json"},
+            "startup_data_readiness": {
+                "status": "attention_needed",
+                "recommendations": ["screen_valid_public_datasets_for_extension"],
+            },
         }
-
-    def fake_startup_data_readiness(*, workspace_root: Path) -> dict:
-        calls.setdefault("call_order", []).append("startup_data_readiness")
-        calls["startup_data_readiness_workspace_root"] = workspace_root
-        return {"status": "attention_needed", "recommendations": ["screen_valid_public_datasets_for_extension"]}
 
     monkeypatch.setattr(cli.overlay_installer, "install_medical_overlay", fake_install)
     monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
-    monkeypatch.setattr(cli.data_assets, "init_data_assets", fake_init_data_assets)
-    monkeypatch.setattr(cli.data_assets, "data_assets_status", fake_data_assets_status)
-    monkeypatch.setattr(cli.data_assets, "validate_public_registry", fake_validate_public_registry)
-    monkeypatch.setattr(cli.data_assets, "assess_data_asset_impact", fake_assess_data_asset_impact)
-    monkeypatch.setattr(cli.startup_data_readiness_controller, "startup_data_readiness", fake_startup_data_readiness)
+    monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
 
     exit_code = cli.main(["bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
@@ -721,18 +731,7 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
     )
     assert calls["status_default_publication_profile"] == "general_medical_journal"
     assert calls["status_default_citation_style"] == "AMA"
-    assert calls["init_data_assets_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["data_assets_status_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["validate_public_registry_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["assess_data_asset_impact_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["startup_data_readiness_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["call_order"] == [
-        "init_data_assets",
-        "validate_public_registry",
-        "assess_data_asset_impact",
-        "startup_data_readiness",
-        "data_assets_status",
-    ]
+    assert calls["refresh_data_assets_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert '"installed_count": 5' in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
