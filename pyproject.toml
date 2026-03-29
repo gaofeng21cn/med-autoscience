@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "med-autoscience"
-version = "0.1.0a1"
+version = "0.1.0a2"
 description = "Medical research overlay platform for DeepScientist-driven studies."
 readme = "README.md"
 requires-python = ">=3.12"
