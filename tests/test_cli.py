@@ -243,6 +243,105 @@ def test_apply_data_asset_update_command_dispatches_controller(monkeypatch, tmp_
     assert '"action": "refresh_all"' in captured.out
 
 
+def test_recommend_aris_sidecar_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+    payload_file = tmp_path / "recommend.json"
+    payload_file.write_text(
+        '{"requires_algorithmic_innovation": true, "task_definition_ready": true, "data_contract_frozen": true, '
+        '"evaluation_contract_ready": true, "compute_budget_available": true, "baseline_available": true}\n',
+        encoding="utf-8",
+    )
+
+    def fake_recommend(*, quest_root: Path, payload: dict) -> dict:
+        called["quest_root"] = quest_root
+        called["payload"] = payload
+        return {"status": "recommended", "recommendation": "request_user_confirmation"}
+
+    monkeypatch.setattr(cli.aris_sidecar_controller, "recommend_aris_sidecar", fake_recommend)
+
+    exit_code = cli.main(
+        [
+            "recommend-aris-sidecar",
+            "--quest-root",
+            str(tmp_path / "runtime" / "quests" / "q001"),
+            "--payload-file",
+            str(payload_file),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "runtime" / "quests" / "q001"
+    assert called["payload"]["baseline_available"] is True
+    assert '"recommended"' in captured.out
+
+
+def test_provision_aris_sidecar_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+    payload_file = tmp_path / "contract.json"
+    payload_file.write_text(
+        '{"problem_anchor": {"clinical_question": "q", "research_object": "o", "endpoint": "e", "task_type": "t"}, '
+        '"data_contract": {"dataset_version": "v1", "modalities": ["ct"], "splits": "locked", '
+        '"external_validation_required": true, "preprocessing_boundary": "v1"}, '
+        '"evaluation_contract": {"primary_metric": "auroc", "secondary_metrics": ["auprc"], '
+        '"required_baselines": ["b1"], "statistics": ["bootstrap_ci"], "compute_budget": {"gpu_hours": 8}}, '
+        '"innovation_scope": {"allowed": ["fusion"], "forbidden": ["endpoint_redefinition"]}, '
+        '"writing_questions": ["a", "b", "c", "d"], '
+        '"optional_context": {}, '
+        '"user_confirmation": {"confirmed": true, "confirmed_by": "human", "confirmed_at": "2026-03-29T12:00:00+00:00"}}\n',
+        encoding="utf-8",
+    )
+
+    def fake_provision(*, quest_root: Path, payload: dict) -> dict:
+        called["quest_root"] = quest_root
+        called["payload"] = payload
+        return {"status": "contract_frozen", "sidecar_root": str(quest_root / "sidecars" / "aris")}
+
+    monkeypatch.setattr(cli.aris_sidecar_controller, "provision_aris_sidecar", fake_provision)
+
+    exit_code = cli.main(
+        [
+            "provision-aris-sidecar",
+            "--quest-root",
+            str(tmp_path / "runtime" / "quests" / "q001"),
+            "--payload-file",
+            str(payload_file),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "runtime" / "quests" / "q001"
+    assert called["payload"]["user_confirmation"]["confirmed"] is True
+    assert '"contract_frozen"' in captured.out
+
+
+def test_import_aris_sidecar_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_import(*, quest_root: Path) -> dict:
+        called["quest_root"] = quest_root
+        return {"status": "imported", "artifact_root": str(quest_root / "artifacts" / "algorithm_research" / "aris")}
+
+    monkeypatch.setattr(cli.aris_sidecar_controller, "import_aris_sidecar_result", fake_import)
+
+    exit_code = cli.main(
+        [
+            "import-aris-sidecar",
+            "--quest-root",
+            str(tmp_path / "runtime" / "quests" / "q001"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "runtime" / "quests" / "q001"
+    assert '"imported"' in captured.out
+
+
 def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
