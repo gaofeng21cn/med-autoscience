@@ -7,8 +7,8 @@
 <p align="center"><strong>A publication-oriented platform from disease data to submission-ready manuscripts</strong></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Position-Medical%20Research%20Platform-0B8BD9" alt="Position Medical Research Platform" />
-  <img src="https://img.shields.io/badge/Docs%20%2F%20Manuscripts-Chinese%20Docs%20%2F%20English%20Manuscripts-1E8FB3" alt="Docs Chinese Docs / English Manuscripts" />
+  <img src="https://img.shields.io/badge/Medical%20Research%20Platform-0B8BD9?style=flat-square" alt="Medical Research Platform" />
+  <img src="https://img.shields.io/badge/Chinese%20Docs%20%2F%20English%20Manuscripts-1E8FB3?style=flat-square" alt="Chinese Docs / English Manuscripts" />
 </p>
 
 <p align="center">
