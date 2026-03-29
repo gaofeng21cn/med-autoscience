@@ -11,8 +11,8 @@ def test_release_version_is_first_macos_prerelease() -> None:
     pyproject_data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     init_text = (REPO_ROOT / "src" / "med_autoscience" / "__init__.py").read_text(encoding="utf-8")
 
-    assert pyproject_data["project"]["version"] == "0.1.0a1"
-    assert '__version__ = "0.1.0a1"' in init_text
+    assert pyproject_data["project"]["version"] == "0.1.0a2"
+    assert '__version__ = "0.1.0a2"' in init_text
 
 
 def test_release_installer_version_matches_package_version() -> None:

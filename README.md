@@ -150,7 +150,7 @@
 1. 安装
 
    ```bash
-   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a1/install-macos.sh | bash
+   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a2/install-macos.sh | bash
    ```
 
    - 安装脚本会自动下载或复用 `uv`，再用受管的 Python 3.12 安装当前 Release 对应的 `medautosci`。
@@ -171,7 +171,7 @@
 3. 升级与卸载
 
    ```bash
-   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a1/install-macos.sh | bash
+   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a2/install-macos.sh | bash
    ~/.local/bin/uv tool uninstall med-autoscience
    ```
 
@@ -182,4 +182,4 @@
 
    - 当前 CLI 仍在换代，所有命令仅在 Terminal 里执行，暂不提供图形窗口。
    - 该包仅包含运行层代理与 controller 命令，不会自动创建研究 workspace；仍需按照 `profiles` 模板指定已有的临床研究目录。
-   - 当前预发布版本号为 `0.1.0a1`，对应 GitHub tag `v0.1.0a1`。
+   - 当前预发布版本号为 `0.1.0a2`，对应 GitHub tag `v0.1.0a2`。
