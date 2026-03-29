@@ -6,11 +6,20 @@ readonly WHEEL_FILENAME="med_autoscience-0.1.0a1-py3-none-any.whl"
 readonly RELEASE_BASE_URL="https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a1"
 readonly LOCAL_BIN_DIR="${HOME}/.local/bin"
 readonly UV_INSTALL_SCRIPT_URL="https://astral.sh/uv/install.sh"
+CLEANUP_DIR=""
 
 fail() {
   printf "med-autoscience installer error: %s\n" "$1" >&2
   exit 1
 }
+
+cleanup() {
+  if [[ -n "${CLEANUP_DIR:-}" ]]; then
+    rm -rf "${CLEANUP_DIR}"
+  fi
+}
+
+trap cleanup EXIT
 
 check_platform() {
   local os_name
@@ -56,14 +65,12 @@ ensure_uv() {
 }
 
 install_release_wheel() {
-  local tmp_dir
   local wheel_url
   local wheel_path
-  tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "${tmp_dir}"' EXIT
+  CLEANUP_DIR="$(mktemp -d)"
 
   wheel_url="${RELEASE_BASE_URL}/${WHEEL_FILENAME}"
-  wheel_path="${tmp_dir}/${WHEEL_FILENAME}"
+  wheel_path="${CLEANUP_DIR}/${WHEEL_FILENAME}"
 
   printf "downloading %s\n" "${wheel_url}" >&2
   curl -fL "${wheel_url}" -o "${wheel_path}"
