@@ -11,18 +11,15 @@
   <tr>
     <td width="33%" valign="top">
       <strong>面向谁</strong><br/>
-      从专病数据起步的医学研究<br/>
-      <sub>适合希望把课题稳定推进到可投稿水平的临床医生、PI 和医学研究团队</sub>
+      从专病数据起步的医学研究
     </td>
     <td width="33%" valign="top">
       <strong>控制什么</strong><br/>
-      不是只把流程跑完，而是控制研究质量、证据链和收口质量<br/>
-      <sub>Agent 推进执行，人类负责审阅与关键决策</sub>
+      研究质量、证据链和最终收口
     </td>
     <td width="33%" valign="top">
       <strong>最终产出</strong><br/>
-      可审计的数据资产、研究路线、证据组织与投稿交付材料<br/>
-      <sub>重点不是运行记录，而是能够继续推进的医学研究结果</sub>
+      研究路线、证据组织与投稿交付材料
     </td>
   </tr>
 </table>
