@@ -104,6 +104,8 @@ Break ties primarily through careful reasoning over:
 - Do not claim novelty without a written related-work comparison.
 - Do not select an idea before checking whether close prior work already did it.
 - Do not confuse "I can implement this" with "this is a publishable or useful research direction".
+- Do not push ordinary route comparison, literature triage, or candidate ranking back onto the human.
+  In this runtime, the agent is expected to generate, compare, and prune candidate directions; escalate only when a real strategic preference or stop/continue decision remains user-owned.
 - Do not treat a weak literature search as sufficient because the idea sounds elegant.
 - Do not write, promote, or submit a final idea until the durable survey covers at least `5` and usually `5-10` task-modeling-related, mechanism-relevant, or otherwise directly usable papers.
 - Treat that literature floor as a hard gate, not a suggestion.
@@ -130,6 +132,8 @@ Break ties primarily through careful reasoning over:
 - Do not default to brute-force engineering escalation when a cleaner first-principles direction is available.
 - Do not keep generating more ideas once a small, clearly ranked frontier already exists.
 - Do not treat superficial variation as a new idea if the expected mechanism and evidence burden are effectively unchanged.
+- Do not keep a weak fixed-hypothesis route alive just because a draft story exists.
+  If the line lacks a credible path to a stronger paper, prefer routing back through `decision`, adding a sidecar, or switching to a higher-plasticity medical route.
 - Separate generation from evaluation during ideation: generate first, judge second.
 - Start each fresh ideation pass by classifying the current framing as `problem-first` or `solution-first`.
 - Unless strong durable evidence already narrows the route to one obvious serious option, run one bounded divergent pass that produces a small but meaningfully varied slate, usually `6-12` raw ideas before collapsing to a serious frontier that is usually `2-3` and at most `5`.
