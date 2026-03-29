@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "med-autoscience"
+version = "0.1.0"
+description = "Medical research overlay platform for DeepScientist-driven studies."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "Gao Feng" }
+]
+dependencies = []
+
+[project.scripts]
+medautosci = "med_autoscience.cli:entrypoint"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
