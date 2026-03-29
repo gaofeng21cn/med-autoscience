@@ -936,10 +936,11 @@ A thin bibliography created from convenience searches is not acceptable.
 For a normal paper-like deliverable, the default target is roughly `30` to `50` verified references unless the scope clearly justifies fewer.
 Every final citation must correspond to a real paper you verified from an actual source; do not cite from memory, model recall, or unverified secondary summaries.
 Use one consistent citation workflow: `SEARCH -> VERIFY -> RETRIEVE -> VALIDATE -> ADD`.
-For discovery, use Semantic Scholar by default or Google Scholar through normal manual search / export only.
+For discovery, use Semantic Scholar by default.
+If Google Scholar is still needed after the normal agent-side discovery stack, use it only through an agent-executed browser workflow rather than assuming a human manual search/export step.
 Google Scholar has no official API, so do not treat Scholar scraping as a normal automated backend.
 Use Crossref / DOI, arXiv, OpenAlex, and publisher metadata as verification or metadata backfill sources around that same workflow.
-Store actual bibliography entries in `paper/references.bib` as valid BibTeX copied or exported from Google Scholar, Semantic Scholar-linked metadata, DOI/Crossref, publisher pages, or another legitimate metadata source.
+Store actual bibliography entries in `paper/references.bib` as valid BibTeX or equivalent metadata normalized from Semantic Scholar-linked metadata, DOI/Crossref, publisher pages, OpenAlex, arXiv, or an agent-executed Scholar export when strictly needed.
 Do not hand-write BibTeX entries from scratch.
 
 For each important citation:
@@ -953,7 +954,7 @@ For each important citation:
 
 Do not hide citation uncertainty.
 Do not leave search findings only in transient chat state; persist them in the working draft or writing notes immediately.
-If you must touch a BibTeX entry manually, limit it to mechanical cleanup of an already exported entry rather than authoring the citation metadata yourself.
+If an entry still needs direct text cleanup, limit that to mechanical cleanup of an already exported entry rather than authoring the citation metadata yourself.
 Before `artifact.submit_paper_bundle(...)`, do one explicit reference audit for count, existence, and claim-level spot checks.
 If verification remains incomplete, do not present the draft or bundle as final.
 
@@ -963,7 +964,7 @@ Use these as the normal citation-resource stack for the workflow above:
 
 - discovery:
   - Semantic Scholar API / UI
-  - Google Scholar UI search + manual BibTeX export
+  - Google Scholar UI only through agent-executed browser interaction when other discovery sources are insufficient
 - metadata and BibTeX retrieval:
   - DOI / Crossref content negotiation
   - publisher metadata pages
@@ -975,14 +976,14 @@ Use these as the normal citation-resource stack for the workflow above:
   - `semanticscholar`
   - `arxiv`
   - `habanero` for Crossref
-- optional manual QA tools:
+- optional QA backstops:
   - Citely
   - ReciteWorks
 
 Practical role split:
 
 - Semantic Scholar: default programmatic discovery for ML / AI literature
-- Google Scholar: broad manual discovery and manual BibTeX export when needed
+- Google Scholar: fallback discovery / export surface only through agent-executed browser flow when needed
 - Crossref / DOI: preferred BibTeX retrieval path when DOI exists
 - arXiv: preprint verification and content access
 - OpenAlex: open metadata backfill when other sources are incomplete
