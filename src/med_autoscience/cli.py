@@ -16,6 +16,7 @@ from med_autoscience.controllers import (
     data_asset_updates as data_asset_updates_controller,
     medical_publication_surface,
     publication_gate,
+    reference_papers as reference_papers_controller,
     runtime_watch,
     startup_data_readiness as startup_data_readiness_controller,
     study_delivery_sync,
@@ -110,6 +111,9 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_submission_targets_parser.add_argument("--profile", type=str)
     resolve_submission_targets_parser.add_argument("--study-root", type=str)
     resolve_submission_targets_parser.add_argument("--quest-root", type=str)
+
+    resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
+    resolve_reference_papers_parser.add_argument("--quest-root", required=True)
 
     export_submission_targets_parser = subparsers.add_parser("export-submission-targets")
     export_submission_targets_parser.add_argument("--paper-root", type=str)
@@ -242,6 +246,13 @@ def main(argv: list[str] | None = None) -> int:
             paper_root=Path(args.paper_root),
             publication_profile=args.publication_profile,
             citation_style=args.citation_style,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "resolve-reference-papers":
+        result = reference_papers_controller.resolve_reference_papers(
+            quest_root=Path(args.quest_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

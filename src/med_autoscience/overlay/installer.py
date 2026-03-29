@@ -19,6 +19,7 @@ from med_autoscience.policies.study_archetypes import (
     get_archetype,
     render_archetype_block,
 )
+from med_autoscience.reference_papers import render_reference_paper_overlay_block
 from med_autoscience.submission_targets import render_submission_target_overlay_block
 
 
@@ -28,6 +29,7 @@ MANIFEST_NAME = ".med_autoscience_overlay.json"
 ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
 SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
+REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
 FRONTLOAD_STAGE_IDS = frozenset({"scout", "idea", "decision"})
 SKILL_TEMPLATE_MAP = {
     "scout": "deepscientist-scout.SKILL.md",
@@ -132,6 +134,13 @@ def load_overlay_skill_text(
     template_name = SKILL_TEMPLATE_MAP[skill_id]
     template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
     template = template_path.read_text(encoding="utf-8")
+    if skill_id in {"scout", "idea", "write"}:
+        if REFERENCE_PAPERS_TOKEN not in template:
+            raise ValueError(f"Overlay template for {skill_id} is missing reference paper token")
+        template = template.replace(
+            REFERENCE_PAPERS_TOKEN,
+            render_reference_paper_overlay_block(stage_id=skill_id).rstrip(),
+        )
     if skill_id in {"write", "finalize", "journal-resolution"}:
         if SUBMISSION_TARGETS_TOKEN not in template:
             raise ValueError(f"Overlay template for {skill_id} is missing submission target token")

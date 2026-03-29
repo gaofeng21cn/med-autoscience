@@ -5,6 +5,7 @@ __all__ = [
     "startup_data_readiness",
     "publication_gate",
     "medical_publication_surface",
+    "reference_papers",
     "runtime_watch",
     "study_delivery_sync",
     "submission_minimal",

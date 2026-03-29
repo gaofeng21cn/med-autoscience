@@ -36,6 +36,8 @@ The scout stage should usually establish four layers:
 
 If one of these layers is still missing, say so explicitly.
 
+{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
+
 ## Non-negotiable rules
 
 - Do not let `scout` become endless exploration.
@@ -83,6 +85,8 @@ Before spending time scouting, first verify whether the current quest already co
 - recent paper or knowledge memory cards
 
 If the answer is already clear, exit quickly and move to the correct next anchor.
+
+{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
 ## Companion skill rule
 

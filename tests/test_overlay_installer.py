@@ -270,6 +270,23 @@ def test_load_overlay_skill_text_renders_default_submission_targets_when_provide
     assert "AMA" in write_text
 
 
+def test_load_overlay_skill_text_includes_reference_paper_contract_for_scout_idea_write() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    scout_text = module.load_overlay_skill_text("scout")
+    idea_text = module.load_overlay_skill_text("idea")
+    write_text = module.load_overlay_skill_text("write")
+    finalize_text = module.load_overlay_skill_text("finalize")
+
+    assert "Reference paper contract" in scout_text
+    assert "startup_contract.reference_papers" in scout_text
+    assert "scout: required" in scout_text
+    assert "idea: required" in idea_text
+    assert "write: advisory" in write_text
+    assert "do not back-solve missing analyses" in write_text
+    assert "Reference paper contract" not in finalize_text
+
+
 def test_overlay_status_detects_config_drift_when_archetypes_change(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"
