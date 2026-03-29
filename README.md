@@ -117,7 +117,7 @@
 
 如果你需要接入 workspace、查看运行接口、阅读 controller 行为或理解平台规则，请从这里进入：
 
-- Agent 接入与运行接口：[docs/agent_runtime_interface.md](docs/agent_runtime_interface.md)
+- Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
 - 工作区接入与部署：[bootstrap/README.md](bootstrap/README.md)
 - 控制器与内部能力：[controllers/README.md](controllers/README.md)
 - 数据资产策略：[policies/data_asset_management.md](policies/data_asset_management.md)
