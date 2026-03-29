@@ -29,3 +29,11 @@ def test_release_workflow_uses_explicit_prerelease_tag_patterns() -> None:
     assert "a[0-9]+" in workflow
     assert "b[0-9]+" in workflow
     assert "rc[0-9]+" in workflow
+
+
+def test_release_workflows_install_pandoc_before_running_pytest() -> None:
+    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "brew install pandoc" in ci_workflow
+    assert "brew install pandoc" in release_workflow
