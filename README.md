@@ -4,20 +4,31 @@
 
 <h1 align="center">MedAutoScience 医学自动科研平台</h1>
 
-<p align="center"><strong>A publication-oriented platform from disease data to submission-ready manuscripts</strong></p>
+<p align="center"><strong>围绕专病数据与投稿交付的医学自动科研平台</strong></p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Medical%20Research%20Platform-0B8BD9?style=flat-square" alt="Medical Research Platform" />
-  <img src="https://img.shields.io/badge/Chinese%20Docs%20%2F%20English%20Manuscripts-1E8FB3?style=flat-square" alt="Chinese Docs / English Manuscripts" />
-</p>
+- 适合谁：已有专病队列、临床数据库或多模态研究数据，准备把课题推进到可投稿水平的临床医生、PI 和医学研究团队
+- 解决什么：不是要求研究者手工操作底层工具，而是由 Agent 推进执行、由人类审阅决策，把课题组织成更完整、更可发表的医学研究
+- 你会得到什么：可审计的数据资产、可继续推进的研究路线、相对完整的证据组织，以及面向投稿的稿件与交付材料
 
 <p align="center">
   <img src="assets/branding/medautoscience-hero.png" alt="MedAutoScience 主示意图" width="100%" />
 </p>
 
-`MedAutoScience` 的目标，不是把通用 AI 流程机械地跑完，而是围绕手头已有的专病数据与可公开获得的相关数据，稳定、可控地组织出可以投稿的医学论文。
+`MedAutoScience` 对外可以把它看作一个医学自动科研平台，但它的本质不是给人直接操作的工具箱，而是一个 `Agent-first, human-auditable` 的医学自动科研运行层。
 
-它面向的不是单一分析脚本，而是完整的医学研究生产链：选题筛选、数据资产管理、建模与统计分析、公开数据扩展、功能分析、稿件组织与投稿交付。
+它的默认工作方式是：
+
+- 人类负责提出研究任务、提供数据、审阅结果和做关键决策
+- `Codex` 这类 Agent 负责调用平台接口，推进数据治理、研究执行和论文交付组织
+- 平台本身负责提供稳定、可验证、可审计的运行入口，而不是要求医学用户手工维护底层状态文件
+
+## 这个项目适合谁
+
+如果你符合下面这些情况，这个项目通常和你的工作流相关：
+
+- 你手里已经有专病队列、临床数据库、影像或病理数据，希望把课题推进到论文层面
+- 你不想只得到零散分析脚本，而是希望把选题、数据、分析、扩展验证和稿件组织成一条可持续推进的研究链
+- 你希望技术同事和 Agent 参与执行，但最终仍然由人类审阅结果并做关键判断
 
 ## 这个项目解决什么问题
 
@@ -27,10 +38,31 @@
 
 - 先判断某个方向是否值得继续投入，而不是默认把整条线做完
 - 先按医学期刊和临床读者的逻辑组织研究，而不是按通用 AI/ML 论文习惯成文
-- 先形成完整证据包，包括临床意义、工作量、可解释性、亚组分析、临床效用、外部验证与公开数据扩展
+- 先形成完整证据链，包括临床意义、工作量、可解释性、亚组分析、临床效用、外部验证与公开数据扩展
 - 先止损与换题，不在明显偏弱、难发表的方向上空转
 
-## 适合哪些数据
+## 当前已具备的关键能力
+
+当前版本已经能把以下事情组织成闭环，而不只是给出零散工具：
+
+- 把医学研究入口、策略门控与论文交付组织到同一运行层里
+- 把私有数据版本登记、公开数据扩展登记和数据影响评估纳入正式流程
+- 把医学写作中的关键前验要求前移到研究推进过程中，而不是等到写稿末期再补救
+- 支持运行监控、最小投稿包导出和正式交付同步
+- 让 Agent 通过稳定接口推进任务，同时保留清晰的审计痕迹供人类复核
+
+## 你最终会得到什么
+
+如果一个课题值得继续推进，平台更希望帮你得到这些结果：
+
+- 值得继续投入的研究方向，而不是只是“跑过一遍”的流程记录
+- 可追踪的数据资产和公开数据扩展线索
+- 相对完整的分析结果、验证结果和证据组织
+- 面向投稿的稿件、补充材料和交付收口结果
+
+## 适合哪些数据与研究类型
+
+### 数据类型
 
 - 临床结构化数据
 - 影像、病理及其他多模态数据
@@ -38,122 +70,67 @@
 - 本地队列结合公开数据集的扩展分析
 - 持续更新的私有临床数据资产，如补病例、补随访、补字段、多中心并入
 
-## 平台核心组成
+### 课题类型
 
-| 层级 | 角色 | 说明 |
-| --- | --- | --- |
-| 用户入口 | `MedAutoScience` | 面向医学研究者的主入口，负责研究策略、门控、数据资产治理和论文交付组织 |
-| 执行引擎 | `DeepScientist` | 底层自动科研执行引擎 |
-| 协调层 | `Codex` | 把平台策略落实到具体任务推进中的协调执行者 |
-| 外部工具 | `ToolUniverse` | 作为知识检索、功能分析、通路与调控解释的外挂工具层 |
+- 已有明确临床问题、希望形成可投稿研究的课题
+- 需要把私有队列和公开数据组织成连续证据链的课题
+- 需要外部验证、亚组比较或追加检查分流设计的课题
+- 需要把分析结果、扩展验证和稿件交付放在同一条运行链上的课题
 
-## 当前已经实现的能力
+## 平台如何工作
 
-- 独立仓库与 workspace profile 机制
-- `DeepScientist` 医学技能覆盖层安装与重覆写
-- 对 `scout`、`idea`、`decision`、`write`、`finalize` 的医学特化前移约束
-- 发表门槛控制与医学写作表面检查两类论文质量门控
-- 运行监控、最小投稿包导出、正式交付同步
-- 数据资产层：
-  - 私有数据版本登记
-  - 公开数据扩展模块
-  - study 级数据影响评估
-  - ToolUniverse 适配状态探测
-- 医学写作前验约束：
-  - Methods 必填项约束
-  - Results 按研究问题组织，而不是按图表逐张复述
-  - 稿件安全的复现补充材料
-  - 终点来源说明
-  - 内部命名、工程腔与未定义方法学标签拦截
+这个平台的工作逻辑，不是“人来操作一堆工具”，而是“人类定义研究目标，Agent 调用运行层接口推进，平台保留可审计状态”。
 
-## 默认优先的研究模式
+通常按下面的顺序推进：
 
-当前版本已经把以下 6 类相对稳定、可扩展、容易组织成完整医学论文的研究模式沉淀为正式策略：
+1. 先判断课题是否值得继续投入，以及是否符合医学论文的组织逻辑
+2. 再组织私有数据与可用公开数据，明确数据版本、扩展机会和影响范围
+3. 再推进分析、扩展验证、功能解释和证据组织
+4. 最后收敛为面向投稿的稿件、补充材料和交付结果
 
-| Archetype | 中文说明 | 适合的论文方向 |
-| --- | --- | --- |
-| `clinical_classifier` | 临床风险分层 / 分类器 | 风险分层、临床效用、亚组分析、可解释分析 |
-| `clinical_subtype_reconstruction` | 数据驱动亚型重构 | 异质性重构、亚组差异、预后与治疗反应比较 |
-| `external_validation_model_update` | 外部验证 / 模型更新 | 可迁移性、再校准、模型更新 |
-| `gray_zone_triage` | 灰区分诊 / 追加检查分流 | 流程分诊、确诊/排除/灰区设计 |
-| `llm_agent_clinical_task` | 临床任务智能体 | 窄任务评测、提示词 / 推理方式 / 智能体结构比较 |
-| `mechanistic_sidecar_extension` | 机制扩展支持模块 | 公开组学、功能分析、知识库增强 |
+在这条链路里：
 
-这些模式不是要求每一篇论文都全部使用，而是作为默认优先进入主研究候选面的路线库。
+- 人类负责定义问题、补充研究上下文、审阅结果并做关键继续/停止判断
+- Agent 负责调用平台接口推进运行过程，而不是让医学用户手工执行底层命令
+- 平台负责把关键状态、数据资产变化和交付结果落盘，确保过程可审计
 
-## 数据资产层
+如果只看高层角色，可以把内部组成理解为：
 
-医学研究的数据通常不是静态输入，而是持续演进的资产。
+- 医学研究主控与门控：`MedAutoScience`
+- 底层自动科研执行：`DeepScientist`
+- 协调推进 Agent：`Codex`
+- 外部知识与功能扩展：`ToolUniverse`
 
-`MedAutoScience` 把这件事上升成正式模块，分成四部分：
+## 默认优先研究场景
 
-1. 私有数据版本登记  
-   管理本地队列补充、随访刷新、字段补全、多中心并入等私有数据演进，并从 `dataset_manifest.yaml` 提取 release contract。
+当前版本默认优先放在主研究候选面的，是那些相对稳定、验证路径更清楚、也更容易组织成完整医学论文的方向：
 
-2. 公开数据扩展模块  
-   登记可用于外部验证、机制扩展、队列扩展的公开数据集。
+- 临床风险分层与分类
+- 数据驱动亚型重构
+- 外部验证与模型更新
+- 灰区分诊与追加检查分流
 
-3. 影响评估  
-   判断某个 study 当前使用的数据版本是否已经落后，以及是否已有可用的公开数据支持，并给出可复用的私有版本差异报告。
+机制扩展与公开组学支持、临床窄任务智能体评测仍然支持，但更常作为特定课题的侧翼路线或补充模块进入。更细的内部策略命名和规则，放在技术文档里。
 
-4. ToolUniverse 适配  
-   将知识检索、功能分析、通路与调控解释纳入正式平台，而不是散落为临时脚本。
+<details>
+<summary><strong>给技术同事 / AI 执行者</strong></summary>
 
-对应命令包括：
+如果你需要接入 workspace、查看运行接口、阅读 controller 行为或理解平台规则，请从这里进入：
 
-```bash
-PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli validate-public-registry --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli startup-data-readiness --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /path/to/workspace --family-id master --from-version v2026-03-28 --to-version v2026-04-10
-PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /path/to/runtime/quests/002-early-residual-risk
-```
+- Agent 接入与运行接口：[docs/agent_runtime_interface.md](docs/agent_runtime_interface.md)
+- 工作区接入与部署：[bootstrap/README.md](bootstrap/README.md)
+- 控制器与内部能力：[controllers/README.md](controllers/README.md)
+- 数据资产策略：[policies/data_asset_management.md](policies/data_asset_management.md)
+- 默认研究场景：[policies/study_archetypes.md](policies/study_archetypes.md)
+- 研究路线偏置：[policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
 
-这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`，startup 阶段的数据准备度摘要会写到 `portfolio/data_assets/startup/latest_startup_data_readiness.json`。quest 级 `data-asset-gate` 采用双层信号：私有数据过期或契约未闭合属于 hard block，public-data 扩展机会属于 advisory，不再单独中断主实验。
-
-## 最小部署
-
-这部分主要写给 Codex 或其他 AI 执行者。
-
-```bash
-git clone <repo-url> med-autoscience
-cd med-autoscience
-cp profiles/workspace.profile.template.toml profiles/my-study.local.toml
-# 编辑 profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
-```
-
-如果 `doctor` 中这些字段为 `true`，通常说明 workspace 已正确接入：
-
-- `workspace_exists`
-- `runtime_exists`
-- `studies_exists`
-- `portfolio_exists`
-- `deepscientist_runtime_exists`
-
-更细的部署说明见 [bootstrap/README.md](bootstrap/README.md)。
-
-## 仓库文档
-
-- [bootstrap/README.md](bootstrap/README.md)
-- [policies/data_asset_management.md](policies/data_asset_management.md)
-- [policies/study_archetypes.md](policies/study_archetypes.md)
-- [policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
+首页不再直接展示 CLI 命令、JSON payload 和部署细节；这些内容统一下沉到上述文档，供 Agent 调用和人类审计。
+</details>
 
 ## 当前边界
 
-当前版本仍是第一期平台骨架，已经完成医学研究入口、策略偏置、写作前验约束、交付闭环和数据资产基础层。
+当前版本已经能支撑一批医学课题进入可审计、可持续推进的运行流程，但还不是一个把所有研究环节都完全产品化的成熟系统。
 
-后续会继续迁入：
+目前更适合那些研究问题相对明确、数据基础较清楚、需要稳定推进到论文交付的课题。
 
-- 更细粒度的私有数据更新契约
-- 更完整的公开数据接入工作流
-- ToolUniverse 的正式任务级调用链
-- 更完整的医学 study / portfolio / startup brief 模板
-- 更细粒度的 publication profile
-- 基于通用大模型的医学专用智能体研究支持
+对于高度复杂的多中心数据持续更新、更加深入的机制扩展、以及更个性化的投稿适配策略，当前仍需要更多人工判断和技术支持。
