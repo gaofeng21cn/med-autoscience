@@ -8,3 +8,5 @@ build/
 *.egg-info/
 profiles/*.local.toml
 !profiles/*.template.toml
+RTK.md
+docs/
