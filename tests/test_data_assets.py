@@ -20,6 +20,33 @@ def write_dataset_manifest(path: Path, *, dataset_id: str, relative_path: str) -
     )
 
 
+def write_private_release_manifest(
+    path: Path,
+    *,
+    dataset_id: str,
+    version: str,
+    raw_snapshot: str,
+    generated_by: str,
+    main_outputs: dict[str, str],
+    notes: list[str] | None = None,
+    release_contract: dict[str, object] | None = None,
+) -> None:
+    payload: dict[str, object] = {
+        "dataset_id": dataset_id,
+        "version": version,
+        "raw_snapshot": raw_snapshot,
+        "generated_by": generated_by,
+        "main_outputs": main_outputs,
+        "notes": notes or [],
+    }
+    if release_contract is not None:
+        payload["release_contract"] = release_contract
+    import yaml
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
+
+
 def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"
@@ -38,9 +65,10 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     private_registry = json.loads(
         (workspace_root / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
     )
-    assert private_registry["schema_version"] == 1
+    assert private_registry["schema_version"] == 2
     assert private_registry["releases"][0]["family_id"] == "master"
     assert private_registry["releases"][0]["version_id"] == "v2026-03-28"
+    assert private_registry["releases"][0]["inventory_summary"]["file_count"] == 1
 
     public_registry = json.loads(
         (workspace_root / "portfolio" / "data_assets" / "public" / "registry.json").read_text(encoding="utf-8")
@@ -125,3 +153,127 @@ def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path
     assert result["study_count"] == 1
     assert result["studies"][0]["dataset_inputs"][0]["dataset_id"] == "nfpitnet_master"
     assert result["studies"][0]["dataset_inputs"][0]["private_version_status"] == "up_to_date"
+
+
+def test_init_data_assets_extracts_manifest_backed_private_release_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="2026-03-28_baseline",
+        generated_by="pipeline/src/clean_nfpitnet_dataset.py",
+        main_outputs={"analysis_csv": "nfpitnet_analysis.csv"},
+        notes=["baseline freeze"],
+        release_contract={
+            "update_type": ["baseline_refresh"],
+            "qc_status": "locked",
+            "change_summary": "Baseline analysis release.",
+        },
+    )
+    (version_root / "nfpitnet_analysis.csv").write_text("id\n1\n", encoding="utf-8")
+
+    module.init_data_assets(workspace_root=workspace_root)
+
+    private_registry = json.loads(
+        (workspace_root / "portfolio" / "data_assets" / "private" / "registry.json").read_text(encoding="utf-8")
+    )
+    release = private_registry["releases"][0]
+    assert release["contract_status"] == "manifest_backed"
+    assert release["dataset_id"] == "nfpitnet_master"
+    assert release["raw_snapshot"] == "2026-03-28_baseline"
+    assert release["generated_by"] == "pipeline/src/clean_nfpitnet_dataset.py"
+    assert release["main_outputs"] == {"analysis_csv": "nfpitnet_analysis.csv"}
+    assert release["declared_release_contract"]["qc_status"] == "locked"
+    assert release["inventory_summary"]["file_count"] == 2
+    assert release["inventory_summary"]["declared_outputs_present"] == {"analysis_csv": True}
+
+
+def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    from_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    to_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    from_root.mkdir(parents=True, exist_ok=True)
+    to_root.mkdir(parents=True, exist_ok=True)
+
+    write_private_release_manifest(
+        from_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        notes=["baseline"],
+    )
+    write_private_release_manifest(
+        to_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-04-10",
+        raw_snapshot="followup_refresh",
+        generated_by="pipeline/v2.py",
+        main_outputs={"analysis_csv": "analysis_followup.csv"},
+        notes=["follow-up refreshed"],
+        release_contract={"update_type": ["followup_refresh"]},
+    )
+    (from_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (to_root / "analysis_followup.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    (to_root / "new_dictionary.csv").write_text("name\nvalue\n", encoding="utf-8")
+
+    result = module.build_private_release_diff(
+        workspace_root=workspace_root,
+        family_id="master",
+        from_version="v2026-03-28",
+        to_version="v2026-04-10",
+    )
+
+    assert result["family_id"] == "master"
+    assert result["from_version"] == "v2026-03-28"
+    assert result["to_version"] == "v2026-04-10"
+    assert Path(result["report_path"]).exists()
+    assert result["summary"]["inventory"]["added_files"] == ["analysis_followup.csv", "new_dictionary.csv"]
+    assert result["summary"]["inventory"]["removed_files"] == ["analysis.csv"]
+    assert result["summary"]["contract"]["changed_fields"][0]["field"] == "generated_by"
+    assert result["summary"]["main_outputs"]["changed_outputs"][0]["output_name"] == "analysis_csv"
+
+
+def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    from_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    to_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    from_root.mkdir(parents=True, exist_ok=True)
+    to_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        from_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_private_release_manifest(
+        to_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-04-10",
+        raw_snapshot="followup",
+        generated_by="pipeline/v2.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (from_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (to_root / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    dataset = result["studies"][0]["dataset_inputs"][0]
+    assert dataset["private_version_status"] == "older_than_latest"
+    assert dataset["upgrade_diff_report_exists"] is True
+    assert dataset["upgrade_diff_report_path"].endswith("master/v2026-03-28__v2026-04-10.json")

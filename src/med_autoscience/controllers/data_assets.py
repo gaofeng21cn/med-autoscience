@@ -9,6 +9,7 @@ import yaml
 PRIVATE_REGISTRY_BASENAME = "registry.json"
 PUBLIC_REGISTRY_BASENAME = "registry.json"
 IMPACT_REPORT_BASENAME = "latest_impact_report.json"
+PRIVATE_DIFF_REPORT_SCHEMA_VERSION = 1
 
 
 def _data_assets_root(workspace_root: Path) -> Path:
@@ -31,12 +32,20 @@ def _private_registry_path(workspace_root: Path) -> Path:
     return _private_root(workspace_root) / PRIVATE_REGISTRY_BASENAME
 
 
+def _private_diffs_root(workspace_root: Path) -> Path:
+    return _private_root(workspace_root) / "diffs"
+
+
 def _public_registry_path(workspace_root: Path) -> Path:
     return _public_root(workspace_root) / PUBLIC_REGISTRY_BASENAME
 
 
 def _impact_report_path(workspace_root: Path) -> Path:
     return _impact_root(workspace_root) / IMPACT_REPORT_BASENAME
+
+
+def _private_diff_report_path(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> Path:
+    return _private_diffs_root(workspace_root) / family_id / f"{from_version}__{to_version}.json"
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -50,6 +59,78 @@ def _load_json(path: Path, *, default: dict) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_yaml_dict(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _normalize_string_map(value: object) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    normalized: dict[str, str] = {}
+    for key, item in value.items():
+        if isinstance(key, str) and isinstance(item, str):
+            normalized[key] = item
+    return normalized
+
+
+def _normalize_string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    normalized: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            normalized.append(item)
+    return normalized
+
+
+def _normalize_dict(value: object) -> dict[str, object]:
+    return value if isinstance(value, dict) else {}
+
+
+def _list_release_files(version_root: Path) -> list[Path]:
+    return sorted(path for path in version_root.rglob("*") if path.is_file())
+
+
+def _inventory_summary(*, version_root: Path, main_outputs: dict[str, str]) -> dict[str, object]:
+    files = _list_release_files(version_root)
+    declared_outputs_present = {output_name: (version_root / relative_path).exists() for output_name, relative_path in main_outputs.items()}
+    return {
+        "file_count": len(files),
+        "total_size_bytes": sum(path.stat().st_size for path in files),
+        "declared_outputs_present": declared_outputs_present,
+    }
+
+
+def _build_private_release(*, family_id: str, version_root: Path) -> dict[str, object]:
+    manifest_path = version_root / "dataset_manifest.yaml"
+    manifest = _load_yaml_dict(manifest_path)
+    main_outputs = _normalize_string_map(manifest.get("main_outputs"))
+    notes = _normalize_string_list(manifest.get("notes"))
+    dataset_id = manifest.get("dataset_id") if isinstance(manifest.get("dataset_id"), str) else None
+    raw_snapshot = manifest.get("raw_snapshot") if isinstance(manifest.get("raw_snapshot"), str) else None
+    generated_by = manifest.get("generated_by") if isinstance(manifest.get("generated_by"), str) else None
+    declared_release_contract = _normalize_dict(manifest.get("release_contract"))
+    inventory_summary = _inventory_summary(version_root=version_root, main_outputs=main_outputs)
+    return {
+        "family_id": family_id,
+        "version_id": version_root.name,
+        "dataset_id": dataset_id,
+        "data_root": str(version_root),
+        "manifest_path": str(manifest_path) if manifest_path.exists() else None,
+        "contract_status": "manifest_backed" if manifest_path.exists() else "directory_scan_only",
+        "raw_snapshot": raw_snapshot,
+        "generated_by": generated_by,
+        "main_outputs": main_outputs,
+        "notes": notes,
+        "declared_release_contract": declared_release_contract,
+        "inventory_summary": inventory_summary,
+        "file_count": inventory_summary["file_count"],
+    }
+
+
 def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
     datasets_root = workspace_root / "datasets"
     if not datasets_root.exists():
@@ -58,28 +139,171 @@ def _scan_private_releases(workspace_root: Path) -> list[dict[str, object]]:
     releases: list[dict[str, object]] = []
     for family_root in sorted(path for path in datasets_root.iterdir() if path.is_dir()):
         for version_root in sorted(path for path in family_root.iterdir() if path.is_dir() and path.name.startswith("v")):
-            file_count = sum(1 for path in version_root.rglob("*") if path.is_file())
-            releases.append(
-                {
-                    "family_id": family_root.name,
-                    "version_id": version_root.name,
-                    "data_root": str(version_root),
-                    "file_count": file_count,
-                }
-            )
+            releases.append(_build_private_release(family_id=family_root.name, version_root=version_root))
     return releases
+
+
+def _private_diff_count(workspace_root: Path) -> int:
+    diffs_root = _private_diffs_root(workspace_root)
+    if not diffs_root.exists():
+        return 0
+    return sum(1 for path in diffs_root.rglob("*.json") if path.is_file())
+
+
+def _find_release_root(*, workspace_root: Path, family_id: str, version_id: str) -> Path:
+    release_root = workspace_root / "datasets" / family_id / version_id
+    if not release_root.exists():
+        raise FileNotFoundError(f"Private release not found: {family_id}/{version_id}")
+    return release_root
+
+
+def _release_snapshot_for_report(release: dict[str, object]) -> dict[str, object]:
+    return {
+        "family_id": release["family_id"],
+        "version_id": release["version_id"],
+        "dataset_id": release.get("dataset_id"),
+        "raw_snapshot": release.get("raw_snapshot"),
+        "generated_by": release.get("generated_by"),
+        "main_outputs": release.get("main_outputs", {}),
+        "notes": release.get("notes", []),
+        "declared_release_contract": release.get("declared_release_contract", {}),
+        "inventory_summary": release.get("inventory_summary", {}),
+    }
+
+
+def _release_inventory_map(version_root: Path) -> dict[str, dict[str, int]]:
+    inventory: dict[str, dict[str, int]] = {}
+    for path in _list_release_files(version_root):
+        inventory[str(path.relative_to(version_root))] = {"size_bytes": path.stat().st_size}
+    return inventory
+
+
+def _contract_changes(from_release: dict[str, object], to_release: dict[str, object]) -> list[dict[str, object]]:
+    fields = [
+        "generated_by",
+        "raw_snapshot",
+        "notes",
+        "declared_release_contract",
+        "dataset_id",
+    ]
+    changes: list[dict[str, object]] = []
+    for field in fields:
+        from_value = from_release.get(field)
+        to_value = to_release.get(field)
+        if from_value != to_value:
+            changes.append({"field": field, "from": from_value, "to": to_value})
+    return changes
+
+
+def _main_output_changes(from_release: dict[str, object], to_release: dict[str, object]) -> list[dict[str, object]]:
+    from_outputs = from_release.get("main_outputs", {})
+    to_outputs = to_release.get("main_outputs", {})
+    if not isinstance(from_outputs, dict) or not isinstance(to_outputs, dict):
+        return []
+    changes: list[dict[str, object]] = []
+    for output_name in sorted(set(from_outputs) | set(to_outputs)):
+        from_value = from_outputs.get(output_name)
+        to_value = to_outputs.get(output_name)
+        if from_value != to_value:
+            changes.append({"output_name": output_name, "from": from_value, "to": to_value})
+    return changes
+
+
+def _studies_affected_by_release(*, workspace_root: Path, family_id: str, version_id: str) -> tuple[list[str], list[str]]:
+    studies_root = workspace_root / "studies"
+    affected_studies: list[str] = []
+    affected_dataset_ids: list[str] = []
+    for study_root in sorted(path for path in studies_root.iterdir() if path.is_dir()) if studies_root.exists() else []:
+        manifest_path = study_root / "data_input" / "dataset_manifest.yaml"
+        if not manifest_path.exists():
+            continue
+        matched = False
+        for item in _load_dataset_inputs(manifest_path):
+            source_path = str(item.get("path", ""))
+            item_family_id, item_version_id = _extract_family_version(source_path)
+            manifest_version = item.get("version")
+            if isinstance(manifest_version, str) and manifest_version:
+                item_version_id = manifest_version
+            if item_family_id == family_id and item_version_id == version_id:
+                matched = True
+                dataset_id = item.get("dataset_id")
+                if isinstance(dataset_id, str) and dataset_id not in affected_dataset_ids:
+                    affected_dataset_ids.append(dataset_id)
+        if matched:
+            affected_studies.append(study_root.name)
+    return affected_studies, affected_dataset_ids
+
+
+def build_private_release_diff(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> dict[str, object]:
+    from_root = _find_release_root(workspace_root=workspace_root, family_id=family_id, version_id=from_version)
+    to_root = _find_release_root(workspace_root=workspace_root, family_id=family_id, version_id=to_version)
+    from_release = _build_private_release(family_id=family_id, version_root=from_root)
+    to_release = _build_private_release(family_id=family_id, version_root=to_root)
+    from_inventory = _release_inventory_map(from_root)
+    to_inventory = _release_inventory_map(to_root)
+    added_files = sorted(path for path in to_inventory if path not in from_inventory)
+    removed_files = sorted(path for path in from_inventory if path not in to_inventory)
+    resized_files = sorted(
+        path
+        for path in (set(from_inventory) & set(to_inventory))
+        if from_inventory[path]["size_bytes"] != to_inventory[path]["size_bytes"]
+    )
+    affected_studies, affected_dataset_ids = _studies_affected_by_release(
+        workspace_root=workspace_root,
+        family_id=family_id,
+        version_id=from_version,
+    )
+    report_path = _private_diff_report_path(
+        workspace_root=workspace_root,
+        family_id=family_id,
+        from_version=from_version,
+        to_version=to_version,
+    )
+    report = {
+        "schema_version": PRIVATE_DIFF_REPORT_SCHEMA_VERSION,
+        "workspace_root": str(workspace_root),
+        "family_id": family_id,
+        "from_version": from_version,
+        "to_version": to_version,
+        "report_path": str(report_path),
+        "from_release": _release_snapshot_for_report(from_release),
+        "to_release": _release_snapshot_for_report(to_release),
+        "summary": {
+            "inventory": {
+                "from_file_count": from_release["inventory_summary"]["file_count"],
+                "to_file_count": to_release["inventory_summary"]["file_count"],
+                "added_files": added_files,
+                "removed_files": removed_files,
+                "resized_files": resized_files,
+            },
+            "contract": {
+                "changed_fields": _contract_changes(from_release, to_release),
+            },
+            "main_outputs": {
+                "changed_outputs": _main_output_changes(from_release, to_release),
+            },
+            "study_impact": {
+                "affected_studies": affected_studies,
+                "affected_dataset_ids": affected_dataset_ids,
+            },
+        },
+    }
+    _write_json(report_path, report)
+    return report
 
 
 def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
     private_root = _private_root(workspace_root)
     public_root = _public_root(workspace_root)
     impact_root = _impact_root(workspace_root)
+    private_diffs_root = _private_diffs_root(workspace_root)
     private_root.mkdir(parents=True, exist_ok=True)
     public_root.mkdir(parents=True, exist_ok=True)
     impact_root.mkdir(parents=True, exist_ok=True)
+    private_diffs_root.mkdir(parents=True, exist_ok=True)
 
     private_payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "releases": _scan_private_releases(workspace_root),
     }
     _write_json(_private_registry_path(workspace_root), private_payload)
@@ -94,6 +318,8 @@ def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
         "private": {
             "registry_path": str(_private_registry_path(workspace_root)),
             "release_count": len(private_payload["releases"]),
+            "diff_root": str(private_diffs_root),
+            "diff_count": _private_diff_count(workspace_root),
         },
         "public": {
             "registry_path": str(public_path),
@@ -119,6 +345,8 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
             "registry_path": str(private_path),
             "registry_exists": private_path.exists(),
             "release_count": len(private_payload["releases"]),
+            "diff_root": str(_private_diffs_root(workspace_root)),
+            "diff_count": _private_diff_count(workspace_root),
         },
         "public": {
             "registry_path": str(public_path),
@@ -174,6 +402,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     private_payload = _load_json(_private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
     public_payload = _load_json(_public_registry_path(workspace_root), default={"schema_version": 1, "datasets": []})
     latest_versions = _latest_versions_by_family(private_payload["releases"])
+    diff_cache: dict[tuple[str, str, str], dict[str, object]] = {}
 
     studies_root = workspace_root / "studies"
     study_reports: list[dict[str, object]] = []
@@ -200,6 +429,21 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             else:
                 private_status = "older_than_latest"
                 overall_status = "review_needed"
+            upgrade_diff_report_path: str | None = None
+            upgrade_diff_report_exists = False
+            if family_id is not None and version_id is not None and latest_version is not None and latest_version != version_id:
+                cache_key = (family_id, version_id, latest_version)
+                diff_report = diff_cache.get(cache_key)
+                if diff_report is None:
+                    diff_report = build_private_release_diff(
+                        workspace_root=workspace_root,
+                        family_id=family_id,
+                        from_version=version_id,
+                        to_version=latest_version,
+                    )
+                    diff_cache[cache_key] = diff_report
+                upgrade_diff_report_path = str(diff_report["report_path"])
+                upgrade_diff_report_exists = Path(upgrade_diff_report_path).exists()
 
             public_matches = [
                 dataset
@@ -217,6 +461,8 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     "version_id": version_id,
                     "latest_private_version": latest_version,
                     "private_version_status": private_status,
+                    "upgrade_diff_report_path": upgrade_diff_report_path,
+                    "upgrade_diff_report_exists": upgrade_diff_report_exists,
                     "public_support_count": len(public_matches),
                 }
             )

@@ -88,13 +88,13 @@
 `MedAutoScience` 把这件事上升成正式模块，分成四部分：
 
 1. 私有数据版本登记  
-   管理本地队列补充、随访刷新、字段补全、多中心并入等私有数据演进。
+   管理本地队列补充、随访刷新、字段补全、多中心并入等私有数据演进，并从 `dataset_manifest.yaml` 提取 release contract。
 
 2. 公开数据扩展模块  
    登记可用于外部验证、机制扩展、队列扩展的公开数据集。
 
 3. 影响评估  
-   判断某个 study 当前使用的数据版本是否已经落后，以及是否已有可用的公开数据支持。
+   判断某个 study 当前使用的数据版本是否已经落后，以及是否已有可用的公开数据支持，并给出可复用的私有版本差异报告。
 
 4. ToolUniverse 适配  
    将知识检索、功能分析、通路与调控解释纳入正式平台，而不是散落为临时脚本。
@@ -105,10 +105,11 @@
 PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /path/to/workspace
 PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /path/to/workspace
 PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /path/to/workspace --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /path/to/workspace
 ```
 
-这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。
+这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。私有版本差异报告会写到 `portfolio/data_assets/private/diffs/`。
 
 ## 最小部署
 

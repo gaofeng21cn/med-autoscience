@@ -62,6 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
     assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
     assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
 
+    diff_private_release_parser = subparsers.add_parser("diff-private-release")
+    diff_private_release_parser.add_argument("--workspace-root", required=True)
+    diff_private_release_parser.add_argument("--family-id", required=True)
+    diff_private_release_parser.add_argument("--from-version", required=True)
+    diff_private_release_parser.add_argument("--to-version", required=True)
+
     tooluniverse_status_parser = subparsers.add_parser("tooluniverse-status")
     tooluniverse_status_parser.add_argument("--workspace-root", type=str)
     tooluniverse_status_parser.add_argument("--tooluniverse-root", type=str)
@@ -69,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser = subparsers.add_parser("export-submission-minimal")
     export_parser.add_argument("--paper-root", required=True)
     export_parser.add_argument("--publication-profile", default="general_medical_journal")
-    export_parser.add_argument("--citation-style", default="AMA")
+    export_parser.add_argument("--citation-style", default="auto")
 
     gate_parser = subparsers.add_parser("publication-gate")
     gate_parser.add_argument("--quest-root", required=True)
@@ -83,6 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
     delivery_parser = subparsers.add_parser("sync-study-delivery")
     delivery_parser.add_argument("--paper-root", required=True)
     delivery_parser.add_argument("--stage", choices=("submission_minimal", "finalize"), required=True)
+    delivery_parser.add_argument("--publication-profile", default="general_medical_journal")
 
     overlay_status_parser = subparsers.add_parser("overlay-status")
     overlay_status_parser.add_argument("--quest-root", type=str)
@@ -146,6 +153,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "diff-private-release":
+        result = data_assets.build_private_release_diff(
+            workspace_root=Path(args.workspace_root),
+            family_id=args.family_id,
+            from_version=args.from_version,
+            to_version=args.to_version,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "tooluniverse-status":
         result = tooluniverse_adapter.detect_tooluniverse(
             workspace_root=Path(args.workspace_root) if args.workspace_root else None,
@@ -184,6 +201,7 @@ def main(argv: list[str] | None = None) -> int:
         result = study_delivery_sync.sync_study_delivery(
             paper_root=Path(args.paper_root),
             stage=args.stage,
+            publication_profile=args.publication_profile,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

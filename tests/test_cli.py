@@ -152,6 +152,42 @@ def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp
     assert '"review_needed"' in captured.out
 
 
+def test_diff_private_release_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_diff(*, workspace_root: Path, family_id: str, from_version: str, to_version: str) -> dict:
+        called["workspace_root"] = workspace_root
+        called["family_id"] = family_id
+        called["from_version"] = from_version
+        called["to_version"] = to_version
+        return {"report_path": "/tmp/report.json", "family_id": family_id}
+
+    monkeypatch.setattr(cli.data_assets, "build_private_release_diff", fake_diff)
+
+    exit_code = cli.main(
+        [
+            "diff-private-release",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+            "--family-id",
+            "master",
+            "--from-version",
+            "v2026-03-28",
+            "--to-version",
+            "v2026-04-10",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["family_id"] == "master"
+    assert called["from_version"] == "v2026-03-28"
+    assert called["to_version"] == "v2026-04-10"
+    assert "/tmp/report.json" in captured.out
+
+
 def test_tooluniverse_status_command_dispatches_adapter(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -267,10 +303,15 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_sync(*, paper_root: Path, stage: str) -> dict:
+    def fake_sync(*, paper_root: Path, stage: str, publication_profile: str = "general_medical_journal") -> dict:
         called["paper_root"] = paper_root
         called["stage"] = stage
-        return {"stage": stage, "targets": {"manuscript_final_root": str(tmp_path / "study" / "final")}}
+        called["publication_profile"] = publication_profile
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {"manuscript_final_root": str(tmp_path / "study" / "final")},
+        }
 
     monkeypatch.setattr(cli.study_delivery_sync, "sync_study_delivery", fake_sync)
 
@@ -288,6 +329,7 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
     assert exit_code == 0
     assert called["paper_root"] == tmp_path / "paper"
     assert called["stage"] == "finalize"
+    assert called["publication_profile"] == "general_medical_journal"
     assert '"stage": "finalize"' in captured.out
 
 
