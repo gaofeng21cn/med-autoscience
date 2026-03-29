@@ -11,6 +11,7 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience.controllers import (
+    aris_sidecar as aris_sidecar_controller,
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
@@ -114,6 +115,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
+
+    recommend_aris_sidecar_parser = subparsers.add_parser("recommend-aris-sidecar")
+    recommend_aris_sidecar_parser.add_argument("--quest-root", required=True)
+    recommend_aris_sidecar_parser.add_argument("--payload-file", type=str)
+    recommend_aris_sidecar_parser.add_argument("--payload-json", type=str)
+
+    provision_aris_sidecar_parser = subparsers.add_parser("provision-aris-sidecar")
+    provision_aris_sidecar_parser.add_argument("--quest-root", required=True)
+    provision_aris_sidecar_parser.add_argument("--payload-file", type=str)
+    provision_aris_sidecar_parser.add_argument("--payload-json", type=str)
+
+    import_aris_sidecar_parser = subparsers.add_parser("import-aris-sidecar")
+    import_aris_sidecar_parser.add_argument("--quest-root", required=True)
 
     export_submission_targets_parser = subparsers.add_parser("export-submission-targets")
     export_submission_targets_parser.add_argument("--paper-root", type=str)
@@ -252,6 +266,29 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "resolve-reference-papers":
         result = reference_papers_controller.resolve_reference_papers(
+            quest_root=Path(args.quest_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "recommend-aris-sidecar":
+        result = aris_sidecar_controller.recommend_aris_sidecar(
+            quest_root=Path(args.quest_root),
+            payload=_load_json_payload_from_args(args),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "provision-aris-sidecar":
+        result = aris_sidecar_controller.provision_aris_sidecar(
+            quest_root=Path(args.quest_root),
+            payload=_load_json_payload_from_args(args),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "import-aris-sidecar":
+        result = aris_sidecar_controller.import_aris_sidecar_result(
             quest_root=Path(args.quest_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
