@@ -43,6 +43,8 @@ If one of these layers is still missing, say so explicitly.
 - Do not let `scout` become endless exploration.
 - Do not keep searching once the next anchor is already clear.
 - Do not guess the metric, split, or baseline identity when local evidence is still ambiguous.
+- Do not offload ordinary literature triage, dataset scouting, metadata gathering, or baseline neighborhood mapping to the human.
+  In this runtime, `scout` is normally agent-executed work; only escalate to the human when strategic constraints, unavailable private context, or explicit user preference really change the route.
 - Do not ask the user ordinary technical questions before checking local evidence first.
 - Do not force a baseline route without comparing attach, import, and reproduce options.
 - Do not rely on memory alone when primary sources or durable quest files exist.
@@ -123,6 +125,9 @@ The scout stage should usually leave behind:
 - a literature scouting report when external search was needed
 - `memory` cards for key references or framing notes
 - a report or decision artifact that points to the next anchor
+
+These artifacts are part of the human-auditable surface.
+Do not leave the scout result only in transient chat or expect the human to reconstruct the framing state from raw search output.
 
 Recommended durable scout files:
 

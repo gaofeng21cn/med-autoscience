@@ -30,6 +30,9 @@ It should produce the most accurate final state of the quest:
 Finalize is not just a short summary.
 It is the durable closure protocol that turns a long-running research graph into a recoverable stopping point, a publishable handoff, or an honest continue-later checkpoint.
 
+In this runtime, `human-auditable` does not mean the human should manually reconstruct quest state from raw artifacts.
+Finalize should leave a clean durable closure surface that a human can inspect directly through summary, report, claim ledger, and final delivery outputs.
+
 ## Use when
 
 - the evidence base is stable enough for a final recommendation
@@ -91,6 +94,9 @@ The finalize stage should usually leave behind:
 - a final claim ledger or equivalent claim-status summary
 - a compact resume packet or handoff packet when later continuation is plausible
 - a `submission_minimal` verification result when the recommendation is submission-ready
+
+Do not treat raw file presence as sufficient closure.
+If the human would still need to infer the quest state by opening many intermediate artifacts manually, finalize is not done yet.
 
 If the quest produced a paper-style bundle, finalization should also check that the writing stage left behind enough closure evidence, such as:
 
