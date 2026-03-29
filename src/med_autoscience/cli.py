@@ -1,9 +1,39 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 
-from med_autoscience.doctor import build_doctor_report, render_doctor_report, render_profile
+from med_autoscience.doctor import (
+    build_doctor_report,
+    overlay_request_from_profile,
+    render_doctor_report,
+    render_profile,
+)
+from med_autoscience.controllers import (
+    medical_publication_surface,
+    publication_gate,
+    runtime_watch,
+    study_delivery_sync,
+    submission_minimal,
+)
+from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
+
+
+def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
+    if getattr(args, "profile", None) and getattr(args, "quest_root", None):
+        raise SystemExit("Specify at most one of --profile or --quest-root")
+    if getattr(args, "profile", None):
+        profile = load_profile(args.profile)
+        request = overlay_request_from_profile(profile)
+        if not profile.enable_medical_overlay:
+            request["skill_ids"] = tuple()
+        return request
+    return {
+        "quest_root": Path(args.quest_root) if getattr(args, "quest_root", None) else None,
+        "skill_ids": None,
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +45,44 @@ def build_parser() -> argparse.ArgumentParser:
 
     show_profile_parser = subparsers.add_parser("show-profile")
     show_profile_parser.add_argument("--profile", required=True)
+
+    watch_parser = subparsers.add_parser("watch")
+    watch_parser.add_argument("--quest-root", type=str)
+    watch_parser.add_argument("--runtime-root", type=str)
+    watch_parser.add_argument("--apply", action="store_true")
+
+    export_parser = subparsers.add_parser("export-submission-minimal")
+    export_parser.add_argument("--paper-root", required=True)
+    export_parser.add_argument("--publication-profile", default="general_medical_journal")
+    export_parser.add_argument("--citation-style", default="AMA")
+
+    gate_parser = subparsers.add_parser("publication-gate")
+    gate_parser.add_argument("--quest-root", required=True)
+    gate_parser.add_argument("--apply", action="store_true")
+
+    surface_parser = subparsers.add_parser("medical-publication-surface")
+    surface_parser.add_argument("--quest-root", required=True)
+    surface_parser.add_argument("--apply", action="store_true")
+    surface_parser.add_argument("--daemon-url", default="http://127.0.0.1:20999")
+
+    delivery_parser = subparsers.add_parser("sync-study-delivery")
+    delivery_parser.add_argument("--paper-root", required=True)
+    delivery_parser.add_argument("--stage", choices=("submission_minimal", "finalize"), required=True)
+
+    overlay_status_parser = subparsers.add_parser("overlay-status")
+    overlay_status_parser.add_argument("--quest-root", type=str)
+    overlay_status_parser.add_argument("--profile", type=str)
+
+    install_overlay_parser = subparsers.add_parser("install-medical-overlay")
+    install_overlay_parser.add_argument("--quest-root", type=str)
+    install_overlay_parser.add_argument("--profile", type=str)
+
+    reapply_overlay_parser = subparsers.add_parser("reapply-medical-overlay")
+    reapply_overlay_parser.add_argument("--quest-root", type=str)
+    reapply_overlay_parser.add_argument("--profile", type=str)
+
+    bootstrap_parser = subparsers.add_parser("bootstrap")
+    bootstrap_parser.add_argument("--profile", required=True)
     return parser
 
 
@@ -32,6 +100,102 @@ def main(argv: list[str] | None = None) -> int:
         print(render_profile(profile), end="")
         return 0
 
+    if args.command == "watch":
+        if bool(args.quest_root) == bool(args.runtime_root):
+            parser.error("Specify exactly one of --quest-root or --runtime-root")
+        if args.quest_root:
+            result = runtime_watch.run_watch_for_quest(
+                quest_root=Path(args.quest_root),
+                apply=args.apply,
+            )
+        else:
+            result = runtime_watch.run_watch_for_runtime(
+                runtime_root=Path(args.runtime_root),
+                apply=args.apply,
+            )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "export-submission-minimal":
+        result = submission_minimal.create_submission_minimal_package(
+            paper_root=Path(args.paper_root),
+            publication_profile=args.publication_profile,
+            citation_style=args.citation_style,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "publication-gate":
+        result = publication_gate.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "medical-publication-surface":
+        result = medical_publication_surface.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
+            daemon_url=args.daemon_url,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "sync-study-delivery":
+        result = study_delivery_sync.sync_study_delivery(
+            paper_root=Path(args.paper_root),
+            stage=args.stage,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "overlay-status":
+        result = overlay_installer.describe_medical_overlay(**_overlay_request_from_args(args))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "install-medical-overlay":
+        result = overlay_installer.install_medical_overlay(**_overlay_request_from_args(args))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "reapply-medical-overlay":
+        result = overlay_installer.reapply_medical_overlay(**_overlay_request_from_args(args))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "bootstrap":
+        profile = load_profile(args.profile)
+        doctor_report = build_doctor_report(profile)
+        overlay_install = None
+        overlay_status = None
+        if profile.enable_medical_overlay:
+            overlay_request = overlay_request_from_profile(profile)
+            overlay_install = overlay_installer.install_medical_overlay(**overlay_request)
+            overlay_status = overlay_installer.describe_medical_overlay(**overlay_request)
+        result = {
+            "profile": profile.name,
+            "doctor": {
+                "workspace_exists": doctor_report.workspace_exists,
+                "runtime_exists": doctor_report.runtime_exists,
+                "studies_exists": doctor_report.studies_exists,
+                "portfolio_exists": doctor_report.portfolio_exists,
+                "deepscientist_runtime_exists": doctor_report.deepscientist_runtime_exists,
+                "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
+                "medical_overlay_ready": (
+                    bool(overlay_status.get("all_targets_ready")) if overlay_status is not None else doctor_report.medical_overlay_ready
+                ),
+                "medical_overlay_scope": doctor_report.profile.medical_overlay_scope,
+                "research_route_bias_policy": doctor_report.profile.research_route_bias_policy,
+                "preferred_study_archetypes": list(doctor_report.profile.preferred_study_archetypes),
+            },
+            "overlay_install": overlay_install,
+            "overlay_status": overlay_status,
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     parser.error(f"unsupported command: {args.command}")
     return 2
 
@@ -42,4 +206,3 @@ def entrypoint() -> None:
 
 if __name__ == "__main__":
     entrypoint()
-

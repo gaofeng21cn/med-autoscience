@@ -16,6 +16,9 @@ dependencies = []
 [project.scripts]
 medautosci = "med_autoscience.cli:entrypoint"
 
+[tool.setuptools.package-data]
+"med_autoscience.styles" = ["*.csl"]
+"med_autoscience.overlay.templates" = ["*.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

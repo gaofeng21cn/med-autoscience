@@ -1,9 +1,0 @@
-name = "nfpitnet"
-workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"
-runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime/quests"
-studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"
-portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"
-deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime"
-default_publication_profile = "general_medical_journal"
-default_citation_style = "AMA"
-
