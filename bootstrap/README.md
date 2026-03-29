@@ -95,6 +95,16 @@ PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-st
 - 检查 profile 指向的 workspace / runtime 是否可见
 - 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
 
+建议紧接着初始化数据资产层：
+
+```bash
+cd med-autoscience
+PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
+```
+
 如果只想单独检查或重覆写 overlay，也可以直接运行：
 
 ```bash
@@ -114,6 +124,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile 
 - profile 机制已经可用
 - AI 可以先确认目标 workspace 是否接入正确
 - AI 可以按 profile 自动接管医学 stage overlays（通常以 workspace 作用域部署，因此 overlay 只影响当前研究，不污染全局）
+- AI 可以初始化并检查 `portfolio/data_assets/` 下的数据资产层
 - AI 可以通过 CLI 调用关键 controller 与 `sync-study-delivery`，并且当 finalized paper bundle 已经形成 `submission_minimal` 时，finalize stage 的 overlay skill 会自动调度 `study_delivery_sync(stage="finalize")`，把论文交付、总结与 proofing 材料同步到 `studies/<study-id>/…/final`，使正式交付流程完全在平台内闭环
 
 后续会继续补：

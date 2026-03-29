@@ -10,5 +10,4 @@
 
 - 不在弱结果上空转
 - outline 也属于 write，不得绕 gate
-- 若临床 utility 证据不足，不继续做 paper-like 包装
-
+- 若临床效用证据不足，不继续做论文式包装

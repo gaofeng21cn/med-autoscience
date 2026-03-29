@@ -98,6 +98,88 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert "q001" in captured.out
 
 
+def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_init(*, workspace_root: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        return {"private": {"release_count": 1}, "public": {"dataset_count": 0}}
+
+    monkeypatch.setattr(cli.data_assets, "init_data_assets", fake_init)
+
+    exit_code = cli.main(["init-data-assets", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"release_count": 1' in captured.out
+
+
+def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        return {"layout_ready": True, "private": {"release_count": 2}}
+
+    monkeypatch.setattr(cli.data_assets, "data_assets_status", fake_status)
+
+    exit_code = cli.main(["data-assets-status", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"layout_ready": true' in captured.out
+
+
+def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_assess(*, workspace_root: Path) -> dict:
+        called["workspace_root"] = workspace_root
+        return {"study_count": 1, "studies": [{"study_id": "002-early-risk", "status": "review_needed"}]}
+
+    monkeypatch.setattr(cli.data_assets, "assess_data_asset_impact", fake_assess)
+
+    exit_code = cli.main(["assess-data-asset-impact", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"review_needed"' in captured.out
+
+
+def test_tooluniverse_status_command_dispatches_adapter(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_detect(*, workspace_root: Path | None = None, tooluniverse_root: Path | None = None) -> dict:
+        called["workspace_root"] = workspace_root
+        called["tooluniverse_root"] = tooluniverse_root
+        return {"available": True, "roles": ["知识检索", "功能分析"]}
+
+    monkeypatch.setattr(cli.tooluniverse_adapter, "detect_tooluniverse", fake_detect)
+
+    exit_code = cli.main(
+        [
+            "tooluniverse-status",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+            "--tooluniverse-root",
+            str(tmp_path / "ToolUniverse"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["tooluniverse_root"] == tmp_path / "ToolUniverse"
+    assert '"available": true' in captured.out
+
+
 def test_export_submission_minimal_command_dispatches_exporter(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

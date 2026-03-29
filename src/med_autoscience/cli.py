@@ -11,12 +11,14 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience.controllers import (
+    data_assets,
     medical_publication_surface,
     publication_gate,
     runtime_watch,
     study_delivery_sync,
     submission_minimal,
 )
+from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 
@@ -50,6 +52,19 @@ def build_parser() -> argparse.ArgumentParser:
     watch_parser.add_argument("--quest-root", type=str)
     watch_parser.add_argument("--runtime-root", type=str)
     watch_parser.add_argument("--apply", action="store_true")
+
+    init_data_assets_parser = subparsers.add_parser("init-data-assets")
+    init_data_assets_parser.add_argument("--workspace-root", required=True)
+
+    data_assets_status_parser = subparsers.add_parser("data-assets-status")
+    data_assets_status_parser.add_argument("--workspace-root", required=True)
+
+    assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
+    assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
+
+    tooluniverse_status_parser = subparsers.add_parser("tooluniverse-status")
+    tooluniverse_status_parser.add_argument("--workspace-root", type=str)
+    tooluniverse_status_parser.add_argument("--tooluniverse-root", type=str)
 
     export_parser = subparsers.add_parser("export-submission-minimal")
     export_parser.add_argument("--paper-root", required=True)
@@ -113,6 +128,29 @@ def main(argv: list[str] | None = None) -> int:
                 runtime_root=Path(args.runtime_root),
                 apply=args.apply,
             )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "init-data-assets":
+        result = data_assets.init_data_assets(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "data-assets-status":
+        result = data_assets.data_assets_status(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "assess-data-asset-impact":
+        result = data_assets.assess_data_asset_impact(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "tooluniverse-status":
+        result = tooluniverse_adapter.detect_tooluniverse(
+            workspace_root=Path(args.workspace_root) if args.workspace_root else None,
+            tooluniverse_root=Path(args.tooluniverse_root) if args.tooluniverse_root else None,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

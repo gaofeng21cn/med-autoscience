@@ -9,6 +9,7 @@
 3. submission minimal exporter
 4. runtime watch controller
 5. study delivery sync
+6. data assets controller
 
 对应的 Python 实现在包内：
 
@@ -17,6 +18,7 @@
 - `src/med_autoscience/controllers/submission_minimal.py`
 - `src/med_autoscience/controllers/runtime_watch.py`
 - `src/med_autoscience/controllers/study_delivery_sync.py`
+- `src/med_autoscience/controllers/data_assets.py`
 
 对应测试：
 
@@ -25,6 +27,7 @@
 - `tests/test_submission_minimal.py`
 - `tests/test_runtime_watch.py`
 - `tests/test_study_delivery_sync.py`
+- `tests/test_data_assets.py`
 
 当前迁移策略是：
 
