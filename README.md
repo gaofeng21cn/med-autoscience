@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-hero.svg" alt="MedAutoScience 主示意图" width="100%" />
+  <img src="assets/branding/medautoscience-hero.png" alt="MedAutoScience 主示意图" width="100%" />
 </p>
 
 `MedAutoScience` 的目标，不是把通用 AI 流程机械地跑完，而是围绕手头已有的专病数据与可公开获得的相关数据，稳定、可控地组织出可以投稿的医学论文。
