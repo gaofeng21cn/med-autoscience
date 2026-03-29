@@ -42,6 +42,8 @@ The output must survive three checks at once:
 Finishing one idea deliverable is not quest completion.
 After reporting a completed idea package, continue into the next justified stage unless a real blocking decision is still unresolved.
 
+{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
+
 When the quest disables research-paper delivery, keep manuscript defensibility secondary to:
 
 - algorithmic value
@@ -169,6 +171,8 @@ Before ideation, confirm:
 - the strongest obvious related-work cluster can be searched from available references and tools
 
 If these are still unclear, route back to `baseline` or `scout`.
+
+{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
 ## Companion skill rule
 

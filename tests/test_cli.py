@@ -424,6 +424,30 @@ def test_export_submission_targets_command_dispatches_controller(monkeypatch, tm
     assert '"blocked_target_count": 1' in captured.out
 
 
+def test_resolve_reference_papers_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_resolve(*, quest_root: Path) -> dict:
+        called["quest_root"] = quest_root
+        return {"status": "resolved", "paper_count": 2}
+
+    monkeypatch.setattr(cli.reference_papers_controller, "resolve_reference_papers", fake_resolve)
+
+    exit_code = cli.main(
+        [
+            "resolve-reference-papers",
+            "--quest-root",
+            str(tmp_path / "quests" / "002-early-residual-risk"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "quests" / "002-early-residual-risk"
+    assert '"paper_count": 2' in captured.out
+
+
 def test_publication_gate_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

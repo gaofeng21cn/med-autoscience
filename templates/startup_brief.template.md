@@ -6,6 +6,8 @@
 
 ## Trusted inputs
 
+## Reference papers
+
 ## Publication profile
 
 ## Citation style
@@ -15,4 +17,3 @@
 ## Manuscript terminology redlines
 
 ## First-cycle outputs
-
