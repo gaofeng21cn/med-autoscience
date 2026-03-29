@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 
-from med_autoscience.overlay import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
+from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
 
@@ -24,6 +24,7 @@ class WorkspaceProfile:
     medical_overlay_skills: tuple[str, ...]
     research_route_bias_policy: str
     preferred_study_archetypes: tuple[str, ...]
+    default_submission_targets: tuple[dict[str, object], ...]
 
 
 def load_profile(path: str | Path) -> WorkspaceProfile:
@@ -44,5 +45,8 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         research_route_bias_policy=str(payload.get("research_route_bias_policy", DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID)),
         preferred_study_archetypes=tuple(
             str(item) for item in payload.get("preferred_study_archetypes", DEFAULT_STUDY_ARCHETYPE_IDS)
+        ),
+        default_submission_targets=tuple(
+            item for item in payload.get("default_submission_targets", []) if isinstance(item, dict)
         ),
     )

@@ -22,6 +22,12 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
                 'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
                 'research_route_bias_policy = "high_plasticity_medical"',
                 'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
+                "",
+                "[[default_submission_targets]]",
+                'publication_profile = "frontiers_family_harvard"',
+                "primary = true",
+                "package_required = true",
+                'story_surface = "general_medical_journal"',
             ]
         )
         + "\n",
@@ -55,6 +61,9 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
     )
+    assert len(profile.default_submission_targets) == 1
+    assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
+    assert profile.default_submission_targets[0]["primary"] is True
 
 
 def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_path: Path) -> None:

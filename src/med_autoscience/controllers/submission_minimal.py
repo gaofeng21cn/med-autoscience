@@ -3,13 +3,50 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import datetime, timezone
-from pathlib import Path
+import re
 import shutil
 import subprocess
+import zipfile
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+from urllib import request
 
 from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.publication_profiles import (
+    FRONTIERS_FAMILY_HARVARD_PROFILE,
+    GENERAL_MEDICAL_JOURNAL_PROFILE,
+    is_frontiers_family_harvard_profile,
+    normalize_publication_profile,
+)
+
+
+STYLES_ROOT = Path(__file__).resolve().parents[1] / "styles"
+FRONTIERS_TEMPLATE_ZIP_URL = "https://www.frontiersin.org/Design/zip/Frontiers_Word_Templates.zip"
+FRONTIERS_HARVARD_CSL_URL = "https://raw.githubusercontent.com/citation-style-language/styles/master/frontiers.csl"
+FRONTIERS_KEYWORDS = [
+    "NF-PitNET",
+    "pituitary neuroendocrine tumor",
+    "residual disease",
+    "non-gross-total resection",
+    "risk stratification",
+    "pituitary surgery",
+]
+
+
+@dataclass(frozen=True)
+class PublicationProfileConfig:
+    publication_profile: str
+    citation_style: str
+    csl_path: Path
+    output_dir_rel: Path
+    reference_doc_path: Path | None = None
+    supplementary_reference_doc_path: Path | None = None
+    supplementary_docx_name: str | None = None
+    journal_name: str | None = None
+    journal_family: str | None = None
+    reference_style_family: str | None = None
 
 
 def utc_now() -> str:
@@ -25,6 +62,11 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def relpath_from_workspace(path: Path, workspace_root: Path) -> str:
     return path.resolve().relative_to(workspace_root.resolve()).as_posix()
 
@@ -38,7 +80,26 @@ def resolve_relpath(workspace_root: Path, value: str) -> Path:
 
 
 def default_ama_csl_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "styles" / "american-medical-association.csl"
+    return STYLES_ROOT / "american-medical-association.csl"
+
+
+def default_frontiers_harvard_csl_path() -> Path:
+    return STYLES_ROOT / "frontiers.csl"
+
+
+def frontiers_cache_dir() -> Path:
+    xdg_cache = os.getenv("XDG_CACHE_HOME", "").strip()
+    if xdg_cache:
+        return Path(xdg_cache).expanduser() / "med-autoscience" / "frontiers_word_templates"
+    return Path.home() / ".cache" / "med-autoscience" / "frontiers_word_templates"
+
+
+def default_frontiers_template_docx_path() -> Path:
+    return frontiers_cache_dir() / "Frontiers_Template.docx"
+
+
+def default_frontiers_supplementary_template_docx_path() -> Path:
+    return frontiers_cache_dir() / "Supplementary_Material.docx"
 
 
 def build_figure_basename(figure_id: str) -> str:
@@ -55,6 +116,23 @@ def build_table_basename(table_id: str) -> str:
     if table_id.startswith("T"):
         return f"Table{table_id[1:]}"
     return table_id
+
+
+def resolve_bundle_input_path(
+    *,
+    bundle_manifest: dict[str, Any],
+    key: str,
+    fallback: str | None = None,
+) -> str:
+    bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
+    value = bundle_inputs.get(key)
+    if value:
+        return str(value)
+    if key == "compile_report_path" and bundle_manifest.get("compile_report_path"):
+        return str(bundle_manifest["compile_report_path"])
+    if fallback:
+        return fallback
+    raise KeyError(f"missing bundle input `{key}` in paper bundle manifest")
 
 
 def copy_with_renamed_targets(
@@ -77,53 +155,401 @@ def copy_with_renamed_targets(
     return output_relpaths
 
 
+def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
+    normalized_profile = normalize_publication_profile(publication_profile)
+    if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        return paper_root / "submission_minimal"
+    return paper_root / "journal_submissions" / normalized_profile
+
+
+def resolve_override_path(env_name: str) -> Path | None:
+    value = os.getenv(env_name, "").strip()
+    if not value:
+        return None
+    path = Path(value).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError(f"missing override resource for {env_name}: {path}")
+    return path
+
+
+def download_to_path(*, url: str, output_path: Path) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with request.urlopen(url) as response:  # noqa: S310
+        output_path.write_bytes(response.read())
+    return output_path
+
+
+def ensure_frontiers_word_templates() -> tuple[Path, Path]:
+    manuscript_override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX")
+    supplementary_override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX")
+    manuscript_template = manuscript_override or default_frontiers_template_docx_path()
+    supplementary_template = supplementary_override or default_frontiers_supplementary_template_docx_path()
+    if manuscript_template.exists() and supplementary_template.exists():
+        return manuscript_template, supplementary_template
+
+    archive_path = frontiers_cache_dir() / "Frontiers_Word_Templates.zip"
+    if not archive_path.exists():
+        download_to_path(url=FRONTIERS_TEMPLATE_ZIP_URL, output_path=archive_path)
+
+    with zipfile.ZipFile(archive_path) as archive:
+        if not manuscript_template.exists():
+            manuscript_template.write_bytes(archive.read("Frontiers_Word_Templates/Frontiers_Template.docx"))
+        if not supplementary_template.exists():
+            supplementary_template.write_bytes(
+                archive.read("Frontiers_Word_Templates/Supplementary_Material.docx")
+            )
+    return manuscript_template, supplementary_template
+
+
+def ensure_frontiers_harvard_csl_path() -> Path:
+    override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_CSL")
+    if override is not None:
+        return override
+    csl_path = default_frontiers_harvard_csl_path()
+    if csl_path.exists():
+        return csl_path
+    return download_to_path(url=FRONTIERS_HARVARD_CSL_URL, output_path=csl_path)
+
+
+def resolve_publication_profile_config(
+    *,
+    publication_profile: str,
+    citation_style: str | None,
+) -> PublicationProfileConfig:
+    normalized_publication_profile = normalize_publication_profile(publication_profile)
+    normalized_citation_style = str(citation_style or "auto").strip()
+
+    if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        resolved_citation_style = "AMA" if normalized_citation_style in {"", "auto"} else normalized_citation_style
+        if resolved_citation_style != "AMA":
+            raise ValueError(
+                f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
+            )
+        csl_path = default_ama_csl_path()
+        if not csl_path.exists():
+            raise FileNotFoundError(f"missing AMA CSL file: {csl_path}")
+        return PublicationProfileConfig(
+            publication_profile=normalized_publication_profile,
+            citation_style=resolved_citation_style,
+            csl_path=csl_path,
+            output_dir_rel=Path("submission_minimal"),
+        )
+
+    if normalized_publication_profile == FRONTIERS_FAMILY_HARVARD_PROFILE:
+        resolved_citation_style = (
+            "FrontiersHarvard" if normalized_citation_style in {"", "auto"} else normalized_citation_style
+        )
+        if resolved_citation_style != "FrontiersHarvard":
+            raise ValueError(
+                f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
+            )
+        manuscript_template, supplementary_template = ensure_frontiers_word_templates()
+        return PublicationProfileConfig(
+            publication_profile=normalized_publication_profile,
+            citation_style=resolved_citation_style,
+            csl_path=ensure_frontiers_harvard_csl_path(),
+            output_dir_rel=Path("journal_submissions") / normalized_publication_profile,
+            reference_doc_path=manuscript_template,
+            supplementary_reference_doc_path=supplementary_template,
+            supplementary_docx_name="Supplementary_Material.docx",
+            journal_family="Frontiers",
+            reference_style_family="FrontiersHarvard",
+        )
+
+    raise ValueError(f"unsupported publication profile: {publication_profile}")
+
+
 def export_docx(
     *,
     compiled_markdown_path: Path,
     paper_root: Path,
     output_docx_path: Path,
     csl_path: Path,
+    reference_doc_path: Path | None = None,
 ) -> None:
     output_docx_path.parent.mkdir(parents=True, exist_ok=True)
     resource_path = os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve())
-    subprocess.run(
+    command = [
+        "pandoc",
+        compiled_markdown_path.name,
+        "--citeproc",
+        "--csl",
+        str(csl_path.resolve()),
+        "--resource-path",
+        resource_path,
+    ]
+    if reference_doc_path is not None:
+        command.extend(["--reference-doc", str(reference_doc_path.resolve())])
+    command.extend(
         [
-            "pandoc",
-            compiled_markdown_path.name,
-            "--citeproc",
-            "--csl",
-            str(csl_path.resolve()),
-            "--resource-path",
-            resource_path,
             "-o",
             os.path.relpath(output_docx_path.resolve(), compiled_markdown_path.parent.resolve()),
-        ],
+        ]
+    )
+    subprocess.run(
+        command,
         cwd=compiled_markdown_path.parent,
         check=True,
     )
+
+
+def split_front_matter(markdown_text: str) -> tuple[dict[str, str], str]:
+    if not markdown_text.startswith("---\n"):
+        return {}, markdown_text
+    closing_marker = markdown_text.find("\n---\n", 4)
+    if closing_marker == -1:
+        return {}, markdown_text
+    raw_front_matter = markdown_text[4:closing_marker]
+    body = markdown_text[closing_marker + len("\n---\n") :]
+    metadata: dict[str, str] = {}
+    for raw_line in raw_front_matter.splitlines():
+        line = raw_line.strip()
+        if not line or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        metadata[key.strip()] = value.strip().strip('"').strip("'")
+    return metadata, body
+
+
+def extract_markdown_block(body: str, start_heading: str, end_headings: list[str]) -> str:
+    start_token = f"# {start_heading}\n"
+    start_index = body.find(start_token)
+    if start_index == -1:
+        raise ValueError(f"missing section `{start_heading}` in compiled manuscript")
+    content_start = start_index + len(start_token)
+    content_end = len(body)
+    for heading in end_headings:
+        marker = f"\n# {heading}\n"
+        marker_index = body.find(marker, content_start)
+        if marker_index != -1:
+            content_end = min(content_end, marker_index)
+    return body[content_start:content_end].strip()
+
+
+def extract_optional_markdown_block(body: str, start_heading: str, end_headings: list[str]) -> str:
+    try:
+        return extract_markdown_block(body, start_heading, end_headings)
+    except ValueError:
+        return ""
+
+
+def build_frontiers_required_sections() -> str:
+    return (
+        "# Data Availability Statement\n\n"
+        "Patient-level clinical data were analyzed in this study. Because the source dataset was derived from hospital "
+        "records, public deposition may be restricted by institutional and privacy requirements. "
+        "[Please replace this sentence with the authors' approved data-availability statement before submission.]\n\n"
+        "# Ethics Statement\n\n"
+        "This study was approved by the Clinical Research Ethics Committee of the First Affiliated Hospital of "
+        "Sun Yat-sen University (approval `[2024]576`). "
+        "[Please add the exact informed-consent or consent-waiver wording approved by the ethics committee before submission.]\n\n"
+        "# Author Contributions\n\n"
+        "[To be completed before submission.]\n\n"
+        "# Funding\n\n"
+        "[To be completed before submission.]\n\n"
+        "# Acknowledgments\n\n"
+        "[Optional; complete if applicable before submission.]\n\n"
+        "# Conflict of Interest\n\n"
+        "The authors declare that the research was conducted in the absence of any commercial or financial "
+        "relationships that could be construed as a potential conflict of interest. "
+        "[Revise this statement if any competing interests apply.]\n"
+    )
+
+
+def parse_heading_blocks(text: str, heading_prefix: str) -> list[tuple[str, str]]:
+    pattern = re.compile(rf"(?ms)^## ({re.escape(heading_prefix)}[^\n]*)\n\n(.*?)(?=^## |\Z)")
+    blocks: list[tuple[str, str]] = []
+    for match in pattern.finditer(text.strip()):
+        heading = match.group(1).strip()
+        body = match.group(2).strip()
+        blocks.append((heading, body))
+    return blocks
+
+
+def parse_top_level_blocks(text: str) -> list[tuple[str, str]]:
+    pattern = re.compile(r"(?ms)^# ([^\n]+)\n\n(.*?)(?=^# |\Z)")
+    blocks: list[tuple[str, str]] = []
+    for match in pattern.finditer(text.strip()):
+        heading = match.group(1).strip()
+        body = match.group(2).strip()
+        blocks.append((heading, body))
+    return blocks
+
+
+def strip_image_lines(text: str) -> str:
+    cleaned_lines = [line for line in text.splitlines() if not line.strip().startswith("![](")]
+    return "\n".join(cleaned_lines).strip()
+
+
+def rewrite_image_paths(*, markdown_text: str, source_markdown_dir: Path, target_markdown_dir: Path) -> str:
+    image_pattern = re.compile(r"(!\[[^\]]*]\()([^)]+)(\))")
+
+    def replace(match: re.Match[str]) -> str:
+        image_path = match.group(2).strip()
+        if image_path.startswith(("http://", "https://")) or os.path.isabs(image_path):
+            return match.group(0)
+        resolved_path = (source_markdown_dir / image_path).resolve()
+        relative_path = os.path.relpath(resolved_path, target_markdown_dir.resolve())
+        return f"{match.group(1)}{relative_path}{match.group(3)}"
+
+    return image_pattern.sub(replace, markdown_text)
+
+
+def build_frontiers_manuscript_markdown(
+    *,
+    compiled_markdown_path: Path,
+    submission_root: Path,
+) -> Path:
+    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    metadata, body = split_front_matter(compiled_text)
+    title = metadata.get("title", "Article Title")
+    bibliography_value = metadata.get("bibliography", "../references.bib")
+    bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
+    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+
+    abstract = extract_markdown_block(
+        body,
+        "Abstract",
+        ["Introduction", "Methods", "Results", "Discussion", "Main Figures", "Main Tables", "Appendix"],
+    )
+    introduction = extract_optional_markdown_block(
+        body,
+        "Introduction",
+        ["Methods", "Results", "Discussion", "Main Tables", "Main Figures", "Appendix"],
+    )
+    methods = extract_optional_markdown_block(
+        body,
+        "Methods",
+        ["Results", "Discussion", "Main Tables", "Main Figures", "Appendix"],
+    )
+    results = extract_optional_markdown_block(
+        body,
+        "Results",
+        ["Discussion", "Main Tables", "Main Figures", "Appendix"],
+    )
+    discussion = extract_optional_markdown_block(
+        body,
+        "Discussion",
+        ["Main Tables", "Main Figures", "Appendix"],
+    )
+    main_tables = extract_optional_markdown_block(body, "Main Tables", ["Main Figures"])
+    main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix"])
+
+    figure_legend_blocks = []
+    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
+        legend = strip_image_lines(block_body)
+        figure_legend_blocks.append(f"## {heading}\n\n{legend}")
+
+    table_blocks = []
+    for heading, block_body in parse_top_level_blocks(main_tables):
+        table_blocks.append(f"## {heading}\n\n{block_body}")
+    if not table_blocks and main_tables.strip():
+        table_blocks.append(f"## Table 1\n\n{main_tables.strip()}")
+
+    markdown_text = (
+        f"---\n"
+        f'title: "{title}"\n'
+        f"bibliography: {bibliography_rel}\n"
+        f"link-citations: true\n"
+        f"---\n\n"
+        f"Authors: [To be completed before submission.]\n\n"
+        f"Affiliations: [To be completed before submission.]\n\n"
+        f"*Correspondence:* [To be completed before submission.]\n\n"
+        f"Keywords: {', '.join(FRONTIERS_KEYWORDS)}\n\n"
+        f"# Abstract\n\n{abstract}\n\n"
+        f"# Introduction\n\n{introduction}\n\n"
+        f"# Materials and methods\n\n{methods}\n\n"
+        f"# Results\n\n{results}\n\n"
+        f"# Discussion\n\n{discussion}\n\n"
+        f"{build_frontiers_required_sections()}\n\n"
+        f"# Figure Legends\n\n{'\n\n'.join(figure_legend_blocks).strip()}\n\n"
+        f"# Tables\n\n{'\n\n'.join(table_blocks).strip()}\n"
+    )
+    output_path = submission_root / "frontiers_manuscript.md"
+    write_text(output_path, markdown_text)
+    return output_path
+
+
+def build_frontiers_supplementary_markdown(
+    *,
+    compiled_markdown_path: Path,
+    submission_root: Path,
+) -> Path:
+    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    metadata, body = split_front_matter(compiled_text)
+    bibliography_value = metadata.get("bibliography", "../references.bib")
+    bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
+    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    appendix = extract_optional_markdown_block(body, "Appendix", [])
+    if not appendix.strip():
+        main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix", "Main Tables"])
+        supplementary_blocks = [
+            f"## {heading}\n\n{block_body}"
+            for heading, block_body in parse_heading_blocks(main_figures, "Supplementary Figure ")
+        ]
+        appendix = "\n\n".join(supplementary_blocks).strip()
+    rewritten_appendix = rewrite_image_paths(
+        markdown_text=appendix,
+        source_markdown_dir=compiled_markdown_path.parent,
+        target_markdown_dir=submission_root,
+    )
+    markdown_text = (
+        "---\n"
+        'title: "Supplementary Material"\n'
+        f"bibliography: {bibliography_rel}\n"
+        "link-citations: true\n"
+        "---\n\n"
+        "# Supplementary Material\n\n"
+        "This file contains supplementary figures and appendix material prepared for journal submission.\n\n"
+        f"{rewritten_appendix.strip()}\n"
+    )
+    output_path = submission_root / "frontiers_supplementary_material.md"
+    write_text(output_path, markdown_text)
+    return output_path
 
 
 def create_submission_minimal_package(
     *,
     paper_root: Path,
     publication_profile: str,
-    citation_style: str = "AMA",
+    citation_style: str | None = "auto",
 ) -> dict[str, Any]:
     paper_root = paper_root.resolve()
     workspace_root = workspace_root_from_paper_root(paper_root)
-    submission_root = paper_root / "submission_minimal"
+    requested_publication_profile = str(publication_profile or "").strip()
+    profile_config = resolve_publication_profile_config(
+        publication_profile=requested_publication_profile,
+        citation_style=citation_style,
+    )
+    resolved_publication_profile = profile_config.publication_profile
+    submission_root = resolve_output_root(paper_root=paper_root, publication_profile=resolved_publication_profile)
     figures_output_dir = submission_root / "figures"
     tables_output_dir = submission_root / "tables"
-    csl_path = default_ama_csl_path()
-    if citation_style != "AMA":
-        raise ValueError(f"unsupported citation style: {citation_style}")
-    if not csl_path.exists():
-        raise FileNotFoundError(f"missing AMA CSL file: {csl_path}")
 
     bundle_manifest = load_json(paper_root / "paper_bundle_manifest.json")
-    compile_report_path = resolve_relpath(workspace_root, bundle_manifest["bundle_inputs"]["compile_report_path"])
-    figure_catalog_path = resolve_relpath(workspace_root, bundle_manifest["bundle_inputs"]["figure_catalog_path"])
-    table_catalog_path = resolve_relpath(workspace_root, bundle_manifest["bundle_inputs"]["table_catalog_path"])
+    compile_report_path = resolve_relpath(
+        workspace_root,
+        resolve_bundle_input_path(
+            bundle_manifest=bundle_manifest,
+            key="compile_report_path",
+        ),
+    )
+    figure_catalog_path = resolve_relpath(
+        workspace_root,
+        resolve_bundle_input_path(
+            bundle_manifest=bundle_manifest,
+            key="figure_catalog_path",
+            fallback="paper/figures/figure_catalog.json",
+        ),
+    )
+    table_catalog_path = resolve_relpath(
+        workspace_root,
+        resolve_bundle_input_path(
+            bundle_manifest=bundle_manifest,
+            key="table_catalog_path",
+            fallback="paper/tables/table_catalog.json",
+        ),
+    )
 
     compile_report = load_json(compile_report_path)
     figure_catalog = load_json(figure_catalog_path)
@@ -141,12 +567,37 @@ def create_submission_minimal_package(
     output_docx_path = submission_root / "manuscript.docx"
     output_pdf_path = submission_root / "paper.pdf"
     shutil.copy2(compiled_pdf_path, output_pdf_path)
+
+    source_markdown_path = compiled_markdown_path
+    supplementary_source_markdown_path: Path | None = None
+    supplementary_output_docx_path: Path | None = None
+
+    if is_frontiers_family_harvard_profile(resolved_publication_profile):
+        source_markdown_path = build_frontiers_manuscript_markdown(
+            compiled_markdown_path=compiled_markdown_path,
+            submission_root=submission_root,
+        )
+        supplementary_source_markdown_path = build_frontiers_supplementary_markdown(
+            compiled_markdown_path=compiled_markdown_path,
+            submission_root=submission_root,
+        )
+        supplementary_output_docx_path = submission_root / str(profile_config.supplementary_docx_name)
+
     export_docx(
-        compiled_markdown_path=compiled_markdown_path,
+        compiled_markdown_path=source_markdown_path,
         paper_root=paper_root,
         output_docx_path=output_docx_path,
-        csl_path=csl_path,
+        csl_path=profile_config.csl_path,
+        reference_doc_path=profile_config.reference_doc_path,
     )
+    if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
+        export_docx(
+            compiled_markdown_path=supplementary_source_markdown_path,
+            paper_root=paper_root,
+            output_docx_path=supplementary_output_docx_path,
+            csl_path=profile_config.csl_path,
+            reference_doc_path=profile_config.supplementary_reference_doc_path,
+        )
 
     figure_entries: list[dict[str, Any]] = []
     figure_naming_map: dict[str, str] = {}
@@ -194,17 +645,17 @@ def create_submission_minimal_package(
             }
         )
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "schema_version": 1,
         "generated_at": utc_now(),
-        "publication_profile": publication_profile,
-        "citation_style": citation_style,
+        "publication_profile": resolved_publication_profile,
+        "citation_style": profile_config.citation_style,
         "output_root": str(submission_root),
         "manuscript": {
-            "source_markdown_path": relpath_from_workspace(compiled_markdown_path, workspace_root),
+            "source_markdown_path": relpath_from_workspace(source_markdown_path, workspace_root),
             "pdf_path": relpath_from_workspace(output_pdf_path, workspace_root),
             "docx_path": relpath_from_workspace(output_docx_path, workspace_root),
-            "csl_path": str(csl_path.resolve()),
+            "csl_path": str(profile_config.csl_path.resolve()),
         },
         "naming_map": {
             "figures": figure_naming_map,
@@ -213,11 +664,32 @@ def create_submission_minimal_package(
         "figures": figure_entries,
         "tables": table_entries,
     }
+    if requested_publication_profile != resolved_publication_profile:
+        manifest["requested_publication_profile"] = requested_publication_profile
+    if profile_config.reference_doc_path is not None:
+        journal_target = {
+            "reference_doc_path": str(profile_config.reference_doc_path.resolve()),
+        }
+        if profile_config.journal_name is not None:
+            journal_target["journal_name"] = profile_config.journal_name
+        if profile_config.journal_family is not None:
+            journal_target["journal_family"] = profile_config.journal_family
+        if profile_config.reference_style_family is not None:
+            journal_target["reference_style_family"] = profile_config.reference_style_family
+        manifest["journal_target"] = journal_target
+    if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
+        manifest["supplementary_material"] = {
+            "source_markdown_path": relpath_from_workspace(supplementary_source_markdown_path, workspace_root),
+            "docx_path": relpath_from_workspace(supplementary_output_docx_path, workspace_root),
+            "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
+        }
+
     dump_json(submission_root / "submission_manifest.json", manifest)
     if study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
         study_delivery_sync.sync_study_delivery(
             paper_root=paper_root,
             stage="submission_minimal",
+            publication_profile=resolved_publication_profile,
         )
     return manifest
 
@@ -226,7 +698,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export a submission-minimal manuscript package.")
     parser.add_argument("--paper-root", type=Path, required=True)
     parser.add_argument("--publication-profile", default="general_medical_journal")
-    parser.add_argument("--citation-style", default="AMA")
+    parser.add_argument("--citation-style", default="auto")
     return parser.parse_args()
 
 

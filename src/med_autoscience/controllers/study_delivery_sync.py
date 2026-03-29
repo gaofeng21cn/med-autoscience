@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from med_autoscience.publication_profiles import (
+    GENERAL_MEDICAL_JOURNAL_PROFILE,
+    normalize_publication_profile,
+)
 
 
 SYNC_STAGES = ("submission_minimal", "finalize")
@@ -21,31 +26,23 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def load_flat_yaml_mapping(path: Path) -> dict[str, str]:
-    payload: dict[str, str] = {}
-    pattern = re.compile(r"^(?P<key>[A-Za-z0-9_]+)\s*:\s*(?P<value>.+?)\s*$")
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if raw_line.startswith((" ", "\t")):
-            raise ValueError(f"nested YAML is not supported in {path}")
-        match = pattern.match(raw_line)
-        if match is None:
-            raise ValueError(f"unsupported YAML line in {path}: {raw_line}")
-        value = match.group("value").strip().strip("'").strip('"')
-        if not value:
-            raise ValueError(f"empty YAML scalar in {path}: {raw_line}")
-        payload[match.group("key")] = value
-    return payload
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
 
 
 def read_top_level_yaml_scalar(path: Path, key: str) -> str:
-    payload = load_flat_yaml_mapping(path)
-    try:
-        return payload[key]
-    except KeyError as exc:
-        raise ValueError(f"missing top-level scalar `{key}` in {path}") from exc
+    prefix = f"{key}:"
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        if raw_line.startswith((" ", "\t")):
+            continue
+        line = raw_line.strip()
+        if not line or line.startswith("#") or not line.startswith(prefix):
+            continue
+        value = line[len(prefix) :].strip().strip("'").strip('"')
+        if value:
+            return value
+    raise ValueError(f"missing top-level scalar `{key}` in {path}")
 
 
 def reset_directory(path: Path) -> None:
@@ -128,51 +125,101 @@ def copy_tree(
         )
 
 
-def sync_study_delivery(
+def build_submission_source_root(*, paper_root: Path, publication_profile: str) -> Path:
+    normalized_profile = normalize_publication_profile(publication_profile)
+    if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        return paper_root / "submission_minimal"
+    return paper_root / "journal_submissions" / normalized_profile
+
+
+def build_submission_package_readme(*, study_id: str, stage: str, publication_profile: str) -> str:
+    normalized_profile = normalize_publication_profile(publication_profile)
+    if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        return (
+            f"# Submission Package\n\n"
+            f"- Study: `{study_id}`\n"
+            f"- Sync stage: `{stage}`\n"
+            f"- Contents:\n"
+            f"  - `manuscript.docx`\n"
+            f"  - `paper.pdf`\n"
+            f"  - `submission_manifest.json`\n"
+            f"  - `figures/`\n"
+            f"  - `tables/`\n\n"
+            f"This directory is assembled automatically during study delivery sync so the manuscript and submission assets can be reviewed or handed off as one package.\n"
+        )
+    return (
+        f"# Journal Submission Package\n\n"
+        f"- Study: `{study_id}`\n"
+        f"- Sync stage: `{stage}`\n"
+        f"- Publication profile: `{normalized_profile}`\n"
+        f"- Contents:\n"
+        f"  - `manuscript.docx`\n"
+        f"  - `paper.pdf`\n"
+        f"  - `submission_manifest.json`\n"
+        f"  - `Supplementary_Material.docx` (when generated)\n"
+        f"  - `figures/`\n"
+        f"  - `tables/`\n\n"
+        f"This journal-specific package is assembled automatically so the target-journal version can coexist with the generic final delivery.\n"
+    )
+
+
+def build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if output_path.exists():
+        output_path.unlink()
+    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for source in sorted(source_root.rglob("*")):
+            if not source.is_file():
+                continue
+            archive.write(source, source.relative_to(source_root).as_posix())
+
+
+def sync_general_delivery(
     *,
     paper_root: Path,
-    stage: str,
+    worktree_root: Path,
+    study_id: str,
+    study_root: Path,
+    normalized_stage: str,
 ) -> dict[str, Any]:
-    normalized_stage = str(stage or "").strip()
-    if normalized_stage not in SYNC_STAGES:
-        raise ValueError(f"unsupported sync stage: {stage}")
-
-    paper_root = paper_root.resolve()
-    worktree_root = resolve_worktree_root(paper_root)
-    study_id, study_root = resolve_study_root(paper_root)
     manuscript_final_root = study_root / "manuscript" / "final"
     artifacts_final_root = study_root / "artifacts" / "final"
+    submission_package_root = manuscript_final_root / "submission_package"
+    submission_package_zip = manuscript_final_root / "submission_package.zip"
 
     reset_directory(manuscript_final_root)
     reset_directory(artifacts_final_root)
 
     copied_files: list[dict[str, str]] = []
+    generated_files: list[dict[str, str]] = []
+    source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
+
     copy_file(
-        source=paper_root / "submission_minimal" / "manuscript.docx",
+        source=source_root / "manuscript.docx",
         target=manuscript_final_root / "manuscript.docx",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
-        source=paper_root / "submission_minimal" / "paper.pdf",
+        source=source_root / "paper.pdf",
         target=manuscript_final_root / "paper.pdf",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
-        source=paper_root / "submission_minimal" / "submission_manifest.json",
+        source=source_root / "submission_manifest.json",
         target=manuscript_final_root / "submission_manifest.json",
         category="manifest",
         copied_files=copied_files,
     )
     copy_tree(
-        source_root=paper_root / "submission_minimal" / "figures",
+        source_root=source_root / "figures",
         target_root=artifacts_final_root / "figures",
         category="figures",
         copied_files=copied_files,
     )
     copy_tree(
-        source_root=paper_root / "submission_minimal" / "tables",
+        source_root=source_root / "tables",
         target_root=artifacts_final_root / "tables",
         category="tables",
         copied_files=copied_files,
@@ -216,12 +263,70 @@ def sync_study_delivery(
             copied_files=copied_files,
         )
 
+    reset_directory(submission_package_root)
+    copy_file(
+        source=manuscript_final_root / "manuscript.docx",
+        target=submission_package_root / "manuscript.docx",
+        category="submission_package",
+        copied_files=copied_files,
+    )
+    copy_file(
+        source=manuscript_final_root / "paper.pdf",
+        target=submission_package_root / "paper.pdf",
+        category="submission_package",
+        copied_files=copied_files,
+    )
+    copy_file(
+        source=manuscript_final_root / "submission_manifest.json",
+        target=submission_package_root / "submission_manifest.json",
+        category="submission_package",
+        copied_files=copied_files,
+    )
+    copy_tree(
+        source_root=artifacts_final_root / "figures",
+        target_root=submission_package_root / "figures",
+        category="submission_package",
+        copied_files=copied_files,
+    )
+    copy_tree(
+        source_root=artifacts_final_root / "tables",
+        target_root=submission_package_root / "tables",
+        category="submission_package",
+        copied_files=copied_files,
+    )
+    package_readme_path = submission_package_root / "README.md"
+    write_text(
+        package_readme_path,
+        build_submission_package_readme(
+            study_id=study_id,
+            stage=normalized_stage,
+            publication_profile="general_medical_journal",
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "submission_package",
+            "path": str(package_readme_path.resolve()),
+        }
+    )
+    build_zip_from_directory(
+        source_root=submission_package_root,
+        output_path=submission_package_zip,
+    )
+    generated_files.append(
+        {
+            "category": "submission_package",
+            "path": str(submission_package_zip.resolve()),
+        }
+    )
+
     manifest = {
         "schema_version": 1,
         "generated_at": utc_now(),
         "stage": normalized_stage,
         "study_id": study_id,
         "quest_id": study_id,
+        "publication_profile": "general_medical_journal",
         "source": {
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
@@ -230,17 +335,163 @@ def sync_study_delivery(
             "study_root": str(study_root),
             "manuscript_final_root": str(manuscript_final_root),
             "artifacts_final_root": str(artifacts_final_root),
+            "submission_package_root": str(submission_package_root),
+            "submission_package_zip": str(submission_package_zip),
         },
         "copied_files": copied_files,
+        "generated_files": generated_files,
     }
     dump_json(manuscript_final_root / "delivery_manifest.json", manifest)
     return manifest
+
+
+def sync_journal_specific_delivery(
+    *,
+    paper_root: Path,
+    worktree_root: Path,
+    study_id: str,
+    study_root: Path,
+    normalized_stage: str,
+    publication_profile: str,
+) -> dict[str, Any]:
+    manuscript_final_root = study_root / "manuscript" / "final"
+    journal_package_root = manuscript_final_root / "journal_packages" / publication_profile
+    journal_package_zip = manuscript_final_root / f"{publication_profile}_submission_package.zip"
+    source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
+
+    journal_package_root.parent.mkdir(parents=True, exist_ok=True)
+    reset_directory(journal_package_root)
+
+    copied_files: list[dict[str, str]] = []
+    generated_files: list[dict[str, str]] = []
+    copy_file(
+        source=source_root / "manuscript.docx",
+        target=journal_package_root / "manuscript.docx",
+        category="journal_submission_package",
+        copied_files=copied_files,
+    )
+    copy_file(
+        source=source_root / "paper.pdf",
+        target=journal_package_root / "paper.pdf",
+        category="journal_submission_package",
+        copied_files=copied_files,
+    )
+    copy_file(
+        source=source_root / "submission_manifest.json",
+        target=journal_package_root / "submission_manifest.json",
+        category="journal_submission_package",
+        copied_files=copied_files,
+    )
+    supplementary_docx = source_root / "Supplementary_Material.docx"
+    if supplementary_docx.exists():
+        copy_file(
+            source=supplementary_docx,
+            target=journal_package_root / "Supplementary_Material.docx",
+            category="journal_submission_package",
+            copied_files=copied_files,
+        )
+    copy_tree(
+        source_root=source_root / "figures",
+        target_root=journal_package_root / "figures",
+        category="journal_submission_package",
+        copied_files=copied_files,
+    )
+    copy_tree(
+        source_root=source_root / "tables",
+        target_root=journal_package_root / "tables",
+        category="journal_submission_package",
+        copied_files=copied_files,
+    )
+    package_readme_path = journal_package_root / "README.md"
+    write_text(
+        package_readme_path,
+        build_submission_package_readme(
+            study_id=study_id,
+            stage=normalized_stage,
+            publication_profile=publication_profile,
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "journal_submission_package",
+            "path": str(package_readme_path.resolve()),
+        }
+    )
+    build_zip_from_directory(
+        source_root=journal_package_root,
+        output_path=journal_package_zip,
+    )
+    generated_files.append(
+        {
+            "category": "journal_submission_package",
+            "path": str(journal_package_zip.resolve()),
+        }
+    )
+
+    manifest = {
+        "schema_version": 1,
+        "generated_at": utc_now(),
+        "stage": normalized_stage,
+        "study_id": study_id,
+        "quest_id": study_id,
+        "publication_profile": publication_profile,
+        "source": {
+            "paper_root": str(paper_root),
+            "worktree_root": str(worktree_root),
+            "package_source_root": str(source_root),
+        },
+        "targets": {
+            "study_root": str(study_root),
+            "manuscript_final_root": str(manuscript_final_root),
+            "journal_package_root": str(journal_package_root),
+            "journal_package_zip": str(journal_package_zip),
+        },
+        "copied_files": copied_files,
+        "generated_files": generated_files,
+    }
+    dump_json(journal_package_root / "delivery_manifest.json", manifest)
+    return manifest
+
+
+def sync_study_delivery(
+    *,
+    paper_root: Path,
+    stage: str,
+    publication_profile: str = "general_medical_journal",
+) -> dict[str, Any]:
+    normalized_stage = str(stage or "").strip()
+    if normalized_stage not in SYNC_STAGES:
+        raise ValueError(f"unsupported sync stage: {stage}")
+    normalized_publication_profile = normalize_publication_profile(publication_profile)
+
+    paper_root = paper_root.resolve()
+    worktree_root = resolve_worktree_root(paper_root)
+    study_id, study_root = resolve_study_root(paper_root)
+
+    if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        return sync_general_delivery(
+            paper_root=paper_root,
+            worktree_root=worktree_root,
+            study_id=study_id,
+            study_root=study_root,
+            normalized_stage=normalized_stage,
+        )
+
+    return sync_journal_specific_delivery(
+        paper_root=paper_root,
+        worktree_root=worktree_root,
+        study_id=study_id,
+        study_root=study_root,
+        normalized_stage=normalized_stage,
+        publication_profile=normalized_publication_profile,
+    )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sync finalized paper deliverables into the study shallow path.")
     parser.add_argument("--paper-root", type=Path, required=True)
     parser.add_argument("--stage", choices=SYNC_STAGES, required=True)
+    parser.add_argument("--publication-profile", default="general_medical_journal")
     return parser.parse_args()
 
 
@@ -249,6 +500,7 @@ def main() -> int:
     sync_study_delivery(
         paper_root=args.paper_root,
         stage=args.stage,
+        publication_profile=args.publication_profile,
     )
     return 0
 

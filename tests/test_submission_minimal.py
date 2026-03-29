@@ -4,6 +4,7 @@ import base64
 import importlib
 import json
 from pathlib import Path
+import zipfile
 
 
 PNG_1X1_BASE64 = (
@@ -25,6 +26,16 @@ def write_text(path: Path, text: str) -> None:
 def write_png(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(base64.b64decode(PNG_1X1_BASE64))
+
+
+def write_docx(path: Path, text: str) -> None:
+    from docx import Document
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    document = Document()
+    document.add_paragraph(text)
+    document.sections[0].footer.paragraphs[0].text = f"{text} footer"
+    document.save(path)
 
 
 def make_paper_workspace(tmp_path: Path) -> Path:
@@ -258,10 +269,16 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
         called["can_sync_paper_root"] = paper_root
         return True
 
-    def fake_sync(*, paper_root: Path, stage: str) -> dict:
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+    ) -> dict:
         called["sync_paper_root"] = paper_root
         called["sync_stage"] = stage
-        return {"stage": stage}
+        called["sync_publication_profile"] = publication_profile
+        return {"stage": stage, "publication_profile": publication_profile}
 
     monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
     monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
@@ -274,3 +291,149 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     assert called["can_sync_paper_root"] == paper_root
     assert called["sync_paper_root"] == paper_root
     assert called["sync_stage"] == "submission_minimal"
+    assert called["sync_publication_profile"] == "general_medical_journal"
+
+
+def test_create_submission_minimal_package_frontiers_family_profile_creates_journal_specific_assets(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="frontiers_family_harvard",
+    )
+
+    submission_root = paper_root / "journal_submissions" / "frontiers_family_harvard"
+    assert submission_root.exists()
+    assert manifest["publication_profile"] == "frontiers_family_harvard"
+    assert manifest["citation_style"] == "FrontiersHarvard"
+    assert (submission_root / "manuscript.docx").exists()
+    assert (submission_root / "Supplementary_Material.docx").exists()
+    assert (submission_root / "paper.pdf").exists()
+    assert manifest["manuscript"]["docx_path"] == "paper/journal_submissions/frontiers_family_harvard/manuscript.docx"
+    assert (
+        manifest["supplementary_material"]["docx_path"]
+        == "paper/journal_submissions/frontiers_family_harvard/Supplementary_Material.docx"
+    )
+    assert manifest["journal_target"]["journal_family"] == "Frontiers"
+    assert manifest["journal_target"]["reference_style_family"] == "FrontiersHarvard"
+
+
+def test_create_submission_minimal_package_rejects_legacy_frontiers_profile(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    try:
+        module.create_submission_minimal_package(
+            paper_root=paper_root,
+            publication_profile="frontiers_in_physiology",
+        )
+    except ValueError as exc:
+        assert "unsupported publication profile" in str(exc)
+    else:
+        raise AssertionError("legacy Frontiers profile should be rejected")
+
+
+def test_create_submission_minimal_package_frontiers_family_profile_preserves_reference_doc_parts(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="frontiers_family_harvard",
+    )
+
+    output_docx_path = paper_root / "journal_submissions" / "frontiers_family_harvard" / "manuscript.docx"
+    with zipfile.ZipFile(output_docx_path) as archive:
+        footer_names = [name for name in archive.namelist() if name.startswith("word/footer")]
+        assert footer_names
+
+
+def test_create_submission_minimal_package_frontiers_family_syncs_into_study_family_package(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    study_root = tmp_path / "workspace" / "studies" / "paper"
+    # keep this assertion impossible for current implementation so the new sync contract is explicit
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    called: dict[str, object] = {}
+
+    def fake_can_sync(*, paper_root: Path) -> bool:
+        return True
+
+    def fake_sync(*, paper_root: Path, stage: str, publication_profile: str = "general_medical_journal") -> dict:
+        called["paper_root"] = paper_root
+        called["stage"] = stage
+        called["publication_profile"] = publication_profile
+        return {"stage": stage, "publication_profile": publication_profile}
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="frontiers_family_harvard",
+    )
+
+    assert called["paper_root"] == paper_root
+    assert called["stage"] == "submission_minimal"
+    assert called["publication_profile"] == "frontiers_family_harvard"

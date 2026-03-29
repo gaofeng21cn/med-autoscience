@@ -76,6 +76,8 @@ Use:
 
 Do not finalize from chat memory alone.
 
+{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
+
 ## Required durable outputs
 
 The finalize stage should usually leave behind:

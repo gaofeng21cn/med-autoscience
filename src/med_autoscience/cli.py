@@ -16,8 +16,10 @@ from med_autoscience.controllers import (
     medical_publication_surface,
     publication_gate,
     runtime_watch,
+    startup_data_readiness as startup_data_readiness_controller,
     study_delivery_sync,
     submission_minimal,
+    submission_targets as submission_targets_controller,
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.overlay import installer as overlay_installer
@@ -66,6 +68,9 @@ def build_parser() -> argparse.ArgumentParser:
     validate_public_registry_parser = subparsers.add_parser("validate-public-registry")
     validate_public_registry_parser.add_argument("--workspace-root", required=True)
 
+    startup_data_readiness_parser = subparsers.add_parser("startup-data-readiness")
+    startup_data_readiness_parser.add_argument("--workspace-root", required=True)
+
     diff_private_release_parser = subparsers.add_parser("diff-private-release")
     diff_private_release_parser.add_argument("--workspace-root", required=True)
     diff_private_release_parser.add_argument("--family-id", required=True)
@@ -84,6 +89,17 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument("--paper-root", required=True)
     export_parser.add_argument("--publication-profile", default="general_medical_journal")
     export_parser.add_argument("--citation-style", default="auto")
+
+    resolve_submission_targets_parser = subparsers.add_parser("resolve-submission-targets")
+    resolve_submission_targets_parser.add_argument("--profile", type=str)
+    resolve_submission_targets_parser.add_argument("--study-root", type=str)
+    resolve_submission_targets_parser.add_argument("--quest-root", type=str)
+
+    export_submission_targets_parser = subparsers.add_parser("export-submission-targets")
+    export_submission_targets_parser.add_argument("--paper-root", type=str)
+    export_submission_targets_parser.add_argument("--profile", type=str)
+    export_submission_targets_parser.add_argument("--study-root", type=str)
+    export_submission_targets_parser.add_argument("--quest-root", type=str)
 
     gate_parser = subparsers.add_parser("publication-gate")
     gate_parser.add_argument("--quest-root", required=True)
@@ -166,6 +182,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "startup-data-readiness":
+        result = startup_data_readiness_controller.startup_data_readiness(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "diff-private-release":
         result = data_assets.build_private_release_diff(
             workspace_root=Path(args.workspace_root),
@@ -197,6 +218,25 @@ def main(argv: list[str] | None = None) -> int:
             paper_root=Path(args.paper_root),
             publication_profile=args.publication_profile,
             citation_style=args.citation_style,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "resolve-submission-targets":
+        result = submission_targets_controller.resolve_submission_targets(
+            profile_path=Path(args.profile) if args.profile else None,
+            study_root=Path(args.study_root) if args.study_root else None,
+            quest_root=Path(args.quest_root) if args.quest_root else None,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "export-submission-targets":
+        result = submission_targets_controller.export_submission_targets(
+            paper_root=Path(args.paper_root) if args.paper_root else None,
+            profile_path=Path(args.profile) if args.profile else None,
+            study_root=Path(args.study_root) if args.study_root else None,
+            quest_root=Path(args.quest_root) if args.quest_root else None,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
@@ -251,6 +291,12 @@ def main(argv: list[str] | None = None) -> int:
             overlay_request = overlay_request_from_profile(profile)
             overlay_install = overlay_installer.install_medical_overlay(**overlay_request)
             overlay_status = overlay_installer.describe_medical_overlay(**overlay_request)
+        workspace_root = profile.workspace_root
+        data_assets_init = data_assets.init_data_assets(workspace_root=workspace_root)
+        public_validation = data_assets.validate_public_registry(workspace_root=workspace_root)
+        impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
+        startup_data_readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=workspace_root)
+        data_assets_status = data_assets.data_assets_status(workspace_root=workspace_root)
         result = {
             "profile": profile.name,
             "doctor": {
@@ -269,6 +315,16 @@ def main(argv: list[str] | None = None) -> int:
             },
             "overlay_install": overlay_install,
             "overlay_status": overlay_status,
+            "data_assets": {
+                "init": data_assets_init,
+                "status": data_assets_status,
+                "public_validation": public_validation,
+                "impact_report": {
+                    "study_count": impact_report.get("study_count"),
+                    "report_path": str(data_assets._impact_report_path(workspace_root)),
+                },
+                "startup_data_readiness": startup_data_readiness,
+            },
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

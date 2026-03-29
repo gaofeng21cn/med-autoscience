@@ -8,6 +8,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
 from med_autoscience.policies.research_route_bias import (
     DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID,
     get_policy,
@@ -18,14 +19,15 @@ from med_autoscience.policies.study_archetypes import (
     get_archetype,
     render_archetype_block,
 )
+from med_autoscience.submission_targets import render_submission_target_overlay_block
 
 
 SCHEMA_VERSION = 1
 OVERLAY_NAME = "med_autoscience_medical_deepscientist_overlay"
 MANIFEST_NAME = ".med_autoscience_overlay.json"
-DEFAULT_MEDICAL_OVERLAY_SKILL_IDS = ("scout", "idea", "decision", "write", "finalize")
 ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
+SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
 FRONTLOAD_STAGE_IDS = frozenset({"scout", "idea", "decision"})
 SKILL_TEMPLATE_MAP = {
     "scout": "deepscientist-scout.SKILL.md",
@@ -33,6 +35,7 @@ SKILL_TEMPLATE_MAP = {
     "decision": "deepscientist-decision.SKILL.md",
     "write": "deepscientist-write.SKILL.md",
     "finalize": "deepscientist-finalize.SKILL.md",
+    "journal-resolution": "deepscientist-journal-resolution.SKILL.md",
 }
 
 
@@ -67,6 +70,8 @@ def _dump_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _normalize_skill_ids(skill_ids: tuple[str, ...] | list[str] | None) -> tuple[str, ...]:
     normalized = DEFAULT_MEDICAL_OVERLAY_SKILL_IDS if skill_ids is None else tuple(skill_ids)
+    if ("write" in normalized or "finalize" in normalized) and "journal-resolution" not in normalized:
+        normalized = normalized + ("journal-resolution",)
     invalid = [skill_id for skill_id in normalized if skill_id not in SKILL_TEMPLATE_MAP]
     if invalid:
         raise ValueError(f"Unsupported medical overlay skill ids: {', '.join(invalid)}")
@@ -120,10 +125,24 @@ def load_overlay_skill_text(
     *,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
 ) -> str:
     template_name = SKILL_TEMPLATE_MAP[skill_id]
     template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
     template = template_path.read_text(encoding="utf-8")
+    if skill_id in {"write", "finalize", "journal-resolution"}:
+        if SUBMISSION_TARGETS_TOKEN not in template:
+            raise ValueError(f"Overlay template for {skill_id} is missing submission target token")
+        template = template.replace(
+            SUBMISSION_TARGETS_TOKEN,
+            render_submission_target_overlay_block(
+                default_submission_targets=default_submission_targets,
+                default_publication_profile=default_publication_profile,
+                default_citation_style=default_citation_style,
+            ).rstrip(),
+        )
     if skill_id not in FRONTLOAD_STAGE_IDS:
         return template
 
@@ -147,11 +166,17 @@ def _describe_target(
     *,
     policy_id: str,
     archetype_ids: tuple[str, ...],
+    default_submission_targets: tuple[dict[str, object], ...],
+    default_publication_profile: str | None,
+    default_citation_style: str | None,
 ) -> dict[str, Any]:
     overlay_text = load_overlay_skill_text(
         target.skill_id,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
     )
     overlay_fingerprint = _fingerprint(overlay_text)
     manifest = _load_json(target.manifest_path)
@@ -205,16 +230,25 @@ def describe_medical_overlay(
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
 ) -> dict[str, Any]:
     normalized_skill_ids = _normalize_skill_ids(skill_ids)
     normalized_policy_id = _normalize_policy_id(policy_id)
     normalized_archetype_ids = _normalize_archetype_ids(archetype_ids)
+    normalized_default_submission_targets = tuple(
+        item for item in (default_submission_targets or ()) if isinstance(item, dict)
+    )
     scope, resolved_quest_root, targets = _resolve_targets(quest_root=quest_root, home=home, skill_ids=normalized_skill_ids)
     described_targets = [
         _describe_target(
             target,
             policy_id=normalized_policy_id,
             archetype_ids=normalized_archetype_ids,
+            default_submission_targets=normalized_default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
         )
         for target in targets
     ]
@@ -226,6 +260,9 @@ def describe_medical_overlay(
         "skill_ids": list(normalized_skill_ids),
         "policy_id": normalized_policy_id,
         "archetype_ids": list(normalized_archetype_ids),
+        "default_submission_targets": list(normalized_default_submission_targets),
+        "default_publication_profile": default_publication_profile,
+        "default_citation_style": default_citation_style,
         "targets": described_targets,
         "all_targets_ready": all(item["status"] == "overlay_applied" for item in described_targets),
     }
@@ -286,6 +323,9 @@ def _install_for_target(
     force: bool,
     policy_id: str,
     archetype_ids: tuple[str, ...],
+    default_submission_targets: tuple[dict[str, object], ...],
+    default_publication_profile: str | None,
+    default_citation_style: str | None,
 ) -> dict[str, Any]:
     _seed_workspace_target_from_home(target=target, home=home)
     current_text = _ensure_target_ready(target)
@@ -294,6 +334,9 @@ def _install_for_target(
         target.skill_id,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
     )
     overlay_fingerprint = _fingerprint(overlay_text)
     manifest = _load_json(target.manifest_path)
@@ -341,11 +384,17 @@ def _install_overlay(
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
     force: bool,
 ) -> dict[str, Any]:
     normalized_skill_ids = _normalize_skill_ids(skill_ids)
     normalized_policy_id = _normalize_policy_id(policy_id)
     normalized_archetype_ids = _normalize_archetype_ids(archetype_ids)
+    normalized_default_submission_targets = tuple(
+        item for item in (default_submission_targets or ()) if isinstance(item, dict)
+    )
     scope, resolved_quest_root, targets = _resolve_targets(
         quest_root=quest_root,
         home=home,
@@ -359,6 +408,9 @@ def _install_overlay(
             force=force,
             policy_id=normalized_policy_id,
             archetype_ids=normalized_archetype_ids,
+            default_submission_targets=normalized_default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
         )
         for target in targets
     ]
@@ -370,6 +422,9 @@ def _install_overlay(
         "skill_ids": list(normalized_skill_ids),
         "policy_id": normalized_policy_id,
         "archetype_ids": list(normalized_archetype_ids),
+        "default_submission_targets": list(normalized_default_submission_targets),
+        "default_publication_profile": default_publication_profile,
+        "default_citation_style": default_citation_style,
         "targets": installed_targets,
         "installed_count": sum(1 for item in installed_targets if item["action"] != "already_installed"),
     }
@@ -382,6 +437,9 @@ def install_medical_overlay(
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
 ) -> dict[str, Any]:
     return _install_overlay(
         quest_root=quest_root,
@@ -389,6 +447,9 @@ def install_medical_overlay(
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
         force=False,
     )
 
@@ -400,6 +461,9 @@ def reapply_medical_overlay(
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
 ) -> dict[str, Any]:
     return _install_overlay(
         quest_root=quest_root,
@@ -407,5 +471,8 @@ def reapply_medical_overlay(
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
         force=True,
     )
