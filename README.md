@@ -145,3 +145,44 @@
 目前更适合那些研究问题相对明确、数据基础较清楚、需要稳定推进到论文交付的课题。
 
 对于高度复杂的多中心数据持续更新、更加深入的机制扩展、以及更个性化的投稿适配策略，当前仍需要更多人工判断和技术支持。
+
+## 面向 macOS 用户的预发布 CLI 入口
+
+当前的 macOS 首发版本以纯命令行的 `medautosci` Python CLI 形式提供，是预发布状态的运行工具【不是桌面 App】。请通过终端安装并运行它；我们仍在收集反馈并对运行流程做进一步稳定。
+
+1. 安装
+
+   ```bash
+   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a1/install-macos.sh | bash
+   ```
+
+   - 安装脚本会自动下载或复用 `uv`，再用受管的 Python 3.12 安装当前 Release 对应的 `medautosci`。
+   - 默认会把 `medautosci` 和 `uv` 放到 `~/.local/bin`。如果安装后执行 `medautosci --help` 提示 `command not found`，请执行：
+
+   ```bash
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile
+   source ~/.zprofile
+   ```
+
+2. 运行前提
+
+   - macOS，架构仅支持 Apple Silicon `arm64` 或 Intel `x86_64`
+   - 系统里可用 `bash`、`curl`、`tar`
+   - 有稳定的网络，用于下载 `uv`、Python 3.12 runtime 和当前 Release 资产
+   - 当前 Release 只解决 CLI 安装，不会替你安装 `DeepScientist`、`Codex`、`pandoc` 或创建研究 workspace
+
+3. 升级与卸载
+
+   ```bash
+   curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a1/install-macos.sh | bash
+   ~/.local/bin/uv tool uninstall med-autoscience
+   ```
+
+   - 当前首发版没有独立升级命令；升级到后续版本时，直接执行目标版本 release notes 里的安装命令即可。
+   - 如果 `uv` 已经在 `PATH` 中，也可以直接运行 `uv tool uninstall med-autoscience`。
+
+4. 重点提示
+
+   - 当前 CLI 仍在换代，所有命令仅在 Terminal 里执行，暂不提供图形窗口。
+   - 该包仅包含运行层代理与 controller 命令，不会自动创建研究 workspace；仍需按照 `profiles` 模板指定已有的临床研究目录。
+   - 当前预发布版本号为 `0.1.0a1`，对应 GitHub tag `v0.1.0a1`。
