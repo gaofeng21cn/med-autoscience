@@ -1,5 +1,5 @@
+from .constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
 from .installer import (
-    DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
     describe_medical_overlay,
     install_medical_overlay,
     load_overlay_skill_text,

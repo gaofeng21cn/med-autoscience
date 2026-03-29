@@ -106,6 +106,8 @@ Language redlines under this profile:
 - do not use internal model names or internal model-family names in manuscript body text, figure titles, or captions
 - replace internal labels with externally legible, reviewer-facing terminology
 
+{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
+
 ## Writing mental guardrails
 
 - Writing starts when the claim and evidence structure are stable enough, not when prose feels easy.
