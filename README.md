@@ -104,9 +104,10 @@
 如果只看高层角色，可以把内部组成理解为：
 
 - 医学研究主控与门控：`MedAutoScience`
-- 底层自动科研执行：`DeepScientist`
-- 协调推进 Agent：`Codex`
-- 外部知识与功能扩展：`ToolUniverse`
+- 主运行层与长期研究执行：`DeepScientist`
+- 算法创新侧翼执行层：`ARIS`
+- 协调推进智能体：`Codex`
+- 外部知识、工具与专项分析扩展层：`ToolUniverse`
 
 ## 当前优先支持的研究方向
 
