@@ -130,6 +130,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile 
 - AI 可以先确认目标 workspace 是否接入正确
 - AI 可以按 profile 自动接管医学 stage overlays（通常以 workspace 作用域部署，因此 overlay 只影响当前研究，不污染全局）
 - AI 可以初始化并检查 `portfolio/data_assets/` 下的数据资产层，并在启动时直接生成 `startup_data_readiness` 摘要
+- AI 可以在 runtime 中区分 data hard block 与 public-data advisory，避免因为扩展机会本身中断主实验
 - AI 可以通过 CLI 调用关键 controller 与 `sync-study-delivery`，并且当 finalized paper bundle 已经形成 `submission_minimal` 时，finalize stage 的 overlay skill 会自动调度 `study_delivery_sync(stage="finalize")`，把论文交付、总结与 proofing 材料同步到 `studies/<study-id>/…/final`，使正式交付流程完全在平台内闭环
 
 后续会继续补：

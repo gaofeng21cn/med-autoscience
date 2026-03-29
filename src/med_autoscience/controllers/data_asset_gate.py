@@ -79,6 +79,7 @@ def build_gate_state(quest_root: Path) -> DataAssetGateState:
 def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
     dataset_inputs = list((state.study_report or {}).get("dataset_inputs") or [])
     blockers: list[str] = []
+    advisories: list[str] = []
     outdated_dataset_ids = [
         str(item.get("dataset_id"))
         for item in dataset_inputs
@@ -88,6 +89,7 @@ def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
         str(item.get("dataset_id"))
         for item in dataset_inputs
         if item.get("private_version_status") in {"unversioned_path", "family_not_registered"}
+        or item.get("private_contract_status") in {"directory_scan_only", "release_not_registered"}
     ]
     public_support_dataset_ids = sorted(
         {
@@ -103,9 +105,19 @@ def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
     if unresolved_dataset_ids:
         blockers.append("unresolved_private_data_contract")
     if public_support_dataset_ids:
-        blockers.append("public_data_extension_available")
+        advisories.append("public_data_extension_available")
     if state.study_report is None:
         blockers.append("missing_study_data_impact_entry")
+
+    if blockers:
+        status = "blocked"
+        recommended_action = data_asset_gate_policy.BLOCKED_RECOMMENDED_ACTION
+    elif advisories:
+        status = "advisory"
+        recommended_action = data_asset_gate_policy.ADVISORY_RECOMMENDED_ACTION
+    else:
+        status = "clear"
+        recommended_action = data_asset_gate_policy.CLEAR_RECOMMENDED_ACTION
 
     return {
         "schema_version": 1,
@@ -115,13 +127,10 @@ def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
         "study_id": state.study_id,
         "workspace_root": str(state.workspace_root),
         "impact_report_path": str(data_assets._impact_report_path(state.workspace_root)),
-        "status": "blocked" if blockers else "clear",
-        "recommended_action": (
-            data_asset_gate_policy.BLOCKED_RECOMMENDED_ACTION
-            if blockers
-            else data_asset_gate_policy.CLEAR_RECOMMENDED_ACTION
-        ),
+        "status": status,
+        "recommended_action": recommended_action,
         "blockers": blockers,
+        "advisories": advisories,
         "study_status": (state.study_report or {}).get("status"),
         "outdated_dataset_ids": outdated_dataset_ids,
         "unresolved_dataset_ids": unresolved_dataset_ids,
@@ -146,6 +155,12 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
     blockers = report.get("blockers") or []
     if blockers:
         lines.extend(f"- `{item}`" for item in blockers)
+    else:
+        lines.append("- None")
+    lines.extend(["", "## Advisories", ""])
+    advisories = report.get("advisories") or []
+    if advisories:
+        lines.extend(f"- `{item}`" for item in advisories)
     else:
         lines.append("- None")
     lines.extend(
@@ -186,7 +201,7 @@ def run_controller(
     report = build_gate_report(state)
     json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
-    if apply and report["blockers"]:
+    if apply and report["status"] in {"blocked", "advisory"}:
         intervention = mailbox.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
@@ -198,8 +213,10 @@ def run_controller(
         "report_markdown": str(md_path),
         "status": report["status"],
         "blockers": report["blockers"],
+        "advisories": report["advisories"],
         "study_id": report["study_id"],
         "outdated_dataset_ids": report["outdated_dataset_ids"],
+        "unresolved_dataset_ids": report["unresolved_dataset_ids"],
         "public_support_dataset_ids": report["public_support_dataset_ids"],
         "intervention_enqueued": bool(intervention),
         "message_id": intervention.get("message_id") if intervention else None,

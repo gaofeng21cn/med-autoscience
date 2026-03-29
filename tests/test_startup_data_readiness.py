@@ -214,3 +214,23 @@ def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportuni
     assert result["public_opportunities"]["by_role"] == []
     assert result["study_summary"]["public_extension_study_ids"] == []
     assert result["recommendations"] == ["startup_data_ready"]
+
+
+def test_startup_data_readiness_flags_unresolved_private_contracts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root.mkdir(parents=True, exist_ok=True)
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "002-early-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+        version="v2026-03-28",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "attention_needed"
+    assert result["study_summary"]["unresolved_contract_study_ids"] == ["002-early-risk"]
+    assert result["recommendations"] == ["repair_study_dataset_contracts"]

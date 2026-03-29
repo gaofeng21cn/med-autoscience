@@ -54,8 +54,10 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
         payload = {
             "status": result.get("status"),
             "blockers": result.get("blockers") or [],
+            "advisories": result.get("advisories") or [],
             "study_id": result.get("study_id"),
             "outdated_dataset_ids": result.get("outdated_dataset_ids") or [],
+            "unresolved_dataset_ids": result.get("unresolved_dataset_ids") or [],
             "public_support_dataset_ids": result.get("public_support_dataset_ids") or [],
         }
     else:
@@ -83,6 +85,7 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
                 f"- status: `{item.get('status')}`",
                 f"- action: `{item.get('action')}`",
                 f"- blockers: `{', '.join(item.get('blockers') or ['none'])}`",
+                f"- advisories: `{', '.join(item.get('advisories') or ['none'])}`",
                 f"- report_json: `{item.get('report_json')}`",
                 f"- report_markdown: `{item.get('report_markdown')}`",
                 f"- suppression_reason: `{item.get('suppression_reason') or 'none'}`",
@@ -126,8 +129,12 @@ def run_watch_for_quest(
         action = "clear"
         suppression_reason = None
         final_result = dry_run_result
+        status = dry_run_result.get("status")
+        intervention_statuses = {"blocked"}
+        if name == "data_asset_gate":
+            intervention_statuses.add("advisory")
 
-        if dry_run_result.get("status") == "blocked":
+        if status in intervention_statuses:
             should_apply = apply and previous.get("last_applied_fingerprint") != fingerprint
             if should_apply:
                 final_result = runner(quest_root=quest_root, apply=True)
@@ -144,9 +151,10 @@ def run_watch_for_quest(
             "last_suppression_reason": suppression_reason,
         }
         report["controllers"][name] = {
-            "status": dry_run_result.get("status"),
+            "status": status,
             "action": action,
             "blockers": dry_run_result.get("blockers") or [],
+            "advisories": dry_run_result.get("advisories") or [],
             "report_json": final_result.get("report_json"),
             "report_markdown": final_result.get("report_markdown"),
             "suppression_reason": suppression_reason,

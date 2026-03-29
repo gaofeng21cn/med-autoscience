@@ -63,11 +63,46 @@ def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Pat
     assert report["study_id"] == "002-early-residual-risk"
 
 
-def test_run_controller_enqueues_message_when_public_extension_available(tmp_path: Path) -> None:
+def test_build_gate_report_blocks_when_private_contract_is_unresolved(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
-    (workspace_root / "datasets" / "master" / "v2026-03-28").mkdir(parents=True, exist_ok=True)
-    (workspace_root / "datasets" / "master" / "v2026-03-28" / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "unresolved_private_data_contract" in report["blockers"]
+    assert report["unresolved_dataset_ids"] == ["nfpitnet_master"]
+
+
+def test_run_controller_enqueues_advisory_message_when_public_extension_available(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (version_root / "dataset_manifest.yaml").write_text(
+        "\n".join(
+            [
+                "dataset_id: nfpitnet_master",
+                "version: v2026-03-28",
+                "raw_snapshot: baseline",
+                "generated_by: pipeline/v1.py",
+                "main_outputs:",
+                "  analysis_csv: analysis.csv",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     write_dataset_manifest(
         workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
         dataset_id="nfpitnet_master",
@@ -95,7 +130,30 @@ def test_run_controller_enqueues_message_when_public_extension_available(tmp_pat
     result = module.run_controller(quest_root=quest_root, apply=True)
 
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
-    assert result["status"] == "blocked"
+    assert result["status"] == "advisory"
+    assert result["blockers"] == []
+    assert result["advisories"] == ["public_data_extension_available"]
     assert result["intervention_enqueued"] is True
     assert len(queue["pending"]) == 1
     assert "public-data extension" in queue["pending"][0]["content"]
+    assert "do not need to stop the current run" in queue["pending"][0]["content"]
+
+
+def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+    version_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    version_root.mkdir(parents=True, exist_ok=True)
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-03-28/analysis.csv",
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    assert result["status"] == "blocked"
+    assert result["unresolved_dataset_ids"] == ["nfpitnet_master"]
+    assert "nfpitnet_master" in queue["pending"][0]["content"]
