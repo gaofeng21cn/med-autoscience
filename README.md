@@ -1,75 +1,54 @@
-# MedAutoScience
+<p align="center">
+  <img src="assets/branding/medautoscience-logo.svg" alt="MedAutoScience Logo" width="132" />
+</p>
 
-`MedAutoScience` 是一个面向医学研究者的自动科研平台入口。
+<h1 align="center">MedAutoScience 医学自动科研平台</h1>
 
-它的目标不是把通用 AI 流程机械地跑完，而是围绕手头已有的专病数据与可公开获得的相关数据，稳定、可控地组织出可以投稿的医学论文。
+<p align="center"><strong>从专病数据到投稿交付的自动科研平台</strong></p>
 
-## 项目定位
+<p align="center">
+  <img src="https://img.shields.io/badge/%E5%AE%9A%E4%BD%8D-%E5%8C%BB%E5%AD%A6%E7%A0%94%E7%A9%B6%E5%B9%B3%E5%8F%B0-0B8BD9" alt="定位 医学研究平台" />
+  <img src="https://img.shields.io/badge/%E4%B8%BB%E8%AF%AD%E8%A8%80-%E4%B8%AD%E6%96%87-1E9FB3" alt="主语言 中文" />
+  <img src="https://img.shields.io/badge/%E7%9B%AE%E6%A0%87-%E5%8F%AF%E6%8A%95%E7%A8%BF%E5%8C%BB%E5%AD%A6%E8%AE%BA%E6%96%87-165D9C" alt="目标 可投稿医学论文" />
+</p>
 
-很多自动科研系统更像工程执行器，擅长把任务链跑通，但未必适合医学论文生产。
+<p align="center">
+  <img src="assets/branding/medautoscience-hero.svg" alt="MedAutoScience 主示意图" width="100%" />
+</p>
 
-`MedAutoScience` 的定位不同：
+`MedAutoScience` 的目标，不是把通用 AI 流程机械地跑完，而是围绕手头已有的专病数据与可公开获得的相关数据，稳定、可控地组织出可以投稿的医学论文。
 
-- 优先判断一个方向是否值得继续投入，而不是默认把整条线做完
-- 优先按医学期刊和临床读者的习惯组织研究，而不是按 AI/ML 论文习惯写作
-- 优先形成完整的证据包，包括临床意义、工作量、可解释性、亚组分析、临床效用、外部验证或公开数据扩展
-- 优先止损与换题，不在明显偏弱、难发表的方向上空转
+它面向的不是单一分析脚本，而是完整的医学研究生产链：选题筛选、数据资产管理、建模与统计分析、公开数据扩展、功能分析、稿件组织与投稿交付。
 
-## 适用数据
+## 这个项目解决什么问题
 
-`MedAutoScience` 面向的并不只是单一表格型临床数据，也包括：
+很多自动科研系统更像工程执行器，能把任务链跑通，但未必适合医学论文生产。
+
+`MedAutoScience` 聚焦的是另一件事：
+
+- 先判断某个方向是否值得继续投入，而不是默认把整条线做完
+- 先按医学期刊和临床读者的逻辑组织研究，而不是按通用 AI/ML 论文习惯成文
+- 先形成完整证据包，包括临床意义、工作量、可解释性、亚组分析、临床效用、外部验证与公开数据扩展
+- 先止损与换题，不在明显偏弱、难发表的方向上空转
+
+## 适合哪些数据
 
 - 临床结构化数据
 - 影像、病理及其他多模态数据
 - 组学或功能分析相关数据
-- 本地队列配合公开数据集的扩展分析
+- 本地队列结合公开数据集的扩展分析
+- 持续更新的私有临床数据资产，如补病例、补随访、补字段、多中心并入
 
-## 默认优先的研究模式
+## 平台核心组成
 
-当前版本已经把以下 6 类相对稳定、可扩展、容易组织成完整医学论文的研究模式沉淀为正式策略：
-
-1. `clinical_classifier`
-   临床风险分层 / 分类器。适合围绕临床结局建立高风险与低风险分层，并补齐校准、临床效用、亚组分析与可解释分析。
-2. `clinical_subtype_reconstruction`
-   数据驱动亚型重构。适合把疾病异质性重构成更有临床意义的亚组，并进一步比较预后、治疗反应和生物学差异。
-3. `external_validation_model_update`
-   外部验证 / 模型更新。适合把已有模型或本地开发模型扩展到外部数据，强调可迁移性、再校准与模型更新。
-4. `gray_zone_triage`
-   灰区分诊 / 追加检查分流。适合不是简单二分类，而是要回答“谁可排除、谁可确诊、谁需进一步检查”的临床流程问题。
-5. `llm_agent_clinical_task`
-   基于通用大模型的临床任务智能体。适合窄任务、可做规范基准评测、可比较多种提示词 / 推理方式 / 智能体结构变体的研究。
-6. `mechanistic_sidecar_extension`
-   机制扩展支持模块。适合附着在更强的主临床路线之上，用公开组学、功能分析或知识库增强论文深度与工作量。
-
-这 6 类不是要求每一篇论文都全部使用，而是作为默认优先进入主研究候选面的路线库。
-
-## 数据资产层
-
-医学研究的数据通常不是静态输入，而是持续演进的资产。
-
-当前版本已经把这件事上升成正式模块，分成三层：
-
-- 私有数据版本登记
-  用于管理本地队列补充、随访刷新、字段补全、多中心并入等私有数据演进。
-- 公开数据扩展模块
-  用于登记可用于外部验证、机制扩展、队列扩展的公开数据集。
-- 影响评估
-  用于判断某个 study 当前使用的数据版本是否已经落后，以及是否已有可用的公开数据支持。
-
-对应命令包括：
-
-```bash
-PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /path/to/workspace
-PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /path/to/workspace
-```
-
-这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。
+| 层级 | 角色 | 说明 |
+| --- | --- | --- |
+| 用户入口 | `MedAutoScience` | 面向医学研究者的主入口，负责研究策略、门控、数据资产治理和论文交付组织 |
+| 执行引擎 | `DeepScientist` | 底层自动科研执行引擎 |
+| 协调层 | `Codex` | 把平台策略落实到具体任务推进中的协调执行者 |
+| 外部工具 | `ToolUniverse` | 作为知识检索、功能分析、通路与调控解释的外挂工具层 |
 
 ## 当前已经实现的能力
-
-第一期版本已经具备以下骨架能力：
 
 - 独立仓库与 workspace profile 机制
 - `DeepScientist` 医学技能覆盖层安装与重覆写
@@ -81,25 +60,56 @@ PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-ro
   - 公开数据扩展模块
   - study 级数据影响评估
   - ToolUniverse 适配状态探测
-- 医学写作前验约束，包括：
+- 医学写作前验约束：
   - Methods 必填项约束
-  - 结果部分按研究问题组织，而不是按图表逐张复述
+  - Results 按研究问题组织，而不是按图表逐张复述
   - 稿件安全的复现补充材料
   - 终点来源说明
   - 内部命名、工程腔与未定义方法学标签拦截
 
-## 这个平台如何工作
+## 默认优先的研究模式
 
-可以把它理解成三层：
+当前版本已经把以下 6 类相对稳定、可扩展、容易组织成完整医学论文的研究模式沉淀为正式策略：
 
-- `MedAutoScience`
-  面向医学用户的主入口，负责研究策略、门控、论文约束和交付组织
-- `DeepScientist`
-  底层自动科研执行引擎
-- `Codex`
-  执行协调者，负责把平台策略落实到具体任务推进中
+| Archetype | 中文说明 | 适合的论文方向 |
+| --- | --- | --- |
+| `clinical_classifier` | 临床风险分层 / 分类器 | 风险分层、临床效用、亚组分析、可解释分析 |
+| `clinical_subtype_reconstruction` | 数据驱动亚型重构 | 异质性重构、亚组差异、预后与治疗反应比较 |
+| `external_validation_model_update` | 外部验证 / 模型更新 | 可迁移性、再校准、模型更新 |
+| `gray_zone_triage` | 灰区分诊 / 追加检查分流 | 流程分诊、确诊/排除/灰区设计 |
+| `llm_agent_clinical_task` | 临床任务智能体 | 窄任务评测、提示词 / 推理方式 / 智能体结构比较 |
+| `mechanistic_sidecar_extension` | 机制扩展支持模块 | 公开组学、功能分析、知识库增强 |
 
-也就是说，医学用户面对的应该始终是 `MedAutoScience`，而不是直接操作底层执行引擎。
+这些模式不是要求每一篇论文都全部使用，而是作为默认优先进入主研究候选面的路线库。
+
+## 数据资产层
+
+医学研究的数据通常不是静态输入，而是持续演进的资产。
+
+`MedAutoScience` 把这件事上升成正式模块，分成四部分：
+
+1. 私有数据版本登记  
+   管理本地队列补充、随访刷新、字段补全、多中心并入等私有数据演进。
+
+2. 公开数据扩展模块  
+   登记可用于外部验证、机制扩展、队列扩展的公开数据集。
+
+3. 影响评估  
+   判断某个 study 当前使用的数据版本是否已经落后，以及是否已有可用的公开数据支持。
+
+4. ToolUniverse 适配  
+   将知识检索、功能分析、通路与调控解释纳入正式平台，而不是散落为临时脚本。
+
+对应命令包括：
+
+```bash
+PYTHONPATH=src python3 -m med_autoscience.cli init-data-assets --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli data-assets-status --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli assess-data-asset-impact --workspace-root /path/to/workspace
+PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /path/to/workspace
+```
+
+这些命令会把数据资产元信息统一放到 `portfolio/data_assets/` 下，作为后续选题、重跑、扩展验证和论文组织的稳定依据。
 
 ## 最小部署
 
@@ -135,15 +145,13 @@ PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/
 
 ## 当前边界
 
-当前版本仍是第一期平台骨架。
+当前版本仍是第一期平台骨架，已经完成医学研究入口、策略偏置、写作前验约束、交付闭环和数据资产基础层。
 
-已经完成的是：医学研究入口、策略偏置、写作前验约束、交付闭环和基本 CLI。
-
-接下来会继续迁入：
+后续会继续迁入：
 
 - 更细粒度的私有数据更新契约
 - 更完整的公开数据接入工作流
 - ToolUniverse 的正式任务级调用链
 - 更完整的医学 study / portfolio / startup brief 模板
 - 更细粒度的 publication profile
-- 基于通用 LLM 的医学专用智能体研究支持
+- 基于通用大模型的医学专用智能体研究支持
