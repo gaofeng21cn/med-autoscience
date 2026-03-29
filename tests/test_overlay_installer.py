@@ -77,7 +77,14 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
         assert manifest["skill_id"] == skill_id
         assert manifest["scope"] == "global"
         assert manifest["policy_id"] == "high_plasticity_medical"
-        assert manifest["archetype_ids"] == ["clinical_classifier", "llm_agent_clinical_task"]
+        assert manifest["archetype_ids"] == [
+            "clinical_classifier",
+            "clinical_subtype_reconstruction",
+            "external_validation_model_update",
+            "gray_zone_triage",
+            "llm_agent_clinical_task",
+            "mechanistic_sidecar_extension",
+        ]
         assert manifest["source_fingerprint_before_overlay"]
         assert manifest["overlay_fingerprint"]
         assert manifest["source_fingerprint_before_overlay"] != manifest["overlay_fingerprint"]
@@ -180,7 +187,10 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" not in scout_text
     assert "## Medical publication route bias" in scout_text
     assert "## Preferred study archetypes" in scout_text
+    assert "Clinical subtype reconstruction" in scout_text
+    assert "Gray-zone triage / reflex-testing support" in scout_text
     assert "LLM agent for a clinical task" in scout_text
+    assert "Mechanistic sidecar extension" in scout_text
     assert "## Preferred study archetypes" not in write_text
 
 
@@ -231,7 +241,14 @@ def test_overlay_status_detects_config_drift_when_archetypes_change(tmp_path: Pa
 
     result = module.describe_medical_overlay(
         home=home,
-        archetype_ids=("clinical_classifier", "llm_agent_clinical_task"),
+        archetype_ids=(
+            "clinical_classifier",
+            "clinical_subtype_reconstruction",
+            "external_validation_model_update",
+            "gray_zone_triage",
+            "llm_agent_clinical_task",
+            "mechanistic_sidecar_extension",
+        ),
     )
     by_skill = {item["skill_id"]: item for item in result["targets"]}
 

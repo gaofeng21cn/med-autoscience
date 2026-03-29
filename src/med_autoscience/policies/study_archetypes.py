@@ -3,7 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-DEFAULT_STUDY_ARCHETYPE_IDS = ("clinical_classifier", "llm_agent_clinical_task")
+DEFAULT_STUDY_ARCHETYPE_IDS = (
+    "clinical_classifier",
+    "clinical_subtype_reconstruction",
+    "external_validation_model_update",
+    "gray_zone_triage",
+    "llm_agent_clinical_task",
+    "mechanistic_sidecar_extension",
+)
 
 
 @dataclass(frozen=True)
@@ -38,6 +45,72 @@ _ARCHETYPES = {
             "mechanistic or contextual support for the classifier-defined groups",
         ),
     ),
+    "clinical_subtype_reconstruction": StudyArchetype(
+        archetype_id="clinical_subtype_reconstruction",
+        title="Clinical subtype reconstruction",
+        when_to_prefer=(
+            "the disease shows visible heterogeneity that can be reorganized into clinically legible subgroups",
+            "the paper can compare subtype-specific prognosis, treatment response, or biological differences rather than relying on one fixed factor",
+            "there is room to derive a subtype recognizer or transfer the subtype system to another cohort",
+        ),
+        expected_paper_package=(
+            "subtype derivation with explicit feature set and modeling contract",
+            "cluster stability or reproducibility assessment",
+            "clinical characterization across subtype groups",
+            "outcome or treatment-response comparison across subtypes",
+            "subtype recognizer or assignment model when feasible",
+            "external cohort transfer or public-data-supported subtype contextualization",
+        ),
+        public_data_roles=(
+            "external subtype transfer",
+            "cohort broadening",
+            "biological or functional contextualization of the reconstructed groups",
+        ),
+    ),
+    "external_validation_model_update": StudyArchetype(
+        archetype_id="external_validation_model_update",
+        title="External validation / model update",
+        when_to_prefer=(
+            "a usable clinical prediction model already exists locally or in the literature",
+            "the key value is to show transportability, recalibration, or model updating rather than inventing a new model family",
+            "public or collaborative cohorts can materially strengthen evidence beyond a single-center story",
+        ),
+        expected_paper_package=(
+            "baseline model reproduction or registry",
+            "external validation with discrimination and calibration assessment",
+            "transportability / recalibration / model-updating analysis",
+            "clinical subgroup heterogeneity across sites, periods, or case mix",
+            "decision-utility comparison before and after updating when feasible",
+            "manuscript-safe reproducibility manifest for the transferred model path",
+        ),
+        public_data_roles=(
+            "external validation",
+            "temporal or geographic transport testing",
+            "model updating or recalibration support",
+        ),
+    ),
+    "gray_zone_triage": StudyArchetype(
+        archetype_id="gray_zone_triage",
+        title="Gray-zone triage / reflex-testing support",
+        when_to_prefer=(
+            "the clinical task is not simply yes-versus-no but involves rule-in, rule-out, and indeterminate zones",
+            "the paper can change downstream workflow such as who needs extra imaging, testing, follow-up, or expert review",
+            "the gray-zone design can improve safety, resource allocation, or clinician workload even when discrimination gains are moderate",
+        ),
+        expected_paper_package=(
+            "triage-zone definition with explicit operating thresholds",
+            "rule-in / rule-out / gray-zone yield analysis",
+            "net-benefit or resource-utilization comparison against current workflow",
+            "subgroup comparison across clinically relevant strata",
+            "error review for unsafe triage patterns",
+            "simplified bedside pathway or reflex-testing recommendation",
+        ),
+        public_data_roles=(
+            "threshold robustness checking",
+            "workflow transfer testing in external cohorts",
+            "case-mix expansion for safety analysis",
+        ),
+    ),
     "llm_agent_clinical_task": StudyArchetype(
         archetype_id="llm_agent_clinical_task",
         title="LLM agent for a clinical task",
@@ -59,6 +132,27 @@ _ARCHETYPES = {
             "public benchmark extension",
             "external validation",
             "case-mix broadening beyond the local dataset",
+        ),
+    ),
+    "mechanistic_sidecar_extension": StudyArchetype(
+        archetype_id="mechanistic_sidecar_extension",
+        title="Mechanistic sidecar extension",
+        when_to_prefer=(
+            "a stronger primary clinical route already exists and needs biological, pathway, regulator, or public-dataset support",
+            "the paper benefits from linking classifier- or subtype-defined groups to plausible biological interpretation",
+            "public omics or knowledge resources can materially deepen the story rather than decorate it",
+        ),
+        expected_paper_package=(
+            "primary clinical grouping or model-defined contrast",
+            "functional / pathway / regulator-level interpretation",
+            "cross-dataset consistency check for the mechanistic signal when feasible",
+            "subgroup-aware biological interpretation rather than one pooled enrichment table",
+            "clear separation between primary clinical claim and sidecar mechanistic support",
+        ),
+        public_data_roles=(
+            "omics or functional extension",
+            "knowledge-base or regulator inference support",
+            "independent contextual support for clinically defined groups",
         ),
     ),
 }

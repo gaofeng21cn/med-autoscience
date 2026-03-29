@@ -10,4 +10,4 @@ enable_medical_overlay = true
 medical_overlay_scope = "global"
 medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]
 research_route_bias_policy = "high_plasticity_medical"
-preferred_study_archetypes = ["clinical_classifier", "llm_agent_clinical_task"]
+preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]

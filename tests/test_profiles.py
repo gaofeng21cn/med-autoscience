@@ -21,7 +21,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
                 'medical_overlay_scope = "workspace"',
                 'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
                 'research_route_bias_policy = "high_plasticity_medical"',
-                'preferred_study_archetypes = ["clinical_classifier", "llm_agent_clinical_task"]',
+                'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
             ]
         )
         + "\n",
@@ -47,7 +47,14 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
     assert profile.research_route_bias_policy == "high_plasticity_medical"
-    assert profile.preferred_study_archetypes == ("clinical_classifier", "llm_agent_clinical_task")
+    assert profile.preferred_study_archetypes == (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "gray_zone_triage",
+        "llm_agent_clinical_task",
+        "mechanistic_sidecar_extension",
+    )
 
 
 def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_path: Path) -> None:
@@ -76,4 +83,11 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     assert profile.medical_overlay_scope == "global"
     assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
     assert profile.research_route_bias_policy == "high_plasticity_medical"
-    assert profile.preferred_study_archetypes == ("clinical_classifier", "llm_agent_clinical_task")
+    assert profile.preferred_study_archetypes == (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "gray_zone_triage",
+        "llm_agent_clinical_task",
+        "mechanistic_sidecar_extension",
+    )

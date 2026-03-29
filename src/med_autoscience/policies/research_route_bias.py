@@ -23,7 +23,10 @@ _POLICIES = {
         title="High-plasticity medical publication bias",
         preferred_route_order=(
             "supervised prediction or risk-stratification routes with clinically interpretable downstream analyses",
+            "subtype-reconstruction routes that can be converted into clinically legible subgroup stories or subtype recognizers",
             "routes that can absorb external public data for validation, extension, or mechanism/context support",
+            "gray-zone triage routes when they can change workflow, testing, or follow-up decisions even without dramatic AUC gains",
+            "LLM / agent tasks only when the task can be bounded, benchmarked fairly, and translated into a medical paper package",
             "routes that can naturally produce a full paper-facing evidence package rather than a single fragile association",
             "fixed-factor clinical association routes only when prior evidence or clinical importance is unusually strong",
         ),
@@ -33,12 +36,14 @@ _POLICIES = {
             "room for iterative model/package refinement",
             "public-data extensibility",
             "likely figure/table depth for a Q2+ medical paper",
+            "whether the route can survive a moderate rather than spectacular main effect",
         ),
         downrank_patterns=(
             "the main value would hinge on one fixed clinical factor being significant",
             "a negative result would leave little room for branching or rescue",
             "the likely paper would have weak clinical utility even if the analysis is technically clean",
             "the route cannot be expanded beyond a thin association table and discussion",
+            "an LLM / agent route is framed too broadly to benchmark rigorously against clinician-relevant baselines",
         ),
         public_data_rules=(
             "Use public data when it can materially add external validation, cohort extension, or biological/context support.",
@@ -65,7 +70,9 @@ _STAGE_OPENERS = {
 _STAGE_QUESTIONS = {
     "decision": (
         "which route is most likely to support a clinically meaningful classifier / risk-stratification / utility package?",
+        "which route could support a subtype-reconstruction or gray-zone triage story if the main discriminative gain is only moderate?",
         "which route leaves room for calibration, subgroup, explainability, and external-validation expansion?",
+        "for LLM / agent tasks, is the task narrow enough to benchmark cleanly and clinically?",
         "which route can still branch productively if the first main result is only moderate rather than striking?",
         "which route is most likely to accumulate enough figure/table depth for a Q2+ medical manuscript?",
     ),

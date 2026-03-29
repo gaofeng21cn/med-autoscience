@@ -1,122 +1,92 @@
 # MedAutoScience
 
-`MedAutoScience` 的目标，是把“基于手头专病数据，稳定、可控地产出可发表医学论文”这件事，做成一个真正面向医学用户的自动科研平台。
+`MedAutoScience` 是一个面向医学研究者的自动科研平台入口。
 
-它面向的输入，不局限于单一临床表格数据，也包括：
+它的目标不是把通用 AI 流程机械地跑完，而是围绕手头已有的专病数据与可公开获得的相关数据，稳定、可控地组织出可以投稿的医学论文。
+
+## 项目定位
+
+很多自动科研系统更像工程执行器，擅长把任务链跑通，但未必适合医学论文生产。
+
+`MedAutoScience` 的定位不同：
+
+- 优先判断一个方向是否值得继续投入，而不是默认把整条线做完
+- 优先按医学期刊和临床读者的习惯组织研究，而不是按 AI/ML 论文习惯写作
+- 优先形成完整的证据包，包括临床意义、工作量、可解释性、亚组、utility、外部验证或公开数据扩展
+- 优先止损与换题，不在明显偏弱、难发表的方向上空转
+
+## 适用数据
+
+`MedAutoScience` 面向的并不只是单一表格型临床数据，也包括：
 
 - 临床结构化数据
-- 影像或其他多模态数据
-- 组学/功能分析相关数据
-- 可公开获取的外部数据集
+- 影像、病理及其他多模态数据
+- 组学或功能分析相关数据
+- 本地队列配合公开数据集的扩展分析
 
-它围绕医学论文生产链，支持如下工作：
+## 默认优先的研究模式
 
-- 自动调研与文献梳理
-- 研究选题筛选和发表门槛控制
-- 统计分析、建模、有监督学习、无监督学习、亚组分析、可解释性分析、临床 utility 分析
-- 调用外部工具做功能分析、知识检索和公开数据扩展
-- 组织成更接近真实投稿流程的医学论文工作流
+当前版本已经把以下 6 类相对稳定、可扩展、容易组织成完整医学论文的研究模式沉淀为正式策略：
 
-## 这个项目要解决什么问题
+1. `clinical_classifier`
+   临床风险分层 / 分类器。适合围绕临床结局建立高风险与低风险分层，并补齐 calibration、clinical utility、亚组与可解释分析。
+2. `clinical_subtype_reconstruction`
+   数据驱动亚型重构。适合把疾病异质性重构成更有临床意义的亚组，并进一步比较预后、治疗反应和生物学差异。
+3. `external_validation_model_update`
+   外部验证 / 模型更新。适合把已有模型或本地开发模型扩展到外部数据，强调 transportability、recalibration 和 updating。
+4. `gray_zone_triage`
+   灰区分诊 / reflex testing。适合不是简单二分类，而是要回答“谁可排除、谁可确诊、谁需进一步检查”的临床流程问题。
+5. `llm_agent_clinical_task`
+   基于通用大模型的临床任务智能体。适合窄任务、可benchmark、可做多种 prompt / reasoning / agent 变体比较的研究。
+6. `mechanistic_sidecar_extension`
+   机制扩展 sidecar。适合附着在更强的主临床路线之上，用公开组学、功能分析或知识库增强论文深度与工作量。
 
-很多自动科研框架能“把流程跑完”，但不一定适合医学论文生产。
+这 6 类不是要求每一篇论文都全部使用，而是作为默认优先进入 serious frontier 的研究路线库。
 
-`MedAutoScience` 想解决的是另一类问题：
+## 当前已经实现的能力
 
-- 不是为了把工程跑完，而是为了尽快判断一个方向能不能发论文
-- 不是默认按 AI/ML 论文套路写，而是按医学期刊和临床读者的逻辑组织工作
-- 不是在弱结果上反复消耗 token，而是尽快止损、分支或换题
-- 不是只做一个模型，而是围绕“临床意义 + 工作量 + 可发表性”组织整套分析包
+第一期版本已经具备以下骨架能力：
 
-## 当前已经实现了什么
-
-当前版本还是第一期骨架，但已经完成了几件关键事情：
-
-- 建立了独立仓库，不再绑在某一个具体疾病项目目录里
-- 明确了产品分层：
-  - `MedAutoScience` 是医学用户主入口
-  - `DeepScientist` 是自动科研执行引擎
-  - `Codex` 是总协调与外层治理
-- 建立了 workspace profile 机制，可以把这个平台挂接到现有专病研究目录
-- 提供了最小 CLI：
-  - `medautosci doctor`
-  - `medautosci show-profile`
-  - `medautosci bootstrap`
-  - `medautosci watch`
-  - `medautosci export-submission-minimal`
-  - `medautosci overlay-status`
-  - `medautosci install-medical-overlay`
-  - `medautosci reapply-medical-overlay`
-- 提供了通用 workspace profile 模板
-- 已经迁入第一批真实治理能力：
-  - publishability gate
-  - medical publication surface
-  - submission minimal exporter
-  - runtime watch controller
-- 已经具备医学写作 overlay 机制：
-  - 前移到 `deepscientist-scout`
-  - 前移到 `deepscientist-idea`
-  - 前移到 `deepscientist-decision`
-  - 接管 `deepscientist-write`
-  - 接管 `deepscientist-finalize`
-  - 检测是否被上游 skill 重同步覆盖
-  - 支持一键重覆写
-- 已经开始把医学论文写作习惯前移成显式约束：
-  - 方法学完整性与复现信息前移到写作 contract
+- 独立仓库与 workspace profile 机制
+- `DeepScientist` skill overlay 安装与重覆写
+- 对 `scout`、`idea`、`decision`、`write`、`finalize` 的医学特化前移约束
+- publication gate 与 medical publication surface 两类论文质量门控
+- runtime watch、submission minimal exporter、study delivery sync
+- 医学写作前验约束，包括：
+  - Methods 必填项 contract
   - 结果部分按研究问题组织，而不是按图表逐张复述
-  - 因果/机制解释边界必须单独交代
-- 建立了独立的 policy / template / adapter / controller 目录结构，便于后续继续迁移和去耦
+  - manuscript-safe reproducibility supplement
+  - endpoint provenance note
+  - 内部命名、工程腔与未定义方法学标签拦截
 
-## 接下来计划实现什么
+## 这个平台如何工作
 
-后续会优先把已经在真实课题中验证过的能力，逐步迁移进来：
+可以把它理解成三层：
 
-- public-data sidecar：自动寻找并接入合适的公开数据扩展分析
-- ToolUniverse adapter：功能分析、机制解释、知识检索外挂
-- 更适合医学任务的 study / portfolio / startup brief 模板
-- DeepScientist adapter 分层：把 quest 路径、mailbox、journal、control API 从 controller 核心里拆出去
-- policy/config 外置化：把术语红线、命名规则、AMA/投稿规则从实现里拆成可配置策略
-- 基于通用 LLM 的医学专用智能体研究线路
+- `MedAutoScience`
+  面向医学用户的主入口，负责研究策略、门控、论文约束和交付组织
+- `DeepScientist`
+  底层自动科研执行引擎
+- `Codex`
+  执行协调者，负责把平台策略落实到具体任务推进中
 
-## 它现在应该怎么理解
+也就是说，医学用户面对的应该始终是 `MedAutoScience`，而不是直接操作底层执行引擎。
 
-可以把它理解成：
+## 最小部署
 
-- `MedAutoScience`：你真正面对的项目和入口
-- `DeepScientist`：底层科研执行引擎
-- `Codex`：协调执行、做外层治理和纠偏
-
-也就是说，未来换电脑、换具体课题、甚至换底层执行引擎时，医学用户首先接触的仍然应该是 `MedAutoScience`，而不是某个具体疾病 workspace。
-
-## 部署方式
-
-这一部分主要写给 Codex 或其他 AI 执行者看。目标不是“手工看文档慢慢装”，而是让 AI 读完后能在一台新电脑上把环境搭起来。
-
-最小部署流程：
-
-1. clone 仓库到本机工作目录，例如 `med-autoscience`
-2. 确认本机有 `Python >= 3.12`
-3. 准备好 `DeepScientist` 与 `Codex` 可用环境
-4. 先让 `DeepScientist` 完成一次 skill 同步，确保本机已生成 `~/.codex/skills/deepscientist-write` 等标准 skill 目录
-5. 复制 profile 模板，创建一个本地 profile，指向具体医学研究 workspace
-6. 在 profile 中声明医学 overlay 开关与目标 skill 集
-7. 运行 `doctor` 检查 profile 和路径是否有效
-8. 运行 `bootstrap`，统一安装并检查医学 overlay
-
-最小可执行命令：
+这部分主要写给 Codex 或其他 AI 执行者。
 
 ```bash
 git clone <repo-url> med-autoscience
 cd med-autoscience
 cp profiles/workspace.profile.template.toml profiles/my-study.local.toml
-# edit profiles/my-study.local.toml
+# 编辑 profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli show-profile --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
 ```
 
-如果 `doctor` 输出中这些都为 `true`，说明这套平台至少已经能正确看到目标医学 workspace：
+如果 `doctor` 中这些字段为 `true`，通常说明 workspace 已正确接入：
 
 - `workspace_exists`
 - `runtime_exists`
@@ -124,25 +94,24 @@ PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/
 - `portfolio_exists`
 - `deepscientist_runtime_exists`
 
-更技术化的部署说明见 [bootstrap/README.md](bootstrap/README.md)。
+更细的部署说明见 [bootstrap/README.md](bootstrap/README.md)。
 
-说明：
+## 仓库文档
 
-- `profiles/*.local.toml` 属于本地私有配置，不应提交到公开仓库
-- 仓库中只保留模板文件，不保留任何真实用户路径或具体课题路径
-- `bootstrap` / `install-medical-overlay` 当前要求 `DeepScientist` 已先把标准 skill 同步到本机；`MedAutoScience` 负责在这些标准 skill 之上加医学特化覆盖，而不是替代 `DeepScientist` 本体
-- 当前默认前移接管的 stage 是：`scout`、`idea`、`decision`、`write`、`finalize`
+- [bootstrap/README.md](bootstrap/README.md)
+- [policies/study_archetypes.md](policies/study_archetypes.md)
+- [policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
 
-## 仓库结构
+## 当前边界
 
-```text
-src/med_autoscience/      Python package and CLI
-profiles/                 Workspace profiles
-policies/                 Publication and governance policies
-templates/                Startup and study templates
-controllers/              Controller migration targets
-adapters/                 Runtime adapters
-src/med_autoscience/overlay/  Medical skill overlay installer
-bootstrap/                Deployment notes for AI executors
-tests/                    Repo-level tests
-```
+当前版本仍是第一期平台骨架。
+
+已经完成的是：医学研究入口、策略偏置、写作前验约束、交付闭环和基本 CLI。
+
+接下来会继续迁入：
+
+- public-data sidecar
+- ToolUniverse adapter
+- 更完整的医学 study / portfolio / startup brief 模板
+- 更细粒度的 publication profile
+- 基于通用 LLM 的医学专用智能体研究支持

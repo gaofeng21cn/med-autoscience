@@ -20,7 +20,7 @@ def write_profile(path: Path) -> None:
                 'medical_overlay_scope = "workspace"',
                 'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
                 'research_route_bias_policy = "high_plasticity_medical"',
-                'preferred_study_archetypes = ["clinical_classifier", "llm_agent_clinical_task"]',
+                'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
             ]
         )
         + "\n",
@@ -70,7 +70,11 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
     assert "name: nfpitnet" in captured.out
     assert "default_citation_style: AMA" in captured.out
     assert "research_route_bias_policy: high_plasticity_medical" in captured.out
-    assert "preferred_study_archetypes: clinical_classifier, llm_agent_clinical_task" in captured.out
+    assert (
+        "preferred_study_archetypes: clinical_classifier, clinical_subtype_reconstruction, "
+        "external_validation_model_update, gray_zone_triage, llm_agent_clinical_task, "
+        "mechanistic_sidecar_extension"
+    ) in captured.out
     assert "medical_overlay_scope: workspace" in captured.out
 
 
@@ -293,7 +297,14 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
     assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert called["skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert called["policy_id"] == "high_plasticity_medical"
-    assert called["archetype_ids"] == ("clinical_classifier", "llm_agent_clinical_task")
+    assert called["archetype_ids"] == (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "gray_zone_triage",
+        "llm_agent_clinical_task",
+        "mechanistic_sidecar_extension",
+    )
     assert '"skill_id": "scout"' in captured.out
 
 
@@ -339,9 +350,23 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
     assert calls["install_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert calls["install_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert calls["install_policy_id"] == "high_plasticity_medical"
-    assert calls["install_archetype_ids"] == ("clinical_classifier", "llm_agent_clinical_task")
+    assert calls["install_archetype_ids"] == (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "gray_zone_triage",
+        "llm_agent_clinical_task",
+        "mechanistic_sidecar_extension",
+    )
     assert calls["status_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert calls["status_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert calls["status_policy_id"] == "high_plasticity_medical"
-    assert calls["status_archetype_ids"] == ("clinical_classifier", "llm_agent_clinical_task")
+    assert calls["status_archetype_ids"] == (
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "external_validation_model_update",
+        "gray_zone_triage",
+        "llm_agent_clinical_task",
+        "mechanistic_sidecar_extension",
+    )
     assert '"installed_count": 5' in captured.out

@@ -5,7 +5,10 @@
 这套 policy 用来把医学课题的路线选择前移到 `scout / idea / decision`，核心偏置是：
 
 - 优先高可塑性的预测、分类、风险分层路线
+- 优先能重构疾病异质性并长出 subtype story 的路线
 - 优先能自然长出 calibration、clinical utility、subgroup、explainability 的路线
+- 优先能做外部验证、模型更新、workflow 改造或灰区分诊的路线
+- 只有在任务边界足够清楚、可公平 benchmark 时，才优先考虑 LLM / agent 路线
 - 优先能接入公开数据做外部验证、队列扩展或机制/背景增强的路线
 - 降权单一固定临床假设、阴性即整条线失效的路线
 
