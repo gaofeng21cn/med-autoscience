@@ -4,7 +4,7 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "med-autoscience"
-version = "0.1.0a3"
+version = "0.1.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },

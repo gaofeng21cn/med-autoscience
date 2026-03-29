@@ -7,7 +7,7 @@ This is the first macOS-focused prerelease of `medautosci`. It is a command-line
 ## Install
 
 ```bash
-curl -fsSL https://github.com/gaofeng/med-autoscience/releases/download/v0.1.0a3/install-macos.sh | bash
+curl -fsSL https://github.com/gaofeng21cn/med-autoscience/releases/download/v0.1.0a4/install-macos.sh | bash
 ```
 
 If `medautosci` is not found afterwards:
