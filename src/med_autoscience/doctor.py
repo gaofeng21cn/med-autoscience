@@ -29,6 +29,9 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
         "skill_ids": profile.medical_overlay_skills,
         "policy_id": profile.research_route_bias_policy,
         "archetype_ids": profile.preferred_study_archetypes,
+        "default_submission_targets": profile.default_submission_targets,
+        "default_publication_profile": profile.default_publication_profile,
+        "default_citation_style": profile.default_citation_style,
     }
 
 
@@ -62,6 +65,15 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"deepscientist_runtime_root: {report.profile.deepscientist_runtime_root}",
         f"default_publication_profile: {report.profile.default_publication_profile}",
         f"default_citation_style: {report.profile.default_citation_style}",
+        (
+            "default_submission_targets: "
+            + ", ".join(
+                str(item.get("publication_profile") or item.get("journal_name") or "<unresolved>")
+                for item in report.profile.default_submission_targets
+            )
+            if report.profile.default_submission_targets
+            else "default_submission_targets: <none>"
+        ),
         f"enable_medical_overlay: {str(report.profile.enable_medical_overlay).lower()}",
         f"medical_overlay_scope: {report.profile.medical_overlay_scope}",
         f"medical_overlay_skills: {', '.join(report.profile.medical_overlay_skills)}",
@@ -87,6 +99,15 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"deepscientist_runtime_root: {profile.deepscientist_runtime_root}",
         f"default_publication_profile: {profile.default_publication_profile}",
         f"default_citation_style: {profile.default_citation_style}",
+        (
+            "default_submission_targets: "
+            + ", ".join(
+                str(item.get("publication_profile") or item.get("journal_name") or "<unresolved>")
+                for item in profile.default_submission_targets
+            )
+            if profile.default_submission_targets
+            else "default_submission_targets: <none>"
+        ),
         f"enable_medical_overlay: {str(profile.enable_medical_overlay).lower()}",
         f"medical_overlay_scope: {profile.medical_overlay_scope}",
         f"medical_overlay_skills: {', '.join(profile.medical_overlay_skills)}",

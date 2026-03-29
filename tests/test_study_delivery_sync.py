@@ -120,3 +120,73 @@ def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Pa
     assert (study_root / "manuscript" / "final" / "finalize_resume_packet.md").exists()
     assert (study_root / "artifacts" / "final" / "paper_bundle_manifest.json").exists()
     assert (study_root / "artifacts" / "final" / "compile_report.json").exists()
+
+
+def test_sync_study_delivery_for_frontiers_family_creates_family_package_without_resetting_generic_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    write_text(study_root / "manuscript" / "final" / "manuscript.docx", "existing generic package")
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "manuscript.docx",
+        "frontiers manuscript",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "Supplementary_Material.docx",
+        "frontiers supplementary",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "paper.pdf",
+        "%PDF-1.4\n",
+    )
+    dump_json(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "frontiers_family_harvard",
+            "citation_style": "FrontiersHarvard",
+        },
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "figures" / "Figure1.pdf",
+        "%PDF-1.4\n",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "tables" / "Table1.csv",
+        "a,b\n1,2\n",
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        publication_profile="frontiers_family_harvard",
+    )
+
+    journal_package_root = (
+        study_root / "manuscript" / "final" / "journal_packages" / "frontiers_family_harvard"
+    )
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").read_text(encoding="utf-8") == "existing generic package"
+    assert (journal_package_root / "manuscript.docx").exists()
+    assert (journal_package_root / "Supplementary_Material.docx").exists()
+    assert (journal_package_root / "README.md").exists()
+    assert (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
+
+
+def test_can_sync_study_delivery_accepts_quest_yaml_with_nested_startup_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, _ = make_delivery_workspace(tmp_path)
+    quest_yaml_path = paper_root.parent / "quest.yaml"
+
+    write_text(
+        quest_yaml_path,
+        """quest_id: 002-early-residual-risk
+quest_root: /tmp/fake-quest-root
+startup_contract:
+  launch_mode: custom
+  custom_profile: continue_existing_state
+""",
+    )
+
+    assert module.can_sync_study_delivery(paper_root=paper_root) is True

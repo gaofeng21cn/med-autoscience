@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-SKILL_IDS = ("scout", "idea", "decision", "write", "finalize")
+SKILL_IDS = ("scout", "idea", "decision", "write", "finalize", "journal-resolution")
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -31,7 +31,14 @@ def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path)
 
     assert result["scope"] == "global"
     assert result["all_targets_ready"] is False
-    assert [item["skill_id"] for item in result["targets"]] == ["scout", "idea", "decision", "write", "finalize"]
+    assert [item["skill_id"] for item in result["targets"]] == [
+        "scout",
+        "idea",
+        "decision",
+        "write",
+        "finalize",
+        "journal-resolution",
+    ]
     assert {item["status"] for item in result["targets"]} == {"not_installed"}
 
 
@@ -52,6 +59,7 @@ def test_overlay_status_uses_quest_local_skill_targets_when_quest_root_provided(
         skills_root / "deepscientist-decision",
         skills_root / "deepscientist-write",
         skills_root / "deepscientist-finalize",
+        skills_root / "deepscientist-journal-resolution",
     ]
 
 
@@ -67,7 +75,7 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
     result = module.install_medical_overlay(home=home)
     status = module.describe_medical_overlay(home=home)
 
-    assert result["installed_count"] == 5
+    assert result["installed_count"] == 6
     assert {item["action"] for item in result["targets"]} == {"installed"}
     assert status["all_targets_ready"] is True
     assert {item["status"] for item in status["targets"]} == {"overlay_applied"}
@@ -170,7 +178,7 @@ def test_install_medical_overlay_seeds_workspace_targets_from_home_skills(tmp_pa
         home=home,
     )
 
-    assert result["installed_count"] == 5
+    assert result["installed_count"] == 6
     for skill_id in SKILL_IDS:
         skill_path = quest_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
         assert skill_path.exists(), skill_path
@@ -225,6 +233,41 @@ def test_load_overlay_skill_text_for_write_includes_medical_methods_and_results_
     assert "research_question" in write_text
     assert "direct_answer" in write_text
     assert "clinical meaning" in write_text
+    assert "submission_targets.resolved.json" in write_text
+    assert "journal-resolution/SKILL.md" in write_text
+
+
+def test_load_overlay_skill_text_for_journal_resolution_requires_official_sources() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    journal_resolution_text = module.load_overlay_skill_text("journal-resolution")
+
+    assert "official author guidelines" in journal_resolution_text
+    assert "official template" in journal_resolution_text
+    assert "paper/submission_target_resolution.md" in journal_resolution_text
+    assert "paper/submission_targets.resolved.json" in journal_resolution_text
+    assert "Do not infer" in journal_resolution_text
+
+
+def test_load_overlay_skill_text_renders_default_submission_targets_when_provided() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    write_text = module.load_overlay_skill_text(
+        "write",
+        default_submission_targets=(
+            {
+                "publication_profile": "frontiers_family_harvard",
+                "primary": True,
+                "story_surface": "general_medical_journal",
+            },
+        ),
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+    )
+
+    assert "frontiers_family_harvard" in write_text
+    assert "general_medical_journal" in write_text
+    assert "AMA" in write_text
 
 
 def test_overlay_status_detects_config_drift_when_archetypes_change(tmp_path: Path) -> None:
