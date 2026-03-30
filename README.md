@@ -141,11 +141,20 @@
 如果你需要接入 workspace、查看运行接口、阅读 controller 行为或理解平台规则，请从这里进入：
 
 - Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
+- 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)
 - 工作区接入与部署：[bootstrap/README.md](bootstrap/README.md)
 - 控制器与内部能力：[controllers/README.md](controllers/README.md)
 - 数据资产策略：[policies/data_asset_management.md](policies/data_asset_management.md)
 - 默认研究场景：[policies/study_archetypes.md](policies/study_archetypes.md)
 - 研究路线偏置：[policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
+
+如果你要给 `Codex`、`Claude Code`、`OpenClaw` 这类外部 Agent 提供可直接消费的入口资产，可直接使用：
+
+- 公开契约镜像：[`templates/agent_entry_modes.yaml`](templates/agent_entry_modes.yaml)
+- `Codex` 入口模板：[`templates/codex/medautoscience-entry.SKILL.md`](templates/codex/medautoscience-entry.SKILL.md)
+- `OpenClaw` 入口模板：[`templates/openclaw/medautoscience-entry.prompt.md`](templates/openclaw/medautoscience-entry.prompt.md)
+
+`Claude Code` 默认可复用与 `Codex` 相同的入口契约，不单独维护另一套专有模板。
 
 首页不再直接展示 CLI 命令、JSON payload 和部署细节；这些内容统一下沉到上述文档，供 Agent 调用和人类审计。
 其中，`guides/` 用于放随仓库发布的稳定技术指南；`docs/` 更偏内部设计稿与 agent 工作过程记录，不作为公开主入口。
