@@ -47,6 +47,9 @@ def write_study(
     journal_shortlist_evidence: list[dict[str, object]] | None = None,
     minimum_sci_ready_evidence_package: list[str] | None = None,
     launch_profile: str = "continue_existing_state",
+    runtime_reentry_required_paths: list[str] | None = None,
+    runtime_reentry_execution_root: str | None = None,
+    runtime_reentry_first_unit: str | None = None,
 ) -> Path:
     study_root = workspace_root / "studies" / study_id
     write_text(workspace_root / "ops" / "deepscientist" / "startup_briefs" / f"{study_id}.md", "# Startup brief\n")
@@ -119,6 +122,21 @@ def write_study(
             "  startup_contract_profile: paper_required_autonomous",
             f"  launch_profile: {launch_profile}",
             "  decision_policy: autonomous",
+        ]
+    )
+    if runtime_reentry_required_paths is not None:
+        lines.extend(
+            [
+                "  runtime_reentry_gate:",
+                "    enabled: true",
+                f"    execution_root: {runtime_reentry_execution_root or 'analysis/clean_room_execution'}",
+                f"    first_runtime_unit: {runtime_reentry_first_unit or '00_entry_validation'}",
+                "    required_paths:",
+            ]
+        )
+        lines.extend(f"      - {path}" for path in runtime_reentry_required_paths)
+    lines.extend(
+        [
             "",
         ]
     )
@@ -437,6 +455,47 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
     assert "Do not enter baseline, experiment, or analysis-campaign" in contract["custom_brief"]
     assert "Do not execute legacy implementation code" in contract["custom_brief"]
     assert "prefer mature MedAutoScience controllers before freeform external execution" in contract["custom_brief"]
+
+
+def test_ensure_study_runtime_blocks_when_runtime_reentry_gate_is_incomplete(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=["analysis/paper_facing_evidence_contract.md"],
+        runtime_reentry_first_unit="10_china_primary_endpoint",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "runtime_reentry_not_ready_for_auto_start"
+    assert result["runtime_reentry_gate"]["allow_runtime_entry"] is False
+    assert "missing_required_path:analysis/paper_facing_evidence_contract.md" in result["runtime_reentry_gate"]["blockers"]
 
 
 def test_ensure_study_runtime_applies_startup_boundary_to_non_continue_launch_profiles(

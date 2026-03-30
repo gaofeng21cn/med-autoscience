@@ -182,9 +182,17 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_run_watch_for_runtime(*, runtime_root: Path, apply: bool) -> dict:
+    def fake_run_watch_for_runtime(
+        *,
+        runtime_root: Path,
+        apply: bool,
+        profile=None,
+        ensure_study_runtimes: bool = False,
+    ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
+        called["profile"] = profile
+        called["ensure_study_runtimes"] = ensure_study_runtimes
         return {"scanned_quests": ["q001"], "runtime_root": str(runtime_root)}
 
     monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
@@ -195,7 +203,51 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert exit_code == 0
     assert called["runtime_root"] == tmp_path / "quests"
     assert called["apply"] is True
+    assert called["profile"] is None
+    assert called["ensure_study_runtimes"] is False
     assert "q001" in captured.out
+
+
+def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_run_watch_for_runtime(
+        *,
+        runtime_root: Path,
+        apply: bool,
+        profile=None,
+        ensure_study_runtimes: bool = False,
+    ) -> dict:
+        called["runtime_root"] = runtime_root
+        called["apply"] = apply
+        called["profile"] = profile
+        called["ensure_study_runtimes"] = ensure_study_runtimes
+        return {"managed_study_actions": [{"study_id": "001-risk", "decision": "create_and_start"}]}
+
+    monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
+
+    exit_code = cli.main(
+        [
+            "watch",
+            "--runtime-root",
+            str(tmp_path / "quests"),
+            "--profile",
+            str(profile_path),
+            "--ensure-study-runtimes",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["runtime_root"] == tmp_path / "quests"
+    assert called["apply"] is True
+    assert called["profile"].name == "nfpitnet"
+    assert called["ensure_study_runtimes"] is True
+    assert '"study_id": "001-risk"' in captured.out
 
 
 def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

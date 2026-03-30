@@ -163,6 +163,26 @@ def test_blocked_with_apply_disabled_records_suppression_without_second_apply(tm
     assert calls == [False]
 
 
+def test_controller_missing_artifacts_does_not_crash_runtime_watch(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+
+    def missing_artifact_runner(*, quest_root: Path, apply: bool) -> dict:
+        raise FileNotFoundError(f"No main RESULT.json found under {quest_root}")
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"publication_gate": missing_artifact_runner},
+        apply=True,
+    )
+
+    controller = result["controllers"]["publication_gate"]
+    assert controller["status"] == "awaiting_artifacts"
+    assert controller["action"] == "clear"
+    assert controller["suppression_reason"] == "precondition_missing"
+    assert "missing_artifact:No main RESULT.json found under" in controller["advisories"][0]
+
+
 def test_reapplies_when_fingerprint_changes(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
@@ -234,6 +254,52 @@ def test_scan_runtime_only_processes_active_quests(tmp_path: Path) -> None:
 
     assert sorted(seen) == ["q-active", "q-running"]
     assert sorted(result["scanned_quests"]) == ["q-active", "q-running"]
+
+
+def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="diabetes",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "ops" / "deepscientist" / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        deepscientist_runtime_root=workspace_root / "ops" / "deepscientist" / "runtime",
+        deepscientist_repo_root=tmp_path / "DeepScientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    seen: list[str] = []
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda *, profile, study_root, source: {"study_id": Path(study_root).name, "decision": "create_and_start", "reason": "quest_missing"},
+    )
+    monkeypatch.setattr(module.runtime, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert result["managed_study_actions"] == [
+        {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
+    ]
 
 
 def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:

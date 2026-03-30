@@ -9,7 +9,14 @@ from typing import Any, Callable
 
 from med_autoscience.adapters import report_store
 from med_autoscience.adapters.deepscientist import runtime
-from med_autoscience.controllers import data_asset_gate, figure_loop_guard, medical_publication_surface, publication_gate
+from med_autoscience.controllers import (
+    data_asset_gate,
+    figure_loop_guard,
+    medical_publication_surface,
+    publication_gate,
+    study_runtime_router,
+)
+from med_autoscience.profiles import WorkspaceProfile
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -75,6 +82,25 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _invoke_controller_runner(
+    runner: ControllerRunner,
+    *,
+    quest_root: Path,
+    apply: bool,
+) -> dict[str, Any]:
+    try:
+        return runner(quest_root=quest_root, apply=apply)
+    except FileNotFoundError as exc:
+        return {
+            "status": "awaiting_artifacts",
+            "blockers": [],
+            "advisories": [f"missing_artifact:{exc}"],
+            "report_json": None,
+            "report_markdown": None,
+            "suppression_reason": "precondition_missing",
+        }
+
+
 def render_watch_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Runtime Watch Report",
@@ -132,11 +158,11 @@ def run_watch_for_quest(
     }
 
     for name, runner in controller_runners.items():
-        dry_run_result = runner(quest_root=quest_root, apply=False)
+        dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)
         fingerprint = build_fingerprint(name, dry_run_result)
         previous = dict(controller_state.get(name) or {})
         action = "clear"
-        suppression_reason = None
+        suppression_reason = dry_run_result.get("suppression_reason")
         final_result = dry_run_result
         status = dry_run_result.get("status")
         intervention_statuses = {"blocked"}
@@ -146,7 +172,7 @@ def run_watch_for_quest(
         if status in intervention_statuses:
             should_apply = apply and previous.get("last_applied_fingerprint") != fingerprint
             if should_apply:
-                final_result = runner(quest_root=quest_root, apply=True)
+                final_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=True)
                 action = "applied"
             else:
                 action = "suppressed"
@@ -188,8 +214,37 @@ def run_watch_for_runtime(
     runtime_root: Path,
     controller_runners: dict[str, ControllerRunner] | None = None,
     apply: bool,
+    profile: WorkspaceProfile | None = None,
+    ensure_study_runtimes: bool = False,
 ) -> dict[str, Any]:
     controller_runners = controller_runners or build_default_controller_runners()
+    managed_study_actions: list[dict[str, Any]] = []
+    if ensure_study_runtimes:
+        if profile is None:
+            raise ValueError("profile is required when ensure_study_runtimes is enabled")
+        for study_root in sorted(profile.studies_root.iterdir()):
+            if not study_root.is_dir():
+                continue
+            if not (study_root / "study.yaml").exists():
+                continue
+            if apply:
+                action = study_runtime_router.ensure_study_runtime(
+                    profile=profile,
+                    study_root=study_root,
+                    source="runtime_watch",
+                )
+            else:
+                action = study_runtime_router.study_runtime_status(
+                    profile=profile,
+                    study_root=study_root,
+                )
+            managed_study_actions.append(
+                {
+                    "study_id": action.get("study_id"),
+                    "decision": action.get("decision"),
+                    "reason": action.get("reason"),
+                }
+            )
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
     for quest_root in runtime.iter_active_quests(runtime_root):
@@ -206,6 +261,7 @@ def run_watch_for_runtime(
         "scanned_at": utc_now(),
         "runtime_root": str(runtime_root),
         "scanned_quests": scanned,
+        "managed_study_actions": managed_study_actions,
         "reports": reports,
     }
 
