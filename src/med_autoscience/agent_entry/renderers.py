@@ -39,6 +39,7 @@ def render_entry_modes_guide() -> str:
                 f"### {mode['mode_id']} ({mode['display_name']})",
                 f"- default_runtime_mode: {mode['default_runtime_mode']}",
                 f"- lightweight_scope: {mode['lightweight_scope']}",
+                _render_list_line("preconditions", mode["preconditions"]),
                 _render_list_line("managed_entry_actions", mode["managed_entry_actions"]),
                 _render_list_line("lightweight_routes", mode["lightweight_routes"]),
                 _render_list_line("managed_routes", mode["managed_routes"]),
@@ -52,7 +53,8 @@ def render_entry_modes_guide() -> str:
         (
             "",
             "## Upgrade Rules",
-            "Any non-empty `upgrade_triggers` means the lightweight entry should be promoted to managed execution.",
+            "If `upgrade_triggers` is non-empty and any trigger is satisfied, "
+            "upgrade from lightweight to managed before continuing.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -104,31 +106,31 @@ def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
 def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
     payload = render_entry_modes_payload()
     modes = _mode_payload_list(payload)
+    runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
     lines: list[str] = [
         title,
         "",
         intro,
         "",
         "Compatible agents: " + ", ".join(_string_list(payload.get("compatible_agents"), field="compatible_agents")),
-        "Runtime modes: managed, lightweight",
+        "Runtime modes: " + ", ".join(runtime_modes),
         "",
-        "## Entry Actions",
+        "## Mode Contract",
     ]
-    if modes:
-        lines.append(_render_list_line("managed_entry_actions", modes[0]["managed_entry_actions"]))
-
-    lines.extend(
-        (
-            "",
-            "## Modes",
-        )
-    )
     for mode in modes:
         lines.extend(
             (
                 f"- {mode['mode_id']}: runtime={mode['default_runtime_mode']}, scope={mode['lightweight_scope']}",
                 "  "
+                + _render_list_line("preconditions", mode["preconditions"], inline=True),
+                "  "
+                + _render_list_line("managed_entry_actions", mode["managed_entry_actions"], inline=True),
+                "  "
+                + _render_list_line("lightweight_routes", mode["lightweight_routes"], inline=True),
+                "  "
                 + _render_list_line("managed_routes", mode["managed_routes"], inline=True),
+                "  "
+                + _render_list_line("governance_routes", mode["governance_routes"], inline=True),
                 "  "
                 + _render_list_line("auxiliary_routes", mode["auxiliary_routes"], inline=True),
                 "  "
@@ -136,6 +138,14 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             )
         )
 
+    lines.extend(
+        (
+            "",
+            "## Upgrade Rule",
+            "If `upgrade_triggers` is non-empty and any trigger is satisfied, "
+            "upgrade from lightweight to managed before continuing.",
+        )
+    )
     return "\n".join(lines).rstrip() + "\n"
 
 

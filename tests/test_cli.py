@@ -4,6 +4,14 @@ import importlib
 import json
 from pathlib import Path
 
+from med_autoscience.agent_entry.renderers import (
+    render_codex_entry_skill,
+    render_entry_modes_guide,
+    render_entry_modes_payload,
+    render_openclaw_entry_prompt,
+    render_public_yaml,
+)
+
 
 def write_profile(path: Path) -> None:
     path.write_text(
@@ -94,15 +102,17 @@ def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    payload = json.loads(captured.out)
-    assert isinstance(payload.get("modes"), list)
-    assert '"mode_id": "full_research"' in captured.out
-    assert '"managed_routes": [' in captured.out
-    assert '"managed_entry_actions": [' in captured.out
+    assert json.loads(captured.out) == render_entry_modes_payload()
 
 
 def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
+    expected_assets = {
+        "guides/agent_entry_modes.md": render_entry_modes_guide(),
+        "templates/agent_entry_modes.yaml": render_public_yaml(),
+        "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
+        "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
+    }
 
     exit_code = cli.main(["sync-agent-entry-assets", "--repo-root", str(tmp_path)])
     captured = capsys.readouterr()
@@ -110,10 +120,11 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
     assert exit_code == 0
     payload = json.loads(captured.out)
     assert payload["written_count"] == 4
-    assert (tmp_path / "guides" / "agent_entry_modes.md").is_file()
-    assert (tmp_path / "templates" / "agent_entry_modes.yaml").is_file()
-    assert (tmp_path / "templates" / "codex" / "medautoscience-entry.SKILL.md").is_file()
-    assert (tmp_path / "templates" / "openclaw" / "medautoscience-entry.prompt.md").is_file()
+    assert set(payload["written_files"]) == {str(tmp_path / path) for path in expected_assets}
+    for relative_path, expected_content in expected_assets.items():
+        output_path = tmp_path / relative_path
+        assert output_path.is_file()
+        assert output_path.read_text(encoding="utf-8") == expected_content
 
 
 def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:

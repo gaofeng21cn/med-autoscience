@@ -52,14 +52,55 @@ def test_load_entry_modes_payload_reads_canonical_agents_and_mode_count() -> Non
     assert len(payload["modes"]) == 5
 
 
-def test_payload_modes_explicitly_define_managed_entry_actions() -> None:
-    payload = load_entry_modes_payload()
-    modes = payload["modes"]
+def test_load_entry_modes_preserves_mode_level_managed_entry_actions(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _payload_with_distinct_entry_actions() -> dict[str, object]:
+        return {
+            "compatible_agents": ["Codex", "Claude Code", "OpenClaw"],
+            "modes": [
+                {
+                    "mode_id": "full_research",
+                    "display_name": "Full Research",
+                    "default_runtime_mode": "managed",
+                    "preconditions": ["workspace/profile available"],
+                    "lightweight_scope": "none",
+                    "managed_entry_actions": ["doctor", "bootstrap"],
+                    "lightweight_routes": [],
+                    "managed_routes": [
+                        "doctor",
+                        "bootstrap",
+                        "overlay-status",
+                        "scout",
+                        "idea",
+                        "experiment",
+                        "write",
+                        "finalize",
+                    ],
+                    "governance_routes": ["decision"],
+                    "auxiliary_routes": [],
+                    "upgrade_triggers": [],
+                },
+                {
+                    "mode_id": "writing_delivery",
+                    "display_name": "Writing Delivery",
+                    "default_runtime_mode": "lightweight",
+                    "preconditions": ["workspace/profile available"],
+                    "lightweight_scope": "manuscript and delivery packaging",
+                    "managed_entry_actions": ["doctor", "overlay-status"],
+                    "lightweight_routes": ["write"],
+                    "managed_routes": ["doctor", "bootstrap", "overlay-status", "write", "finalize"],
+                    "governance_routes": [],
+                    "auxiliary_routes": ["journal-resolution"],
+                    "upgrade_triggers": ["submission bundle or final delivery requested"],
+                },
+            ],
+        }
 
-    assert isinstance(modes, list)
-    for mode in modes:
-        assert isinstance(mode, dict)
-        assert mode["managed_entry_actions"] == ["doctor", "bootstrap", "overlay-status"]
+    monkeypatch.setattr(modes_module, "load_entry_modes_payload", _payload_with_distinct_entry_actions)
+
+    modes = {mode.mode_id: mode for mode in load_entry_modes()}
+
+    assert modes["full_research"].managed_entry_actions == ("doctor", "bootstrap")
+    assert modes["writing_delivery"].managed_entry_actions == ("doctor", "overlay-status")
 
 
 def test_payload_and_typed_loader_use_top_level_compatible_agents() -> None:
