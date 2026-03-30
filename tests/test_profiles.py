@@ -17,6 +17,7 @@ PROFILE_LINES = [
     "enable_medical_overlay = true",
     'medical_overlay_scope = "workspace"',
     'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
+    'medical_overlay_bootstrap_mode = "ensure_ready"',
     'research_route_bias_policy = "high_plasticity_medical"',
     'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
     "",
@@ -55,6 +56,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
+    assert profile.medical_overlay_bootstrap_mode == "ensure_ready"
     assert profile.research_route_bias_policy == "high_plasticity_medical"
     assert profile.preferred_study_archetypes == (
         "clinical_classifier",
@@ -94,7 +96,20 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     assert profile.deepscientist_repo_root is None
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "global"
-    assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
+    assert profile.medical_overlay_skills == (
+        "intake-audit",
+        "scout",
+        "baseline",
+        "idea",
+        "decision",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "rebuttal",
+        "finalize",
+    )
+    assert profile.medical_overlay_bootstrap_mode == "ensure_ready"
     assert profile.research_route_bias_policy == "high_plasticity_medical"
     assert profile.preferred_study_archetypes == (
         "clinical_classifier",
@@ -142,6 +157,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert overlay["enable_medical_overlay"] is True
     assert overlay["medical_overlay_scope"] == profile.medical_overlay_scope
     assert overlay["medical_overlay_skills"] == list(profile.medical_overlay_skills)
+    assert overlay["medical_overlay_bootstrap_mode"] == profile.medical_overlay_bootstrap_mode
 
     policy = contract["policy"]
     assert policy["research_route_bias_policy"] == profile.research_route_bias_policy
@@ -329,4 +345,29 @@ def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -
 
     profiles = importlib.import_module("med_autoscience.profiles")
     with pytest.raises(TypeError, match="research_route_bias_policy"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_invalid_medical_overlay_bootstrap_mode(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-overlay-bootstrap-mode.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-bootstrap-mode"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'medical_overlay_bootstrap_mode = "rebuild_everything"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="medical_overlay_bootstrap_mode"):
         profiles.load_profile(profile_path)

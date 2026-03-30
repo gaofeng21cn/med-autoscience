@@ -4,7 +4,15 @@ from dataclasses import dataclass
 
 
 DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID = "high_plasticity_medical"
-SUPPORTED_STAGE_IDS = ("scout", "idea", "decision")
+SUPPORTED_STAGE_IDS = (
+    "intake-audit",
+    "scout",
+    "baseline",
+    "idea",
+    "decision",
+    "experiment",
+    "analysis-campaign",
+)
 
 
 @dataclass(frozen=True)
@@ -53,9 +61,17 @@ _POLICIES = {
 }
 
 _STAGE_OPENERS = {
+    "intake-audit": (
+        "When auditing an in-flight medical quest, explicitly judge whether the current line still has a controllable path "
+        "to a publishable paper rather than merely a path to more execution."
+    ),
     "scout": (
         "When the quest is a medical-data paper line, do not treat all reasonable frames as equally good scouting outputs. "
         "Prefer frames that are more controllable for publication and more extensible for downstream evidence-building."
+    ),
+    "baseline": (
+        "For medical-data quests, baseline work should preserve a strong paper route rather than turning into endless comparator "
+        "reproduction with little downstream clinical utility."
     ),
     "idea": (
         "For medical-data quests, treat publishability controllability as a first-class selection criterion. "
@@ -65,9 +81,26 @@ _STAGE_OPENERS = {
         "For medical-data quests, route selection should explicitly favor lines with a more controllable path to a publishable paper. "
         "In practice, prefer routes that preserve room for meaningful iteration, richer paper packaging, and clinically legible utility."
     ),
+    "experiment": (
+        "For medical-data quests, main experiments should be judged by the strength of the eventual paper package, not only by a single "
+        "discrimination number or an engineering-style benchmark win."
+    ),
+    "analysis-campaign": (
+        "For medical-data quests, follow-up campaigns should preferentially build publication-strength evidence packages such as utility, "
+        "subgroup, explainability, or external-validation support rather than tiny metric-chasing loops."
+    ),
 }
 
 _STAGE_QUESTIONS = {
+    "intake-audit": (
+        "is the current strongest line still clinically meaningful if the main effect is only moderate?",
+        "does the current line still preserve room for a classifier, subtype, utility, or public-data extension package?",
+        "would continuing this line mostly package weak evidence, or can it still build stronger evidence efficiently?",
+    ),
+    "baseline": (
+        "which baseline route best preserves a clinically interpretable and publishable comparison surface?",
+        "is the baseline path helping the paper route, or just consuming time on low-yield reproduction?",
+    ),
     "decision": (
         "which route is most likely to support a clinically meaningful classifier / risk-stratification / utility package?",
         "which route could support a subtype-reconstruction or gray-zone triage story if the main discriminative gain is only moderate?",
@@ -75,6 +108,15 @@ _STAGE_QUESTIONS = {
         "for LLM / agent tasks, is the task narrow enough to benchmark cleanly and clinically?",
         "which route can still branch productively if the first main result is only moderate rather than striking?",
         "which route is most likely to accumulate enough figure/table depth for a Q2+ medical manuscript?",
+    ),
+    "experiment": (
+        "if this run is positive, does it naturally open calibration, utility, subgroup, explainability, or external-validation follow-up?",
+        "if this run is only moderate, is there still a credible medical-paper route rather than a dead end?",
+        "is the experiment package clinically legible, or mostly an engineering comparison with weak bedside meaning?",
+    ),
+    "analysis-campaign": (
+        "which follow-up analyses would materially improve publication strength rather than only decorate workload?",
+        "are we spending compute on clinically meaningful utility and heterogeneity checks, or on low-yield metric drift?",
     ),
 }
 

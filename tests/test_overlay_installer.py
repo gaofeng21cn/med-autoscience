@@ -3,9 +3,23 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import pytest
 
 
-SKILL_IDS = ("scout", "idea", "decision", "write", "finalize", "journal-resolution")
+DEFAULT_SKILL_IDS = (
+    "intake-audit",
+    "scout",
+    "baseline",
+    "idea",
+    "decision",
+    "experiment",
+    "analysis-campaign",
+    "write",
+    "review",
+    "rebuttal",
+    "finalize",
+)
+SKILL_IDS = DEFAULT_SKILL_IDS + ("journal-resolution",)
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -31,14 +45,7 @@ def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path)
 
     assert result["scope"] == "global"
     assert result["all_targets_ready"] is False
-    assert [item["skill_id"] for item in result["targets"]] == [
-        "scout",
-        "idea",
-        "decision",
-        "write",
-        "finalize",
-        "journal-resolution",
-    ]
+    assert [item["skill_id"] for item in result["targets"]] == list(SKILL_IDS)
     assert {item["status"] for item in result["targets"]} == {"not_installed"}
 
 
@@ -54,12 +61,7 @@ def test_overlay_status_uses_quest_local_skill_targets_when_quest_root_provided(
     assert result["scope"] == "quest"
     assert result["quest_root"] == str(quest_root)
     assert [Path(item["target_root"]) for item in result["targets"]] == [
-        skills_root / "deepscientist-scout",
-        skills_root / "deepscientist-idea",
-        skills_root / "deepscientist-decision",
-        skills_root / "deepscientist-write",
-        skills_root / "deepscientist-finalize",
-        skills_root / "deepscientist-journal-resolution",
+        skills_root / f"deepscientist-{skill_id}" for skill_id in SKILL_IDS
     ]
 
 
@@ -75,7 +77,7 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
     result = module.install_medical_overlay(home=home)
     status = module.describe_medical_overlay(home=home)
 
-    assert result["installed_count"] == 6
+    assert result["installed_count"] == len(SKILL_IDS)
     assert {item["action"] for item in result["targets"]} == {"installed"}
     assert status["all_targets_ready"] is True
     assert {item["status"] for item in status["targets"]} == {"overlay_applied"}
@@ -96,7 +98,10 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
         assert manifest["source_fingerprint_before_overlay"]
         assert manifest["overlay_fingerprint"]
         assert manifest["source_fingerprint_before_overlay"] != manifest["overlay_fingerprint"]
-        assert (target_root / "SKILL.md").read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
+        assert (target_root / "SKILL.md").read_text(encoding="utf-8") == module.load_overlay_skill_text(
+            skill_id,
+            base_text=original[skill_id] if skill_id in DEFAULT_SKILL_IDS and skill_id not in {"scout", "idea", "decision", "write", "finalize"} else None,
+        )
 
 
 def test_overlay_status_detects_overwritten_by_upstream(tmp_path: Path) -> None:
@@ -147,7 +152,7 @@ def test_install_medical_overlay_requires_existing_target_directories(tmp_path: 
     else:
         message = ""
 
-    assert "deepscientist-scout" in message
+    assert "deepscientist-intake-audit" in message
 
 
 def test_install_medical_overlay_can_target_selected_skill_subset(tmp_path: Path) -> None:
@@ -178,11 +183,14 @@ def test_install_medical_overlay_seeds_workspace_targets_from_home_skills(tmp_pa
         home=home,
     )
 
-    assert result["installed_count"] == 6
+    assert result["installed_count"] == len(SKILL_IDS)
     for skill_id in SKILL_IDS:
         skill_path = quest_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
         assert skill_path.exists(), skill_path
-        assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
+        assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(
+            skill_id,
+            base_text=f"upstream {skill_id}\n" if skill_id in DEFAULT_SKILL_IDS and skill_id not in {"scout", "idea", "decision", "write", "finalize"} else None,
+        )
 
 
 def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages() -> None:
@@ -200,6 +208,59 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "LLM agent for a clinical task" in scout_text
     assert "Mechanistic sidecar extension" in scout_text
     assert "## Preferred study archetypes" not in write_text
+
+
+@pytest.mark.parametrize(
+    ("skill_id", "expected_phrase"),
+    [
+        ("intake-audit", "medical intake-audit gate"),
+        ("baseline", "medical baseline gate"),
+        ("experiment", "medical experiment gate"),
+        ("analysis-campaign", "medical analysis-campaign gate"),
+        ("review", "medical manuscript review gate"),
+        ("rebuttal", "medical revision and rebuttal gate"),
+    ],
+)
+def test_load_overlay_skill_text_for_forward_medical_stages(skill_id: str, expected_phrase: str) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = module.load_overlay_skill_text(skill_id, base_text=f"# upstream {skill_id}\n")
+
+    assert text.startswith(f"# upstream {skill_id}")
+    assert expected_phrase in text
+
+
+def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    home = tmp_path / "home"
+    skills_root = home / ".codex" / "skills"
+    for skill_id in SKILL_IDS:
+        write_skill(skills_root, skill_id, f"upstream {skill_id}\n")
+
+    module.install_medical_overlay(home=home)
+    result = module.ensure_medical_overlay(home=home, mode="ensure_ready")
+
+    assert result["mode"] == "ensure_ready"
+    assert result["selected_action"] == "noop"
+    assert result["action_result"] is None
+    assert result["post_status"]["all_targets_ready"] is True
+
+
+def test_ensure_medical_overlay_reapplies_when_targets_are_drifted(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    home = tmp_path / "home"
+    skills_root = home / ".codex" / "skills"
+    for skill_id in SKILL_IDS:
+        write_skill(skills_root, skill_id, f"upstream {skill_id}\n")
+
+    module.install_medical_overlay(home=home)
+    write_skill(skills_root, "review", "upstream review\n")
+
+    result = module.ensure_medical_overlay(home=home, mode="ensure_ready")
+
+    assert result["selected_action"] == "reapply"
+    assert result["action_result"]["installed_count"] == len(SKILL_IDS)
+    assert result["post_status"]["all_targets_ready"] is True
 
 
 def test_load_overlay_skill_text_for_finalize_includes_study_delivery_sync_contract() -> None:
