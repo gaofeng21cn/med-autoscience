@@ -10,6 +10,14 @@ from typing import Any
 
 from med_autoscience.adapters import report_store
 from med_autoscience.adapters.deepscientist import mailbox, runtime
+from med_autoscience.figure_routes import (
+    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_SCRIPT_FIX,
+    normalize_figure_token,
+    normalize_required_routes,
+    partition_required_routes,
+    supported_required_route_help,
+)
 
 
 RESOLVED_PATTERNS = [
@@ -21,14 +29,6 @@ RESOLVED_PATTERNS = [
     r"不再继续",
     r"不再回头",
 ]
-
-FIGURE_ROUTE_SCRIPT_FIX = "figure_script_fix"
-FIGURE_ROUTE_ILLUSTRATION_SIDECAR = "figure_illustration_sidecar"
-ALLOWED_FIGURE_ROUTE_PREFIXES = {
-    FIGURE_ROUTE_SCRIPT_FIX,
-    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
-}
-
 
 @dataclass
 class GuardState:
@@ -74,63 +74,6 @@ def parse_key_value_pairs(values: list[str]) -> dict[str, str]:
     return parsed
 
 
-def normalize_required_routes(values: list[str]) -> list[str]:
-    normalized: list[str] = []
-    seen: set[str] = set()
-    for raw in values:
-        item = str(raw).strip()
-        if not item:
-            continue
-        if ":" not in item:
-            if item not in seen:
-                normalized.append(item)
-                seen.add(item)
-            continue
-
-        route_prefix, raw_target = item.split(":", 1)
-        route_prefix = route_prefix.strip().lower()
-        route_target = raw_target.strip()
-        if route_prefix == "sidecar":
-            raise ValueError(
-                "Ambiguous figure sidecar route is not allowed; use "
-                "`figure_script_fix:<figure-id>` or `figure_illustration_sidecar:<figure-id>`"
-            )
-        if route_prefix not in ALLOWED_FIGURE_ROUTE_PREFIXES:
-            raise ValueError(
-                f"Unsupported required route `{item}`; only non-namespaced routes plus "
-                "`figure_script_fix:<figure-id>` and `figure_illustration_sidecar:<figure-id>` are allowed"
-            )
-        match = re.fullmatch(r"(?i)F(S?\d+)([A-Z])?", route_target)
-        if not match:
-            raise ValueError(f"Invalid figure route target `{route_target}` in required route `{item}`")
-        figure_id = normalize_figure_token(match.group(1), match.group(2))
-        if figure_id is None:
-            raise ValueError(f"Invalid figure route target `{route_target}` in required route `{item}`")
-        normalized_item = f"{route_prefix}:{figure_id}"
-        if normalized_item not in seen:
-            normalized.append(normalized_item)
-            seen.add(normalized_item)
-    return normalized
-
-
-def partition_required_routes(required_routes: list[str]) -> tuple[list[str], list[str], list[str]]:
-    mainline_routes: list[str] = []
-    script_fix_routes: list[str] = []
-    illustration_routes: list[str] = []
-    for route in required_routes:
-        if ":" not in route:
-            mainline_routes.append(route)
-            continue
-        prefix, figure_id = route.split(":", 1)
-        if prefix == FIGURE_ROUTE_SCRIPT_FIX:
-            script_fix_routes.append(figure_id)
-        elif prefix == FIGURE_ROUTE_ILLUSTRATION_SIDECAR:
-            illustration_routes.append(figure_id)
-        else:
-            raise ValueError(f"Unsupported normalized required route `{route}`")
-    return mainline_routes, script_fix_routes, illustration_routes
-
-
 def resolve_outbox_path(quest_root: Path) -> Path:
     runtime_root = quest_root.parent.parent
     return runtime_root / "logs" / "connectors" / "local" / "outbox.jsonl"
@@ -140,19 +83,6 @@ def resolve_daemon_url(quest_root: Path) -> str:
     runtime_root = quest_root.parent.parent
     daemon_meta = load_json(runtime_root / "runtime" / "daemon.json", default={}) or {}
     return str(daemon_meta.get("url") or "http://127.0.0.1:20999").rstrip("/")
-
-
-def normalize_figure_token(raw_id: str, panel: str | None) -> str | None:
-    token = str(raw_id).strip().upper()
-    if not token:
-        return None
-    if token.startswith("S"):
-        base = f"FS{token[1:]}"
-    else:
-        base = f"F{token}"
-    panel_part = str(panel or "").strip().upper()
-    return f"{base}{panel_part}" if panel_part else base
-
 
 def extract_figures(message: str) -> list[str]:
     found: set[str] = set()
@@ -485,7 +415,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--daemon-url")
     parser.add_argument("--accepted-figure", action="append", default=[])
     parser.add_argument("--figure-ticket", action="append", default=[])
-    parser.add_argument("--required-route", action="append", default=[])
+    parser.add_argument("--required-route", action="append", default=[], help=supported_required_route_help())
     parser.add_argument("--min-figure-mentions", type=int, default=12)
     parser.add_argument("--min-reference-count", type=int, default=12)
     parser.add_argument("--recent-window", type=int, default=120)

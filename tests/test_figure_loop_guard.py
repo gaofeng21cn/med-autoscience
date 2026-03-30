@@ -6,6 +6,12 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience.figure_routes import (
+    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_SCRIPT_FIX,
+    build_figure_route,
+)
+
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -90,8 +96,8 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
             "literature_scout",
             "expand_references",
             "revise_manuscript_body",
-            "figure_script_fix:F3C",
-            "figure_illustration_sidecar:F3C",
+            build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
         ],
         min_figure_mentions=3,
         min_reference_count=12,
@@ -112,9 +118,16 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
         "literature_scout",
         "expand_references",
         "revise_manuscript_body",
-        "figure_script_fix:F3C",
-        "figure_illustration_sidecar:F3C",
+        build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
+        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
     ]
+
+
+def test_figure_loop_guard_reuses_shared_figure_token_normalizer() -> None:
+    guard_module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    routes_module = importlib.import_module("med_autoscience.figure_routes")
+
+    assert guard_module.normalize_figure_token is routes_module.normalize_figure_token
 
 
 def test_build_guard_state_rejects_ambiguous_sidecar_route(tmp_path: Path) -> None:
@@ -151,8 +164,8 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
             "literature_scout",
             "expand_references",
             "revise_manuscript_body",
-            "figure_script_fix:F3C",
-            "figure_illustration_sidecar:F3C",
+            build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
         ],
         min_figure_mentions=3,
         min_reference_count=12,
@@ -166,7 +179,7 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     assert "F4B" in content
     assert "F3C" in content
     assert "literature_scout" in content
-    assert "figure_script_fix:F3C" in content
-    assert "figure_illustration_sidecar:F3C" in content
+    assert build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C") in content
+    assert build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C") in content
     assert "script/data repair route" in content
     assert "illustration-only sidecar route" in content

@@ -29,6 +29,7 @@ from med_autoscience.controllers import (
     submission_targets as submission_targets_controller,
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
+from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 
@@ -188,7 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
     figure_loop_guard_parser.add_argument("--daemon-url", type=str)
     figure_loop_guard_parser.add_argument("--accepted-figure", action="append", default=[])
     figure_loop_guard_parser.add_argument("--figure-ticket", action="append", default=[])
-    figure_loop_guard_parser.add_argument("--required-route", action="append", default=[])
+    figure_loop_guard_parser.add_argument("--required-route", action="append", default=[], help=supported_required_route_help())
     figure_loop_guard_parser.add_argument("--min-figure-mentions", type=int, default=12)
     figure_loop_guard_parser.add_argument("--min-reference-count", type=int, default=12)
     figure_loop_guard_parser.add_argument("--recent-window", type=int, default=120)
