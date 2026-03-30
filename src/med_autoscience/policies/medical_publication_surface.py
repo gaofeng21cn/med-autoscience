@@ -41,6 +41,8 @@ CLEAR_RECOMMENDED_ACTION = "continue_current_write_route"
 PUBLICATION_PROFILE = "general_medical_journal"
 METHODS_IMPLEMENTATION_MANIFEST_BASENAME = "methods_implementation_manifest.json"
 RESULTS_NARRATIVE_MAP_BASENAME = "results_narrative_map.json"
+FIGURE_SEMANTICS_MANIFEST_BASENAME = "figure_semantics_manifest.json"
+DERIVED_ANALYSIS_MANIFEST_BASENAME = "derived_analysis_manifest.json"
 REPRODUCIBILITY_SUPPLEMENT_BASENAME = "manuscript_safe_reproducibility_supplement.json"
 ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
 RESULTS_NARRATION_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
@@ -84,6 +86,20 @@ def ama_defaults_regex() -> re.Pattern[str]:
     )
 
 
+def _missing_required_fields(item: object, fields: tuple[str, ...]) -> list[str]:
+    if not isinstance(item, dict):
+        return list(fields)
+    missing: list[str] = []
+    for field in fields:
+        value = item.get(field)
+        if isinstance(value, list):
+            if not value:
+                missing.append(field)
+        elif not str(value or "").strip():
+            missing.append(field)
+    return missing
+
+
 def validate_methods_implementation_manifest(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
@@ -113,6 +129,9 @@ def validate_methods_implementation_manifest(payload: object) -> list[str]:
         "variable_definitions",
         "split_strategy",
         "missing_data_strategy",
+        "missing_data_policy_id",
+        "case_mix_summary",
+        "applicability_boundary",
     )
     missing_study_design_fields = [field for field in study_design_fields if not str(study_design.get(field) or "").strip()]
     if missing_study_design_fields:
@@ -121,13 +140,26 @@ def validate_methods_implementation_manifest(payload: object) -> list[str]:
     model_registry = payload.get("model_registry")
     if not isinstance(model_registry, list) or not model_registry:
         return ["model_registry must contain at least one model"]
-    first_model = model_registry[0]
-    if not isinstance(first_model, dict):
-        return ["model_registry entries must be objects"]
-    model_fields = ("model_id", "manuscript_name", "family", "inputs", "target")
-    missing_model_fields = [field for field in model_fields if not first_model.get(field)]
-    if missing_model_fields:
-        return [f"missing model_registry fields: {', '.join(missing_model_fields)}"]
+    model_fields = (
+        "model_id",
+        "manuscript_name",
+        "role",
+        "family",
+        "origin",
+        "inputs",
+        "input_scope",
+        "feature_construction",
+        "predictor_selection_strategy",
+        "target",
+        "fit_procedure",
+        "selection_rationale",
+        "comparison_rationale",
+        "claim_boundary",
+    )
+    for index, model in enumerate(model_registry):
+        missing_model_fields = _missing_required_fields(model, model_fields)
+        if missing_model_fields:
+            return [f"missing model_registry[{index}] fields: {', '.join(missing_model_fields)}"]
 
     software_stack = payload.get("software_stack")
     if not isinstance(software_stack, list) or not software_stack:
@@ -173,9 +205,6 @@ def validate_results_narrative_map(payload: object) -> list[str]:
     sections = payload.get("sections")
     if not isinstance(sections, list) or not sections:
         return ["sections must contain at least one results section"]
-    first_section = sections[0]
-    if not isinstance(first_section, dict):
-        return ["sections entries must be objects"]
     required_fields = (
         "section_id",
         "section_title",
@@ -186,16 +215,82 @@ def validate_results_narrative_map(payload: object) -> list[str]:
         "clinical_meaning",
         "boundary",
     )
-    missing_fields: list[str] = []
-    for field in required_fields:
-        value = first_section.get(field)
-        if isinstance(value, list):
-            if not value:
-                missing_fields.append(field)
-        elif not str(value or "").strip():
-            missing_fields.append(field)
-    if missing_fields:
-        return [f"missing section fields: {', '.join(missing_fields)}"]
+    for index, section in enumerate(sections):
+        missing_fields = _missing_required_fields(section, required_fields)
+        if missing_fields:
+            return [f"missing sections[{index}] fields: {', '.join(missing_fields)}"]
+    return []
+
+
+def validate_figure_semantics_manifest(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    figures = payload.get("figures")
+    if not isinstance(figures, list) or not figures:
+        return ["figures must contain at least one figure entry"]
+    required_fields = (
+        "figure_id",
+        "story_role",
+        "research_question",
+        "direct_message",
+        "clinical_implication",
+        "interpretation_boundary",
+        "panel_messages",
+        "legend_glossary",
+        "threshold_semantics",
+        "stratification_basis",
+        "recommendation_boundary",
+    )
+    panel_fields = ("panel_id", "message")
+    glossary_fields = ("term", "explanation")
+    for index, figure in enumerate(figures):
+        missing_fields = _missing_required_fields(figure, required_fields)
+        if missing_fields:
+            return [f"missing figures[{index}] fields: {', '.join(missing_fields)}"]
+        panel_messages = figure.get("panel_messages")
+        if not isinstance(panel_messages, list) or not panel_messages:
+            return [f"figures[{index}].panel_messages must contain at least one panel message"]
+        for panel_index, panel in enumerate(panel_messages):
+            missing_panel_fields = _missing_required_fields(panel, panel_fields)
+            if missing_panel_fields:
+                return [
+                    f"missing figures[{index}].panel_messages[{panel_index}] fields: {', '.join(missing_panel_fields)}"
+                ]
+        legend_glossary = figure.get("legend_glossary")
+        if not isinstance(legend_glossary, list) or not legend_glossary:
+            return [f"figures[{index}].legend_glossary must contain at least one glossary entry"]
+        for glossary_index, glossary in enumerate(legend_glossary):
+            missing_glossary_fields = _missing_required_fields(glossary, glossary_fields)
+            if missing_glossary_fields:
+                return [
+                    f"missing figures[{index}].legend_glossary[{glossary_index}] fields: {', '.join(missing_glossary_fields)}"
+                ]
+    return []
+
+
+def validate_derived_analysis_manifest(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    analyses = payload.get("analyses")
+    if not isinstance(analyses, list) or not analyses:
+        return ["analyses must contain at least one derived analysis entry"]
+    required_fields = (
+        "analysis_id",
+        "linked_display_items",
+        "purpose",
+        "data_source",
+        "derivation_procedure",
+        "resampling_design",
+        "refit_policy",
+        "missing_data_handling",
+        "missing_data_policy_id",
+        "correlation_or_collinearity_assessment",
+        "interpretation_boundary",
+    )
+    for index, analysis in enumerate(analyses):
+        missing_fields = _missing_required_fields(analysis, required_fields)
+        if missing_fields:
+            return [f"missing analyses[{index}] fields: {', '.join(missing_fields)}"]
     return []
 
 
@@ -207,6 +302,7 @@ def validate_reproducibility_supplement(payload: object) -> list[str]:
         "random_seed_policy",
         "key_hyperparameters",
         "missing_data_strategy",
+        "missing_data_policy_id",
         "metric_definitions",
     )
     missing = [key for key in required_top_level if key not in payload]
@@ -222,6 +318,8 @@ def validate_reproducibility_supplement(payload: object) -> list[str]:
         return ["random_seed_policy must be non-empty"]
     if not str(payload.get("missing_data_strategy") or "").strip():
         return ["missing_data_strategy must be non-empty"]
+    if not str(payload.get("missing_data_policy_id") or "").strip():
+        return ["missing_data_policy_id must be non-empty"]
     key_hyperparameters = payload.get("key_hyperparameters")
     if not isinstance(key_hyperparameters, list) or not key_hyperparameters:
         return ["key_hyperparameters must contain at least one model entry"]
@@ -284,8 +382,9 @@ def build_intervention_message(report: dict[str, object]) -> str:
     if "methods_implementation_manifest_missing_or_incomplete" in (report.get("blockers") or []):
         methods_clause = (
             f" Also create or complete `paper/{METHODS_IMPLEMENTATION_MANIFEST_BASENAME}` so it explicitly records cohort "
-            "definition, endpoint definition, split strategy, missing-data strategy, model registry, software package and version, "
-            "statistical analysis plan, and causal-language boundary."
+            "definition, endpoint definition, split strategy, missing-data strategy, a shared missing-data policy identifier, "
+            "case mix, applicability boundary, model registry with input scope, feature construction, predictor-selection strategy, "
+            "comparison rationale, software package and version, statistical analysis plan, and causal-language boundary."
         )
     results_clause = ""
     if "results_narrative_map_missing_or_incomplete" in (report.get("blockers") or []):
@@ -294,11 +393,31 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "a research question, a direct answer, key quantitative findings, supporting display items, clinical meaning, and "
             "claim boundary."
         )
+    figure_semantics_clause = ""
+    if "figure_semantics_manifest_missing_or_incomplete" in (report.get("blockers") or []):
+        figure_semantics_clause = (
+            f" Also create or complete `paper/{FIGURE_SEMANTICS_MANIFEST_BASENAME}` so every main-text figure records its "
+            "research question, direct message, clinical implication, interpretation boundary, panel-level messages, glossary terms, "
+            "and any threshold or stratification caveats needed for a medical reader."
+        )
+    derived_analysis_clause = ""
+    if "derived_analysis_manifest_missing_or_incomplete" in (report.get("blockers") or []):
+        derived_analysis_clause = (
+            f" Also create or complete `paper/{DERIVED_ANALYSIS_MANIFEST_BASENAME}` so every derived or secondary analysis records "
+            "its purpose, source data, derivation procedure, resampling design, refit policy, missing-data handling, "
+            "correlation/collinearity assessment, and interpretation boundary."
+        )
     reproducibility_clause = ""
     if "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in (report.get("blockers") or []):
         reproducibility_clause = (
             f" Also create or complete `paper/{REPRODUCIBILITY_SUPPLEMENT_BASENAME}` with manuscript-safe package versions, random seed policy, "
-            "key hyperparameters, missing-data strategy, and metric definitions."
+            "key hyperparameters, missing-data strategy, a shared missing-data policy identifier, and metric definitions."
+        )
+    missing_data_policy_clause = ""
+    if "missing_data_policy_inconsistent" in (report.get("blockers") or []):
+        missing_data_policy_clause = (
+            " Also align missing-data documentation so `study_design.missing_data_policy_id`, every derived-analysis "
+            "`missing_data_policy_id`, and the reproducibility supplement `missing_data_policy_id` point to the same manuscript-safe policy."
         )
     endpoint_clause = ""
     if "endpoint_provenance_note_missing_or_unapplied" in (report.get("blockers") or []):
@@ -329,6 +448,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/vendor references such as `AutoFigure-Edit` or `deepscientist`. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{results_clause}{reproducibility_clause}{endpoint_clause}{method_label_clause}{narration_clause} "
+        f"{ama_clause}{methods_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )
