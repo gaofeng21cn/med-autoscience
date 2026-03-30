@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "med-autoscience": {
+      "type": "stdio",
+      "command": "medautosci-mcp"
+    }
+  }
+}

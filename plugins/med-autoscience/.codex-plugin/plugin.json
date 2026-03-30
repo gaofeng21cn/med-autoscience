@@ -1,0 +1,38 @@
+{
+  "name": "med-autoscience",
+  "version": "0.1.0a4",
+  "description": "Codex plugin shell for the MedAutoScience medical research orchestration runtime.",
+  "author": {
+    "name": "Gao Feng",
+    "url": "https://github.com/gaofeng21cn"
+  },
+  "homepage": "https://github.com/gaofeng21cn/med-autoscience",
+  "repository": "https://github.com/gaofeng21cn/med-autoscience",
+  "license": "UNLICENSED",
+  "keywords": [
+    "medical-research",
+    "deepscientist",
+    "codex",
+    "controller"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "MedAutoScience",
+    "shortDescription": "Agent-first medical research runtime for Codex.",
+    "longDescription": "Adds a thin Codex plugin entry for MedAutoScience while preserving the existing Python CLI, controller contracts, profile binding, and DeepScientist overlay workflow.",
+    "developerName": "Gao Feng",
+    "category": "Research",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
+    "defaultPrompt": [
+      "Bootstrap a MedAutoScience workspace profile for this study.",
+      "Run MedAutoScience doctor and tell me what is missing.",
+      "Use MedAutoScience controllers to audit this quest runtime."
+    ],
+    "brandColor": "#1F7A8C"
+  }
+}
