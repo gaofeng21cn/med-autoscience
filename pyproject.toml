@@ -15,6 +15,7 @@ dependencies = ["PyYAML>=6.0"]
 
 [project.scripts]
 medautosci = "med_autoscience.cli:entrypoint"
+medautosci-mcp = "med_autoscience.mcp_server:entrypoint"
 
 [tool.setuptools.package-data]
 "med_autoscience.styles" = ["*.csl"]

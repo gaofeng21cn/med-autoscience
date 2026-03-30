@@ -1,0 +1,20 @@
+{
+  "name": "med-autoscience-local",
+  "interface": {
+    "displayName": "MedAutoScience Local"
+  },
+  "plugins": [
+    {
+      "name": "med-autoscience",
+      "source": {
+        "source": "local",
+        "path": "./plugins/med-autoscience"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}
