@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 
@@ -84,6 +85,35 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
         "mechanistic_sidecar_extension"
     ) in captured.out
     assert "medical_overlay_scope: workspace" in captured.out
+
+
+def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["show-agent-entry-modes"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert isinstance(payload.get("modes"), list)
+    assert '"mode_id": "full_research"' in captured.out
+    assert '"managed_routes": [' in captured.out
+    assert '"managed_entry_actions": [' in captured.out
+
+
+def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["sync-agent-entry-assets", "--repo-root", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["written_count"] == 4
+    assert (tmp_path / "guides" / "agent_entry_modes.md").is_file()
+    assert (tmp_path / "templates" / "agent_entry_modes.yaml").is_file()
+    assert (tmp_path / "templates" / "codex" / "medautoscience-entry.SKILL.md").is_file()
+    assert (tmp_path / "templates" / "openclaw" / "medautoscience-entry.prompt.md").is_file()
 
 
 def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:
