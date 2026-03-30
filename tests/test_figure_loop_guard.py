@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +86,13 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
         outbox_path=outbox_path,
         accepted_figures={"F4B": "teacher approved final layout"},
         figure_tickets={"F3C": "text overflow outside panel boxes"},
-        required_routes=["literature_scout", "expand_references", "revise_manuscript_body", "sidecar:F3C"],
+        required_routes=[
+            "literature_scout",
+            "expand_references",
+            "revise_manuscript_body",
+            "figure_script_fix:F3C",
+            "figure_illustration_sidecar:F3C",
+        ],
         min_figure_mentions=3,
         min_reference_count=12,
     )
@@ -100,6 +108,25 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
     assert report["recommended_action"] == "stop_current_run_and_route_mainline"
     assert report["accepted_figures"] == {"F4B": "teacher approved final layout"}
     assert report["figure_tickets"] == {"F3C": "text overflow outside panel boxes"}
+    assert report["required_routes"] == [
+        "literature_scout",
+        "expand_references",
+        "revise_manuscript_body",
+        "figure_script_fix:F3C",
+        "figure_illustration_sidecar:F3C",
+    ]
+
+
+def test_build_guard_state_rejects_ambiguous_sidecar_route(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+
+    with pytest.raises(ValueError, match="Ambiguous figure sidecar route"):
+        module.build_guard_state(
+            quest_root,
+            outbox_path=outbox_path,
+            required_routes=["literature_scout", "sidecar:F3C"],
+        )
 
 
 def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkeypatch) -> None:
@@ -120,7 +147,13 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
         daemon_url="http://127.0.0.1:20999",
         accepted_figures={"F4B": "teacher approved final layout"},
         figure_tickets={"F3C": "text overflow outside panel boxes"},
-        required_routes=["literature_scout", "expand_references", "revise_manuscript_body", "sidecar:F3C"],
+        required_routes=[
+            "literature_scout",
+            "expand_references",
+            "revise_manuscript_body",
+            "figure_script_fix:F3C",
+            "figure_illustration_sidecar:F3C",
+        ],
         min_figure_mentions=3,
         min_reference_count=12,
     )
@@ -133,3 +166,7 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     assert "F4B" in content
     assert "F3C" in content
     assert "literature_scout" in content
+    assert "figure_script_fix:F3C" in content
+    assert "figure_illustration_sidecar:F3C" in content
+    assert "script/data repair route" in content
+    assert "illustration-only sidecar route" in content

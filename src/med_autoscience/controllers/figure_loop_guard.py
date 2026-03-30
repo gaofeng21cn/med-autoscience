@@ -22,6 +22,13 @@ RESOLVED_PATTERNS = [
     r"不再回头",
 ]
 
+FIGURE_ROUTE_SCRIPT_FIX = "figure_script_fix"
+FIGURE_ROUTE_ILLUSTRATION_SIDECAR = "figure_illustration_sidecar"
+ALLOWED_FIGURE_ROUTE_PREFIXES = {
+    FIGURE_ROUTE_SCRIPT_FIX,
+    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+}
+
 
 @dataclass
 class GuardState:
@@ -65,6 +72,63 @@ def parse_key_value_pairs(values: list[str]) -> dict[str, str]:
             key, note = item, ""
         parsed[key.strip().upper()] = note.strip()
     return parsed
+
+
+def normalize_required_routes(values: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        item = str(raw).strip()
+        if not item:
+            continue
+        if ":" not in item:
+            if item not in seen:
+                normalized.append(item)
+                seen.add(item)
+            continue
+
+        route_prefix, raw_target = item.split(":", 1)
+        route_prefix = route_prefix.strip().lower()
+        route_target = raw_target.strip()
+        if route_prefix == "sidecar":
+            raise ValueError(
+                "Ambiguous figure sidecar route is not allowed; use "
+                "`figure_script_fix:<figure-id>` or `figure_illustration_sidecar:<figure-id>`"
+            )
+        if route_prefix not in ALLOWED_FIGURE_ROUTE_PREFIXES:
+            raise ValueError(
+                f"Unsupported required route `{item}`; only non-namespaced routes plus "
+                "`figure_script_fix:<figure-id>` and `figure_illustration_sidecar:<figure-id>` are allowed"
+            )
+        match = re.fullmatch(r"(?i)F(S?\d+)([A-Z])?", route_target)
+        if not match:
+            raise ValueError(f"Invalid figure route target `{route_target}` in required route `{item}`")
+        figure_id = normalize_figure_token(match.group(1), match.group(2))
+        if figure_id is None:
+            raise ValueError(f"Invalid figure route target `{route_target}` in required route `{item}`")
+        normalized_item = f"{route_prefix}:{figure_id}"
+        if normalized_item not in seen:
+            normalized.append(normalized_item)
+            seen.add(normalized_item)
+    return normalized
+
+
+def partition_required_routes(required_routes: list[str]) -> tuple[list[str], list[str], list[str]]:
+    mainline_routes: list[str] = []
+    script_fix_routes: list[str] = []
+    illustration_routes: list[str] = []
+    for route in required_routes:
+        if ":" not in route:
+            mainline_routes.append(route)
+            continue
+        prefix, figure_id = route.split(":", 1)
+        if prefix == FIGURE_ROUTE_SCRIPT_FIX:
+            script_fix_routes.append(figure_id)
+        elif prefix == FIGURE_ROUTE_ILLUSTRATION_SIDECAR:
+            illustration_routes.append(figure_id)
+        else:
+            raise ValueError(f"Unsupported normalized required route `{route}`")
+    return mainline_routes, script_fix_routes, illustration_routes
 
 
 def resolve_outbox_path(quest_root: Path) -> Path:
@@ -202,7 +266,7 @@ def build_guard_state(
         reference_count=count_references(quest_root),
         accepted_figures=dict(accepted_figures or {}),
         figure_tickets=dict(figure_tickets or {}),
-        required_routes=list(required_routes or []),
+        required_routes=normalize_required_routes(list(required_routes or [])),
         min_figure_mentions=min_figure_mentions,
         min_reference_count=min_reference_count,
         recent_window=recent_window,
@@ -303,8 +367,10 @@ def build_intervention_message(report: dict[str, Any]) -> str:
         f"{figure_id}={note or 'accepted'}" for figure_id, note in (report.get("accepted_figures") or {}).items()
     ) or "none"
     tickets = "; ".join(f"{figure_id}={note}" for figure_id, note in (report.get("figure_tickets") or {}).items()) or "none"
-    routes = ", ".join(report.get("required_routes") or []) or "none"
-    return (
+    required_routes = list(report.get("required_routes") or [])
+    mainline_routes, script_fix_routes, illustration_routes = partition_required_routes(required_routes)
+    routes = ", ".join(required_routes) or "none"
+    message = (
         "Hard control message from MedAutoScience orchestration layer: stop the current figure-polish loop now. "
         f"The dominant runaway figure is `{dominant}` with `{report.get('dominant_figure_mentions')}` recent mentions. "
         f"Controller blockers: {blockers}. "
@@ -313,9 +379,32 @@ def build_intervention_message(report: dict[str, Any]) -> str:
         "For accepted figures, record the final state and defer any residual visual concern to the final human paper check. "
         f"Open figure tickets that may only be handled as bounded sidecar items: {tickets}. "
         f"Required next routes: {routes}. "
-        "Do not keep `figure-polish` on the main line. If a sidecar figure ticket cannot be closed in one bounded corrective run, "
+    )
+    if mainline_routes:
+        message += (
+            "Mainline research routes to execute next: "
+            + ", ".join(mainline_routes)
+            + ". "
+        )
+    if script_fix_routes:
+        message += (
+            "For the script/data repair route, only use bounded regeneration from the frozen data/script path for "
+            + ", ".join(f"`{figure_id}` via `{FIGURE_ROUTE_SCRIPT_FIX}:{figure_id}`" for figure_id in script_fix_routes)
+            + ". This route is for evidence-bearing result figures and must not call illustration tooling or AutoFigure-Edit. "
+        )
+    if illustration_routes:
+        message += (
+            "For the illustration-only sidecar route, only use bounded non-evidence figure editing for "
+            + ", ".join(
+                f"`{figure_id}` via `{FIGURE_ROUTE_ILLUSTRATION_SIDECAR}:{figure_id}`" for figure_id in illustration_routes
+            )
+            + ". This route is limited to method/workflow/graphical-abstract/cohort-schema style figures and must not alter numbers, claims, or result plots. "
+        )
+    message += (
+        "Do not keep `figure-polish` on the main line. If any figure ticket cannot be closed in one bounded corrective run, "
         "register it as a blocker and return to literature expansion plus manuscript body revision."
     )
+    return message
 
 
 def write_guard_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
