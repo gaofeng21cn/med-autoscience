@@ -10,6 +10,14 @@ from typing import Any
 
 from med_autoscience.adapters import report_store
 from med_autoscience.adapters.deepscientist import mailbox, runtime
+from med_autoscience.figure_routes import (
+    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_SCRIPT_FIX,
+    normalize_figure_token,
+    normalize_required_routes,
+    partition_required_routes,
+    supported_required_route_help,
+)
 
 
 RESOLVED_PATTERNS = [
@@ -21,7 +29,6 @@ RESOLVED_PATTERNS = [
     r"不再继续",
     r"不再回头",
 ]
-
 
 @dataclass
 class GuardState:
@@ -76,19 +83,6 @@ def resolve_daemon_url(quest_root: Path) -> str:
     runtime_root = quest_root.parent.parent
     daemon_meta = load_json(runtime_root / "runtime" / "daemon.json", default={}) or {}
     return str(daemon_meta.get("url") or "http://127.0.0.1:20999").rstrip("/")
-
-
-def normalize_figure_token(raw_id: str, panel: str | None) -> str | None:
-    token = str(raw_id).strip().upper()
-    if not token:
-        return None
-    if token.startswith("S"):
-        base = f"FS{token[1:]}"
-    else:
-        base = f"F{token}"
-    panel_part = str(panel or "").strip().upper()
-    return f"{base}{panel_part}" if panel_part else base
-
 
 def extract_figures(message: str) -> list[str]:
     found: set[str] = set()
@@ -202,7 +196,7 @@ def build_guard_state(
         reference_count=count_references(quest_root),
         accepted_figures=dict(accepted_figures or {}),
         figure_tickets=dict(figure_tickets or {}),
-        required_routes=list(required_routes or []),
+        required_routes=normalize_required_routes(list(required_routes or [])),
         min_figure_mentions=min_figure_mentions,
         min_reference_count=min_reference_count,
         recent_window=recent_window,
@@ -303,8 +297,10 @@ def build_intervention_message(report: dict[str, Any]) -> str:
         f"{figure_id}={note or 'accepted'}" for figure_id, note in (report.get("accepted_figures") or {}).items()
     ) or "none"
     tickets = "; ".join(f"{figure_id}={note}" for figure_id, note in (report.get("figure_tickets") or {}).items()) or "none"
-    routes = ", ".join(report.get("required_routes") or []) or "none"
-    return (
+    required_routes = list(report.get("required_routes") or [])
+    mainline_routes, script_fix_routes, illustration_routes = partition_required_routes(required_routes)
+    routes = ", ".join(required_routes) or "none"
+    message = (
         "Hard control message from MedAutoScience orchestration layer: stop the current figure-polish loop now. "
         f"The dominant runaway figure is `{dominant}` with `{report.get('dominant_figure_mentions')}` recent mentions. "
         f"Controller blockers: {blockers}. "
@@ -313,9 +309,32 @@ def build_intervention_message(report: dict[str, Any]) -> str:
         "For accepted figures, record the final state and defer any residual visual concern to the final human paper check. "
         f"Open figure tickets that may only be handled as bounded sidecar items: {tickets}. "
         f"Required next routes: {routes}. "
-        "Do not keep `figure-polish` on the main line. If a sidecar figure ticket cannot be closed in one bounded corrective run, "
+    )
+    if mainline_routes:
+        message += (
+            "Mainline research routes to execute next: "
+            + ", ".join(mainline_routes)
+            + ". "
+        )
+    if script_fix_routes:
+        message += (
+            "For the script/data repair route, only use bounded regeneration from the frozen data/script path for "
+            + ", ".join(f"`{figure_id}` via `{FIGURE_ROUTE_SCRIPT_FIX}:{figure_id}`" for figure_id in script_fix_routes)
+            + ". This route is for evidence-bearing result figures and must not call illustration tooling or AutoFigure-Edit. "
+        )
+    if illustration_routes:
+        message += (
+            "For the illustration-only sidecar route, only use bounded non-evidence figure editing for "
+            + ", ".join(
+                f"`{figure_id}` via `{FIGURE_ROUTE_ILLUSTRATION_SIDECAR}:{figure_id}`" for figure_id in illustration_routes
+            )
+            + ". This route is limited to method/workflow/graphical-abstract/cohort-schema style figures and must not alter numbers, claims, or result plots. "
+        )
+    message += (
+        "Do not keep `figure-polish` on the main line. If any figure ticket cannot be closed in one bounded corrective run, "
         "register it as a blocker and return to literature expansion plus manuscript body revision."
     )
+    return message
 
 
 def write_guard_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
@@ -396,7 +415,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--daemon-url")
     parser.add_argument("--accepted-figure", action="append", default=[])
     parser.add_argument("--figure-ticket", action="append", default=[])
-    parser.add_argument("--required-route", action="append", default=[])
+    parser.add_argument("--required-route", action="append", default=[], help=supported_required_route_help())
     parser.add_argument("--min-figure-mentions", type=int, default=12)
     parser.add_argument("--min-reference-count", type=int, default=12)
     parser.add_argument("--recent-window", type=int, default=120)
