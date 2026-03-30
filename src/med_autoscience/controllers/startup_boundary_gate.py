@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies.automation_ready import render_automation_ready_summary
+from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -199,4 +201,6 @@ def render_boundary_custom_brief(
     if existing_brief:
         sections.append("Existing startup brief context:")
         sections.append(existing_brief)
+    sections.append(render_controller_first_summary())
+    sections.append(render_automation_ready_summary())
     return "\n\n".join(sections).strip()
