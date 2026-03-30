@@ -1,0 +1,431 @@
+from __future__ import annotations
+
+from dataclasses import asdict
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from med_autoscience.adapters.deepscientist import daemon_api
+from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
+from med_autoscience.controllers import (
+    startup_data_readiness as startup_data_readiness_controller,
+    submission_targets as submission_targets_controller,
+)
+from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.submission_targets import resolve_submission_target_contract
+from med_autoscience.workspace_contracts import inspect_workspace_contracts
+
+
+SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _timestamp_slug() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
+    path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
+
+
+def _load_yaml_dict(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise FileNotFoundError(f"missing required YAML file: {path}")
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError(f"expected YAML mapping at {path}")
+    return payload
+
+
+def _resolve_study(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None,
+    study_root: Path | None,
+) -> tuple[str, Path, dict[str, Any]]:
+    if study_id is None and study_root is None:
+        raise ValueError("study_id or study_root is required")
+    if study_root is not None:
+        resolved_study_root = Path(study_root).expanduser().resolve()
+    else:
+        resolved_study_root = (profile.studies_root / str(study_id)).resolve()
+    study_payload = _load_yaml_dict(resolved_study_root / "study.yaml")
+    resolved_study_id = str(study_payload.get("study_id") or study_id or resolved_study_root.name).strip()
+    if not resolved_study_id:
+        raise ValueError(f"could not resolve study_id from {resolved_study_root / 'study.yaml'}")
+    if study_id is not None and str(study_id).strip() != resolved_study_id:
+        raise ValueError(f"study_id mismatch: expected {study_id}, got {resolved_study_id}")
+    return resolved_study_id, resolved_study_root, study_payload
+
+
+def _execution_payload(study_payload: dict[str, Any]) -> dict[str, Any]:
+    execution = study_payload.get("execution")
+    if not isinstance(execution, dict):
+        return {}
+    return dict(execution)
+
+
+def _read_optional_text(path: Path | None) -> str:
+    if path is None or not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8").strip()
+
+
+def _resolve_optional_path(*, anchor: Path, raw_path: object) -> Path | None:
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        return None
+    candidate = Path(raw_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = (anchor / candidate).resolve()
+    return candidate
+
+
+def _serialize_submission_targets(profile: WorkspaceProfile, study_root: Path) -> list[dict[str, Any]]:
+    contract = resolve_submission_target_contract(profile=profile, study_root=study_root)
+    return [asdict(target) for target in contract.targets]
+
+
+def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path) -> dict[str, Path]:
+    return {
+        "quest_root": profile.runtime_root / study_id,
+        "runtime_binding_path": study_root / "runtime_binding.yaml",
+        "startup_payload_root": profile.workspace_root / "ops" / "deepscientist" / "startup_payloads" / study_id,
+        "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
+    }
+
+
+def _build_startup_contract(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    study_payload: dict[str, Any],
+    execution: dict[str, Any],
+) -> dict[str, Any]:
+    startup_contract_profile = str(execution.get("startup_contract_profile") or "").strip()
+    if startup_contract_profile not in SUPPORTED_STARTUP_CONTRACT_PROFILES:
+        raise ValueError(f"unsupported startup_contract_profile: {startup_contract_profile}")
+
+    startup_brief_path = _resolve_optional_path(anchor=study_root, raw_path=study_payload.get("startup_brief"))
+    primary_question = str(study_payload.get("primary_question") or "").strip()
+    title = str(study_payload.get("title") or study_id).strip()
+    objectives = [primary_question] if primary_question else [f"advance study {study_id} toward submission"]
+
+    return {
+        "schema_version": 3,
+        "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
+        "need_research_paper": True,
+        "research_intensity": "balanced",
+        "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
+        "launch_mode": "custom",
+        "custom_profile": str(execution.get("launch_profile") or "continue_existing_state").strip()
+        or "continue_existing_state",
+        "scope": "baseline_plus_direction",
+        "baseline_mode": "existing",
+        "resource_policy": "balanced",
+        "time_budget_hours": 24,
+        "git_strategy": "semantic_head_plus_controlled_integration",
+        "runtime_constraints": "Honor workspace data contracts and prepare a submission-ready study.",
+        "objectives": objectives,
+        "baseline_urls": [],
+        "paper_urls": [],
+        "entry_state_summary": f"Study root: {study_root}",
+        "review_summary": "",
+        "custom_brief": _read_optional_text(startup_brief_path),
+        "submission_targets": _serialize_submission_targets(profile, study_root),
+    }
+
+
+def _build_create_payload(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    study_payload: dict[str, Any],
+    execution: dict[str, Any],
+) -> dict[str, Any]:
+    title = str(study_payload.get("title") or study_id).strip() or study_id
+    goal = str(study_payload.get("primary_question") or title).strip() or title
+    startup_contract = _build_startup_contract(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
+    return {
+        "title": title,
+        "goal": goal,
+        "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
+        "source": "med_autoscience.study_runtime_router",
+        "auto_start": True,
+        "startup_contract": startup_contract,
+    }
+
+
+def _status_payload(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    study_payload: dict[str, Any],
+    entry_mode: str | None,
+) -> dict[str, Any]:
+    execution = _execution_payload(study_payload)
+    selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
+    quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
+    paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root)
+    quest_root = profile.runtime_root / quest_id
+    runtime_binding_path = paths["runtime_binding_path"]
+    quest_exists = (quest_root / "quest.yaml").exists()
+    quest_status = runtime_adapter.quest_status(quest_root) if quest_exists else ""
+    contracts = inspect_workspace_contracts(profile)
+    readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
+
+    result: dict[str, Any] = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "entry_mode": selected_entry_mode,
+        "execution": execution,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_exists": quest_exists,
+        "quest_status": quest_status or None,
+        "runtime_binding_path": str(runtime_binding_path),
+        "runtime_binding_exists": runtime_binding_path.exists(),
+        "workspace_contracts": contracts,
+        "startup_data_readiness": readiness,
+    }
+
+    if str(execution.get("engine") or "").strip() != "deepscientist":
+        result["decision"] = "lightweight"
+        result["reason"] = "study_execution_not_deepscientist"
+        return result
+
+    auto_entry = str(execution.get("auto_entry") or "").strip()
+    default_entry_mode = str(execution.get("default_entry_mode") or "full_research").strip() or "full_research"
+    if auto_entry != "on_managed_research_intent":
+        result["decision"] = "lightweight"
+        result["reason"] = "study_execution_not_managed"
+        return result
+    if selected_entry_mode != default_entry_mode:
+        result["decision"] = "lightweight"
+        result["reason"] = "entry_mode_not_managed"
+        return result
+
+    if not bool(contracts.get("overall_ready")):
+        result["decision"] = "blocked"
+        result["reason"] = "workspace_contract_not_ready"
+        return result
+
+    study_summary = readiness.get("study_summary") if isinstance(readiness.get("study_summary"), dict) else {}
+    unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
+    if isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids:
+        result["decision"] = "blocked"
+        result["reason"] = "study_data_readiness_blocked"
+        return result
+
+    if not quest_exists:
+        result["decision"] = "create_and_start"
+        result["reason"] = "quest_missing"
+        return result
+
+    if quest_status in {"running", "active"}:
+        result["decision"] = "noop"
+        result["reason"] = "quest_already_running"
+        return result
+
+    if quest_status == "paused":
+        if execution.get("auto_resume") is True:
+            result["decision"] = "resume"
+            result["reason"] = "quest_paused"
+        else:
+            result["decision"] = "blocked"
+            result["reason"] = "quest_paused_but_auto_resume_disabled"
+        return result
+
+    result["decision"] = "blocked"
+    result["reason"] = "quest_exists_with_non_resumable_state"
+    return result
+
+
+def study_runtime_status(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    entry_mode: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    return _status_payload(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=entry_mode,
+    )
+
+
+def _write_runtime_binding(
+    *,
+    runtime_binding_path: Path,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    quest_id: str,
+    last_action: str,
+    source: str,
+) -> None:
+    _write_yaml(
+        runtime_binding_path,
+        {
+            "schema_version": 1,
+            "engine": "deepscientist",
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": quest_id,
+            "runtime_root": str(profile.runtime_root),
+            "deepscientist_runtime_root": str(profile.deepscientist_runtime_root),
+            "last_action": last_action,
+            "last_action_at": _utc_now(),
+            "last_source": source,
+        },
+    )
+
+
+def _write_launch_report(
+    *,
+    launch_report_path: Path,
+    status: dict[str, Any],
+    source: str,
+    force: bool,
+    startup_payload_path: Path | None,
+    daemon_result: dict[str, Any] | None,
+) -> None:
+    report = dict(status)
+    report.update(
+        {
+            "source": source,
+            "force": force,
+            "recorded_at": _utc_now(),
+            "startup_payload_path": str(startup_payload_path) if startup_payload_path is not None else None,
+            "daemon_result": daemon_result,
+        }
+    )
+    _write_json(launch_report_path, report)
+
+
+def ensure_study_runtime(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    entry_mode: str | None = None,
+    force: bool = False,
+    source: str = "med_autoscience",
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    status = _status_payload(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=entry_mode,
+    )
+    execution = _execution_payload(study_payload)
+    paths = _study_paths(profile=profile, study_id=resolved_study_id, study_root=resolved_study_root)
+    runtime_binding_path = paths["runtime_binding_path"]
+    launch_report_path = paths["launch_report_path"]
+    startup_payload_path: Path | None = None
+    daemon_result: dict[str, Any] | None = None
+
+    if status["decision"] == "create_and_start":
+        create_payload = _build_create_payload(
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            study_payload=study_payload,
+            execution=execution,
+        )
+        startup_payload_path = paths["startup_payload_root"] / f"{_timestamp_slug()}.json"
+        _write_json(startup_payload_path, create_payload)
+        daemon_result = daemon_api.create_quest(
+            runtime_root=profile.deepscientist_runtime_root,
+            payload=create_payload,
+        )
+        status["quest_id"] = str(create_payload["quest_id"])
+        status["quest_root"] = str(profile.runtime_root / status["quest_id"])
+        status["quest_exists"] = True
+        snapshot = daemon_result.get("snapshot") if isinstance(daemon_result.get("snapshot"), dict) else {}
+        status["quest_status"] = str(snapshot.get("status") or "running")
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=status["quest_id"],
+            last_action="create_and_start",
+            source=source,
+        )
+    elif status["decision"] == "resume":
+        daemon_result = daemon_api.resume_quest(
+            runtime_root=profile.deepscientist_runtime_root,
+            quest_id=str(status["quest_id"]),
+            source=source,
+        )
+        status["quest_status"] = str(daemon_result.get("status") or "running")
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=str(status["quest_id"]),
+            last_action="resume",
+            source=source,
+        )
+    elif status["decision"] == "noop":
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=str(status["quest_id"]),
+            last_action="noop",
+            source=source,
+        )
+
+    _write_launch_report(
+        launch_report_path=launch_report_path,
+        status=status,
+        source=source,
+        force=force,
+        startup_payload_path=startup_payload_path,
+        daemon_result=daemon_result,
+    )
+    status["runtime_binding_path"] = str(runtime_binding_path)
+    status["launch_report_path"] = str(launch_report_path)
+    if startup_payload_path is not None:
+        status["startup_payload_path"] = str(startup_payload_path)
+    return status

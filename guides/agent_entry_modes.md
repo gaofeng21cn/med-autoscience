@@ -14,7 +14,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - default_runtime_mode: managed
 - lightweight_scope: none
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor, bootstrap, overlay-status
+- managed_entry_actions: doctor, bootstrap, overlay-status, ensure-study-runtime
 - lightweight_routes: (none)
 - managed_routes: doctor, bootstrap, overlay-status, scout, idea, experiment, write, finalize
 - governance_routes: decision
@@ -25,7 +25,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - default_runtime_mode: lightweight
 - lightweight_scope: early evidence framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor, bootstrap, overlay-status
+- managed_entry_actions: doctor, bootstrap, overlay-status, ensure-study-runtime
 - lightweight_routes: scout
 - managed_routes: doctor, bootstrap, overlay-status, scout, idea, experiment, write, finalize
 - governance_routes: decision
@@ -36,7 +36,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - default_runtime_mode: lightweight
 - lightweight_scope: route selection and study framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor, bootstrap, overlay-status
+- managed_entry_actions: doctor, bootstrap, overlay-status, ensure-study-runtime
 - lightweight_routes: idea, decision
 - managed_routes: doctor, bootstrap, overlay-status, scout, idea, experiment, write, finalize
 - governance_routes: decision
@@ -47,7 +47,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - default_runtime_mode: lightweight
 - lightweight_scope: pathway adjustment and stop-loss
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor, bootstrap, overlay-status
+- managed_entry_actions: doctor, bootstrap, overlay-status, ensure-study-runtime
 - lightweight_routes: decision
 - managed_routes: doctor, bootstrap, overlay-status, scout, idea, experiment, write, finalize
 - governance_routes: decision
@@ -58,7 +58,7 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - default_runtime_mode: lightweight
 - lightweight_scope: manuscript and delivery packaging
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor, bootstrap, overlay-status
+- managed_entry_actions: doctor, bootstrap, overlay-status, ensure-study-runtime
 - lightweight_routes: write
 - managed_routes: doctor, bootstrap, overlay-status, write, finalize
 - governance_routes: (none)

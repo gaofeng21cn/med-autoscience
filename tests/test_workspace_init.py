@@ -57,10 +57,13 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert deep_config.is_file()
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
+    enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
     ds_doctor = workspace_root / "ops" / "deepscientist" / "bin" / "doctor"
     assert show_profile.is_file()
+    assert enter_study.is_file()
     assert ds_doctor.is_file()
     assert os.access(show_profile, os.X_OK)
+    assert os.access(enter_study, os.X_OK)
     assert os.access(ds_doctor, os.X_OK)
 
     root_readme = workspace_root / "README.md"
@@ -100,4 +103,3 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     )
     assert str(profile_path) in third["overwritten_files"]
     assert 'name = "pituitary"' in profile_path.read_text(encoding="utf-8")
-

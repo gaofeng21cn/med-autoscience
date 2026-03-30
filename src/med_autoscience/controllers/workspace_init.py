@@ -415,6 +415,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "enter-study",
+            content=_render_forward_script("ensure-study-runtime", with_profile=True),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
             content=_render_watch_runtime_script(),
             executable=True,

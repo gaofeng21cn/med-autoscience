@@ -1,17 +1,19 @@
 # MedAutoScience Plugin
 
-Use this plugin when Codex should operate `MedAutoScience` through its stable runtime surface instead of treating the repository as an ad-hoc script collection.
+当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 plugin。
 
-## What this plugin is
+## 这个 plugin 是什么
 
-- A thin Codex entry layer for `MedAutoScience`
-- Additive to the existing Python package, CLI, controllers, overlays, and workspace profiles
-- Not a replacement for the `medautosci` CLI, controller contracts, or non-Codex integrations
+- `MedAutoScience` 面向 Codex 的薄入口层
+- 叠加在现有 Python package、CLI、controller、overlay 与 workspace profile 之上
+- 不替代 `medautosci` CLI、controller contract，也不替代非 Codex 集成
 
-## Core rule
+## 核心规则
 
-Prefer the existing `MedAutoScience` runtime contracts:
+优先走已有的 `MedAutoScience` 运行时 contract：
 
+- 如果 workspace 还不存在，优先调用 MCP tool `init_workspace`
+- `medautosci init-workspace`
 - `medautosci doctor --profile <profile>`
 - `medautosci show-profile --profile <profile>`
 - `medautosci bootstrap --profile <profile>`
@@ -21,30 +23,30 @@ Prefer the existing `MedAutoScience` runtime contracts:
 - `medautosci deepscientist-upgrade-check --profile <profile> --refresh`
 - `medautosci-mcp`
 
-When `medautosci` is not on `PATH`, use the module entry:
+如果 `medautosci` 不在 `PATH` 上，用模块入口：
 
 ```bash
-PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile <profile>
+uv run python -m med_autoscience.cli doctor --profile <profile>
 ```
 
-## Operating guidance
+## 操作约束
 
-- Read workspace status before mutations.
-- For data assets, go through controller commands and structured payloads. Do not directly hand-edit registry files.
-- Preserve `MedAutoScience` as the runtime layer. Do not collapse controller, profile, overlay, and workspace logic into plugin-only files.
-- Keep compatibility with other frameworks by leaving existing CLI and controller entrypoints unchanged.
-- The plugin-local MCP facade depends on the `medautosci-mcp` command being available on `PATH`.
+- 任何写操作之前，先读 workspace 当前状态
+- 数据资产变更要走 controller 命令和结构化 payload，不直接手改 registry
+- 保持 `MedAutoScience` 作为运行层，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
+- 保持 CLI 和 controller 入口稳定，避免破坏其他 Agent 的兼容性
+- plugin-local MCP 依赖 `medautosci-mcp` 在 `PATH` 上可用
 
-## First files to read
+## 首先应读的文件
 
 - `bootstrap/README.md`
 - `controllers/README.md`
 - `guides/codex_plugin.md`
 
-## Typical tasks
+## 典型任务
 
-- Audit whether a workspace profile is correctly wired
-- Bootstrap a new study workspace for Codex-driven execution
-- Check overlay drift or reapply the medical overlay
-- Run runtime watch and summarize blockers
-- Drive data-asset and submission controllers through auditable commands
+- 审核某个 workspace profile 是否接对
+- 为新的病种 workspace 建立骨架并接入 Codex 驱动执行
+- 检查 overlay 是否漂移，必要时重覆写
+- 运行 runtime watch 并归纳阻塞点
+- 通过可审计命令驱动数据资产和投稿交付 controller

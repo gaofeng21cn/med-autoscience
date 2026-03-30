@@ -12,6 +12,7 @@ __all__ = [
     "reference_papers",
     "runtime_watch",
     "sidecar_provider",
+    "study_runtime_router",
     "study_delivery_sync",
     "submission_minimal",
     "submission_targets",

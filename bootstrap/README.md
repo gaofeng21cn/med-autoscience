@@ -69,9 +69,13 @@
 
 现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
 
+如果 Agent 已经接入 `medautosci-mcp`，更推荐直接调用 MCP tool `init_workspace`。
+
+如果当前环境还没有接 MCP，再用 CLI：
+
 ```bash
 cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+uv run python -m med_autoscience.cli init-workspace \
   --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
   --workspace-name my-disease
 ```
@@ -209,6 +213,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 如果你是在一台新电脑上，或第一次接入一个新病种项目，推荐顺序如下：
 
 1. 运行 `init-workspace` 创建病种级 workspace 骨架
+   如果 Agent 已经接入 MCP，优先用 `init_workspace`
 2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
 3. 编辑 `ops/medautoscience/config.env` 与 `ops/deepscientist/config.env`
 4. 检查生成的 `profiles/*.local.toml`

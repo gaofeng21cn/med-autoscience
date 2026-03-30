@@ -146,7 +146,7 @@
 
 通常只需要三步：
 
-1. 先准备一个病种级 workspace，把原始数据、数据说明文档、变量定义、终点定义、纳排标准、分组规则，以及你已有的参考文章或研究设想放进去。
+1. 如果你还没有病种级 workspace，先让 Agent 用 `MedAutoScience` 创建一个；如果已经有了，就把原始数据、数据说明文档、变量定义、终点定义、纳排标准、分组规则，以及你已有的参考文章或研究设想放进去。
 2. 再对你的 Agent（例如 Codex、Claude Code、OpenClaw 等）明确说明两件事：先把这些数据清洗、整理成适合机读和可审计的研究资产；再使用 [MedAutoScience](https://github.com/gaofeng21cn/med-autoscience) 作为自动科研运行框架，围绕你的目标展开自动科研。
 3. 最后把你的具体要求直接说清楚，例如目标是发表二区以上的 SCI、希望仿照哪篇文章、已有怎样的科研思路、哪些终点或亚组必须重点分析，这些都可以直接告诉 Agent，由它继续传达给 `MedAutoScience` 的运行过程。
 
@@ -174,8 +174,13 @@
 
 如果你要从零新建一个病种 workspace，现在优先使用：
 
+1. Agent 已接入 `medautosci-mcp` 时，优先调用 MCP tool `init_workspace`
+2. 如果当前环境还没有接 MCP，再用 CLI `init-workspace`
+
+例如本地开发环境可以直接运行：
+
 ```bash
-PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+uv run python -m med_autoscience.cli init-workspace \
   --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
   --workspace-name my-disease
 ```

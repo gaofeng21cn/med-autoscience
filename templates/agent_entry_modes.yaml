@@ -13,6 +13,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
+  - ensure-study-runtime
   lightweight_routes: []
   managed_routes:
   - doctor
@@ -37,6 +38,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
+  - ensure-study-runtime
   lightweight_routes:
   - scout
   managed_routes:
@@ -63,6 +65,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
+  - ensure-study-runtime
   lightweight_routes:
   - idea
   - decision
@@ -90,6 +93,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
+  - ensure-study-runtime
   lightweight_routes:
   - decision
   managed_routes:
@@ -116,6 +120,7 @@ modes:
   - doctor
   - bootstrap
   - overlay-status
+  - ensure-study-runtime
   lightweight_routes:
   - write
   managed_routes:

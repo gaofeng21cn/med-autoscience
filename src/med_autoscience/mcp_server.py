@@ -11,6 +11,8 @@ from med_autoscience.controllers import (
     deepscientist_upgrade_check,
     runtime_watch,
     startup_data_readiness as startup_data_readiness_controller,
+    study_runtime_router,
+    workspace_init,
 )
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile, render_doctor_report, render_profile
 from med_autoscience.overlay import installer as overlay_installer
@@ -52,6 +54,22 @@ def _optional_bool(arguments: dict[str, Any], key: str, *, default: bool = False
     if not isinstance(value, bool):
         raise ValueError(f"{key} must be a boolean")
     return value
+
+
+def _optional_string(arguments: dict[str, Any], key: str, *, default: str) -> str:
+    value = arguments.get(key, default)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{key} must be a non-empty string")
+    return value
+
+
+def _optional_path(arguments: dict[str, Any], key: str) -> Path | None:
+    value = arguments.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{key} must be a non-empty string when provided")
+    return Path(value)
 
 
 def list_tools() -> list[dict[str, Any]]:
@@ -141,6 +159,54 @@ def list_tools() -> list[dict[str, Any]]:
                 "additionalProperties": False,
             },
         },
+        {
+            "name": "study_runtime_status",
+            "description": "Read the current MedAutoScience study-runtime status for a bound study.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profile_path": {"type": "string"},
+                    "study_id": {"type": "string"},
+                    "study_root": {"type": "string"},
+                    "entry_mode": {"type": "string"},
+                },
+                "required": ["profile_path"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "ensure_study_runtime",
+            "description": "Ensure a managed DeepScientist runtime exists and is running for a study.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profile_path": {"type": "string"},
+                    "study_id": {"type": "string"},
+                    "study_root": {"type": "string"},
+                    "entry_mode": {"type": "string"},
+                    "force": {"type": "boolean"},
+                },
+                "required": ["profile_path"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "init_workspace",
+            "description": "Initialize a new disease workspace scaffold through the MedAutoScience controller.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                    "workspace_name": {"type": "string"},
+                    "default_publication_profile": {"type": "string"},
+                    "default_citation_style": {"type": "string"},
+                    "dry_run": {"type": "boolean"},
+                    "force": {"type": "boolean"},
+                },
+                "required": ["workspace_root", "workspace_name"],
+                "additionalProperties": False,
+            },
+        },
     ]
 
 
@@ -212,6 +278,50 @@ def _call_deepscientist_upgrade_check(arguments: dict[str, Any]) -> dict[str, An
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile = load_profile(_require_string(arguments, "profile_path"))
+    result = study_runtime_router.study_runtime_status(
+        profile=profile,
+        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
+        study_root=_optional_path(arguments, "study_root"),
+        entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile = load_profile(_require_string(arguments, "profile_path"))
+    result = study_runtime_router.ensure_study_runtime(
+        profile=profile,
+        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
+        study_root=_optional_path(arguments, "study_root"),
+        entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+        force=_optional_bool(arguments, "force"),
+        source="mcp",
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = workspace_init.init_workspace(
+        workspace_root=Path(_require_string(arguments, "workspace_root")),
+        workspace_name=_require_string(arguments, "workspace_name"),
+        default_publication_profile=_optional_string(
+            arguments,
+            "default_publication_profile",
+            default="general_medical_journal",
+        ),
+        default_citation_style=_optional_string(
+            arguments,
+            "default_citation_style",
+            default="AMA",
+        ),
+        dry_run=_optional_bool(arguments, "dry_run"),
+        force=_optional_bool(arguments, "force"),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 TOOL_HANDLERS = {
     "doctor_report": _call_doctor_report,
     "show_profile": _call_show_profile,
@@ -220,6 +330,9 @@ TOOL_HANDLERS = {
     "data_assets_status": _call_data_assets_status,
     "startup_data_readiness": _call_startup_data_readiness,
     "deepscientist_upgrade_check": _call_deepscientist_upgrade_check,
+    "study_runtime_status": _call_study_runtime_status,
+    "ensure_study_runtime": _call_ensure_study_runtime,
+    "init_workspace": _call_init_workspace,
 }
 
 
