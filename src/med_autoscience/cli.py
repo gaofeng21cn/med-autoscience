@@ -54,9 +54,14 @@ def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
     payload_json = getattr(args, "payload_json", None)
     if bool(payload_file) == bool(payload_json):
         raise SystemExit("Specify exactly one of --payload-file or --payload-json")
+    payload: object
     if payload_file:
-        return json.loads(Path(payload_file).read_text(encoding="utf-8"))
-    return json.loads(payload_json)
+        payload = json.loads(Path(payload_file).read_text(encoding="utf-8"))
+    else:
+        payload = json.loads(payload_json)
+    if not isinstance(payload, dict):
+        raise SystemExit("JSON payload must be an object")
+    return payload
 
 
 def _parse_key_value_pairs(values: list[str]) -> dict[str, str]:

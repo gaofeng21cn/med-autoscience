@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import pytest
 
 PROFILE_LINES = [
     'name = "nfpitnet"',
@@ -147,3 +148,185 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
 
     archetype = contract["archetype"]
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
+
+
+def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Path) -> None:
+    profile_dir = tmp_path / "profiles"
+    profile_dir.mkdir()
+    profile_path = profile_dir / "relative.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "relative"',
+                'workspace_root = "../workspace"',
+                'runtime_root = "../workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "../workspace/studies"',
+                'portfolio_root = "../workspace/portfolio"',
+                'deepscientist_runtime_root = "../workspace/ops/deepscientist/runtime"',
+                'deepscientist_repo_root = "../../DeepScientist"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.load_profile(profile_path)
+
+    assert profile.workspace_root == (profile_dir / "../workspace").resolve()
+    assert profile.runtime_root == (profile_dir / "../workspace/ops/deepscientist/runtime/quests").resolve()
+    assert profile.deepscientist_runtime_root == (profile_dir / "../workspace/ops/deepscientist/runtime").resolve()
+    assert profile.deepscientist_repo_root == (profile_dir / "../../DeepScientist").resolve()
+
+
+def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-bool.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-bool"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'enable_medical_overlay = "false"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="enable_medical_overlay"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_invalid_list_shape(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-list.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-list"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'medical_overlay_skills = "write"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="medical_overlay_skills"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-submission-targets.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-targets"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'default_submission_targets = ["frontiers_family_harvard"]',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="default_submission_targets"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_treats_empty_deepscientist_repo_root_as_unconfigured(tmp_path: Path) -> None:
+    profile_path = tmp_path / "empty-ds-repo.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "empty-ds-repo"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'deepscientist_repo_root = ""',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.load_profile(profile_path)
+
+    assert profile.deepscientist_repo_root is None
+
+
+def test_load_profile_rejects_blank_medical_overlay_scope(tmp_path: Path) -> None:
+    profile_path = tmp_path / "blank-strings.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "blank-strings"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'medical_overlay_scope = "   "',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="medical_overlay_scope"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -> None:
+    profile_path = tmp_path / "blank-policy.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "blank-policy"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'research_route_bias_policy = "   "',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="research_route_bias_policy"):
+        profiles.load_profile(profile_path)
