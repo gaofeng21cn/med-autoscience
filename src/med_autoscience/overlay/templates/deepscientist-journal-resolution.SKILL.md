@@ -9,6 +9,8 @@ Use this skill to convert an unresolved journal target into a controlled, eviden
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
+{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
+
 ## Purpose
 
 This skill exists to stop venue-specific drafting from drifting into guesswork.

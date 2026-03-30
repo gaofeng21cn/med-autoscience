@@ -170,6 +170,9 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert payload["startup_contract"]["baseline_mode"] == "reuse_existing_only"
     assert payload["startup_contract"]["baseline_execution_policy"] == "reuse_existing_only"
     assert payload["startup_contract"]["submission_targets"][0]["publication_profile"] == "general_medical_journal"
+    assert "resolve-submission-targets" in payload["startup_contract"]["controller_first_policy_summary"]
+    assert "apply-data-asset-update" in payload["startup_contract"]["controller_first_policy_summary"]
+    assert "continue until durable outputs requiring human selection are produced" in payload["startup_contract"]["automation_ready_summary"]
     assert result["startup_boundary_gate"]["allow_compute_stage"] is True
     assert result["startup_boundary_gate"]["required_first_anchor"] == "scout"
     assert Path(result["startup_payload_path"]).is_file()
@@ -393,8 +396,12 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
     assert contract["required_first_anchor"] == "scout"
     assert contract["legacy_code_execution_allowed"] is False
     assert contract["startup_boundary_gate"]["allow_compute_stage"] is False
+    assert "resolve-reference-papers" in contract["controller_first_policy_summary"]
+    assert "Only when the platform does not already provide a stable controller" in contract["controller_first_policy_summary"]
+    assert "when a study boundary is explicit and startup-ready" in contract["automation_ready_summary"]
     assert "Do not enter baseline, experiment, or analysis-campaign" in contract["custom_brief"]
     assert "Do not execute legacy implementation code" in contract["custom_brief"]
+    assert "prefer mature MedAutoScience controllers before freeform external execution" in contract["custom_brief"]
 
 
 def test_ensure_study_runtime_applies_startup_boundary_to_non_continue_launch_profiles(

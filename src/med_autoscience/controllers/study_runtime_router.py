@@ -14,6 +14,8 @@ from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.policies.automation_ready import render_automation_ready_summary
+from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -184,6 +186,8 @@ def _build_startup_contract(
         "paper_urls": list(study_payload.get("paper_urls") or []),
         "entry_state_summary": f"Study root: {study_root}",
         "review_summary": "",
+        "controller_first_policy_summary": render_controller_first_summary(),
+        "automation_ready_summary": render_automation_ready_summary(),
         "custom_brief": startup_boundary_gate_controller.render_boundary_custom_brief(
             existing_brief=existing_brief,
             boundary_gate=boundary_gate,
@@ -268,6 +272,8 @@ def _status_payload(
         "workspace_contracts": contracts,
         "startup_data_readiness": readiness,
         "startup_boundary_gate": startup_boundary_gate,
+        "controller_first_policy_summary": render_controller_first_summary(),
+        "automation_ready_summary": render_automation_ready_summary(),
     }
 
     if str(execution.get("engine") or "").strip() != "deepscientist":

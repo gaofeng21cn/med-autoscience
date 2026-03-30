@@ -38,6 +38,8 @@ If one of these layers is still missing, say so explicitly.
 
 {{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
+{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
+
 ## Non-negotiable rules
 
 - Do not let `scout` become endless exploration.

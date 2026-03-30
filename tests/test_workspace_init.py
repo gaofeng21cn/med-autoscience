@@ -83,6 +83,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "不是研究入口" in deepscientist_readme_text
     assert "ops/medautoscience/bin/enter-study" in deepscientist_readme_text
 
+    workspace_rules = workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md"
+    assert workspace_rules.is_file()
+    workspace_rules_text = workspace_rules.read_text(encoding="utf-8")
+    assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
+    assert "边界明确且 startup-ready 后，默认切入 DeepScientist managed runtime 的自动持续推进" in workspace_rules_text
+
 
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")

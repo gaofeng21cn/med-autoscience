@@ -226,17 +226,33 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     module = importlib.import_module("med_autoscience.overlay.installer")
 
     scout_text = module.load_overlay_skill_text("scout")
+    decision_text = module.load_overlay_skill_text("decision")
     write_text = module.load_overlay_skill_text("write")
 
     assert "{{MED_AUTOSCIENCE_ROUTE_BIAS}}" not in scout_text
     assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" not in scout_text
     assert "## Medical publication route bias" in scout_text
+    assert "## Controller-first execution contract" in scout_text
+    assert "resolve-reference-papers" in scout_text
     assert "## Preferred study archetypes" in scout_text
     assert "Clinical subtype reconstruction" in scout_text
     assert "Gray-zone triage / reflex-testing support" in scout_text
     assert "LLM agent for a clinical task" in scout_text
     assert "Mechanistic sidecar extension" in scout_text
+    assert "## Automation-ready execution contract" in decision_text
+    assert "continue until durable outputs requiring human selection are produced" in decision_text
+    assert "## Controller-first execution contract" in write_text
+    assert "resolve-submission-targets" in write_text
     assert "## Preferred study archetypes" not in write_text
+
+
+def test_load_overlay_skill_text_for_journal_resolution_includes_controller_first_contract() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = module.load_overlay_skill_text("journal-resolution")
+
+    assert "## Controller-first execution contract" in text
+    assert "resolve-submission-targets" in text
 
 
 @pytest.mark.parametrize(

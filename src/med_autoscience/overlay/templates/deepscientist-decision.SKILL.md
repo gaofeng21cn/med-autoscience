@@ -34,6 +34,8 @@ It is a cross-cutting control skill that should be used whenever the quest must 
 - whether to stop
 - whether to ask the user for a structured decision
 
+{{MED_AUTOSCIENCE_AUTOMATION_READY}}
+
 ## Use when
 
 - the next stage is not obvious

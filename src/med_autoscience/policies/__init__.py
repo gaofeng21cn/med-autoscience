@@ -1,5 +1,7 @@
 """Medical publication policies for MedAutoScience."""
 
+from .automation_ready import render_automation_ready_block, render_automation_ready_summary
+from .controller_first import render_controller_first_block, render_controller_first_summary
 from .medical_publication_surface import (
     AMA_CSL_BASENAME,
     BLOCKED_RECOMMENDED_ACTION as SURFACE_BLOCKED_RECOMMENDED_ACTION,
@@ -43,7 +45,11 @@ __all__ = [
     "SURFACE_CLEAR_RECOMMENDED_ACTION",
     "get_archetype",
     "get_policy",
+    "render_automation_ready_block",
+    "render_automation_ready_summary",
     "render_archetype_block",
+    "render_controller_first_block",
+    "render_controller_first_summary",
     "render_policy_block",
     "resolve_archetypes",
 ]

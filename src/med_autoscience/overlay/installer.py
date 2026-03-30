@@ -14,6 +14,8 @@ from med_autoscience.policies.research_route_bias import (
     get_policy,
     render_policy_block,
 )
+from med_autoscience.policies.automation_ready import render_automation_ready_block
+from med_autoscience.policies.controller_first import render_controller_first_block
 from med_autoscience.policies.study_archetypes import (
     DEFAULT_STUDY_ARCHETYPE_IDS,
     get_archetype,
@@ -30,6 +32,8 @@ ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
 SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
 REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
+CONTROLLER_FIRST_TOKEN = "{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}"
+AUTOMATION_READY_TOKEN = "{{MED_AUTOSCIENCE_AUTOMATION_READY}}"
 FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
@@ -118,6 +122,10 @@ def _render_overlay_text_from_template(
                 default_citation_style=default_citation_style,
             ).rstrip(),
         )
+    if CONTROLLER_FIRST_TOKEN in rendered:
+        rendered = rendered.replace(CONTROLLER_FIRST_TOKEN, render_controller_first_block().rstrip())
+    if AUTOMATION_READY_TOKEN in rendered:
+        rendered = rendered.replace(AUTOMATION_READY_TOKEN, render_automation_ready_block().rstrip())
     if skill_id not in FRONTLOAD_STAGE_IDS:
         return rendered
 

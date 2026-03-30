@@ -5,6 +5,9 @@ from pathlib import Path
 import json
 import re
 
+from med_autoscience.policies.automation_ready import render_automation_ready_summary
+from med_autoscience.policies.controller_first import render_controller_first_summary
+
 
 @dataclass(frozen=True)
 class RenderedFile:
@@ -53,11 +56,29 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "4. 编辑 `ops/deepscientist/config.env`，设置本机 `ds` launcher 路径。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
+        "7. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `ops/deepscientist/` 只保留 runtime 状态和运维脚本。\n"
         "- 不要直接通过 DeepScientist UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
         "- 如果需要启动、查看或停止 runtime，只把 `ops/deepscientist/bin/*` 当作运维面，不把它当成研究入口。\n"
+    )
+
+
+def _render_workspace_rules() -> str:
+    controller_first_summary = render_controller_first_summary()
+    automation_ready_summary = render_automation_ready_summary()
+    return (
+        "# Workspace Autoscience Rules\n\n"
+        "这个文件由 `medautosci init-workspace` 自动生成，用于声明新 workspace 默认继承的运行约束。\n\n"
+        "## Controller-First Default\n\n"
+        "- 优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill。\n"
+        "- 不要在已有平台能力覆盖的任务上自由发挥或发明平行流程。\n"
+        f"- {controller_first_summary}\n\n"
+        "## Automation-Ready Default\n\n"
+        "- 边界明确且 startup-ready 后，默认切入 DeepScientist managed runtime 的自动持续推进。\n"
+        "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
+        f"- {automation_ready_summary}\n"
     )
 
 
@@ -380,6 +401,10 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "README.md",
             content=_render_workspace_readme(workspace_name=workspace_name, profile_relpath=profile_relpath),
+        ),
+        RenderedFile(
+            path=workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md",
+            content=_render_workspace_rules(),
         ),
         RenderedFile(
             path=workspace_root / profile_relpath,
