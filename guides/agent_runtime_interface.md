@@ -18,10 +18,12 @@
 根据任务类型，从这里继续进入：
 
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
+- workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
 - 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
 - 研究路线偏置：[`policies/research_route_bias_policy.md`](../policies/research_route_bias_policy.md)
+- sidecar provider 与 figure routes 指南：[`sidecar_figure_routes.md`](./sidecar_figure_routes.md)
 
 ## 运行层分工
 

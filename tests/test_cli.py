@@ -3,6 +3,12 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from med_autoscience.figure_routes import (
+    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_SCRIPT_FIX,
+    build_figure_route,
+)
+
 
 def write_profile(path: Path) -> None:
     path.write_text(
@@ -741,9 +747,9 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
             "--required-route",
             "literature_scout",
             "--required-route",
-            "figure_script_fix:F3C",
+            build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
             "--required-route",
-            "figure_illustration_sidecar:F3C",
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
             "--min-figure-mentions",
             "3",
             "--min-reference-count",
@@ -761,8 +767,8 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
     assert called["figure_tickets"] == {"F3C": "text overflow"}
     assert called["required_routes"] == [
         "literature_scout",
-        "figure_script_fix:F3C",
-        "figure_illustration_sidecar:F3C",
+        build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
+        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
     ]
     assert called["min_figure_mentions"] == 3
     assert called["min_reference_count"] == 12
