@@ -1,4 +1,5 @@
 __all__ = [
+    "autofigure_edit_sidecar",
     "aris_sidecar",
     "data_asset_gate",
     "data_assets",
@@ -10,6 +11,7 @@ __all__ = [
     "medical_publication_surface",
     "reference_papers",
     "runtime_watch",
+    "sidecar_provider",
     "study_delivery_sync",
     "submission_minimal",
     "submission_targets",

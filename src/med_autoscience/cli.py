@@ -11,6 +11,7 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience.controllers import (
+    autofigure_edit_sidecar as autofigure_edit_sidecar_controller,
     aris_sidecar as aris_sidecar_controller,
     data_asset_gate,
     data_assets,
@@ -21,6 +22,7 @@ from med_autoscience.controllers import (
     publication_gate,
     reference_papers as reference_papers_controller,
     runtime_watch,
+    sidecar_provider as sidecar_provider_controller,
     startup_data_readiness as startup_data_readiness_controller,
     study_delivery_sync,
     submission_minimal,
@@ -144,6 +146,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     import_aris_sidecar_parser = subparsers.add_parser("import-aris-sidecar")
     import_aris_sidecar_parser.add_argument("--quest-root", required=True)
+
+    recommend_sidecar_parser = subparsers.add_parser("recommend-sidecar")
+    recommend_sidecar_parser.add_argument("--provider", required=True)
+    recommend_sidecar_parser.add_argument("--quest-root", required=True)
+    recommend_sidecar_parser.add_argument("--payload-file", type=str)
+    recommend_sidecar_parser.add_argument("--payload-json", type=str)
+    recommend_sidecar_parser.add_argument("--instance-id", type=str)
+
+    provision_sidecar_parser = subparsers.add_parser("provision-sidecar")
+    provision_sidecar_parser.add_argument("--provider", required=True)
+    provision_sidecar_parser.add_argument("--quest-root", required=True)
+    provision_sidecar_parser.add_argument("--payload-file", type=str)
+    provision_sidecar_parser.add_argument("--payload-json", type=str)
+    provision_sidecar_parser.add_argument("--instance-id", type=str)
+
+    import_sidecar_parser = subparsers.add_parser("import-sidecar")
+    import_sidecar_parser.add_argument("--provider", required=True)
+    import_sidecar_parser.add_argument("--quest-root", required=True)
+    import_sidecar_parser.add_argument("--instance-id", type=str)
 
     export_submission_targets_parser = subparsers.add_parser("export-submission-targets")
     export_submission_targets_parser.add_argument("--paper-root", type=str)
@@ -329,6 +350,35 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "import-aris-sidecar":
         result = aris_sidecar_controller.import_aris_sidecar_result(
             quest_root=Path(args.quest_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "recommend-sidecar":
+        result = sidecar_provider_controller.recommend_sidecar(
+            quest_root=Path(args.quest_root),
+            provider_id=args.provider,
+            payload=_load_json_payload_from_args(args),
+            instance_id=args.instance_id,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "provision-sidecar":
+        result = sidecar_provider_controller.provision_sidecar(
+            quest_root=Path(args.quest_root),
+            provider_id=args.provider,
+            payload=_load_json_payload_from_args(args),
+            instance_id=args.instance_id,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "import-sidecar":
+        result = sidecar_provider_controller.import_sidecar_result(
+            quest_root=Path(args.quest_root),
+            provider_id=args.provider,
+            instance_id=args.instance_id,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

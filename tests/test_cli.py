@@ -365,6 +365,82 @@ def test_import_aris_sidecar_command_dispatches_controller(monkeypatch, tmp_path
     assert '"imported"' in captured.out
 
 
+def test_recommend_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+    payload_file = tmp_path / "recommend.json"
+    payload_file.write_text(
+        '{"figure_id": "F3C", "figure_ticket_open": true, "storyboard_ready": true, '
+        '"source_artifacts_ready": true, "paper_role_allowed": true, "non_evidence_figure": true, '
+        '"editable_svg_required": true}\n',
+        encoding="utf-8",
+    )
+
+    def fake_recommend(*, quest_root: Path, provider_id: str, payload: dict, instance_id: str | None = None) -> dict:
+        called["quest_root"] = quest_root
+        called["provider_id"] = provider_id
+        called["payload"] = payload
+        called["instance_id"] = instance_id
+        return {"status": "recommended", "provider": provider_id, "instance_id": "F3C"}
+
+    monkeypatch.setattr(cli.sidecar_provider_controller, "recommend_sidecar", fake_recommend)
+
+    exit_code = cli.main(
+        [
+            "recommend-sidecar",
+            "--provider",
+            "autofigure_edit",
+            "--quest-root",
+            str(tmp_path / "runtime" / "quests" / "q001"),
+            "--payload-file",
+            str(payload_file),
+            "--instance-id",
+            "F3C",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["provider_id"] == "autofigure_edit"
+    assert called["instance_id"] == "F3C"
+    assert called["payload"]["figure_ticket_open"] is True
+    assert '"recommended"' in captured.out
+
+
+def test_import_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_import(*, quest_root: Path, provider_id: str, instance_id: str | None = None) -> dict:
+        called["quest_root"] = quest_root
+        called["provider_id"] = provider_id
+        called["instance_id"] = instance_id
+        return {
+            "status": "imported",
+            "artifact_root": str(quest_root / "artifacts" / "figures" / "autofigure_edit" / "F3C"),
+        }
+
+    monkeypatch.setattr(cli.sidecar_provider_controller, "import_sidecar_result", fake_import)
+
+    exit_code = cli.main(
+        [
+            "import-sidecar",
+            "--provider",
+            "autofigure_edit",
+            "--quest-root",
+            str(tmp_path / "runtime" / "quests" / "q001"),
+            "--instance-id",
+            "F3C",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["provider_id"] == "autofigure_edit"
+    assert called["instance_id"] == "F3C"
+    assert '"imported"' in captured.out
+
+
 def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -664,6 +740,10 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
             "F3C=text overflow",
             "--required-route",
             "literature_scout",
+            "--required-route",
+            "figure_script_fix:F3C",
+            "--required-route",
+            "figure_illustration_sidecar:F3C",
             "--min-figure-mentions",
             "3",
             "--min-reference-count",
@@ -679,7 +759,11 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
     assert called["apply"] is True
     assert called["accepted_figures"] == {"F4B": "teacher accepted"}
     assert called["figure_tickets"] == {"F3C": "text overflow"}
-    assert called["required_routes"] == ["literature_scout"]
+    assert called["required_routes"] == [
+        "literature_scout",
+        "figure_script_fix:F3C",
+        "figure_illustration_sidecar:F3C",
+    ]
     assert called["min_figure_mentions"] == 3
     assert called["min_reference_count"] == 12
     assert called["recent_window"] == 120
