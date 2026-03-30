@@ -204,6 +204,24 @@ def test_install_medical_overlay_seeds_workspace_targets_from_home_skills(tmp_pa
         )
 
 
+def test_install_medical_overlay_materializes_workspace_full_template_skill_without_home_source(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    home = tmp_path / "home"
+    quest_root = tmp_path / "workspace"
+
+    result = module.install_medical_overlay(
+        quest_root=quest_root,
+        home=home,
+        skill_ids=("write",),
+    )
+
+    assert [item["skill_id"] for item in result["targets"]] == ["write", "journal-resolution"]
+    for skill_id in ("write", "journal-resolution"):
+        skill_path = quest_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
+        assert skill_path.exists(), skill_path
+        assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
+
+
 def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
