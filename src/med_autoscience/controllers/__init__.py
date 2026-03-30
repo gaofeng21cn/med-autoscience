@@ -5,6 +5,7 @@ __all__ = [
     "data_assets",
     "data_asset_updates",
     "deepscientist_upgrade_check",
+    "external_research",
     "figure_loop_guard",
     "journal_shortlist",
     "startup_data_readiness",

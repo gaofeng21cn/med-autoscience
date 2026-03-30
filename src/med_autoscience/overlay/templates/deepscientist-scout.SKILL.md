@@ -237,6 +237,13 @@ Then classify the current state:
 - stale and needs refresh
 - still missing
 
+If the frame is still missing broader disease-topic or venue-neighborhood context after local memory reuse, you may use the managed optional enrichment surface:
+
+- use `prepare-external-research` to scaffold a workspace-level Deep Research prompt under `portfolio/research_memory/prompts/`
+- treat external AI research as optional enrichment, not as a required gate before the study can continue
+- store raw external AI returns under `portfolio/research_memory/external_reports/YYYY-MM-DD-topic-opportunity-scout-<provider>.md`
+- write stable cross-study conclusions back into `topic_landscape.md`, `dataset_question_map.md`, and `venue_intelligence.md`
+
 If the frame is already explicit after memory reuse, stop and record the next anchor.
 Do not open a fresh broad search just because scouting feels unfinished.
 

@@ -17,6 +17,7 @@ from med_autoscience.controllers import (
     data_assets,
     data_asset_updates as data_asset_updates_controller,
     deepscientist_upgrade_check,
+    external_research as external_research_controller,
     figure_loop_guard,
     journal_shortlist as journal_shortlist_controller,
     medical_publication_surface,
@@ -115,6 +116,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     portfolio_memory_status_parser = subparsers.add_parser("portfolio-memory-status")
     portfolio_memory_status_parser.add_argument("--workspace-root", required=True)
+
+    prepare_external_research_parser = subparsers.add_parser("prepare-external-research")
+    prepare_external_research_parser.add_argument("--workspace-root", required=True)
+    prepare_external_research_parser.add_argument("--as-of-date", type=str)
+
+    external_research_status_parser = subparsers.add_parser("external-research-status")
+    external_research_status_parser.add_argument("--workspace-root", required=True)
 
     assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
     assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
@@ -360,6 +368,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "portfolio-memory-status":
         result = portfolio_memory_controller.portfolio_memory_status(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "prepare-external-research":
+        result = external_research_controller.prepare_external_research(
+            workspace_root=Path(args.workspace_root),
+            as_of_date=args.as_of_date,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "external-research-status":
+        result = external_research_controller.external_research_status(workspace_root=Path(args.workspace_root))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

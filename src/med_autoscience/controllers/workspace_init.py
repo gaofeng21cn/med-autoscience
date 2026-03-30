@@ -33,6 +33,8 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "studies",
         workspace_root / "portfolio" / "data_assets",
         workspace_root / "portfolio" / "research_memory",
+        workspace_root / "portfolio" / "research_memory" / "prompts",
+        workspace_root / "portfolio" / "research_memory" / "external_reports",
         workspace_root / "refs",
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "profiles",
@@ -60,6 +62,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
         "8. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "9. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `ops/deepscientist/` 只保留 runtime 状态和运维脚本。\n"
@@ -500,6 +503,16 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status",
             content=_render_forward_script("portfolio-memory-status"),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research",
+            content=_render_forward_script("prepare-external-research"),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status",
+            content=_render_forward_script("external-research-status"),
             executable=True,
         ),
         RenderedFile(

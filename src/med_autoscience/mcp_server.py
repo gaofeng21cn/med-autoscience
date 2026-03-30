@@ -9,6 +9,7 @@ from med_autoscience import __version__
 from med_autoscience.controllers import (
     data_assets,
     deepscientist_upgrade_check,
+    external_research,
     portfolio_memory,
     runtime_watch,
     startup_data_readiness as startup_data_readiness_controller,
@@ -160,6 +161,31 @@ def list_tools() -> list[dict[str, Any]]:
             },
         },
         {
+            "name": "external_research_status",
+            "description": "Read the current optional external-research scaffold status for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "prepare_external_research",
+            "description": "Prepare the optional external-research prompt scaffold for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                    "as_of_date": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
             "name": "startup_data_readiness",
             "description": "Read the startup data readiness summary for a workspace root.",
             "inputSchema": {
@@ -300,6 +326,22 @@ def _call_init_portfolio_memory(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_external_research_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = external_research.external_research_status(workspace_root=Path(_require_string(arguments, "workspace_root")))
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_prepare_external_research(arguments: dict[str, Any]) -> dict[str, Any]:
+    as_of_date = arguments.get("as_of_date")
+    if as_of_date is not None and (not isinstance(as_of_date, str) or not as_of_date.strip()):
+        raise ValueError("as_of_date must be a non-empty string when provided")
+    result = external_research.prepare_external_research(
+        workspace_root=Path(_require_string(arguments, "workspace_root")),
+        as_of_date=as_of_date if isinstance(as_of_date, str) else None,
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
     result = startup_data_readiness_controller.startup_data_readiness(
         workspace_root=Path(_require_string(arguments, "workspace_root"))
@@ -365,6 +407,8 @@ TOOL_HANDLERS = {
     "data_assets_status": _call_data_assets_status,
     "portfolio_memory_status": _call_portfolio_memory_status,
     "init_portfolio_memory": _call_init_portfolio_memory,
+    "external_research_status": _call_external_research_status,
+    "prepare_external_research": _call_prepare_external_research,
     "startup_data_readiness": _call_startup_data_readiness,
     "deepscientist_upgrade_check": _call_deepscientist_upgrade_check,
     "study_runtime_status": _call_study_runtime_status,

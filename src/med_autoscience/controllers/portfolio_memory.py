@@ -83,10 +83,14 @@ def _render_readme() -> str:
         "- `dataset_question_map.md`\n"
         "- `venue_intelligence.md`\n"
         "- `registry.yaml`\n\n"
+        "可选增强目录：\n\n"
+        "- `prompts/`\n"
+        "- `external_reports/`\n\n"
         "更新原则：\n\n"
         "- 只有跨 study 仍然可复用的内容，才写回这里\n"
         "- 单篇论文专属的 framing、shortlist、baseline 结果，仍留在对应 `study/`\n"
         "- 外部调研如果形成稳定结论，应优先回写到这里，而不是只留在 transient chat\n"
+        "- `prompts/` 和 `external_reports/` 只是 optional enrichment surface，不是 startup gate\n"
     )
 
 
