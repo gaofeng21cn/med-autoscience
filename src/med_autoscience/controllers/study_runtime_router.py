@@ -12,6 +12,7 @@ from med_autoscience.adapters.deepscientist import daemon_api
 from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
+    runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
@@ -137,6 +138,11 @@ def _build_startup_contract(
         study_payload=study_payload,
         execution=execution,
     )
+    runtime_reentry_gate = runtime_reentry_gate_controller.evaluate_runtime_reentry(
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
     journal_shortlist = journal_shortlist_controller.resolve_journal_shortlist(study_root=study_root)
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
@@ -202,6 +208,7 @@ def _build_startup_contract(
         "required_first_anchor": boundary_gate["required_first_anchor"],
         "legacy_code_execution_allowed": boundary_gate["legacy_code_execution_allowed"],
         "startup_boundary_gate": boundary_gate,
+        "runtime_reentry_gate": runtime_reentry_gate,
         "journal_shortlist": journal_shortlist,
         "submission_targets": _serialize_submission_targets(profile, study_root)
         if _has_explicit_submission_targets(study_payload)
@@ -233,10 +240,19 @@ def _build_create_payload(
         "source": "med_autoscience.study_runtime_router",
         "auto_start": bool(
             (
-                startup_contract.get("startup_boundary_gate")
-                if isinstance(startup_contract.get("startup_boundary_gate"), dict)
-                else {}
-            ).get("allow_compute_stage")
+                (
+                    startup_contract.get("startup_boundary_gate")
+                    if isinstance(startup_contract.get("startup_boundary_gate"), dict)
+                    else {}
+                ).get("allow_compute_stage")
+            )
+            and (
+                (
+                    startup_contract.get("runtime_reentry_gate")
+                    if isinstance(startup_contract.get("runtime_reentry_gate"), dict)
+                    else {}
+                ).get("allow_runtime_entry", True)
+            )
         ),
         "startup_contract": startup_contract,
     }
@@ -266,6 +282,11 @@ def _status_payload(
         study_payload=study_payload,
         execution=execution,
     )
+    runtime_reentry_gate = runtime_reentry_gate_controller.evaluate_runtime_reentry(
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
 
     result: dict[str, Any] = {
         "schema_version": 1,
@@ -282,6 +303,7 @@ def _status_payload(
         "workspace_contracts": contracts,
         "startup_data_readiness": readiness,
         "startup_boundary_gate": startup_boundary_gate,
+        "runtime_reentry_gate": runtime_reentry_gate,
         "controller_first_policy_summary": render_controller_first_summary(),
         "automation_ready_summary": render_automation_ready_summary(),
     }
@@ -316,8 +338,12 @@ def _status_payload(
 
     if not quest_exists:
         if startup_boundary_gate["allow_compute_stage"]:
-            result["decision"] = "create_and_start"
-            result["reason"] = "quest_missing"
+            if runtime_reentry_gate["allow_runtime_entry"]:
+                result["decision"] = "create_and_start"
+                result["reason"] = "quest_missing"
+            else:
+                result["decision"] = "blocked"
+                result["reason"] = "runtime_reentry_not_ready_for_auto_start"
         else:
             result["decision"] = "create_only"
             result["reason"] = "startup_boundary_not_ready_for_auto_start"
@@ -327,6 +353,9 @@ def _status_payload(
         if not startup_boundary_gate["allow_compute_stage"]:
             result["decision"] = "pause"
             result["reason"] = "startup_boundary_not_ready_for_running_quest"
+        elif not runtime_reentry_gate["allow_runtime_entry"]:
+            result["decision"] = "pause"
+            result["reason"] = "runtime_reentry_not_ready_for_running_quest"
         else:
             result["decision"] = "noop"
             result["reason"] = "quest_already_running"
@@ -336,6 +365,10 @@ def _status_payload(
         if not startup_boundary_gate["allow_compute_stage"]:
             result["decision"] = "blocked"
             result["reason"] = "startup_boundary_not_ready_for_resume"
+            return result
+        if not runtime_reentry_gate["allow_runtime_entry"]:
+            result["decision"] = "blocked"
+            result["reason"] = "runtime_reentry_not_ready_for_resume"
             return result
         if execution.get("auto_resume") is True:
             result["decision"] = "resume"

@@ -13,6 +13,7 @@ __all__ = [
     "medical_publication_surface",
     "portfolio_memory",
     "reference_papers",
+    "runtime_reentry_gate",
     "runtime_watch",
     "sidecar_provider",
     "study_runtime_router",

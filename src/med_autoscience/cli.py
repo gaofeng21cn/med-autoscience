@@ -103,6 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
     watch_parser.add_argument("--runtime-root", type=str)
+    watch_parser.add_argument("--profile", type=str)
+    watch_parser.add_argument("--ensure-study-runtimes", action="store_true")
     watch_parser.add_argument("--apply", action="store_true")
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
@@ -338,15 +340,24 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "watch":
         if bool(args.quest_root) == bool(args.runtime_root):
             parser.error("Specify exactly one of --quest-root or --runtime-root")
+        if args.quest_root and args.profile:
+            parser.error("--profile is only supported with --runtime-root")
+        if args.quest_root and args.ensure_study_runtimes:
+            parser.error("--ensure-study-runtimes is only supported with --runtime-root")
+        if args.ensure_study_runtimes and not args.profile:
+            parser.error("--ensure-study-runtimes requires --profile")
         if args.quest_root:
             result = runtime_watch.run_watch_for_quest(
                 quest_root=Path(args.quest_root),
                 apply=args.apply,
             )
         else:
+            profile = load_profile(args.profile) if args.profile else None
             result = runtime_watch.run_watch_for_runtime(
                 runtime_root=Path(args.runtime_root),
                 apply=args.apply,
+                profile=profile,
+                ensure_study_runtimes=bool(args.ensure_study_runtimes),
             )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
