@@ -140,6 +140,9 @@
 
 如果你需要接入 workspace、查看运行接口、阅读 controller 行为或理解平台规则，请从这里进入：
 
+如果你主要通过 Codex 驱动 `MedAutoScience`，现在已经可以直接使用仓库内置的 Codex plugin。
+它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
+
 - Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
 - Codex plugin 接入：[guides/codex_plugin.md](guides/codex_plugin.md)
 - Codex plugin 发布说明：[guides/codex_plugin_release.md](guides/codex_plugin_release.md)

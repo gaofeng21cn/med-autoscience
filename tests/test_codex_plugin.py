@@ -59,6 +59,7 @@ def test_readme_links_codex_plugin_guide() -> None:
 
     assert "Codex plugin 接入" in readme
     assert "guides/codex_plugin.md" in readme
+    assert "如果你主要通过 Codex 驱动 `MedAutoScience`" in readme
 
 
 def test_codex_plugin_release_guide_is_linked_from_readme_and_install_guide() -> None:
