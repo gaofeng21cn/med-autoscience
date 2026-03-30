@@ -114,8 +114,26 @@ def _overlay_summary(profile: WorkspaceProfile) -> dict[str, Any]:
     }
 
 
-def _workspace_summary(profile: WorkspaceProfile) -> dict[str, bool]:
+def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
     doctor_report = build_doctor_report(profile)
+    runtime_contract: dict[str, object]
+    if isinstance(doctor_report.runtime_contract, dict) and doctor_report.runtime_contract:
+        runtime_contract = dict(doctor_report.runtime_contract)
+    else:
+        runtime_contract = {"ready": bool(doctor_report.runtime_exists and doctor_report.deepscientist_runtime_exists), "checks": {}}
+
+    launcher_contract: dict[str, object]
+    if isinstance(doctor_report.launcher_contract, dict) and doctor_report.launcher_contract:
+        launcher_contract = dict(doctor_report.launcher_contract)
+    else:
+        launcher_contract = {"ready": True, "checks": {}}
+
+    behavior_gate: dict[str, object]
+    if isinstance(doctor_report.behavior_gate, dict) and doctor_report.behavior_gate:
+        behavior_gate = dict(doctor_report.behavior_gate)
+    else:
+        behavior_gate = {"ready": True, "phase_25_ready": True, "checks": {}, "critical_overrides": []}
+
     return {
         "workspace_exists": doctor_report.workspace_exists,
         "runtime_exists": doctor_report.runtime_exists,
@@ -124,20 +142,42 @@ def _workspace_summary(profile: WorkspaceProfile) -> dict[str, bool]:
         "deepscientist_runtime_exists": doctor_report.deepscientist_runtime_exists,
         "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
         "medical_overlay_ready": doctor_report.medical_overlay_ready,
+        "runtime_contract": runtime_contract,
+        "launcher_contract": launcher_contract,
+        "behavior_gate": behavior_gate,
     }
 
 
 def _determine_decision(
     *,
     repo_check: dict[str, Any],
-    workspace_check: dict[str, bool],
+    workspace_check: dict[str, Any],
     overlay_check: dict[str, Any],
 ) -> tuple[str, list[str]]:
     actions: list[str] = []
 
-    if not workspace_check["workspace_exists"] or not workspace_check["runtime_exists"] or not workspace_check["deepscientist_runtime_exists"]:
+    behavior_gate = workspace_check.get("behavior_gate")
+    phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
+    if not phase_25_ready:
+        actions.append("complete_phase_25_behavior_equivalence_gate")
+        return "blocked_behavior_equivalence_gate", actions
+
+    runtime_contract = workspace_check.get("runtime_contract")
+    runtime_contract_ready = bool(runtime_contract.get("ready")) if isinstance(runtime_contract, dict) else True
+    if (
+        not workspace_check["workspace_exists"]
+        or not workspace_check["runtime_exists"]
+        or not workspace_check["deepscientist_runtime_exists"]
+        or not runtime_contract_ready
+    ):
         actions.append("repair_workspace_and_runtime_contract_first")
         return "blocked_workspace_not_ready", actions
+
+    launcher_contract = workspace_check.get("launcher_contract")
+    launcher_contract_ready = bool(launcher_contract.get("ready")) if isinstance(launcher_contract, dict) else True
+    if not launcher_contract_ready:
+        actions.append("repair_launcher_contract_first")
+        return "blocked_launcher_contract_not_ready", actions
 
     if not repo_check["configured"]:
         actions.append("configure_deepscientist_repo_root_in_profile")
@@ -178,9 +218,28 @@ def _determine_decision(
 
 
 def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> dict[str, Any]:
-    repo_check = inspect_deepscientist_repo(repo_root=profile.deepscientist_repo_root, refresh=refresh)
     workspace_check = _workspace_summary(profile)
+    behavior_gate = workspace_check.get("behavior_gate")
+    phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
+    if not phase_25_ready:
+        return {
+            "profile": profile.name,
+            "decision": "blocked_behavior_equivalence_gate",
+            "recommended_actions": ["complete_phase_25_behavior_equivalence_gate"],
+            "repo_check": {
+                "inspection_skipped": True,
+                "skip_reason": "blocked_by_behavior_equivalence_gate",
+                "refresh_attempted": refresh,
+            },
+            "workspace_check": workspace_check,
+            "overlay_check": {
+                "inspection_skipped": True,
+                "skip_reason": "blocked_by_behavior_equivalence_gate",
+            },
+        }
+
     overlay_check = _overlay_summary(profile)
+    repo_check = inspect_deepscientist_repo(repo_root=profile.deepscientist_repo_root, refresh=refresh)
     decision, recommended_actions = _determine_decision(
         repo_check=repo_check,
         workspace_check=workspace_check,

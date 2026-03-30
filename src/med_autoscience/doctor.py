@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import json
 from pathlib import Path
 import platform
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
+from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
 
 @dataclass(frozen=True)
@@ -19,6 +21,9 @@ class DoctorReport:
     deepscientist_runtime_exists: bool
     medical_overlay_enabled: bool
     medical_overlay_ready: bool
+    runtime_contract: dict[str, object] = field(default_factory=dict)
+    launcher_contract: dict[str, object] = field(default_factory=dict)
+    behavior_gate: dict[str, object] = field(default_factory=dict)
 
 
 def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]:
@@ -36,6 +41,7 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
 
 
 def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
+    workspace_contracts = inspect_workspace_contracts(profile)
     overlay_status = (
         describe_medical_overlay(**overlay_request_from_profile(profile))
         if profile.enable_medical_overlay
@@ -51,6 +57,9 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
         deepscientist_runtime_exists=profile.deepscientist_runtime_root.exists(),
         medical_overlay_enabled=profile.enable_medical_overlay,
         medical_overlay_ready=bool(overlay_status.get("all_targets_ready")),
+        runtime_contract=dict(workspace_contracts["runtime_contract"]),
+        launcher_contract=dict(workspace_contracts["launcher_contract"]),
+        behavior_gate=dict(workspace_contracts["behavior_gate"]),
     )
 
 
@@ -86,6 +95,9 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"portfolio_exists: {str(report.portfolio_exists).lower()}",
         f"deepscientist_runtime_exists: {str(report.deepscientist_runtime_exists).lower()}",
         f"medical_overlay_ready: {str(report.medical_overlay_ready).lower()}",
+        f"runtime_contract: {json.dumps(report.runtime_contract, ensure_ascii=False, sort_keys=True)}",
+        f"launcher_contract: {json.dumps(report.launcher_contract, ensure_ascii=False, sort_keys=True)}",
+        f"behavior_gate: {json.dumps(report.behavior_gate, ensure_ascii=False, sort_keys=True)}",
     ]
     return "\n".join(lines) + "\n"
 
