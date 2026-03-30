@@ -219,6 +219,12 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 4. 必要时执行 `reapply-medical-overlay`
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
+## Phase 1 gate 与真实执行
+
+当前所谓 Phase 1 只是把 workspace 的 state contract、launcher/runtime contract 与 behavior equivalence gate 写成审计校验面，并没有把执行真相真正迁出；`deepscientist_repo_root` 目前仍主要作为 `deepscientist-upgrade-check` 这类诊断流程的审计路径，实际调用仍然可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。`ops/deepscientist/behavior_equivalence_gate.yaml` 是这扇 gate 的稳定 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+
+只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经切换到外部 repo 执行”。只有当 `behavior_equivalence_gate.yaml` 官方把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `deepscientist_repo_root` 视作 Execution Truth。
+
 ## 审计与人类复核
 
 `human-auditable` 不等于“人类手工逐条执行命令”，而是：
