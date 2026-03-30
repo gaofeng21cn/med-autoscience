@@ -31,7 +31,7 @@ from med_autoscience.controllers import (
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
-from med_autoscience.profiles import load_profile
+from med_autoscience.profiles import load_profile, profile_to_dict
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -82,6 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     show_profile_parser = subparsers.add_parser("show-profile")
     show_profile_parser.add_argument("--profile", required=True)
+    show_profile_parser.add_argument("--format", choices=("text", "json"), default="text")
 
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
@@ -232,7 +233,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "show-profile":
         profile = load_profile(args.profile)
-        print(render_profile(profile), end="")
+        if args.format == "json":
+            print(json.dumps(profile_to_dict(profile), ensure_ascii=False, indent=2))
+        else:
+            print(render_profile(profile), end="")
         return 0
 
     if args.command == "deepscientist-upgrade-check":
