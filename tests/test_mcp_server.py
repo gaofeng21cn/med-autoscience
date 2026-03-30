@@ -43,6 +43,8 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "data_assets_status",
         "portfolio_memory_status",
         "init_portfolio_memory",
+        "external_research_status",
+        "prepare_external_research",
         "startup_data_readiness",
         "deepscientist_upgrade_check",
         "study_runtime_status",
@@ -115,6 +117,31 @@ def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
     assert result["structuredContent"]["asset_count"] == 3
+
+
+def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_prepare(*, workspace_root: Path, as_of_date: str | None) -> dict[str, object]:
+        captured["workspace_root"] = workspace_root
+        captured["as_of_date"] = as_of_date
+        return {"status": "ready", "prompt_path": "/tmp/medautosci-demo/portfolio/research_memory/prompts/x.md"}
+
+    monkeypatch.setattr(module.external_research, "prepare_external_research", fake_prepare)
+
+    result = module.call_tool(
+        "prepare_external_research",
+        {
+            "workspace_root": "/tmp/medautosci-demo",
+            "as_of_date": "2026-03-30",
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
+    assert captured["as_of_date"] == "2026-03-30"
+    assert result["structuredContent"]["status"] == "ready"
 
 
 def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:

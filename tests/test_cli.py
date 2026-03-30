@@ -252,6 +252,52 @@ def test_portfolio_memory_status_command_dispatches_controller(monkeypatch, tmp_
     assert '"asset_count": 3' in captured.out
 
 
+def test_prepare_external_research_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_prepare(*, workspace_root: Path, as_of_date: str | None) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        called["as_of_date"] = as_of_date
+        return {"status": "ready", "prompt_path": str(workspace_root / "portfolio" / "research_memory" / "prompts" / "x.md")}
+
+    monkeypatch.setattr(cli.external_research_controller, "prepare_external_research", fake_prepare)
+
+    exit_code = cli.main(
+        [
+            "prepare-external-research",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+            "--as-of-date",
+            "2026-03-30",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["as_of_date"] == "2026-03-30"
+    assert '"status": "ready"' in captured.out
+
+
+def test_external_research_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {"optional_module_ready": True, "prompt_file_count": 1}
+
+    monkeypatch.setattr(cli.external_research_controller, "external_research_status", fake_status)
+
+    exit_code = cli.main(["external-research-status", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"prompt_file_count": 1' in captured.out
+
+
 def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

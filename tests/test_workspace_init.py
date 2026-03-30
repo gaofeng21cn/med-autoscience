@@ -43,6 +43,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "studies").is_dir()
     assert (workspace_root / "portfolio" / "data_assets").is_dir()
     assert (workspace_root / "portfolio" / "research_memory").is_dir()
+    assert (workspace_root / "portfolio" / "research_memory" / "prompts").is_dir()
+    assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
     assert (workspace_root / "ops" / "deepscientist" / "bin").is_dir()
 
@@ -65,18 +67,24 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
+    prepare_external_research = workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research"
+    external_research_status = workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status"
     ds_doctor = workspace_root / "ops" / "deepscientist" / "bin" / "doctor"
     assert show_profile.is_file()
     assert enter_study.is_file()
     assert resolve_journal_shortlist.is_file()
     assert init_portfolio_memory.is_file()
     assert portfolio_memory_status.is_file()
+    assert prepare_external_research.is_file()
+    assert external_research_status.is_file()
     assert ds_doctor.is_file()
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(init_portfolio_memory, os.X_OK)
     assert os.access(portfolio_memory_status, os.X_OK)
+    assert os.access(prepare_external_research, os.X_OK)
+    assert os.access(external_research_status, os.X_OK)
     assert os.access(ds_doctor, os.X_OK)
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
@@ -106,6 +114,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
     assert "边界明确且 startup-ready 后，默认切入 DeepScientist managed runtime 的自动持续推进" in workspace_rules_text
     assert "portfolio-memory-status" in workspace_rules_text
+    assert "prepare-external-research" in workspace_rules_text
 
 
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:
