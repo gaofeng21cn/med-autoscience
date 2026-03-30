@@ -221,3 +221,48 @@ def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: 
 
     assert result["decision"] == "blocked_repo_not_configured"
     assert "configure_deepscientist_repo_root_in_profile" in result["recommended_actions"]
+
+
+def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = make_profile(tmp_path)
+
+    def _repo_check_should_not_run(*, repo_root, refresh=False):
+        raise AssertionError("inspect_deepscientist_repo should not run when behavior gate is not ready")
+
+    monkeypatch.setattr(module, "inspect_deepscientist_repo", _repo_check_should_not_run)
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: doctor.DoctorReport(
+            python_version="3.12.0",
+            profile=profile,
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            deepscientist_runtime_exists=True,
+            medical_overlay_enabled=True,
+            medical_overlay_ready=True,
+            runtime_contract={"ready": True, "checks": {}},
+            launcher_contract={"ready": True, "checks": {}},
+            behavior_gate={
+                "ready": False,
+                "phase_25_ready": False,
+                "schema_version": "v1",
+                "critical_overrides": [],
+                "checks": {},
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "describe_medical_overlay",
+        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
+    )
+
+    result = module.run_upgrade_check(profile, refresh=False)
+
+    assert result["decision"] == "blocked_behavior_equivalence_gate"
+    assert "complete_phase_25_behavior_equivalence_gate" in result["recommended_actions"]
