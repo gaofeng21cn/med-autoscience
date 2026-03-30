@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 import yaml
@@ -29,6 +30,20 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
     assert set(result["written_files"]) == {str(tmp_path / path) for path in expected_assets}
     for relative_path, expected_content in expected_assets.items():
         output_path = tmp_path / relative_path
+        assert output_path.is_file()
+        assert output_path.read_text(encoding="utf-8") == expected_content
+
+
+def test_repo_public_agent_entry_assets_match_renderers() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    expected_assets = {
+        repo_root / "guides" / "agent_entry_modes.md": render_entry_modes_guide(),
+        repo_root / "templates" / "agent_entry_modes.yaml": render_public_yaml(),
+        repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
+        repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
+    }
+
+    for output_path, expected_content in expected_assets.items():
         assert output_path.is_file()
         assert output_path.read_text(encoding="utf-8") == expected_content
 
