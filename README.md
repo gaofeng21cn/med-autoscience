@@ -172,6 +172,14 @@
 
 如果你需要接入 workspace、查看运行接口、阅读 controller 行为或理解平台规则，请从这里进入：
 
+如果你要从零新建一个病种 workspace，现在优先使用：
+
+```bash
+PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+  --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
+  --workspace-name my-disease
+```
+
 如果你主要通过 Codex 驱动 `MedAutoScience`，现在已经可以直接使用仓库内置的 Codex plugin。
 它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
 

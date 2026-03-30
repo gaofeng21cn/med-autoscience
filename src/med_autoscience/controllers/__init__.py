@@ -15,4 +15,5 @@ __all__ = [
     "study_delivery_sync",
     "submission_minimal",
     "submission_targets",
+    "workspace_init",
 ]

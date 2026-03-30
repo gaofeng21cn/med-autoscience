@@ -67,6 +67,17 @@
 - 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
 - 不要在每个病种 workspace 里再 clone 一份 `DeepScientist`
 
+现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
+
+```bash
+cd med-autoscience
+PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+  --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
+  --workspace-name my-disease
+```
+
+如果想先让 Agent 审核将要写入的内容，再决定是否落盘，可以先加 `--dry-run`。
+
 ## 最小部署步骤
 
 ### 1. clone 仓库
@@ -197,12 +208,13 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 
 如果你是在一台新电脑上，或第一次接入一个新病种项目，推荐顺序如下：
 
-1. 建立病种级 workspace 骨架
+1. 运行 `init-workspace` 创建病种级 workspace 骨架
 2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
-3. 准备 `profiles/*.local.toml`
-4. 运行 `doctor`
-5. 运行 `bootstrap`
-6. 再在 `studies/` 下创建首个 `study-id`，并开始 intake / scout / startup brief
+3. 编辑 `ops/medautoscience/config.env` 与 `ops/deepscientist/config.env`
+4. 检查生成的 `profiles/*.local.toml`
+5. 运行 `ops/medautoscience/bin/show-profile`
+6. 运行 `ops/medautoscience/bin/bootstrap`
+7. 再在 `studies/` 下创建首个 `study-id`，并开始 intake / scout / startup brief
 
 也就是说，workspace 级接入和数据资产登记应先完成，再开始某一条具体研究线。
 
