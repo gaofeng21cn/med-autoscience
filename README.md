@@ -144,6 +144,7 @@
 它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
 
 - Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
+- 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)
 - Codex plugin 接入：[guides/codex_plugin.md](guides/codex_plugin.md)
 - Codex plugin 发布说明：[guides/codex_plugin_release.md](guides/codex_plugin_release.md)
 - Workspace 架构与迁移：[guides/workspace_architecture.md](guides/workspace_architecture.md)
@@ -152,6 +153,15 @@
 - 数据资产策略：[policies/data_asset_management.md](policies/data_asset_management.md)
 - 默认研究场景：[policies/study_archetypes.md](policies/study_archetypes.md)
 - 研究路线偏置：[policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
+
+如果你要给 `Codex`、`Claude Code`、`OpenClaw` 这类外部 Agent 提供可直接消费的入口资产，可直接使用：
+
+- 公开契约镜像：[`templates/agent_entry_modes.yaml`](templates/agent_entry_modes.yaml)
+- `Codex` 入口模板：[`templates/codex/medautoscience-entry.SKILL.md`](templates/codex/medautoscience-entry.SKILL.md)
+- `OpenClaw` 入口模板：[`templates/openclaw/medautoscience-entry.prompt.md`](templates/openclaw/medautoscience-entry.prompt.md)
+
+`Claude Code` 默认可复用与 `Codex` 相同的入口契约，不单独维护另一套专有模板。
+如果用户要做“目标期刊导向的选题与数据要求规划”，不必新增第六类正式入口；这类任务默认属于轻量专项模式，可组合使用 `literature_scout`、`idea_exploration`、`decision`，并在需要解析目标期刊正式要求时调用 `journal-resolution`，最终输出数据缺口、建议样本量级、模态要求、中心要求和数据准备清单。
 
 首页不再直接展示 CLI 命令、JSON payload 和部署细节；这些内容统一下沉到上述文档，供 Agent 调用和人类审计。
 其中，`guides/` 用于放随仓库发布的稳定技术指南；`docs/` 更偏内部设计稿与 agent 工作过程记录，不作为公开主入口。
