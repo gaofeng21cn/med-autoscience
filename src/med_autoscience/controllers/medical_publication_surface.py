@@ -26,6 +26,8 @@ class SurfaceState:
     table_catalog_path: Path
     methods_implementation_manifest_path: Path
     results_narrative_map_path: Path
+    figure_semantics_manifest_path: Path
+    derived_analysis_manifest_path: Path
     reproducibility_supplement_path: Path
     endpoint_provenance_note_path: Path
 
@@ -67,6 +69,8 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         table_catalog_path=paper_root / "tables" / "table_catalog.json",
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
+        figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
+        derived_analysis_manifest_path=paper_root / medical_surface_policy.DERIVED_ANALYSIS_MANIFEST_BASENAME,
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
         endpoint_provenance_note_path=paper_root / medical_surface_policy.ENDPOINT_PROVENANCE_NOTE_BASENAME,
     )
@@ -252,6 +256,209 @@ def inspect_required_text_contract(
     return True, text, []
 
 
+def figure_ids_from_catalog(path: Path) -> set[str]:
+    payload = load_json(path, default={}) or {}
+    figure_ids: set[str] = set()
+    for item in payload.get("figures", []) or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("paper_role") or "").strip() != "main_text":
+            continue
+        figure_id = str(item.get("figure_id") or "").strip()
+        if figure_id:
+            figure_ids.add(figure_id)
+    return figure_ids
+
+
+def table_ids_from_catalog(path: Path) -> set[str]:
+    payload = load_json(path, default={}) or {}
+    table_ids: set[str] = set()
+    for item in payload.get("tables", []) or []:
+        if not isinstance(item, dict):
+            continue
+        table_id = str(item.get("table_id") or "").strip()
+        if table_id:
+            table_ids.add(table_id)
+    return table_ids
+
+
+def inspect_results_narrative_display_items(
+    *,
+    path: Path,
+    payload: object,
+    figure_ids: set[str],
+    table_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    known_display_items = figure_ids | table_ids
+    hits: list[dict[str, Any]] = []
+    for index, section in enumerate(payload.get("sections", []) or []):
+        if not isinstance(section, dict):
+            continue
+        for item in section.get("supporting_display_items", []) or []:
+            display_item = str(item or "").strip()
+            if not display_item or display_item in known_display_items:
+                continue
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"sections[{index}].supporting_display_items",
+                    "pattern_id": "results_narrative_map_unknown_display_item",
+                    "phrase": display_item,
+                    "excerpt": f"Supporting display item `{display_item}` does not map to the current figure/table catalog.",
+                }
+            )
+    return hits
+
+
+def inspect_results_narrative_figure_coverage(
+    *,
+    path: Path,
+    payload: object,
+    figure_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    referenced_figures: set[str] = set()
+    for section in payload.get("sections", []) or []:
+        if not isinstance(section, dict):
+            continue
+        for item in section.get("supporting_display_items", []) or []:
+            display_item = str(item or "").strip()
+            if display_item in figure_ids:
+                referenced_figures.add(display_item)
+    hits: list[dict[str, Any]] = []
+    missing = sorted(figure_ids - referenced_figures)
+    for figure_id in missing:
+        hits.append(
+            {
+                "path": str(path),
+                "location": "sections[].supporting_display_items",
+                "pattern_id": "results_narrative_map_missing_main_figure_reference",
+                "phrase": figure_id,
+                "excerpt": f"Main-text figure `{figure_id}` is not cited by any results section in the results narrative map.",
+            }
+        )
+    return hits
+
+
+def inspect_figure_semantics_coverage(
+    *,
+    path: Path,
+    payload: object,
+    figure_ids: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    semantic_ids = {
+        str(item.get("figure_id") or "").strip()
+        for item in payload.get("figures", []) or []
+        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+    }
+    hits: list[dict[str, Any]] = []
+    missing = sorted(figure_ids - semantic_ids)
+    for figure_id in missing:
+        hits.append(
+            {
+                "path": str(path),
+                "location": "figures",
+                "pattern_id": "figure_semantics_missing_figure_coverage",
+                "phrase": figure_id,
+                "excerpt": f"Main-text figure `{figure_id}` is present in the figure catalog but missing from the figure semantics manifest.",
+            }
+        )
+    return hits
+
+
+def inspect_derived_analysis_links(
+    *,
+    path: Path,
+    payload: object,
+    known_display_items: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    hits: list[dict[str, Any]] = []
+    for index, analysis in enumerate(payload.get("analyses", []) or []):
+        if not isinstance(analysis, dict):
+            continue
+        for item in analysis.get("linked_display_items", []) or []:
+            display_item = str(item or "").strip()
+            if not display_item or display_item in known_display_items:
+                continue
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"analyses[{index}].linked_display_items",
+                    "pattern_id": "derived_analysis_unknown_display_item",
+                    "phrase": display_item,
+                    "excerpt": f"Derived analysis display item `{display_item}` does not map to the current figure/table catalog.",
+                }
+            )
+    return hits
+
+
+def inspect_missing_data_policy_consistency(
+    *,
+    methods_path: Path,
+    methods_payload: object,
+    derived_analysis_path: Path,
+    derived_analysis_payload: object,
+    reproducibility_path: Path,
+    reproducibility_payload: object,
+) -> list[dict[str, Any]]:
+    if not isinstance(methods_payload, dict):
+        return []
+    study_design = methods_payload.get("study_design")
+    if not isinstance(study_design, dict):
+        return []
+    reference_policy_id = str(study_design.get("missing_data_policy_id") or "").strip()
+    if not reference_policy_id:
+        return []
+
+    hits: list[dict[str, Any]] = []
+
+    reproducibility_policy_id = ""
+    if isinstance(reproducibility_payload, dict):
+        reproducibility_policy_id = str(reproducibility_payload.get("missing_data_policy_id") or "").strip()
+    if reproducibility_policy_id and reproducibility_policy_id != reference_policy_id:
+        hits.append(
+            {
+                "path": str(reproducibility_path),
+                "location": "missing_data_policy_id",
+                "pattern_id": "missing_data_policy_inconsistent",
+                "phrase": reproducibility_policy_id,
+                "excerpt": (
+                    f"Reproducibility supplement missing_data_policy_id `{reproducibility_policy_id}` "
+                    f"does not match study_design missing_data_policy_id `{reference_policy_id}`."
+                ),
+            }
+        )
+
+    if not isinstance(derived_analysis_payload, dict):
+        return hits
+    for index, analysis in enumerate(derived_analysis_payload.get("analyses", []) or []):
+        if not isinstance(analysis, dict):
+            continue
+        analysis_policy_id = str(analysis.get("missing_data_policy_id") or "").strip()
+        if not analysis_policy_id or analysis_policy_id == reference_policy_id:
+            continue
+        hits.append(
+            {
+                "path": str(derived_analysis_path),
+                "location": f"analyses[{index}].missing_data_policy_id",
+                "pattern_id": "missing_data_policy_inconsistent",
+                "phrase": analysis_policy_id,
+                "excerpt": (
+                    f"Derived analysis missing_data_policy_id `{analysis_policy_id}` does not match "
+                    f"study_design missing_data_policy_id `{reference_policy_id}`."
+                ),
+            }
+        )
+    return hits
+
+
 def discover_endpoint_provenance_caveat_sources(quest_root: Path) -> list[dict[str, str]]:
     candidate_paths = [
         *quest_root.glob("baselines/**/verification.md"),
@@ -313,6 +520,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits.extend(scan_text_file(state.review_manuscript_path))
     forbidden_hits.extend(scan_catalog_strings(state.figure_catalog_path, collection_key="figures"))
     forbidden_hits.extend(scan_catalog_strings(state.table_catalog_path, collection_key="tables"))
+    figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
+    table_ids = table_ids_from_catalog(state.table_catalog_path)
     methods_manifest_valid, methods_manifest_hits = inspect_required_json_contract(
         path=state.methods_implementation_manifest_path,
         validator=medical_surface_policy.validate_methods_implementation_manifest,
@@ -325,6 +534,18 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="results_narrative_map",
         label="results narrative map",
     )
+    figure_semantics_valid, figure_semantics_hits = inspect_required_json_contract(
+        path=state.figure_semantics_manifest_path,
+        validator=medical_surface_policy.validate_figure_semantics_manifest,
+        pattern_id="figure_semantics_manifest",
+        label="figure semantics manifest",
+    )
+    derived_analysis_valid, derived_analysis_hits = inspect_required_json_contract(
+        path=state.derived_analysis_manifest_path,
+        validator=medical_surface_policy.validate_derived_analysis_manifest,
+        pattern_id="derived_analysis_manifest",
+        label="derived analysis manifest",
+    )
     reproducibility_valid, reproducibility_hits = inspect_required_json_contract(
         path=state.reproducibility_supplement_path,
         validator=medical_surface_policy.validate_reproducibility_supplement,
@@ -336,6 +557,52 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         validator=medical_surface_policy.validate_endpoint_provenance_note,
         pattern_id="endpoint_provenance_note",
         label="endpoint provenance note",
+    )
+    results_narrative_payload = load_json(state.results_narrative_map_path, default=None)
+    results_narrative_display_hits = inspect_results_narrative_display_items(
+        path=state.results_narrative_map_path,
+        payload=results_narrative_payload,
+        figure_ids=figure_ids,
+        table_ids=table_ids,
+    )
+    if results_narrative_display_hits:
+        results_narrative_valid = False
+        results_narrative_hits.extend(results_narrative_display_hits)
+    results_narrative_figure_coverage_hits = inspect_results_narrative_figure_coverage(
+        path=state.results_narrative_map_path,
+        payload=results_narrative_payload,
+        figure_ids=figure_ids,
+    )
+    if results_narrative_figure_coverage_hits:
+        results_narrative_valid = False
+        results_narrative_hits.extend(results_narrative_figure_coverage_hits)
+    figure_semantics_payload = load_json(state.figure_semantics_manifest_path, default=None)
+    figure_semantics_coverage_hits = inspect_figure_semantics_coverage(
+        path=state.figure_semantics_manifest_path,
+        payload=figure_semantics_payload,
+        figure_ids=figure_ids,
+    )
+    if figure_semantics_coverage_hits:
+        figure_semantics_valid = False
+        figure_semantics_hits.extend(figure_semantics_coverage_hits)
+    methods_manifest_payload = load_json(state.methods_implementation_manifest_path, default=None)
+    derived_analysis_payload = load_json(state.derived_analysis_manifest_path, default=None)
+    reproducibility_payload = load_json(state.reproducibility_supplement_path, default=None)
+    derived_analysis_link_hits = inspect_derived_analysis_links(
+        path=state.derived_analysis_manifest_path,
+        payload=derived_analysis_payload,
+        known_display_items=figure_ids | table_ids,
+    )
+    if derived_analysis_link_hits:
+        derived_analysis_valid = False
+        derived_analysis_hits.extend(derived_analysis_link_hits)
+    missing_data_policy_hits = inspect_missing_data_policy_consistency(
+        methods_path=state.methods_implementation_manifest_path,
+        methods_payload=methods_manifest_payload,
+        derived_analysis_path=state.derived_analysis_manifest_path,
+        derived_analysis_payload=derived_analysis_payload,
+        reproducibility_path=state.reproducibility_supplement_path,
+        reproducibility_payload=reproducibility_payload,
     )
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
@@ -364,7 +631,6 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
                 "excerpt": "Endpoint provenance caveat is documented upstream but not durably projected onto the manuscript-facing surface.",
             }
         )
-    methods_manifest_payload = load_json(state.methods_implementation_manifest_path, default=None)
     defined_method_labels = medical_surface_policy.extract_defined_method_labels(methods_manifest_payload)
     undefined_methodology_label_hits: list[dict[str, Any]] = []
     for hit in methodology_label_hits:
@@ -376,7 +642,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits: list[dict[str, Any]] = []
     hits.extend(methods_manifest_hits)
     hits.extend(results_narrative_hits)
+    hits.extend(figure_semantics_hits)
+    hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
+    hits.extend(missing_data_policy_hits)
     hits.extend(endpoint_note_hits)
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
@@ -394,8 +663,14 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
+    if not figure_semantics_valid:
+        blockers.append("figure_semantics_manifest_missing_or_incomplete")
+    if not derived_analysis_valid:
+        blockers.append("derived_analysis_manifest_missing_or_incomplete")
     if not reproducibility_valid:
         blockers.append("manuscript_safe_reproducibility_supplement_missing_or_incomplete")
+    if missing_data_policy_hits:
+        blockers.append("missing_data_policy_inconsistent")
     if endpoint_caveat_sources and not endpoint_note_applied:
         blockers.append("endpoint_provenance_note_missing_or_unapplied")
     if undefined_methodology_label_hits:
@@ -426,9 +701,16 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "results_narrative_map_path": str(state.results_narrative_map_path),
         "results_narrative_map_present": state.results_narrative_map_path.exists(),
         "results_narrative_map_valid": results_narrative_valid,
+        "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
+        "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
+        "figure_semantics_manifest_valid": figure_semantics_valid,
+        "derived_analysis_manifest_path": str(state.derived_analysis_manifest_path),
+        "derived_analysis_manifest_present": state.derived_analysis_manifest_path.exists(),
+        "derived_analysis_manifest_valid": derived_analysis_valid,
         "reproducibility_supplement_path": str(state.reproducibility_supplement_path),
         "reproducibility_supplement_present": state.reproducibility_supplement_path.exists(),
         "reproducibility_supplement_valid": reproducibility_valid,
+        "missing_data_policy_consistent": not missing_data_policy_hits,
         "endpoint_provenance_note_path": str(state.endpoint_provenance_note_path),
         "endpoint_provenance_note_present": state.endpoint_provenance_note_path.exists(),
         "endpoint_provenance_note_valid": endpoint_note_valid,
@@ -458,8 +740,13 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
         f"- results_narrative_map_present: `{report['results_narrative_map_present']}`",
         f"- results_narrative_map_valid: `{report['results_narrative_map_valid']}`",
+        f"- figure_semantics_manifest_present: `{report['figure_semantics_manifest_present']}`",
+        f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
+        f"- derived_analysis_manifest_present: `{report['derived_analysis_manifest_present']}`",
+        f"- derived_analysis_manifest_valid: `{report['derived_analysis_manifest_valid']}`",
         f"- reproducibility_supplement_present: `{report['reproducibility_supplement_present']}`",
         f"- reproducibility_supplement_valid: `{report['reproducibility_supplement_valid']}`",
+        f"- missing_data_policy_consistent: `{report['missing_data_policy_consistent']}`",
         f"- endpoint_provenance_note_present: `{report['endpoint_provenance_note_present']}`",
         f"- endpoint_provenance_note_valid: `{report['endpoint_provenance_note_valid']}`",
         f"- endpoint_provenance_note_applied: `{report['endpoint_provenance_note_applied']}`",

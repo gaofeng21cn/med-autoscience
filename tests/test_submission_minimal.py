@@ -394,6 +394,73 @@ def test_create_submission_minimal_package_frontiers_family_profile_preserves_re
         assert footer_names
 
 
+def test_create_submission_minimal_package_frontiers_family_uses_figure_semantics_manifest_for_legends(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    frontiers_root = tmp_path / "frontiers_resources"
+    manuscript_template = frontiers_root / "Frontiers_Template.docx"
+    supplementary_template = frontiers_root / "Supplementary_Material.docx"
+    csl_path = frontiers_root / "frontiers.csl"
+
+    write_docx(manuscript_template, "Frontiers manuscript template")
+    write_docx(supplementary_template, "Frontiers supplementary template")
+    csl_path.write_text(module.default_ama_csl_path().read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX", str(manuscript_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX", str(supplementary_template))
+    monkeypatch.setenv("DEEPSCIENTIST_FRONTIERS_CSL", str(csl_path))
+
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "story_role": "overall_performance_and_clinical_utility",
+                    "research_question": "Does the clinically informed model improve utility beyond the reference model?",
+                    "direct_message": "Calibration and clinical utility improved, whereas discrimination gains were modest.",
+                    "clinical_implication": "Supports preoperative counseling and postoperative surveillance planning.",
+                    "interpretation_boundary": "This figure does not establish a recommended intervention threshold.",
+                    "panel_messages": [
+                        {"panel_id": "A", "message": "Discrimination is only one component of the figure-level interpretation."}
+                    ],
+                    "legend_glossary": [
+                        {
+                            "term": "treat all",
+                            "explanation": "Assumes every patient is managed as high risk at the chosen threshold."
+                        },
+                        {
+                            "term": "treat none",
+                            "explanation": "Assumes no patient is managed as high risk at the chosen threshold."
+                        },
+                    ],
+                    "threshold_semantics": "Thresholds are illustrative operating points rather than recommended cut-offs.",
+                    "stratification_basis": "Risk groups are display-oriented rather than prespecified clinical bins.",
+                    "recommendation_boundary": "No formal threshold recommendation is made from this figure alone."
+                }
+            ],
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="frontiers_family_harvard",
+    )
+
+    frontiers_markdown = (
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "frontiers_manuscript.md"
+    ).read_text(encoding="utf-8")
+    assert "Calibration and clinical utility improved" in frontiers_markdown
+    assert "treat all" in frontiers_markdown
+    assert "Assumes every patient is managed as high risk" in frontiers_markdown
+    assert "illustrative operating points rather than recommended cut-offs" in frontiers_markdown
+    assert "No formal threshold recommendation is made from this figure alone" in frontiers_markdown
+
+
 def test_create_submission_minimal_package_frontiers_family_syncs_into_study_family_package(
     tmp_path: Path,
     monkeypatch,

@@ -187,6 +187,8 @@ The write stage should usually produce most of the following:
 - `paper/claim_evidence_map.json`
 - `paper/methods_implementation_manifest.json`
 - `paper/results_narrative_map.json`
+- `paper/figure_semantics_manifest.json`
+- `paper/derived_analysis_manifest.json`
 - `paper/manuscript_safe_reproducibility_supplement.json`
 - `paper/endpoint_provenance_note.md` when endpoint semantics still require a manuscript-visible caveat
 - `paper/latex/` with the selected venue template and active paper sources
@@ -228,7 +230,7 @@ Prefer the same compact reasoning-note shape for those files when possible:
 
 ## Medical manuscript contracts
 
-For medical and clinically oriented manuscripts, two additional durable contracts are mandatory before the write stage can be treated as stable.
+For medical and clinically oriented manuscripts, four additional durable contracts are mandatory before the write stage can be treated as stable.
 
 ### 1. Methods completeness contract
 
@@ -250,6 +252,9 @@ At minimum, the manifest must make the following explicit:
 - variable definitions
 - split strategy
 - missing-data strategy
+- missing-data policy identifier
+- case-mix summary
+- applicability boundary
 - model registry
 - software package and version
 - statistical analysis plan
@@ -259,8 +264,12 @@ For each main manuscript model, record enough detail that an informed reviewer c
 
 - where the model came from
 - what inputs it used
+- which evidence window or predictor scope those inputs came from
+- how variables were transformed, regrouped, or clinically re-encoded before fitting
+- how predictors entered or were retained in the final model
 - what target it predicted
 - how it was trained or fit
+- why that model family belongs in the manuscript comparison set
 - what package and version implemented it
 - what the manuscript is allowed to claim about mechanism, association, or causality
 
@@ -285,6 +294,7 @@ At minimum, it should export:
 - random seed policy
 - key hyperparameters
 - missing-data strategy
+- the shared missing-data policy identifier used across manuscript-facing manifests
 - metric definitions
 
 ### 1.2 Endpoint provenance note
@@ -323,6 +333,44 @@ Avoid body-text patterns such as:
 
 Instead, each subsection should answer the medical question first, then cite figures or tables as supporting evidence.
 The prose should integrate the section-level message rather than merely paraphrasing a caption.
+Every main-text figure should appear in at least one section's `supporting_display_items`; do not let a main figure exist outside the results story.
+
+### 3. Figure semantics contract
+
+Maintain `paper/figure_semantics_manifest.json`.
+
+This file is the durable bridge between the manuscript story, figure titles and captions, and the reader-facing interpretation burden.
+Do not let clinically important figure explanations live only in late legend edits or reviewer response prose.
+
+For each main-text figure, record enough detail that a medical reader can answer:
+
+- what research question the figure addresses
+- what the direct take-home message is
+- what the clinical implication is
+- what the interpretation boundary is
+- what each panel contributes
+- which glossary terms must be explained in the legend
+- whether any thresholds are illustrative rather than recommended
+- whether any risk strata are display-only rather than clinical bins
+
+### 4. Derived analysis contract
+
+Maintain `paper/derived_analysis_manifest.json`.
+
+This file is the durable bridge between secondary analyses, stability checks, subgroup summaries, and manuscript-facing reproducibility.
+Do not let a figure or result section rely on an unstated derivation pipeline.
+
+For each derived or secondary analysis, record enough detail that an informed reviewer can answer:
+
+- why the analysis exists
+- which display items it supports
+- what source data and artifacts it used
+- how the result was derived
+- what resampling or refitting policy was used
+- how missing data were handled
+- which shared missing-data policy identifier the analysis follows
+- whether correlation or collinearity was assessed
+- what the interpretation boundary is
 
 Also keep a compact authenticity checklist visible throughout the writing line.
 At minimum, repeatedly verify:
@@ -1159,15 +1207,27 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
     "endpoint_definition": "Early postoperative residual-risk status.",
     "variable_definitions": "Predictors were frozen before model fitting and mapped to the study data dictionary.",
     "split_strategy": "Patient-level train/validation/test separation.",
-    "missing_data_strategy": "Predefined imputation and missingness indicators."
+    "missing_data_strategy": "Predefined imputation and missingness indicators.",
+    "missing_data_policy_id": "preop_missingness_policy_v1",
+    "case_mix_summary": "The cohort was dominated by macroadenomas treated at a tertiary referral center, with relatively few small tumors.",
+    "applicability_boundary": "Primary interpretation should remain centered on larger surgically treated NF-PitNETs rather than on small incidentally detected tumors."
   },
   "model_registry": [
     {
       "model_id": "M1",
       "manuscript_name": "Extended preoperative model",
+      "role": "primary",
       "family": "Gradient boosting classifier",
+      "origin": "Built from the prespecified preoperative variable set with clinically motivated feature transformations.",
       "inputs": ["clinical variables", "imaging descriptors"],
-      "target": "Early residual risk"
+      "input_scope": "Preoperative-only evidence base defined before surgery and excluding pathology or postoperative variables.",
+      "feature_construction": "Continuous imaging measures were combined with clinically motivated categorical encodings before model fitting.",
+      "predictor_selection_strategy": "Candidate preoperative predictors were prespecified from the data dictionary and retained according to the locked modeling workflow.",
+      "target": "Early residual risk",
+      "fit_procedure": "Repeated nested cross-validation with locked tuning policy and pooled out-of-fold estimation.",
+      "selection_rationale": "Primary manuscript model because it balanced discrimination, calibration, and clinical utility.",
+      "comparison_rationale": "Included as the main clinically useful preoperative model to compare against the reference logistic baseline and the prespecified benchmark families.",
+      "claim_boundary": "Associational risk prediction only; no mechanistic or causal claim."
     }
   ],
   "software_stack": [
@@ -1217,6 +1277,68 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
 }
 ```
 
+### `figure_semantics_manifest.json` minimum shape
+
+```json
+{
+  "figures": [
+    {
+      "figure_id": "F2",
+      "story_role": "overall_performance_and_clinical_utility",
+      "research_question": "Does the clinically informed model improve utility beyond the reference model?",
+      "direct_message": "Clinical utility and calibration improved, whereas discrimination gains were modest.",
+      "clinical_implication": "Supports preoperative counseling and follow-up planning rather than a definitive treatment rule.",
+      "interpretation_boundary": "This figure does not establish a recommended intervention threshold.",
+      "panel_messages": [
+        {
+          "panel_id": "A",
+          "message": "Discrimination differences were present but were not the only relevant result."
+        },
+        {
+          "panel_id": "B",
+          "message": "Decision-curve comparisons favored the clinically informed model across the prespecified threshold range."
+        }
+      ],
+      "legend_glossary": [
+        {
+          "term": "treat all",
+          "explanation": "Assumes every patient is managed as high risk at the chosen threshold."
+        },
+        {
+          "term": "treat none",
+          "explanation": "Assumes no patient is managed as high risk at the chosen threshold."
+        }
+      ],
+      "threshold_semantics": "Thresholds shown here are illustrative operating points rather than recommended cut-offs.",
+      "stratification_basis": "Risk groups were formed for display and are not prespecified clinical bins.",
+      "recommendation_boundary": "No formal threshold recommendation is made from this figure alone."
+    }
+  ]
+}
+```
+
+### `derived_analysis_manifest.json` minimum shape
+
+```json
+{
+  "analyses": [
+    {
+      "analysis_id": "A1",
+      "linked_display_items": ["F3"],
+      "purpose": "Assess coefficient stability for the clinically informed model.",
+      "data_source": "Repeated outer-resampling fits and pooled out-of-fold prediction artifacts.",
+      "derivation_procedure": "Coefficient summaries were calculated across repeated refits under the locked analysis workflow.",
+      "resampling_design": "Repeated nested cross-validation with patient-level separation.",
+      "refit_policy": "The model was refit within each outer split before pooled summary.",
+      "missing_data_handling": "Used the same prespecified imputation policy as the primary analysis.",
+      "missing_data_policy_id": "preop_missingness_policy_v1",
+      "correlation_or_collinearity_assessment": "High-correlation features were reviewed and the resulting interpretation was limited accordingly.",
+      "interpretation_boundary": "Supports variable stability interpretation and not mechanistic inference."
+    }
+  ]
+}
+```
+
 ### `manuscript_safe_reproducibility_supplement.json` minimum shape
 
 ```json
@@ -1237,6 +1359,7 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
     }
   ],
   "missing_data_strategy": "Median imputation plus missingness indicators.",
+  "missing_data_policy_id": "preop_missingness_policy_v1",
   "metric_definitions": [
     {
       "metric": "AUC",
@@ -1517,6 +1640,8 @@ Keep each writing artifact tightly linked to evidence paths.
 - do not use internal model names in manuscript body text, figure titles, or captions
 - do not let Methods prose omit the software package and version for the main analytical stack
 - do not let Results drift into figure-table-led narration instead of question-led medical interpretation
+- do not let figure legends carry unexplained decision-curve or risk-stratification terms
+- do not let derived analyses appear in the manuscript without a durable derivation record
 - do not use undefined methodology labels such as `knowledge-guided`, `causal`, `mechanistic`, or `calibration-first`
 - do not let endpoint provenance caveats vanish from manuscript-facing text once upstream verification has flagged them
 
@@ -1533,6 +1658,8 @@ Common blocked states:
 - missing_submission_minimal
 - missing_methods_implementation_manifest
 - missing_results_narrative_map
+- missing_figure_semantics_manifest
+- missing_derived_analysis_manifest
 - missing_manuscript_safe_reproducibility_supplement
 - missing_endpoint_provenance_note
 - undefined_methodology_labels
@@ -1562,6 +1689,8 @@ For any submission-ready claim, also require:
 - terminology redline checks pass for manuscript body text, figure titles, and captions
 - `paper/methods_implementation_manifest.json` is present and complete
 - `paper/results_narrative_map.json` is present and complete
+- `paper/figure_semantics_manifest.json` is present and complete
+- `paper/derived_analysis_manifest.json` is present and complete
 - `paper/manuscript_safe_reproducibility_supplement.json` is present and complete
 - endpoint provenance caveats from upstream verification remain visible on the manuscript-facing surface
 - the Results section is question-led rather than figure-led

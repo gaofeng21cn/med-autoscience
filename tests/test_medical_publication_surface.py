@@ -17,10 +17,17 @@ def make_quest(
     ama_defaults: bool,
     include_methods_manifest: bool | None = None,
     include_results_narrative_map: bool | None = None,
+    include_figure_semantics_manifest: bool | None = None,
+    include_derived_analysis_manifest: bool | None = None,
     figure_led_results: bool | None = None,
     include_reproducibility_supplement: bool | None = None,
     include_endpoint_provenance_note: bool | None = None,
     include_operational_method_labels: bool | None = None,
+    include_complete_model_registry: bool | None = None,
+    include_complete_results_sections: bool | None = None,
+    include_model_method_details: bool | None = None,
+    include_case_mix_boundary_fields: bool | None = None,
+    align_missing_data_policy_ids: bool | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -29,6 +36,10 @@ def make_quest(
         include_methods_manifest = medicalized
     if include_results_narrative_map is None:
         include_results_narrative_map = medicalized
+    if include_figure_semantics_manifest is None:
+        include_figure_semantics_manifest = medicalized
+    if include_derived_analysis_manifest is None:
+        include_derived_analysis_manifest = medicalized
     if figure_led_results is None:
         figure_led_results = not medicalized
     if include_reproducibility_supplement is None:
@@ -37,6 +48,16 @@ def make_quest(
         include_endpoint_provenance_note = medicalized
     if include_operational_method_labels is None:
         include_operational_method_labels = medicalized
+    if include_complete_model_registry is None:
+        include_complete_model_registry = medicalized
+    if include_complete_results_sections is None:
+        include_complete_results_sections = medicalized
+    if include_model_method_details is None:
+        include_model_method_details = medicalized
+    if include_case_mix_boundary_fields is None:
+        include_case_mix_boundary_fields = medicalized
+    if align_missing_data_policy_ids is None:
+        align_missing_data_policy_ids = medicalized
 
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
@@ -186,6 +207,72 @@ def make_quest(
         )
 
     if include_methods_manifest:
+        missing_data_policy_id = "preop_missingness_policy_v1"
+        derived_missing_data_policy_id = (
+            missing_data_policy_id if align_missing_data_policy_ids else "derived_missingness_policy_v2"
+        )
+        reproducibility_missing_data_policy_id = (
+            missing_data_policy_id if align_missing_data_policy_ids else "supplement_missingness_policy_v3"
+        )
+        model_registry = [
+            {
+                "model_id": "M1",
+                "manuscript_name": "Extended preoperative model",
+                "role": "primary",
+                "family": "Gradient boosting classifier",
+                "origin": "Built from the prespecified preoperative variable set with clinically motivated feature transformations.",
+                "inputs": ["clinical variables", "preoperative imaging descriptors"],
+                "target": "Early residual risk",
+                "fit_procedure": "Repeated nested cross-validation with locked tuning policy and final pooled out-of-fold estimation.",
+                "selection_rationale": "Primary manuscript model because it balanced discrimination, calibration, and clinical utility.",
+                "comparison_rationale": "Included as the main clinically useful preoperative model to compare against the reference logistic baseline and the prespecified benchmark families.",
+                "claim_boundary": "Associational risk prediction only; no mechanistic or causal claim.",
+                **(
+                    {
+                        "input_scope": "Preoperative-only evidence base defined before surgery and excluding pathology or postoperative variables.",
+                        "feature_construction": "Continuous imaging measures were combined with clinically motivated categorical encodings before model fitting.",
+                        "predictor_selection_strategy": "Candidate preoperative predictors were prespecified from the data dictionary and retained according to the locked modeling workflow.",
+                    }
+                    if include_model_method_details
+                    else {}
+                ),
+            }
+        ]
+        if include_complete_model_registry:
+            model_registry.append(
+                {
+                    "model_id": "M2",
+                    "manuscript_name": "Pathology-augmented comparison model",
+                    "role": "extension",
+                    "family": "Logistic regression",
+                    "origin": "Extended the same preoperative evidence base by adding postoperative pathology features for contextual comparison.",
+                    "inputs": ["clinical variables", "preoperative imaging descriptors", "pathology features"],
+                    "target": "Early residual risk",
+                    "fit_procedure": "Repeated nested cross-validation with the same outer resampling structure as the primary model.",
+                    "selection_rationale": "Contextual extension to quantify whether postoperative pathology materially changed discrimination or utility.",
+                    "comparison_rationale": "Included to quantify how much postoperative pathology altered performance beyond the preoperative evidence base without redefining the main preoperative claim.",
+                    "claim_boundary": "Extension comparison only; not part of the preoperative clinical-use recommendation.",
+                    **(
+                        {
+                            "input_scope": "Uses the same preoperative evidence base as the primary model, with postoperative pathology added only for contextual comparison.",
+                            "feature_construction": "Retained the clinically informed preoperative encoding scheme and appended pathology descriptors without redefining the endpoint.",
+                            "predictor_selection_strategy": "Started from the locked preoperative variable set and added pathology variables as a prespecified extension rather than as a de novo feature search.",
+                        }
+                        if include_model_method_details
+                        else {}
+                    ),
+                }
+            )
+        else:
+            model_registry.append(
+                {
+                    "model_id": "M2",
+                    "manuscript_name": "Pathology-augmented comparison model",
+                    "family": "Logistic regression",
+                    "inputs": ["clinical variables", "pathology features"],
+                    "target": "Early residual risk",
+                }
+            )
         dump_json(
             paper_root / "methods_implementation_manifest.json",
             {
@@ -202,16 +289,17 @@ def make_quest(
                     "variable_definitions": "Predictors were prespecified clinical and imaging variables defined in the frozen data dictionary.",
                     "split_strategy": "Locked train/validation/test workflow with patient-level separation.",
                     "missing_data_strategy": "Predefined imputation and missingness indicators where required.",
+                    "missing_data_policy_id": missing_data_policy_id,
+                    **(
+                        {
+                            "case_mix_summary": "The cohort was dominated by macroadenomas treated at a tertiary referral center, with relatively few small tumors.",
+                            "applicability_boundary": "The manuscript should primarily position conclusions for larger surgically treated NF-PitNETs rather than for incidentally detected small tumors.",
+                        }
+                        if include_case_mix_boundary_fields
+                        else {}
+                    ),
                 },
-                "model_registry": [
-                    {
-                        "model_id": "M1",
-                        "manuscript_name": "Extended preoperative model",
-                        "family": "Gradient boosting classifier",
-                        "inputs": ["clinical variables", "preoperative imaging descriptors"],
-                        "target": "Early residual risk",
-                    }
-                ],
+                "model_registry": model_registry,
                 "software_stack": [
                     {"package": "python", "version": "3.12", "role": "runtime"},
                     {"package": "scikit-learn", "version": "1.5.0", "role": "model training"},
@@ -240,23 +328,117 @@ def make_quest(
         )
 
     if include_results_narrative_map:
+        sections = [
+            {
+                "section_id": "R1",
+                "section_title": "Primary performance and clinical utility",
+                "research_question": "Does the extended preoperative model improve early residual-risk assessment?",
+                "direct_answer": "Yes. The model improved discrimination, calibration, and decision-curve utility.",
+                "supporting_display_items": ["F4", "T1"],
+                "key_quantitative_findings": [
+                    "Discrimination improved over the baseline clinical model.",
+                    "Clinical utility gains persisted across decision thresholds.",
+                ],
+                "clinical_meaning": "The model can support preoperative risk stratification rather than merely restating descriptive differences.",
+                "boundary": "The result supports prediction and utility, not causal inference.",
+            }
+        ]
+        if include_complete_results_sections:
+            sections.append(
+                {
+                    "section_id": "R2",
+                    "section_title": "Threshold interpretation and subgroup consistency",
+                    "research_question": "Were threshold-level summaries and subgroup patterns clinically consistent with the primary finding?",
+                    "direct_answer": "Yes. The threshold summaries were illustrative rather than prescriptive, and subgroup patterns did not reverse the main clinical direction.",
+                    "supporting_display_items": ["F4", "T1"],
+                    "key_quantitative_findings": [
+                        "Illustrative threshold summaries did not imply a recommended cut-off.",
+                        "Subgroup contrasts preserved the same qualitative direction of effect."
+                    ],
+                    "clinical_meaning": "Supports careful translation of risk estimates without overclaiming a universal intervention threshold.",
+                    "boundary": "Exploratory subgroup and threshold interpretation only; not a transportability claim.",
+                }
+            )
+        else:
+            sections.append(
+                {
+                    "section_id": "R2",
+                    "section_title": "Threshold interpretation and subgroup consistency",
+                    "research_question": "Were threshold-level summaries and subgroup patterns clinically consistent with the primary finding?",
+                    "supporting_display_items": ["F4", "T1"],
+                    "key_quantitative_findings": [
+                        "Illustrative threshold summaries did not imply a recommended cut-off."
+                    ],
+                    "clinical_meaning": "Supports careful translation of risk estimates.",
+                }
+            )
         dump_json(
             paper_root / "results_narrative_map.json",
             {
                 "schema_version": 1,
-                "sections": [
+                "sections": sections,
+            },
+        )
+
+    if include_figure_semantics_manifest:
+        dump_json(
+            paper_root / "figure_semantics_manifest.json",
+            {
+                "schema_version": 1,
+                "figures": [
                     {
-                        "section_id": "R1",
-                        "section_title": "Primary performance and clinical utility",
-                        "research_question": "Does the extended preoperative model improve early residual-risk assessment?",
-                        "direct_answer": "Yes. The model improved discrimination, calibration, and decision-curve utility.",
-                        "supporting_display_items": ["F1", "T1"],
-                        "key_quantitative_findings": [
-                            "Discrimination improved over the baseline clinical model.",
-                            "Clinical utility gains persisted across decision thresholds."
+                        "figure_id": "F4",
+                        "story_role": "threshold_interpretation",
+                        "research_question": "How should threshold-level summaries be interpreted clinically without overstating them as recommended cut-offs?",
+                        "direct_message": "Threshold-level operating summaries are illustrative translation aids rather than recommended intervention cut-offs.",
+                        "clinical_implication": "Supports preoperative communication and shared decision support while preserving uncertainty around treatment action thresholds.",
+                        "interpretation_boundary": "The figure does not establish an externally validated treatment threshold.",
+                        "panel_messages": [
+                            {
+                                "panel_id": "A",
+                                "message": "Threshold summaries quantify trade-offs across illustrative operating points."
+                            },
+                            {
+                                "panel_id": "B",
+                                "message": "Risk strata visualize distributional separation rather than mandated clinical bins."
+                            },
                         ],
-                        "clinical_meaning": "The model can support preoperative risk stratification rather than merely restating descriptive differences.",
-                        "boundary": "The result supports prediction and utility, not causal inference.",
+                        "legend_glossary": [
+                            {
+                                "term": "treat all",
+                                "explanation": "Assumes every patient is managed as high risk at the chosen threshold."
+                            },
+                            {
+                                "term": "treat none",
+                                "explanation": "Assumes no patient is managed as high risk at the chosen threshold."
+                            },
+                        ],
+                        "threshold_semantics": "Thresholds are illustrative operating points used to show trade-offs, not recommended cut-offs.",
+                        "stratification_basis": "Risk groups were formed for display and are not prespecified clinical categories.",
+                        "recommendation_boundary": "No formal recommendation threshold is proposed from this figure."
+                    }
+                ],
+            },
+        )
+
+    if include_derived_analysis_manifest:
+        dump_json(
+            paper_root / "derived_analysis_manifest.json",
+            {
+                "schema_version": 1,
+                "analyses": [
+                    {
+                        "analysis_id": "A1",
+                        "linked_display_items": ["F4", "T1"],
+                        "purpose": "Summarize threshold-level trade-offs and subgroup-facing interpretation after the primary model comparison.",
+                        "data_source": "Repeated outer-resampling predictions and the locked analysis tables.",
+                        "derivation_procedure": "Operating characteristics were summarized from pooled out-of-fold predictions across the prespecified threshold grid.",
+                        "resampling_design": "Repeated nested cross-validation with patient-level separation.",
+                        "refit_policy": "Models were refit within each outer split under the locked tuning policy before pooled summarization.",
+                        "missing_data_handling": "Used the same predefined imputation policy as the main analysis.",
+                        "missing_data_policy_id": derived_missing_data_policy_id,
+                        "correlation_or_collinearity_assessment": "Not applicable for this threshold-level summary because no new multivariable coefficient model was fit.",
+                        "interpretation_boundary": "Supports interpretation of the primary model output and not an externally transportable treatment rule."
                     }
                 ],
             },
@@ -276,6 +458,7 @@ def make_quest(
                     {"model_id": "M1", "parameters": {"max_depth": 3, "learning_rate": 0.05}}
                 ],
                 "missing_data_strategy": "Median imputation plus missingness indicators where prespecified.",
+                "missing_data_policy_id": reproducibility_missing_data_policy_id,
                 "metric_definitions": [
                     {"metric": "AUC", "definition": "Area under the ROC curve."},
                     {"metric": "Net benefit", "definition": "Decision-curve net benefit across prespecified thresholds."},
@@ -308,6 +491,8 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
         ama_defaults=False,
         include_methods_manifest=False,
         include_results_narrative_map=False,
+        include_figure_semantics_manifest=False,
+        include_derived_analysis_manifest=False,
         figure_led_results=True,
         include_reproducibility_supplement=False,
         include_endpoint_provenance_note=False,
@@ -322,6 +507,8 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
     assert "ama_pdf_defaults_missing" in report["blockers"]
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
+    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    assert "derived_analysis_manifest_missing_or_incomplete" in report["blockers"]
     assert "figure_table_led_results_narration_present" in report["blockers"]
     assert "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in report["blockers"]
     assert "endpoint_provenance_note_missing_or_unapplied" in report["blockers"]
@@ -359,6 +546,133 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
     assert report["top_hits"] == []
 
 
+def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_complete_model_registry=False,
+    )
+
+    state = module.build_surface_state(quest_root)
+    report = module.build_surface_report(state)
+
+    assert report["status"] == "blocked"
+    assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
+
+
+def test_build_report_blocks_when_model_entry_omits_input_scope_and_construction_details(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_model_method_details=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
+    assert "input_scope" in excerpts
+    assert "feature_construction" in excerpts
+    assert "predictor_selection_strategy" in excerpts
+
+
+def test_build_report_blocks_when_model_entry_omits_comparison_rationale(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    manifest_path = (
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "methods_implementation_manifest.json"
+    )
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["model_registry"][1].pop("comparison_rationale", None)
+    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
+    assert "comparison_rationale" in excerpts
+
+
+def test_build_report_blocks_when_case_mix_and_applicability_boundary_are_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_case_mix_boundary_fields=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
+    assert "case_mix_summary" in excerpts
+    assert "applicability_boundary" in excerpts
+
+
+def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        align_missing_data_policy_ids=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "missing_data_policy_inconsistent" in report["blockers"]
+    assert any(hit["pattern_id"] == "missing_data_policy_inconsistent" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrative_map(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    narrative_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "results_narrative_map.json"
+    payload = json.loads(narrative_path.read_text(encoding="utf-8"))
+    for section in payload["sections"]:
+        section["supporting_display_items"] = ["T1"]
+    narrative_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "results_narrative_map_missing_main_figure_reference" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_later_results_section_is_incomplete(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_complete_results_sections=False,
+    )
+
+    state = module.build_surface_state(quest_root)
+    report = module.build_surface_report(state)
+
+    assert report["status"] == "blocked"
+    assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
+
+
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
@@ -391,6 +705,8 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
     assert "AMA" in content
     assert "methods_implementation_manifest.json" in content
     assert "results_narrative_map.json" in content
+    assert "figure_semantics_manifest.json" in content
+    assert "derived_analysis_manifest.json" in content
     assert "manuscript_safe_reproducibility_supplement.json" in content
     assert "endpoint_provenance_note.md" in content
     assert result["top_hits"]

@@ -376,6 +376,86 @@ def parse_top_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def parse_figure_id_from_heading(heading: str) -> str | None:
+    supplementary_match = re.match(r"^Supplementary Figure S(\d+)\b", heading.strip(), flags=re.IGNORECASE)
+    if supplementary_match:
+        return f"FS{supplementary_match.group(1)}"
+    main_match = re.match(r"^Figure (\d+)\b", heading.strip(), flags=re.IGNORECASE)
+    if main_match:
+        return f"F{main_match.group(1)}"
+    return None
+
+
+def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
+    path = paper_root / "figure_semantics_manifest.json"
+    payload = load_json(path) if path.exists() else {}
+    figures = payload.get("figures") if isinstance(payload, dict) else None
+    if not isinstance(figures, list):
+        return {}
+    normalized: dict[str, dict[str, Any]] = {}
+    for item in figures:
+        if not isinstance(item, dict):
+            continue
+        figure_id = str(item.get("figure_id") or "").strip()
+        if figure_id:
+            normalized[figure_id] = item
+    return normalized
+
+
+def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: dict[str, Any] | None) -> str:
+    legend_parts = [base_legend.strip()] if base_legend.strip() else []
+    if not figure_semantics:
+        return "\n\n".join(legend_parts).strip()
+
+    semantic_lines: list[str] = []
+
+    def append_line(label: str, value: str) -> None:
+        text = str(value or "").strip()
+        if not text:
+            return
+        semantic_lines.append(f"{label}: {text}")
+
+    append_line("Direct message", str(figure_semantics.get("direct_message") or ""))
+    append_line("Clinical implication", str(figure_semantics.get("clinical_implication") or ""))
+    append_line("Interpretation boundary", str(figure_semantics.get("interpretation_boundary") or ""))
+
+    panel_messages = figure_semantics.get("panel_messages")
+    if isinstance(panel_messages, list) and panel_messages:
+        panel_parts: list[str] = []
+        for panel in panel_messages:
+            if not isinstance(panel, dict):
+                continue
+            panel_id = str(panel.get("panel_id") or "").strip()
+            message = str(panel.get("message") or "").strip()
+            if panel_id and message:
+                panel_parts.append(f"{panel_id}: {message}")
+        if panel_parts:
+            semantic_lines.append(f"Panel interpretation: {'; '.join(panel_parts)}")
+
+    legend_glossary = figure_semantics.get("legend_glossary")
+    if isinstance(legend_glossary, list) and legend_glossary:
+        glossary_parts: list[str] = []
+        for item in legend_glossary:
+            if not isinstance(item, dict):
+                continue
+            term = str(item.get("term") or "").strip()
+            explanation = str(item.get("explanation") or "").strip()
+            if term and explanation:
+                glossary_parts.append(f"{term}: {explanation}")
+        if glossary_parts:
+            semantic_lines.append(f"Legend glossary: {'; '.join(glossary_parts)}")
+
+    append_line("Threshold interpretation", str(figure_semantics.get("threshold_semantics") or ""))
+    append_line("Risk stratification basis", str(figure_semantics.get("stratification_basis") or ""))
+    append_line("Recommendation boundary", str(figure_semantics.get("recommendation_boundary") or ""))
+
+    existing_legend = " ".join(legend_parts)
+    deduped_semantic_lines = [line for line in semantic_lines if line not in existing_legend]
+    if deduped_semantic_lines:
+        legend_parts.extend(deduped_semantic_lines)
+    return "\n\n".join(part for part in legend_parts if part).strip()
+
+
 def strip_image_lines(text: str) -> str:
     cleaned_lines = [line for line in text.splitlines() if not line.strip().startswith("![](")]
     return "\n".join(cleaned_lines).strip()
@@ -400,6 +480,7 @@ def build_frontiers_manuscript_markdown(
     compiled_markdown_path: Path,
     submission_root: Path,
 ) -> Path:
+    paper_root = compiled_markdown_path.parents[1]
     compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
     title = metadata.get("title", "Article Title")
@@ -434,10 +515,15 @@ def build_frontiers_manuscript_markdown(
     )
     main_tables = extract_optional_markdown_block(body, "Main Tables", ["Main Figures"])
     main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix"])
+    figure_semantics_map = load_figure_semantics_map(paper_root)
 
     figure_legend_blocks = []
     for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
-        legend = strip_image_lines(block_body)
+        figure_id = parse_figure_id_from_heading(heading)
+        legend = merge_legend_with_figure_semantics(
+            base_legend=strip_image_lines(block_body),
+            figure_semantics=figure_semantics_map.get(figure_id or ""),
+        )
         figure_legend_blocks.append(f"## {heading}\n\n{legend}")
 
     table_blocks = []
