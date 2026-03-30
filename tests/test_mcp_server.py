@@ -41,6 +41,8 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "overlay_status",
         "runtime_watch",
         "data_assets_status",
+        "portfolio_memory_status",
+        "init_portfolio_memory",
         "startup_data_readiness",
         "deepscientist_upgrade_check",
         "study_runtime_status",
@@ -91,6 +93,28 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     assert result["isError"] is False
     assert result["structuredContent"]["decision"] == "create_and_start"
     assert result["structuredContent"]["quest_id"] == "001-risk"
+
+
+def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict[str, object]:
+        captured["workspace_root"] = workspace_root
+        return {"portfolio_memory_exists": True, "asset_count": 3}
+
+    monkeypatch.setattr(module.portfolio_memory, "portfolio_memory_status", fake_status)
+
+    result = module.call_tool(
+        "portfolio_memory_status",
+        {
+            "workspace_root": "/tmp/medautosci-demo",
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
+    assert result["structuredContent"]["asset_count"] == 3
 
 
 def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
