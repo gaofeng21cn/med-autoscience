@@ -8,6 +8,13 @@ Baseline work for a medical-data quest should preserve a strong paper route, not
 
 {{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
 
+Hard startup-boundary rules for this stage:
+
+- If `startup_contract.startup_boundary_gate.allow_compute_stage` is not `true`, do not run baseline code, do not start new training, and do not expand comparator work.
+- Read `startup_contract.required_first_anchor`; route immediately to that anchor instead of continuing compute-heavy work, and return through `decision` only after the startup blockers are cleared in durable artifacts.
+- If `startup_contract.baseline_execution_policy == "skip_unless_blocking"`, baseline may inspect already-produced evidence only when a named decision is blocked by missing or unusable comparator evidence.
+- Do not execute legacy implementation code from `refs/` or historical directories unless `startup_contract.legacy_code_execution_allowed` is `true`.
+
 Before declaring a baseline trustworthy, make the medical contract explicit:
 
 - target cohort, endpoint, and time horizon

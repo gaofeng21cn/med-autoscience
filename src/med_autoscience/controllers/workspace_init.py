@@ -52,6 +52,12 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "3. 编辑 `ops/medautoscience/config.env`，设置共享 `MedAutoScience` 仓库路径。\n"
         "4. 编辑 `ops/deepscientist/config.env`，设置本机 `ds` launcher 路径。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
+        "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
+        "## Runtime Boundary\n\n"
+        "- `MedAutoScience` 是研究入口与治理层。\n"
+        "- `ops/deepscientist/` 只保留 runtime 状态和运维脚本。\n"
+        "- 不要直接通过 DeepScientist UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
+        "- 如果需要启动、查看或停止 runtime，只把 `ops/deepscientist/bin/*` 当作运维面，不把它当成研究入口。\n"
     )
 
 
@@ -113,7 +119,13 @@ def _render_medautoscience_readme(*, profile_relpath: Path) -> str:
 def _render_deepscientist_readme() -> str:
     return (
         "# DeepScientist Workspace Entry\n\n"
-        "这个目录保留当前 workspace 的 DeepScientist project-local runtime state 与薄入口脚本。\n"
+        "这个目录保留当前 workspace 的 DeepScientist project-local runtime state 与薄入口脚本。\n\n"
+        "它是 runtime 运维面，不是研究入口。\n\n"
+        "请遵守下面的边界：\n\n"
+        "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
+        "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"
+        "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
+        "- 如果需要查看或维护 runtime，本目录下脚本只用于运维审计，不承担医学研究治理责任。\n"
     )
 
 

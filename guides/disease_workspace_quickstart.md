@@ -139,7 +139,14 @@ uv run python -m med_autoscience.cli init-workspace \
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`
 7. 再在 `studies/` 下创建首个 `study-id`
-8. 进入 intake、scout、idea、experiment 等推进阶段
+8. 从 `ops/medautoscience/bin/enter-study` 或受管入口进入 intake、scout、idea、write 等阶段
+
+## Runtime Boundary
+
+- `MedAutoScience` 是正式研究入口
+- `DeepScientist` 只是 workspace 内的 runtime
+- 不要直接通过 `DeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
+- `ops/deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
 
 ## 常见误区
 
@@ -151,5 +158,6 @@ uv run python -m med_autoscience.cli init-workspace \
 ## 接下来读什么
 
 - [Workspace Architecture](workspace_architecture.md)
+- [Runtime Boundary](runtime_boundary.md)
 - [Bootstrap](../bootstrap/README.md)
 - [workspace.profile.template.toml](../profiles/workspace.profile.template.toml)

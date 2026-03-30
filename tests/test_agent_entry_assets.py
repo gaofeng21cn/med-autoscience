@@ -78,9 +78,12 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
         assert _extract_contract_list(mode_block, "managed_entry_actions") == mode["managed_entry_actions"]
         assert _extract_contract_list(mode_block, "lightweight_routes") == mode["lightweight_routes"]
         assert _extract_contract_list(mode_block, "managed_routes") == mode["managed_routes"]
+        assert _extract_contract_list(mode_block, "startup_boundary_gated_routes") == mode["startup_boundary_gated_routes"]
         assert _extract_contract_list(mode_block, "governance_routes") == mode["governance_routes"]
         assert _extract_contract_list(mode_block, "auxiliary_routes") == mode["auxiliary_routes"]
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
+
+    assert "Do not enter `startup_boundary_gated_routes`" in guide
 
 
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])
@@ -107,9 +110,12 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
         assert _extract_contract_list(mode_block, "managed_entry_actions") == mode["managed_entry_actions"]
         assert _extract_contract_list(mode_block, "lightweight_routes") == mode["lightweight_routes"]
         assert _extract_contract_list(mode_block, "managed_routes") == mode["managed_routes"]
+        assert _extract_contract_list(mode_block, "startup_boundary_gated_routes") == mode["startup_boundary_gated_routes"]
         assert _extract_contract_list(mode_block, "governance_routes") == mode["governance_routes"]
         assert _extract_contract_list(mode_block, "auxiliary_routes") == mode["auxiliary_routes"]
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
+
+    assert "Do not enter `startup_boundary_gated_routes`" in prompt
 
 
 def _extract_mode_block(prompt: str, mode_id: str) -> str:

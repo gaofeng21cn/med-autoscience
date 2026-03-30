@@ -8,6 +8,13 @@ Judge main experiments by the strength of the eventual medical paper package, no
 
 {{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
 
+Hard startup-boundary rules for this stage:
+
+- If `startup_contract.startup_boundary_gate.allow_compute_stage` is not `true`, do not launch experiments, do not queue training, and do not open analysis loops that depend on new compute.
+- Read `startup_contract.required_first_anchor`; route immediately to that anchor instead of continuing compute-heavy work, and use `decision` only after the startup blockers are cleared in durable artifacts.
+- If `startup_contract.baseline_execution_policy == "skip_unless_blocking"`, treat any experiment request as blocked unless a named framing or evidence blocker truly requires one bounded recovery step.
+- Do not execute legacy implementation code from `refs/` or historical directories unless `startup_contract.legacy_code_execution_allowed` is `true`.
+
 For medical quests, the default downstream evidence package should explicitly consider:
 
 - calibration and threshold behavior

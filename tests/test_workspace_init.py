@@ -71,7 +71,17 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     root_readme = workspace_root / "README.md"
     assert root_readme.is_file()
-    assert "workspace" in root_readme.read_text(encoding="utf-8").lower()
+    root_readme_text = root_readme.read_text(encoding="utf-8")
+    assert "workspace" in root_readme_text.lower()
+    assert "ops/medautoscience/bin/show-profile" in root_readme_text
+    assert "不要直接通过 DeepScientist UI、CLI 或 daemon HTTP API 发起研究 quest" in root_readme_text
+
+    deepscientist_readme = workspace_root / "ops" / "deepscientist" / "README.md"
+    assert deepscientist_readme.is_file()
+    deepscientist_readme_text = deepscientist_readme.read_text(encoding="utf-8")
+    assert "runtime 运维面" in deepscientist_readme_text
+    assert "不是研究入口" in deepscientist_readme_text
+    assert "ops/medautoscience/bin/enter-study" in deepscientist_readme_text
 
 
 def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path) -> None:

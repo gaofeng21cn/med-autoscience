@@ -17,6 +17,8 @@
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
 - `MedAutoScience` 继续作为顶层医学治理层，`DeepScientist` 继续作为底层执行 runtime
 
+这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `DeepScientist`。
+
 ## 默认心智模型
 
 `MedAutoScience` 的默认对象不是“单篇论文目录”，而是“病种级 workspace”。
@@ -101,6 +103,12 @@ wrapper 不应继续硬编码：
 - 某个具体疾病 workspace 下的绝对 runtime 路径
 - 某个固定用户机器布局下的程序路径
 - 某个旧版 legacy controller 路径
+
+同时，wrapper 的职责边界也应明确：
+
+- `ops/medautoscience/bin/*` 是研究入口
+- `ops/deepscientist/bin/*` 是 runtime 运维入口
+- 两者不能混用
 
 ## 标准分层
 

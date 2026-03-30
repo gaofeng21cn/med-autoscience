@@ -76,7 +76,17 @@ def _required_first_anchor(profile: WorkspaceProfile, requested_launch_profile: 
     return "scout"
 
 
-def effective_custom_profile(*, profile: WorkspaceProfile, requested_launch_profile: str) -> str:
+def effective_custom_profile(
+    *,
+    profile: WorkspaceProfile,
+    requested_launch_profile: str,
+    allow_compute_stage: bool | None = None,
+) -> str:
+    if allow_compute_stage is False:
+        required_first_anchor = _required_first_anchor(profile, requested_launch_profile)
+        if required_first_anchor == "intake-audit":
+            return "continue_existing_state"
+        return "freeform"
     if requested_launch_profile != "continue_existing_state":
         return requested_launch_profile
     if profile.default_startup_anchor_policy == "intake_audit_first_for_continue_existing_state":
@@ -119,9 +129,14 @@ def evaluate_startup_boundary(
 
     allow_compute_stage = not missing_requirements
     legacy_code_execution_allowed = _legacy_code_execution_allowed(profile, study_payload)
+    resolved_custom_profile = effective_custom_profile(
+        profile=profile,
+        requested_launch_profile=requested_launch_profile,
+        allow_compute_stage=allow_compute_stage,
+    )
     advisories = [
         f"required_first_anchor:{required_first_anchor}",
-        f"effective_custom_profile:{effective_custom_profile(profile=profile, requested_launch_profile=requested_launch_profile)}",
+        f"effective_custom_profile:{resolved_custom_profile}",
     ]
     if not legacy_code_execution_allowed:
         advisories.append(
@@ -134,10 +149,7 @@ def evaluate_startup_boundary(
         "status": "ready_for_compute_stage" if allow_compute_stage else "scout_first_required",
         "study_root": str(study_root),
         "requested_launch_profile": requested_launch_profile,
-        "effective_custom_profile": effective_custom_profile(
-            profile=profile,
-            requested_launch_profile=requested_launch_profile,
-        ),
+        "effective_custom_profile": resolved_custom_profile,
         "required_first_anchor": required_first_anchor,
         "allow_compute_stage": allow_compute_stage,
         "missing_requirements": missing_requirements,

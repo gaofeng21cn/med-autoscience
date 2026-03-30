@@ -102,3 +102,40 @@ def test_resume_quest_posts_control_action(monkeypatch, tmp_path: Path) -> None:
     assert seen["method"] == "POST"
     assert seen["timeout"] == 10
     assert seen["payload"] == {"action": "resume", "source": "medautosci-test"}
+
+
+def test_pause_quest_posts_control_action(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.adapters.deepscientist.daemon_api")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: localhost\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "status": "paused"}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["method"] = http_request.get_method()
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        seen["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+
+    assert result == {"ok": True, "status": "paused"}
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/control"
+    assert seen["method"] == "POST"
+    assert seen["timeout"] == 10
+    assert seen["payload"] == {"action": "pause", "source": "medautosci-test"}
