@@ -30,10 +30,34 @@
 
 > 对外，它是医学研究平台；对内，它是一个 `Agent-first, human-auditable` 的自动科研运行层。
 
+## 默认工作单元
+
+在 `MedAutoScience` 里，默认不是“单篇论文目录”，而是“病种级 workspace”。
+
+一个标准 workspace 通常对应一个病种，或一个稳定的专病研究主题，并同时承担三件事：
+
+- 维护共享数据底座：私有数据、公开数据、数据版本与语义合同
+- 维护研究组合：围绕同一批数据并行推进多个 `study`
+- 维护投稿交付：把每条研究线收敛成稿件、补充材料与正式投稿包
+
+可以把默认层级理解为：
+
+- `workspace`
+  - 病种级长期资产层
+- `datasets/` 与 `portfolio/data_assets/`
+  - workspace 级数据资产层
+- `studies/<study-id>/`
+  - 单条研究线，通常对应一篇主稿或一组强关联投稿产物
+- `quest`
+  - `DeepScientist` 在该 study 下的运行状态
+- `paper bundle / submission package`
+  - 面向投稿的 study-local 交付物
+
 ## 这个平台面向什么研究
 
-- 围绕某个专病问题起步，希望把相关数据组织成可投稿研究的课题
+- 手里已经有，或后续会持续更新某个专病的一批数据，希望把它们组织成长期可用的研究资产
 - 不想只得到零散分析脚本，而是希望把选题、数据、分析、扩展验证和稿件组织成一条可持续推进的研究链
+- 希望在同一个病种 workspace 内，围绕共享数据底座并行推进多个课题，持续产出多篇论文
 - 希望技术同事和 Agent 参与执行，但最终仍由人类审阅结果并做关键判断
 
 ## 它控制的不是流程，而是研究质量
@@ -51,6 +75,7 @@
 
 | 平台控制面 | 当前已经稳定支持 |
 | --- | --- |
+| 病种级组织 | 以一个 workspace 管理同一病种的私有/公开数据、多个 studies 与持续累积的研究组合 |
 | 研究推进 | 研究入口、策略门控、运行监控，以及把课题持续推进到交付收口 |
 | 数据资产 | 私有数据版本登记、公开数据扩展登记、数据影响评估与可审计更新 |
 | 证据组织 | 把分析结果、扩展验证、功能解释和医学写作前验要求收束到同一研究链 |
@@ -63,6 +88,7 @@
 
 - 值得继续投入的研究方向，而不是只是“跑过一遍”的流程记录
 - 可追踪的数据资产和公开数据扩展线索
+- 在同一病种 workspace 内按 `study` 拆分的多条研究线
 - 相对完整的分析结果、验证结果和证据组织
 - 面向投稿的稿件、补充材料和交付收口结果
 
@@ -86,6 +112,12 @@
 ## 平台如何工作
 
 这个平台的工作逻辑，不是“人来操作一堆工具”，而是“人类定义研究目标，Agent 调用运行层接口推进，平台保留可审计状态”。
+
+这条链路默认发生在病种级 workspace 内：
+
+- workspace 级负责管理私有数据、公开数据、版本、合同与研究组合
+- study 级负责承接某一条具体研究线
+- 同一份已登记的数据版本，可以被多个 study 复用，而不是在每个 study 里重复维护一份“真相数据”
 
 通常按下面的顺序推进：
 
@@ -114,7 +146,7 @@
 
 通常只需要三步：
 
-1. 先准备一个单独的研究目录，把原始数据、数据说明文档、变量定义、终点定义、纳排标准、分组规则，以及你已有的参考文章或研究设想放进去。
+1. 先准备一个病种级 workspace，把原始数据、数据说明文档、变量定义、终点定义、纳排标准、分组规则，以及你已有的参考文章或研究设想放进去。
 2. 再对你的 Agent（例如 Codex、Claude Code、OpenClaw 等）明确说明两件事：先把这些数据清洗、整理成适合机读和可审计的研究资产；再使用 [MedAutoScience](https://github.com/gaofeng21cn/med-autoscience) 作为自动科研运行框架，围绕你的目标展开自动科研。
 3. 最后把你的具体要求直接说清楚，例如目标是发表二区以上的 SCI、希望仿照哪篇文章、已有怎样的科研思路、哪些终点或亚组必须重点分析，这些都可以直接告诉 Agent，由它继续传达给 `MedAutoScience` 的运行过程。
 
@@ -147,6 +179,7 @@
 - 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)
 - Codex plugin 接入：[guides/codex_plugin.md](guides/codex_plugin.md)
 - Codex plugin 发布说明：[guides/codex_plugin_release.md](guides/codex_plugin_release.md)
+- 新病种 workspace 快速起步：[guides/disease_workspace_quickstart.md](guides/disease_workspace_quickstart.md)
 - Workspace 架构与迁移：[guides/workspace_architecture.md](guides/workspace_architecture.md)
 - 工作区接入与部署：[bootstrap/README.md](bootstrap/README.md)
 - 控制器与内部能力：[controllers/README.md](controllers/README.md)

@@ -17,6 +17,36 @@
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
 - `MedAutoScience` 继续作为顶层医学治理层，`DeepScientist` 继续作为底层执行 runtime
 
+## 默认心智模型
+
+`MedAutoScience` 的默认对象不是“单篇论文目录”，而是“病种级 workspace”。
+
+一个标准 workspace 默认表示：
+
+- 一个病种，或一个稳定的专病研究主题
+- 一批持续维护的私有/公开数据资产与数据版本
+- 多个围绕同一数据底座推进的 `study`
+- 多个由 `study` 收敛出来的稿件、补充材料和投稿交付物
+
+推荐按下面的层级理解：
+
+- `workspace`
+  - 病种级长期资产层
+- `dataset family / version`
+  - workspace 级数据版本层，例如主分析数据、补充随访版本、多中心增补版本
+- `study`
+  - 单条研究线，通常对应一篇主稿或一组强关联投稿产物
+- `quest`
+  - `DeepScientist` 在某个 study 下的运行状态与过程性产物
+- `paper bundle / submission package`
+  - 面向投稿的 study-local 交付结果
+
+关键点是：
+
+- 数据资产属于 workspace 级，不属于某个单独 study
+- study 消费已登记的数据版本，而不是自己成为真相源
+- 同一私有版本或公开数据扩展线索可以被多个 study 复用
+
 ## 非目标
 
 这份文档不要求：
@@ -140,6 +170,21 @@ wrapper 不应继续硬编码：
 └── docs/ or notes/ (project-local)
 ```
 
+目录职责建议理解为：
+
+- `datasets/`
+  - 冻结后的分析数据版本或稳定数据入口
+- `contracts/`
+  - 变量、终点、队列与语义合同
+- `studies/`
+  - 多条具体研究线，每个 `study-id` 独立组织自己的实验、稿件与交付
+- `portfolio/`
+  - workspace 级选题池、数据资产登记、公开数据扩展、跨 study 方法学积累
+- `refs/`
+  - 参考论文、提取稿与文献笔记
+- `ops/`
+  - workspace 本地入口、配置与 project-local runtime state
+
 ### D. 运行时重依赖层
 
 这一层专门放 `DeepScientist` 运行所需的重依赖：
@@ -229,6 +274,8 @@ wrapper 不应继续硬编码：
 - `deepscientist_repo_root`
   - 外部共享 `DeepScientist` 源码仓库
 
+这里的 `name` 也应理解为 workspace 名称，而不是单个 study 名称。
+
 对应地，workspace 侧还应有：
 
 - `ops/medautoscience/config.env`
@@ -254,6 +301,13 @@ wrapper 不应继续硬编码：
   - `studies/<study-id>/...`
   - `portfolio/data_assets/...`
   - `ops/deepscientist/runtime/...`
+
+这也意味着当前实现默认承认下面的基数关系：
+
+- 一个 workspace 对应多个数据版本
+- 一个 workspace 对应多个 study
+- 一个 study 对应一个或多个 quest
+- 一个 study 对应自己的 paper bundle / submission package
 
 因此，短期目标不是宣称“现有实现已经完全 topology-agnostic”，而是：
 
@@ -292,14 +346,22 @@ wrapper 不应继续做：
 3. 配置 workspace profile
 4. 显式指向外部共享的 `MedAutoScience` repo
 5. 显式指向外部共享的 `DeepScientist` repo
-6. 在 workspace 内初始化 project-local runtime state
-7. 由 Agent 调用 `bootstrap` 和后续 controller 开始推进
+6. 运行 `doctor`
+7. 由 Agent 调用 `bootstrap` 初始化 workspace 级接入与数据资产状态
+8. 在 `studies/` 下创建首个 `study-id`
+9. 再进入 intake、scout、idea、experiment 等具体研究推进
 
 这样新项目不需要：
 
 - 在疾病目录里再 clone 一份 `DeepScientist`
 - 在疾病目录里再装一套程序级 Python 环境
 - 在疾病目录里长期维护 `site-packages` 级补丁
+
+更不应该做的是：
+
+- 复制一个已经膨胀过的 legacy workspace 作为新病种模板
+- 把单篇论文目录误当成 workspace 顶层
+- 在每个 study 下面各自维护一份未经登记的数据“真相副本”
 
 ## Legacy inline-DeepScientist workspace 的定义
 
@@ -314,6 +376,7 @@ wrapper 不应继续做：
 
 - `MedAutoScience` 已外部共享
 - `DeepScientist` 仍有明显 inline runtime 遗留
+- 可以继续工作，但不应整体复制去做新病种模板
 
 ## NF-PitNET 迁移策略
 

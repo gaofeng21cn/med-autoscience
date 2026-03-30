@@ -12,16 +12,60 @@
 
 因此，这里的 bootstrap 说明主要是给 Agent 看“如何接入并接管一个医学 workspace”，不是要求医生自己维护运行细节。
 
+## 先建立正确心智模型
+
+这里的默认单位是“病种级 workspace”，不是“单篇论文目录”。
+
+- 一个 workspace 负责管理同一病种的一批私有/公开数据资产
+- 一个 workspace 可以并行推进多个 `study`
+- `bootstrap` 发生在 workspace 级，不是某个单独 study 级
+- `study` 消费 workspace 已登记的数据版本，并收敛出自己的稿件与交付物
+
 ## 预期前提
 
 - 仓库已 clone 到本机任意工作目录
 - Python：`>= 3.12`
 - 本机已具备可用的 `DeepScientist` 与 `Codex` 环境
-- 已存在一个具体医学研究 workspace，里面至少有：
+- 已存在一个病种级医学研究 workspace，里面至少有：
+  - `datasets/`
+  - `contracts/`
   - `studies/`
   - `portfolio/`
+  - `ops/medautoscience/`
   - `ops/deepscientist/runtime/`
   - 若要启用 finalize 的浅路径正式交付 contract，还需要 `ops/medautoscience/bin/sync-delivery`
+
+## 新病种 workspace 的最小骨架
+
+如果你是新建一个疾病项目，推荐最小骨架如下：
+
+```text
+<workspace>/
+├── datasets/
+├── contracts/
+├── studies/
+├── portfolio/
+│   └── data_assets/
+├── refs/
+└── ops/
+    ├── medautoscience/
+    │   ├── bin/
+    │   ├── profiles/
+    │   ├── config.env
+    │   └── README.md
+    └── deepscientist/
+        ├── bin/
+        ├── config.env
+        ├── runtime/
+        ├── startup_briefs/
+        └── startup_payloads/
+```
+
+这里需要注意：
+
+- 这是病种级顶层目录，不是某一篇论文自己的目录
+- 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
+- 不要在每个病种 workspace 里再 clone 一份 `DeepScientist`
 
 ## 最小部署步骤
 
@@ -58,7 +102,7 @@ python3 --version
 
 ```bash
 cd med-autoscience
-cp profiles/workspace.profile.template.toml profiles/my-study.local.toml
+cp profiles/workspace.profile.template.toml profiles/my-disease.local.toml
 ```
 
 然后编辑：
@@ -69,12 +113,13 @@ cp profiles/workspace.profile.template.toml profiles/my-study.local.toml
 
 - `profiles/*.local.toml` 是本机私有配置，不应提交到公开仓库
 - 仓库本身只保留模板，不保留真实路径
+- 这个 profile 描述的是病种级 workspace，而不是单篇论文
 
 ### 4. 运行 doctor
 
 ```bash
 cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-disease.local.toml
 ```
 
 期望看到：
@@ -91,14 +136,14 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study
 
 ```bash
 cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli show-profile --profile profiles/my-study.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli show-profile --profile profiles/my-disease.local.toml
 ```
 
 ### 6. 执行 bootstrap
 
 ```bash
 cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-study.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-disease.local.toml
 ```
 
 这一步当前会做三件事：
@@ -106,6 +151,12 @@ PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-st
 - 检查 profile 指向的 workspace / runtime 是否可见
 - 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
 - 通过 controller 统一刷新并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
+
+这里的数据资产刷新是 workspace 级的：
+
+- private release 与 public registry 都是 workspace 级登记面
+- `study impact` 是“这些数据资产会影响哪些 study”
+- 同一个已登记的数据版本，可以被多个 study 复用
 
 如果想单独重跑数据资产层，也可以继续显式执行：
 
@@ -126,10 +177,10 @@ PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/
 
 ```bash
 cd med-autoscience
-PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli install-medical-overlay --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-disease.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli install-medical-overlay --profile profiles/my-disease.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile profiles/my-disease.local.toml
+PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-disease.local.toml --refresh
 ```
 
 `deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `DeepScientist`，而是在真正升级前先回答几件事：
@@ -141,6 +192,19 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 - 医学 overlay 当前是否仍处于 `overlay_applied` 状态，还是已经被 upstream 覆写或漂移
 
 这一步的输出是机器可读 JSON，适合给 Agent 作为“现在该不该升级”的前置门控，而不是靠人工目测仓库状态。
+
+## 新病种项目的首次启动顺序
+
+如果你是在一台新电脑上，或第一次接入一个新病种项目，推荐顺序如下：
+
+1. 建立病种级 workspace 骨架
+2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
+3. 准备 `profiles/*.local.toml`
+4. 运行 `doctor`
+5. 运行 `bootstrap`
+6. 再在 `studies/` 下创建首个 `study-id`，并开始 intake / scout / startup brief
+
+也就是说，workspace 级接入和数据资产登记应先完成，再开始某一条具体研究线。
 
 ## 当前范围
 
