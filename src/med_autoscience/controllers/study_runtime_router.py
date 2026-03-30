@@ -12,7 +12,7 @@ from med_autoscience.adapters.deepscientist import daemon_api
 from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
 from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
-    submission_targets as submission_targets_controller,
+    startup_boundary_gate as startup_boundary_gate_controller,
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.submission_targets import resolve_submission_target_contract
@@ -123,28 +123,61 @@ def _build_startup_contract(
     primary_question = str(study_payload.get("primary_question") or "").strip()
     title = str(study_payload.get("title") or study_id).strip()
     objectives = [primary_question] if primary_question else [f"advance study {study_id} toward submission"]
+    boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
+        profile=profile,
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
+    requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
+    requested_launch_profile = requested_launch_profile or "continue_existing_state"
+    existing_brief = _read_optional_text(startup_brief_path)
+
+    if requested_launch_profile == "continue_existing_state":
+        scope = "full_research"
+        baseline_mode = "reuse_existing_only" if boundary_gate["allow_compute_stage"] else "stop_if_insufficient"
+        baseline_execution_policy = "reuse_existing_only" if boundary_gate["allow_compute_stage"] else "skip_unless_blocking"
+        resource_policy = "balanced" if boundary_gate["allow_compute_stage"] else "conservative"
+        research_intensity = "balanced" if boundary_gate["allow_compute_stage"] else "light"
+        time_budget_hours = 24 if boundary_gate["allow_compute_stage"] else 8
+        runtime_constraints = (
+            "Honor workspace data contracts and only reuse existing baseline assets after paper framing is explicit."
+            if boundary_gate["allow_compute_stage"]
+            else "Honor workspace data contracts. Start scout-first and block baseline or legacy-code execution until the startup boundary is cleared."
+        )
+    else:
+        scope = "baseline_plus_direction"
+        baseline_mode = "existing"
+        baseline_execution_policy = "auto"
+        resource_policy = "balanced"
+        research_intensity = "balanced"
+        time_budget_hours = 24
+        runtime_constraints = "Honor workspace data contracts and prepare a submission-ready study."
 
     return {
         "schema_version": 3,
         "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
         "need_research_paper": True,
-        "research_intensity": "balanced",
+        "research_intensity": research_intensity,
         "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
         "launch_mode": "custom",
-        "custom_profile": str(execution.get("launch_profile") or "continue_existing_state").strip()
-        or "continue_existing_state",
-        "scope": "baseline_plus_direction",
-        "baseline_mode": "existing",
-        "resource_policy": "balanced",
-        "time_budget_hours": 24,
+        "custom_profile": boundary_gate["effective_custom_profile"],
+        "scope": scope,
+        "baseline_mode": baseline_mode,
+        "baseline_execution_policy": baseline_execution_policy,
+        "resource_policy": resource_policy,
+        "time_budget_hours": time_budget_hours,
         "git_strategy": "semantic_head_plus_controlled_integration",
-        "runtime_constraints": "Honor workspace data contracts and prepare a submission-ready study.",
+        "runtime_constraints": runtime_constraints,
         "objectives": objectives,
         "baseline_urls": [],
-        "paper_urls": [],
+        "paper_urls": list(study_payload.get("paper_urls") or []),
         "entry_state_summary": f"Study root: {study_root}",
         "review_summary": "",
-        "custom_brief": _read_optional_text(startup_brief_path),
+        "custom_brief": startup_boundary_gate_controller.render_boundary_custom_brief(
+            existing_brief=existing_brief,
+            boundary_gate=boundary_gate,
+        ),
         "submission_targets": _serialize_submission_targets(profile, study_root),
     }
 
@@ -194,6 +227,12 @@ def _status_payload(
     quest_status = runtime_adapter.quest_status(quest_root) if quest_exists else ""
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
+    startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
+        profile=profile,
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
 
     result: dict[str, Any] = {
         "schema_version": 1,
@@ -209,6 +248,7 @@ def _status_payload(
         "runtime_binding_exists": runtime_binding_path.exists(),
         "workspace_contracts": contracts,
         "startup_data_readiness": readiness,
+        "startup_boundary_gate": startup_boundary_gate,
     }
 
     if str(execution.get("engine") or "").strip() != "deepscientist":
@@ -241,7 +281,11 @@ def _status_payload(
 
     if not quest_exists:
         result["decision"] = "create_and_start"
-        result["reason"] = "quest_missing"
+        result["reason"] = (
+            "quest_missing"
+            if startup_boundary_gate["allow_compute_stage"]
+            else "quest_missing_scout_first_contract"
+        )
         return result
 
     if quest_status in {"running", "active"}:
@@ -250,6 +294,10 @@ def _status_payload(
         return result
 
     if quest_status == "paused":
+        if not startup_boundary_gate["allow_compute_stage"]:
+            result["decision"] = "blocked"
+            result["reason"] = "startup_boundary_not_ready_for_resume"
+            return result
         if execution.get("auto_resume") is True:
             result["decision"] = "resume"
             result["reason"] = "quest_paused"
