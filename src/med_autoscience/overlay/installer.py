@@ -247,16 +247,20 @@ def _describe_target(
     source_text_before_overlay = manifest.get("source_text_before_overlay_text")
     if not isinstance(source_text_before_overlay, str):
         source_text_before_overlay = current_text
-    overlay_text = load_overlay_skill_text(
-        target.skill_id,
-        base_text=source_text_before_overlay if target.skill_id in APPEND_BLOCK_TEMPLATE_MAP else None,
-        policy_id=policy_id,
-        archetype_ids=archetype_ids,
-        default_submission_targets=default_submission_targets,
-        default_publication_profile=default_publication_profile,
-        default_citation_style=default_citation_style,
-    )
-    overlay_fingerprint = _fingerprint(overlay_text)
+    overlay_text = None
+    overlay_fingerprint = None
+    can_render_overlay = target.skill_id not in APPEND_BLOCK_TEMPLATE_MAP or source_text_before_overlay is not None
+    if can_render_overlay:
+        overlay_text = load_overlay_skill_text(
+            target.skill_id,
+            base_text=source_text_before_overlay if target.skill_id in APPEND_BLOCK_TEMPLATE_MAP else None,
+            policy_id=policy_id,
+            archetype_ids=archetype_ids,
+            default_submission_targets=default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
+        )
+        overlay_fingerprint = _fingerprint(overlay_text)
     current_fingerprint = None
     source_fingerprint_before_overlay = manifest.get("source_fingerprint_before_overlay")
     manifest_present = bool(manifest)
@@ -264,7 +268,7 @@ def _describe_target(
     if target.skill_path.exists():
         current_fingerprint = _fingerprint(current_text or "")
         if manifest_present:
-            if current_fingerprint == overlay_fingerprint:
+            if overlay_fingerprint and current_fingerprint == overlay_fingerprint:
                 status = "overlay_applied"
                 needs_reapply = False
             elif source_fingerprint_before_overlay and current_fingerprint == source_fingerprint_before_overlay:
@@ -274,7 +278,7 @@ def _describe_target(
                 status = "drifted"
                 needs_reapply = True
         else:
-            if current_fingerprint == overlay_fingerprint:
+            if overlay_fingerprint and current_fingerprint == overlay_fingerprint:
                 status = "overlay_present_unmanaged"
             else:
                 status = "not_installed"

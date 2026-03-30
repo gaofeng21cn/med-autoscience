@@ -65,6 +65,17 @@ def test_overlay_status_uses_quest_local_skill_targets_when_quest_root_provided(
     ]
 
 
+def test_overlay_status_reports_missing_target_for_append_stage_without_local_skill(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+
+    result = module.describe_medical_overlay(quest_root=quest_root, skill_ids=("intake-audit",))
+
+    assert result["scope"] == "quest"
+    assert result["targets"][0]["skill_id"] == "intake-audit"
+    assert result["targets"][0]["status"] == "missing_target"
+
+
 def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"
