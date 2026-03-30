@@ -56,3 +56,32 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             item for item in payload.get("default_submission_targets", []) if isinstance(item, dict)
         ),
     )
+
+
+def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
+    default_submission_targets = [dict(item) for item in profile.default_submission_targets]
+    return {
+        "name": profile.name,
+        "workspace_root": str(profile.workspace_root),
+        "runtime_root": str(profile.runtime_root),
+        "studies_root": str(profile.studies_root),
+        "portfolio_root": str(profile.portfolio_root),
+        "deepscientist_runtime_root": str(profile.deepscientist_runtime_root),
+        "deepscientist_repo_root": str(profile.deepscientist_repo_root) if profile.deepscientist_repo_root else None,
+        "publication": {
+            "default_publication_profile": profile.default_publication_profile,
+            "default_citation_style": profile.default_citation_style,
+            "default_submission_targets": default_submission_targets,
+        },
+        "overlay": {
+            "enable_medical_overlay": profile.enable_medical_overlay,
+            "medical_overlay_scope": profile.medical_overlay_scope,
+            "medical_overlay_skills": list(profile.medical_overlay_skills),
+        },
+        "policy": {
+            "research_route_bias_policy": profile.research_route_bias_policy,
+        },
+        "archetype": {
+            "preferred_study_archetypes": list(profile.preferred_study_archetypes),
+        },
+    }
