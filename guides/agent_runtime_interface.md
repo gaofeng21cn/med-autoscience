@@ -46,6 +46,9 @@
 - 何时需要从轻量专项模式升级为正式纳管模式
 - 每个模式可调用的 entry actions、研究 routes、governance routes 和 auxiliary routes
 
+“先定目标期刊，再反推选题和数据要求”的前置规划任务，不单独拆成第六类正式入口。
+这类任务默认仍属于轻量专项模式，通常组合使用 `literature_scout`、`idea_exploration`、`decision`，并在需要把目标期刊要求解析为正式约束时调用 `journal-resolution`；其交付应停在数据建议要求清单，而不是从这个场景直接升级到正式 managed 研究。
+
 如果你只是做一次性的文献调研、思路启发、补实验判断或稿件整理，Agent 可以直接按轻量专项模式调用相应 route。
 如果任务已经进入需要正式纳管的自动科研推进，则应按契约先走 `doctor -> bootstrap -> overlay-status`，再进入对应 managed route。
 
