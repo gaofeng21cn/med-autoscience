@@ -61,12 +61,15 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
+    resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     ds_doctor = workspace_root / "ops" / "deepscientist" / "bin" / "doctor"
     assert show_profile.is_file()
     assert enter_study.is_file()
+    assert resolve_journal_shortlist.is_file()
     assert ds_doctor.is_file()
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
+    assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(ds_doctor, os.X_OK)
 
     root_readme = workspace_root / "README.md"

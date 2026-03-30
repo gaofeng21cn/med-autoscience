@@ -198,6 +198,24 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert "q001" in captured.out
 
 
+def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_resolve(*, study_root: Path) -> dict[str, object]:
+        called["study_root"] = study_root
+        return {"status": "resolved", "shortlist": ["Heart"], "candidate_count": 1}
+
+    monkeypatch.setattr(cli.journal_shortlist_controller, "resolve_journal_shortlist", fake_resolve)
+
+    exit_code = cli.main(["resolve-journal-shortlist", "--study-root", str(tmp_path / "study")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_root"] == tmp_path / "study"
+    assert '"status": "resolved"' in captured.out
+
+
 def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

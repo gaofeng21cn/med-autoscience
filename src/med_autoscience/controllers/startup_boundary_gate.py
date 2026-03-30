@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.journal_shortlist import resolve_journal_shortlist_contract
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
@@ -25,29 +26,38 @@ def _non_empty_string(raw_value: object) -> str:
     return raw_value.strip()
 
 
-def _study_level_shortlist(study_payload: dict[str, Any]) -> tuple[str, ...]:
-    shortlist = _normalized_string_list(study_payload.get("journal_shortlist"))
-    if shortlist:
-        return shortlist
-    submission_targets = study_payload.get("submission_targets")
-    if not isinstance(submission_targets, list):
-        return ()
-    normalized: list[str] = []
-    for item in submission_targets:
-        if isinstance(item, str) and item.strip():
-            normalized.append(item.strip())
-            continue
-        if isinstance(item, dict):
-            journal_name = _non_empty_string(item.get("journal_name"))
-            publication_profile = _non_empty_string(item.get("publication_profile"))
-            official_guidelines_url = _non_empty_string(item.get("official_guidelines_url"))
-            if journal_name:
-                normalized.append(journal_name)
-            elif publication_profile:
-                normalized.append(publication_profile)
-            elif official_guidelines_url:
-                normalized.append(official_guidelines_url)
-    return tuple(normalized)
+def _journal_shortlist_gate_state(*, study_root: Path) -> dict[str, Any]:
+    try:
+        contract = resolve_journal_shortlist_contract(study_root=study_root)
+    except ValueError as exc:
+        return {
+            "ready": False,
+            "status": "invalid",
+            "shortlist": (),
+            "candidate_count": 0,
+            "uncovered_shortlist_entries": (),
+            "extra_evidence_entries": (),
+            "errors": (str(exc),),
+        }
+    if contract is None:
+        return {
+            "ready": False,
+            "status": "absent",
+            "shortlist": (),
+            "candidate_count": 0,
+            "uncovered_shortlist_entries": (),
+            "extra_evidence_entries": (),
+            "errors": (),
+        }
+    return {
+        "ready": contract.ready,
+        "status": "resolved" if contract.ready else "incomplete",
+        "shortlist": contract.shortlist,
+        "candidate_count": contract.candidate_count,
+        "uncovered_shortlist_entries": contract.uncovered_shortlist_entries,
+        "extra_evidence_entries": contract.extra_evidence_entries,
+        "errors": (),
+    }
 
 
 def _paper_framing_ready(study_payload: dict[str, Any]) -> bool:
@@ -108,9 +118,11 @@ def evaluate_startup_boundary(
     required_first_anchor = _required_first_anchor(profile, requested_launch_profile)
     missing_requirements: list[str] = []
     blockers: list[str] = []
+    advisories: list[str] = []
 
     paper_framing_ready = _paper_framing_ready(study_payload)
-    journal_shortlist_ready = bool(_study_level_shortlist(study_payload))
+    journal_shortlist_state = _journal_shortlist_gate_state(study_root=study_root)
+    journal_shortlist_ready = bool(journal_shortlist_state["ready"])
     evidence_package_ready = _evidence_package_ready(study_payload)
     readiness_by_requirement = {
         "paper_framing": paper_framing_ready,
@@ -119,7 +131,7 @@ def evaluate_startup_boundary(
     }
     blocker_messages = {
         "paper_framing": "paper_framing_missing_or_has_no_literature_anchor",
-        "journal_shortlist": "journal_shortlist_missing",
+        "journal_shortlist": "journal_shortlist_missing_or_not_evidence_backed",
         "evidence_package": "minimum_sci_ready_evidence_package_missing",
     }
 
@@ -136,10 +148,22 @@ def evaluate_startup_boundary(
         requested_launch_profile=requested_launch_profile,
         allow_compute_stage=allow_compute_stage,
     )
-    advisories = [
+    advisories.extend(
+        [
         f"required_first_anchor:{required_first_anchor}",
         f"effective_custom_profile:{resolved_custom_profile}",
-    ]
+        ]
+    )
+    advisories.append(f"journal_shortlist_contract_status:{journal_shortlist_state['status']}")
+    if journal_shortlist_state["errors"]:
+        advisories.extend(
+            f"journal_shortlist_error:{error}" for error in journal_shortlist_state["errors"]
+        )
+    if journal_shortlist_state["uncovered_shortlist_entries"]:
+        advisories.append(
+            "journal_shortlist_uncovered_entries:"
+            + ",".join(str(item) for item in journal_shortlist_state["uncovered_shortlist_entries"])
+        )
     if not legacy_code_execution_allowed:
         advisories.append(
             "legacy_code_execution_blocked_until_user_approval"
@@ -161,6 +185,10 @@ def evaluate_startup_boundary(
         "legacy_code_execution_allowed": legacy_code_execution_allowed,
         "paper_framing_ready": paper_framing_ready,
         "journal_shortlist_ready": journal_shortlist_ready,
+        "journal_shortlist_contract_status": journal_shortlist_state["status"],
+        "journal_shortlist": list(journal_shortlist_state["shortlist"]),
+        "journal_shortlist_candidate_count": int(journal_shortlist_state["candidate_count"]),
+        "journal_shortlist_uncovered_entries": list(journal_shortlist_state["uncovered_shortlist_entries"]),
         "evidence_package_ready": evidence_package_ready,
     }
 
@@ -181,13 +209,14 @@ def render_boundary_custom_brief(
     ]
     if allow_compute_stage:
         sections.append(
-            "Normalize the current study framing first, then decide whether any baseline reuse is still justified under the explicit paper framing, journal shortlist, and evidence package."
+            "Normalize the current study framing first, then decide whether any baseline reuse is still justified under the explicit paper framing, evidence-backed journal shortlist, and evidence package."
         )
     else:
         sections.extend(
             [
-                "Before any compute-heavy work, explicitly lock the paper framing, literature anchors, journal shortlist, and minimum SCI-ready evidence package.",
+                "Before any compute-heavy work, explicitly lock the paper framing, literature anchors, evidence-backed journal shortlist, and minimum SCI-ready evidence package.",
                 "Do not enter baseline, experiment, or analysis-campaign until the startup boundary blockers are cleared.",
+                "If venue targeting is still unsettled, resolve the shortlist evidence first via `resolve-journal-shortlist`; do not jump directly to submission-target or journal-resolution flows.",
             ]
         )
         if missing_requirements:

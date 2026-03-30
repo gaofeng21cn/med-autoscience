@@ -11,6 +11,7 @@ import yaml
 from med_autoscience.adapters.deepscientist import daemon_api
 from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
 from med_autoscience.controllers import (
+    journal_shortlist as journal_shortlist_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
@@ -100,6 +101,11 @@ def _serialize_submission_targets(profile: WorkspaceProfile, study_root: Path) -
     return [asdict(target) for target in contract.targets]
 
 
+def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
+    raw_targets = study_payload.get("submission_targets")
+    return isinstance(raw_targets, list) and bool(raw_targets)
+
+
 def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path) -> dict[str, Path]:
     return {
         "quest_root": profile.runtime_root / study_id,
@@ -131,6 +137,7 @@ def _build_startup_contract(
         study_payload=study_payload,
         execution=execution,
     )
+    journal_shortlist = journal_shortlist_controller.resolve_journal_shortlist(study_root=study_root)
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
     existing_brief = _read_optional_text(startup_brief_path)
@@ -195,7 +202,10 @@ def _build_startup_contract(
         "required_first_anchor": boundary_gate["required_first_anchor"],
         "legacy_code_execution_allowed": boundary_gate["legacy_code_execution_allowed"],
         "startup_boundary_gate": boundary_gate,
-        "submission_targets": _serialize_submission_targets(profile, study_root),
+        "journal_shortlist": journal_shortlist,
+        "submission_targets": _serialize_submission_targets(profile, study_root)
+        if _has_explicit_submission_targets(study_payload)
+        else [],
     }
 
 

@@ -10,6 +10,7 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
 
     assert "## Controller-first execution contract" in text
     assert "resolve-reference-papers" in text
+    assert "resolve-journal-shortlist" in text
     assert "resolve-submission-targets" in text
     assert "apply-data-asset-update" in text
     assert "Only when the platform does not already provide a stable controller" in text

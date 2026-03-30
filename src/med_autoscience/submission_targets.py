@@ -294,12 +294,15 @@ def render_submission_target_overlay_block(
 
     return (
         "## Submission target contract\n\n"
+        "This contract exists for venue-specific writing, finalization, and package export after a journal has already been selected.\n\n"
+        "Do not use submission targets as a venue-discovery or shortlist-generation workflow.\n\n"
         "Before venue-specific writing, finalization, or package export, resolve active submission targets in this order:\n"
         "1. `quest.yaml -> startup_contract.submission_targets`\n"
         "2. `study.yaml -> submission_targets`\n"
         "3. workspace profile `default_submission_targets`\n\n"
         "Use the primary target to shape title framing, abstract emphasis, result section ordering, discussion emphasis, "
         "figure legends, and journal-facing terminology.\n\n"
+        "If the research is still deciding which journals are realistic, first use the journal shortlist evidence workflow rather than this contract.\n\n"
         "If a target does not already map to a supported `publication_profile`, open `journal-resolution/SKILL.md`, use "
         "only official journal sources, and write both:\n"
         "- `paper/submission_target_resolution.md`\n"

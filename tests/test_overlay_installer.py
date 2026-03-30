@@ -242,6 +242,7 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "## Automation-ready execution contract" in decision_text
     assert "continue until durable outputs requiring human selection are produced" in decision_text
     assert "## Controller-first execution contract" in write_text
+    assert "resolve-journal-shortlist" in scout_text
     assert "resolve-submission-targets" in write_text
     assert "## Preferred study archetypes" not in write_text
 
@@ -253,6 +254,7 @@ def test_load_overlay_skill_text_for_journal_resolution_includes_controller_firs
 
     assert "## Controller-first execution contract" in text
     assert "resolve-submission-targets" in text
+    assert "not a venue-selection workflow" in text
 
 
 @pytest.mark.parametrize(

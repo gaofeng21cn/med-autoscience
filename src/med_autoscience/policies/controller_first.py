@@ -9,7 +9,8 @@ def render_controller_first_block() -> str:
         "",
         "Default controller-first order for common managed tasks:",
         "- literature and reference anchors: `resolve-reference-papers` before broad freeform literature expansion",
-        "- submission targets and journal requirements: `resolve-submission-targets`, then `journal-resolution` when the target is still unresolved",
+        "- venue selection and journal shortlist evidence: `resolve-journal-shortlist` before any journal-facing recommendation or tier discussion",
+        "- submission targets and journal requirements: only after a primary venue decision, use `resolve-submission-targets`, then `journal-resolution` when the target is still unresolved",
         "- public dataset discovery and registration: `data-assets-status`, `startup-data-readiness`, and `tooluniverse-status` before acquisition; `apply-data-asset-update` after acquisition",
         "- startup and publication gates: use the existing startup/data/publication gate controllers before inventing ad-hoc route logic",
         "",
@@ -26,7 +27,8 @@ def render_controller_first_block() -> str:
 def render_controller_first_summary() -> str:
     return (
         "Controller-first rule: prefer mature MedAutoScience controllers before freeform external execution. "
-        "Use `resolve-reference-papers`, `resolve-submission-targets`, `journal-resolution`, "
+        "Use `resolve-reference-papers`, `resolve-journal-shortlist`, and, only after a venue decision, "
+        "`resolve-submission-targets` plus `journal-resolution`, "
         "`data-assets-status`, `startup-data-readiness`, `tooluniverse-status`, and `apply-data-asset-update` "
         "whenever the task falls inside their covered surface. Only when the platform does not already provide a "
         "stable controller may the agent fall back to browser/web/document tools, and any such fallback must be "

@@ -6,6 +6,7 @@ __all__ = [
     "data_asset_updates",
     "deepscientist_upgrade_check",
     "figure_loop_guard",
+    "journal_shortlist",
     "startup_data_readiness",
     "publication_gate",
     "medical_publication_surface",

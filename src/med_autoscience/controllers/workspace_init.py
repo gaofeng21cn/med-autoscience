@@ -485,6 +485,11 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist",
+            content=_render_forward_script("resolve-journal-shortlist"),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "export-submission",
             content=_render_profile_optional_forward_script("export-submission-targets"),
             executable=True,
