@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from med_autoscience.agent_entry import load_entry_modes, load_entry_modes_payload
+from med_autoscience.agent_entry import modes as modes_module
 
 
 def test_load_entry_modes_returns_five_canonical_modes() -> None:
@@ -55,3 +60,86 @@ def test_payload_modes_explicitly_define_managed_entry_actions() -> None:
     for mode in modes:
         assert isinstance(mode, dict)
         assert mode["managed_entry_actions"] == ["doctor", "bootstrap", "overlay-status"]
+
+
+def test_payload_and_typed_loader_use_top_level_compatible_agents() -> None:
+    payload = load_entry_modes_payload()
+    modes_payload = payload["modes"]
+    assert isinstance(modes_payload, list)
+    for mode in modes_payload:
+        assert isinstance(mode, dict)
+        assert "compatible_agents" not in mode
+
+    canonical_agents = tuple(payload["compatible_agents"])
+    modes = load_entry_modes()
+    assert all(mode.compatible_agents == canonical_agents for mode in modes)
+
+
+def test_load_entry_modes_payload_rejects_missing_required_list_field(tmp_path: Path) -> None:
+    path = tmp_path / "invalid_entry_modes.yaml"
+    path.write_text(
+        """
+compatible_agents:
+  - Codex
+  - Claude Code
+  - OpenClaw
+modes:
+  - mode_id: broken_mode
+    display_name: Broken Mode
+    default_runtime_mode: lightweight
+    preconditions:
+      - workspace/profile available
+    lightweight_scope: demo
+    managed_entry_actions:
+      - doctor
+      - bootstrap
+      - overlay-status
+    lightweight_routes:
+      - write
+    governance_routes: []
+    auxiliary_routes: []
+    upgrade_triggers: []
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="managed_routes"):
+        load_entry_modes_payload(path=path)
+
+
+def test_load_entry_modes_rejects_mode_level_compatible_agents_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _payload_with_mode_override() -> dict[str, object]:
+        return {
+            "compatible_agents": ["Codex", "Claude Code", "OpenClaw"],
+            "modes": [
+                {
+                    "mode_id": "full_research",
+                    "display_name": "Full Research",
+                    "default_runtime_mode": "managed",
+                    "compatible_agents": ["Codex"],
+                    "preconditions": ["workspace/profile available"],
+                    "lightweight_scope": "none",
+                    "managed_entry_actions": ["doctor", "bootstrap", "overlay-status"],
+                    "lightweight_routes": [],
+                    "managed_routes": [
+                        "doctor",
+                        "bootstrap",
+                        "overlay-status",
+                        "scout",
+                        "idea",
+                        "experiment",
+                        "write",
+                        "finalize",
+                    ],
+                    "governance_routes": ["decision"],
+                    "auxiliary_routes": [],
+                    "upgrade_triggers": [],
+                }
+            ],
+        }
+
+    monkeypatch.setattr(modes_module, "load_entry_modes_payload", _payload_with_mode_override)
+
+    with pytest.raises(ValueError, match="compatible_agents"):
+        load_entry_modes()

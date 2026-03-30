@@ -6,10 +6,6 @@ modes:
   - mode_id: full_research
     display_name: Full Research
     default_runtime_mode: managed
-    compatible_agents:
-      - Codex
-      - Claude Code
-      - OpenClaw
     preconditions:
       - workspace/profile available
     lightweight_scope: none
@@ -34,10 +30,6 @@ modes:
   - mode_id: literature_scout
     display_name: Literature Scout
     default_runtime_mode: lightweight
-    compatible_agents:
-      - Codex
-      - Claude Code
-      - OpenClaw
     preconditions:
       - workspace/profile available
     lightweight_scope: early evidence framing
@@ -64,10 +56,6 @@ modes:
   - mode_id: idea_exploration
     display_name: Idea Exploration
     default_runtime_mode: lightweight
-    compatible_agents:
-      - Codex
-      - Claude Code
-      - OpenClaw
     preconditions:
       - workspace/profile available
     lightweight_scope: route selection and study framing
@@ -95,10 +83,6 @@ modes:
   - mode_id: project_optimization
     display_name: Project Optimization
     default_runtime_mode: lightweight
-    compatible_agents:
-      - Codex
-      - Claude Code
-      - OpenClaw
     preconditions:
       - workspace/profile available
     lightweight_scope: pathway adjustment and stop-loss
@@ -125,10 +109,6 @@ modes:
   - mode_id: writing_delivery
     display_name: Writing Delivery
     default_runtime_mode: lightweight
-    compatible_agents:
-      - Codex
-      - Claude Code
-      - OpenClaw
     preconditions:
       - workspace/profile available
     lightweight_scope: manuscript and delivery packaging

@@ -7,6 +7,22 @@ from typing import Any
 
 import yaml
 
+REQUIRED_MODE_LIST_FIELDS = (
+    "preconditions",
+    "managed_entry_actions",
+    "lightweight_routes",
+    "managed_routes",
+    "governance_routes",
+    "auxiliary_routes",
+    "upgrade_triggers",
+)
+REQUIRED_MODE_STRING_FIELDS = (
+    "mode_id",
+    "display_name",
+    "default_runtime_mode",
+    "lightweight_scope",
+)
+
 
 @dataclass(frozen=True)
 class EntryMode:
@@ -35,13 +51,15 @@ def load_entry_modes_payload(path: Path | None = None) -> dict[str, object]:
     payload = yaml.safe_load(raw_text)
     if not isinstance(payload, dict):
         raise ValueError("entry mode payload must be a mapping")
+    _validate_payload_contract(payload)
     return payload
 
 
 def load_entry_modes() -> tuple[EntryMode, ...]:
     payload = load_entry_modes_payload()
-    compatible_agents = _string_tuple(payload.get("compatible_agents"), "compatible_agents")
-    modes_payload = payload.get("modes")
+    _validate_payload_contract(payload)
+    compatible_agents = _string_tuple(payload["compatible_agents"], "compatible_agents")
+    modes_payload = payload["modes"]
     if not isinstance(modes_payload, list):
         raise ValueError("modes must be a list")
 
@@ -49,21 +67,20 @@ def load_entry_modes() -> tuple[EntryMode, ...]:
     for item in modes_payload:
         if not isinstance(item, dict):
             raise ValueError("each mode must be a mapping")
-        mode_agents = item.get("compatible_agents", list(compatible_agents))
         modes.append(
             EntryMode(
                 mode_id=_string_value(item, "mode_id"),
                 display_name=_string_value(item, "display_name"),
                 default_runtime_mode=_string_value(item, "default_runtime_mode"),
-                compatible_agents=_string_tuple(mode_agents, "compatible_agents"),
-                preconditions=_string_tuple(item.get("preconditions", []), "preconditions"),
+                compatible_agents=compatible_agents,
+                preconditions=_string_tuple(item["preconditions"], "preconditions"),
                 lightweight_scope=_string_value(item, "lightweight_scope"),
-                managed_entry_actions=_string_tuple(item.get("managed_entry_actions", []), "managed_entry_actions"),
-                lightweight_routes=_string_tuple(item.get("lightweight_routes", []), "lightweight_routes"),
-                managed_routes=_string_tuple(item.get("managed_routes", []), "managed_routes"),
-                governance_routes=_string_tuple(item.get("governance_routes", []), "governance_routes"),
-                auxiliary_routes=_string_tuple(item.get("auxiliary_routes", []), "auxiliary_routes"),
-                upgrade_triggers=_string_tuple(item.get("upgrade_triggers", []), "upgrade_triggers"),
+                managed_entry_actions=_string_tuple(item["managed_entry_actions"], "managed_entry_actions"),
+                lightweight_routes=_string_tuple(item["lightweight_routes"], "lightweight_routes"),
+                managed_routes=_string_tuple(item["managed_routes"], "managed_routes"),
+                governance_routes=_string_tuple(item["governance_routes"], "governance_routes"),
+                auxiliary_routes=_string_tuple(item["auxiliary_routes"], "auxiliary_routes"),
+                upgrade_triggers=_string_tuple(item["upgrade_triggers"], "upgrade_triggers"),
             )
         )
     return tuple(modes)
@@ -82,3 +99,32 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
     if not all(isinstance(item, str) for item in value):
         raise ValueError(f"{field} must contain only strings")
     return tuple(value)
+
+
+def _validate_payload_contract(payload: dict[str, Any]) -> None:
+    _string_tuple(payload.get("compatible_agents"), "compatible_agents")
+    modes_payload = payload.get("modes")
+    if not isinstance(modes_payload, list):
+        raise ValueError("modes must be a list")
+
+    for index, mode_payload in enumerate(modes_payload):
+        if not isinstance(mode_payload, dict):
+            raise ValueError("each mode must be a mapping")
+        mode_label = _mode_label(mode_payload, index)
+        if "compatible_agents" in mode_payload:
+            raise ValueError(f"{mode_label} must not override compatible_agents")
+        for field in REQUIRED_MODE_STRING_FIELDS:
+            if field not in mode_payload:
+                raise ValueError(f"{mode_label} missing required field: {field}")
+            _string_value(mode_payload, field)
+        for field in REQUIRED_MODE_LIST_FIELDS:
+            if field not in mode_payload:
+                raise ValueError(f"{mode_label} missing required field: {field}")
+            _string_tuple(mode_payload[field], field)
+
+
+def _mode_label(payload: dict[str, Any], index: int) -> str:
+    mode_id = payload.get("mode_id")
+    if isinstance(mode_id, str) and mode_id:
+        return f"mode[{mode_id}]"
+    return f"mode[index={index}]"
