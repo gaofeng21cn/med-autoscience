@@ -216,6 +216,42 @@ def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tm
     assert '"status": "resolved"' in captured.out
 
 
+def test_init_portfolio_memory_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_init(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {"portfolio_memory_root": str(workspace_root / "portfolio" / "research_memory"), "created_files": []}
+
+    monkeypatch.setattr(cli.portfolio_memory_controller, "init_portfolio_memory", fake_init)
+
+    exit_code = cli.main(["init-portfolio-memory", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"portfolio_memory_root"' in captured.out
+
+
+def test_portfolio_memory_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {"portfolio_memory_exists": True, "asset_count": 3}
+
+    monkeypatch.setattr(cli.portfolio_memory_controller, "portfolio_memory_status", fake_status)
+
+    exit_code = cli.main(["portfolio-memory-status", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"asset_count": 3' in captured.out
+
+
 def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

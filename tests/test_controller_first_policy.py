@@ -9,6 +9,7 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     text = module.render_controller_first_block()
 
     assert "## Controller-first execution contract" in text
+    assert "portfolio-memory-status" in text
     assert "resolve-reference-papers" in text
     assert "resolve-journal-shortlist" in text
     assert "resolve-submission-targets" in text

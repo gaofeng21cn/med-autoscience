@@ -20,6 +20,7 @@ from med_autoscience.controllers import (
     figure_loop_guard,
     journal_shortlist as journal_shortlist_controller,
     medical_publication_surface,
+    portfolio_memory as portfolio_memory_controller,
     publication_gate,
     reference_papers as reference_papers_controller,
     runtime_watch,
@@ -108,6 +109,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     data_assets_status_parser = subparsers.add_parser("data-assets-status")
     data_assets_status_parser.add_argument("--workspace-root", required=True)
+
+    init_portfolio_memory_parser = subparsers.add_parser("init-portfolio-memory")
+    init_portfolio_memory_parser.add_argument("--workspace-root", required=True)
+
+    portfolio_memory_status_parser = subparsers.add_parser("portfolio-memory-status")
+    portfolio_memory_status_parser.add_argument("--workspace-root", required=True)
 
     assess_data_asset_impact_parser = subparsers.add_parser("assess-data-asset-impact")
     assess_data_asset_impact_parser.add_argument("--workspace-root", required=True)
@@ -343,6 +350,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "data-assets-status":
         result = data_assets.data_assets_status(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "init-portfolio-memory":
+        result = portfolio_memory_controller.init_portfolio_memory(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "portfolio-memory-status":
+        result = portfolio_memory_controller.portfolio_memory_status(workspace_root=Path(args.workspace_root))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

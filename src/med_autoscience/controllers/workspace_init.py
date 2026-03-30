@@ -5,6 +5,7 @@ from pathlib import Path
 import json
 import re
 
+from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 
@@ -31,6 +32,7 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "contracts",
         workspace_root / "studies",
         workspace_root / "portfolio" / "data_assets",
+        workspace_root / "portfolio" / "research_memory",
         workspace_root / "refs",
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "profiles",
@@ -57,6 +59,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
+        "8. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `ops/deepscientist/` 只保留 runtime 状态和运维脚本。\n"
@@ -397,7 +400,7 @@ def _rendered_files(
     default_citation_style: str,
 ) -> list[RenderedFile]:
     profile_relpath = Path("ops") / "medautoscience" / "profiles" / _profile_filename(workspace_name)
-    return [
+    files = [
         RenderedFile(
             path=workspace_root / "README.md",
             content=_render_workspace_readme(workspace_name=workspace_name, profile_relpath=profile_relpath),
@@ -490,6 +493,16 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory",
+            content=_render_forward_script("init-portfolio-memory"),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status",
+            content=_render_forward_script("portfolio-memory-status"),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "export-submission",
             content=_render_profile_optional_forward_script("export-submission-targets"),
             executable=True,
@@ -530,6 +543,9 @@ def _rendered_files(
             executable=True,
         ),
     ]
+    for item in portfolio_memory_controller.render_portfolio_memory_files(workspace_root=workspace_root):
+        files.append(RenderedFile(path=item.path, content=item.content))
+    return files
 
 
 def init_workspace(

@@ -218,6 +218,10 @@ Before opening the web, check what the quest already knows.
 
 At minimum:
 
+- inspect `portfolio/research_memory/registry.yaml` and linked assets when the workspace already has cross-study research memory
+- inspect `portfolio/research_memory/topic_landscape.md` before re-deriving disease hot directions
+- inspect `portfolio/research_memory/dataset_question_map.md` before proposing new study directions from the same core data
+- inspect `portfolio/research_memory/venue_intelligence.md` before re-deriving journal neighborhoods or target-journal bands
 - inspect recent quest `papers`, `knowledge`, and `decisions`
 - inspect recent global `papers`, `knowledge`, and `templates` when the topic or benchmark looks reusable
 - run `memory.search(...)` over:

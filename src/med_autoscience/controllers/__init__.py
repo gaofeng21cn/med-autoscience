@@ -10,6 +10,7 @@ __all__ = [
     "startup_data_readiness",
     "publication_gate",
     "medical_publication_surface",
+    "portfolio_memory",
     "reference_papers",
     "runtime_watch",
     "sidecar_provider",

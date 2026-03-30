@@ -8,6 +8,7 @@ def render_controller_first_block() -> str:
         "Prefer mature MedAutoScience controllers, CLI entrypoints, and overlay skills before any freeform external execution.",
         "",
         "Default controller-first order for common managed tasks:",
+        "- portfolio research memory: inspect `portfolio/research_memory/*` and use `portfolio-memory-status` before fresh disease-topic, dataset-question, or venue-neighborhood rediscovery",
         "- literature and reference anchors: `resolve-reference-papers` before broad freeform literature expansion",
         "- venue selection and journal shortlist evidence: `resolve-journal-shortlist` before any journal-facing recommendation or tier discussion",
         "- submission targets and journal requirements: only after a primary venue decision, use `resolve-submission-targets`, then `journal-resolution` when the target is still unresolved",
@@ -27,6 +28,7 @@ def render_controller_first_block() -> str:
 def render_controller_first_summary() -> str:
     return (
         "Controller-first rule: prefer mature MedAutoScience controllers before freeform external execution. "
+        "Use `portfolio-memory-status` and the existing `portfolio/research_memory/*` layer before re-deriving disease topic landscapes, dataset question maps, or venue neighborhoods from scratch. "
         "Use `resolve-reference-papers`, `resolve-journal-shortlist`, and, only after a venue decision, "
         "`resolve-submission-targets` plus `journal-resolution`, "
         "`data-assets-status`, `startup-data-readiness`, `tooluniverse-status`, and `apply-data-asset-update` "

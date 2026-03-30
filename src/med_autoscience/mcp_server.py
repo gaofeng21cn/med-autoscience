@@ -9,6 +9,7 @@ from med_autoscience import __version__
 from med_autoscience.controllers import (
     data_assets,
     deepscientist_upgrade_check,
+    portfolio_memory,
     runtime_watch,
     startup_data_readiness as startup_data_readiness_controller,
     study_runtime_router,
@@ -125,6 +126,30 @@ def list_tools() -> list[dict[str, Any]]:
         {
             "name": "data_assets_status",
             "description": "Read the current MedAutoScience data-assets status for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "portfolio_memory_status",
+            "description": "Read the current portfolio research-memory status for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "init_portfolio_memory",
+            "description": "Initialize the portfolio research-memory scaffold for a workspace root.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -265,6 +290,16 @@ def _call_data_assets_status(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_portfolio_memory_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = portfolio_memory.portfolio_memory_status(workspace_root=Path(_require_string(arguments, "workspace_root")))
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_init_portfolio_memory(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = portfolio_memory.init_portfolio_memory(workspace_root=Path(_require_string(arguments, "workspace_root")))
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
     result = startup_data_readiness_controller.startup_data_readiness(
         workspace_root=Path(_require_string(arguments, "workspace_root"))
@@ -328,6 +363,8 @@ TOOL_HANDLERS = {
     "overlay_status": _call_overlay_status,
     "runtime_watch": _call_runtime_watch,
     "data_assets_status": _call_data_assets_status,
+    "portfolio_memory_status": _call_portfolio_memory_status,
+    "init_portfolio_memory": _call_init_portfolio_memory,
     "startup_data_readiness": _call_startup_data_readiness,
     "deepscientist_upgrade_check": _call_deepscientist_upgrade_check,
     "study_runtime_status": _call_study_runtime_status,
