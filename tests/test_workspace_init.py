@@ -50,6 +50,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     profile_text = profile_path.read_text(encoding="utf-8")
     assert 'name = "glioma"' in profile_text
     assert f'workspace_root = "{workspace_root}"' in profile_text
+    assert 'default_startup_anchor_policy = "scout_first_for_continue_existing_state"' in profile_text
+    assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
+    assert 'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]' in profile_text
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
     deep_config = workspace_root / "ops" / "deepscientist" / "config.env"

@@ -11,6 +11,21 @@ from med_autoscience.overlay.constants import (
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
 
+SUPPORTED_STARTUP_ANCHOR_POLICIES = (
+    "scout_first_for_continue_existing_state",
+    "intake_audit_first_for_continue_existing_state",
+)
+SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES = (
+    "forbid_without_user_approval",
+    "audit_only",
+    "allow_with_decision",
+)
+SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS = (
+    "paper_framing",
+    "journal_shortlist",
+    "evidence_package",
+)
+
 
 @dataclass(frozen=True)
 class WorkspaceProfile:
@@ -30,6 +45,9 @@ class WorkspaceProfile:
     preferred_study_archetypes: tuple[str, ...]
     default_submission_targets: tuple[dict[str, object], ...]
     medical_overlay_bootstrap_mode: str = "ensure_ready"
+    default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
+    legacy_code_execution_policy: str = "forbid_without_user_approval"
+    startup_boundary_requirements: tuple[str, ...] = SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS
 
 
 def _require_string(payload: dict[str, object], key: str) -> str:
@@ -71,6 +89,43 @@ def _optional_overlay_bootstrap_mode(payload: dict[str, object]) -> str:
         supported = ", ".join(SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES)
         raise TypeError(f"medical_overlay_bootstrap_mode must be one of: {supported}")
     return mode
+
+
+def _optional_startup_anchor_policy(payload: dict[str, object]) -> str:
+    policy = _optional_string_with_default(
+        payload,
+        "default_startup_anchor_policy",
+        default="scout_first_for_continue_existing_state",
+    )
+    if policy not in SUPPORTED_STARTUP_ANCHOR_POLICIES:
+        supported = ", ".join(SUPPORTED_STARTUP_ANCHOR_POLICIES)
+        raise TypeError(f"default_startup_anchor_policy must be one of: {supported}")
+    return policy
+
+
+def _optional_legacy_code_execution_policy(payload: dict[str, object]) -> str:
+    policy = _optional_string_with_default(
+        payload,
+        "legacy_code_execution_policy",
+        default="forbid_without_user_approval",
+    )
+    if policy not in SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES:
+        supported = ", ".join(SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES)
+        raise TypeError(f"legacy_code_execution_policy must be one of: {supported}")
+    return policy
+
+
+def _optional_startup_boundary_requirements(payload: dict[str, object]) -> tuple[str, ...]:
+    requirements = _optional_string_list(
+        payload,
+        "startup_boundary_requirements",
+        default=SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS,
+    )
+    unsupported = sorted(set(requirements).difference(SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS))
+    if unsupported:
+        supported = ", ".join(SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS)
+        raise TypeError(f"startup_boundary_requirements items must be drawn from: {supported}")
+    return requirements
 
 
 def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
@@ -152,6 +207,9 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         ),
         default_submission_targets=_optional_dict_list(payload, "default_submission_targets"),
         medical_overlay_bootstrap_mode=_optional_overlay_bootstrap_mode(payload),
+        default_startup_anchor_policy=_optional_startup_anchor_policy(payload),
+        legacy_code_execution_policy=_optional_legacy_code_execution_policy(payload),
+        startup_boundary_requirements=_optional_startup_boundary_requirements(payload),
     )
 
 
@@ -178,6 +236,9 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         },
         "policy": {
             "research_route_bias_policy": profile.research_route_bias_policy,
+            "default_startup_anchor_policy": profile.default_startup_anchor_policy,
+            "legacy_code_execution_policy": profile.legacy_code_execution_policy,
+            "startup_boundary_requirements": list(profile.startup_boundary_requirements),
         },
         "archetype": {
             "preferred_study_archetypes": list(profile.preferred_study_archetypes),

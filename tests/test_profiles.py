@@ -20,6 +20,9 @@ PROFILE_LINES = [
     'medical_overlay_bootstrap_mode = "ensure_ready"',
     'research_route_bias_policy = "high_plasticity_medical"',
     'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
+    'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
+    'legacy_code_execution_policy = "forbid_without_user_approval"',
+    'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
     "",
     "[[default_submission_targets]]",
     'publication_profile = "frontiers_family_harvard"',
@@ -66,6 +69,9 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
     )
+    assert profile.default_startup_anchor_policy == "scout_first_for_continue_existing_state"
+    assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
+    assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
     assert len(profile.default_submission_targets) == 1
     assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
     assert profile.default_submission_targets[0]["primary"] is True
@@ -119,6 +125,9 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
     )
+    assert profile.default_startup_anchor_policy == "scout_first_for_continue_existing_state"
+    assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
+    assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
 
 
 def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> None:
@@ -161,6 +170,9 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
 
     policy = contract["policy"]
     assert policy["research_route_bias_policy"] == profile.research_route_bias_policy
+    assert policy["default_startup_anchor_policy"] == profile.default_startup_anchor_policy
+    assert policy["legacy_code_execution_policy"] == profile.legacy_code_execution_policy
+    assert policy["startup_boundary_requirements"] == list(profile.startup_boundary_requirements)
 
     archetype = contract["archetype"]
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
@@ -370,4 +382,29 @@ def test_load_profile_rejects_invalid_medical_overlay_bootstrap_mode(tmp_path: P
 
     profiles = importlib.import_module("med_autoscience.profiles")
     with pytest.raises(TypeError, match="medical_overlay_bootstrap_mode"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Path) -> None:
+    profile_path = tmp_path / "invalid-legacy-code-policy.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "invalid-legacy-policy"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                'legacy_code_execution_policy = "always_yes"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="legacy_code_execution_policy"):
         profiles.load_profile(profile_path)
