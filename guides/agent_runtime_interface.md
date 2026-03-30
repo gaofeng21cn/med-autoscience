@@ -24,6 +24,33 @@
 - 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
 - 研究路线偏置：[`policies/research_route_bias_policy.md`](../policies/research_route_bias_policy.md)
 - sidecar provider 与 figure routes 指南：[`sidecar_figure_routes.md`](./sidecar_figure_routes.md)
+- 第三方 Agent 入口模式：[`agent_entry_modes.md`](./agent_entry_modes.md)
+
+## 第三方 Agent 入口资产
+
+当前对外按兼容消费来表达的 Agent 包括：`Codex`、`Claude Code`、`OpenClaw`。
+
+如果你需要把 `MedAutoScience` 的入口契约直接交给外部 Agent，而不是只让它阅读 README，可优先使用这些公开资产：
+
+- 入口模式公开契约：[`agent_entry_modes.md`](./agent_entry_modes.md)
+- 机器可读镜像：[`../templates/agent_entry_modes.yaml`](../templates/agent_entry_modes.yaml)
+- `Codex` 入口模板：[`../templates/codex/medautoscience-entry.SKILL.md`](../templates/codex/medautoscience-entry.SKILL.md)
+- `OpenClaw` 入口模板：[`../templates/openclaw/medautoscience-entry.prompt.md`](../templates/openclaw/medautoscience-entry.prompt.md)
+
+`Claude Code` 不单独维护专有入口模板，默认复用 `Codex` 这一套入口契约。
+
+这些资产只负责声明：
+
+- 哪些模式默认走 `managed`
+- 哪些模式默认走 `lightweight`
+- 何时需要从轻量专项模式升级为正式纳管模式
+- 每个模式可调用的 entry actions、研究 routes、governance routes 和 auxiliary routes
+
+“先定目标期刊，再反推选题和数据要求”的前置规划任务，不单独拆成第六类正式入口。
+这类任务默认仍属于轻量专项模式，通常组合使用 `literature_scout`、`idea_exploration`、`decision`，并在需要把目标期刊要求解析为正式约束时调用 `journal-resolution`；其交付应停在数据建议要求清单，而不是从这个场景直接升级到正式 managed 研究。
+
+如果你只是做一次性的文献调研、思路启发、补实验判断或稿件整理，Agent 可以直接按轻量专项模式调用相应 route。
+如果任务已经进入需要正式纳管的自动科研推进，则应按契约先走 `doctor -> bootstrap -> overlay-status`，再进入对应 managed route。
 
 ## 运行层分工
 
