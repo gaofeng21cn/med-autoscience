@@ -43,6 +43,7 @@ def render_entry_modes_guide() -> str:
                 _render_list_line("managed_entry_actions", mode["managed_entry_actions"]),
                 _render_list_line("lightweight_routes", mode["lightweight_routes"]),
                 _render_list_line("managed_routes", mode["managed_routes"]),
+                _render_list_line("startup_boundary_gated_routes", mode["startup_boundary_gated_routes"]),
                 _render_list_line("governance_routes", mode["governance_routes"]),
                 _render_list_line("auxiliary_routes", mode["auxiliary_routes"]),
                 _render_list_line("upgrade_triggers", mode["upgrade_triggers"]),
@@ -55,6 +56,12 @@ def render_entry_modes_guide() -> str:
             "## Upgrade Rules",
             "If `upgrade_triggers` is non-empty and any trigger is satisfied, "
             "upgrade from lightweight to managed before continuing.",
+            "",
+            "## Startup Boundary Rule",
+            "Run `ensure-study-runtime` before any managed compute decision. Do not enter "
+            "`startup_boundary_gated_routes` unless that controller reports "
+            "`startup_boundary_gate.allow_compute_stage = true`; otherwise stay within "
+            "`managed_routes`, `governance_routes`, and any writing-only delivery route.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -130,6 +137,12 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
                 "  "
                 + _render_list_line("managed_routes", mode["managed_routes"], inline=True),
                 "  "
+                + _render_list_line(
+                    "startup_boundary_gated_routes",
+                    mode["startup_boundary_gated_routes"],
+                    inline=True,
+                ),
+                "  "
                 + _render_list_line("governance_routes", mode["governance_routes"], inline=True),
                 "  "
                 + _render_list_line("auxiliary_routes", mode["auxiliary_routes"], inline=True),
@@ -144,6 +157,12 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "## Upgrade Rule",
             "If `upgrade_triggers` is non-empty and any trigger is satisfied, "
             "upgrade from lightweight to managed before continuing.",
+            "",
+            "## Startup Boundary Rule",
+            "Run `ensure-study-runtime` before any managed compute decision. Do not enter "
+            "`startup_boundary_gated_routes` unless that controller reports "
+            "`startup_boundary_gate.allow_compute_stage = true`; otherwise stay within "
+            "`managed_routes`, `governance_routes`, and any writing-only delivery route.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"

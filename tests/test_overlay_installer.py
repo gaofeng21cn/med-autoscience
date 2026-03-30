@@ -259,6 +259,18 @@ def test_load_overlay_skill_text_for_forward_medical_stages(skill_id: str, expec
     assert expected_phrase in text
 
 
+@pytest.mark.parametrize("skill_id", ["baseline", "experiment", "analysis-campaign"])
+def test_load_overlay_skill_text_hard_blocks_compute_until_startup_boundary_is_ready(skill_id: str) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = module.load_overlay_skill_text(skill_id, base_text=f"# upstream {skill_id}\n")
+
+    assert "startup_contract.startup_boundary_gate.allow_compute_stage" in text
+    assert "startup_contract.required_first_anchor" in text
+    assert "route immediately to that anchor instead of continuing compute-heavy work" in text
+    assert "Do not execute legacy implementation code" in text
+
+
 def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"

@@ -62,9 +62,17 @@ def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, An
     return _post_json(url=f"{base_url}/api/quests", payload=payload)
 
 
-def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
+def _quest_control(*, runtime_root: Path, quest_id: str, action: str, source: str) -> dict[str, Any]:
     base_url = resolve_daemon_url(runtime_root=runtime_root)
     return _post_json(
         url=f"{base_url}/api/quests/{quest_id}/control",
-        payload={"action": "resume", "source": source},
+        payload={"action": action, "source": source},
     )
+
+
+def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
+    return _quest_control(runtime_root=runtime_root, quest_id=quest_id, action="resume", source=source)
+
+
+def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
+    return _quest_control(runtime_root=runtime_root, quest_id=quest_id, action="pause", source=source)

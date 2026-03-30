@@ -133,17 +133,27 @@ def _build_startup_contract(
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
     existing_brief = _read_optional_text(startup_brief_path)
 
-    if requested_launch_profile == "continue_existing_state":
+    if not boundary_gate["allow_compute_stage"]:
         scope = "full_research"
-        baseline_mode = "reuse_existing_only" if boundary_gate["allow_compute_stage"] else "stop_if_insufficient"
-        baseline_execution_policy = "reuse_existing_only" if boundary_gate["allow_compute_stage"] else "skip_unless_blocking"
-        resource_policy = "balanced" if boundary_gate["allow_compute_stage"] else "conservative"
-        research_intensity = "balanced" if boundary_gate["allow_compute_stage"] else "light"
-        time_budget_hours = 24 if boundary_gate["allow_compute_stage"] else 8
+        baseline_mode = "stop_if_insufficient"
+        baseline_execution_policy = "skip_unless_blocking"
+        resource_policy = "conservative"
+        research_intensity = "light"
+        time_budget_hours = 8
+        runtime_constraints = (
+            "Honor workspace data contracts. Treat the startup boundary as a hard gate: do not enter baseline, "
+            "experiment, or analysis-campaign until paper framing, journal shortlist, and the minimum SCI-ready "
+            "evidence package are explicit."
+        )
+    elif requested_launch_profile == "continue_existing_state":
+        scope = "full_research"
+        baseline_mode = "reuse_existing_only"
+        baseline_execution_policy = "reuse_existing_only"
+        resource_policy = "balanced"
+        research_intensity = "balanced"
+        time_budget_hours = 24
         runtime_constraints = (
             "Honor workspace data contracts and only reuse existing baseline assets after paper framing is explicit."
-            if boundary_gate["allow_compute_stage"]
-            else "Honor workspace data contracts. Start scout-first and block baseline or legacy-code execution until the startup boundary is cleared."
         )
     else:
         scope = "baseline_plus_direction"
@@ -178,6 +188,9 @@ def _build_startup_contract(
             existing_brief=existing_brief,
             boundary_gate=boundary_gate,
         ),
+        "required_first_anchor": boundary_gate["required_first_anchor"],
+        "legacy_code_execution_allowed": boundary_gate["legacy_code_execution_allowed"],
+        "startup_boundary_gate": boundary_gate,
         "submission_targets": _serialize_submission_targets(profile, study_root),
     }
 
@@ -204,7 +217,13 @@ def _build_create_payload(
         "goal": goal,
         "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
         "source": "med_autoscience.study_runtime_router",
-        "auto_start": True,
+        "auto_start": bool(
+            (
+                startup_contract.get("startup_boundary_gate")
+                if isinstance(startup_contract.get("startup_boundary_gate"), dict)
+                else {}
+            ).get("allow_compute_stage")
+        ),
         "startup_contract": startup_contract,
     }
 
@@ -280,30 +299,38 @@ def _status_payload(
         return result
 
     if not quest_exists:
-        result["decision"] = "create_and_start"
-        result["reason"] = (
-            "quest_missing"
-            if startup_boundary_gate["allow_compute_stage"]
-            else "quest_missing_scout_first_contract"
-        )
+        if startup_boundary_gate["allow_compute_stage"]:
+            result["decision"] = "create_and_start"
+            result["reason"] = "quest_missing"
+        else:
+            result["decision"] = "create_only"
+            result["reason"] = "startup_boundary_not_ready_for_auto_start"
         return result
 
     if quest_status in {"running", "active"}:
-        result["decision"] = "noop"
-        result["reason"] = "quest_already_running"
+        if not startup_boundary_gate["allow_compute_stage"]:
+            result["decision"] = "pause"
+            result["reason"] = "startup_boundary_not_ready_for_running_quest"
+        else:
+            result["decision"] = "noop"
+            result["reason"] = "quest_already_running"
         return result
 
-    if quest_status == "paused":
+    if quest_status in {"paused", "idle", "created"}:
         if not startup_boundary_gate["allow_compute_stage"]:
             result["decision"] = "blocked"
             result["reason"] = "startup_boundary_not_ready_for_resume"
             return result
         if execution.get("auto_resume") is True:
             result["decision"] = "resume"
-            result["reason"] = "quest_paused"
+            result["reason"] = "quest_paused" if quest_status == "paused" else "quest_initialized_waiting_to_start"
         else:
             result["decision"] = "blocked"
-            result["reason"] = "quest_paused_but_auto_resume_disabled"
+            result["reason"] = (
+                "quest_paused_but_auto_resume_disabled"
+                if quest_status == "paused"
+                else "quest_initialized_but_auto_resume_disabled"
+            )
         return result
 
     result["decision"] = "blocked"
@@ -409,7 +436,7 @@ def ensure_study_runtime(
     startup_payload_path: Path | None = None
     daemon_result: dict[str, Any] | None = None
 
-    if status["decision"] == "create_and_start":
+    if status["decision"] in {"create_and_start", "create_only"}:
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -427,14 +454,15 @@ def ensure_study_runtime(
         status["quest_root"] = str(profile.runtime_root / status["quest_id"])
         status["quest_exists"] = True
         snapshot = daemon_result.get("snapshot") if isinstance(daemon_result.get("snapshot"), dict) else {}
-        status["quest_status"] = str(snapshot.get("status") or "running")
+        fallback_status = "running" if create_payload.get("auto_start") is True else "idle"
+        status["quest_status"] = str(snapshot.get("status") or fallback_status)
         _write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
             profile=profile,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=status["quest_id"],
-            last_action="create_and_start",
+            last_action=str(status["decision"]),
             source=source,
         )
     elif status["decision"] == "resume":
@@ -451,6 +479,22 @@ def ensure_study_runtime(
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="resume",
+            source=source,
+        )
+    elif status["decision"] == "pause":
+        daemon_result = daemon_api.pause_quest(
+            runtime_root=profile.deepscientist_runtime_root,
+            quest_id=str(status["quest_id"]),
+            source=source,
+        )
+        status["quest_status"] = str(daemon_result.get("status") or "paused")
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=str(status["quest_id"]),
+            last_action="pause",
             source=source,
         )
     elif status["decision"] == "noop":

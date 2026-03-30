@@ -21,9 +21,12 @@ modes:
   - overlay-status
   - scout
   - idea
-  - experiment
   - write
   - finalize
+  startup_boundary_gated_routes:
+  - baseline
+  - experiment
+  - analysis-campaign
   governance_routes:
   - decision
   auxiliary_routes: []
@@ -47,9 +50,12 @@ modes:
   - overlay-status
   - scout
   - idea
-  - experiment
   - write
   - finalize
+  startup_boundary_gated_routes:
+  - baseline
+  - experiment
+  - analysis-campaign
   governance_routes:
   - decision
   auxiliary_routes: []
@@ -75,9 +81,12 @@ modes:
   - overlay-status
   - scout
   - idea
-  - experiment
   - write
   - finalize
+  startup_boundary_gated_routes:
+  - baseline
+  - experiment
+  - analysis-campaign
   governance_routes:
   - decision
   auxiliary_routes: []
@@ -102,9 +111,12 @@ modes:
   - overlay-status
   - scout
   - idea
-  - experiment
   - write
   - finalize
+  startup_boundary_gated_routes:
+  - baseline
+  - experiment
+  - analysis-campaign
   governance_routes:
   - decision
   auxiliary_routes: []
@@ -129,6 +141,7 @@ modes:
   - overlay-status
   - write
   - finalize
+  startup_boundary_gated_routes: []
   governance_routes: []
   auxiliary_routes:
   - journal-resolution

@@ -36,12 +36,17 @@ def test_load_entry_modes_keeps_formal_chain_and_writing_constraints() -> None:
         "overlay-status",
         "scout",
         "idea",
-        "experiment",
         "write",
         "finalize",
     )
+    assert full_research.startup_boundary_gated_routes == (
+        "baseline",
+        "experiment",
+        "analysis-campaign",
+    )
     assert full_research.governance_routes == ("decision",)
     assert writing_delivery.lightweight_routes == ("write",)
+    assert writing_delivery.startup_boundary_gated_routes == ()
     assert writing_delivery.auxiliary_routes == ("journal-resolution",)
     assert "submission bundle or final delivery requested" in writing_delivery.upgrade_triggers
 
@@ -72,10 +77,10 @@ def test_load_entry_modes_preserves_mode_level_managed_entry_actions(monkeypatch
                         "overlay-status",
                         "scout",
                         "idea",
-                        "experiment",
                         "write",
                         "finalize",
                     ],
+                    "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
                     "governance_routes": ["decision"],
                     "auxiliary_routes": [],
                     "upgrade_triggers": [],
@@ -89,6 +94,7 @@ def test_load_entry_modes_preserves_mode_level_managed_entry_actions(monkeypatch
                     "managed_entry_actions": ["doctor", "overlay-status", "ensure-study-runtime"],
                     "lightweight_routes": ["write"],
                     "managed_routes": ["doctor", "bootstrap", "overlay-status", "write", "finalize"],
+                    "startup_boundary_gated_routes": [],
                     "governance_routes": [],
                     "auxiliary_routes": ["journal-resolution"],
                     "upgrade_triggers": ["submission bundle or final delivery requested"],
@@ -138,6 +144,7 @@ modes:
       - overlay-status
     lightweight_routes:
       - write
+    startup_boundary_gated_routes: []
     governance_routes: []
     auxiliary_routes: []
     upgrade_triggers: []
@@ -170,10 +177,10 @@ def test_load_entry_modes_rejects_mode_level_compatible_agents_override(monkeypa
                         "overlay-status",
                         "scout",
                         "idea",
-                        "experiment",
                         "write",
                         "finalize",
                     ],
+                    "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
                     "governance_routes": ["decision"],
                     "auxiliary_routes": [],
                     "upgrade_triggers": [],

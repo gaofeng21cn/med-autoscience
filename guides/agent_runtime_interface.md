@@ -19,6 +19,7 @@
 
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
+- `MedAutoScience` / `DeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
 - 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
@@ -52,6 +53,17 @@
 如果你只是做一次性的文献调研、思路启发、补实验判断或稿件整理，Agent 可以直接按轻量专项模式调用相应 route。
 如果任务已经进入需要正式纳管的自动科研推进，则应按契约先走 `doctor -> bootstrap -> overlay-status`，再进入对应 managed route。
 
+## 唯一研究入口
+
+在当前架构里，`MedAutoScience` 是唯一研究入口，`DeepScientist` 只是 runtime。
+
+因此：
+
+- Agent 不应直接调用 `DeepScientist` daemon HTTP API 发起 quest
+- Agent 不应把 `DeepScientist` UI / CLI 当成研究入口
+- `ops/deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
+- 所有正式研究推进都应经由 `doctor`、`bootstrap`、`overlay-status`、`ensure-study-runtime` 和受管 route
+
 ## 运行层分工
 
 在这个运行层里，不建议把人类和 Agent 的职责混在一起：
@@ -68,8 +80,9 @@ Agent 调用接口时，优先遵守以下顺序：
 
 1. 先读状态，再做变更
 2. 优先使用平台提供的稳定入口，不直接改底层状态文件
-3. 把可审计结果落到 workspace 中，而不是只停留在会话上下文
-4. 变更数据资产时，优先使用统一 mutation 入口，而不是散落地手工更新多个文件
+3. 不直接调用 `DeepScientist` daemon API，也不绕过 `MedAutoScience` controller
+4. 把可审计结果落到 workspace 中，而不是只停留在会话上下文
+5. 变更数据资产时，优先使用统一 mutation 入口，而不是散落地手工更新多个文件
 
 对数据资产相关任务，通常先读这些状态：
 

@@ -12,6 +12,7 @@ REQUIRED_MODE_LIST_FIELDS = (
     "managed_entry_actions",
     "lightweight_routes",
     "managed_routes",
+    "startup_boundary_gated_routes",
     "governance_routes",
     "auxiliary_routes",
     "upgrade_triggers",
@@ -35,6 +36,7 @@ class EntryMode:
     managed_entry_actions: tuple[str, ...]
     lightweight_routes: tuple[str, ...]
     managed_routes: tuple[str, ...]
+    startup_boundary_gated_routes: tuple[str, ...]
     governance_routes: tuple[str, ...]
     auxiliary_routes: tuple[str, ...]
     upgrade_triggers: tuple[str, ...]
@@ -78,6 +80,10 @@ def load_entry_modes() -> tuple[EntryMode, ...]:
                 managed_entry_actions=_string_tuple(item["managed_entry_actions"], "managed_entry_actions"),
                 lightweight_routes=_string_tuple(item["lightweight_routes"], "lightweight_routes"),
                 managed_routes=_string_tuple(item["managed_routes"], "managed_routes"),
+                startup_boundary_gated_routes=_string_tuple(
+                    item["startup_boundary_gated_routes"],
+                    "startup_boundary_gated_routes",
+                ),
                 governance_routes=_string_tuple(item["governance_routes"], "governance_routes"),
                 auxiliary_routes=_string_tuple(item["auxiliary_routes"], "auxiliary_routes"),
                 upgrade_triggers=_string_tuple(item["upgrade_triggers"], "upgrade_triggers"),
