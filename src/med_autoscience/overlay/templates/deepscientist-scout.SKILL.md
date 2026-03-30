@@ -137,6 +137,19 @@ Recommended durable scout files:
 - `artifacts/scout/framing_report.md`
 - `artifacts/scout/eval_contract.md`
 - `artifacts/scout/baseline_shortlist.md`
+- `artifacts/scout/journal_shortlist.md` when venue targeting affects paper framing
+
+If paper framing depends on likely target venues, do not jump directly to `resolve-submission-targets` or `journal-resolution`.
+
+In that situation, first resolve the evidence-backed journal shortlist:
+
+- use `resolve-journal-shortlist` when the study already carries shortlist evidence in durable state
+- otherwise scout and write the shortlist evidence back into durable study artifacts before treating venue targeting as settled
+
+Treat venue selection and submission-target resolution as different tasks:
+
+- venue selection asks where this paper is realistically publishable
+- submission target resolution asks how to format a package for a journal that was already chosen
 
 For more explicit output shapes, read:
 
@@ -197,6 +210,7 @@ Also classify each unknown:
 - blocks `idea`
 - blocks both
 - useful but non-blocking
+- blocks venue selection
 
 ### 2.1 Reuse durable memory before external search
 

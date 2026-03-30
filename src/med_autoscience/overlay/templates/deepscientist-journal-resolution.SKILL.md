@@ -15,6 +15,9 @@ Use this skill to convert an unresolved journal target into a controlled, eviden
 
 This skill exists to stop venue-specific drafting from drifting into guesswork.
 
+This is not a venue-selection workflow.
+Only use this skill after a primary journal target has already been chosen from an evidence-backed shortlist.
+
 If a target journal is not already represented by a supported `publication_profile`, do not improvise the package format, reference style, section order, or template requirements from memory.
 
 Resolve the journal only from official sources, then write the result back into durable quest files.
@@ -34,6 +37,8 @@ If the official requirements are split across multiple official pages, reconcile
 
 ## Forbidden behavior
 
+- Do not use this skill to decide which journal should be targeted.
+- Do not generate a shortlist from journal homepages alone.
 - Do not infer journal requirements from memory.
 - Do not treat third-party blog posts or community notes as authoritative.
 - Do not export a venue-specific package until the unresolved target has been converted into a structured resolved target.

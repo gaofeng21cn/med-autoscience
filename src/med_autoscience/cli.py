@@ -18,6 +18,7 @@ from med_autoscience.controllers import (
     data_asset_updates as data_asset_updates_controller,
     deepscientist_upgrade_check,
     figure_loop_guard,
+    journal_shortlist as journal_shortlist_controller,
     medical_publication_surface,
     publication_gate,
     reference_papers as reference_papers_controller,
@@ -145,6 +146,9 @@ def build_parser() -> argparse.ArgumentParser:
     resolve_submission_targets_parser.add_argument("--profile", type=str)
     resolve_submission_targets_parser.add_argument("--study-root", type=str)
     resolve_submission_targets_parser.add_argument("--quest-root", type=str)
+
+    resolve_journal_shortlist_parser = subparsers.add_parser("resolve-journal-shortlist")
+    resolve_journal_shortlist_parser.add_argument("--study-root", required=True, type=str)
 
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
@@ -464,6 +468,13 @@ def main(argv: list[str] | None = None) -> int:
             profile_path=Path(args.profile) if args.profile else None,
             study_root=Path(args.study_root) if args.study_root else None,
             quest_root=Path(args.quest_root) if args.quest_root else None,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "resolve-journal-shortlist":
+        result = journal_shortlist_controller.resolve_journal_shortlist(
+            study_root=Path(args.study_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

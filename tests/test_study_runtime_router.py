@@ -44,6 +44,7 @@ def write_study(
     paper_framing_summary: str | None = None,
     paper_urls: list[str] | None = None,
     journal_shortlist: list[str] | None = None,
+    journal_shortlist_evidence: list[dict[str, object]] | None = None,
     minimum_sci_ready_evidence_package: list[str] | None = None,
     launch_profile: str = "continue_existing_state",
 ) -> Path:
@@ -72,6 +73,38 @@ def write_study(
     if journal_shortlist:
         lines.append("journal_shortlist:")
         lines.extend(f"  - {item}" for item in journal_shortlist)
+    if journal_shortlist_evidence is None and journal_shortlist:
+        journal_shortlist_evidence = [
+            {
+                "journal_name": journal_name,
+                "selection_band": "primary_fit" if index == 0 else "strong_alternative",
+                "fit_summary": f"{journal_name} fits the paper framing.",
+                "risk_summary": f"{journal_name} still requires a full evidence package.",
+                "official_scope_sources": [f"https://example.org/{index}/scope"],
+                "similar_paper_examples": [
+                    {
+                        "title": f"Example paper {index}",
+                        "journal": journal_name,
+                        "year": 2024,
+                        "source_url": f"https://example.org/{index}/paper",
+                        "similarity_rationale": "Same clinical prediction surface.",
+                    }
+                ],
+                "tier_snapshot": {
+                    "source": "manual_snapshot",
+                    "retrieved_on": "2026-03-30",
+                    "quartile": "Q1",
+                },
+                "confidence": "medium",
+            }
+            for index, journal_name in enumerate(journal_shortlist)
+        ]
+    if journal_shortlist_evidence:
+        lines.append("journal_shortlist_evidence:")
+        lines.extend(
+            f"  {line}" if line else line
+            for line in yaml.safe_dump(journal_shortlist_evidence, allow_unicode=True, sort_keys=False).splitlines()
+        )
     if minimum_sci_ready_evidence_package:
         lines.append("minimum_sci_ready_evidence_package:")
         lines.extend(f"  - {item}" for item in minimum_sci_ready_evidence_package)
@@ -169,7 +202,9 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert payload["startup_contract"]["scope"] == "full_research"
     assert payload["startup_contract"]["baseline_mode"] == "reuse_existing_only"
     assert payload["startup_contract"]["baseline_execution_policy"] == "reuse_existing_only"
-    assert payload["startup_contract"]["submission_targets"][0]["publication_profile"] == "general_medical_journal"
+    assert "resolve-journal-shortlist" in payload["startup_contract"]["controller_first_policy_summary"]
+    assert payload["startup_contract"]["submission_targets"] == []
+    assert payload["startup_contract"]["journal_shortlist"]["status"] == "resolved"
     assert "resolve-submission-targets" in payload["startup_contract"]["controller_first_policy_summary"]
     assert "apply-data-asset-update" in payload["startup_contract"]["controller_first_policy_summary"]
     assert "continue until durable outputs requiring human selection are produced" in payload["startup_contract"]["automation_ready_summary"]
@@ -540,6 +575,44 @@ def test_ensure_study_runtime_blocks_resume_when_startup_boundary_disallows_comp
     assert result["decision"] == "blocked"
     assert result["reason"] == "startup_boundary_not_ready_for_resume"
     assert result["startup_boundary_gate"]["allow_compute_stage"] is False
+
+
+def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["Heart"],
+        journal_shortlist_evidence=[],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(
+        profile=profile,
+        study_root=study_root,
+    )
+
+    assert result["startup_boundary_gate"]["allow_compute_stage"] is False
+    assert result["startup_boundary_gate"]["journal_shortlist_ready"] is False
+    assert result["startup_boundary_gate"]["journal_shortlist_contract_status"] == "absent"
 
 
 def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
