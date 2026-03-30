@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import argparse
 import importlib
 import json
 from pathlib import Path
+import pytest
 
 from med_autoscience.figure_routes import (
     FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
@@ -301,6 +303,21 @@ def test_apply_data_asset_update_command_dispatches_controller(monkeypatch, tmp_
     assert called["workspace_root"] == tmp_path / "workspace"
     assert called["payload"] == {"action": "refresh_all"}
     assert '"action": "refresh_all"' in captured.out
+
+
+def test_load_json_payload_from_args_rejects_non_object_payload_json() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = argparse.Namespace(payload_file=None, payload_json='["not", "an", "object"]')
+    with pytest.raises(SystemExit, match="JSON payload must be an object"):
+        cli._load_json_payload_from_args(args)
+
+
+def test_load_json_payload_from_args_accepts_object_payload_json() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    args = argparse.Namespace(payload_file=None, payload_json='{"action":"refresh_all"}')
+    assert cli._load_json_payload_from_args(args) == {"action": "refresh_all"}
 
 
 def test_recommend_aris_sidecar_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

@@ -28,33 +28,113 @@ class WorkspaceProfile:
     default_submission_targets: tuple[dict[str, object], ...]
 
 
+def _require_string(payload: dict[str, object], key: str) -> str:
+    value = payload[key]
+    if not isinstance(value, str):
+        raise TypeError(f"{key} must be a string")
+    return value
+
+
+def _optional_string(payload: dict[str, object], key: str, *, empty_as_none: bool = False) -> str | None:
+    if key not in payload:
+        return None
+    value = payload[key]
+    if not isinstance(value, str):
+        raise TypeError(f"{key} must be a string when provided")
+    if not value.strip():
+        if empty_as_none:
+            return None
+        raise TypeError(f"{key} must be a non-empty string when provided")
+    return value
+
+
+def _optional_string_with_default(payload: dict[str, object], key: str, *, default: str) -> str:
+    if key not in payload:
+        return default
+    value = payload[key]
+    if not isinstance(value, str) or not value.strip():
+        raise TypeError(f"{key} must be a non-empty string")
+    return value
+
+
+def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
+    if key not in payload:
+        return default
+    value = payload[key]
+    if not isinstance(value, bool):
+        raise TypeError(f"{key} must be a boolean")
+    return value
+
+
+def _optional_string_list(payload: dict[str, object], key: str, *, default: tuple[str, ...]) -> tuple[str, ...]:
+    if key not in payload:
+        return default
+    value = payload[key]
+    if not isinstance(value, list):
+        raise TypeError(f"{key} must be an array of strings")
+    if any(not isinstance(item, str) for item in value):
+        raise TypeError(f"{key} must be an array of strings")
+    return tuple(value)
+
+
+def _optional_dict_list(payload: dict[str, object], key: str) -> tuple[dict[str, object], ...]:
+    if key not in payload:
+        return ()
+    value = payload[key]
+    if not isinstance(value, list):
+        raise TypeError(f"{key} must be an array of tables")
+    if any(not isinstance(item, dict) for item in value):
+        raise TypeError(f"{key} must be an array of tables")
+    return tuple(dict(item) for item in value)
+
+
+def _resolve_profile_path(raw_path: str, *, profile_dir: Path) -> Path:
+    candidate = Path(raw_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = profile_dir / candidate
+    return candidate.resolve()
+
+
 def load_profile(path: str | Path) -> WorkspaceProfile:
     profile_path = Path(path).expanduser().resolve()
     payload = tomllib.loads(profile_path.read_text(encoding="utf-8"))
+    profile_dir = profile_path.parent
+    deepscientist_repo_root = _optional_string(payload, "deepscientist_repo_root", empty_as_none=True)
     return WorkspaceProfile(
-        name=str(payload["name"]),
-        workspace_root=Path(payload["workspace_root"]).expanduser().resolve(),
-        runtime_root=Path(payload["runtime_root"]).expanduser().resolve(),
-        studies_root=Path(payload["studies_root"]).expanduser().resolve(),
-        portfolio_root=Path(payload["portfolio_root"]).expanduser().resolve(),
-        deepscientist_runtime_root=Path(payload["deepscientist_runtime_root"]).expanduser().resolve(),
+        name=_require_string(payload, "name"),
+        workspace_root=_resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir),
+        runtime_root=_resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir),
+        studies_root=_resolve_profile_path(_require_string(payload, "studies_root"), profile_dir=profile_dir),
+        portfolio_root=_resolve_profile_path(_require_string(payload, "portfolio_root"), profile_dir=profile_dir),
+        deepscientist_runtime_root=_resolve_profile_path(
+            _require_string(payload, "deepscientist_runtime_root"),
+            profile_dir=profile_dir,
+        ),
         deepscientist_repo_root=(
-            Path(payload["deepscientist_repo_root"]).expanduser().resolve()
-            if payload.get("deepscientist_repo_root")
+            _resolve_profile_path(deepscientist_repo_root, profile_dir=profile_dir)
+            if deepscientist_repo_root is not None
             else None
         ),
-        default_publication_profile=str(payload["default_publication_profile"]),
-        default_citation_style=str(payload["default_citation_style"]),
-        enable_medical_overlay=bool(payload.get("enable_medical_overlay", True)),
-        medical_overlay_scope=str(payload.get("medical_overlay_scope", "global")),
-        medical_overlay_skills=tuple(str(item) for item in payload.get("medical_overlay_skills", DEFAULT_MEDICAL_OVERLAY_SKILL_IDS)),
-        research_route_bias_policy=str(payload.get("research_route_bias_policy", DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID)),
-        preferred_study_archetypes=tuple(
-            str(item) for item in payload.get("preferred_study_archetypes", DEFAULT_STUDY_ARCHETYPE_IDS)
+        default_publication_profile=_require_string(payload, "default_publication_profile"),
+        default_citation_style=_require_string(payload, "default_citation_style"),
+        enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
+        medical_overlay_scope=_optional_string_with_default(payload, "medical_overlay_scope", default="global"),
+        medical_overlay_skills=_optional_string_list(
+            payload,
+            "medical_overlay_skills",
+            default=DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
         ),
-        default_submission_targets=tuple(
-            item for item in payload.get("default_submission_targets", []) if isinstance(item, dict)
+        research_route_bias_policy=_optional_string_with_default(
+            payload,
+            "research_route_bias_policy",
+            default=DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID,
         ),
+        preferred_study_archetypes=_optional_string_list(
+            payload,
+            "preferred_study_archetypes",
+            default=DEFAULT_STUDY_ARCHETYPE_IDS,
+        ),
+        default_submission_targets=_optional_dict_list(payload, "default_submission_targets"),
     )
 
 
