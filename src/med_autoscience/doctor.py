@@ -87,6 +87,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"enable_medical_overlay: {str(report.profile.enable_medical_overlay).lower()}",
         f"medical_overlay_scope: {report.profile.medical_overlay_scope}",
         f"medical_overlay_skills: {', '.join(report.profile.medical_overlay_skills)}",
+        f"medical_overlay_bootstrap_mode: {report.profile.medical_overlay_bootstrap_mode}",
         f"research_route_bias_policy: {report.profile.research_route_bias_policy}",
         f"preferred_study_archetypes: {', '.join(report.profile.preferred_study_archetypes)}",
         f"workspace_exists: {str(report.workspace_exists).lower()}",
@@ -125,6 +126,7 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"enable_medical_overlay: {str(profile.enable_medical_overlay).lower()}",
         f"medical_overlay_scope: {profile.medical_overlay_scope}",
         f"medical_overlay_skills: {', '.join(profile.medical_overlay_skills)}",
+        f"medical_overlay_bootstrap_mode: {profile.medical_overlay_bootstrap_mode}",
         f"research_route_bias_policy: {profile.research_route_bias_policy}",
         f"preferred_study_archetypes: {', '.join(profile.preferred_study_archetypes)}",
     ]

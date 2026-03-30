@@ -30,14 +30,24 @@ ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
 SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
 REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
-FRONTLOAD_STAGE_IDS = frozenset({"scout", "idea", "decision"})
-SKILL_TEMPLATE_MAP = {
+FRONTLOAD_STAGE_IDS = frozenset(
+    {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
+)
+FULL_TEMPLATE_MAP = {
     "scout": "deepscientist-scout.SKILL.md",
     "idea": "deepscientist-idea.SKILL.md",
     "decision": "deepscientist-decision.SKILL.md",
     "write": "deepscientist-write.SKILL.md",
     "finalize": "deepscientist-finalize.SKILL.md",
     "journal-resolution": "deepscientist-journal-resolution.SKILL.md",
+}
+APPEND_BLOCK_TEMPLATE_MAP = {
+    "intake-audit": "deepscientist-intake-audit.block.md",
+    "baseline": "deepscientist-baseline.block.md",
+    "experiment": "deepscientist-experiment.block.md",
+    "analysis-campaign": "deepscientist-analysis-campaign.block.md",
+    "review": "deepscientist-review.block.md",
+    "rebuttal": "deepscientist-rebuttal.block.md",
 }
 
 
@@ -70,11 +80,68 @@ def _dump_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _append_marker(skill_id: str) -> str:
+    return f"<!-- MED_AUTOSCIENCE_APPEND_BLOCK:{skill_id} -->"
+
+
+def _load_template_text(template_name: str) -> str:
+    template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
+    return template_path.read_text(encoding="utf-8")
+
+
+def _render_overlay_text_from_template(
+    template: str,
+    *,
+    skill_id: str,
+    policy_id: str | None,
+    archetype_ids: tuple[str, ...] | list[str] | None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None,
+    default_publication_profile: str | None,
+    default_citation_style: str | None,
+) -> str:
+    rendered = template
+    if skill_id in {"scout", "idea", "write"}:
+        if REFERENCE_PAPERS_TOKEN not in rendered:
+            raise ValueError(f"Overlay template for {skill_id} is missing reference paper token")
+        rendered = rendered.replace(
+            REFERENCE_PAPERS_TOKEN,
+            render_reference_paper_overlay_block(stage_id=skill_id).rstrip(),
+        )
+    if skill_id in {"write", "finalize", "journal-resolution"}:
+        if SUBMISSION_TARGETS_TOKEN not in rendered:
+            raise ValueError(f"Overlay template for {skill_id} is missing submission target token")
+        rendered = rendered.replace(
+            SUBMISSION_TARGETS_TOKEN,
+            render_submission_target_overlay_block(
+                default_submission_targets=default_submission_targets,
+                default_publication_profile=default_publication_profile,
+                default_citation_style=default_citation_style,
+            ).rstrip(),
+        )
+    if skill_id not in FRONTLOAD_STAGE_IDS:
+        return rendered
+
+    normalized_policy_id = _normalize_policy_id(policy_id)
+    normalized_archetype_ids = _normalize_archetype_ids(archetype_ids)
+    if ROUTE_BIAS_TOKEN not in rendered or STUDY_ARCHETYPES_TOKEN not in rendered:
+        raise ValueError(f"Overlay template for {skill_id} is missing dynamic policy tokens")
+    rendered = rendered.replace(
+        ROUTE_BIAS_TOKEN,
+        render_policy_block(stage_id=skill_id, policy_id=normalized_policy_id).rstrip(),
+    )
+    rendered = rendered.replace(
+        STUDY_ARCHETYPES_TOKEN,
+        render_archetype_block(archetype_ids=normalized_archetype_ids).rstrip(),
+    )
+    return rendered
+
+
 def _normalize_skill_ids(skill_ids: tuple[str, ...] | list[str] | None) -> tuple[str, ...]:
     normalized = DEFAULT_MEDICAL_OVERLAY_SKILL_IDS if skill_ids is None else tuple(skill_ids)
     if ("write" in normalized or "finalize" in normalized) and "journal-resolution" not in normalized:
         normalized = normalized + ("journal-resolution",)
-    invalid = [skill_id for skill_id in normalized if skill_id not in SKILL_TEMPLATE_MAP]
+    supported_skill_ids = set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)
+    invalid = [skill_id for skill_id in normalized if skill_id not in supported_skill_ids]
     if invalid:
         raise ValueError(f"Unsupported medical overlay skill ids: {', '.join(invalid)}")
     return normalized
@@ -125,49 +192,45 @@ def _resolve_targets(
 def load_overlay_skill_text(
     skill_id: str,
     *,
+    base_text: str | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
     default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
     default_publication_profile: str | None = None,
     default_citation_style: str | None = None,
 ) -> str:
-    template_name = SKILL_TEMPLATE_MAP[skill_id]
-    template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
-    template = template_path.read_text(encoding="utf-8")
-    if skill_id in {"scout", "idea", "write"}:
-        if REFERENCE_PAPERS_TOKEN not in template:
-            raise ValueError(f"Overlay template for {skill_id} is missing reference paper token")
-        template = template.replace(
-            REFERENCE_PAPERS_TOKEN,
-            render_reference_paper_overlay_block(stage_id=skill_id).rstrip(),
+    if skill_id in FULL_TEMPLATE_MAP:
+        return _render_overlay_text_from_template(
+            _load_template_text(FULL_TEMPLATE_MAP[skill_id]),
+            skill_id=skill_id,
+            policy_id=policy_id,
+            archetype_ids=archetype_ids,
+            default_submission_targets=default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
         )
-    if skill_id in {"write", "finalize", "journal-resolution"}:
-        if SUBMISSION_TARGETS_TOKEN not in template:
-            raise ValueError(f"Overlay template for {skill_id} is missing submission target token")
-        template = template.replace(
-            SUBMISSION_TARGETS_TOKEN,
-            render_submission_target_overlay_block(
-                default_submission_targets=default_submission_targets,
-                default_publication_profile=default_publication_profile,
-                default_citation_style=default_citation_style,
-            ).rstrip(),
-        )
-    if skill_id not in FRONTLOAD_STAGE_IDS:
-        return template
 
-    normalized_policy_id = _normalize_policy_id(policy_id)
-    normalized_archetype_ids = _normalize_archetype_ids(archetype_ids)
-    if ROUTE_BIAS_TOKEN not in template or STUDY_ARCHETYPES_TOKEN not in template:
-        raise ValueError(f"Overlay template for {skill_id} is missing dynamic policy tokens")
-    rendered = template.replace(
-        ROUTE_BIAS_TOKEN,
-        render_policy_block(stage_id=skill_id, policy_id=normalized_policy_id).rstrip(),
+    if skill_id not in APPEND_BLOCK_TEMPLATE_MAP:
+        supported = ", ".join(sorted(set(FULL_TEMPLATE_MAP) | set(APPEND_BLOCK_TEMPLATE_MAP)))
+        raise ValueError(f"Unsupported medical overlay skill id: {skill_id}. Supported: {supported}")
+
+    if base_text is None:
+        raise ValueError(f"Overlay skill `{skill_id}` requires base_text")
+
+    marker = _append_marker(skill_id)
+    if marker in base_text:
+        return base_text
+
+    block = _render_overlay_text_from_template(
+        _load_template_text(APPEND_BLOCK_TEMPLATE_MAP[skill_id]),
+        skill_id=skill_id,
+        policy_id=policy_id,
+        archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
     )
-    rendered = rendered.replace(
-        STUDY_ARCHETYPES_TOKEN,
-        render_archetype_block(archetype_ids=normalized_archetype_ids).rstrip(),
-    )
-    return rendered
+    return base_text.rstrip() + "\n\n" + block.rstrip() + "\n"
 
 
 def _describe_target(
@@ -179,8 +242,14 @@ def _describe_target(
     default_publication_profile: str | None,
     default_citation_style: str | None,
 ) -> dict[str, Any]:
+    manifest = _load_json(target.manifest_path)
+    current_text = target.skill_path.read_text(encoding="utf-8") if target.skill_path.exists() else None
+    source_text_before_overlay = manifest.get("source_text_before_overlay_text")
+    if not isinstance(source_text_before_overlay, str):
+        source_text_before_overlay = current_text
     overlay_text = load_overlay_skill_text(
         target.skill_id,
+        base_text=source_text_before_overlay if target.skill_id in APPEND_BLOCK_TEMPLATE_MAP else None,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
         default_submission_targets=default_submission_targets,
@@ -188,13 +257,12 @@ def _describe_target(
         default_citation_style=default_citation_style,
     )
     overlay_fingerprint = _fingerprint(overlay_text)
-    manifest = _load_json(target.manifest_path)
     current_fingerprint = None
     source_fingerprint_before_overlay = manifest.get("source_fingerprint_before_overlay")
     manifest_present = bool(manifest)
 
     if target.skill_path.exists():
-        current_fingerprint = _fingerprint(target.skill_path.read_text(encoding="utf-8"))
+        current_fingerprint = _fingerprint(current_text or "")
         if manifest_present:
             if current_fingerprint == overlay_fingerprint:
                 status = "overlay_applied"
@@ -304,6 +372,7 @@ def _write_manifest(
     quest_root: Path | None,
     overlay_fingerprint: str,
     source_fingerprint_before_overlay: str,
+    source_text_before_overlay: str,
     policy_id: str,
     archetype_ids: tuple[str, ...],
 ) -> None:
@@ -317,6 +386,7 @@ def _write_manifest(
         "skill_path": str(target.skill_path),
         "overlay_fingerprint": overlay_fingerprint,
         "source_fingerprint_before_overlay": source_fingerprint_before_overlay,
+        "source_text_before_overlay_text": source_text_before_overlay,
         "policy_id": policy_id,
         "archetype_ids": list(archetype_ids),
         "applied_at": _utc_now(),
@@ -339,8 +409,14 @@ def _install_for_target(
     _seed_workspace_target_from_home(target=target, home=home)
     current_text = _ensure_target_ready(target)
     current_fingerprint = _fingerprint(current_text)
+    manifest = _load_json(target.manifest_path)
+    previous_source_text = manifest.get("source_text_before_overlay_text")
+    if not isinstance(previous_source_text, str) or not previous_source_text:
+        previous_source_text = None
+    source_text_before_overlay = previous_source_text or current_text
     overlay_text = load_overlay_skill_text(
         target.skill_id,
+        base_text=source_text_before_overlay if target.skill_id in APPEND_BLOCK_TEMPLATE_MAP else None,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
         default_submission_targets=default_submission_targets,
@@ -348,7 +424,6 @@ def _install_for_target(
         default_citation_style=default_citation_style,
     )
     overlay_fingerprint = _fingerprint(overlay_text)
-    manifest = _load_json(target.manifest_path)
     previous_source_fingerprint = str(manifest.get("source_fingerprint_before_overlay") or "").strip() or None
 
     already_managed = (
@@ -372,6 +447,7 @@ def _install_for_target(
         quest_root=quest_root,
         overlay_fingerprint=overlay_fingerprint,
         source_fingerprint_before_overlay=source_fingerprint_before_overlay,
+        source_text_before_overlay=source_text_before_overlay,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
     )
@@ -485,3 +561,94 @@ def reapply_medical_overlay(
         default_citation_style=default_citation_style,
         force=True,
     )
+
+
+def ensure_medical_overlay(
+    *,
+    quest_root: Path | None = None,
+    home: Path | None = None,
+    skill_ids: tuple[str, ...] | list[str] | None = None,
+    mode: str = "ensure_ready",
+    policy_id: str | None = None,
+    archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
+) -> dict[str, Any]:
+    pre_status = describe_medical_overlay(
+        quest_root=quest_root,
+        home=home,
+        skill_ids=skill_ids,
+        policy_id=policy_id,
+        archetype_ids=archetype_ids,
+        default_submission_targets=default_submission_targets,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
+    )
+    action_result: dict[str, Any] | None = None
+    selected_action = "noop"
+
+    if mode == "status_only":
+        selected_action = "status_only"
+        post_status = pre_status
+    else:
+        if mode == "install":
+            selected_action = "install"
+        elif mode == "reapply":
+            selected_action = "reapply"
+        elif mode == "ensure_ready":
+            if pre_status["all_targets_ready"]:
+                selected_action = "noop"
+            elif any(item["status"] in {"drifted", "overwritten_by_upstream"} for item in pre_status["targets"]):
+                selected_action = "reapply"
+            else:
+                selected_action = "install"
+        else:
+            raise ValueError(f"Unsupported medical overlay bootstrap mode: {mode}")
+
+        if selected_action == "install":
+            action_result = install_medical_overlay(
+                quest_root=quest_root,
+                home=home,
+                skill_ids=skill_ids,
+                policy_id=policy_id,
+                archetype_ids=archetype_ids,
+                default_submission_targets=default_submission_targets,
+                default_publication_profile=default_publication_profile,
+                default_citation_style=default_citation_style,
+            )
+        elif selected_action == "reapply":
+            action_result = reapply_medical_overlay(
+                quest_root=quest_root,
+                home=home,
+                skill_ids=skill_ids,
+                policy_id=policy_id,
+                archetype_ids=archetype_ids,
+                default_submission_targets=default_submission_targets,
+                default_publication_profile=default_publication_profile,
+                default_citation_style=default_citation_style,
+            )
+        post_status = (
+            describe_medical_overlay(
+                quest_root=quest_root,
+                home=home,
+                skill_ids=skill_ids,
+                policy_id=policy_id,
+                archetype_ids=archetype_ids,
+                default_submission_targets=default_submission_targets,
+                default_publication_profile=default_publication_profile,
+                default_citation_style=default_citation_style,
+            )
+            if selected_action != "noop"
+            else pre_status
+        )
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "overlay_name": OVERLAY_NAME,
+        "mode": mode,
+        "selected_action": selected_action,
+        "pre_status": pre_status,
+        "post_status": post_status,
+        "action_result": action_result,
+    }

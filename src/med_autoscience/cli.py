@@ -475,10 +475,15 @@ def main(argv: list[str] | None = None) -> int:
         doctor_report = build_doctor_report(profile)
         overlay_install = None
         overlay_status = None
+        overlay_bootstrap = None
         if profile.enable_medical_overlay:
             overlay_request = overlay_request_from_profile(profile)
-            overlay_install = overlay_installer.install_medical_overlay(**overlay_request)
-            overlay_status = overlay_installer.describe_medical_overlay(**overlay_request)
+            overlay_bootstrap = overlay_installer.ensure_medical_overlay(
+                **overlay_request,
+                mode=profile.medical_overlay_bootstrap_mode,
+            )
+            overlay_install = overlay_bootstrap.get("action_result")
+            overlay_status = overlay_bootstrap.get("post_status") or overlay_bootstrap.get("pre_status")
         workspace_root = profile.workspace_root
         data_assets_refresh = data_asset_updates_controller.refresh_data_assets(workspace_root=workspace_root)
         result = {
@@ -494,9 +499,11 @@ def main(argv: list[str] | None = None) -> int:
                     bool(overlay_status.get("all_targets_ready")) if overlay_status is not None else doctor_report.medical_overlay_ready
                 ),
                 "medical_overlay_scope": doctor_report.profile.medical_overlay_scope,
+                "medical_overlay_bootstrap_mode": doctor_report.profile.medical_overlay_bootstrap_mode,
                 "research_route_bias_policy": doctor_report.profile.research_route_bias_policy,
                 "preferred_study_archetypes": list(doctor_report.profile.preferred_study_archetypes),
             },
+            "overlay_bootstrap": overlay_bootstrap,
             "overlay_install": overlay_install,
             "overlay_status": overlay_status,
             "data_assets": data_assets_refresh,

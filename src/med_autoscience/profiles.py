@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 
-from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
+from med_autoscience.overlay.constants import (
+    DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
+    SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES,
+)
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
 
@@ -26,6 +29,7 @@ class WorkspaceProfile:
     research_route_bias_policy: str
     preferred_study_archetypes: tuple[str, ...]
     default_submission_targets: tuple[dict[str, object], ...]
+    medical_overlay_bootstrap_mode: str = "ensure_ready"
 
 
 def _require_string(payload: dict[str, object], key: str) -> str:
@@ -55,6 +59,18 @@ def _optional_string_with_default(payload: dict[str, object], key: str, *, defau
     if not isinstance(value, str) or not value.strip():
         raise TypeError(f"{key} must be a non-empty string")
     return value
+
+
+def _optional_overlay_bootstrap_mode(payload: dict[str, object]) -> str:
+    mode = _optional_string_with_default(
+        payload,
+        "medical_overlay_bootstrap_mode",
+        default="ensure_ready",
+    )
+    if mode not in SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES:
+        supported = ", ".join(SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES)
+        raise TypeError(f"medical_overlay_bootstrap_mode must be one of: {supported}")
+    return mode
 
 
 def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
@@ -135,6 +151,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             default=DEFAULT_STUDY_ARCHETYPE_IDS,
         ),
         default_submission_targets=_optional_dict_list(payload, "default_submission_targets"),
+        medical_overlay_bootstrap_mode=_optional_overlay_bootstrap_mode(payload),
     )
 
 
@@ -157,6 +174,7 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
             "enable_medical_overlay": profile.enable_medical_overlay,
             "medical_overlay_scope": profile.medical_overlay_scope,
             "medical_overlay_skills": list(profile.medical_overlay_skills),
+            "medical_overlay_bootstrap_mode": profile.medical_overlay_bootstrap_mode,
         },
         "policy": {
             "research_route_bias_policy": profile.research_route_bias_policy,

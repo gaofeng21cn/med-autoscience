@@ -29,6 +29,7 @@ def write_profile(path: Path) -> None:
                 "enable_medical_overlay = true",
                 'medical_overlay_scope = "workspace"',
                 'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
+                'medical_overlay_bootstrap_mode = "ensure_ready"',
                 'research_route_bias_policy = "high_plasticity_medical"',
                 'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
                 "",
@@ -121,6 +122,7 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     assert payload["overlay"]["enable_medical_overlay"] is True
     assert payload["overlay"]["medical_overlay_scope"] == "workspace"
     assert payload["overlay"]["medical_overlay_skills"][0] == "scout"
+    assert payload["overlay"]["medical_overlay_bootstrap_mode"] == "ensure_ready"
     assert payload["policy"]["research_route_bias_policy"] == "high_plasticity_medical"
     assert payload["archetype"]["preferred_study_archetypes"][0] == "clinical_classifier"
 
@@ -973,49 +975,38 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
     assert '"skill_id": "scout"' in captured.out
 
 
-def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     calls: dict[str, object] = {}
 
-    def fake_install(
+    def fake_ensure(
         *,
         quest_root: Path | None = None,
         skill_ids: tuple[str, ...] | None = None,
+        mode: str = "ensure_ready",
         policy_id: str | None = None,
         archetype_ids: tuple[str, ...] | None = None,
         default_submission_targets: tuple[dict[str, object], ...] | None = None,
         default_publication_profile: str | None = None,
         default_citation_style: str | None = None,
     ) -> dict:
-        calls["install_quest_root"] = quest_root
-        calls["install_skill_ids"] = skill_ids
-        calls["install_policy_id"] = policy_id
-        calls["install_archetype_ids"] = archetype_ids
-        calls["install_default_submission_targets"] = default_submission_targets
-        calls["install_default_publication_profile"] = default_publication_profile
-        calls["install_default_citation_style"] = default_citation_style
-        return {"installed_count": 5}
-
-    def fake_status(
-        *,
-        quest_root: Path | None = None,
-        skill_ids: tuple[str, ...] | None = None,
-        policy_id: str | None = None,
-        archetype_ids: tuple[str, ...] | None = None,
-        default_submission_targets: tuple[dict[str, object], ...] | None = None,
-        default_publication_profile: str | None = None,
-        default_citation_style: str | None = None,
-    ) -> dict:
-        calls["status_quest_root"] = quest_root
-        calls["status_skill_ids"] = skill_ids
-        calls["status_policy_id"] = policy_id
-        calls["status_archetype_ids"] = archetype_ids
-        calls["status_default_submission_targets"] = default_submission_targets
-        calls["status_default_publication_profile"] = default_publication_profile
-        calls["status_default_citation_style"] = default_citation_style
-        return {"all_targets_ready": True}
+        calls["ensure_quest_root"] = quest_root
+        calls["ensure_skill_ids"] = skill_ids
+        calls["ensure_mode"] = mode
+        calls["ensure_policy_id"] = policy_id
+        calls["ensure_archetype_ids"] = archetype_ids
+        calls["ensure_default_submission_targets"] = default_submission_targets
+        calls["ensure_default_publication_profile"] = default_publication_profile
+        calls["ensure_default_citation_style"] = default_citation_style
+        return {
+            "mode": mode,
+            "selected_action": "noop",
+            "pre_status": {"all_targets_ready": True},
+            "post_status": {"all_targets_ready": True},
+            "action_result": None,
+        }
 
     def fake_refresh_data_assets(*, workspace_root: Path) -> dict:
         calls["refresh_data_assets_workspace_root"] = workspace_root
@@ -1030,18 +1021,18 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
             },
         }
 
-    monkeypatch.setattr(cli.overlay_installer, "install_medical_overlay", fake_install)
-    monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
+    monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
 
     exit_code = cli.main(["bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert calls["install_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
-    assert calls["install_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["install_policy_id"] == "high_plasticity_medical"
-    assert calls["install_archetype_ids"] == (
+    assert calls["ensure_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
+    assert calls["ensure_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert calls["ensure_mode"] == "ensure_ready"
+    assert calls["ensure_policy_id"] == "high_plasticity_medical"
+    assert calls["ensure_archetype_ids"] == (
         "clinical_classifier",
         "clinical_subtype_reconstruction",
         "external_validation_model_update",
@@ -1049,7 +1040,7 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
     )
-    assert calls["install_default_submission_targets"] == (
+    assert calls["ensure_default_submission_targets"] == (
         {
             "publication_profile": "frontiers_family_harvard",
             "primary": True,
@@ -1057,31 +1048,47 @@ def test_bootstrap_command_installs_profile_overlay(monkeypatch, tmp_path: Path,
             "story_surface": "general_medical_journal",
         },
     )
-    assert calls["install_default_publication_profile"] == "general_medical_journal"
-    assert calls["install_default_citation_style"] == "AMA"
-    assert calls["status_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
-    assert calls["status_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["status_policy_id"] == "high_plasticity_medical"
-    assert calls["status_archetype_ids"] == (
-        "clinical_classifier",
-        "clinical_subtype_reconstruction",
-        "external_validation_model_update",
-        "gray_zone_triage",
-        "llm_agent_clinical_task",
-        "mechanistic_sidecar_extension",
-    )
-    assert calls["status_default_submission_targets"] == (
-        {
-            "publication_profile": "frontiers_family_harvard",
-            "primary": True,
-            "package_required": True,
-            "story_surface": "general_medical_journal",
-        },
-    )
-    assert calls["status_default_publication_profile"] == "general_medical_journal"
-    assert calls["status_default_citation_style"] == "AMA"
+    assert calls["ensure_default_publication_profile"] == "general_medical_journal"
+    assert calls["ensure_default_citation_style"] == "AMA"
     assert calls["refresh_data_assets_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert '"installed_count": 5' in captured.out
+    assert '"selected_action": "noop"' in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
     assert '"studies"' not in captured.out
+
+
+def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    profile_text = profile_path.read_text(encoding="utf-8").replace(
+        'medical_overlay_bootstrap_mode = "ensure_ready"',
+        'medical_overlay_bootstrap_mode = "status_only"',
+    )
+    profile_path.write_text(profile_text, encoding="utf-8")
+    calls: dict[str, object] = {}
+
+    def fake_ensure(*, mode: str = "ensure_ready", **kwargs) -> dict:
+        calls["mode"] = mode
+        calls["kwargs"] = kwargs
+        return {
+            "mode": mode,
+            "selected_action": "status_only",
+            "pre_status": {"all_targets_ready": False},
+            "post_status": {"all_targets_ready": False},
+            "action_result": None,
+        }
+
+    monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
+    monkeypatch.setattr(
+        cli.data_asset_updates_controller,
+        "refresh_data_assets",
+        lambda *, workspace_root: {"status": {"layout_ready": True}},
+    )
+
+    exit_code = cli.main(["bootstrap", "--profile", str(profile_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert calls["mode"] == "status_only"
+    assert '"selected_action": "status_only"' in captured.out
