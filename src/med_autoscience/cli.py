@@ -27,6 +27,7 @@ from med_autoscience.controllers import (
     submission_targets as submission_targets_controller,
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
+from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
 
@@ -79,6 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     show_profile_parser = subparsers.add_parser("show-profile")
     show_profile_parser.add_argument("--profile", required=True)
+
+    subparsers.add_parser("show-agent-entry-modes")
+
+    sync_agent_entry_assets_parser = subparsers.add_parser("sync-agent-entry-assets")
+    sync_agent_entry_assets_parser.add_argument("--repo-root", default=".")
 
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
@@ -211,6 +217,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "show-profile":
         profile = load_profile(args.profile)
         print(render_profile(profile), end="")
+        return 0
+
+    if args.command == "show-agent-entry-modes":
+        print(json.dumps(render_entry_modes_payload(), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "sync-agent-entry-assets":
+        result = sync_agent_entry_assets(repo_root=Path(args.repo_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "deepscientist-upgrade-check":
