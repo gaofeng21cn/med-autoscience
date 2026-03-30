@@ -68,6 +68,18 @@ workspace 级数据版本层。
 
 ## 推荐最小骨架
 
+如果你直接用 `MedAutoScience` 初始化，推荐命令是：
+
+```bash
+PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+  --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
+  --workspace-name my-disease
+```
+
+如果你想先让 Agent 看计划，再决定是否创建，可以先加 `--dry-run`。
+
+这个命令会生成下面这套最小骨架：
+
 ```text
 <workspace>/
 ├── datasets/
@@ -120,10 +132,10 @@ workspace 级数据版本层。
 
 1. 建立病种级 workspace 骨架
 2. 放入原始数据、数据说明、变量定义、终点定义和参考资料
-3. 准备 `ops/medautoscience/profiles/*.local.toml`
-4. 显式配置外部共享 `MedAutoScience` 与 `DeepScientist`
-5. 运行 `doctor`
-6. 运行 `bootstrap`
+3. 编辑 `ops/medautoscience/config.env` 与 `ops/deepscientist/config.env`
+4. 审阅生成的 `ops/medautoscience/profiles/*.local.toml`
+5. 运行 `ops/medautoscience/bin/show-profile`
+6. 运行 `ops/medautoscience/bin/bootstrap`
 7. 再在 `studies/` 下创建首个 `study-id`
 8. 进入 intake、scout、idea、experiment 等推进阶段
 

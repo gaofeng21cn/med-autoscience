@@ -27,6 +27,7 @@ from med_autoscience.controllers import (
     study_delivery_sync,
     submission_minimal,
     submission_targets as submission_targets_controller,
+    workspace_init as workspace_init_controller,
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
@@ -226,6 +227,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
+
+    init_workspace_parser = subparsers.add_parser("init-workspace")
+    init_workspace_parser.add_argument("--workspace-root", required=True)
+    init_workspace_parser.add_argument("--workspace-name", required=True)
+    init_workspace_parser.add_argument("--default-publication-profile", default="general_medical_journal")
+    init_workspace_parser.add_argument("--default-citation-style", default="AMA")
+    init_workspace_parser.add_argument("--dry-run", action="store_true")
+    init_workspace_parser.add_argument("--force", action="store_true")
 
     deepscientist_upgrade_check_parser = subparsers.add_parser("deepscientist-upgrade-check")
     deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
@@ -523,6 +532,18 @@ def main(argv: list[str] | None = None) -> int:
             "overlay_status": overlay_status,
             "data_assets": data_assets_refresh,
         }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "init-workspace":
+        result = workspace_init_controller.init_workspace(
+            workspace_root=Path(args.workspace_root),
+            workspace_name=str(args.workspace_name),
+            dry_run=bool(args.dry_run),
+            force=bool(args.force),
+            default_publication_profile=str(args.default_publication_profile),
+            default_citation_style=str(args.default_citation_style),
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

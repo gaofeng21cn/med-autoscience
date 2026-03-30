@@ -238,6 +238,57 @@ def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: P
     assert '"release_count": 1' in captured.out
 
 
+def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_init_workspace(
+        *,
+        workspace_root: Path,
+        workspace_name: str,
+        dry_run: bool,
+        force: bool,
+        default_publication_profile: str,
+        default_citation_style: str,
+    ) -> dict:
+        called["workspace_root"] = workspace_root
+        called["workspace_name"] = workspace_name
+        called["dry_run"] = dry_run
+        called["force"] = force
+        called["default_publication_profile"] = default_publication_profile
+        called["default_citation_style"] = default_citation_style
+        return {
+            "workspace_root": str(workspace_root),
+            "workspace_name": workspace_name,
+            "dry_run": dry_run,
+            "force": force,
+        }
+
+    monkeypatch.setattr(cli.workspace_init_controller, "init_workspace", fake_init_workspace)
+
+    exit_code = cli.main(
+        [
+            "init-workspace",
+            "--workspace-root",
+            str(tmp_path / "workspace"),
+            "--workspace-name",
+            "diabetes",
+            "--dry-run",
+            "--force",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert called["workspace_name"] == "diabetes"
+    assert called["dry_run"] is True
+    assert called["force"] is True
+    assert called["default_publication_profile"] == "general_medical_journal"
+    assert called["default_citation_style"] == "AMA"
+    assert '"workspace_name": "diabetes"' in captured.out
+
+
 def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
