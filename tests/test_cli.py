@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from med_autoscience.figure_routes import (
@@ -90,6 +91,36 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
         "mechanistic_sidecar_extension"
     ) in captured.out
     assert "medical_overlay_scope: workspace" in captured.out
+
+
+def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, capsys) -> None:
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+
+    try:
+        cli = importlib.import_module("med_autoscience.cli")
+    except ModuleNotFoundError:
+        cli = None
+
+    assert cli is not None
+    main = getattr(cli, "main", None)
+    assert callable(main)
+
+    exit_code = main(["show-profile", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["name"] == "nfpitnet"
+    assert payload["workspace_root"] == "/Users/gaofeng/workspace/Yang/无功能垂体瘤"
+    assert payload["publication"]["default_publication_profile"] == "general_medical_journal"
+    assert payload["publication"]["default_citation_style"] == "AMA"
+    assert payload["publication"]["default_submission_targets"][0]["publication_profile"] == "frontiers_family_harvard"
+    assert payload["overlay"]["enable_medical_overlay"] is True
+    assert payload["overlay"]["medical_overlay_scope"] == "workspace"
+    assert payload["overlay"]["medical_overlay_skills"][0] == "scout"
+    assert payload["policy"]["research_route_bias_policy"] == "high_plasticity_medical"
+    assert payload["archetype"]["preferred_study_archetypes"][0] == "clinical_classifier"
 
 
 def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:
