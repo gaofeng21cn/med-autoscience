@@ -350,9 +350,12 @@ def describe_medical_overlay(
 
 
 def _ensure_target_ready(target: OverlayTarget) -> str:
-    if not target.target_root.exists() or not target.skill_path.exists():
-        raise FileNotFoundError(f"DeepScientist skill target missing: {target.target_root}")
-    return target.skill_path.read_text(encoding="utf-8")
+    if target.skill_path.exists():
+        return target.skill_path.read_text(encoding="utf-8")
+    if target.skill_id in FULL_TEMPLATE_MAP:
+        target.target_root.mkdir(parents=True, exist_ok=True)
+        return ""
+    raise FileNotFoundError(f"DeepScientist skill target missing: {target.target_root}")
 
 
 def _seed_workspace_target_from_home(*, target: OverlayTarget, home: Path | None) -> None:
@@ -363,6 +366,8 @@ def _seed_workspace_target_from_home(*, target: OverlayTarget, home: Path | None
     resolved_home = (Path(home) if home is not None else Path.home()).expanduser().resolve()
     source_skill_path = resolved_home / ".codex" / "skills" / f"deepscientist-{target.skill_id}" / "SKILL.md"
     if not source_skill_path.exists():
+        if target.skill_id in FULL_TEMPLATE_MAP:
+            return
         raise FileNotFoundError(
             f"Workspace-local overlay target missing and no upstream DeepScientist skill found at {source_skill_path}"
         )
