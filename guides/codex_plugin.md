@@ -1,71 +1,87 @@
-# Codex Plugin Integration
+# Codex Plugin 接入
 
-`MedAutoScience` can now be exposed to Codex as a repo-local plugin at `plugins/med-autoscience/`.
+`MedAutoScience` 现在可以通过仓库内置的 Codex plugin 暴露给 Agent，路径在 `plugins/med-autoscience/`。
 
-For a higher-level release summary in Chinese, see [codex_plugin_release.md](codex_plugin_release.md).
+如果想看更高层的发布说明，可参考 [codex_plugin_release.md](codex_plugin_release.md)。
 
-## What the plugin changes
+## 这个 plugin 增加了什么
 
-- Adds a Codex-native discovery and installation surface through `.codex-plugin/plugin.json`
-- Adds a plugin marketplace entry at `.agents/plugins/marketplace.json`
-- Adds a plugin skill that teaches Codex to operate the existing `MedAutoScience` runtime through stable interfaces
-- Adds a plugin-local MCP manifest at `plugins/med-autoscience/.mcp.json`
+- 通过 `.codex-plugin/plugin.json` 提供 Codex 可发现、可安装的入口
+- 通过 `.agents/plugins/marketplace.json` 提供本仓库内的 plugin 市场元数据
+- 提供一层 plugin skill，让 Codex 通过稳定接口操作 `MedAutoScience`
+- 提供 `plugins/med-autoscience/.mcp.json`，让 Codex 直接接入 `medautosci-mcp`
 
-## What the plugin does not change
+## 这个 plugin 不替代什么
 
-- It does not replace the Python package
-- It does not replace `medautosci`
-- It does not replace controller contracts
-- It does not remove profile-driven workspace binding
-- It does not change the DeepScientist overlay installation model
+- 不替代 Python package
+- 不替代 `medautosci`
+- 不替代 controller contract
+- 不取消 profile 驱动的 workspace 绑定
+- 不改变 `DeepScientist` overlay 的安装模型
 
-## Compatibility
+## 兼容性边界
 
-This plugin is intentionally additive. Other frameworks should continue to integrate through the existing surfaces:
+这个 plugin 是增量层，不是分叉运行时。其他框架仍然应通过原有接口接入：
 
 - Python package: `med_autoscience`
 - CLI: `medautosci`
-- Controllers under `src/med_autoscience/controllers/`
-- Overlay installer under `src/med_autoscience/overlay/installer.py`
+- Controllers: `src/med_autoscience/controllers/`
+- Overlay installer: `src/med_autoscience/overlay/installer.py`
 
-As long as those surfaces remain stable, adding the Codex plugin does not reduce compatibility with non-Codex agents or wrappers.
+只要这些接口保持稳定，Codex plugin 的存在就不会降低其他 Agent 或 wrapper 的兼容性。
 
-## Recommended usage
+Compatibility note:
+- It does not replace `medautosci`
+- It does not reduce compatibility with non-Codex agents or wrappers
 
-1. Keep using `profiles/*.local.toml` to bind a concrete workspace.
-2. Use `doctor` or `show-profile` first to verify paths and overlay policy.
-3. Use `bootstrap` to initialize overlay and data-asset state.
-4. Use controller commands for auditable mutations and status refreshes.
+## Agent-first 推荐用法
 
-## Installation State
+1. 如果还没有病种级 workspace，优先调用 MCP tool `init_workspace`
+2. 用 `profiles/*.local.toml` 绑定具体 workspace
+3. 先跑 `doctor` 或 `show-profile`，确认路径、profile 和 overlay 策略
+4. 再跑 `bootstrap`，初始化 overlay 和数据资产状态
+5. 后续涉及状态更新时，优先走 controller / MCP / CLI，不直接手改 registry
 
-Creating the repo-local plugin files does not automatically enable the plugin globally in Codex.
+当前最重要的几条入口面：
 
-- Repo-local state: the plugin now exists inside this repository and can be discovered from this repository's marketplace metadata.
-- Global state: Codex is only globally configured for a plugin once the corresponding plugin enablement appears in `~/.codex/config.toml`.
+- MCP tool: `init_workspace`
+- CLI: `medautosci init-workspace`
+- CLI: `medautosci doctor --profile <profile>`
+- CLI: `medautosci show-profile --profile <profile>`
+- CLI: `medautosci bootstrap --profile <profile>`
+- CLI: `medautosci watch --runtime-root <runtime-root>`
+- CLI: `medautosci overlay-status --profile <profile>`
+- CLI: `medautosci deepscientist-upgrade-check --profile <profile> --refresh`
 
-At the time this guide was written, the repo contains the plugin files, but that alone is not the same thing as a machine-wide installation.
+## 当前安装状态
 
-## Installing On Another Computer
+仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。
 
-The most reliable path is:
+- 仓库内状态：plugin 已经存在于当前仓库，可被仓库自己的 marketplace 元数据发现
+- 全局状态：只有当 `~/.codex/config.toml` 中启用了对应 plugin，Codex 才会在整机范围把它当作已安装入口
 
-1. Clone this repository.
-2. Run:
+因此，仓库内置 plugin 和整机可用 plugin 不是一回事。
+
+## 在另一台电脑上使用
+
+最稳妥的路径是：
+
+1. clone 本仓库
+2. 运行：
 
    ```bash
    bash scripts/install-codex-plugin.sh
    ```
 
-3. Restart Codex so native skill discovery and plugin metadata are reloaded.
+3. 重启 Codex，让 skill 和 plugin 元数据重新加载
 
-If you want the plugin to be home-local instead of repo-local, copy or sync:
+如果你想把 plugin 放在 home-local，而不是 repo-local，也可以复制或同步：
 
 - `plugins/med-autoscience/` to `~/plugins/med-autoscience/`
 - `.agents/plugins/marketplace.json` into `~/.agents/plugins/marketplace.json`
 
-Then make sure `medautosci-mcp` is still available on `PATH`.
+然后确保 `medautosci-mcp` 仍然在 `PATH` 上。
 
-## Scope boundary
+## 作用边界
 
-The plugin is a thin entry shell. `MedAutoScience` itself remains the research runtime layer.
+这个 plugin 只是薄入口层，真正的医学研究运行层仍然是 `MedAutoScience` 本体。

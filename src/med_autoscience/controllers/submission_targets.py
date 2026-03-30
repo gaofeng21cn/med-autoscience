@@ -61,32 +61,36 @@ def _resolve_study_root(
 
 def _resolve_contract(
     *,
+    profile: WorkspaceProfile | None = None,
     profile_path: Path | None = None,
     study_root: Path | None = None,
     quest_root: Path | None = None,
 ) -> tuple[Path | None, WorkspaceProfile | None, Path | None, Path | None, SubmissionTargetContract]:
-    resolved_profile_path, profile = _resolve_profile(profile_path)
+    resolved_profile_path, resolved_profile = _resolve_profile(profile_path)
+    effective_profile = profile if profile is not None else resolved_profile
     resolved_quest_root = _resolve_quest_root(quest_root)
     resolved_study_root = _resolve_study_root(
         study_root=study_root,
         quest_root=resolved_quest_root,
-        profile=profile,
+        profile=effective_profile,
     )
     contract = resolve_submission_target_contract(
-        profile=profile,
+        profile=effective_profile,
         study_root=resolved_study_root,
         quest_root=resolved_quest_root,
     )
-    return resolved_profile_path, profile, resolved_study_root, resolved_quest_root, contract
+    return resolved_profile_path, effective_profile, resolved_study_root, resolved_quest_root, contract
 
 
 def resolve_submission_targets(
     *,
+    profile: WorkspaceProfile | None = None,
     profile_path: Path | None = None,
     study_root: Path | None = None,
     quest_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_profile_path, _, resolved_study_root, resolved_quest_root, contract = _resolve_contract(
+        profile=profile,
         profile_path=profile_path,
         study_root=study_root,
         quest_root=quest_root,

@@ -43,6 +43,9 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "data_assets_status",
         "startup_data_readiness",
         "deepscientist_upgrade_check",
+        "study_runtime_status",
+        "ensure_study_runtime",
+        "init_workspace",
     ]
 
 
@@ -57,3 +60,90 @@ def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     assert result["content"]
     assert "profile: nfpitnet" in result["content"][0]["text"]
     assert "default_publication_profile: general_medical_journal" in result["content"][0]["text"]
+
+
+def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda *, profile, study_id, study_root, entry_mode, force, source: {
+            "decision": "create_and_start",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "source": source,
+        },
+    )
+
+    result = module.call_tool(
+        "ensure_study_runtime",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+            "entry_mode": "full_research",
+            "force": True,
+        },
+    )
+
+    assert result["isError"] is False
+    assert result["structuredContent"]["decision"] == "create_and_start"
+    assert result["structuredContent"]["quest_id"] == "001-risk"
+
+
+def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_init_workspace(
+        *,
+        workspace_root: Path,
+        workspace_name: str,
+        default_publication_profile: str,
+        default_citation_style: str,
+        dry_run: bool,
+        force: bool,
+    ) -> dict[str, object]:
+        captured["workspace_root"] = workspace_root
+        captured["workspace_name"] = workspace_name
+        captured["default_publication_profile"] = default_publication_profile
+        captured["default_citation_style"] = default_citation_style
+        captured["dry_run"] = dry_run
+        captured["force"] = force
+        return {
+            "workspace_root": str(workspace_root),
+            "workspace_name": workspace_name,
+            "profile_path": str(workspace_root / "ops" / "medautoscience" / "profiles" / "demo.local.toml"),
+            "dry_run": dry_run,
+            "force": force,
+            "created_directories": [],
+            "written_files": [],
+        }
+
+    monkeypatch.setattr(module.workspace_init, "init_workspace", fake_init_workspace)
+
+    result = module.call_tool(
+        "init_workspace",
+        {
+            "workspace_root": "/tmp/medautosci-demo",
+            "workspace_name": "NF-PitNET Demo",
+            "default_publication_profile": "oncology_medical_journal",
+            "default_citation_style": "Vancouver",
+            "dry_run": True,
+            "force": True,
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured == {
+        "workspace_root": Path("/tmp/medautosci-demo"),
+        "workspace_name": "NF-PitNET Demo",
+        "default_publication_profile": "oncology_medical_journal",
+        "default_citation_style": "Vancouver",
+        "dry_run": True,
+        "force": True,
+    }
+    assert result["structuredContent"]["workspace_name"] == "NF-PitNET Demo"
+    assert '"workspace_name": "NF-PitNET Demo"' in result["content"][0]["text"]

@@ -220,6 +220,81 @@ def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, 
     assert '"decision": "upgrade_available"' in captured.out
 
 
+def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_ensure(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None, force: bool, source: str) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        called["force"] = force
+        called["source"] = source
+        return {"decision": "create_and_start", "study_id": study_id, "quest_id": study_id}
+
+    monkeypatch.setattr(cli.study_runtime_router, "ensure_study_runtime", fake_ensure)
+
+    exit_code = cli.main(
+        [
+            "ensure-study-runtime",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--entry-mode",
+            "full_research",
+            "--force",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["entry_mode"] == "full_research"
+    assert called["force"] is True
+    assert called["source"] == "cli"
+    assert '"decision": "create_and_start"' in captured.out
+
+
+def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_status(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        return {"decision": "noop", "study_id": study_id, "quest_status": "running"}
+
+    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+
+    exit_code = cli.main(
+        [
+            "study-runtime-status",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["entry_mode"] is None
+    assert '"quest_status": "running"' in captured.out
+
+
 def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

@@ -68,10 +68,12 @@ workspace 级数据版本层。
 
 ## 推荐最小骨架
 
-如果你直接用 `MedAutoScience` 初始化，推荐命令是：
+如果 Agent 已接入 `medautosci-mcp`，优先直接调用 MCP tool `init_workspace`。
+
+如果当前环境还没有接 MCP，再用 CLI：
 
 ```bash
-PYTHONPATH=src python3 -m med_autoscience.cli init-workspace \
+uv run python -m med_autoscience.cli init-workspace \
   --workspace-root /ABS/PATH/TO/NEW-WORKSPACE \
   --workspace-name my-disease
 ```

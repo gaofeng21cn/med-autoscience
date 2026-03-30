@@ -24,6 +24,7 @@ from med_autoscience.controllers import (
     runtime_watch,
     sidecar_provider as sidecar_provider_controller,
     startup_data_readiness as startup_data_readiness_controller,
+    study_runtime_router,
     study_delivery_sync,
     submission_minimal,
     submission_targets as submission_targets_controller,
@@ -225,6 +226,19 @@ def build_parser() -> argparse.ArgumentParser:
     reapply_overlay_parser.add_argument("--quest-root", type=str)
     reapply_overlay_parser.add_argument("--profile", type=str)
 
+    ensure_study_runtime_parser = subparsers.add_parser("ensure-study-runtime")
+    ensure_study_runtime_parser.add_argument("--profile", required=True)
+    ensure_study_runtime_parser.add_argument("--study-id", type=str)
+    ensure_study_runtime_parser.add_argument("--study-root", type=str)
+    ensure_study_runtime_parser.add_argument("--entry-mode", type=str)
+    ensure_study_runtime_parser.add_argument("--force", action="store_true")
+
+    study_runtime_status_parser = subparsers.add_parser("study-runtime-status")
+    study_runtime_status_parser.add_argument("--profile", required=True)
+    study_runtime_status_parser.add_argument("--study-id", type=str)
+    study_runtime_status_parser.add_argument("--study-root", type=str)
+    study_runtime_status_parser.add_argument("--entry-mode", type=str)
+
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
 
@@ -271,6 +285,34 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "deepscientist-upgrade-check":
         profile = load_profile(args.profile)
         result = deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "ensure-study-runtime":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            force=bool(args.force),
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "study-runtime-status":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
@@ -532,6 +574,30 @@ def main(argv: list[str] | None = None) -> int:
             "overlay_status": overlay_status,
             "data_assets": data_assets_refresh,
         }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "ensure-study-runtime":
+        profile = load_profile(args.profile)
+        result = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            force=bool(args.force),
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "study-runtime-status":
+        profile = load_profile(args.profile)
+        result = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
