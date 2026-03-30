@@ -1,14 +1,27 @@
-name = "my-study"
+# 这是病种级 workspace profile，不是单篇论文配置。
+name = "my-disease-workspace"
+
+# 病种 workspace 根目录。
 workspace_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE"
+
+# 当前 workspace 下 DeepScientist quests 的根目录。
 runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests"
+
+# 当前 workspace 的多 study 根目录。
 studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
+
+# 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
+
+# 当前 workspace 的 project-local DeepScientist 状态根目录。
 deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime"
+
+# 外部共享 DeepScientist 源码仓库，而不是 workspace 内再 clone 一份。
 deepscientist_repo_root = "/ABS/PATH/TO/DeepScientist"
 default_publication_profile = "general_medical_journal"
 default_citation_style = "AMA"
 enable_medical_overlay = true
-medical_overlay_scope = "global"
-medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]
+medical_overlay_scope = "workspace"
+medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "write", "review", "rebuttal", "finalize"]
 research_route_bias_policy = "high_plasticity_medical"
 preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]
