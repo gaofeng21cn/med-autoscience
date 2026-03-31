@@ -8,6 +8,8 @@ Judge main experiments by the strength of the eventual medical paper package, no
 
 {{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
 
+{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}
+
 Hard startup-boundary rules for this stage:
 
 - If `startup_contract.startup_boundary_gate.allow_compute_stage` is not `true`, do not launch experiments, do not queue training, and do not open analysis loops that depend on new compute.
