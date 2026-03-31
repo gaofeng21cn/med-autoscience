@@ -96,6 +96,43 @@ startup_contract:
         module.resolve_reference_paper_contract(quest_root=quest_root)
 
 
+def test_reference_papers_export_hydration_ready_literature_records(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.reference_papers")
+    quest_root = tmp_path / "quest"
+    write_text(
+        quest_root / "quest.yaml",
+        """quest_id: q001
+startup_contract:
+  reference_papers:
+    - id: yamashita2024-jama
+      title: Risk stratification for endocrine surgery
+      doi: 10.1001/example.2024.12345
+      role: anchor_paper
+    - id: li2023-bmj
+      title: Gray-zone triage workflow
+      pdf_path: references/li2023-bmj.pdf
+      role: adjacent_inspiration
+""",
+    )
+
+    contract = module.resolve_reference_paper_contract(quest_root=quest_root)
+
+    assert contract is not None
+
+    records = module.export_reference_papers_to_literature_records(contract=contract)
+
+    assert len(records) == 2
+    assert records[0]["record_id"] == "yamashita2024-jama"
+    assert records[0]["doi"] == "10.1001/example.2024.12345"
+    assert records[0]["source_priority"] == 3
+    assert records[0]["full_text_availability"] == "metadata_only"
+    assert records[0]["relevance_role"] == "anchor_paper"
+    assert records[1]["record_id"] == "li2023-bmj"
+    assert records[1]["local_asset_paths"] == (str(quest_root / "references" / "li2023-bmj.pdf"),)
+    assert records[1]["source_priority"] == 6
+    assert records[1]["full_text_availability"] == "full_text"
+
+
 def test_startup_brief_template_mentions_reference_papers() -> None:
     template = Path("templates/startup_brief.template.md").read_text(encoding="utf-8")
     assert "## Reference papers" in template

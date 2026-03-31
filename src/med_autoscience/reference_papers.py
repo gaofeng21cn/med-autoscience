@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 import re
 
+from med_autoscience.literature_records import LiteratureRecord
 import yaml
 
 
@@ -163,6 +165,67 @@ def resolve_reference_paper_contract(*, quest_root: Path | None) -> ReferencePap
         papers=papers,
         stage_requirements=dict(REFERENCE_PAPER_STAGE_REQUIREMENTS),
     )
+
+
+def _reference_paper_source_priority(paper: ReferencePaper) -> int:
+    if paper.pmid:
+        return 1
+    if paper.pmcid:
+        return 2
+    if paper.doi:
+        return 3
+    if paper.arxiv_id:
+        return 4
+    if paper.url:
+        return 5
+    if paper.pdf_path is not None:
+        return 6
+    raise ValueError(f"reference paper `{paper.paper_id}` requires at least one source locator")
+
+
+def _reference_paper_full_text_availability(paper: ReferencePaper) -> str:
+    if paper.pdf_path is not None or paper.pmcid:
+        return "full_text"
+    if paper.pmid:
+        return "abstract_only"
+    return "metadata_only"
+
+
+def export_reference_papers_to_literature_records(*, contract: ReferencePaperContract) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for paper in contract.papers:
+        if not paper.title:
+            raise ValueError(f"reference paper `{paper.paper_id}` requires title for literature hydration")
+        record = LiteratureRecord(
+            record_id=paper.paper_id,
+            title=paper.title,
+            authors=(),
+            year=None,
+            journal=None,
+            doi=paper.doi,
+            pmid=paper.pmid,
+            pmcid=paper.pmcid,
+            arxiv_id=paper.arxiv_id,
+            abstract=None,
+            full_text_availability=_reference_paper_full_text_availability(paper),
+            source_priority=_reference_paper_source_priority(paper),
+            citation_payload={
+                key: value
+                for key, value in {
+                    "url": paper.url,
+                    "doi": paper.doi,
+                    "pmid": paper.pmid,
+                    "pmcid": paper.pmcid,
+                    "arxiv_id": paper.arxiv_id,
+                }.items()
+                if value is not None
+            },
+            local_asset_paths=(str(paper.pdf_path),) if paper.pdf_path is not None else (),
+            relevance_role=paper.role,
+            claim_support_scope=(),
+        )
+        records.append(asdict(record))
+    return records
 
 
 def render_reference_paper_contract_summary(contract: ReferencePaperContract) -> str:
