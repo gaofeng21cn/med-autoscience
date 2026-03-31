@@ -266,3 +266,61 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
 
     assert result["decision"] == "blocked_behavior_equivalence_gate"
     assert "complete_phase_25_behavior_equivalence_gate" in result["recommended_actions"]
+
+
+def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = make_profile(tmp_path)
+
+    manifest_blob = {
+        "engine_family": "MedicalDeepScientist",
+        "freeze_base_commit": "abc123",
+        "applied_commits": ["001"],
+        "is_controlled_fork": True,
+    }
+
+    monkeypatch.setattr(
+        module,
+        "inspect_deepscientist_repo",
+        lambda *, repo_root, refresh=False: {
+            "configured": True,
+            "repo_root": str(repo_root),
+            "repo_exists": True,
+            "is_git_repo": True,
+            "refresh_attempted": refresh,
+            "refresh_succeeded": True,
+            "current_branch": "main",
+            "head_commit": "1111111",
+            "origin_main_commit": "1111111",
+            "ahead_count": 0,
+            "behind_count": 0,
+            "working_tree_clean": True,
+            "upstream_update_available": False,
+            "repo_manifest": manifest_blob,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: doctor.DoctorReport(
+            python_version="3.12.0",
+            profile=profile,
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            deepscientist_runtime_exists=True,
+            medical_overlay_enabled=True,
+            medical_overlay_ready=True,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "describe_medical_overlay",
+        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
+    )
+
+    result = module.run_upgrade_check(profile, refresh=False)
+
+    assert result["repo_check"]["repo_manifest"] is manifest_blob

@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile
 from med_autoscience.overlay import describe_medical_overlay
 from med_autoscience.profiles import WorkspaceProfile
@@ -22,6 +23,7 @@ def _run_git(repo_root: Path, *args: str) -> tuple[int, str]:
 
 
 def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False) -> dict[str, Any]:
+    manifest_info = inspect_deepscientist_repo_manifest(repo_root)
     if repo_root is None:
         return {
             "configured": False,
@@ -37,6 +39,7 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
             "behind_count": None,
             "working_tree_clean": None,
             "upstream_update_available": False,
+            "repo_manifest": manifest_info,
         }
 
     resolved_repo_root = Path(repo_root).expanduser().resolve()
@@ -55,6 +58,7 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
         "working_tree_clean": None,
         "upstream_update_available": False,
     }
+    result["repo_manifest"] = manifest_info
     if not result["repo_exists"]:
         return result
 

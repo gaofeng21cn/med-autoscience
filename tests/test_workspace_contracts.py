@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 
@@ -145,3 +146,49 @@ def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> No
     assert "runtime_contract: " in rendered
     assert "launcher_contract: " in rendered
     assert "behavior_gate: " in rendered
+
+
+def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.workspace_contracts")
+    profile = make_profile(tmp_path)
+    repo_root = profile.deepscientist_repo_root
+    repo_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
+    manifest_payload = {
+        "schema_version": 1,
+        "engine_id": "medicaldeepscientist",
+        "engine_family": "MedicalDeepScientist",
+        "freeze_mode": "thin_fork",
+        "upstream_source": {
+            "repo_path": "/tmp/DeepScientist",
+            "base_commit": "abc123",
+        },
+        "compatibility_contract": {
+            "package_rename_applied": False,
+            "daemon_api_shape_preserved": True,
+            "quest_layout_preserved": True,
+            "worktree_layout_preserved": True,
+        },
+        "applied_commits": [
+            {"commit": "aaa", "kind": "runtime_bugfix", "summary": "first"},
+            {"commit": "bbb", "kind": "runtime_bugfix", "summary": "second"},
+        ],
+        "lock_policy": {
+            "mode": "regenerate_in_fork",
+            "source_repo_was_dirty": True,
+            "source_dirty_paths": ["uv.lock"],
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    result = module.inspect_workspace_contracts(profile)
+    manifest_checks = result["launcher_contract"]["manifest_checks"]
+    assert manifest_checks["manifest_found"] is True
+    assert manifest_checks["manifest_parsable"] is True
+
+    repo_manifest = result["launcher_contract"]["repo_manifest"]
+    assert repo_manifest["manifest_found"] is True
+    assert repo_manifest["engine_family"] == manifest_payload["engine_family"]
+    assert repo_manifest["freeze_base_commit"] == manifest_payload["upstream_source"]["base_commit"]
+    assert repo_manifest["applied_commits"] == ("aaa", "bbb")
+    assert repo_manifest["is_controlled_fork"] is True
