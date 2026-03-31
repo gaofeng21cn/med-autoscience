@@ -56,6 +56,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'default_startup_anchor_policy = "scout_first_for_continue_existing_state"' in profile_text
     assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
     assert 'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]' in profile_text
+    assert '"analysis-campaign", "figure-polish", "write"' in profile_text
     assert "enable_autofigure_edit" not in profile_text
     assert "autofigure_edit_bootstrap_mode" not in profile_text
     assert "autofigure_edit_service_url" not in profile_text

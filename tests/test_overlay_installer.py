@@ -14,6 +14,7 @@ DEFAULT_SKILL_IDS = (
     "decision",
     "experiment",
     "analysis-campaign",
+    "figure-polish",
     "write",
     "review",
     "rebuttal",
@@ -288,6 +289,19 @@ def test_load_overlay_skill_text_for_journal_resolution_includes_controller_firs
     assert "## Controller-first execution contract" in text
     assert "resolve-submission-targets" in text
     assert "not a venue-selection workflow" in text
+
+
+def test_load_overlay_skill_text_for_figure_polish_blocks_tooling_advertisement() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = module.load_overlay_skill_text("figure-polish")
+
+    assert "tool/vendor/service mention" in text
+    assert "main-text figure" in text
+    assert "Publication-grade figure refinement is recommended" not in text
+    assert "AutoFigure-Edit" not in text
+    assert "https://github.com/ResearAI/AutoFigure-Edit" not in text
+    assert "https://deepscientist" not in text
 
 
 @pytest.mark.parametrize(

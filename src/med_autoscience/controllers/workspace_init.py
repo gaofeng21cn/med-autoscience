@@ -107,7 +107,7 @@ def _render_workspace_profile(
         f'default_citation_style = "{default_citation_style}"\n'
         "enable_medical_overlay = true\n"
         'medical_overlay_scope = "workspace"\n'
-        'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "write", "review", "rebuttal", "finalize"]\n'
+        'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure-polish", "write", "review", "rebuttal", "finalize"]\n'
         'medical_overlay_bootstrap_mode = "ensure_ready"\n'
         'research_route_bias_policy = "high_plasticity_medical"\n'
         'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]\n'

@@ -45,6 +45,7 @@ FULL_TEMPLATE_MAP = {
     "scout": "deepscientist-scout.SKILL.md",
     "idea": "deepscientist-idea.SKILL.md",
     "decision": "deepscientist-decision.SKILL.md",
+    "figure-polish": "deepscientist-figure-polish.SKILL.md",
     "write": "deepscientist-write.SKILL.md",
     "finalize": "deepscientist-finalize.SKILL.md",
     "journal-resolution": "deepscientist-journal-resolution.SKILL.md",
