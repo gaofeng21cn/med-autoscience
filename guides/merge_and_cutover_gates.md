@@ -5,7 +5,7 @@
 - 什么时候 `codex/medicaldeepscientist-migration` 可以并回 `main`
 - 什么时候一个正在运行中的医学项目可以平滑迁到新框架
 
-它不讨论“是否值得做 MedicalDeepScientist”；这个决策已经做完。这里讨论的是何时可以安全收口。
+它不讨论“是否值得做 `med-deepscientist`”；这个决策已经做完。这里讨论的是何时可以安全收口。
 
 ## 两类门
 
@@ -64,7 +64,7 @@ PYTHONPATH=src pytest -q
 必须满足：
 
 - `med-autoscience` 有稳定的上游 intake 规范
-- `MedicalDeepScientist` 也有对应规范
+- `med-deepscientist` 也有对应规范
 - 后续吸收 upstream 不依赖会话记忆，而依赖文档化流程
 
 ## Runtime Cutover Gate
@@ -75,7 +75,7 @@ PYTHONPATH=src pytest -q
 
 必须满足：
 
-- profile 中的 `deepscientist_repo_root` 已经指向受控的 `MedicalDeepScientist`
+- profile 中的 `deepscientist_repo_root` 已经指向受控的 `med-deepscientist`
 - `MEDICAL_FORK_MANIFEST.json` 能说明当前 fork 身份
 - 需要的历史补丁已经在 fork 或 `med-autoscience` 中显式落盘
 

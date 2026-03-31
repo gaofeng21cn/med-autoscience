@@ -280,7 +280,7 @@ wrapper 不应继续硬编码：
 - `deepscientist_runtime_root`
   - 当前 workspace 中 `DeepScientist` 项目状态根目录
 - `deepscientist_repo_root`
-  - 外部共享 `DeepScientist` 源码仓库，或受控的 `MedicalDeepScientist` sibling fork
+  - 外部共享 `DeepScientist` 源码仓库，或受控的 `med-deepscientist` sibling fork
 
 这里的 `name` 也应理解为 workspace 名称，而不是单个 study 名称。
 
@@ -291,7 +291,7 @@ wrapper 不应继续硬编码：
 - `ops/deepscientist/config.env`
   - 显式指定外部共享 `DeepScientist` repo，或其受控 launcher 入口
 
-当前阶段 `deepscientist_repo_root` 主要为 `deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `MedicalDeepScientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 repo 身份已受控，不说明 adapter 已可退出。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 `deepscientist_repo_root` 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
+当前阶段 `deepscientist_repo_root` 主要为 `deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 repo 身份已受控，不说明 adapter 已可退出。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 `deepscientist_repo_root` 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。
@@ -351,7 +351,7 @@ wrapper 不应继续硬编码：
   - 只管理 filesystem-facing contracts
 - `runtime_transport`
   - 只管理 engine-specific transport
-- `MedicalDeepScientist`
+- `med-deepscientist`
   - 只负责执行引擎本体
 
 因此将来要继续移除的是：
@@ -488,7 +488,7 @@ wrapper 不应继续做：
 - 统一以外部共享 `deepscientist_repo_root` 作为程序来源
 - 项目内只保留 runtime state 和 project-local 配置
 
-如果 Phase 1 已经切到受控的 `MedicalDeepScientist` fork，那么这里的“外部共享 `deepscientist_repo_root`”可以具体落到该 fork；但命名仍暂时保留 `deepscientist_repo_root`，直到 runtime protocol convergence 完成。
+如果 Phase 1 已经切到受控的 `med-deepscientist` fork，那么这里的“外部共享 `deepscientist_repo_root`”可以具体落到该 fork；但命名仍暂时保留 `deepscientist_repo_root`，直到 runtime protocol convergence 完成。
 
 进入本阶段前，必须已经通过 Phase 2.5 的行为等价门。
 
