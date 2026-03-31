@@ -9,6 +9,7 @@ DEFAULT_MEDICAL_OVERLAY_SKILL_IDS = (
     "decision",
     "experiment",
     "analysis-campaign",
+    "figure-polish",
     "write",
     "review",
     "rebuttal",

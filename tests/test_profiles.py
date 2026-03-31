@@ -110,6 +110,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
         "decision",
         "experiment",
         "analysis-campaign",
+        "figure-polish",
         "write",
         "review",
         "rebuttal",
