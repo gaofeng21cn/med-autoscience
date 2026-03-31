@@ -250,7 +250,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 - `upgrade_available`
   - upstream 有新提交，且当前 repo / workspace / overlay 状态允许进入升级流程
 - `needs_branch_review`
-  - 当前 checkout 不在稳定主线，或已经带有本地领先提交，不应直接把它当成生产运行时升级面
+  - 当前 checkout 不在稳定主线；如果只是受控 fork 的 `main` 保留了经过审计的领先提交，这一项不应触发
 - `blocked_dirty_repo`
   - 本地 `DeepScientist` repo 有未提交改动，应先清理
 - `overlay_reapply_needed`
@@ -266,9 +266,11 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 4. 必要时执行 `reapply-medical-overlay`
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
+如果目标 repo 是受控 fork，`recommended_actions` 可能返回 `run_controlled_fork_intake_workflow`，表示应走 intake 流程，而不是直接对稳定线执行 `pull origin main`。
+
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `deepscientist_repo_root` 指向一个受控的 sibling fork，例如 `/Users/gaofeng/workspace/MedicalDeepScientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`deepscientist_repo_root` 现阶段主要仍服务于 `deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 `deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或未来 GitHub repo `med-deepscientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`deepscientist_repo_root` 现阶段主要仍服务于 `deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
 只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `deepscientist_repo_root` 视作真正的执行真相来源。
 
@@ -314,12 +316,12 @@ Phase 3 开始，transport 面也开始显式收口：
    - 包括 topology、quest_state、paper_artifacts、user_message
    - 这是 filesystem-facing truth
 4. `runtime_transport`
-   - 只负责 engine-specific transport
-   - 当前就是 `medicaldeepscientist` daemon HTTP create / pause / resume / control
-   - 这是 process/network-facing truth
+  - 只负责 engine-specific transport
+  - 当前就是 `medicaldeepscientist` daemon HTTP create / pause / resume / control
+  - 这是 process/network-facing truth
 5. `engine`
-   - 当前是受控 fork `MedicalDeepScientist`
-   - 负责真正长时运行、状态机推进、daemon、UI 与 quest 执行
+  - 当前是受控 fork `med-deepscientist`
+  - 负责真正长时运行、状态机推进、daemon、UI 与 quest 执行
 
 对应关系应是单向的：
 

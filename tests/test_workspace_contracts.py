@@ -156,8 +156,8 @@ def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> No
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
     manifest_payload = {
         "schema_version": 1,
-        "engine_id": "medicaldeepscientist",
-        "engine_family": "MedicalDeepScientist",
+        "engine_id": "med-deepscientist",
+        "engine_family": "MedDeepScientist",
         "freeze_mode": "thin_fork",
         "upstream_source": {
             "repo_path": "/tmp/DeepScientist",

@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 MANIFEST_FILENAME = "MEDICAL_FORK_MANIFEST.json"
+CONTROLLED_ENGINE_IDS = frozenset({"medicaldeepscientist", "med-deepscientist"})
+CONTROLLED_ENGINE_FAMILIES = frozenset({"MedicalDeepScientist", "MedDeepScientist"})
 
 
 def _normalize_string(value: object) -> str | None:
@@ -78,6 +80,8 @@ def inspect_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[st
     if engine_family:
         result["engine_family"] = engine_family
 
+    engine_id = _normalize_string(payload.get("engine_id"))
+
     freeze_base_commit = _normalize_string(payload.get("freeze_base_commit"))
     if not freeze_base_commit:
         upstream_source = payload.get("upstream_source")
@@ -91,7 +95,7 @@ def inspect_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[st
     is_controlled = payload.get("is_controlled_fork")
     if isinstance(is_controlled, bool):
         result["is_controlled_fork"] = is_controlled
-    elif result["engine_family"] == "MedicalDeepScientist":
+    elif engine_id in CONTROLLED_ENGINE_IDS or result["engine_family"] in CONTROLLED_ENGINE_FAMILIES:
         result["is_controlled_fork"] = True
 
     return result

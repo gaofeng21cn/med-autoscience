@@ -1,16 +1,16 @@
 # Upstream Intake Guide
 
-这份文档定义 `MedicalDeepScientist` 如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做兼容审计。
+这份文档定义 `med-deepscientist` 如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做兼容审计。
 
 它的目标不是“尽快同步 upstream”，而是把 upstream 变化收口成一条受控、可验证、可回滚的 intake 流程。
 
 ## 一句话版本
 
-上游更新只能先进入 intake worktree，经过双层验证与 manifest 审计后，才允许进入 `MedicalDeepScientist/main`。
+上游更新只能先进入 intake worktree，经过双层验证与 manifest 审计后，才允许进入 `med-deepscientist/main`。
 
 ## 为什么不能直接跟上游同步
 
-`MedicalDeepScientist` 的价值不只是“有一份 fork”，而是：
+`med-deepscientist` 的价值不只是“有一份 fork”，而是：
 
 - 稳定执行真相
 - 保留 `MedAutoScience` 当前依赖的 daemon API / quest / worktree 契约
@@ -24,7 +24,7 @@
 
 ## Intake 原则
 
-- 不直接在 `MedicalDeepScientist/main` 上吸收上游更新
+- 不直接在 `med-deepscientist/main` 上吸收上游更新
 - 不直接把 upstream branch merge 进生产线
 - 优先以 commit / PR 为单位做受控 `cherry-pick`
 - 每次 intake 都必须在独立 worktree 中完成
@@ -55,14 +55,14 @@
 
 ## 标准 Intake 流程
 
-### 1. 在 `MedicalDeepScientist` 建 intake worktree
+### 1. 在 `med-deepscientist` 建 intake worktree
 
 根目录保持在 `main`，实际 intake 工作只在 `.worktree/*` 中进行。
 
 示例：
 
 ```bash
-cd /Users/gaofeng/workspace/MedicalDeepScientist
+cd <med-deepscientist-root>
 git fetch upstream
 git worktree add .worktree/intake-2026-03-31-daemon-fix -b intake/2026-03-31-daemon-fix
 ```
@@ -72,7 +72,7 @@ git worktree add .worktree/intake-2026-03-31-daemon-fix -b intake/2026-03-31-dae
 不要先改 fork，再去看兼容性。先用 `MedAutoScience` 判定当前是否适合 intake：
 
 ```bash
-cd /Users/gaofeng/workspace/med-autoscience
+cd <med-autoscience-root>
 PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile /path/to/profile.toml --refresh
 ```
 
@@ -107,7 +107,7 @@ git cherry-pick <upstream-commit>
 - 单独 cherry-pick 会破坏语义
 - 相关 API / layout 没有突破当前兼容边界
 
-### 5. 跑 `MedicalDeepScientist` 本仓回归
+### 5. 跑 `med-deepscientist` 本仓回归
 
 至少运行与吸收面直接相关的测试。
 
@@ -156,7 +156,7 @@ PYTHONPATH=src pytest -q
 - 是否重建了 lock
 - 是否存在 source dirty context
 
-### 8. 合并回 `MedicalDeepScientist/main`
+### 8. 合并回 `med-deepscientist/main`
 
 只有当以下条件同时成立，intake 分支才允许回到稳定线：
 
@@ -194,7 +194,7 @@ PYTHONPATH=src pytest -q
 
 ## 与 `MedAutoScience` 的对应关系
 
-`MedicalDeepScientist` 只负责受控吸收上游变化；
+`med-deepscientist` 只负责受控吸收上游变化；
 是否允许进入真实运行面，仍由 `MedAutoScience` 侧的升级检查、协议层与行为 gate 决定。
 
 对应治理视角请看：

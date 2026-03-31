@@ -191,6 +191,125 @@ def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, 
     assert "review_local_branch_before_upgrade" in result["recommended_actions"]
 
 
+def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = make_profile(tmp_path)
+
+    manifest_blob = {
+        "engine_family": "MedDeepScientist",
+        "freeze_base_commit": "abc123",
+        "applied_commits": ["001"],
+        "is_controlled_fork": True,
+    }
+
+    monkeypatch.setattr(
+        module,
+        "inspect_deepscientist_repo",
+        lambda *, repo_root, refresh=False: {
+            "configured": True,
+            "repo_root": str(repo_root),
+            "repo_exists": True,
+            "is_git_repo": True,
+            "refresh_attempted": refresh,
+            "refresh_succeeded": False,
+            "current_branch": "main",
+            "head_commit": "3333333",
+            "origin_main_commit": "2222222",
+            "ahead_count": 3,
+            "behind_count": 0,
+            "working_tree_clean": True,
+            "upstream_update_available": False,
+            "repo_manifest": manifest_blob,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: doctor.DoctorReport(
+            python_version="3.12.0",
+            profile=profile,
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            deepscientist_runtime_exists=True,
+            medical_overlay_enabled=True,
+            medical_overlay_ready=True,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "describe_medical_overlay",
+        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
+    )
+
+    result = module.run_upgrade_check(profile, refresh=False)
+
+    assert result["decision"] == "up_to_date"
+    assert "review_local_branch_before_upgrade" not in result["recommended_actions"]
+
+
+def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = make_profile(tmp_path)
+
+    manifest_blob = {
+        "engine_family": "MedDeepScientist",
+        "freeze_base_commit": "abc123",
+        "applied_commits": ["001"],
+        "is_controlled_fork": True,
+    }
+
+    monkeypatch.setattr(
+        module,
+        "inspect_deepscientist_repo",
+        lambda *, repo_root, refresh=False: {
+            "configured": True,
+            "repo_root": str(repo_root),
+            "repo_exists": True,
+            "is_git_repo": True,
+            "refresh_attempted": refresh,
+            "refresh_succeeded": refresh,
+            "current_branch": "main",
+            "head_commit": "3333333",
+            "origin_main_commit": "4444444",
+            "ahead_count": 3,
+            "behind_count": 2,
+            "working_tree_clean": True,
+            "upstream_update_available": True,
+            "repo_manifest": manifest_blob,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: doctor.DoctorReport(
+            python_version="3.12.0",
+            profile=profile,
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            deepscientist_runtime_exists=True,
+            medical_overlay_enabled=True,
+            medical_overlay_ready=True,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "describe_medical_overlay",
+        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
+    )
+
+    result = module.run_upgrade_check(profile, refresh=True)
+
+    assert result["decision"] == "upgrade_available"
+    assert "run_controlled_fork_intake_workflow" in result["recommended_actions"]
+    assert "pull_origin_main_then_reapply_medical_overlay" not in result["recommended_actions"]
+
+
 def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
@@ -274,7 +393,7 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
     profile = make_profile(tmp_path)
 
     manifest_blob = {
-        "engine_family": "MedicalDeepScientist",
+        "engine_family": "MedDeepScientist",
         "freeze_base_commit": "abc123",
         "applied_commits": ["001"],
         "is_controlled_fork": True,

@@ -159,6 +159,11 @@ def _determine_decision(
     overlay_check: dict[str, Any],
 ) -> tuple[str, list[str]]:
     actions: list[str] = []
+    repo_manifest = repo_check.get("repo_manifest")
+    is_controlled_fork = bool(repo_manifest.get("is_controlled_fork")) if isinstance(repo_manifest, dict) else False
+    current_branch = str(repo_check.get("current_branch") or "").strip() or None
+    ahead_count = int(repo_check.get("ahead_count") or 0)
+    upstream_update_available = bool(repo_check.get("upstream_update_available"))
 
     behavior_gate = workspace_check.get("behavior_gate")
     phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
@@ -203,14 +208,23 @@ def _determine_decision(
         actions.append("clean_or_commit_deepscientist_repo_before_upgrade")
         return "blocked_dirty_repo", actions
 
-    if repo_check.get("current_branch") != "main" or (repo_check.get("ahead_count") or 0) > 0:
+    if current_branch != "main":
         actions.append("review_local_branch_before_upgrade")
-        if repo_check.get("upstream_update_available"):
+        if upstream_update_available:
             actions.append("pull_origin_main_then_reapply_medical_overlay")
         return "needs_branch_review", actions
 
-    if repo_check.get("upstream_update_available"):
-        actions.append("pull_origin_main_then_reapply_medical_overlay")
+    if ahead_count > 0 and not is_controlled_fork:
+        actions.append("review_local_branch_before_upgrade")
+        if upstream_update_available:
+            actions.append("pull_origin_main_then_reapply_medical_overlay")
+        return "needs_branch_review", actions
+
+    if upstream_update_available:
+        if is_controlled_fork:
+            actions.append("run_controlled_fork_intake_workflow")
+        else:
+            actions.append("pull_origin_main_then_reapply_medical_overlay")
         return "upgrade_available", actions
 
     if overlay_check["enabled"] and not overlay_check["all_targets_ready"]:

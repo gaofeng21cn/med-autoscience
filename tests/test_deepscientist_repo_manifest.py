@@ -65,8 +65,8 @@ def test_inspect_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path:
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
     payload = {
         "schema_version": 1,
-        "engine_id": "medicaldeepscientist",
-        "engine_family": "MedicalDeepScientist",
+        "engine_id": "med-deepscientist",
+        "engine_family": "MedDeepScientist",
         "freeze_mode": "thin_fork",
         "upstream_source": {
             "repo_path": "/tmp/DeepScientist",
@@ -98,7 +98,27 @@ def test_inspect_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path:
 
     assert result["manifest_found"] is True
     assert result["manifest_parsable"] is True
-    assert result["engine_family"] == "MedicalDeepScientist"
+    assert result["engine_family"] == "MedDeepScientist"
     assert result["freeze_base_commit"] == "base123"
     assert result["applied_commits"] == ("patch111",)
+    assert result["is_controlled_fork"] is True
+
+
+def test_inspect_deepscientist_repo_manifest_recognizes_new_runtime_name_without_explicit_flag(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
+    payload = {
+        "engine_id": "med-deepscientist",
+        "engine_family": "MedDeepScientist",
+        "freeze_base_commit": "abc123",
+        "applied_commits": ["111"],
+    }
+    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    result = inspect_deepscientist_repo_manifest(repo_root)
+
+    assert result["engine_family"] == "MedDeepScientist"
+    assert result["freeze_base_commit"] == "abc123"
+    assert result["applied_commits"] == ("111",)
     assert result["is_controlled_fork"] is True
