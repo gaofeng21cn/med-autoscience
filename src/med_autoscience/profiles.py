@@ -137,6 +137,13 @@ def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bo
     return value
 
 
+def _optional_path(payload: dict[str, object], key: str, *, profile_dir: Path) -> Path | None:
+    value = _optional_string(payload, key, empty_as_none=True)
+    if value is None:
+        return None
+    return _resolve_profile_path(value, profile_dir=profile_dir)
+
+
 def _optional_string_list(payload: dict[str, object], key: str, *, default: tuple[str, ...]) -> tuple[str, ...]:
     if key not in payload:
         return default
@@ -170,7 +177,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     profile_path = Path(path).expanduser().resolve()
     payload = tomllib.loads(profile_path.read_text(encoding="utf-8"))
     profile_dir = profile_path.parent
-    deepscientist_repo_root = _optional_string(payload, "deepscientist_repo_root", empty_as_none=True)
+    deepscientist_repo_root = _optional_path(payload, "deepscientist_repo_root", profile_dir=profile_dir)
     return WorkspaceProfile(
         name=_require_string(payload, "name"),
         workspace_root=_resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir),
@@ -181,11 +188,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             _require_string(payload, "deepscientist_runtime_root"),
             profile_dir=profile_dir,
         ),
-        deepscientist_repo_root=(
-            _resolve_profile_path(deepscientist_repo_root, profile_dir=profile_dir)
-            if deepscientist_repo_root is not None
-            else None
-        ),
+        deepscientist_repo_root=deepscientist_repo_root,
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
