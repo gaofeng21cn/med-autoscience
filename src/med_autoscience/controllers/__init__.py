@@ -7,6 +7,8 @@ __all__ = [
     "external_research",
     "figure_loop_guard",
     "journal_shortlist",
+    "medical_analysis_contract",
+    "medical_reporting_contract",
     "startup_data_readiness",
     "publication_gate",
     "medical_publication_surface",

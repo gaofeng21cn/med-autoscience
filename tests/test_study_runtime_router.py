@@ -266,6 +266,57 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert report["study_root"] == str(study_root)
 
 
+def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    created: dict[str, object] = {}
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        paper_framing_summary="Prediction framing is fixed.",
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
+        created["runtime_root"] = runtime_root
+        created["payload"] = payload
+        return {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(runtime_root / "001-risk"),
+                "status": "running",
+            },
+            "startup": {"queued": True},
+        }
+
+    monkeypatch.setattr(module.daemon_api, "create_quest", fake_create_quest)
+
+    module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+    startup_contract = created["payload"]["startup_contract"]
+
+    assert startup_contract["schema_version"] == 4
+    assert startup_contract["medical_analysis_contract_summary"]["study_archetype"] == "clinical_classifier"
+    assert startup_contract["medical_reporting_contract_summary"]["reporting_guideline_family"] == "TRIPOD"
+    assert startup_contract["reporting_guideline_family"] == "TRIPOD"
+
+
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
