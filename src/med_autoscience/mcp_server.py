@@ -10,6 +10,8 @@ from med_autoscience.controllers import (
     data_assets,
     deepscientist_upgrade_check,
     external_research,
+    medical_literature_audit,
+    medical_reporting_audit,
     portfolio_memory,
     runtime_watch,
     startup_data_readiness as startup_data_readiness_controller,
@@ -258,7 +260,37 @@ def list_tools() -> list[dict[str, Any]]:
                 "additionalProperties": False,
             },
         },
+        {
+            "name": "medical_literature_audit",
+            "description": "Run the medical literature audit controller for a quest.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "quest_root": {"type": "string"},
+                    "apply": {"type": "boolean"},
+                },
+                "required": ["quest_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "medical_reporting_audit",
+            "description": "Run the medical reporting audit controller for a quest.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "quest_root": {"type": "string"},
+                    "apply": {"type": "boolean"},
+                },
+                "required": ["quest_root"],
+                "additionalProperties": False,
+            },
+        },
     ]
+
+
+def build_tool_manifest() -> list[dict[str, Any]]:
+    return list_tools()
 
 
 def _call_doctor_report(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -399,6 +431,22 @@ def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_medical_literature_audit(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = medical_literature_audit.run_controller(
+        quest_root=Path(_require_string(arguments, "quest_root")),
+        apply=_optional_bool(arguments, "apply"),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_medical_reporting_audit(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = medical_reporting_audit.run_controller(
+        quest_root=Path(_require_string(arguments, "quest_root")),
+        apply=_optional_bool(arguments, "apply"),
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 TOOL_HANDLERS = {
     "doctor_report": _call_doctor_report,
     "show_profile": _call_show_profile,
@@ -414,6 +462,8 @@ TOOL_HANDLERS = {
     "study_runtime_status": _call_study_runtime_status,
     "ensure_study_runtime": _call_ensure_study_runtime,
     "init_workspace": _call_init_workspace,
+    "medical_literature_audit": _call_medical_literature_audit,
+    "medical_reporting_audit": _call_medical_reporting_audit,
 }
 
 

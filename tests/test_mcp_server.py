@@ -50,7 +50,17 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "study_runtime_status",
         "ensure_study_runtime",
         "init_workspace",
+        "medical_literature_audit",
+        "medical_reporting_audit",
     ]
+
+
+def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    tools = module.build_tool_manifest()
+    tool_names = {tool["name"] for tool in tools}
+    assert "medical_reporting_audit" in tool_names
+    assert "medical_literature_audit" in tool_names
 
 
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:

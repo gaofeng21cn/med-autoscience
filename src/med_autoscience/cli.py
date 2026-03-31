@@ -19,7 +19,9 @@ from med_autoscience.controllers import (
     external_research as external_research_controller,
     figure_loop_guard,
     journal_shortlist as journal_shortlist_controller,
+    medical_literature_audit,
     medical_publication_surface,
+    medical_reporting_audit,
     portfolio_memory as portfolio_memory_controller,
     publication_gate,
     reference_papers as reference_papers_controller,
@@ -211,6 +213,14 @@ def build_parser() -> argparse.ArgumentParser:
     gate_parser = subparsers.add_parser("publication-gate")
     gate_parser.add_argument("--quest-root", required=True)
     gate_parser.add_argument("--apply", action="store_true")
+
+    medical_literature_audit_parser = subparsers.add_parser("medical-literature-audit")
+    medical_literature_audit_parser.add_argument("--quest-root", required=True)
+    medical_literature_audit_parser.add_argument("--apply", action="store_true")
+
+    medical_reporting_audit_parser = subparsers.add_parser("medical-reporting-audit")
+    medical_reporting_audit_parser.add_argument("--quest-root", required=True)
+    medical_reporting_audit_parser.add_argument("--apply", action="store_true")
 
     surface_parser = subparsers.add_parser("medical-publication-surface")
     surface_parser.add_argument("--quest-root", required=True)
@@ -540,6 +550,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "publication-gate":
         result = publication_gate.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "medical-literature-audit":
+        result = medical_literature_audit.run_controller(
+            quest_root=Path(args.quest_root),
+            apply=args.apply,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "medical-reporting-audit":
+        result = medical_reporting_audit.run_controller(
             quest_root=Path(args.quest_root),
             apply=args.apply,
         )
