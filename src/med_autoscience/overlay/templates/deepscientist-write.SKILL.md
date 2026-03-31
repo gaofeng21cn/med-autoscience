@@ -117,6 +117,8 @@ Language redlines under this profile:
 
 {{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
 
+{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}
+
 ## Writing mental guardrails
 
 - Writing starts when the claim and evidence structure are stable enough, not when prose feels easy.

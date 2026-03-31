@@ -118,3 +118,37 @@ def test_medical_surface_uses_policy_forbidden_patterns_and_message_builder(tmp_
     assert result["status"] == "blocked"
     assert result["intervention_enqueued"] is True
     assert queue["pending"][0]["content"] == "POLICY_SURFACE_MSG"
+
+
+def test_runtime_stage_overlay_texts_expose_medical_contract_paths() -> None:
+    installer = importlib.import_module("med_autoscience.overlay.installer")
+    required_paths = (
+        "paper/medical_analysis_contract.json",
+        "paper/cohort_flow.json",
+        "paper/baseline_characteristics_schema.json",
+        "paper/reporting_guideline_checklist.json",
+    )
+
+    stage_texts = {
+        "experiment": installer.load_overlay_skill_text("experiment", base_text="# upstream experiment\n"),
+        "analysis-campaign": installer.load_overlay_skill_text(
+            "analysis-campaign",
+            base_text="# upstream analysis-campaign\n",
+        ),
+        "write": installer.load_overlay_skill_text("write"),
+        "review": installer.load_overlay_skill_text("review", base_text="# upstream review\n"),
+    }
+
+    for text in stage_texts.values():
+        for path in required_paths:
+            assert path in text
+        assert any(guideline in text for guideline in ("TRIPOD", "STROBE", "CONSORT"))
+
+
+def test_overlay_policy_integration_exposes_medical_runtime_contract_block() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    review_text = module.load_overlay_skill_text("review", base_text="upstream review\n")
+
+    assert "paper/reporting_guideline_checklist.json" in review_text
+    assert "TRIPOD" in review_text or "STROBE" in review_text or "CONSORT" in review_text

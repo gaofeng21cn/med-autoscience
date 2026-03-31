@@ -4,6 +4,8 @@
 
 Audit the draft as a medical paper, not as an AI/ML benchmark report.
 
+{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}
+
 Default review checkpoints:
 
 - Methods mandatory items are explicit: center, time window, study design, ethics, inclusion / exclusion criteria, endpoint definition, variable definitions, missing-data strategy, modeling workflow, software package and version

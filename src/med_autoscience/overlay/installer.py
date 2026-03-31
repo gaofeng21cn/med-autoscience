@@ -34,6 +34,7 @@ SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
 REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
 CONTROLLER_FIRST_TOKEN = "{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}"
 AUTOMATION_READY_TOKEN = "{{MED_AUTOSCIENCE_AUTOMATION_READY}}"
+MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
 FORBIDDEN_SYSTEM_PROMPT_SNIPPETS = (
     "Publication-grade figure refinement is recommended with AutoFigure-Edit",
 )
@@ -91,6 +92,16 @@ def _append_marker(skill_id: str) -> str:
     return f"<!-- MED_AUTOSCIENCE_APPEND_BLOCK:{skill_id} -->"
 
 
+def render_medical_runtime_contract_block() -> str:
+    return (
+        "## Medical runtime contract\n\n"
+        "- Read `paper/medical_analysis_contract.json` before deciding follow-up analyses, manuscript rewrites, or review responses.\n"
+        "- Treat `paper/cohort_flow.json`, `paper/baseline_characteristics_schema.json`, and `paper/reporting_guideline_checklist.json` as required truth sources when present.\n"
+        "- If the runtime contract calls for calibration, transportability, cohort flow, or baseline characteristics evidence, do not treat ablation-heavy follow-up as sufficient.\n"
+        "- Keep TRIPOD / STROBE / CONSORT family requirements explicit in durable manuscript-facing artifacts.\n"
+    )
+
+
 def _load_template_text(template_name: str) -> str:
     template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
     return template_path.read_text(encoding="utf-8")
@@ -107,6 +118,14 @@ def _render_overlay_text_from_template(
     default_citation_style: str | None,
 ) -> str:
     rendered = template
+    if skill_id in {"experiment", "analysis-campaign", "write", "review"}:
+        if MEDICAL_RUNTIME_CONTRACT_TOKEN not in rendered:
+            raise ValueError(f"Overlay template for {skill_id} is missing medical runtime contract token")
+    if MEDICAL_RUNTIME_CONTRACT_TOKEN in rendered:
+        rendered = rendered.replace(
+            MEDICAL_RUNTIME_CONTRACT_TOKEN,
+            render_medical_runtime_contract_block().rstrip(),
+        )
     if skill_id in {"scout", "idea", "write"}:
         if REFERENCE_PAPERS_TOKEN not in rendered:
             raise ValueError(f"Overlay template for {skill_id} is missing reference paper token")

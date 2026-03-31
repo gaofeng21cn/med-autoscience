@@ -24,6 +24,12 @@ FORBIDDEN_AUTOFIGURE_PROMPT = (
     "Publication-grade figure refinement is recommended with AutoFigure-Edit "
     "(open-source: https://github.com/ResearAI/AutoFigure-Edit; online service: https://deepscientist)."
 )
+MEDICAL_RUNTIME_CONTRACT_PATHS = (
+    "paper/medical_analysis_contract.json",
+    "paper/cohort_flow.json",
+    "paper/baseline_characteristics_schema.json",
+    "paper/reporting_guideline_checklist.json",
+)
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -258,6 +264,22 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "## Preferred study archetypes" not in write_text
 
 
+def test_overlay_includes_medical_runtime_contract_blocks() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    experiment_text = module.load_overlay_skill_text("experiment", base_text="upstream experiment\n")
+    analysis_text = module.load_overlay_skill_text("analysis-campaign", base_text="upstream analysis\n")
+    write_text = module.load_overlay_skill_text("write")
+    review_text = module.load_overlay_skill_text("review", base_text="upstream review\n")
+
+    assert "paper/medical_analysis_contract.json" in experiment_text
+    assert "paper/medical_analysis_contract.json" in analysis_text
+    assert "paper/medical_analysis_contract.json" in write_text
+    assert "cohort flow" in review_text.lower()
+    assert "baseline characteristics" in review_text.lower()
+    assert "TRIPOD" in review_text or "STROBE" in review_text or "CONSORT" in review_text
+
+
 def test_load_overlay_skill_text_for_journal_resolution_includes_controller_first_contract() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
@@ -286,6 +308,24 @@ def test_load_overlay_skill_text_for_forward_medical_stages(skill_id: str, expec
 
     assert text.startswith(f"# upstream {skill_id}")
     assert expected_phrase in text
+
+
+@pytest.mark.parametrize(
+    "skill_id",
+    ("experiment", "analysis-campaign", "write", "review"),
+)
+def test_medical_runtime_contract_block_is_injected_for_runtime_stages(skill_id: str) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    text = (
+        module.load_overlay_skill_text(skill_id)
+        if skill_id == "write"
+        else module.load_overlay_skill_text(skill_id, base_text=f"# upstream {skill_id}\n")
+    )
+
+    for required_path in MEDICAL_RUNTIME_CONTRACT_PATHS:
+        assert required_path in text
+    assert any(guideline in text for guideline in ("TRIPOD", "STROBE", "CONSORT"))
 
 
 @pytest.mark.parametrize("skill_id", ["baseline", "experiment", "analysis-campaign"])

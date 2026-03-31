@@ -8,6 +8,8 @@ Treat follow-up campaigns as publication-strength evidence building, not as endl
 
 {{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}
 
+{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}
+
 Hard startup-boundary rules for this stage:
 
 - If `startup_contract.startup_boundary_gate.allow_compute_stage` is not `true`, do not start follow-up campaigns, do not expand ablation grids, and do not burn compute on robustness passes.
