@@ -267,7 +267,9 @@ def _build_startup_contract(
         "journal_shortlist": journal_shortlist,
         "medical_analysis_contract_summary": medical_analysis_contract_summary,
         "medical_reporting_contract_summary": medical_reporting_contract_summary,
-        "reporting_guideline_family": medical_reporting_contract_summary["reporting_guideline_family"],
+        "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
+        if medical_reporting_contract_summary.get("status") == "resolved"
+        else None,
         "submission_targets": _serialize_submission_targets(profile, study_root)
         if _has_explicit_submission_targets(study_payload)
         else [],
