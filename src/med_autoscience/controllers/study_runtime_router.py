@@ -716,54 +716,32 @@ def ensure_study_runtime(
                     source=source,
                 )
     elif status["decision"] == "resume":
-        runtime_reentry_gate = (
-            dict(status["runtime_reentry_gate"])
-            if isinstance(status.get("runtime_reentry_gate"), dict)
-            else {}
-        )
         quest_root = Path(status["quest_root"])
-        if _runtime_reentry_requires_startup_hydration(runtime_reentry_gate):
-            create_payload = _build_create_payload(
+        create_payload = _build_create_payload(
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            study_payload=study_payload,
+            execution=execution,
+        )
+        hydration_result, validation_result = _run_startup_hydration(
+            quest_root=quest_root,
+            create_payload=create_payload,
+        )
+        status["startup_hydration"] = hydration_result
+        status["startup_hydration_validation"] = validation_result
+        if str(validation_result.get("status")) != "clear":
+            status["decision"] = "blocked"
+            status["reason"] = "hydration_validation_failed"
+            _write_runtime_binding(
+                runtime_binding_path=runtime_binding_path,
                 profile=profile,
                 study_id=resolved_study_id,
                 study_root=resolved_study_root,
-                study_payload=study_payload,
-                execution=execution,
+                quest_id=str(status["quest_id"]),
+                last_action="blocked",
+                source=source,
             )
-            hydration_result, validation_result = _run_startup_hydration(
-                quest_root=quest_root,
-                create_payload=create_payload,
-            )
-            status["startup_hydration"] = hydration_result
-            status["startup_hydration_validation"] = validation_result
-            if str(validation_result.get("status")) != "clear":
-                status["decision"] = "blocked"
-                status["reason"] = "hydration_validation_failed"
-                _write_runtime_binding(
-                    runtime_binding_path=runtime_binding_path,
-                    profile=profile,
-                    study_id=resolved_study_id,
-                    study_root=resolved_study_root,
-                    quest_id=str(status["quest_id"]),
-                    last_action="blocked",
-                    source=source,
-                )
-            else:
-                daemon_result = daemon_api.resume_quest(
-                    runtime_root=profile.deepscientist_runtime_root,
-                    quest_id=str(status["quest_id"]),
-                    source=source,
-                )
-                status["quest_status"] = str(daemon_result.get("status") or "running")
-                _write_runtime_binding(
-                    runtime_binding_path=runtime_binding_path,
-                    profile=profile,
-                    study_id=resolved_study_id,
-                    study_root=resolved_study_root,
-                    quest_id=str(status["quest_id"]),
-                    last_action="resume",
-                    source=source,
-                )
         else:
             daemon_result = daemon_api.resume_quest(
                 runtime_root=profile.deepscientist_runtime_root,
