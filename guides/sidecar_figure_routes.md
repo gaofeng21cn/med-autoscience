@@ -23,12 +23,14 @@ Sidecar 运行必须遵守下列核心契约条款：
 2. **不再假定外部绘图 sidecar。** MedAutoScience 不再为说明性图保留独立外部绘图 runtime、provider registry 或 bootstrap 入口。说明性图的质量控制由平台自己的程序化绘图规范、脚本审计面和 manuscript surface 共同承担。
 3. **禁止范围。** 程序化说明性图不得进入 `metric_number_editing`、`claim_change`、`result_plot_generation` 三类 scope。也就是说，严禁用说明性图路线修改任何数值证据、结果图（如 ROC、KM、校准、DCA、forest、SHAP、亚组统计图）、claim 文字或结论性结果标注。
 4. **结果图必须保留原始 artifact。** 如果结果图需要修正，应通过 DeepScientist 本体输出新的 artifact，然后在 audit surface 中写明差异、原因、责任人；绝不能借助说明性图路线偷换 claim 数据。
+5. **renderer family 也是正式 contract。** 路由只回答“这是证据图修复还是说明性图绘制”；真正的渲染技术栈还必须在 `paper/figure_semantics_manifest.json` 里锁定。允许矩阵是：`evidence -> python | r_ggplot2`，`illustration -> python | r_ggplot2 | html_svg`。其中 `html_svg` 永远不能用于证据型图。
+6. **严禁 failure-driven renderer switch。** 不允许因为环境缺包、依赖损坏、R/Python 运行失败、浏览器导出失败等原因，从一个 renderer family 偷偷切到另一个 family。正确动作只有阻断并修环境，即 `fallback_on_failure=false` 且 `failure_action=block_and_fix_environment`。
 
 ## 4. Figure routes：两类显式路由
 
 - **figure_script_fix:<figure-id>** 适用于 DeepScientist 主线已经定义好的 figure artifact，但当前图的脚本、模板、导出层或排版层存在问题，需要在冻结数据与冻结脚本边界内重新生成。它服务的是“证据型图修复”，不是“插图美化”，因此应保留结果图与其脚本的直接对应关系。
 - **figure_illustration_program:<figure-id>** 适用于说明性图，由独立程序绘图路线生成 manuscript-safe 的方法图、流程图、schema 图。它同样不能承载结果证据，也不依赖任何外部绘图 runtime。
-- **适用边界对照。** 如果要改动的图是直接支撑 claim/结果的 artifact，应走 `figure_script_fix` 由 DeepScientist 原生 pipeline 产生；如果图只是说明性图，则走 `figure_illustration_program`。旧的 `figure_illustration_sidecar` 和任何外部绘图 sidecar 路由都属于已废弃歧义入口，不应再使用。
+- **适用边界对照。** 如果要改动的图是直接支撑 claim/结果的 artifact，应走 `figure_script_fix` 由 DeepScientist 原生 pipeline 产生，并把 renderer family 锁定为 `python` 或 `r_ggplot2`；如果图只是说明性图，则走 `figure_illustration_program`，renderer family 可为 `python`、`r_ggplot2` 或 `html_svg`。旧的 `figure_illustration_sidecar` 和任何外部绘图 sidecar 路由都属于已废弃歧义入口，不应再使用。
 
 ## 5. 审计与人类复核要求
 

@@ -440,7 +440,14 @@ def test_create_submission_minimal_package_frontiers_family_uses_figure_semantic
                     ],
                     "threshold_semantics": "Thresholds are illustrative operating points rather than recommended cut-offs.",
                     "stratification_basis": "Risk groups are display-oriented rather than prespecified clinical bins.",
-                    "recommendation_boundary": "No formal threshold recommendation is made from this figure alone."
+                    "recommendation_boundary": "No formal threshold recommendation is made from this figure alone.",
+                    "renderer_contract": {
+                        "figure_semantics": "evidence",
+                        "renderer_family": "python",
+                        "selection_rationale": "The legend is derived from an audited evidence figure exported from the locked analysis stack.",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment"
+                    }
                 }
             ],
         },

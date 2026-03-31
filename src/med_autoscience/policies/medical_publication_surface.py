@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+from med_autoscience import figure_renderer_contract
+
 
 FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("deployment-facing", "deployment-facing", r"\bdeployment-facing\b", re.IGNORECASE),
@@ -243,6 +245,7 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
         "threshold_semantics",
         "stratification_basis",
         "recommendation_boundary",
+        "renderer_contract",
     )
     panel_fields = ("panel_id", "message")
     glossary_fields = ("term", "explanation")
@@ -268,6 +271,12 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
                 return [
                     f"missing figures[{index}].legend_glossary[{glossary_index}] fields: {', '.join(missing_glossary_fields)}"
                 ]
+        renderer_contract_payload = figure.get("renderer_contract")
+        if not isinstance(renderer_contract_payload, dict):
+            return [f"figures[{index}].renderer_contract must be an object"]
+        renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
+        if renderer_contract_errors:
+            return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
     return []
 
 
@@ -401,7 +410,9 @@ def build_intervention_message(report: dict[str, object]) -> str:
         figure_semantics_clause = (
             f" Also create or complete `paper/{FIGURE_SEMANTICS_MANIFEST_BASENAME}` so every main-text figure records its "
             "research question, direct message, clinical implication, interpretation boundary, panel-level messages, glossary terms, "
-            "and any threshold or stratification caveats needed for a medical reader."
+            "threshold or stratification caveats, and a locked renderer contract. Evidence figures may use only "
+            "`python` or `r_ggplot2`; illustration figures may use `python`, `r_ggplot2`, or `html_svg`. "
+            "Do not allow fallback-on-failure; the only permitted failure action is `block_and_fix_environment`."
         )
     derived_analysis_clause = ""
     if "derived_analysis_manifest_missing_or_incomplete" in (report.get("blockers") or []):

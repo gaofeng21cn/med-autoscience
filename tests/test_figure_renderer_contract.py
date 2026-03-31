@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+import importlib
+
+import pytest
+
+
+def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str = "python") -> dict[str, object]:
+    return {
+        "figure_semantics": figure_semantics,
+        "renderer_family": renderer_family,
+        "selection_rationale": (
+            "This figure stays on an audited programmatic renderer so the exported artifact remains coupled "
+            "to the manuscript-safe analysis surface."
+        ),
+        "fallback_on_failure": False,
+        "failure_action": "block_and_fix_environment",
+    }
+
+
+def test_allowed_renderer_families_follow_semantics_boundary() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    assert module.allowed_renderer_families("evidence") == ("python", "r_ggplot2")
+    assert module.allowed_renderer_families("illustration") == ("python", "r_ggplot2", "html_svg")
+
+
+def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    assert module.validate_renderer_contract(valid_contract(figure_semantics="evidence", renderer_family="python")) == []
+    assert module.validate_renderer_contract(
+        valid_contract(figure_semantics="evidence", renderer_family="r_ggplot2")
+    ) == []
+    assert module.validate_renderer_contract(
+        valid_contract(figure_semantics="illustration", renderer_family="html_svg")
+    ) == []
+
+
+def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    errors = module.validate_renderer_contract(valid_contract(figure_semantics="evidence", renderer_family="html_svg"))
+
+    assert errors
+    assert "renderer_family" in errors[0]
+    assert "html_svg" in errors[0]
+    assert "evidence" in errors[0]
+
+
+def test_validate_renderer_contract_rejects_failure_driven_fallbacks() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    errors = module.validate_renderer_contract(
+        {
+            **valid_contract(),
+            "fallback_on_failure": True,
+        }
+    )
+
+    assert errors == ["fallback_on_failure must be false"]
+
+
+def test_validate_renderer_contract_requires_block_and_fix_environment_failure_action() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    errors = module.validate_renderer_contract(
+        {
+            **valid_contract(),
+            "failure_action": "fallback_to_html_svg",
+        }
+    )
+
+    assert errors == ["failure_action must be `block_and_fix_environment`"]
+
+
+def test_normalize_renderer_contract_raises_for_invalid_combination() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    with pytest.raises(ValueError, match="html_svg"):
+        module.normalize_renderer_contract(valid_contract(figure_semantics="evidence", renderer_family="html_svg"))
