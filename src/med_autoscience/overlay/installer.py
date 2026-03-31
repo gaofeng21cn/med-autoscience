@@ -34,6 +34,9 @@ SUBMISSION_TARGETS_TOKEN = "{{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}"
 REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
 CONTROLLER_FIRST_TOKEN = "{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}"
 AUTOMATION_READY_TOKEN = "{{MED_AUTOSCIENCE_AUTOMATION_READY}}"
+FORBIDDEN_SYSTEM_PROMPT_SNIPPETS = (
+    "Publication-grade figure refinement is recommended with AutoFigure-Edit",
+)
 FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
@@ -715,6 +718,62 @@ def _runtime_materialization_roots(*, quest_root: Path) -> list[Path]:
     return roots
 
 
+def _runtime_system_prompt_path(*, runtime_root: Path) -> Path:
+    return runtime_root / ".codex" / "prompts" / "system.md"
+
+
+def _sanitize_runtime_system_prompt(*, runtime_root: Path) -> dict[str, Any]:
+    prompt_path = _runtime_system_prompt_path(runtime_root=runtime_root)
+    if not prompt_path.exists():
+        return {
+            "path": str(prompt_path),
+            "exists": False,
+            "action": "missing",
+            "removed_line_count": 0,
+        }
+
+    original_text = prompt_path.read_text(encoding="utf-8")
+    original_lines = original_text.splitlines()
+    kept_lines = [
+        line
+        for line in original_lines
+        if not any(snippet in line for snippet in FORBIDDEN_SYSTEM_PROMPT_SNIPPETS)
+    ]
+    removed_line_count = len(original_lines) - len(kept_lines)
+    if removed_line_count:
+        sanitized_text = "\n".join(kept_lines)
+        if original_text.endswith("\n"):
+            sanitized_text += "\n"
+        prompt_path.write_text(sanitized_text, encoding="utf-8")
+
+    return {
+        "path": str(prompt_path),
+        "exists": True,
+        "action": "sanitized" if removed_line_count else "unchanged",
+        "removed_line_count": removed_line_count,
+    }
+
+
+def _audit_runtime_system_prompt(*, runtime_root: Path) -> dict[str, Any]:
+    prompt_path = _runtime_system_prompt_path(runtime_root=runtime_root)
+    if not prompt_path.exists():
+        return {
+            "path": str(prompt_path),
+            "exists": False,
+            "ready": True,
+            "violations": [],
+        }
+
+    prompt_text = prompt_path.read_text(encoding="utf-8")
+    violations = [snippet for snippet in FORBIDDEN_SYSTEM_PROMPT_SNIPPETS if snippet in prompt_text]
+    return {
+        "path": str(prompt_path),
+        "exists": True,
+        "ready": not violations,
+        "violations": violations,
+    }
+
+
 def materialize_runtime_medical_overlay(
     *,
     quest_root: Path,
@@ -742,11 +801,13 @@ def materialize_runtime_medical_overlay(
             default_publication_profile=default_publication_profile,
             default_citation_style=default_citation_style,
         )
+        system_prompt = _sanitize_runtime_system_prompt(runtime_root=root)
         results.append(
             {
                 "runtime_root": str(root),
                 "surface": "quest" if root == resolved_quest_root else "worktree",
                 "overlay": overlay_result,
+                "system_prompt": system_prompt,
             }
         )
     return {
@@ -779,17 +840,22 @@ def audit_runtime_medical_overlay(
             default_publication_profile=default_publication_profile,
             default_citation_style=default_citation_style,
         )
+        system_prompt_audit = _audit_runtime_system_prompt(runtime_root=root)
+        all_surface_ready = bool(status["all_targets_ready"]) and bool(system_prompt_audit["ready"])
         surfaces.append(
             {
                 "runtime_root": str(root),
                 "surface": "quest" if root == resolved_quest_root else "worktree",
                 "all_targets_ready": bool(status["all_targets_ready"]),
+                "system_prompt_ready": bool(system_prompt_audit["ready"]),
+                "all_surface_ready": all_surface_ready,
                 "status": status,
+                "system_prompt": system_prompt_audit,
             }
         )
     return {
         "quest_root": str(resolved_quest_root),
         "surface_count": len(surfaces),
-        "all_roots_ready": all(item["all_targets_ready"] for item in surfaces),
+        "all_roots_ready": all(item["all_surface_ready"] for item in surfaces),
         "surfaces": surfaces,
     }
