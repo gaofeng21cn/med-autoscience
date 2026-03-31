@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from med_autoscience.runtime_protocol.quest_state import (
+    find_latest_main_result_path,
+    load_runtime_state,
+    read_recent_stdout_lines,
+    resolve_active_stdout_path,
+)
+
+
+def dump_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def test_load_runtime_state_reads_ds_runtime_json(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running", "active_run_id": "run-1"})
+
+    result = load_runtime_state(quest_root)
+
+    assert result["status"] == "running"
+    assert result["active_run_id"] == "run-1"
+
+
+def test_find_latest_main_result_path_prefers_latest_candidate(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    first = quest_root / ".ds" / "worktrees" / "run-a" / "experiments" / "main" / "001" / "RESULT.json"
+    second = quest_root / "experiments" / "main" / "002" / "RESULT.json"
+    dump_json(first, {"run_id": "001"})
+    dump_json(second, {"run_id": "002"})
+    second.touch()
+
+    latest = find_latest_main_result_path(quest_root)
+
+    assert latest == second
+
+
+def test_resolve_active_stdout_path_reads_active_run_id(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    stdout_path = quest_root / ".ds" / "runs" / "run-123" / "stdout.jsonl"
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_path.write_text("", encoding="utf-8")
+
+    resolved = resolve_active_stdout_path(quest_root=quest_root, runtime_state={"active_run_id": "run-123"})
+
+    assert resolved == stdout_path
+
+
+def test_read_recent_stdout_lines_filters_bad_json_and_limits_count(tmp_path: Path) -> None:
+    stdout_path = tmp_path / "stdout.jsonl"
+    stdout_path.write_text(
+        "\n".join(
+            [
+                '{"line":"first"}',
+                "not-json",
+                '{"line":"second"}',
+                '{"line":""}',
+                '{"line":"third"}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = read_recent_stdout_lines(stdout_path, limit=3)
+
+    assert result == ["second", "third"]

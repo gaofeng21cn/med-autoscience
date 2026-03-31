@@ -322,6 +322,19 @@ wrapper 不应继续硬编码：
 - 先把 workspace 骨架标准化
 - 再逐步把更多 controller 从固定拓扑提升到真正由 profile 驱动
 
+但从 Phase 2 开始，固定拓扑不再允许散落在 controller 内部重复推导，而是要通过显式 runtime protocol 管理：
+
+- `med_autoscience.runtime_protocol.topology`
+  - 管理 `paper_root -> worktree_root -> quest_root -> study_root` 的关系
+  - 当前受管布局仍明确要求 `ops/deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+- `med_autoscience.runtime_protocol.quest_state`
+  - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
+- `adapters.deepscientist.runtime`
+  - 现在只保留兼容导出与 transport shim 角色
+  - 不再是 runtime 布局/状态真相源
+
+这意味着当前阶段的目标不是“假装已经摆脱具体目录形状”，而是先把这些形状提升为 `MedAutoScience` 自己明确定义、可测试、可审计的协议面。
+
 ## Workspace wrapper 契约
 
 workspace 内的 wrapper 应满足：

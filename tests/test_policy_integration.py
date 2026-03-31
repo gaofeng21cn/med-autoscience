@@ -85,8 +85,8 @@ def test_publication_gate_uses_policy_message_builder(tmp_path: Path, monkeypatc
     controller = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_gate_quest(tmp_path)
 
-    monkeypatch.setattr(controller.runtime, "resolve_active_stdout_path", lambda *, quest_root, runtime_state: None)
-    monkeypatch.setattr(controller.runtime, "read_recent_stdout_lines", lambda stdout_path: [])
+    monkeypatch.setattr(controller.quest_state, "resolve_active_stdout_path", lambda *, quest_root, runtime_state: None)
+    monkeypatch.setattr(controller.quest_state, "read_recent_stdout_lines", lambda stdout_path: [])
     monkeypatch.setattr(controller, "find_latest_gate_report", lambda quest_root: None)
     monkeypatch.setattr(controller.publication_gate_policy, "build_intervention_message", lambda report: "POLICY_GATE_MSG")
 

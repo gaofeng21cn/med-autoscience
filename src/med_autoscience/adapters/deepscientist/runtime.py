@@ -1,71 +1,34 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
-
-def load_runtime_state(quest_root: Path) -> dict[str, Any]:
-    path = quest_root / ".ds" / "runtime_state.json"
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+from med_autoscience.runtime_protocol import quest_state
 
 
 def find_latest(paths: list[Path]) -> Path | None:
-    if not paths:
-        return None
-    return max(paths, key=lambda item: item.stat().st_mtime)
+    return quest_state.find_latest(paths)
+
+
+def load_runtime_state(quest_root: Path) -> dict[str, Any]:
+    return quest_state.load_runtime_state(quest_root)
 
 
 def quest_status(quest_root: Path) -> str:
-    payload = load_runtime_state(quest_root)
-    return str(payload.get("status") or "").strip().lower()
+    return quest_state.quest_status(quest_root)
 
 
 def iter_active_quests(runtime_root: Path) -> list[Path]:
-    if not runtime_root.exists():
-        return []
-    quests: list[Path] = []
-    for quest_root in sorted(path for path in runtime_root.iterdir() if path.is_dir()):
-        if quest_status(quest_root) in {"running", "active"}:
-            quests.append(quest_root)
-    return quests
+    return quest_state.iter_active_quests(runtime_root)
 
 
 def find_latest_main_result(quest_root: Path) -> Path:
-    patterns = [
-        ".ds/worktrees/*/experiments/main/*/RESULT.json",
-        "experiments/main/*/RESULT.json",
-    ]
-    candidates: list[Path] = []
-    for pattern in patterns:
-        candidates.extend(quest_root.glob(pattern))
-    latest = find_latest(candidates)
-    if latest is None:
-        raise FileNotFoundError(f"No main RESULT.json found under {quest_root}")
-    return latest
+    return quest_state.find_latest_main_result(quest_root)
 
 
 def resolve_active_stdout_path(*, quest_root: Path, runtime_state: dict[str, Any]) -> Path | None:
-    active_run_id = runtime_state.get("active_run_id")
-    if not active_run_id:
-        return None
-    path = quest_root / ".ds" / "runs" / str(active_run_id) / "stdout.jsonl"
-    return path if path.exists() else None
+    return quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
 
 
 def read_recent_stdout_lines(stdout_path: Path | None, *, limit: int = 40) -> list[str]:
-    if stdout_path is None:
-        return []
-    raw_lines = stdout_path.read_text(encoding="utf-8").splitlines()[-limit:]
-    lines: list[str] = []
-    for raw in raw_lines:
-        try:
-            event = json.loads(raw)
-        except json.JSONDecodeError:
-            continue
-        line = str(event.get("line") or "")
-        if line:
-            lines.append(line)
-    return lines
+    return quest_state.read_recent_stdout_lines(stdout_path, limit=limit)

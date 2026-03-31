@@ -12,6 +12,7 @@ from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
     normalize_publication_profile,
 )
+from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 
 
 SYNC_STAGES = ("submission_minimal", "finalize")
@@ -31,54 +32,15 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def read_top_level_yaml_scalar(path: Path, key: str) -> str:
-    prefix = f"{key}:"
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        if raw_line.startswith((" ", "\t")):
-            continue
-        line = raw_line.strip()
-        if not line or line.startswith("#") or not line.startswith(prefix):
-            continue
-        value = line[len(prefix) :].strip().strip("'").strip('"')
-        if value:
-            return value
-    raise ValueError(f"missing top-level scalar `{key}` in {path}")
-
-
 def reset_directory(path: Path) -> None:
     if path.exists():
         shutil.rmtree(path)
     path.mkdir(parents=True, exist_ok=True)
 
 
-def resolve_worktree_root(paper_root: Path) -> Path:
-    return paper_root.resolve().parent
-
-
-def resolve_quest_root(paper_root: Path) -> Path:
-    worktree_root = resolve_worktree_root(paper_root)
-    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
-        raise ValueError(f"paper_root is not under a DeepScientist worktree layout: {paper_root}")
-    return worktree_root.parents[2]
-
-
-def resolve_study_root(paper_root: Path) -> tuple[str, Path]:
-    worktree_root = resolve_worktree_root(paper_root)
-    quest_root = resolve_quest_root(paper_root)
-    quest_yaml_path = worktree_root / "quest.yaml"
-    if not quest_yaml_path.exists():
-        raise FileNotFoundError(f"missing worktree quest.yaml: {quest_yaml_path}")
-    study_id = read_top_level_yaml_scalar(quest_yaml_path, "quest_id")
-    workspace_root = quest_root.parents[4]
-    study_root = workspace_root / "studies" / study_id
-    if not (study_root / "study.yaml").exists():
-        raise FileNotFoundError(f"unable to resolve studies root for `{study_id}` from {paper_root}")
-    return study_id, study_root
-
-
 def can_sync_study_delivery(*, paper_root: Path) -> bool:
     try:
-        resolve_study_root(paper_root.resolve())
+        resolve_paper_root_context(paper_root.resolve())
     except (FileNotFoundError, ValueError):
         return False
     return True
@@ -464,9 +426,11 @@ def sync_study_delivery(
         raise ValueError(f"unsupported sync stage: {stage}")
     normalized_publication_profile = normalize_publication_profile(publication_profile)
 
-    paper_root = paper_root.resolve()
-    worktree_root = resolve_worktree_root(paper_root)
-    study_id, study_root = resolve_study_root(paper_root)
+    context = resolve_paper_root_context(paper_root.resolve())
+    paper_root = context.paper_root
+    worktree_root = context.worktree_root
+    study_id = context.study_id
+    study_root = context.study_root
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return sync_general_delivery(
