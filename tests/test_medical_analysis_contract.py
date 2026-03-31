@@ -43,3 +43,29 @@ def test_medical_policies_package_exports_contracts() -> None:
     assert MedicalReportingContract.__name__ == "MedicalReportingContract"
     assert callable(resolve_medical_analysis_contract)
     assert callable(resolve_medical_reporting_contract)
+
+
+def test_resolve_medical_analysis_contract_for_survival_endpoint() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_analysis_contract")
+
+    contract = module.resolve_medical_analysis_contract(
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.required_analysis_packages == (
+        "discrimination_metrics",
+        "calibration_assessment",
+        "km_risk_stratification",
+        "decision_curve_analysis",
+        "censoring_aware_validation",
+        "subgroup_heterogeneity",
+        "sensitivity_support",
+    )
+    assert contract.required_reporting_items == (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "horizon_definition",
+        "model_specification",
+    )

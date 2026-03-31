@@ -16,6 +16,14 @@ MEDICAL_SUBMISSION_TARGET_FAMILY_BY_PUBLICATION_PROFILE: dict[str, str] = {
     GENERAL_MEDICAL_JOURNAL_PROFILE: "general_medical_journal",
     FRONTIERS_FAMILY_HARVARD_PROFILE: "general_medical_journal",
 }
+RECOMMENDED_MANAGED_STUDY_FIELDS = (
+    "study_archetype",
+    "endpoint_type",
+    "manuscript_family",
+)
+DEFAULT_MANUSCRIPT_FAMILY_BY_ARCHETYPE: dict[str, str] = {
+    "clinical_classifier": "prediction_model",
+}
 
 
 def normalized_string(value: object) -> str:
@@ -24,7 +32,23 @@ def normalized_string(value: object) -> str:
     return value.strip()
 
 
+def managed_study_field_summary(*, study_payload: dict[str, Any]) -> dict[str, list[str]]:
+    declared_fields = [
+        field_name
+        for field_name in RECOMMENDED_MANAGED_STUDY_FIELDS
+        if normalized_string(study_payload.get(field_name))
+    ]
+    return {
+        "recommended_study_fields": list(RECOMMENDED_MANAGED_STUDY_FIELDS),
+        "declared_study_fields": declared_fields,
+    }
+
+
 def resolve_study_archetype(*, study_payload: dict[str, Any], profile: WorkspaceProfile) -> tuple[str | None, str | None]:
+    explicit_study_archetype = normalized_string(study_payload.get("study_archetype"))
+    if explicit_study_archetype:
+        return explicit_study_archetype, None
+
     explicit_study_archetype = normalized_string(study_payload.get("preferred_study_archetype"))
     if explicit_study_archetype:
         return explicit_study_archetype, None

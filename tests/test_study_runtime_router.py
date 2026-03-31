@@ -44,6 +44,7 @@ def write_study(
     workspace_root: Path,
     study_id: str,
     *,
+    study_archetype: str | None = None,
     preferred_study_archetype: str | None = None,
     paper_framing_summary: str | None = None,
     paper_urls: list[str] | None = None,
@@ -58,6 +59,8 @@ def write_study(
     runtime_reentry_required_paths: list[str] | None = None,
     runtime_reentry_execution_root: str | None = None,
     runtime_reentry_first_unit: str | None = None,
+    runtime_reentry_require_startup_hydration: bool | None = None,
+    runtime_reentry_require_managed_skill_audit: bool | None = None,
 ) -> Path:
     study_root = workspace_root / "studies" / study_id
     write_text(workspace_root / "ops" / "deepscientist" / "startup_briefs" / f"{study_id}.md", "# Startup brief\n")
@@ -71,6 +74,8 @@ def write_study(
         "protocol_file: protocol.md",
         f"startup_brief: ../../ops/deepscientist/startup_briefs/{study_id}.md",
     ]
+    if study_archetype is not None:
+        lines.append(f"study_archetype: {study_archetype}")
     if preferred_study_archetype is not None:
         lines.append(f"preferred_study_archetype: {preferred_study_archetype}")
     if paper_framing_summary is not None:
@@ -153,6 +158,8 @@ def write_study(
                 "    enabled: true",
                 f"    execution_root: {runtime_reentry_execution_root or 'analysis/clean_room_execution'}",
                 f"    first_runtime_unit: {runtime_reentry_first_unit or '00_entry_validation'}",
+                f"    require_startup_hydration: {'true' if runtime_reentry_require_startup_hydration else 'false'}",
+                f"    require_managed_skill_audit: {'true' if runtime_reentry_require_managed_skill_audit else 'false'}",
                 "    required_paths:",
             ]
         )
@@ -218,6 +225,9 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     study_root = write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
@@ -301,6 +311,137 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert report["decision"] == "create_and_start"
     assert report["study_id"] == "001-risk"
     assert report["study_root"] == str(study_root)
+
+
+def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_first_unit="00_entry_validation",
+    )
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    created: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "create_quest",
+        lambda *, runtime_root, payload: created.update({"runtime_root": runtime_root, "payload": payload})
+        or {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(runtime_root / "001-risk"),
+                "status": "created",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    contract = created["payload"]["startup_contract"]
+    assert result["decision"] == "create_and_start"
+    assert result["startup_boundary_gate"]["required_first_anchor"] == "00_entry_validation"
+    assert result["startup_boundary_gate"]["effective_custom_profile"] == "continue_existing_state"
+    assert contract["required_first_anchor"] == "00_entry_validation"
+    assert contract["custom_profile"] == "continue_existing_state"
+
+
+def test_ensure_study_runtime_creates_quest_before_runtime_overlay_materialization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    call_order: list[str] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: call_order.append("prepare")
+        or {"authority": {"selected_action": "noop"}, "materialization": {}, "audit": {"all_roots_ready": True}},
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "create_quest",
+        lambda *, runtime_root, payload: call_order.append("create")
+        or {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(runtime_root / "001-risk"),
+                "status": "created",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "create_and_start"
+    assert call_order[:2] == ["create", "prepare"]
 
 
 def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tmp_path: Path) -> None:
@@ -623,6 +764,197 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
     }
 
 
+def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_startup_hydration(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_require_startup_hydration=True,
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk"),
+        ("validate", profile.runtime_root / "001-risk"),
+        ("resume", "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_validation_fails(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_require_startup_hydration=True,
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "blocked", "blockers": ["unsupported_medical_analysis_contract"]}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "hydration_validation_failed"
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk"),
+        ("validate", profile.runtime_root / "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_blocks_when_managed_skill_audit_is_required_but_overlay_is_disabled(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = replace(make_profile(tmp_path), enable_medical_overlay=False)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_require_managed_skill_audit=True,
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "managed_skill_audit_not_available"
+
+
 def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
@@ -662,7 +994,13 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
 def test_ensure_study_runtime_stays_lightweight_for_non_managed_entry_mode(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(profile.workspace_root, "001-risk")
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
 
     monkeypatch.setattr(
         module,
@@ -688,7 +1026,13 @@ def test_ensure_study_runtime_stays_lightweight_for_non_managed_entry_mode(monke
 def test_ensure_study_runtime_blocks_when_study_has_unresolved_data_contract(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(profile.workspace_root, "001-risk")
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
 
     monkeypatch.setattr(
         module,
@@ -729,7 +1073,13 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(profile.workspace_root, "001-risk")
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
     created: dict[str, object] = {}
 
     monkeypatch.setattr(
@@ -841,6 +1191,9 @@ def test_ensure_study_runtime_applies_startup_boundary_to_non_continue_launch_pr
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         launch_profile="review_audit",
     )
     created: dict[str, object] = {}
