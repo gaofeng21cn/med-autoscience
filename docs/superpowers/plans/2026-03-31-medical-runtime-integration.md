@@ -959,3 +959,22 @@ Expected: show medical contract, hydration, literature, overlay, audit, CLI/MCP 
 git add src/med_autoscience/cli.py src/med_autoscience/mcp_server.py tests/test_cli.py tests/test_mcp_server.py
 git commit -m "feat: expose medical runtime audit entrypoints"
 ```
+
+## Execution Log
+
+- `2026-03-31` Task 1 complete: `190db9a` `feat: add medical runtime contract policies`
+- `2026-03-31` Task 2 complete: `407fe6d` `add medical startup contracts to runtime payload`
+- `2026-03-31` Task 2 compatibility fix: `007639d` `fix: preserve runtime compatibility in medical startup contracts`
+- `2026-03-31` Task 2 test hardening: `107f92a` `test: cover medical startup contract edge cases`
+- `2026-03-31` Task 3 complete: `87906cd` `feat: add quest hydration startup flow`
+- `2026-03-31` Task 4 complete: `168774f` `feat: add medical literature adapters`
+- `2026-03-31` Task 5 complete: `9ff2ac3` `feat: hydrate medical literature into quests`
+- `2026-03-31` Task 6 complete: `a4e41e6` `feat: inject medical runtime contracts into overlay`
+- `2026-03-31` Task 7 complete: `ba6a455` `feat: add medical audit controllers to runtime watch`
+- `2026-03-31` Task 8 complete: pending current working tree commit
+- Verification `A`:
+  `PYTHONPATH=src pytest tests/test_medical_analysis_contract.py tests/test_medical_reporting_contract.py tests/test_study_runtime_router.py tests/test_quest_hydration.py tests/test_startup_hydration_validation.py tests/test_literature_records.py tests/test_pubmed_adapter.py tests/test_pmc_adapter.py tests/test_doi_adapter.py tests/test_literature_hydration.py tests/test_overlay_installer.py tests/test_policy_integration.py tests/test_medical_literature_audit.py tests/test_medical_reporting_audit.py tests/test_medical_publication_surface.py tests/test_runtime_watch.py tests/test_cli.py tests/test_mcp_server.py -q`
+  Result: `162 passed`
+- Verification `B`:
+  `PYTHONPATH=src pytest tests/test_reference_papers.py tests/test_reference_papers_controller.py tests/test_submission_targets.py tests/test_submission_targets_controller.py tests/test_runtime_reentry_gate.py tests/test_publication_gate.py -q`
+  Result: `19 passed`

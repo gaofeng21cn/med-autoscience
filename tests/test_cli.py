@@ -199,6 +199,26 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert "q001" in captured.out
 
 
+def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
+        called["quest_root"] = quest_root
+        called["apply"] = apply
+        return {"status": "clear", "quest_root": str(quest_root)}
+
+    monkeypatch.setattr(cli.medical_reporting_audit, "run_controller", fake_run_controller)
+
+    exit_code = cli.main(["medical-reporting-audit", "--quest-root", str(tmp_path / "quest")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["quest_root"] == tmp_path / "quest"
+    assert called["apply"] is False
+    assert '"status": "clear"' in captured.out
+
+
 def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
