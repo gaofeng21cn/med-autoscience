@@ -174,6 +174,14 @@ uv run python -m med_autoscience.cli init-workspace \
   --workspace-name my-disease
 ```
 
+如果你是在这个仓库里做开发、测试或发包，统一使用仓库自己的 `uv` 项目环境，不要直接调用系统 Python、Homebrew 默认 `python3` 或裸 `pytest`：
+
+```bash
+uv sync --frozen --group dev
+uv run pytest
+uv run python -m build --sdist --wheel
+```
+
 如果你主要通过 Codex 驱动 `MedAutoScience`，现在已经可以直接使用仓库内置的 Codex plugin。
 它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
 
