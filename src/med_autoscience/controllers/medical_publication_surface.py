@@ -103,6 +103,56 @@ def scan_text_file(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
+TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml", ".json"}
+
+
+def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
+    candidate = Path(str(raw_path).strip())
+    if candidate.is_absolute():
+        return candidate
+    if candidate.parts and candidate.parts[0] == "paper":
+        return (paper_root.parent / candidate).resolve()
+    return (paper_root / candidate).resolve()
+
+
+def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> list[Path]:
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+
+    generated_root = paper_root / "figures" / "generated"
+    if generated_root.exists():
+        for path in sorted(generated_root.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in TEXT_ASSET_SUFFIXES:
+                continue
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            candidates.append(resolved)
+
+    payload = load_json(figure_catalog_path, default={}) or {}
+    for item in payload.get("figures", []) or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("paper_role") or "").strip() != "main_text":
+            continue
+        for key in ("export_paths", "asset_paths"):
+            values = item.get(key)
+            if not isinstance(values, list):
+                continue
+            for raw_path in values:
+                if not isinstance(raw_path, str) or not raw_path.strip():
+                    continue
+                resolved = resolve_paper_relative_path(paper_root, raw_path)
+                if resolved.suffix.lower() not in TEXT_ASSET_SUFFIXES:
+                    continue
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                candidates.append(resolved)
+    return candidates
+
+
 def scan_catalog_strings(path: Path, *, collection_key: str) -> list[dict[str, Any]]:
     payload = load_json(path, default={}) or {}
     hits: list[dict[str, Any]] = []
@@ -520,6 +570,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits.extend(scan_text_file(state.review_manuscript_path))
     forbidden_hits.extend(scan_catalog_strings(state.figure_catalog_path, collection_key="figures"))
     forbidden_hits.extend(scan_catalog_strings(state.table_catalog_path, collection_key="tables"))
+    for path in discover_figure_text_assets(state.paper_root, state.figure_catalog_path):
+        forbidden_hits.extend(scan_text_file(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
     methods_manifest_valid, methods_manifest_hits = inspect_required_json_contract(

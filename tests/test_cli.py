@@ -15,7 +15,7 @@ from med_autoscience.agent_entry.renderers import (
     render_public_yaml,
 )
 from med_autoscience.figure_routes import (
-    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
     build_figure_route,
 )
@@ -73,6 +73,7 @@ def test_doctor_command_reports_profile_and_paths(tmp_path: Path, capsys) -> Non
     assert "profile: nfpitnet" in captured.out
     assert "workspace_root: /Users/gaofeng/workspace/Yang/无功能垂体瘤" in captured.out
     assert "default_publication_profile: general_medical_journal" in captured.out
+    assert "autofigure" not in captured.out.lower()
 
 
 def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
@@ -102,6 +103,7 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
         "mechanistic_sidecar_extension"
     ) in captured.out
     assert "medical_overlay_scope: workspace" in captured.out
+    assert "autofigure" not in captured.out.lower()
 
 def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, capsys) -> None:
     profile_path = tmp_path / "nfpitnet.local.toml"
@@ -117,28 +119,6 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     assert callable(main)
 
     exit_code = main(["show-profile", "--profile", str(profile_path), "--format", "json"])
-
-
-def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-
-    exit_code = cli.main(["show-agent-entry-modes"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert json.loads(captured.out) == render_entry_modes_payload()
-
-
-def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
-    cli = importlib.import_module("med_autoscience.cli")
-    expected_assets = {
-        "guides/agent_entry_modes.md": render_entry_modes_guide(),
-        "templates/agent_entry_modes.yaml": render_public_yaml(),
-        "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
-        "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
-    }
-
-    exit_code = cli.main(["sync-agent-entry-assets", "--repo-root", str(tmp_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -154,6 +134,17 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
     assert payload["overlay"]["medical_overlay_bootstrap_mode"] == "ensure_ready"
     assert payload["policy"]["research_route_bias_policy"] == "high_plasticity_medical"
     assert payload["archetype"]["preferred_study_archetypes"][0] == "clinical_classifier"
+    assert "autofigure" not in json.dumps(payload, ensure_ascii=False).lower()
+
+
+def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["show-agent-entry-modes"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(captured.out) == render_entry_modes_payload()
 
 
 def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
@@ -774,7 +765,7 @@ def test_recommend_sidecar_command_dispatches_generic_controller(monkeypatch, tm
         [
             "recommend-sidecar",
             "--provider",
-            "autofigure_edit",
+            "aris",
             "--quest-root",
             str(tmp_path / "runtime" / "quests" / "q001"),
             "--payload-file",
@@ -786,7 +777,7 @@ def test_recommend_sidecar_command_dispatches_generic_controller(monkeypatch, tm
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["provider_id"] == "autofigure_edit"
+    assert called["provider_id"] == "aris"
     assert called["instance_id"] == "F3C"
     assert called["payload"]["figure_ticket_open"] is True
     assert '"recommended"' in captured.out
@@ -802,7 +793,7 @@ def test_import_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_p
         called["instance_id"] = instance_id
         return {
             "status": "imported",
-            "artifact_root": str(quest_root / "artifacts" / "figures" / "autofigure_edit" / "F3C"),
+            "artifact_root": str(quest_root / "artifacts" / "algorithm_research" / "aris"),
         }
 
     monkeypatch.setattr(cli.sidecar_provider_controller, "import_sidecar_result", fake_import)
@@ -811,7 +802,7 @@ def test_import_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_p
         [
             "import-sidecar",
             "--provider",
-            "autofigure_edit",
+            "aris",
             "--quest-root",
             str(tmp_path / "runtime" / "quests" / "q001"),
             "--instance-id",
@@ -821,7 +812,7 @@ def test_import_sidecar_command_dispatches_generic_controller(monkeypatch, tmp_p
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["provider_id"] == "autofigure_edit"
+    assert called["provider_id"] == "aris"
     assert called["instance_id"] == "F3C"
     assert '"imported"' in captured.out
 
@@ -1128,7 +1119,7 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
             "--required-route",
             build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
             "--required-route",
-            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A"),
             "--min-figure-mentions",
             "3",
             "--min-reference-count",
@@ -1147,7 +1138,7 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
     assert called["required_routes"] == [
         "literature_scout",
         build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
-        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
+        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A"),
     ]
     assert called["min_figure_mentions"] == 3
     assert called["min_reference_count"] == 12

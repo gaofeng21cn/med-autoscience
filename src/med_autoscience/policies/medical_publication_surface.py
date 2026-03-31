@@ -27,8 +27,11 @@ FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("brier_score", "brier_score", r"\bbrier_score\b", re.IGNORECASE),
     ("calibration_intercept", "calibration_intercept", r"\bcalibration_intercept\b", re.IGNORECASE),
     ("calibration_slope", "calibration_slope", r"\bcalibration_slope\b", re.IGNORECASE),
-    ("AutoFigure-Edit", "AutoFigure-Edit", r"\bAutoFigure-Edit\b", 0),
+    ("open-source disclosure", "open-source:", r"\bopen-source:\s*https?://\S+", re.IGNORECASE),
+    ("online service disclosure", "online service:", r"\bonline service:\s*https?://\S+", re.IGNORECASE),
     ("deepscientist", "deepscientist", r"\bdeepscientist\b", re.IGNORECASE),
+    ("poster sources label", "Sources:", r"\bSources:", re.IGNORECASE),
+    ("poster why-this-matters label", "Why this matters", r"\bWhy this matters\b", re.IGNORECASE),
     ("comparison framework", "comparison framework", r"\bcomparison framework\b", re.IGNORECASE),
     ("model surface", "model surface", r"\bmodel surfaces?\b", re.IGNORECASE),
     ("version label", "v2026-03-28", r"\bv\d{4}-\d{2}-\d{2}\b", re.IGNORECASE),
@@ -445,7 +448,7 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "then rewrite figure/table titles and captions in the catalogs so they no longer use engineering terms such as "
         "`deployment-facing`, `baseline-comparable`, `locked cohort`, `contract`, metric IDs such as "
         "`roc_auc`, `average_precision`, `brier_score`, `calibration_intercept`, `calibration_slope`, "
-        "or tool/vendor references such as `AutoFigure-Edit` or `deepscientist`. "
+        "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
         f"{ama_clause}{methods_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause} "

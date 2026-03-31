@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.figure_routes import (
-    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
     build_figure_route,
 )
@@ -97,7 +97,7 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
             "expand_references",
             "revise_manuscript_body",
             build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
-            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A"),
         ],
         min_figure_mentions=3,
         min_reference_count=12,
@@ -119,7 +119,7 @@ def test_build_guard_report_flags_reopened_accepted_figure_and_reference_floor(t
         "expand_references",
         "revise_manuscript_body",
         build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
-        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
+        build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A"),
     ]
 
 
@@ -165,7 +165,7 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
             "expand_references",
             "revise_manuscript_body",
             build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C"),
-            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C"),
+            build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A"),
         ],
         min_figure_mentions=3,
         min_reference_count=12,
@@ -178,8 +178,9 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     content = queue["pending"][0]["content"]
     assert "F4B" in content
     assert "F3C" in content
+    assert "F5A" in content
     assert "literature_scout" in content
     assert build_figure_route(FIGURE_ROUTE_SCRIPT_FIX, "F3C") in content
-    assert build_figure_route(FIGURE_ROUTE_ILLUSTRATION_SIDECAR, "F3C") in content
+    assert build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A") in content
     assert "script/data repair route" in content
-    assert "illustration-only sidecar route" in content
+    assert "programmatic illustration route" in content

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-from pathlib import Path
 import platform
 
 from med_autoscience.profiles import WorkspaceProfile

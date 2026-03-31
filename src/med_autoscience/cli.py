@@ -11,7 +11,6 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience.controllers import (
-    autofigure_edit_sidecar as autofigure_edit_sidecar_controller,
     aris_sidecar as aris_sidecar_controller,
     data_asset_gate,
     data_assets,
