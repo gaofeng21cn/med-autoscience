@@ -6,9 +6,9 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.adapters.deepscientist import paper_bundle
 from med_autoscience.controllers import submission_minimal
 from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.submission_targets import (
     SubmissionTarget,
     SubmissionTargetContract,
@@ -114,7 +114,7 @@ def _resolve_paper_root(*, paper_root: Path | None, quest_root: Path | None) -> 
         return Path(paper_root).expanduser().resolve()
     if quest_root is None:
         raise ValueError("export_submission_targets requires --paper-root or --quest-root")
-    return paper_bundle.resolve_latest_paper_root(quest_root)
+    return paper_artifacts.resolve_latest_paper_root(quest_root)
 
 
 def export_submission_targets(

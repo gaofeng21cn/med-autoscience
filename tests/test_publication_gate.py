@@ -144,11 +144,11 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
         lambda *, quest_root, runtime_state: quest_root / ".ds" / "runs" / "run-1" / "stdout.jsonl",
     )
     monkeypatch.setattr(module.quest_state, "read_recent_stdout_lines", lambda stdout_path: ["route -> write"])
-    monkeypatch.setattr(module.paper_bundle, "resolve_artifact_manifest", lambda main_result: None)
-    monkeypatch.setattr(module.paper_bundle, "resolve_paper_bundle_manifest", lambda quest_root: None)
-    monkeypatch.setattr(module.paper_bundle, "resolve_submission_minimal_manifest", lambda paper_bundle_manifest_path: None)
+    monkeypatch.setattr(module.paper_artifacts, "resolve_artifact_manifest_from_main_result", lambda main_result: None)
+    monkeypatch.setattr(module.paper_artifacts, "resolve_paper_bundle_manifest", lambda quest_root: None)
+    monkeypatch.setattr(module.paper_artifacts, "resolve_submission_minimal_manifest", lambda paper_bundle_manifest_path: None)
     monkeypatch.setattr(
-        module.paper_bundle,
+        module.paper_artifacts,
         "resolve_submission_minimal_output_paths",
         lambda *, paper_bundle_manifest_path, submission_minimal_manifest: (None, None),
     )

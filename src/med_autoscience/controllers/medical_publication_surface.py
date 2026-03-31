@@ -8,8 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters.deepscientist import mailbox, paper_bundle, runtime
+from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+from med_autoscience.runtime_protocol import paper_artifacts, user_message
+from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
 
 
 @dataclass
@@ -55,7 +57,7 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 def build_surface_state(quest_root: Path) -> SurfaceState:
     runtime_state = runtime.load_runtime_state(quest_root) or {}
-    paper_root = paper_bundle.resolve_latest_paper_root(quest_root)
+    paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
     return SurfaceState(
         quest_root=quest_root,
         runtime_state=runtime_state,
@@ -843,13 +845,13 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = mailbox.post_quest_control(
+            stop_result = medicaldeepscientist_transport.post_quest_control(
                 daemon_url=daemon_url,
                 quest_id=report["quest_id"],
                 action="stop",
                 source=source,
             )
-        intervention = mailbox.enqueue_user_message(
+        intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=medical_surface_policy.build_intervention_message(report),

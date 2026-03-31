@@ -8,9 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters.deepscientist import mailbox, paper_bundle
+from med_autoscience.adapters.deepscientist import mailbox
 from med_autoscience.policies import publication_gate as publication_gate_policy
-from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 
 
 @dataclass
@@ -66,7 +66,7 @@ def detect_write_drift(lines: list[str]) -> bool:
 
 def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -> tuple[list[str], list[str]]:
     required = list(main_result.get("metric_contract", {}).get("required_non_scalar_deliverables") or [])
-    manifest_path = paper_bundle.resolve_artifact_manifest(main_result)
+    manifest_path = paper_artifacts.resolve_artifact_manifest_from_main_result(main_result)
     manifest_payload = load_json(manifest_path, default={}) if manifest_path else {}
     manifest_blob = json.dumps(manifest_payload, ensure_ascii=False).lower()
     present: list[str] = []
@@ -96,13 +96,13 @@ def build_gate_state(quest_root: Path) -> GateState:
     stdout_path = quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
     recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
     present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
-    paper_bundle_manifest_path = paper_bundle.resolve_paper_bundle_manifest(quest_root)
+    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
     paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
-    submission_minimal_manifest_path = paper_bundle.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
+    submission_minimal_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
     submission_minimal_manifest = (
         load_json(submission_minimal_manifest_path) if submission_minimal_manifest_path else None
     )
-    submission_minimal_docx_path, submission_minimal_pdf_path = paper_bundle.resolve_submission_minimal_output_paths(
+    submission_minimal_docx_path, submission_minimal_pdf_path = paper_artifacts.resolve_submission_minimal_output_paths(
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
     )
@@ -270,7 +270,7 @@ def run_controller(
     json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
     if apply and report["blockers"]:
-        intervention = mailbox.enqueue_user_message(
+        intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=publication_gate_policy.build_intervention_message(report),
