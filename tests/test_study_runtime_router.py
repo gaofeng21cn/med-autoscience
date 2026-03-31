@@ -721,15 +721,20 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
-    resumed: dict[str, object] = {}
+    calls: list[tuple[str, object]] = []
 
     monkeypatch.setattr(
         module,
@@ -746,22 +751,35 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
-        resumed["runtime_root"] = runtime_root
-        resumed["quest_id"] = quest_id
-        resumed["source"] = source
-        return {"ok": True, "status": "running"}
-
-    monkeypatch.setattr(module.daemon_api, "resume_quest", fake_resume_quest)
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "resume"
-    assert resumed == {
-        "runtime_root": profile.deepscientist_runtime_root,
-        "quest_id": "001-risk",
-        "source": "medautosci-test",
-    }
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk"),
+        ("validate", profile.runtime_root / "001-risk"),
+        ("resume", "001-risk"),
+    ]
 
 
 def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_startup_hydration(
@@ -953,6 +971,60 @@ def test_ensure_study_runtime_blocks_when_managed_skill_audit_is_required_but_ov
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "managed_skill_audit_not_available"
+
+
+def test_ensure_study_runtime_pauses_running_quest_when_required_startup_hydration_is_blocked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_require_startup_hydration=True,
+    )
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    write_text(quest_root / "paper" / "medical_analysis_contract.json", '{\"status\":\"unsupported\"}\n')
+    write_text(quest_root / "paper" / "medical_reporting_contract.json", '{\"status\":\"resolved\"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "paused"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "pause"
+    assert result["reason"] == "runtime_reentry_not_ready_for_running_quest"
+    assert "unsupported_medical_analysis_contract" in result["runtime_reentry_gate"]["blockers"]
 
 
 def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, tmp_path: Path) -> None:
@@ -1370,15 +1442,20 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"idle"}\n')
-    resumed: dict[str, object] = {}
+    calls: list[tuple[str, object]] = []
 
     monkeypatch.setattr(
         module,
@@ -1395,25 +1472,37 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-
-    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
-        resumed["runtime_root"] = runtime_root
-        resumed["quest_id"] = quest_id
-        resumed["source"] = source
-        return {"ok": True, "status": "active"}
-
-    monkeypatch.setattr(module.daemon_api, "resume_quest", fake_resume_quest)
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.daemon_api,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_initialized_waiting_to_start"
     assert result["quest_status"] == "active"
-    assert resumed == {
-        "runtime_root": profile.deepscientist_runtime_root,
-        "quest_id": "001-risk",
-        "source": "medautosci-test",
-    }
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk"),
+        ("validate", profile.runtime_root / "001-risk"),
+        ("resume", "001-risk"),
+    ]
 
 
 def test_ensure_study_runtime_blocks_when_analysis_bundle_is_not_ready(monkeypatch, tmp_path: Path) -> None:
