@@ -62,6 +62,14 @@ def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
     assert "figure_loop_guard" in runners
 
 
+def test_runtime_watch_registers_medical_runtime_audits() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    runners = module.build_default_controller_runners()
+
+    assert "medical_literature_audit" in runners
+    assert "medical_reporting_audit" in runners
+
+
 def test_suppresses_duplicate_blocker(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
