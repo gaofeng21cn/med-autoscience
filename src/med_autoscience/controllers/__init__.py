@@ -1,5 +1,4 @@
 __all__ = [
-    "autofigure_edit_sidecar",
     "aris_sidecar",
     "data_asset_gate",
     "data_assets",

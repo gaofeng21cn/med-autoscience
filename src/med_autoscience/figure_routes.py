@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 
 FIGURE_ROUTE_SCRIPT_FIX = "figure_script_fix"
-FIGURE_ROUTE_ILLUSTRATION_SIDECAR = "figure_illustration_sidecar"
+FIGURE_ROUTE_ILLUSTRATION_PROGRAM = "figure_illustration_program"
 SUPPORTED_FIGURE_ROUTE_PREFIXES = (
     FIGURE_ROUTE_SCRIPT_FIX,
-    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
 )
 
 
@@ -48,7 +48,12 @@ def _normalize_route_prefix(route_prefix: str) -> str:
     if normalized == "sidecar":
         raise ValueError(
             "Ambiguous figure sidecar route is not allowed; use "
-            "`figure_script_fix:<figure-id>` or `figure_illustration_sidecar:<figure-id>`"
+            "`figure_script_fix:<figure-id>` or `figure_illustration_program:<figure-id>`"
+        )
+    if normalized == "figure_illustration_sidecar":
+        raise ValueError(
+            "Deprecated figure illustration route is not allowed; use "
+            "`figure_illustration_program:<figure-id>`"
         )
     if normalized not in SUPPORTED_FIGURE_ROUTE_PREFIXES:
         raise ValueError(
@@ -103,7 +108,7 @@ def normalize_required_routes(values: list[str]) -> list[str]:
 def partition_required_routes(required_routes: list[str]) -> tuple[list[str], list[str], list[str]]:
     mainline_routes: list[str] = []
     script_fix_routes: list[str] = []
-    illustration_routes: list[str] = []
+    program_routes: list[str] = []
     for route in required_routes:
         parsed = parse_figure_route(route)
         if parsed is None:
@@ -111,16 +116,16 @@ def partition_required_routes(required_routes: list[str]) -> tuple[list[str], li
             continue
         if parsed.route_prefix == FIGURE_ROUTE_SCRIPT_FIX:
             script_fix_routes.append(parsed.figure_id)
-        elif parsed.route_prefix == FIGURE_ROUTE_ILLUSTRATION_SIDECAR:
-            illustration_routes.append(parsed.figure_id)
+        elif parsed.route_prefix == FIGURE_ROUTE_ILLUSTRATION_PROGRAM:
+            program_routes.append(parsed.figure_id)
         else:
             raise ValueError(f"Unsupported normalized required route `{route}`")
-    return mainline_routes, script_fix_routes, illustration_routes
+    return mainline_routes, script_fix_routes, program_routes
 
 
 def supported_required_route_help() -> str:
     return (
         "Supported forms: plain mainline routes such as `literature_scout`, plus explicit figure routes "
-        "`figure_script_fix:<figure-id>` and `figure_illustration_sidecar:<figure-id>`. "
+        "`figure_script_fix:<figure-id>` and `figure_illustration_program:<figure-id>`. "
         "The ambiguous legacy form `sidecar:<figure-id>` is rejected."
     )

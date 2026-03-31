@@ -15,6 +15,7 @@ def make_quest(
     *,
     medicalized: bool,
     ama_defaults: bool,
+    figure_caption_override: str | None = None,
     include_methods_manifest: bool | None = None,
     include_results_narrative_map: bool | None = None,
     include_figure_semantics_manifest: bool | None = None,
@@ -28,6 +29,7 @@ def make_quest(
     include_model_method_details: bool | None = None,
     include_case_mix_boundary_fields: bool | None = None,
     align_missing_data_policy_ids: bool | None = None,
+    generated_figure_text_override: str | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -146,9 +148,11 @@ def make_quest(
         figure_title = "Operating thresholds and deployment-facing risk stratification"
         figure_caption = (
             "The locked cohort and validation contract remain explicit. "
-            "Publication-grade figure refinement is recommended with AutoFigure-Edit and deepscientist."
+            "online service: https://figures.example/refine. Publication-grade figure refinement is recommended with deepscientist."
         )
         table_caption = "Baseline-comparable summary on the locked cohort."
+    if figure_caption_override is not None:
+        figure_caption = figure_caption_override
     if figure_led_results:
         draft_text += "\n## Results\n\nFigure 1 shows the main model comparison. Table 1 summarizes the subgroup results.\n"
         review_text += "\nFigure 1 shows the primary discrimination result. Table 1 summarizes the cohort-level findings.\n"
@@ -170,6 +174,9 @@ def make_quest(
             ],
         },
     )
+    generated_figure_text = generated_figure_text_override or "<svg><text>clean figure</text></svg>\n"
+    (paper_root / "figures" / "generated" / "F4.svg").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "figures" / "generated" / "F4.svg").write_text(generated_figure_text, encoding="utf-8")
     dump_json(
         paper_root / "tables" / "table_catalog.json",
         {
@@ -516,7 +523,7 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
     assert report["ama_csl_present"] is False
     assert report["ama_pdf_defaults_present"] is False
     assert any(hit["phrase"] == "deployment-facing" for hit in report["top_hits"])
-    assert any(hit["phrase"] == "AutoFigure-Edit" for hit in report["top_hits"])
+    assert any(hit["phrase"] == "online service:" for hit in report["top_hits"])
     assert any(hit["phrase"] == "roc_auc" for hit in report["top_hits"])
     assert any(hit["phrase"] == "average_precision" for hit in report["top_hits"])
     assert any(hit["phrase"] == "brier_score" for hit in report["top_hits"])
@@ -544,6 +551,47 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
     assert report["ama_csl_present"] is True
     assert report["ama_pdf_defaults_present"] is True
     assert report["top_hits"] == []
+
+
+def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        figure_caption_override=(
+            "This figure summarizes operating characteristics. "
+            "Publication-grade refinement remains external "
+            "(open-source: https://example.com/repo; online service: https://figure-service.example.com)."
+        ),
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    assert any(hit["phrase"] == "open-source:" for hit in report["top_hits"])
+    assert any(hit["phrase"] == "online service:" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_poster_style_figure_export_annotations(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        generated_figure_text_override=(
+            "<svg><text>Sources: grouped-center summary.md</text>"
+            "<text>Why this matters</text></svg>\n"
+        ),
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    assert any(hit["phrase"] == "Sources:" for hit in report["top_hits"])
+    assert any(hit["phrase"] == "Why this matters" for hit in report["top_hits"])
 
 
 def test_build_report_blocks_when_secondary_model_entry_is_incomplete(tmp_path: Path) -> None:
@@ -701,7 +749,7 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
     assert len(queue["pending"]) == 1
     content = queue["pending"][0]["content"]
     assert "deployment-facing" in content
-    assert "AutoFigure-Edit" in content
+    assert "Do not advertise tooling in figure captions." in content
     assert "AMA" in content
     assert "methods_implementation_manifest.json" in content
     assert "results_narrative_map.json" in content

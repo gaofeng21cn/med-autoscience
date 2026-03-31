@@ -11,7 +11,7 @@ from typing import Any
 from med_autoscience.adapters import report_store
 from med_autoscience.adapters.deepscientist import mailbox, runtime
 from med_autoscience.figure_routes import (
-    FIGURE_ROUTE_ILLUSTRATION_SIDECAR,
+    FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
     normalize_figure_token,
     normalize_required_routes,
@@ -298,7 +298,7 @@ def build_intervention_message(report: dict[str, Any]) -> str:
     ) or "none"
     tickets = "; ".join(f"{figure_id}={note}" for figure_id, note in (report.get("figure_tickets") or {}).items()) or "none"
     required_routes = list(report.get("required_routes") or [])
-    mainline_routes, script_fix_routes, illustration_routes = partition_required_routes(required_routes)
+    mainline_routes, script_fix_routes, program_routes = partition_required_routes(required_routes)
     routes = ", ".join(required_routes) or "none"
     message = (
         "Hard control message from MedAutoScience orchestration layer: stop the current figure-polish loop now. "
@@ -320,15 +320,15 @@ def build_intervention_message(report: dict[str, Any]) -> str:
         message += (
             "For the script/data repair route, only use bounded regeneration from the frozen data/script path for "
             + ", ".join(f"`{figure_id}` via `{FIGURE_ROUTE_SCRIPT_FIX}:{figure_id}`" for figure_id in script_fix_routes)
-            + ". This route is for evidence-bearing result figures and must not call illustration tooling or AutoFigure-Edit. "
+            + ". This route is for evidence-bearing result figures and must not call any sidecar or illustration-only tooling. "
         )
-    if illustration_routes:
+    if program_routes:
         message += (
-            "For the illustration-only sidecar route, only use bounded non-evidence figure editing for "
+            "For the programmatic illustration route, only use bounded non-evidence figure generation for "
             + ", ".join(
-                f"`{figure_id}` via `{FIGURE_ROUTE_ILLUSTRATION_SIDECAR}:{figure_id}`" for figure_id in illustration_routes
+                f"`{figure_id}` via `{FIGURE_ROUTE_ILLUSTRATION_PROGRAM}:{figure_id}`" for figure_id in program_routes
             )
-            + ". This route is limited to method/workflow/graphical-abstract/cohort-schema style figures and must not alter numbers, claims, or result plots. "
+            + ". This route is for manuscript-safe explanatory figures generated directly by MedAutoScience-controlled code and must not be used for evidence-bearing result plots. "
         )
     message += (
         "Do not keep `figure-polish` on the main line. If any figure ticket cannot be closed in one bounded corrective run, "

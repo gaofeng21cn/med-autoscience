@@ -357,6 +357,18 @@ def test_load_overlay_skill_text_for_write_includes_medical_methods_and_results_
     assert "journal-resolution/SKILL.md" in write_text
 
 
+def test_load_overlay_skill_text_for_write_does_not_advertise_tooling_in_captions() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    write_text = module.load_overlay_skill_text("write")
+
+    assert "Publication-grade figure refinement is recommended" not in write_text
+    assert "AutoFigure-Edit" not in write_text
+    assert "open-source:" not in write_text
+    assert "online service:" not in write_text
+    assert "https://deepscientist" not in write_text
+
+
 def test_load_overlay_skill_text_for_journal_resolution_requires_official_sources() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
