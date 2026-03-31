@@ -340,6 +340,28 @@ def _build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, obj
     }
 
 
+def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
+    return runtime_reentry_gate.get("require_startup_hydration") is True
+
+
+def _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate: dict[str, Any]) -> bool:
+    return runtime_reentry_gate.get("require_managed_skill_audit") is True
+
+
+def _run_startup_hydration(
+    *,
+    quest_root: Path,
+    create_payload: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    hydration_payload = _build_hydration_payload(create_payload=create_payload)
+    hydration_result = quest_hydration_controller.run_hydration(
+        quest_root=quest_root,
+        hydration_payload=hydration_payload,
+    )
+    validation_result = startup_hydration_validation_controller.run_validation(quest_root=quest_root)
+    return hydration_result, validation_result
+
+
 def _status_payload(
     *,
     profile: WorkspaceProfile,
@@ -368,6 +390,8 @@ def _status_payload(
         study_root=study_root,
         study_payload=study_payload,
         execution=execution,
+        quest_root=quest_root if quest_exists else None,
+        enforce_startup_hydration=quest_status in {"running", "active"},
     )
 
     result: dict[str, Any] = {
@@ -570,12 +594,20 @@ def ensure_study_runtime(
     runtime_overlay_result: dict[str, Any] | None = None
 
     if status["decision"] in {"create_and_start", "create_only", "resume"}:
+        runtime_reentry_gate = (
+            dict(status["runtime_reentry_gate"])
+            if isinstance(status.get("runtime_reentry_gate"), dict)
+            else {}
+        )
         analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         status["analysis_bundle"] = analysis_bundle_result
         if not bool(analysis_bundle_result.get("ready")):
             status["decision"] = "blocked"
             status["reason"] = "study_runtime_analysis_bundle_not_ready"
-        elif profile.enable_medical_overlay:
+        elif _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate) and not profile.enable_medical_overlay:
+            status["decision"] = "blocked"
+            status["reason"] = "managed_skill_audit_not_available"
+        elif profile.enable_medical_overlay and status["decision"] == "resume":
             runtime_overlay_result = _prepare_runtime_overlay(
                 profile=profile,
                 quest_root=Path(status["quest_root"]),
@@ -617,17 +649,17 @@ def ensure_study_runtime(
         fallback_status = "created"
         status["quest_status"] = str(snapshot.get("status") or fallback_status)
         quest_root = Path(status["quest_root"])
-        hydration_payload = _build_hydration_payload(create_payload=create_payload)
-        hydration_result = quest_hydration_controller.run_hydration(
-            quest_root=quest_root,
-            hydration_payload=hydration_payload,
-        )
-        status["startup_hydration"] = hydration_result
-        validation_result = startup_hydration_validation_controller.run_validation(quest_root=quest_root)
-        status["startup_hydration_validation"] = validation_result
-        if str(validation_result.get("status")) != "clear":
-            status["decision"] = "blocked"
-            status["reason"] = "hydration_validation_failed"
+        if profile.enable_medical_overlay:
+            runtime_overlay_result = _prepare_runtime_overlay(
+                profile=profile,
+                quest_root=quest_root,
+            )
+            status["runtime_overlay"] = runtime_overlay_result
+            audit = runtime_overlay_result["audit"]
+            if not bool(audit.get("all_roots_ready")):
+                status["decision"] = "blocked"
+                status["reason"] = "runtime_overlay_not_ready"
+        if status["decision"] == "blocked":
             _write_runtime_binding(
                 runtime_binding_path=runtime_binding_path,
                 profile=profile,
@@ -637,49 +669,117 @@ def ensure_study_runtime(
                 last_action="blocked",
                 source=source,
             )
-        elif planned_decision == "create_and_start":
-            resume_result = daemon_api.resume_quest(
+        else:
+            hydration_result, validation_result = _run_startup_hydration(
+                quest_root=quest_root,
+                create_payload=create_payload,
+            )
+            status["startup_hydration"] = hydration_result
+            status["startup_hydration_validation"] = validation_result
+            if str(validation_result.get("status")) != "clear":
+                status["decision"] = "blocked"
+                status["reason"] = "hydration_validation_failed"
+                _write_runtime_binding(
+                    runtime_binding_path=runtime_binding_path,
+                    profile=profile,
+                    study_id=resolved_study_id,
+                    study_root=resolved_study_root,
+                    quest_id=status["quest_id"],
+                    last_action="blocked",
+                    source=source,
+                )
+            elif planned_decision == "create_and_start":
+                resume_result = daemon_api.resume_quest(
+                    runtime_root=profile.deepscientist_runtime_root,
+                    quest_id=str(status["quest_id"]),
+                    source=source,
+                )
+                daemon_result["resume"] = resume_result
+                status["quest_status"] = str(resume_result.get("status") or "running")
+                _write_runtime_binding(
+                    runtime_binding_path=runtime_binding_path,
+                    profile=profile,
+                    study_id=resolved_study_id,
+                    study_root=resolved_study_root,
+                    quest_id=status["quest_id"],
+                    last_action="create_and_start",
+                    source=source,
+                )
+            else:
+                _write_runtime_binding(
+                    runtime_binding_path=runtime_binding_path,
+                    profile=profile,
+                    study_id=resolved_study_id,
+                    study_root=resolved_study_root,
+                    quest_id=status["quest_id"],
+                    last_action="create_only",
+                    source=source,
+                )
+    elif status["decision"] == "resume":
+        runtime_reentry_gate = (
+            dict(status["runtime_reentry_gate"])
+            if isinstance(status.get("runtime_reentry_gate"), dict)
+            else {}
+        )
+        quest_root = Path(status["quest_root"])
+        if _runtime_reentry_requires_startup_hydration(runtime_reentry_gate):
+            create_payload = _build_create_payload(
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                study_payload=study_payload,
+                execution=execution,
+            )
+            hydration_result, validation_result = _run_startup_hydration(
+                quest_root=quest_root,
+                create_payload=create_payload,
+            )
+            status["startup_hydration"] = hydration_result
+            status["startup_hydration_validation"] = validation_result
+            if str(validation_result.get("status")) != "clear":
+                status["decision"] = "blocked"
+                status["reason"] = "hydration_validation_failed"
+                _write_runtime_binding(
+                    runtime_binding_path=runtime_binding_path,
+                    profile=profile,
+                    study_id=resolved_study_id,
+                    study_root=resolved_study_root,
+                    quest_id=str(status["quest_id"]),
+                    last_action="blocked",
+                    source=source,
+                )
+            else:
+                daemon_result = daemon_api.resume_quest(
+                    runtime_root=profile.deepscientist_runtime_root,
+                    quest_id=str(status["quest_id"]),
+                    source=source,
+                )
+                status["quest_status"] = str(daemon_result.get("status") or "running")
+                _write_runtime_binding(
+                    runtime_binding_path=runtime_binding_path,
+                    profile=profile,
+                    study_id=resolved_study_id,
+                    study_root=resolved_study_root,
+                    quest_id=str(status["quest_id"]),
+                    last_action="resume",
+                    source=source,
+                )
+        else:
+            daemon_result = daemon_api.resume_quest(
                 runtime_root=profile.deepscientist_runtime_root,
                 quest_id=str(status["quest_id"]),
                 source=source,
             )
-            daemon_result["resume"] = resume_result
-            status["quest_status"] = str(resume_result.get("status") or "running")
+            status["quest_status"] = str(daemon_result.get("status") or "running")
             _write_runtime_binding(
                 runtime_binding_path=runtime_binding_path,
                 profile=profile,
                 study_id=resolved_study_id,
                 study_root=resolved_study_root,
-                quest_id=status["quest_id"],
-                last_action="create_and_start",
+                quest_id=str(status["quest_id"]),
+                last_action="resume",
                 source=source,
             )
-        else:
-            _write_runtime_binding(
-                runtime_binding_path=runtime_binding_path,
-                profile=profile,
-                study_id=resolved_study_id,
-                study_root=resolved_study_root,
-                quest_id=status["quest_id"],
-                last_action="create_only",
-                source=source,
-            )
-    elif status["decision"] == "resume":
-        daemon_result = daemon_api.resume_quest(
-            runtime_root=profile.deepscientist_runtime_root,
-            quest_id=str(status["quest_id"]),
-            source=source,
-        )
-        status["quest_status"] = str(daemon_result.get("status") or "running")
-        _write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            profile=profile,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="resume",
-            source=source,
-        )
     elif status["decision"] == "pause":
         daemon_result = daemon_api.pause_quest(
             runtime_root=profile.deepscientist_runtime_root,

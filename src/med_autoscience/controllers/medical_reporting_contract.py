@@ -4,23 +4,22 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers._medical_contract_support import (
+    DEFAULT_MANUSCRIPT_FAMILY_BY_ARCHETYPE,
     build_contract_summary,
+    managed_study_field_summary,
+    resolve_endpoint_type,
     resolve_manuscript_family,
     resolve_primary_submission_target_context,
     resolve_study_archetype,
 )
 from med_autoscience.policies.medical_reporting_contract import (
+    SUPPORTED_ENDPOINT_TYPES,
     SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES,
     SUPPORTED_STUDY_ARCHETYPES,
     SUPPORTED_SUBMISSION_TARGET_FAMILIES,
     resolve_medical_reporting_contract,
 )
 from med_autoscience.profiles import WorkspaceProfile
-
-
-MANUSCRIPT_FAMILY_BY_ARCHETYPE: dict[str, str] = {
-    "clinical_classifier": "prediction_model",
-}
 
 
 def resolve_medical_reporting_contract_for_study(
@@ -30,9 +29,13 @@ def resolve_medical_reporting_contract_for_study(
     profile: WorkspaceProfile,
 ) -> dict[str, Any]:
     study_archetype, archetype_issue = resolve_study_archetype(study_payload=study_payload, profile=profile)
+    endpoint_type, endpoint_issue = resolve_endpoint_type(study_payload=study_payload)
+    if endpoint_issue is not None:
+        endpoint_type = None
     target_context = resolve_primary_submission_target_context(study_root=study_root, profile=profile)
     supported_inputs = {
         "study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
+        "endpoint_types": list(SUPPORTED_ENDPOINT_TYPES),
         "manuscript_families": list(sorted(SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES)),
         "submission_target_families": list(SUPPORTED_SUBMISSION_TARGET_FAMILIES),
     }
@@ -43,7 +46,7 @@ def resolve_medical_reporting_contract_for_study(
         manuscript_family, manuscript_issue = resolve_manuscript_family(
             study_payload=study_payload,
             study_archetype=study_archetype,
-            default_by_archetype=MANUSCRIPT_FAMILY_BY_ARCHETYPE,
+            default_by_archetype=DEFAULT_MANUSCRIPT_FAMILY_BY_ARCHETYPE,
         )
 
     if archetype_issue is not None:
@@ -51,65 +54,90 @@ def resolve_medical_reporting_contract_for_study(
             study_root=study_root,
             status="unsupported",
             study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
             manuscript_family=manuscript_family,
             target_context=target_context,
             reason_code=archetype_issue,
             supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
         )
     if study_archetype not in SUPPORTED_STUDY_ARCHETYPES:
         return build_contract_summary(
             study_root=study_root,
             status="unsupported",
             study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
             manuscript_family=manuscript_family,
             target_context=target_context,
             reason_code="unsupported_study_archetype",
             supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
         )
     if manuscript_issue is not None:
         return build_contract_summary(
             study_root=study_root,
             status="unsupported",
             study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
             manuscript_family=manuscript_family,
             target_context=target_context,
             reason_code=manuscript_issue,
             supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
         )
     if manuscript_family not in SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES:
         return build_contract_summary(
             study_root=study_root,
             status="unsupported",
             study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
             manuscript_family=manuscript_family,
             target_context=target_context,
             reason_code="unsupported_manuscript_family",
             supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
+        )
+    if endpoint_type is not None and endpoint_type not in SUPPORTED_ENDPOINT_TYPES:
+        return build_contract_summary(
+            study_root=study_root,
+            status="unsupported",
+            study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
+            manuscript_family=manuscript_family,
+            target_context=target_context,
+            reason_code="unsupported_endpoint_type",
+            supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
         )
     if target_context["status"] != "resolved":
         return build_contract_summary(
             study_root=study_root,
             status="unsupported",
             study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
             manuscript_family=manuscript_family,
             target_context=target_context,
             reason_code=str(target_context["reason_code"]),
             supported_inputs=supported_inputs,
+            extra=managed_study_field_summary(study_payload=study_payload),
         )
 
     contract = resolve_medical_reporting_contract(
         study_archetype=study_archetype,
         manuscript_family=manuscript_family,
+        endpoint_type=endpoint_type,
         submission_target_family=str(target_context["submission_target_family"]),
     )
     return build_contract_summary(
         study_root=study_root,
         status="resolved",
         study_archetype=study_archetype,
+        endpoint_type=endpoint_type,
         manuscript_family=manuscript_family,
         target_context=target_context,
         supported_inputs=supported_inputs,
         extra={
+            **managed_study_field_summary(study_payload=study_payload),
             "reporting_guideline_family": contract.reporting_guideline_family,
             "cohort_flow_required": contract.cohort_flow_required,
             "baseline_characteristics_required": contract.baseline_characteristics_required,

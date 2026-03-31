@@ -80,7 +80,28 @@ def _legacy_code_execution_allowed(profile: WorkspaceProfile, study_payload: dic
     return approved
 
 
-def _required_first_anchor(profile: WorkspaceProfile, requested_launch_profile: str) -> str:
+def _configured_runtime_reentry_anchor(execution: dict[str, Any]) -> str:
+    raw_gate = execution.get("runtime_reentry_gate")
+    gate = dict(raw_gate) if isinstance(raw_gate, dict) else {}
+    if gate.get("enabled") is not True:
+        return ""
+    return _non_empty_string(gate.get("first_runtime_unit"))
+
+
+def _required_first_anchor(
+    profile: WorkspaceProfile,
+    requested_launch_profile: str,
+    *,
+    execution: dict[str, Any],
+    allow_compute_stage: bool | None = None,
+) -> str:
+    runtime_reentry_anchor = _configured_runtime_reentry_anchor(execution)
+    if (
+        requested_launch_profile == "continue_existing_state"
+        and allow_compute_stage is True
+        and runtime_reentry_anchor
+    ):
+        return runtime_reentry_anchor
     if requested_launch_profile != "continue_existing_state":
         return "scout"
     if profile.default_startup_anchor_policy == "intake_audit_first_for_continue_existing_state":
@@ -92,10 +113,23 @@ def effective_custom_profile(
     *,
     profile: WorkspaceProfile,
     requested_launch_profile: str,
+    execution: dict[str, Any],
     allow_compute_stage: bool | None = None,
 ) -> str:
+    runtime_reentry_anchor = _configured_runtime_reentry_anchor(execution)
+    if (
+        requested_launch_profile == "continue_existing_state"
+        and allow_compute_stage is True
+        and runtime_reentry_anchor
+    ):
+        return "continue_existing_state"
     if allow_compute_stage is False:
-        required_first_anchor = _required_first_anchor(profile, requested_launch_profile)
+        required_first_anchor = _required_first_anchor(
+            profile,
+            requested_launch_profile,
+            execution=execution,
+            allow_compute_stage=allow_compute_stage,
+        )
         if required_first_anchor == "intake-audit":
             return "continue_existing_state"
         return "freeform"
@@ -115,7 +149,6 @@ def evaluate_startup_boundary(
 ) -> dict[str, Any]:
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
-    required_first_anchor = _required_first_anchor(profile, requested_launch_profile)
     missing_requirements: list[str] = []
     blockers: list[str] = []
     advisories: list[str] = []
@@ -142,10 +175,17 @@ def evaluate_startup_boundary(
         blockers.append(blocker_messages[requirement])
 
     allow_compute_stage = not missing_requirements
+    required_first_anchor = _required_first_anchor(
+        profile,
+        requested_launch_profile,
+        execution=execution,
+        allow_compute_stage=allow_compute_stage,
+    )
     legacy_code_execution_allowed = _legacy_code_execution_allowed(profile, study_payload)
     resolved_custom_profile = effective_custom_profile(
         profile=profile,
         requested_launch_profile=requested_launch_profile,
+        execution=execution,
         allow_compute_stage=allow_compute_stage,
     )
     advisories.extend(

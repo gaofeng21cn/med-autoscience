@@ -132,3 +132,119 @@ def test_analysis_contract_for_study_rejects_unresolved_primary_publication_prof
     assert result["status"] == "unsupported"
     assert result["reason_code"] == "primary_submission_target_not_resolved_to_publication_profile"
     assert result["primary_target_resolution_status"] == "needs_journal_resolution"
+
+
+def test_resolve_study_archetype_prioritizes_study_payload_study_archetype(tmp_path: Path) -> None:
+    support = importlib.import_module("med_autoscience.controllers._medical_contract_support")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+
+    study_archetype, issue = support.resolve_study_archetype(
+        study_payload={
+            "study_archetype": "clinical_classifier",
+            "preferred_study_archetype": "clinical_subtype_reconstruction",
+        },
+        profile=profile,
+    )
+
+    assert issue is None
+    assert study_archetype == "clinical_classifier"
+
+
+def test_analysis_contract_for_study_uses_study_level_metadata_priority_and_survival_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "001-survival-risk",
+        {
+            "study_id": "001-survival-risk",
+            "study_archetype": "clinical_classifier",
+            "preferred_study_archetype": "gray_zone_triage",
+            "endpoint_type": "time_to_event",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    result = module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_classifier"
+    assert result["endpoint_type"] == "time_to_event"
+    assert result["manuscript_family"] == "prediction_model"
+    assert result["recommended_study_fields"] == [
+        "study_archetype",
+        "endpoint_type",
+        "manuscript_family",
+    ]
+    assert result["declared_study_fields"] == [
+        "study_archetype",
+        "endpoint_type",
+        "manuscript_family",
+    ]
+
+
+def test_analysis_contract_rejects_ambiguous_profile_fallback_without_explicit_study_archetype(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "001-ambiguous-risk",
+        {
+            "study_id": "001-ambiguous-risk",
+            "endpoint_type": "time_to_event",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    result = module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "unsupported"
+    assert result["reason_code"] == "ambiguous_study_archetype"
+
+
+def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "001-survival-reporting",
+        {
+            "study_id": "001-survival-reporting",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "time_to_event",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_classifier"
+    assert result["endpoint_type"] == "time_to_event"
+    assert result["manuscript_family"] == "prediction_model"
+    assert result["recommended_study_fields"] == [
+        "study_archetype",
+        "endpoint_type",
+        "manuscript_family",
+    ]
+    assert result["declared_study_fields"] == [
+        "study_archetype",
+        "endpoint_type",
+        "manuscript_family",
+    ]

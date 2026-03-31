@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import startup_hydration_validation as startup_hydration_validation_controller
+
 
 def _normalized_string(value: object) -> str:
     if not isinstance(value, str):
@@ -33,6 +35,8 @@ def evaluate_runtime_reentry(
     study_root: Path,
     study_payload: dict[str, Any],
     execution: dict[str, Any],
+    quest_root: Path | None = None,
+    enforce_startup_hydration: bool = False,
 ) -> dict[str, Any]:
     raw_gate = execution.get("runtime_reentry_gate")
     gate = dict(raw_gate) if isinstance(raw_gate, dict) else {}
@@ -40,8 +44,11 @@ def evaluate_runtime_reentry(
     required_paths = _normalized_string_list(gate.get("required_paths"))
     execution_root = _normalized_string(gate.get("execution_root"))
     first_runtime_unit = _normalized_string(gate.get("first_runtime_unit"))
+    require_startup_hydration = gate.get("require_startup_hydration") is True
+    require_managed_skill_audit = gate.get("require_managed_skill_audit") is True
     blockers: list[str] = []
     advisories: list[str] = []
+    startup_hydration_validation: dict[str, Any] | None = None
 
     if not enabled:
         return {
@@ -54,6 +61,8 @@ def evaluate_runtime_reentry(
             "required_paths": required_paths,
             "execution_root": execution_root,
             "first_runtime_unit": first_runtime_unit,
+            "require_startup_hydration": require_startup_hydration,
+            "require_managed_skill_audit": require_managed_skill_audit,
         }
 
     execution_root_path: Path | None = None
@@ -82,8 +91,22 @@ def evaluate_runtime_reentry(
             f"first_runtime_unit:{first_runtime_unit or 'unset'}",
         ]
     )
+    if require_startup_hydration and quest_root is not None and quest_root.exists():
+        startup_hydration_validation = startup_hydration_validation_controller.run_validation(quest_root=quest_root)
+        if enforce_startup_hydration and str(startup_hydration_validation.get("status")) != "clear":
+            blockers.extend(
+                [
+                    str(item).strip()
+                    for item in startup_hydration_validation.get("blockers", [])
+                    if str(item).strip()
+                ]
+            )
+    if require_startup_hydration:
+        advisories.append("startup_hydration:required")
+    if require_managed_skill_audit:
+        advisories.append("managed_skill_audit:required")
 
-    return {
+    result = {
         "status": "ready" if not blockers else "blocked",
         "study_id": str(study_payload.get("study_id") or study_root.name).strip() or study_root.name,
         "study_root": str(study_root),
@@ -93,4 +116,9 @@ def evaluate_runtime_reentry(
         "required_paths": required_paths,
         "execution_root": execution_root,
         "first_runtime_unit": first_runtime_unit,
+        "require_startup_hydration": require_startup_hydration,
+        "require_managed_skill_audit": require_managed_skill_audit,
     }
+    if startup_hydration_validation is not None:
+        result["startup_hydration_validation"] = startup_hydration_validation
+    return result
