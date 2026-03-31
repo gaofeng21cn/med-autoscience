@@ -29,6 +29,11 @@ CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (
 )
 _DEFAULT_REQUIREMENTS = tuple(Requirement(requirement) for requirement in REQUIRED_RUNTIME_REQUIREMENTS)
 REQUIRED_RUNTIME_MODULES = tuple(requirement.name for requirement in _DEFAULT_REQUIREMENTS)
+REQUIREMENT_IMPORT_NAME_MAP = {
+    "scikit-learn": "sklearn",
+    "python-docx": "docx",
+    "pillow": "PIL",
+}
 
 
 def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
@@ -42,6 +47,10 @@ def _normalize_requirements(
     return tuple(Requirement(requirement) for requirement in raw_requirements)
 
 
+def _resolve_import_name(requirement: Requirement) -> str:
+    return REQUIREMENT_IMPORT_NAME_MAP.get(requirement.name, requirement.name)
+
+
 def inspect_python_environment_contract(
     *,
     requirements: tuple[str, ...] | list[str] | None = None,
@@ -51,14 +60,15 @@ def inspect_python_environment_contract(
     modules: dict[str, dict[str, str | None]] = {}
     missing_requirements: list[str] = []
     for requirement in normalized_requirements:
-        module_name = requirement.name
-        check_import = f"{module_name}_importable"
-        check_version = f"{module_name}_version_satisfied"
+        requirement_name = requirement.name
+        import_name = _resolve_import_name(requirement)
+        check_import = f"{requirement_name}_importable"
+        check_version = f"{requirement_name}_version_satisfied"
         version: str | None = None
         importable = False
         version_satisfied = False
         try:
-            module = importlib.import_module(module_name)
+            module = importlib.import_module(import_name)
             importable = True
             raw_version = getattr(module, "__version__", None)
             if raw_version is not None:
@@ -72,7 +82,7 @@ def inspect_python_environment_contract(
             pass
         checks[check_import] = importable
         checks[check_version] = version_satisfied
-        modules[module_name] = {"version": version}
+        modules[requirement_name] = {"version": version, "import_name": import_name}
         if not (importable and version_satisfied):
             missing_requirements.append(str(requirement))
 

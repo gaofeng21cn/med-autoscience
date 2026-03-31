@@ -57,6 +57,36 @@ def test_inspect_reports_version_mismatch(monkeypatch) -> None:
     assert environment["missing_requirements"] == list(REQUIRED_RUNTIME_REQUIREMENTS)
 
 
+def test_inspect_uses_distribution_import_name_mapping(monkeypatch) -> None:
+    requirements = ("scikit-learn>=1.5", "python-docx>=1.1", "pillow>=10.0")
+    imported: list[str] = []
+    versions = {
+        "sklearn": "1.8.0",
+        "docx": "1.2.0",
+        "PIL": "12.1.1",
+    }
+
+    def fake_import_module(name: str, package=None) -> SimpleNamespace:
+        imported.append(name)
+        if name not in versions:
+            raise ImportError(f"Unexpected import target: {name}")
+        return SimpleNamespace(__version__=versions[name])
+
+    monkeypatch.setattr(contract.importlib, "import_module", fake_import_module)
+
+    environment = inspect_python_environment_contract(requirements=requirements)
+
+    assert environment["ready"] is True
+    assert imported == ["sklearn", "docx", "PIL"]
+    assert environment["missing_requirements"] == []
+    assert environment["checks"]["scikit-learn_importable"] is True
+    assert environment["checks"]["python-docx_importable"] is True
+    assert environment["checks"]["pillow_importable"] is True
+    assert environment["modules"]["scikit-learn"]["version"] == "1.8.0"
+    assert environment["modules"]["python-docx"]["version"] == "1.2.0"
+    assert environment["modules"]["pillow"]["version"] == "12.1.1"
+
+
 def test_ensure_indicates_already_ready(monkeypatch) -> None:
     ready_state = {
         "ready": True,
