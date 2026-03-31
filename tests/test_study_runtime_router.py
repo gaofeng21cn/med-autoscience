@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -163,6 +164,31 @@ def _clear_readiness_report(workspace_root: Path, study_id: str) -> dict[str, ob
             "public_extension_study_ids": [],
         },
     }
+
+
+@pytest.fixture(autouse=True)
+def _patch_runtime_sidecars(monkeypatch):
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    monkeypatch.setattr(
+        module.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: {"action": "already_ready", "ready": True},
+    )
+    monkeypatch.setattr(
+        module.overlay_installer,
+        "ensure_medical_overlay",
+        lambda **kwargs: {"selected_action": "noop", "post_status": {"all_targets_ready": True}},
+    )
+    monkeypatch.setattr(
+        module.overlay_installer,
+        "materialize_runtime_medical_overlay",
+        lambda **kwargs: {"materialized_surface_count": 1, "surfaces": []},
+    )
+    monkeypatch.setattr(
+        module.overlay_installer,
+        "audit_runtime_medical_overlay",
+        lambda **kwargs: {"all_roots_ready": True, "surface_count": 1, "surfaces": []},
+    )
 
 
 def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path: Path) -> None:
@@ -723,6 +749,107 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     assert result["reason"] == "quest_initialized_waiting_to_start"
     assert result["quest_status"] == "active"
     assert resumed == {
+        "runtime_root": profile.deepscientist_runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
+
+
+def test_ensure_study_runtime_blocks_when_analysis_bundle_is_not_ready(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: {"action": "ensure_bundle", "ready": False},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "study_runtime_analysis_bundle_not_ready"
+    assert result["analysis_bundle"]["ready"] is False
+
+
+def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fails(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    paused: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.overlay_installer,
+        "audit_runtime_medical_overlay",
+        lambda **kwargs: {
+            "all_roots_ready": False,
+            "surface_count": 2,
+            "surfaces": [{"surface": "quest"}, {"surface": "worktree"}],
+        },
+    )
+
+    def fake_pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        paused["runtime_root"] = runtime_root
+        paused["quest_id"] = quest_id
+        paused["source"] = source
+        return {"ok": True, "status": "paused"}
+
+    monkeypatch.setattr(module.daemon_api, "pause_quest", fake_pause_quest)
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "pause"
+    assert result["reason"] == "runtime_overlay_audit_failed_for_running_quest"
+    assert result["quest_status"] == "paused"
+    assert paused == {
         "runtime_root": profile.deepscientist_runtime_root,
         "quest_id": "001-risk",
         "source": "medautosci-test",

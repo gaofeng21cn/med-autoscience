@@ -448,3 +448,76 @@ def test_overlay_status_detects_config_drift_when_archetypes_change(tmp_path: Pa
     assert by_skill["idea"]["status"] == "drifted"
     assert by_skill["decision"]["status"] == "drifted"
     assert by_skill["write"]["status"] == "overlay_applied"
+
+
+def test_install_medical_overlay_can_seed_from_authoritative_workspace_overlay(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    result = module.reapply_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+
+    assert [item["skill_id"] for item in result["targets"]] == ["write", "journal-resolution"]
+    assert (
+        quest_root / ".codex" / "skills" / "deepscientist-write" / ".med_autoscience_overlay.json"
+    ).exists()
+
+
+def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    write_skill(worktree_root / ".codex" / "skills", "write", "upstream write\n")
+
+    result = module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+
+    assert result["materialized_surface_count"] == 2
+    assert (
+        worktree_root / ".codex" / "skills" / "deepscientist-write" / ".med_autoscience_overlay.json"
+    ).exists()
+
+
+def test_audit_runtime_medical_overlay_reports_drifted_worktree(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    module.reapply_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+    write_skill(worktree_root / ".codex" / "skills", "write", "upstream write\n")
+
+    result = module.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("write",),
+    )
+
+    assert result["all_roots_ready"] is False
+    by_surface = {Path(item["runtime_root"]).name: item for item in result["surfaces"]}
+    assert by_surface["q001"]["all_targets_ready"] is True
+    assert by_surface["paper-run-1"]["all_targets_ready"] is False

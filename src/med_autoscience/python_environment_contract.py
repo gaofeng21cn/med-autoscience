@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import importlib
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+from packaging.requirements import Requirement
+from packaging.version import InvalidVersion, Version
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+MANAGED_RUNTIME_PREFIX = (REPO_ROOT / ".venv").resolve()
+REQUIRED_RUNTIME_REQUIREMENTS = ("matplotlib>=3.9", "pandas>=2.2")
+CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (
+    "matplotlib>=3.9",
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+    "statsmodels>=0.14",
+    "lifelines>=0.30",
+    "seaborn>=0.13",
+    "openpyxl>=3.1",
+    "python-docx>=1.1",
+    "pillow>=10.0",
+    "pypdf>=5.0",
+)
+_DEFAULT_REQUIREMENTS = tuple(Requirement(requirement) for requirement in REQUIRED_RUNTIME_REQUIREMENTS)
+REQUIRED_RUNTIME_MODULES = tuple(requirement.name for requirement in _DEFAULT_REQUIREMENTS)
+
+
+def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
+    return [f"{prefix}.{name}" for name, ok in checks.items() if not ok]
+
+
+def _normalize_requirements(
+    requirements: tuple[str, ...] | list[str] | None,
+) -> tuple[Requirement, ...]:
+    raw_requirements = REQUIRED_RUNTIME_REQUIREMENTS if requirements is None else tuple(requirements)
+    return tuple(Requirement(requirement) for requirement in raw_requirements)
+
+
+def inspect_python_environment_contract(
+    *,
+    requirements: tuple[str, ...] | list[str] | None = None,
+) -> dict[str, Any]:
+    normalized_requirements = _normalize_requirements(requirements)
+    checks: dict[str, bool] = {}
+    modules: dict[str, dict[str, str | None]] = {}
+    missing_requirements: list[str] = []
+    for requirement in normalized_requirements:
+        module_name = requirement.name
+        check_import = f"{module_name}_importable"
+        check_version = f"{module_name}_version_satisfied"
+        version: str | None = None
+        importable = False
+        version_satisfied = False
+        try:
+            module = importlib.import_module(module_name)
+            importable = True
+            raw_version = getattr(module, "__version__", None)
+            if raw_version is not None:
+                version = str(raw_version)
+                try:
+                    version_obj = Version(version)
+                    version_satisfied = requirement.specifier.contains(version_obj, prereleases=True)
+                except InvalidVersion:
+                    version_satisfied = False
+        except ImportError:
+            pass
+        checks[check_import] = importable
+        checks[check_version] = version_satisfied
+        modules[module_name] = {"version": version}
+        if not (importable and version_satisfied):
+            missing_requirements.append(str(requirement))
+
+    issues = _collect_check_issues(checks, prefix="python_environment")
+    ready = all(checks.values())
+    return {
+        "ready": ready,
+        "checks": checks,
+        "issues": issues,
+        "modules": modules,
+        "interpreter": sys.executable,
+        "requirements": [str(requirement) for requirement in normalized_requirements],
+        "missing_requirements": missing_requirements,
+    }
+
+
+def _is_managed_runtime() -> bool:
+    try:
+        return Path(sys.prefix).resolve() == MANAGED_RUNTIME_PREFIX
+    except OSError:
+        return False
+
+
+def ensure_python_environment_contract(
+    *,
+    requirements: tuple[str, ...] | list[str] | None = None,
+) -> dict[str, Any]:
+    before = inspect_python_environment_contract(requirements=requirements)
+
+    if not _is_managed_runtime():
+        message = (
+            "Current interpreter is not the repo-managed runtime at `.venv`. "
+            "Please run the contract under the repo `.venv` or via `rtk uv run ...` before calling this function."
+        )
+        return {
+            "action": "managed_runtime_required",
+            "before": before,
+            "after": before,
+            "exit_code": None,
+            "stdout": "",
+            "stderr": message,
+        }
+
+    if before["ready"]:
+        return {"action": "already_ready", "before": before, "after": before}
+
+    missing_requirements = [str(item) for item in before["missing_requirements"]]
+    completed = subprocess.run(
+        ["uv", "pip", "install", "--python", sys.executable, *missing_requirements],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    importlib.invalidate_caches()
+    after = inspect_python_environment_contract(requirements=requirements)
+    return {
+        "action": "uv_pip_install",
+        "before": before,
+        "after": after,
+        "requested_requirements": before["requirements"],
+        "missing_requirements": missing_requirements,
+        "exit_code": completed.returncode,
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
