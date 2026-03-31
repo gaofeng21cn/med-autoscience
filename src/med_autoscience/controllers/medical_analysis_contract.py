@@ -25,7 +25,7 @@ def resolve_medical_analysis_contract_for_study(
     profile: WorkspaceProfile,
 ) -> dict[str, Any]:
     study_archetype, archetype_issue = resolve_study_archetype(study_payload=study_payload, profile=profile)
-    endpoint_type = resolve_endpoint_type(study_payload=study_payload)
+    endpoint_type, endpoint_issue = resolve_endpoint_type(study_payload=study_payload)
     target_context = resolve_primary_submission_target_context(study_root=study_root, profile=profile)
     supported_inputs = {
         "study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
@@ -51,6 +51,16 @@ def resolve_medical_analysis_contract_for_study(
             endpoint_type=endpoint_type,
             target_context=target_context,
             reason_code="unsupported_study_archetype",
+            supported_inputs=supported_inputs,
+        )
+    if endpoint_issue is not None:
+        return build_contract_summary(
+            study_root=study_root,
+            status="unsupported",
+            study_archetype=study_archetype,
+            endpoint_type=endpoint_type,
+            target_context=target_context,
+            reason_code=endpoint_issue,
             supported_inputs=supported_inputs,
         )
     if endpoint_type not in SUPPORTED_ENDPOINT_TYPES:
