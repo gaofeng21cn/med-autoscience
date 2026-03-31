@@ -5,6 +5,7 @@ from typing import Any
 
 import yaml
 
+from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -162,11 +163,16 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     deepscientist_config_env = deepscientist_ops_root / "config.env"
     deepscientist_bin_dir = deepscientist_ops_root / "bin"
     behavior_gate_path = deepscientist_ops_root / "behavior_equivalence_gate.yaml"
+    manifest_info = inspect_deepscientist_repo_manifest(profile.deepscientist_repo_root)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
         "deepscientist_config_env_exists": deepscientist_config_env.is_file(),
         "deepscientist_bin_dir_exists": deepscientist_bin_dir.is_dir(),
         "deepscientist_repo_root_configured": profile.deepscientist_repo_root is not None,
+    }
+    manifest_checks: dict[str, bool] = {
+        "manifest_found": manifest_info["manifest_found"],
+        "manifest_parsable": manifest_info["manifest_parsable"],
     }
     launcher_contract = {
         "ready": all(launcher_checks.values()),
@@ -176,6 +182,8 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "deepscientist_config_env": str(deepscientist_config_env),
         "deepscientist_bin_dir": str(deepscientist_bin_dir),
         "deepscientist_repo_root": str(profile.deepscientist_repo_root) if profile.deepscientist_repo_root else None,
+        "repo_manifest": manifest_info,
+        "manifest_checks": manifest_checks,
     }
 
     behavior_gate = inspect_behavior_equivalence_gate(behavior_gate_path)
