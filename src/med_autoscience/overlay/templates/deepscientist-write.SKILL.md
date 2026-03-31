@@ -50,7 +50,11 @@ This skill intentionally absorbs the strongest old DeepScientist writing discipl
 - Prefer vector-first export for paper figures: `pdf` or `svg`, plus one `png` preview when helpful.
 - When practical, size figures so they can survive later single-column or double-column placement without unreadable text.
 - For any figure that will enter the draft, appendix, or paper bundle, open `figure-polish/SKILL.md` and complete its render-inspect-revise pass before treating the figure as final.
-- If you generate figure code in Python, start from the system prompt Morandi plotting template and only adjust figure size, labels, and series colors as needed.
+- Evidence figures must lock their renderer family in `paper/figure_semantics_manifest.json`; only `python` and `r_ggplot2` are allowed.
+- Illustration figures must also lock their renderer family in `paper/figure_semantics_manifest.json`; allowed families are `python`, `r_ggplot2`, and `html_svg`.
+- Do not switch renderer family because an environment, package, or runtime call fails. If the selected renderer cannot run, stop and fix the environment. The manifest must keep `fallback_on_failure=false` and `failure_action=block_and_fix_environment`.
+- If the selected renderer family is `python`, start from the system prompt Morandi plotting template and only adjust figure size, labels, and series colors as needed.
+- If the selected renderer family is `r_ggplot2`, keep the script publication-oriented, deterministic, and audit-ready; do not use it as an excuse to introduce a different statistical result surface.
 - If the runtime starts an auto-continue turn with no new user message, keep drafting or verifying from the durable state and active requirements instead of replaying the previous user turn.
 - Message templates are references only. Adapt to the actual context and vary wording so updates feel respectful, human, and non-robotic.
 - If a threaded user reply arrives, interpret it relative to the latest writing progress update before assuming the task changed completely.
@@ -355,6 +359,17 @@ For each main-text figure, record enough detail that a medical reader can answer
 - which glossary terms must be explained in the legend
 - whether any thresholds are illustrative rather than recommended
 - whether any risk strata are display-only rather than clinical bins
+- which renderer family is locked for that figure
+- why that renderer family was selected
+- that failure-driven renderer fallback is forbidden and environment breakage must block the run
+
+Renderer-family boundary:
+
+- `evidence` figures may use only `python` or `r_ggplot2`
+- `illustration` figures may use `python`, `r_ggplot2`, or `html_svg`
+- `html_svg` is never allowed for evidence figures
+- renderer family is a locked contract, not an opportunistic choice
+- if the chosen family cannot run, block and fix the environment instead of switching families
 
 ### 4. Derived analysis contract
 
@@ -1314,7 +1329,14 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
       ],
       "threshold_semantics": "Thresholds shown here are illustrative operating points rather than recommended cut-offs.",
       "stratification_basis": "Risk groups were formed for display and are not prespecified clinical bins.",
-      "recommendation_boundary": "No formal threshold recommendation is made from this figure alone."
+      "recommendation_boundary": "No formal threshold recommendation is made from this figure alone.",
+      "renderer_contract": {
+        "figure_semantics": "evidence",
+        "renderer_family": "python",
+        "selection_rationale": "This result figure is regenerated from the locked Python analysis stack so the plotted evidence remains coupled to the audited statistical outputs.",
+        "fallback_on_failure": false,
+        "failure_action": "block_and_fix_environment"
+      }
     }
   ]
 }

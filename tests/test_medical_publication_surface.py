@@ -30,6 +30,7 @@ def make_quest(
     include_case_mix_boundary_fields: bool | None = None,
     align_missing_data_policy_ids: bool | None = None,
     generated_figure_text_override: str | None = None,
+    renderer_contract_override: dict[str, object] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -388,6 +389,16 @@ def make_quest(
         )
 
     if include_figure_semantics_manifest:
+        renderer_contract = renderer_contract_override or {
+            "figure_semantics": "evidence",
+            "renderer_family": "python",
+            "selection_rationale": (
+                "This result figure is regenerated from the locked Python analysis stack so the plotted "
+                "evidence remains coupled to the audited statistical outputs."
+            ),
+            "fallback_on_failure": False,
+            "failure_action": "block_and_fix_environment",
+        }
         dump_json(
             paper_root / "figure_semantics_manifest.json",
             {
@@ -422,7 +433,8 @@ def make_quest(
                         ],
                         "threshold_semantics": "Thresholds are illustrative operating points used to show trade-offs, not recommended cut-offs.",
                         "stratification_basis": "Risk groups were formed for display and are not prespecified clinical categories.",
-                        "recommendation_boundary": "No formal recommendation threshold is proposed from this figure."
+                        "recommendation_boundary": "No formal recommendation threshold is proposed from this figure.",
+                        "renderer_contract": renderer_contract,
                     }
                 ],
             },
@@ -719,6 +731,54 @@ def test_build_report_blocks_when_later_results_section_is_incomplete(tmp_path: 
 
     assert report["status"] == "blocked"
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
+
+
+def test_build_report_blocks_when_evidence_figure_uses_html_svg_renderer(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        renderer_contract_override={
+            "figure_semantics": "evidence",
+            "renderer_family": "html_svg",
+            "selection_rationale": "The figure uses a hand-crafted SVG poster layout.",
+            "fallback_on_failure": False,
+            "failure_action": "block_and_fix_environment",
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "figure_semantics_manifest" for hit in report["top_hits"])
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_semantics_manifest")
+    assert "renderer_family" in excerpts
+    assert "html_svg" in excerpts
+
+
+def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        renderer_contract_override={
+            "figure_semantics": "evidence",
+            "renderer_family": "python",
+            "selection_rationale": "The evidence plot should stay on the audited Python stack.",
+            "fallback_on_failure": True,
+            "failure_action": "block_and_fix_environment",
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_semantics_manifest")
+    assert "fallback_on_failure" in excerpts
 
 
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
