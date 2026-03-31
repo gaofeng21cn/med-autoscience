@@ -9,9 +9,10 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.adapters.deepscientist import mailbox, runtime
+from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.controllers import data_assets
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
+from med_autoscience.runtime_protocol import user_message
 
 
 @dataclass
@@ -202,7 +203,7 @@ def run_controller(
     json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
     if apply and report["status"] in {"blocked", "advisory"}:
-        intervention = mailbox.enqueue_user_message(
+        intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=data_asset_gate_policy.build_intervention_message(report),

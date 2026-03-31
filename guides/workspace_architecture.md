@@ -329,9 +329,15 @@ wrapper 不应继续硬编码：
   - 当前受管布局仍明确要求 `ops/deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
 - `med_autoscience.runtime_protocol.quest_state`
   - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
-- `adapters.deepscientist.runtime`
-  - 现在只保留兼容导出与 transport shim 角色
-  - 不再是 runtime 布局/状态真相源
+- `med_autoscience.runtime_protocol.paper_artifacts`
+  - 管理 `paper_root`、bundle manifest、artifact manifest、submission outputs 这些 paper-facing 交付拓扑
+- `med_autoscience.runtime_protocol.user_message`
+  - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数
+- `med_autoscience.runtime_transport.medicaldeepscientist`
+  - 管理 daemon URL 解析与 quest create / pause / resume / control 这类 engine-specific transport
+- `adapters.deepscientist.*`
+  - 现在只保留兼容导出与 shim 角色
+  - 不再是 runtime 布局、quest state、paper artifact、user message 或 transport 的真相源
 
 这意味着当前阶段的目标不是“假装已经摆脱具体目录形状”，而是先把这些形状提升为 `MedAutoScience` 自己明确定义、可测试、可审计的协议面。
 

@@ -10,7 +10,29 @@ from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+def _resolve_repo_root(*, module_file: Path | None = None) -> Path:
+    candidate = (module_file or Path(__file__)).resolve().parents[2]
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=candidate,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return candidate
+    if completed.returncode != 0:
+        return candidate
+    common_dir = Path(completed.stdout.strip())
+    if not common_dir.is_absolute():
+        return candidate
+    if common_dir.name == ".git":
+        return common_dir.parent
+    return common_dir
+
+
+REPO_ROOT = _resolve_repo_root()
 MANAGED_RUNTIME_PREFIX = (REPO_ROOT / ".venv").resolve()
 REQUIRED_RUNTIME_REQUIREMENTS = ("matplotlib>=3.9", "pandas>=2.2")
 CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (

@@ -1,141 +1,95 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
-
-def write_text(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def test_resolve_daemon_url_reads_runtime_config_and_normalizes_localhost(tmp_path: Path) -> None:
+def test_resolve_daemon_url_delegates_to_runtime_transport(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.deepscientist.daemon_api")
     runtime_root = tmp_path / "runtime"
-    write_text(
-        runtime_root / "config" / "config.yaml",
-        "ui:\n  host: 0.0.0.0\n  port: 21999\n",
-    )
+    seen: dict[str, object] = {}
+
+    def fake_resolve_daemon_url(*, runtime_root: Path) -> str:
+        seen["runtime_root"] = runtime_root
+        return "http://127.0.0.1:21999"
+
+    monkeypatch.setattr(module.medicaldeepscientist_transport, "resolve_daemon_url", fake_resolve_daemon_url)
 
     result = module.resolve_daemon_url(runtime_root=runtime_root)
 
     assert result == "http://127.0.0.1:21999"
+    assert seen == {"runtime_root": runtime_root}
 
 
-def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
+def test_create_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.deepscientist.daemon_api")
     runtime_root = tmp_path / "runtime"
-    write_text(
-        runtime_root / "config" / "config.yaml",
-        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
-    )
     seen: dict[str, object] = {}
+    payload = {
+        "goal": "Launch study 001",
+        "quest_id": "001-risk",
+        "auto_start": True,
+    }
 
-    class FakeResponse:
-        def __enter__(self) -> "FakeResponse":
-            return self
+    def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
+        seen["runtime_root"] = runtime_root
+        seen["payload"] = payload
+        return {"ok": True, "snapshot": {"quest_id": "001-risk"}}
 
-        def __exit__(self, exc_type, exc, tb) -> None:
-            return None
-
-        def read(self) -> bytes:
-            return b'{"ok": true, "snapshot": {"quest_id": "001-risk"}}'
-
-    def fake_urlopen(http_request, timeout: int):
-        seen["url"] = http_request.full_url
-        seen["method"] = http_request.get_method()
-        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
-        seen["timeout"] = timeout
-        return FakeResponse()
-
-    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
 
     result = module.create_quest(
         runtime_root=runtime_root,
-        payload={
-            "goal": "Launch study 001",
-            "quest_id": "001-risk",
-            "auto_start": True,
-        },
+        payload=payload,
     )
 
     assert result == {"ok": True, "snapshot": {"quest_id": "001-risk"}}
-    assert seen["url"] == "http://127.0.0.1:20999/api/quests"
-    assert seen["method"] == "POST"
-    assert seen["timeout"] == 10
-    assert seen["payload"] == {"goal": "Launch study 001", "quest_id": "001-risk", "auto_start": True}
+    assert seen == {
+        "runtime_root": runtime_root,
+        "payload": payload,
+    }
 
 
-def test_resume_quest_posts_control_action(monkeypatch, tmp_path: Path) -> None:
+def test_resume_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.deepscientist.daemon_api")
     runtime_root = tmp_path / "runtime"
-    write_text(
-        runtime_root / "config" / "config.yaml",
-        "ui:\n  host: localhost\n  port: 20999\n",
-    )
     seen: dict[str, object] = {}
 
-    class FakeResponse:
-        def __enter__(self) -> "FakeResponse":
-            return self
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        seen["runtime_root"] = runtime_root
+        seen["quest_id"] = quest_id
+        seen["source"] = source
+        return {"ok": True, "status": "running"}
 
-        def __exit__(self, exc_type, exc, tb) -> None:
-            return None
-
-        def read(self) -> bytes:
-            return b'{"ok": true, "status": "running"}'
-
-    def fake_urlopen(http_request, timeout: int):
-        seen["url"] = http_request.full_url
-        seen["method"] = http_request.get_method()
-        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
-        seen["timeout"] = timeout
-        return FakeResponse()
-
-    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module.medicaldeepscientist_transport, "resume_quest", fake_resume_quest)
 
     result = module.resume_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
     assert result == {"ok": True, "status": "running"}
-    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/control"
-    assert seen["method"] == "POST"
-    assert seen["timeout"] == 10
-    assert seen["payload"] == {"action": "resume", "source": "medautosci-test"}
+    assert seen == {
+        "runtime_root": runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
 
 
-def test_pause_quest_posts_control_action(monkeypatch, tmp_path: Path) -> None:
+def test_pause_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.deepscientist.daemon_api")
     runtime_root = tmp_path / "runtime"
-    write_text(
-        runtime_root / "config" / "config.yaml",
-        "ui:\n  host: localhost\n  port: 20999\n",
-    )
     seen: dict[str, object] = {}
 
-    class FakeResponse:
-        def __enter__(self) -> "FakeResponse":
-            return self
+    def fake_pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        seen["runtime_root"] = runtime_root
+        seen["quest_id"] = quest_id
+        seen["source"] = source
+        return {"ok": True, "status": "paused"}
 
-        def __exit__(self, exc_type, exc, tb) -> None:
-            return None
-
-        def read(self) -> bytes:
-            return b'{"ok": true, "status": "paused"}'
-
-    def fake_urlopen(http_request, timeout: int):
-        seen["url"] = http_request.full_url
-        seen["method"] = http_request.get_method()
-        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
-        seen["timeout"] = timeout
-        return FakeResponse()
-
-    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module.medicaldeepscientist_transport, "pause_quest", fake_pause_quest)
 
     result = module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
     assert result == {"ok": True, "status": "paused"}
-    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/control"
-    assert seen["method"] == "POST"
-    assert seen["timeout"] == 10
-    assert seen["payload"] == {"action": "pause", "source": "medautosci-test"}
+    assert seen == {
+        "runtime_root": runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }

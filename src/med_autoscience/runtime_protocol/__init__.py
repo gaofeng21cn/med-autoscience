@@ -6,6 +6,14 @@ from .topology import (
     resolve_study_root_from_paper_root,
     resolve_worktree_root_from_paper_root,
 )
+from .paper_artifacts import (
+    resolve_artifact_manifest,
+    resolve_artifact_manifest_from_main_result,
+    resolve_latest_paper_root,
+    resolve_paper_bundle_manifest,
+    resolve_submission_minimal_manifest,
+    resolve_submission_minimal_output_paths,
+)
 from .quest_state import (
     find_latest,
     find_latest_main_result,
@@ -16,9 +24,17 @@ from .quest_state import (
     read_recent_stdout_lines,
     resolve_active_stdout_path,
 )
+from .user_message import enqueue_user_message
 
 __all__ = [
     "PaperRootContext",
+    "enqueue_user_message",
+    "resolve_artifact_manifest",
+    "resolve_artifact_manifest_from_main_result",
+    "resolve_latest_paper_root",
+    "resolve_paper_bundle_manifest",
+    "resolve_submission_minimal_manifest",
+    "resolve_submission_minimal_output_paths",
     "find_latest",
     "find_latest_main_result",
     "find_latest_main_result_path",

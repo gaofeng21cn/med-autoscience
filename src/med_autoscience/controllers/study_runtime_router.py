@@ -8,7 +8,6 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.adapters.deepscientist import daemon_api
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
@@ -24,6 +23,7 @@ from med_autoscience.policies.automation_ready import render_automation_ready_su
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -639,7 +639,7 @@ def ensure_study_runtime(
         create_payload["auto_start"] = False
         startup_payload_path = paths["startup_payload_root"] / f"{_timestamp_slug()}.json"
         _write_json(startup_payload_path, create_payload)
-        create_result = daemon_api.create_quest(
+        create_result = medicaldeepscientist_transport.create_quest(
             runtime_root=profile.deepscientist_runtime_root,
             payload=create_payload,
         )
@@ -691,7 +691,7 @@ def ensure_study_runtime(
                     source=source,
                 )
             elif planned_decision == "create_and_start":
-                resume_result = daemon_api.resume_quest(
+                resume_result = medicaldeepscientist_transport.resume_quest(
                     runtime_root=profile.deepscientist_runtime_root,
                     quest_id=str(status["quest_id"]),
                     source=source,
@@ -745,7 +745,7 @@ def ensure_study_runtime(
                 source=source,
             )
         else:
-            daemon_result = daemon_api.resume_quest(
+            daemon_result = medicaldeepscientist_transport.resume_quest(
                 runtime_root=profile.deepscientist_runtime_root,
                 quest_id=str(status["quest_id"]),
                 source=source,
@@ -761,7 +761,7 @@ def ensure_study_runtime(
                 source=source,
             )
     elif status["decision"] == "pause":
-        daemon_result = daemon_api.pause_quest(
+        daemon_result = medicaldeepscientist_transport.pause_quest(
             runtime_root=profile.deepscientist_runtime_root,
             quest_id=str(status["quest_id"]),
             source=source,

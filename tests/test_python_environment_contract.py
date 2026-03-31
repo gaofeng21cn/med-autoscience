@@ -218,3 +218,18 @@ def test_ensure_ready_external_runtime_reports_managed_requirement(monkeypatch) 
     assert result["action"] == "managed_runtime_required"
     assert result["before"] == ready_state
     assert result["after"] == ready_state
+
+
+def test_resolve_repo_root_uses_git_common_dir(monkeypatch, tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    worktree_root = repo_root / ".worktree" / "feature"
+    module_file = worktree_root / "src" / "med_autoscience" / "python_environment_contract.py"
+
+    def fake_run(*args, **kwargs) -> SimpleNamespace:
+        return SimpleNamespace(returncode=0, stdout=str(repo_root / ".git") + "\n")
+
+    monkeypatch.setattr(contract.subprocess, "run", fake_run)
+
+    resolved = contract._resolve_repo_root(module_file=module_file)
+
+    assert resolved == repo_root

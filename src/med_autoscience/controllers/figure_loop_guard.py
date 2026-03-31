@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.adapters import report_store
-from med_autoscience.adapters.deepscientist import mailbox, runtime
+from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.figure_routes import (
     FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
@@ -18,6 +18,8 @@ from med_autoscience.figure_routes import (
     partition_required_routes,
     supported_required_route_help,
 )
+from med_autoscience.runtime_protocol import user_message
+from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
 
 
 RESOLVED_PATTERNS = [
@@ -77,12 +79,6 @@ def parse_key_value_pairs(values: list[str]) -> dict[str, str]:
 def resolve_outbox_path(quest_root: Path) -> Path:
     runtime_root = quest_root.parent.parent
     return runtime_root / "logs" / "connectors" / "local" / "outbox.jsonl"
-
-
-def resolve_daemon_url(quest_root: Path) -> str:
-    runtime_root = quest_root.parent.parent
-    daemon_meta = load_json(runtime_root / "runtime" / "daemon.json", default={}) or {}
-    return str(daemon_meta.get("url") or "http://127.0.0.1:20999").rstrip("/")
 
 def extract_figures(message: str) -> list[str]:
     found: set[str] = set()
@@ -379,13 +375,14 @@ def run_controller(
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = mailbox.post_quest_control(
-                daemon_url=daemon_url or resolve_daemon_url(quest_root),
+            stop_result = medicaldeepscientist_transport.post_quest_control(
+                daemon_url=daemon_url
+                or medicaldeepscientist_transport.resolve_daemon_url(runtime_root=quest_root.parent.parent),
                 quest_id=state.quest_id,
                 action="stop",
                 source=source,
             )
-        intervention = mailbox.enqueue_user_message(
+        intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
             message=build_intervention_message(report),

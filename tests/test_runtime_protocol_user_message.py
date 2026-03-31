@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import importlib
 import json
-from io import BytesIO
 from pathlib import Path
+
+from med_autoscience.runtime_protocol.user_message import enqueue_user_message
 
 
 def dump_json(path: Path, payload: dict) -> None:
@@ -12,7 +12,6 @@ def dump_json(path: Path, payload: dict) -> None:
 
 
 def test_enqueue_user_message_updates_queue_runtime_state_and_journal(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.adapters.deepscientist.mailbox")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     runtime_state = {
         "quest_id": "q001",
@@ -24,7 +23,7 @@ def test_enqueue_user_message_updates_queue_runtime_state_and_journal(tmp_path: 
     (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
 
-    record = module.enqueue_user_message(
+    record = enqueue_user_message(
         quest_root=quest_root,
         runtime_state=runtime_state,
         message="stop current run",
@@ -45,7 +44,6 @@ def test_enqueue_user_message_updates_queue_runtime_state_and_journal(tmp_path: 
 
 
 def test_enqueue_user_message_deduplicates_same_content(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.adapters.deepscientist.mailbox")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     runtime_state = {
         "quest_id": "q001",
@@ -67,7 +65,7 @@ def test_enqueue_user_message_deduplicates_same_content(tmp_path: Path) -> None:
     (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
 
-    record = module.enqueue_user_message(
+    record = enqueue_user_message(
         quest_root=quest_root,
         runtime_state=runtime_state,
         message="stop current run",
@@ -80,29 +78,3 @@ def test_enqueue_user_message_deduplicates_same_content(tmp_path: Path) -> None:
     assert record == existing
     assert len(queue["pending"]) == 1
     assert journal_lines == []
-
-
-def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.adapters.deepscientist.mailbox")
-    seen: dict[str, object] = {}
-
-    def fake_post_quest_control(**kwargs):
-        seen.update(kwargs)
-        return {"ok": True, "status": "stopped"}
-
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "post_quest_control", fake_post_quest_control)
-
-    result = module.post_quest_control(
-        daemon_url="http://127.0.0.1:20999",
-        quest_id="q001",
-        action="stop",
-        source="codex-test",
-    )
-
-    assert result == {"ok": True, "status": "stopped"}
-    assert seen == {
-        "daemon_url": "http://127.0.0.1:20999",
-        "quest_id": "q001",
-        "action": "stop",
-        "source": "codex-test",
-    }

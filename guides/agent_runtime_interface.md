@@ -20,6 +20,7 @@
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `MedAutoScience` / `DeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
+- 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
 - 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
@@ -281,8 +282,21 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 - `med_autoscience.runtime_protocol.quest_state`
   - 负责 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl` 与最近 stdout 行的统一读取
   - `publication_gate`、`runtime_watch`、`study_runtime_router` 这类 controller 应直接消费这一层，而不是各自重复遍历 `.ds/...`
+- `med_autoscience.runtime_protocol.paper_artifacts`
+  - 负责 latest `paper_root`、`paper_bundle_manifest.json`、`artifact_manifest.json`、`submission_minimal` 输出路径的统一解析
+  - `publication_gate`、`medical_publication_surface`、`submission_targets` 不再自己猜测 `paper/` 下的交付拓扑
+- `med_autoscience.runtime_protocol.user_message`
+  - 负责 `.ds/user_message_queue.json`、`.ds/runtime_state.json` 中 `pending_user_message_count`、以及 `.ds/interaction_journal.jsonl` 的一致落盘
+  - `data_asset_gate`、`figure_loop_guard`、`medical_publication_surface` 这类 controller 不再自己维护 queue/journal 真相
 
-这一步并不等于 engine-neutral transport 已经完成。当前 transport / daemon 兼容面仍由 `adapters/deepscientist/*` 承担，但 `adapters.deepscientist.runtime` 现在只应作为兼容转发层存在，不再承担协议真相。
+Phase 3 开始，transport 面也开始显式收口：
+
+- `med_autoscience.runtime_transport.medicaldeepscientist`
+  - 负责 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
+  - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
+  - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
+
+这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前 `adapters/deepscientist/*` 仍保留兼容导出面，但它们现在只应作为 shim / forwarding layer 存在，不再承担 protocol 或 transport 真相。
 
 ## 审计与人类复核
 
