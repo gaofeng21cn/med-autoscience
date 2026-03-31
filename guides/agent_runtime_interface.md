@@ -19,6 +19,7 @@
 
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
+- `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
 - `MedAutoScience` / `DeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
