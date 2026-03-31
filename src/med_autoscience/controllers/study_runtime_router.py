@@ -12,6 +12,8 @@ from med_autoscience.adapters.deepscientist import daemon_api
 from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
+    medical_analysis_contract as medical_analysis_contract_controller,
+    medical_reporting_contract as medical_reporting_contract_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
@@ -190,6 +192,16 @@ def _build_startup_contract(
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
     existing_brief = _read_optional_text(startup_brief_path)
+    medical_analysis_contract_summary = medical_analysis_contract_controller.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
+    medical_reporting_contract_summary = medical_reporting_contract_controller.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
 
     if not boundary_gate["allow_compute_stage"]:
         scope = "full_research"
@@ -223,7 +235,7 @@ def _build_startup_contract(
         runtime_constraints = "Honor workspace data contracts and prepare a submission-ready study."
 
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
         "need_research_paper": True,
         "research_intensity": research_intensity,
@@ -253,6 +265,9 @@ def _build_startup_contract(
         "startup_boundary_gate": boundary_gate,
         "runtime_reentry_gate": runtime_reentry_gate,
         "journal_shortlist": journal_shortlist,
+        "medical_analysis_contract_summary": medical_analysis_contract_summary,
+        "medical_reporting_contract_summary": medical_reporting_contract_summary,
+        "reporting_guideline_family": medical_reporting_contract_summary["reporting_guideline_family"],
         "submission_targets": _serialize_submission_targets(profile, study_root)
         if _has_explicit_submission_targets(study_payload)
         else [],
