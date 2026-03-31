@@ -29,6 +29,14 @@ from .study_archetypes import (
     render_archetype_block,
     resolve_archetypes,
 )
+from .medical_analysis_contract import (
+    MedicalAnalysisContract,
+    resolve_medical_analysis_contract,
+)
+from .medical_reporting_contract import (
+    MedicalReportingContract,
+    resolve_medical_reporting_contract,
+)
 
 __all__ = [
     "AMA_CSL_BASENAME",
@@ -52,4 +60,8 @@ __all__ = [
     "render_controller_first_summary",
     "render_policy_block",
     "resolve_archetypes",
+    "MedicalAnalysisContract",
+    "MedicalReportingContract",
+    "resolve_medical_analysis_contract",
+    "resolve_medical_reporting_contract",
 ]
