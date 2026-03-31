@@ -14,7 +14,9 @@ from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
     medical_reporting_contract as medical_reporting_contract_controller,
+    quest_hydration as quest_hydration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
+    startup_hydration_validation as startup_hydration_validation_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
@@ -318,6 +320,26 @@ def _build_create_payload(
     }
 
 
+def _build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, object]:
+    startup_contract = create_payload.get("startup_contract")
+    if not isinstance(startup_contract, dict):
+        raise ValueError("create payload missing startup_contract")
+    medical_analysis_contract = startup_contract.get("medical_analysis_contract_summary")
+    if not isinstance(medical_analysis_contract, dict):
+        raise ValueError("startup_contract missing medical_analysis_contract_summary")
+    medical_reporting_contract = startup_contract.get("medical_reporting_contract_summary")
+    if not isinstance(medical_reporting_contract, dict):
+        raise ValueError("startup_contract missing medical_reporting_contract_summary")
+    entry_state_summary = startup_contract.get("entry_state_summary")
+    if not isinstance(entry_state_summary, str) or not entry_state_summary.strip():
+        raise ValueError("startup_contract missing entry_state_summary")
+    return {
+        "medical_analysis_contract": dict(medical_analysis_contract),
+        "medical_reporting_contract": dict(medical_reporting_contract),
+        "entry_state_summary": entry_state_summary.strip(),
+    }
+
+
 def _status_payload(
     *,
     profile: WorkspaceProfile,
@@ -572,6 +594,7 @@ def ensure_study_runtime(
             status["reason"] = "runtime_overlay_audit_failed_for_running_quest"
 
     if status["decision"] in {"create_and_start", "create_only"}:
+        planned_decision = str(status["decision"])
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -579,27 +602,68 @@ def ensure_study_runtime(
             study_payload=study_payload,
             execution=execution,
         )
+        create_payload["auto_start"] = False
         startup_payload_path = paths["startup_payload_root"] / f"{_timestamp_slug()}.json"
         _write_json(startup_payload_path, create_payload)
-        daemon_result = daemon_api.create_quest(
+        create_result = daemon_api.create_quest(
             runtime_root=profile.deepscientist_runtime_root,
             payload=create_payload,
         )
+        daemon_result = {"create": create_result}
         status["quest_id"] = str(create_payload["quest_id"])
         status["quest_root"] = str(profile.runtime_root / status["quest_id"])
         status["quest_exists"] = True
-        snapshot = daemon_result.get("snapshot") if isinstance(daemon_result.get("snapshot"), dict) else {}
-        fallback_status = "running" if create_payload.get("auto_start") is True else "idle"
+        snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
+        fallback_status = "created"
         status["quest_status"] = str(snapshot.get("status") or fallback_status)
-        _write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            profile=profile,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=status["quest_id"],
-            last_action=str(status["decision"]),
-            source=source,
+        quest_root = Path(status["quest_root"])
+        hydration_payload = _build_hydration_payload(create_payload=create_payload)
+        hydration_result = quest_hydration_controller.run_hydration(
+            quest_root=quest_root,
+            hydration_payload=hydration_payload,
         )
+        status["startup_hydration"] = hydration_result
+        validation_result = startup_hydration_validation_controller.run_validation(quest_root=quest_root)
+        status["startup_hydration_validation"] = validation_result
+        if str(validation_result.get("status")) != "clear":
+            status["decision"] = "blocked"
+            status["reason"] = "hydration_validation_failed"
+            _write_runtime_binding(
+                runtime_binding_path=runtime_binding_path,
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                quest_id=status["quest_id"],
+                last_action="blocked",
+                source=source,
+            )
+        elif planned_decision == "create_and_start":
+            resume_result = daemon_api.resume_quest(
+                runtime_root=profile.deepscientist_runtime_root,
+                quest_id=str(status["quest_id"]),
+                source=source,
+            )
+            daemon_result["resume"] = resume_result
+            status["quest_status"] = str(resume_result.get("status") or "running")
+            _write_runtime_binding(
+                runtime_binding_path=runtime_binding_path,
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                quest_id=status["quest_id"],
+                last_action="create_and_start",
+                source=source,
+            )
+        else:
+            _write_runtime_binding(
+                runtime_binding_path=runtime_binding_path,
+                profile=profile,
+                study_id=resolved_study_id,
+                study_root=resolved_study_root,
+                quest_id=status["quest_id"],
+                last_action="create_only",
+                source=source,
+            )
     elif status["decision"] == "resume":
         daemon_result = daemon_api.resume_quest(
             runtime_root=profile.deepscientist_runtime_root,
