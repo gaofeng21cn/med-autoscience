@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters.deepscientist import mailbox
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 

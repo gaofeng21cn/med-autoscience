@@ -184,3 +184,28 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     assert build_figure_route(FIGURE_ROUTE_ILLUSTRATION_PROGRAM, "F5A") in content
     assert "script/data repair route" in content
     assert "programmatic illustration route" in content
+
+
+def test_build_guard_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+    original_load_json = module.load_json
+    seen: dict[str, object] = {}
+
+    def fake_load_runtime_state(path: Path) -> dict[str, object]:
+        seen["quest_root"] = path
+        return {"status": "patched", "quest_id": quest_root.name}
+
+    def fake_find_latest(paths: list[Path]) -> Path | None:
+        seen["candidate_count"] = len(paths)
+        return next(iter(paths), None)
+
+    monkeypatch.setattr(module.quest_state, "load_runtime_state", fake_load_runtime_state)
+    monkeypatch.setattr(module.quest_state, "find_latest", fake_find_latest)
+    monkeypatch.setattr(module, "load_json", lambda path, default=None: {} if path.name == "runtime_state.json" else original_load_json(path, default))
+
+    state = module.build_guard_state(quest_root, outbox_path=outbox_path)
+
+    assert seen["quest_root"] == quest_root
+    assert seen["candidate_count"] >= 1
+    assert state.runtime_state["status"] == "patched"

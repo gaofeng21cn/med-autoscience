@@ -847,3 +847,20 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
     assert result["stop_result"] is None
     assert result["intervention_enqueued"] is True
     assert len(queue["pending"]) == 1
+
+
+def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    seen: dict[str, object] = {}
+
+    def fake_load_runtime_state(path: Path) -> dict[str, object]:
+        seen["quest_root"] = path
+        return {"status": "patched", "quest_id": quest_root.name}
+
+    monkeypatch.setattr(module.quest_state, "load_runtime_state", fake_load_runtime_state)
+
+    state = module.build_surface_state(quest_root)
+
+    assert seen == {"quest_root": quest_root}
+    assert state.runtime_state["status"] == "patched"

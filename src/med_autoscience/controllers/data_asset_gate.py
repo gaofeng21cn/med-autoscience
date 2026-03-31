@@ -9,10 +9,9 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.controllers import data_assets
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
-from med_autoscience.runtime_protocol import user_message
+from med_autoscience.runtime_protocol import quest_state, user_message
 
 
 @dataclass
@@ -62,7 +61,7 @@ def find_study_report(impact_report: dict[str, Any], study_id: str) -> dict[str,
 
 
 def build_gate_state(quest_root: Path) -> DataAssetGateState:
-    runtime_state = runtime.load_runtime_state(quest_root)
+    runtime_state = quest_state.load_runtime_state(quest_root)
     workspace_root = resolve_workspace_root(quest_root)
     study_id = read_quest_id(quest_root)
     impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
