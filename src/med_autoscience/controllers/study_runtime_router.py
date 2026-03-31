@@ -9,7 +9,6 @@ from typing import Any
 import yaml
 
 from med_autoscience.adapters.deepscientist import daemon_api
-from med_autoscience.adapters.deepscientist import runtime as runtime_adapter
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
@@ -24,6 +23,7 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -377,7 +377,7 @@ def _status_payload(
     quest_root = profile.runtime_root / quest_id
     runtime_binding_path = paths["runtime_binding_path"]
     quest_exists = (quest_root / "quest.yaml").exists()
-    quest_status = runtime_adapter.quest_status(quest_root) if quest_exists else ""
+    quest_status_value = quest_state.quest_status(quest_root) if quest_exists else ""
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -391,7 +391,7 @@ def _status_payload(
         study_payload=study_payload,
         execution=execution,
         quest_root=quest_root if quest_exists else None,
-        enforce_startup_hydration=quest_status in {"running", "active"},
+        enforce_startup_hydration=quest_status_value in {"running", "active"},
     )
 
     result: dict[str, Any] = {
@@ -403,7 +403,7 @@ def _status_payload(
         "quest_id": quest_id,
         "quest_root": str(quest_root),
         "quest_exists": quest_exists,
-        "quest_status": quest_status or None,
+        "quest_status": quest_status_value or None,
         "runtime_binding_path": str(runtime_binding_path),
         "runtime_binding_exists": runtime_binding_path.exists(),
         "workspace_contracts": contracts,
@@ -455,7 +455,7 @@ def _status_payload(
             result["reason"] = "startup_boundary_not_ready_for_auto_start"
         return result
 
-    if quest_status in {"running", "active"}:
+    if quest_status_value in {"running", "active"}:
         if not startup_boundary_gate["allow_compute_stage"]:
             result["decision"] = "pause"
             result["reason"] = "startup_boundary_not_ready_for_running_quest"
@@ -467,7 +467,7 @@ def _status_payload(
             result["reason"] = "quest_already_running"
         return result
 
-    if quest_status in {"paused", "idle", "created"}:
+    if quest_status_value in {"paused", "idle", "created"}:
         if not startup_boundary_gate["allow_compute_stage"]:
             result["decision"] = "blocked"
             result["reason"] = "startup_boundary_not_ready_for_resume"
@@ -478,12 +478,14 @@ def _status_payload(
             return result
         if execution.get("auto_resume") is True:
             result["decision"] = "resume"
-            result["reason"] = "quest_paused" if quest_status == "paused" else "quest_initialized_waiting_to_start"
+            result["reason"] = (
+                "quest_paused" if quest_status_value == "paused" else "quest_initialized_waiting_to_start"
+            )
         else:
             result["decision"] = "blocked"
             result["reason"] = (
                 "quest_paused_but_auto_resume_disabled"
-                if quest_status == "paused"
+                if quest_status_value == "paused"
                 else "quest_initialized_but_auto_resume_disabled"
             )
         return result

@@ -57,6 +57,19 @@ def test_find_latest_main_result_prefers_latest_candidate(tmp_path: Path) -> Non
     assert result == newer
 
 
+def test_find_latest_prefers_latest_candidate(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.adapters.deepscientist.runtime")
+    older = tmp_path / "older.txt"
+    newer = tmp_path / "newer.txt"
+    older.write_text("older\n", encoding="utf-8")
+    newer.write_text("newer\n", encoding="utf-8")
+    newer.touch()
+
+    result = module.find_latest([older, newer])
+
+    assert result == newer
+
+
 def test_read_recent_stdout_lines_filters_bad_json_and_limits_count(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.adapters.deepscientist.runtime")
     stdout_path = tmp_path / "stdout.jsonl"

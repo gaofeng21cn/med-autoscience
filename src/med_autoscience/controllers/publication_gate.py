@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters.deepscientist import mailbox, paper_bundle, runtime
+from med_autoscience.adapters.deepscientist import mailbox, paper_bundle
 from med_autoscience.policies import publication_gate as publication_gate_policy
+from med_autoscience.runtime_protocol import quest_state
 
 
 @dataclass
@@ -87,13 +88,13 @@ def gate_allows_write(latest_gate: dict[str, Any] | None, latest_gate_path: Path
 
 
 def build_gate_state(quest_root: Path) -> GateState:
-    runtime_state = runtime.load_runtime_state(quest_root)
-    main_result_path = runtime.find_latest_main_result(quest_root)
+    runtime_state = quest_state.load_runtime_state(quest_root)
+    main_result_path = quest_state.find_latest_main_result_path(quest_root)
     main_result = load_json(main_result_path)
     latest_gate_path = find_latest_gate_report(quest_root)
     latest_gate = load_json(latest_gate_path) if latest_gate_path else None
-    stdout_path = runtime.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
-    recent_lines = runtime.read_recent_stdout_lines(stdout_path)
+    stdout_path = quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
+    recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
     present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
     paper_bundle_manifest_path = paper_bundle.resolve_paper_bundle_manifest(quest_root)
     paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None

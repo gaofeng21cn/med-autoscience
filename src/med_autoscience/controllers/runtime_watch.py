@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.adapters import report_store
-from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.controllers import (
     data_asset_gate,
     figure_loop_guard,
@@ -19,6 +18,7 @@ from med_autoscience.controllers import (
     study_runtime_router,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -157,7 +157,7 @@ def run_watch_for_quest(
         "schema_version": 1,
         "scanned_at": utc_now(),
         "quest_root": str(quest_root),
-        "quest_status": runtime.quest_status(quest_root),
+        "quest_status": quest_state.quest_status(quest_root),
         "controllers": {},
     }
 
@@ -251,7 +251,7 @@ def run_watch_for_runtime(
             )
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
-    for quest_root in runtime.iter_active_quests(runtime_root):
+    for quest_root in quest_state.iter_active_quests(runtime_root):
         scanned.append(quest_root.name)
         reports.append(
             run_watch_for_quest(

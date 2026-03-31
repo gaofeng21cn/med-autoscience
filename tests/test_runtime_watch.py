@@ -295,7 +295,7 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
         "ensure_study_runtime",
         lambda *, profile, study_root, source: {"study_id": Path(study_root).name, "decision": "create_and_start", "reason": "quest_missing"},
     )
-    monkeypatch.setattr(module.runtime, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
     result = module.run_watch_for_runtime(
         runtime_root=profile.runtime_root,

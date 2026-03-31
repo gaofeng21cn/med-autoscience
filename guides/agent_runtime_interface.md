@@ -270,6 +270,20 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 
 只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `deepscientist_repo_root` 视作真正的执行真相来源。
 
+## Runtime Protocol Surface
+
+Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析提升为自己的协议层，而不是继续散落在 controller 或 adapter 里。
+
+- `med_autoscience.runtime_protocol.topology`
+  - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
+  - 当前显式承认的受管布局是 `ops/deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+  - `study_delivery_sync` 这类 controller 应调用 `resolve_paper_root_context()`，而不是自己拼 `.ds/worktrees/...` 或依赖 `parents[4]` 这类脆弱层级
+- `med_autoscience.runtime_protocol.quest_state`
+  - 负责 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl` 与最近 stdout 行的统一读取
+  - `publication_gate`、`runtime_watch`、`study_runtime_router` 这类 controller 应直接消费这一层，而不是各自重复遍历 `.ds/...`
+
+这一步并不等于 engine-neutral transport 已经完成。当前 transport / daemon 兼容面仍由 `adapters/deepscientist/*` 承担，但 `adapters.deepscientist.runtime` 现在只应作为兼容转发层存在，不再承担协议真相。
+
 ## 审计与人类复核
 
 `human-auditable` 不等于“人类手工逐条执行命令”，而是：

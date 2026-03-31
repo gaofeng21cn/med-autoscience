@@ -1433,6 +1433,23 @@ def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeyp
     assert result["startup_boundary_gate"]["journal_shortlist_contract_status"] == "absent"
 
 
+def test_build_hydration_payload_is_protocol_explicit() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    create_payload = {
+        "startup_contract": {
+            "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
+            "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
+            "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
+        }
+    }
+
+    payload = module._build_hydration_payload(create_payload=create_payload)
+
+    assert payload["medical_analysis_contract"]["study_archetype"] == "clinical_classifier"
+    assert payload["medical_reporting_contract"]["reporting_guideline_family"] == "TRIPOD"
+    assert payload["entry_state_summary"].startswith("Study root:")
+
+
 def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     monkeypatch,
     tmp_path: Path,
