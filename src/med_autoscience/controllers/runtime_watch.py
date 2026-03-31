@@ -12,7 +12,9 @@ from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.controllers import (
     data_asset_gate,
     figure_loop_guard,
+    medical_literature_audit,
     medical_publication_surface,
+    medical_reporting_audit,
     publication_gate,
     study_runtime_router,
 )
@@ -31,6 +33,8 @@ def build_default_controller_runners() -> dict[str, ControllerRunner]:
         "data_asset_gate": data_asset_gate.run_controller,
         "publication_gate": publication_gate.run_controller,
         "medical_publication_surface": medical_publication_surface.run_controller,
+        "medical_literature_audit": medical_literature_audit.run_controller,
+        "medical_reporting_audit": medical_reporting_audit.run_controller,
         "figure_loop_guard": figure_loop_guard.run_controller,
     }
 
