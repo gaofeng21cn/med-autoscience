@@ -1341,6 +1341,11 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
             },
         }
 
+    monkeypatch.setattr(
+        cli.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: {"action": "already_ready", "ready": True},
+    )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
 
@@ -1399,6 +1404,11 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
             "action_result": None,
         }
 
+    monkeypatch.setattr(
+        cli.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: {"action": "already_ready", "ready": True},
+    )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(
         cli.data_asset_updates_controller,

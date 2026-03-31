@@ -37,6 +37,7 @@ from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sy
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
+from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -601,6 +602,7 @@ def main(argv: list[str] | None = None) -> int:
         overlay_install = None
         overlay_status = None
         overlay_bootstrap = None
+        analysis_bundle = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         if profile.enable_medical_overlay:
             overlay_request = overlay_request_from_profile(profile)
             overlay_bootstrap = overlay_installer.ensure_medical_overlay(
@@ -628,6 +630,7 @@ def main(argv: list[str] | None = None) -> int:
                 "research_route_bias_policy": doctor_report.profile.research_route_bias_policy,
                 "preferred_study_archetypes": list(doctor_report.profile.preferred_study_archetypes),
             },
+            "analysis_bundle": analysis_bundle,
             "overlay_bootstrap": overlay_bootstrap,
             "overlay_install": overlay_install,
             "overlay_status": overlay_status,

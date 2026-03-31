@@ -16,9 +16,11 @@ from med_autoscience.controllers import (
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
@@ -114,6 +116,47 @@ def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path) 
         "startup_payload_root": profile.workspace_root / "ops" / "deepscientist" / "startup_payloads" / study_id,
         "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
     }
+
+
+def _overlay_request_kwargs(profile: WorkspaceProfile) -> dict[str, Any]:
+    return {
+        "skill_ids": profile.medical_overlay_skills,
+        "policy_id": profile.research_route_bias_policy,
+        "archetype_ids": profile.preferred_study_archetypes,
+        "default_submission_targets": profile.default_submission_targets,
+        "default_publication_profile": profile.default_publication_profile,
+        "default_citation_style": profile.default_citation_style,
+    }
+
+
+def _prepare_runtime_overlay(*, profile: WorkspaceProfile, quest_root: Path) -> dict[str, Any]:
+    overlay_kwargs = _overlay_request_kwargs(profile)
+    authority = overlay_installer.ensure_medical_overlay(
+        quest_root=profile.workspace_root,
+        mode="ensure_ready",
+        **overlay_kwargs,
+    )
+    materialization = overlay_installer.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=profile.workspace_root,
+        **overlay_kwargs,
+    )
+    audit = overlay_installer.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        **overlay_kwargs,
+    )
+    return {
+        "authority": authority,
+        "materialization": materialization,
+        "audit": audit,
+    }
+
+
+def _audit_runtime_overlay(*, profile: WorkspaceProfile, quest_root: Path) -> dict[str, Any]:
+    return overlay_installer.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        **_overlay_request_kwargs(profile),
+    )
 
 
 def _build_startup_contract(
@@ -484,6 +527,32 @@ def ensure_study_runtime(
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
     daemon_result: dict[str, Any] | None = None
+    analysis_bundle_result: dict[str, Any] | None = None
+    runtime_overlay_result: dict[str, Any] | None = None
+
+    if status["decision"] in {"create_and_start", "create_only", "resume"}:
+        analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
+        status["analysis_bundle"] = analysis_bundle_result
+        if not bool(analysis_bundle_result.get("ready")):
+            status["decision"] = "blocked"
+            status["reason"] = "study_runtime_analysis_bundle_not_ready"
+        elif profile.enable_medical_overlay:
+            runtime_overlay_result = _prepare_runtime_overlay(
+                profile=profile,
+                quest_root=Path(status["quest_root"]),
+            )
+            status["runtime_overlay"] = runtime_overlay_result
+            audit = runtime_overlay_result["audit"]
+            if not bool(audit.get("all_roots_ready")):
+                status["decision"] = "blocked"
+                status["reason"] = "runtime_overlay_not_ready"
+    elif profile.enable_medical_overlay and status["quest_exists"]:
+        runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=profile, quest_root=Path(status["quest_root"]))}
+        status["runtime_overlay"] = runtime_overlay_result
+        audit = runtime_overlay_result["audit"]
+        if status["quest_status"] in {"running", "active"} and not bool(audit.get("all_roots_ready")):
+            status["decision"] = "pause"
+            status["reason"] = "runtime_overlay_audit_failed_for_running_quest"
 
     if status["decision"] in {"create_and_start", "create_only"}:
         create_payload = _build_create_payload(

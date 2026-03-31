@@ -197,6 +197,30 @@ def _resolve_targets(
     return scope, resolved_quest_root, targets
 
 
+def _resolve_authoritative_target_root(*, authoritative_root: Path | None, skill_id: str) -> Path | None:
+    if authoritative_root is None:
+        return None
+    return Path(authoritative_root).expanduser().resolve() / ".codex" / "skills" / f"deepscientist-{skill_id}"
+
+
+def _copy_authoritative_target_seed(*, target: OverlayTarget, authoritative_root: Path | None) -> None:
+    source_target_root = _resolve_authoritative_target_root(authoritative_root=authoritative_root, skill_id=target.skill_id)
+    if source_target_root is None:
+        return
+    if source_target_root == target.target_root:
+        return
+    source_skill_path = source_target_root / "SKILL.md"
+    if not source_skill_path.exists():
+        return
+    target.target_root.mkdir(parents=True, exist_ok=True)
+    target.skill_path.write_text(source_skill_path.read_text(encoding="utf-8"), encoding="utf-8")
+    source_manifest_path = source_target_root / MANIFEST_NAME
+    if source_manifest_path.exists():
+        target.manifest_path.write_text(source_manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
+    elif target.manifest_path.exists():
+        target.manifest_path.unlink()
+
+
 def load_overlay_skill_text(
     skill_id: str,
     *,
@@ -416,6 +440,7 @@ def _install_for_target(
     target: OverlayTarget,
     quest_root: Path | None,
     home: Path | None,
+    authoritative_root: Path | None,
     force: bool,
     policy_id: str,
     archetype_ids: tuple[str, ...],
@@ -423,6 +448,7 @@ def _install_for_target(
     default_publication_profile: str | None,
     default_citation_style: str | None,
 ) -> dict[str, Any]:
+    _copy_authoritative_target_seed(target=target, authoritative_root=authoritative_root)
     _seed_workspace_target_from_home(target=target, home=home)
     current_text = _ensure_target_ready(target)
     current_fingerprint = _fingerprint(current_text)
@@ -483,6 +509,7 @@ def _install_overlay(
     *,
     quest_root: Path | None = None,
     home: Path | None = None,
+    authoritative_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -507,6 +534,7 @@ def _install_overlay(
             target=target,
             quest_root=resolved_quest_root,
             home=home,
+            authoritative_root=authoritative_root,
             force=force,
             policy_id=normalized_policy_id,
             archetype_ids=normalized_archetype_ids,
@@ -536,6 +564,7 @@ def install_medical_overlay(
     *,
     quest_root: Path | None = None,
     home: Path | None = None,
+    authoritative_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -546,6 +575,7 @@ def install_medical_overlay(
     return _install_overlay(
         quest_root=quest_root,
         home=home,
+        authoritative_root=authoritative_root,
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
@@ -560,6 +590,7 @@ def reapply_medical_overlay(
     *,
     quest_root: Path | None = None,
     home: Path | None = None,
+    authoritative_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -570,6 +601,7 @@ def reapply_medical_overlay(
     return _install_overlay(
         quest_root=quest_root,
         home=home,
+        authoritative_root=authoritative_root,
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
@@ -584,6 +616,7 @@ def ensure_medical_overlay(
     *,
     quest_root: Path | None = None,
     home: Path | None = None,
+    authoritative_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     mode: str = "ensure_ready",
     policy_id: str | None = None,
@@ -627,6 +660,7 @@ def ensure_medical_overlay(
             action_result = install_medical_overlay(
                 quest_root=quest_root,
                 home=home,
+                authoritative_root=authoritative_root,
                 skill_ids=skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
@@ -638,6 +672,7 @@ def ensure_medical_overlay(
             action_result = reapply_medical_overlay(
                 quest_root=quest_root,
                 home=home,
+                authoritative_root=authoritative_root,
                 skill_ids=skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
@@ -668,4 +703,93 @@ def ensure_medical_overlay(
         "pre_status": pre_status,
         "post_status": post_status,
         "action_result": action_result,
+    }
+
+
+def _runtime_materialization_roots(*, quest_root: Path) -> list[Path]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    roots = [resolved_quest_root]
+    worktrees_root = resolved_quest_root / ".ds" / "worktrees"
+    if worktrees_root.exists():
+        roots.extend(sorted(path.resolve() for path in worktrees_root.iterdir() if path.is_dir()))
+    return roots
+
+
+def materialize_runtime_medical_overlay(
+    *,
+    quest_root: Path,
+    authoritative_root: Path,
+    home: Path | None = None,
+    skill_ids: tuple[str, ...] | list[str] | None = None,
+    policy_id: str | None = None,
+    archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_authoritative_root = Path(authoritative_root).expanduser().resolve()
+    results = []
+    for root in _runtime_materialization_roots(quest_root=resolved_quest_root):
+        overlay_result = reapply_medical_overlay(
+            quest_root=root,
+            home=home,
+            authoritative_root=resolved_authoritative_root,
+            skill_ids=skill_ids,
+            policy_id=policy_id,
+            archetype_ids=archetype_ids,
+            default_submission_targets=default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
+        )
+        results.append(
+            {
+                "runtime_root": str(root),
+                "surface": "quest" if root == resolved_quest_root else "worktree",
+                "overlay": overlay_result,
+            }
+        )
+    return {
+        "quest_root": str(resolved_quest_root),
+        "authoritative_root": str(resolved_authoritative_root),
+        "surfaces": results,
+        "materialized_surface_count": len(results),
+    }
+
+
+def audit_runtime_medical_overlay(
+    *,
+    quest_root: Path,
+    skill_ids: tuple[str, ...] | list[str] | None = None,
+    policy_id: str | None = None,
+    archetype_ids: tuple[str, ...] | list[str] | None = None,
+    default_submission_targets: tuple[dict[str, object], ...] | list[dict[str, object]] | None = None,
+    default_publication_profile: str | None = None,
+    default_citation_style: str | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    surfaces = []
+    for root in _runtime_materialization_roots(quest_root=resolved_quest_root):
+        status = describe_medical_overlay(
+            quest_root=root,
+            skill_ids=skill_ids,
+            policy_id=policy_id,
+            archetype_ids=archetype_ids,
+            default_submission_targets=default_submission_targets,
+            default_publication_profile=default_publication_profile,
+            default_citation_style=default_citation_style,
+        )
+        surfaces.append(
+            {
+                "runtime_root": str(root),
+                "surface": "quest" if root == resolved_quest_root else "worktree",
+                "all_targets_ready": bool(status["all_targets_ready"]),
+                "status": status,
+            }
+        )
+    return {
+        "quest_root": str(resolved_quest_root),
+        "surface_count": len(surfaces),
+        "all_roots_ready": all(item["all_targets_ready"] for item in surfaces),
+        "surfaces": surfaces,
     }
