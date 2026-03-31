@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.adapters import report_store
-from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.figure_routes import (
     FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
@@ -18,7 +17,7 @@ from med_autoscience.figure_routes import (
     partition_required_routes,
     supported_required_route_help,
 )
-from med_autoscience.runtime_protocol import user_message
+from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
 
 
@@ -153,7 +152,7 @@ def detect_reopen(rows: list[dict[str, Any]], figure_id: str | None) -> bool:
 def resolve_references_path(quest_root: Path) -> Path | None:
     candidates = list(quest_root.glob(".ds/worktrees/*/paper/references.bib"))
     candidates.extend(list(quest_root.glob("paper/references.bib")))
-    return runtime.find_latest(candidates)
+    return quest_state.find_latest(candidates)
 
 
 def count_references(quest_root: Path) -> int:
@@ -174,7 +173,7 @@ def build_guard_state(
     min_reference_count: int = 12,
     recent_window: int = 120,
 ) -> GuardState:
-    runtime_state = runtime.load_runtime_state(quest_root)
+    runtime_state = quest_state.load_runtime_state(quest_root)
     resolved_outbox_path = outbox_path or resolve_outbox_path(quest_root)
     rows = read_recent_outbox_rows(resolved_outbox_path, quest_root, recent_window)
     counts = count_figures(rows)

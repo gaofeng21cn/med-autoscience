@@ -298,6 +298,53 @@ Phase 3 开始，transport 面也开始显式收口：
 
 这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前 `adapters/deepscientist/*` 仍保留兼容导出面，但它们现在只应作为 shim / forwarding layer 存在，不再承担 protocol 或 transport 真相。
 
+## Target Layering
+
+理想形态下，这个系统应收敛成 5 层，而且每层只做一类事情：
+
+1. `policy`
+   - 只表达医学治理规则、发表约束、数据资产规则、研究路线偏置
+   - 不读写 runtime 文件，不发 daemon 请求
+2. `controller`
+   - 只负责把政策、study 状态和任务目标编排成明确动作
+   - 不自己猜路径，不自己拼 `.ds/...`，不自己维护 queue 文件
+3. `runtime_protocol`
+   - 只负责 `MedAutoScience` 承认的 runtime 文件契约
+   - 包括 topology、quest_state、paper_artifacts、user_message
+   - 这是 filesystem-facing truth
+4. `runtime_transport`
+   - 只负责 engine-specific transport
+   - 当前就是 `medicaldeepscientist` daemon HTTP create / pause / resume / control
+   - 这是 process/network-facing truth
+5. `engine`
+   - 当前是受控 fork `MedicalDeepScientist`
+   - 负责真正长时运行、状态机推进、daemon、UI 与 quest 执行
+
+对应关系应是单向的：
+
+- `policy -> controller`
+- `controller -> runtime_protocol`
+- `controller -> runtime_transport`
+- `runtime_transport -> engine`
+
+`controller` 不应反向依赖 adapter，也不应直接触碰 engine 私有实现细节。
+
+## What We Intend To Remove
+
+沿这条主线，后面会继续优化掉这些没必要的部分：
+
+- adapter 中重复存在的一套“第二真相”
+  - 例如 `paper_bundle.py`、`mailbox.py`、`daemon_api.py`、`runtime.py` 曾分别重新承载 artifact、queue、transport、quest state 解析
+- controller 内部重复的拓扑推导
+  - 例如手写 `.ds/worktrees/...`、`parents[4]`、零散 `glob`
+- 同一概念混放在一个文件里
+  - 例如一个模块同时做本地 queue 落盘和 daemon HTTP control
+- 只为兼容历史命名而保留的多层转发
+  - 最终 `adapters/deepscientist/*` 应只剩极薄 shim，成熟后可以整体删除
+- 没有必要长期保留的 `DeepScientist` 品牌耦合命名
+  - 现在先保留 `deepscientist_runtime_root`、`medicaldeepscientist` 这样的过渡命名
+  - 等 protocol 与 transport 边界完全稳定，再评估统一成更中性的 runtime / engine 命名
+
 ## 审计与人类复核
 
 `human-auditable` 不等于“人类手工逐条执行命令”，而是：

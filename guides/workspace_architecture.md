@@ -341,6 +341,26 @@ wrapper 不应继续硬编码：
 
 这意味着当前阶段的目标不是“假装已经摆脱具体目录形状”，而是先把这些形状提升为 `MedAutoScience` 自己明确定义、可测试、可审计的协议面。
 
+从长期目标看，理想架构不是 `MedAutoScience -> adapter -> DeepScientist` 这种双重真相结构，而是：
+
+- `policy`
+  - 只表达规则
+- `controller`
+  - 只编排动作
+- `runtime_protocol`
+  - 只管理 filesystem-facing contracts
+- `runtime_transport`
+  - 只管理 engine-specific transport
+- `MedicalDeepScientist`
+  - 只负责执行引擎本体
+
+因此将来要继续移除的是：
+
+- adapter 中重复维护的一层 runtime 解析
+- controller 内部零散的路径猜测和文件格式判断
+- 一份信息在 protocol、adapter、controller 三处各写一次的结构
+- “为了兼容旧入口而保留”的多层转发链
+
 ## Workspace wrapper 契约
 
 workspace 内的 wrapper 应满足：

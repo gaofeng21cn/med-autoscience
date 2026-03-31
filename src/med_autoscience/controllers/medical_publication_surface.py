@@ -8,9 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters.deepscientist import runtime
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
-from med_autoscience.runtime_protocol import paper_artifacts, user_message
+from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
 
 
@@ -56,7 +55,7 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 
 def build_surface_state(quest_root: Path) -> SurfaceState:
-    runtime_state = runtime.load_runtime_state(quest_root) or {}
+    runtime_state = quest_state.load_runtime_state(quest_root) or {}
     paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
     return SurfaceState(
         quest_root=quest_root,
