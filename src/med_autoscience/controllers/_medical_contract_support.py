@@ -37,9 +37,11 @@ def resolve_study_archetype(*, study_payload: dict[str, Any], profile: Workspace
     return None, "missing_study_archetype"
 
 
-def resolve_endpoint_type(*, study_payload: dict[str, Any]) -> str:
+def resolve_endpoint_type(*, study_payload: dict[str, Any]) -> tuple[str | None, str | None]:
     endpoint_type = normalized_string(study_payload.get("endpoint_type"))
-    return endpoint_type or "binary"
+    if endpoint_type:
+        return endpoint_type, None
+    return None, "missing_endpoint_type"
 
 
 def resolve_manuscript_family(
@@ -69,7 +71,7 @@ def resolve_primary_submission_target_context(*, study_root: Path, profile: Work
         "journal_name": primary_target.journal_name,
         "official_guidelines_url": primary_target.official_guidelines_url,
     }
-    if publication_profile is None:
+    if primary_target.resolution_status != "resolved_profile" or publication_profile is None:
         target_context["status"] = "unsupported"
         target_context["reason_code"] = "primary_submission_target_not_resolved_to_publication_profile"
         return target_context
