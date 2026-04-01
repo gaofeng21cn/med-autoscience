@@ -215,6 +215,10 @@ def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tm
             "refresh_succeeded": False,
             "current_branch": "main",
             "head_commit": "3333333",
+            "comparison_remote_name": "upstream",
+            "comparison_ref": "upstream/main",
+            "comparison_main_commit": "2222222",
+            "comparison_ref_resolved": True,
             "origin_main_commit": "2222222",
             "ahead_count": 3,
             "behind_count": 0,
@@ -274,6 +278,10 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
             "refresh_succeeded": refresh,
             "current_branch": "main",
             "head_commit": "3333333",
+            "comparison_remote_name": "upstream",
+            "comparison_ref": "upstream/main",
+            "comparison_main_commit": "4444444",
+            "comparison_ref_resolved": True,
             "origin_main_commit": "4444444",
             "ahead_count": 3,
             "behind_count": 2,
@@ -443,3 +451,117 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
     result = module.run_upgrade_check(profile, refresh=False)
 
     assert result["repo_check"]["repo_manifest"] is manifest_blob
+
+
+def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    repo_root = tmp_path / "med-deepscientist"
+    repo_root.mkdir()
+
+    monkeypatch.setattr(
+        module,
+        "inspect_deepscientist_repo_manifest",
+        lambda repo_root: {
+            "is_controlled_fork": True,
+            "upstream_remote_name": "upstream",
+            "upstream_branch": "main",
+            "upstream_ref": "upstream/main",
+        },
+    )
+
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run_git(repo_root: Path, *args: str) -> tuple[int, str]:
+        calls.append(args)
+        if args == ("rev-parse", "--is-inside-work-tree"):
+            return 0, "true"
+        if args == ("fetch", "upstream", "--prune"):
+            return 0, ""
+        if args == ("branch", "--show-current"):
+            return 0, "main"
+        if args == ("rev-parse", "--short", "HEAD"):
+            return 0, "3333333"
+        if args == ("rev-parse", "--short", "upstream/main"):
+            return 0, "4444444"
+        if args == ("rev-list", "--left-right", "--count", "HEAD...upstream/main"):
+            return 0, "3 2"
+        if args == ("status", "--porcelain"):
+            return 0, ""
+        raise AssertionError(f"unexpected git call: {args}")
+
+    monkeypatch.setattr(module, "_run_git", fake_run_git)
+
+    result = module.inspect_deepscientist_repo(repo_root=repo_root, refresh=True)
+
+    assert result["refresh_succeeded"] is True
+    assert result["comparison_remote_name"] == "upstream"
+    assert result["comparison_ref"] == "upstream/main"
+    assert result["comparison_main_commit"] == "4444444"
+    assert result["behind_count"] == 2
+    assert result["upstream_update_available"] is True
+    assert ("fetch", "upstream", "--prune") in calls
+    assert ("rev-parse", "--short", "upstream/main") in calls
+    assert ("rev-list", "--left-right", "--count", "HEAD...upstream/main") in calls
+
+
+def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = make_profile(tmp_path)
+
+    manifest_blob = {
+        "engine_family": "MedDeepScientist",
+        "freeze_base_commit": "abc123",
+        "applied_commits": ["001"],
+        "is_controlled_fork": True,
+    }
+
+    monkeypatch.setattr(
+        module,
+        "inspect_deepscientist_repo",
+        lambda *, repo_root, refresh=False: {
+            "configured": True,
+            "repo_root": str(repo_root),
+            "repo_exists": True,
+            "is_git_repo": True,
+            "refresh_attempted": refresh,
+            "refresh_succeeded": False,
+            "current_branch": "main",
+            "head_commit": "3333333",
+            "comparison_remote_name": "upstream",
+            "comparison_ref": "upstream/main",
+            "comparison_main_commit": None,
+            "comparison_ref_resolved": False,
+            "origin_main_commit": None,
+            "ahead_count": None,
+            "behind_count": None,
+            "working_tree_clean": True,
+            "upstream_update_available": False,
+            "repo_manifest": manifest_blob,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: doctor.DoctorReport(
+            python_version="3.12.0",
+            profile=profile,
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            deepscientist_runtime_exists=True,
+            medical_overlay_enabled=True,
+            medical_overlay_ready=True,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "describe_medical_overlay",
+        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
+    )
+
+    result = module.run_upgrade_check(profile, refresh=False)
+
+    assert result["decision"] == "blocked_controlled_fork_upstream_tracking_missing"
+    assert "configure_controlled_fork_upstream_tracking" in result["recommended_actions"]

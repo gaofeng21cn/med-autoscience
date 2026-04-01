@@ -230,14 +230,16 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 - `repo_check`
   - `deepscientist_repo_root` 是否已配置
   - 目标目录是否存在、是否是 Git repo
-  - 当前 branch、`HEAD`、`origin/main`
-  - 相对 `origin/main` 的 `ahead_count / behind_count`
+  - 当前 branch、`HEAD`、comparison ref
+  - 相对 comparison ref 的 `ahead_count / behind_count`
   - 当前工作树是否干净
   - 如果目标 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，则额外暴露受控 fork manifest：
     - `engine_family`
     - `freeze_base_commit`
     - `applied_commits`
     - `is_controlled_fork`
+    - `upstream_remote_name`
+    - `upstream_ref`
 - `workspace_check`
   - 当前 workspace / runtime / deepscientist runtime contract 是否仍然完整
 - `overlay_check`
@@ -267,6 +269,12 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
 如果目标 repo 是受控 fork，`recommended_actions` 可能返回 `run_controlled_fork_intake_workflow`，表示应走 intake 流程，而不是直接对稳定线执行 `pull origin main`。
+
+对于受控 fork，推荐的 remote 语义应固定为：
+
+- `origin` 指向 fork 自己的 GitHub 主仓
+- `upstream` 指向 `DeepScientist` 上游仓库
+- `deepscientist-upgrade-check` 对受控 fork 比较的是 `upstream/main`
 
 ## Phase 1 gate 与真实执行
 
