@@ -268,13 +268,14 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 4. 必要时执行 `reapply-medical-overlay`
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
+普通的非 fork 仓库可以继续把 `origin/main` 作为默认的 comparison ref，当前 `deepscientist-upgrade-check` 也会以这个 ref 作为比较基础。
+
 如果目标 repo 是受控 fork，`recommended_actions` 可能返回 `run_controlled_fork_intake_workflow`，表示应走 intake 流程，而不是直接对稳定线执行 `pull origin main`。
 
 对于受控 fork，推荐的 remote 语义应固定为：
 
-- `origin` 指向 fork 自己的 GitHub 主仓
-- `upstream` 指向 `DeepScientist` 上游仓库
-- `deepscientist-upgrade-check` 对受控 fork 比较的是 `upstream/main`
+- `origin` 指向 fork 自己的 GitHub 主仓，其 `main` 维护 fork 的稳定线和 intake 合并点
+- `upstream` 指向 `DeepScientist` 上游仓库，所有兼容审计、`deepscientist-upgrade-check` 等命令都应以 `upstream/main` 作为 comparison ref
 
 ## Phase 1 gate 与真实执行
 
