@@ -15,6 +15,9 @@
 - 优先通过 `policy -> controller -> overlay -> adapter` 这条链路表达能力，而不是散落脚本或临时旁路。
 - 优先通过 profile、overlay、controller 影响 `DeepScientist`，避免直接修改 `DeepScientist core`。
 - 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到技术文档或控制器说明，而不是让首页退化成命令手册。
+- 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。
+- `upstream intake` 是周期性、按价值触发的维护动作；不要因为 upstream 多了一个 commit，就默认把它升级成当前主线工作。
+- 只有当某个上游变更对 runtime 稳定性、兼容性或真实迁移成本有明确价值时，才应启动独立的 intake 审计与吸收流程。
 
 ## 文档分层
 

@@ -17,7 +17,7 @@ class DoctorReport:
     runtime_exists: bool
     studies_exists: bool
     portfolio_exists: bool
-    deepscientist_runtime_exists: bool
+    med_deepscientist_runtime_exists: bool
     medical_overlay_enabled: bool
     medical_overlay_ready: bool
     runtime_contract: dict[str, object] = field(default_factory=dict)
@@ -30,6 +30,7 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
         raise ValueError(f"unsupported medical_overlay_scope: {profile.medical_overlay_scope}")
     return {
         "quest_root": profile.workspace_root if profile.medical_overlay_scope == "workspace" else None,
+        "med_deepscientist_repo_root": profile.med_deepscientist_repo_root,
         "skill_ids": profile.medical_overlay_skills,
         "policy_id": profile.research_route_bias_policy,
         "archetype_ids": profile.preferred_study_archetypes,
@@ -53,7 +54,7 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
         runtime_exists=profile.runtime_root.exists(),
         studies_exists=profile.studies_root.exists(),
         portfolio_exists=profile.portfolio_root.exists(),
-        deepscientist_runtime_exists=profile.deepscientist_runtime_root.exists(),
+        med_deepscientist_runtime_exists=profile.med_deepscientist_runtime_root.exists(),
         medical_overlay_enabled=profile.enable_medical_overlay,
         medical_overlay_ready=bool(overlay_status.get("all_targets_ready")),
         runtime_contract=dict(workspace_contracts["runtime_contract"]),
@@ -70,8 +71,8 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"runtime_root: {report.profile.runtime_root}",
         f"studies_root: {report.profile.studies_root}",
         f"portfolio_root: {report.profile.portfolio_root}",
-        f"deepscientist_runtime_root: {report.profile.deepscientist_runtime_root}",
-        f"deepscientist_repo_root: {report.profile.deepscientist_repo_root or '<unset>'}",
+        f"med_deepscientist_runtime_root: {report.profile.med_deepscientist_runtime_root}",
+        f"med_deepscientist_repo_root: {report.profile.med_deepscientist_repo_root or '<unset>'}",
         f"default_publication_profile: {report.profile.default_publication_profile}",
         f"default_citation_style: {report.profile.default_citation_style}",
         (
@@ -93,7 +94,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"runtime_exists: {str(report.runtime_exists).lower()}",
         f"studies_exists: {str(report.studies_exists).lower()}",
         f"portfolio_exists: {str(report.portfolio_exists).lower()}",
-        f"deepscientist_runtime_exists: {str(report.deepscientist_runtime_exists).lower()}",
+        f"med_deepscientist_runtime_exists: {str(report.med_deepscientist_runtime_exists).lower()}",
         f"medical_overlay_ready: {str(report.medical_overlay_ready).lower()}",
         f"runtime_contract: {json.dumps(report.runtime_contract, ensure_ascii=False, sort_keys=True)}",
         f"launcher_contract: {json.dumps(report.launcher_contract, ensure_ascii=False, sort_keys=True)}",
@@ -109,8 +110,8 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"runtime_root: {profile.runtime_root}",
         f"studies_root: {profile.studies_root}",
         f"portfolio_root: {profile.portfolio_root}",
-        f"deepscientist_runtime_root: {profile.deepscientist_runtime_root}",
-        f"deepscientist_repo_root: {profile.deepscientist_repo_root or '<unset>'}",
+        f"med_deepscientist_runtime_root: {profile.med_deepscientist_runtime_root}",
+        f"med_deepscientist_repo_root: {profile.med_deepscientist_repo_root or '<unset>'}",
         f"default_publication_profile: {profile.default_publication_profile}",
         f"default_citation_style: {profile.default_citation_style}",
         (

@@ -52,7 +52,7 @@ Compatibility note:
 - CLI: `medautosci bootstrap --profile <profile>`
 - CLI: `medautosci watch --runtime-root <runtime-root>`
 - CLI: `medautosci overlay-status --profile <profile>`
-- CLI: `medautosci deepscientist-upgrade-check --profile <profile> --refresh`
+- CLI: `medautosci med-deepscientist-upgrade-check --profile <profile> --refresh`
 
 ## 当前安装状态
 

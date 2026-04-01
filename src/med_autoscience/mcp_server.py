@@ -8,7 +8,7 @@ from typing import Any
 from med_autoscience import __version__
 from med_autoscience.controllers import (
     data_assets,
-    deepscientist_upgrade_check,
+    med_deepscientist_upgrade_check,
     external_research,
     medical_literature_audit,
     medical_reporting_audit,
@@ -200,8 +200,8 @@ def list_tools() -> list[dict[str, Any]]:
             },
         },
         {
-            "name": "deepscientist_upgrade_check",
-            "description": "Run the MedAutoScience pre-upgrade audit for a bound DeepScientist checkout.",
+            "name": "med_deepscientist_upgrade_check",
+            "description": "Run the MedAutoScience pre-upgrade audit for a bound med-deepscientist checkout.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -229,7 +229,7 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "ensure_study_runtime",
-            "description": "Ensure a managed DeepScientist runtime exists and is running for a study.",
+            "description": "Ensure a managed med-deepscientist runtime exists and is running for a study.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -381,9 +381,9 @@ def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_deepscientist_upgrade_check(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_med_deepscientist_upgrade_check(arguments: dict[str, Any]) -> dict[str, Any]:
     profile = load_profile(_require_string(arguments, "profile_path"))
-    result = deepscientist_upgrade_check.run_upgrade_check(profile, refresh=_optional_bool(arguments, "refresh"))
+    result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=_optional_bool(arguments, "refresh"))
     return _tool_text_result(_json_text(result), structured=result)
 
 
@@ -458,7 +458,7 @@ TOOL_HANDLERS = {
     "external_research_status": _call_external_research_status,
     "prepare_external_research": _call_prepare_external_research,
     "startup_data_readiness": _call_startup_data_readiness,
-    "deepscientist_upgrade_check": _call_deepscientist_upgrade_check,
+    "med_deepscientist_upgrade_check": _call_med_deepscientist_upgrade_check,
     "study_runtime_status": _call_study_runtime_status,
     "ensure_study_runtime": _call_ensure_study_runtime,
     "init_workspace": _call_init_workspace,

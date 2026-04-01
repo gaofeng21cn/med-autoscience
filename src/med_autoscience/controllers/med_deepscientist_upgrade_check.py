@@ -153,7 +153,7 @@ def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
     if isinstance(doctor_report.runtime_contract, dict) and doctor_report.runtime_contract:
         runtime_contract = dict(doctor_report.runtime_contract)
     else:
-        runtime_contract = {"ready": bool(doctor_report.runtime_exists and doctor_report.deepscientist_runtime_exists), "checks": {}}
+        runtime_contract = {"ready": bool(doctor_report.runtime_exists and doctor_report.med_deepscientist_runtime_exists), "checks": {}}
 
     launcher_contract: dict[str, object]
     if isinstance(doctor_report.launcher_contract, dict) and doctor_report.launcher_contract:
@@ -172,7 +172,7 @@ def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
         "runtime_exists": doctor_report.runtime_exists,
         "studies_exists": doctor_report.studies_exists,
         "portfolio_exists": doctor_report.portfolio_exists,
-        "deepscientist_runtime_exists": doctor_report.deepscientist_runtime_exists,
+        "med_deepscientist_runtime_exists": doctor_report.med_deepscientist_runtime_exists,
         "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
         "medical_overlay_ready": doctor_report.medical_overlay_ready,
         "runtime_contract": runtime_contract,
@@ -206,7 +206,7 @@ def _determine_decision(
     if (
         not workspace_check["workspace_exists"]
         or not workspace_check["runtime_exists"]
-        or not workspace_check["deepscientist_runtime_exists"]
+        or not workspace_check["med_deepscientist_runtime_exists"]
         or not runtime_contract_ready
     ):
         actions.append("repair_workspace_and_runtime_contract_first")
@@ -219,15 +219,15 @@ def _determine_decision(
         return "blocked_launcher_contract_not_ready", actions
 
     if not repo_check["configured"]:
-        actions.append("configure_deepscientist_repo_root_in_profile")
+        actions.append("configure_med_deepscientist_repo_root_in_profile")
         return "blocked_repo_not_configured", actions
 
     if not repo_check["repo_exists"]:
-        actions.append("ensure_deepscientist_repo_root_exists_locally")
+        actions.append("ensure_med_deepscientist_repo_root_exists_locally")
         return "blocked_repo_missing", actions
 
     if not repo_check["is_git_repo"]:
-        actions.append("point_profile_to_a_valid_deepscientist_git_repo")
+        actions.append("point_profile_to_a_valid_med_deepscientist_git_repo")
         return "blocked_not_git_repo", actions
 
     if repo_check["refresh_attempted"] and not repo_check["refresh_succeeded"]:
@@ -235,7 +235,7 @@ def _determine_decision(
         return "blocked_refresh_failed", actions
 
     if repo_check["working_tree_clean"] is False:
-        actions.append("clean_or_commit_deepscientist_repo_before_upgrade")
+        actions.append("clean_or_commit_med_deepscientist_repo_before_upgrade")
         return "blocked_dirty_repo", actions
 
     if is_controlled_fork and not comparison_ref_resolved:
@@ -291,7 +291,7 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         }
 
     overlay_check = _overlay_summary(profile)
-    repo_check = inspect_deepscientist_repo(repo_root=profile.deepscientist_repo_root, refresh=refresh)
+    repo_check = inspect_deepscientist_repo(repo_root=profile.med_deepscientist_repo_root, refresh=refresh)
     decision, recommended_actions = _determine_decision(
         repo_check=repo_check,
         workspace_check=workspace_check,

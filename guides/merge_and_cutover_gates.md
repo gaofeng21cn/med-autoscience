@@ -2,7 +2,7 @@
 
 这份文档定义两件事：
 
-- 什么时候 `codex/medicaldeepscientist-migration` 可以并回 `main`
+- 什么时候当前这条 `MedDeepScientist` 迁移主线可以并回 `main`
 - 什么时候一个正在运行中的医学项目可以平滑迁到新框架
 
 它不讨论“是否值得做 `med-deepscientist`”；这个决策已经做完。这里讨论的是何时可以安全收口。
@@ -46,7 +46,7 @@
 - 针对 `runtime_protocol.quest_state`
 - 针对 `runtime_protocol.paper_artifacts`
 - 针对 `runtime_protocol.user_message`
-- 针对 `runtime_transport.medicaldeepscientist`
+- 针对 `runtime_transport.med_deepscientist`
 - 针对“production code 不再 import `adapters.deepscientist`”的架构测试
 
 ### 4. 全量测试稳定
@@ -75,7 +75,7 @@ PYTHONPATH=src pytest -q
 
 必须满足：
 
-- profile 中的 `deepscientist_repo_root` 已经指向受控的 `med-deepscientist`
+- profile 中的 `med_deepscientist_repo_root` 已经指向受控的 `med-deepscientist`
 - `MEDICAL_FORK_MANIFEST.json` 能说明当前 fork 身份
 - 需要的历史补丁已经在 fork 或 `med-autoscience` 中显式落盘
 
@@ -83,7 +83,7 @@ PYTHONPATH=src pytest -q
 
 必须满足：
 
-- `ops/deepscientist/behavior_equivalence_gate.yaml` 存在
+- `ops/med-deepscientist/behavior_equivalence_gate.yaml` 存在
 - `phase_25_ready` 为 `true`
 - `critical_overrides` 中列出的 site-packages 级补丁已经迁出或被替换
 
@@ -96,7 +96,7 @@ PYTHONPATH=src pytest -q
 - `doctor`
 - `bootstrap`
 - `overlay-status`
-- `deepscientist-upgrade-check`
+- `med-deepscientist-upgrade-check`
 
 这些命令对目标 workspace 都是通过状态。
 

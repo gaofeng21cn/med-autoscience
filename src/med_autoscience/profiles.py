@@ -34,8 +34,8 @@ class WorkspaceProfile:
     runtime_root: Path
     studies_root: Path
     portfolio_root: Path
-    deepscientist_runtime_root: Path
-    deepscientist_repo_root: Path | None
+    med_deepscientist_runtime_root: Path
+    med_deepscientist_repo_root: Path | None
     default_publication_profile: str
     default_citation_style: str
     enable_medical_overlay: bool
@@ -177,18 +177,18 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     profile_path = Path(path).expanduser().resolve()
     payload = tomllib.loads(profile_path.read_text(encoding="utf-8"))
     profile_dir = profile_path.parent
-    deepscientist_repo_root = _optional_path(payload, "deepscientist_repo_root", profile_dir=profile_dir)
+    med_deepscientist_repo_root = _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
     return WorkspaceProfile(
         name=_require_string(payload, "name"),
         workspace_root=_resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir),
         runtime_root=_resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir),
         studies_root=_resolve_profile_path(_require_string(payload, "studies_root"), profile_dir=profile_dir),
         portfolio_root=_resolve_profile_path(_require_string(payload, "portfolio_root"), profile_dir=profile_dir),
-        deepscientist_runtime_root=_resolve_profile_path(
-            _require_string(payload, "deepscientist_runtime_root"),
+        med_deepscientist_runtime_root=_resolve_profile_path(
+            _require_string(payload, "med_deepscientist_runtime_root"),
             profile_dir=profile_dir,
         ),
-        deepscientist_repo_root=deepscientist_repo_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
@@ -224,8 +224,8 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "runtime_root": str(profile.runtime_root),
         "studies_root": str(profile.studies_root),
         "portfolio_root": str(profile.portfolio_root),
-        "deepscientist_runtime_root": str(profile.deepscientist_runtime_root),
-        "deepscientist_repo_root": str(profile.deepscientist_repo_root) if profile.deepscientist_repo_root else None,
+        "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
+        "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
         "publication": {
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,

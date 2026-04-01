@@ -143,32 +143,32 @@ def inspect_behavior_equivalence_gate(gate_path: Path) -> dict[str, object]:
 
 
 def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
-    runtime_root_expected = profile.deepscientist_runtime_root / "quests"
+    runtime_root_expected = profile.med_deepscientist_runtime_root / "quests"
     runtime_checks: dict[str, bool] = {
-        "runtime_root_matches_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
+        "runtime_root_matches_med_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
         "runtime_root_exists": profile.runtime_root.exists(),
-        "deepscientist_runtime_root_exists": profile.deepscientist_runtime_root.exists(),
+        "med_deepscientist_runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
     }
     runtime_contract = {
         "ready": all(runtime_checks.values()),
         "checks": runtime_checks,
         "issues": _collect_check_issues(runtime_checks, prefix="runtime_contract"),
         "runtime_root": str(profile.runtime_root),
-        "deepscientist_runtime_root": str(profile.deepscientist_runtime_root),
+        "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
         "runtime_root_expected": str(runtime_root_expected),
     }
 
     medautoscience_config_env = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    deepscientist_ops_root = profile.workspace_root / "ops" / "deepscientist"
-    deepscientist_config_env = deepscientist_ops_root / "config.env"
-    deepscientist_bin_dir = deepscientist_ops_root / "bin"
-    behavior_gate_path = deepscientist_ops_root / "behavior_equivalence_gate.yaml"
-    manifest_info = inspect_deepscientist_repo_manifest(profile.deepscientist_repo_root)
+    med_deepscientist_ops_root = profile.workspace_root / "ops" / "med-deepscientist"
+    med_deepscientist_config_env = med_deepscientist_ops_root / "config.env"
+    med_deepscientist_bin_dir = med_deepscientist_ops_root / "bin"
+    behavior_gate_path = med_deepscientist_ops_root / "behavior_equivalence_gate.yaml"
+    manifest_info = inspect_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
-        "deepscientist_config_env_exists": deepscientist_config_env.is_file(),
-        "deepscientist_bin_dir_exists": deepscientist_bin_dir.is_dir(),
-        "deepscientist_repo_root_configured": profile.deepscientist_repo_root is not None,
+        "med_deepscientist_config_env_exists": med_deepscientist_config_env.is_file(),
+        "med_deepscientist_bin_dir_exists": med_deepscientist_bin_dir.is_dir(),
+        "med_deepscientist_repo_root_configured": profile.med_deepscientist_repo_root is not None,
     }
     manifest_checks: dict[str, bool] = {
         "manifest_found": manifest_info["manifest_found"],
@@ -179,9 +179,9 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "checks": launcher_checks,
         "issues": _collect_check_issues(launcher_checks, prefix="launcher_contract"),
         "medautoscience_config_env": str(medautoscience_config_env),
-        "deepscientist_config_env": str(deepscientist_config_env),
-        "deepscientist_bin_dir": str(deepscientist_bin_dir),
-        "deepscientist_repo_root": str(profile.deepscientist_repo_root) if profile.deepscientist_repo_root else None,
+        "med_deepscientist_config_env": str(med_deepscientist_config_env),
+        "med_deepscientist_bin_dir": str(med_deepscientist_bin_dir),
+        "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
         "repo_manifest": manifest_info,
         "manifest_checks": manifest_checks,
     }

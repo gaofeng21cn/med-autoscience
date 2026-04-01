@@ -3,7 +3,7 @@ __all__ = [
     "data_asset_gate",
     "data_assets",
     "data_asset_updates",
-    "deepscientist_upgrade_check",
+    "med_deepscientist_upgrade_check",
     "external_research",
     "figure_loop_guard",
     "journal_shortlist",

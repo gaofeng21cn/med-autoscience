@@ -10,11 +10,11 @@ def make_profile(tmp_path: Path):
     return profiles.WorkspaceProfile(
         name="nfpitnet",
         workspace_root=tmp_path / "workspace",
-        runtime_root=tmp_path / "workspace" / "ops" / "deepscientist" / "runtime" / "quests",
+        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
         studies_root=tmp_path / "workspace" / "studies",
         portfolio_root=tmp_path / "workspace" / "portfolio",
-        deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "deepscientist" / "runtime",
-        deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "DeepScientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,
@@ -31,7 +31,7 @@ def make_profile(tmp_path: Path):
 
 
 def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -64,7 +64,7 @@ def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -90,7 +90,7 @@ def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path
 
 
 def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -123,7 +123,7 @@ def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -137,11 +137,11 @@ def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
     result = module.run_upgrade_check(profile, refresh=False)
 
     assert result["decision"] == "blocked_dirty_repo"
-    assert "clean_or_commit_deepscientist_repo_before_upgrade" in result["recommended_actions"]
+    assert "clean_or_commit_med_deepscientist_repo_before_upgrade" in result["recommended_actions"]
 
 
 def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -174,7 +174,7 @@ def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, 
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -192,7 +192,7 @@ def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, 
 
 
 def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -237,7 +237,7 @@ def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tm
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -255,7 +255,7 @@ def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tm
 
 
 def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -300,7 +300,7 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -319,9 +319,9 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
 
 
 def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
-    profile = replace(make_profile(tmp_path), deepscientist_repo_root=None)
+    profile = replace(make_profile(tmp_path), med_deepscientist_repo_root=None)
 
     monkeypatch.setattr(
         module,
@@ -333,7 +333,7 @@ def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: 
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -347,11 +347,11 @@ def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: 
     result = module.run_upgrade_check(profile, refresh=False)
 
     assert result["decision"] == "blocked_repo_not_configured"
-    assert "configure_deepscientist_repo_root_in_profile" in result["recommended_actions"]
+    assert "configure_med_deepscientist_repo_root_in_profile" in result["recommended_actions"]
 
 
 def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -369,7 +369,7 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
             runtime_contract={"ready": True, "checks": {}},
@@ -396,7 +396,7 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
 
 
 def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -437,7 +437,7 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),
@@ -454,7 +454,7 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
 
 
 def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     repo_root = tmp_path / "med-deepscientist"
     repo_root.mkdir()
 
@@ -505,7 +505,7 @@ def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(
 
 
 def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -550,7 +550,7 @@ def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monke
             runtime_exists=True,
             studies_exists=True,
             portfolio_exists=True,
-            deepscientist_runtime_exists=True,
+            med_deepscientist_runtime_exists=True,
             medical_overlay_enabled=True,
             medical_overlay_ready=True,
         ),

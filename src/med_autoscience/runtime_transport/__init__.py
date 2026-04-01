@@ -1,4 +1,4 @@
-from .medicaldeepscientist import (
+from .med_deepscientist import (
     DEFAULT_DAEMON_TIMEOUT_SECONDS,
     create_quest,
     pause_quest,

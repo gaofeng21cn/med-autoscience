@@ -22,7 +22,7 @@ def test_resolve_paper_root_context_reads_study_id_from_worktree_quest_yaml(tmp_
     paper_root = (
         workspace_root
         / "ops"
-        / "deepscientist"
+        / "med-deepscientist"
         / "runtime"
         / "quests"
         / "001-risk"
@@ -49,7 +49,7 @@ def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path
     paper_root = (
         workspace_root
         / "ops"
-        / "deepscientist"
+        / "med-deepscientist"
         / "runtime"
         / "quests"
         / "001-risk"

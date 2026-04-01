@@ -4,8 +4,8 @@ name = "my-disease-workspace"
 # 病种 workspace 根目录。
 workspace_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE"
 
-# 当前 workspace 下 MedDeepScientist quests 的根目录。
-runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests"
+# 当前 workspace 下 med-deepscientist quests 的根目录。
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime/quests"
 
 # 当前 workspace 的多 study 根目录。
 studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
@@ -13,11 +13,11 @@ studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 # 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 
-# 当前 workspace 的 project-local MedDeepScientist 状态根目录。
-deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime"
+# 当前 workspace 的 project-local med-deepscientist 状态根目录。
+med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime"
 
-# 外部共享 MedDeepScientist 源码仓库（仓库名 med-deepscientist），而不是 workspace 内再 clone 一份。
-deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"
+# 外部共享 med-deepscientist 源码仓库（仓库名 med-deepscientist），而不是 workspace 内再 clone 一份。
+med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"
 default_publication_profile = "general_medical_journal"
 default_citation_style = "AMA"
 enable_medical_overlay = true

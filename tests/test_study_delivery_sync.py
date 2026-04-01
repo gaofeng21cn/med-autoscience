@@ -29,7 +29,7 @@ def write_png(path: Path) -> None:
 
 def make_delivery_workspace(tmp_path: Path) -> tuple[Path, Path]:
     repo_root = tmp_path / "repo"
-    quest_root = repo_root / "ops" / "deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
+    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678"
     paper_root = worktree_root / "paper"
     study_root = repo_root / "studies" / "002-early-residual-risk"

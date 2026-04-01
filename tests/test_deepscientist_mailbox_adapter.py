@@ -90,7 +90,7 @@ def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
         seen.update(kwargs)
         return {"ok": True, "status": "stopped"}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
 
     result = module.post_quest_control(
         daemon_url="http://127.0.0.1:20999",

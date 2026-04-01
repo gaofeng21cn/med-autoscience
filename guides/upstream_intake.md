@@ -4,9 +4,13 @@
 
 它的目标不是“尽快同步 upstream”，而是把 upstream 变化收口成一条受控、可验证、可回滚的 intake 流程。
 
+更高优先级的主线工作不是 intake 本身，而是把 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 和 adapter 退出路径收紧。
+
 ## 一句话版本
 
 上游更新只能先进入 intake worktree，经过双层验证与 manifest 审计后，才允许进入 `med-deepscientist/main`。
+
+看到 upstream 多一个 commit，不意味着要立刻逐个研究它干了什么。
 
 ## 为什么不能直接跟上游同步
 
@@ -29,15 +33,26 @@
 - 优先以 commit / PR 为单位做受控 `cherry-pick`
 - 每次 intake 都必须在独立 worktree 中完成
 - 每次 intake 都必须更新 fork 审计记录
+- intake 是周期性、按价值触发的维护动作，不是持续主线
+- 默认不逐 commit 跟踪 upstream；只有出现明确价值的变更集合时才发起 intake
+
+## 主线优先级
+
+在当前阶段，工程优先级应按以下顺序理解：
+
+1. 让 `MedDeepScientist` 成为 `MedAutoScience` 的稳定默认 runtime
+2. 收口 `runtime_protocol` / `runtime_transport` / controller 对 runtime 的契约
+3. 去掉不必要的 adapter 与隐式 layout 依赖
+4. 只在合适时机做有明确收益的 upstream intake
 
 ## Remote 命名
 
-`med-deepscientist` 本身是受控 fork，因此 remote 语义要明确分工。对于普通非 fork 仓库，`origin/main` 仍然可以当作默认 upstream，并直接作为 `deepscientist-upgrade-check` 的 comparison ref；但在受控 fork 场景里，必须避免把 `origin/main` 当成真正的上游。
+`med-deepscientist` 本身是受控 fork，因此 remote 语义要明确分工。对于普通非 fork 仓库，`origin/main` 仍然可以当作默认 upstream，并直接作为 `med-deepscientist-upgrade-check` 的 comparison ref；但在受控 fork 场景里，必须避免把 `origin/main` 当成真正的上游。
 
 在 intake 流程里应保持以下 remote 约定：
 
 - `origin` 指向 fork 自己的 GitHub 主仓，用于维护 `med-deepscientist/main` 的稳定线和 intake 合并点；
-- `upstream` 指向原始的 `DeepScientist` 仓库，针对兼容审计（如 `deepscientist-upgrade-check`）和 intake 分叉准备的命令都应以 `upstream/main` 作为 comparison ref，确保不会误用 fork 的 `origin/main` 做上游引用。
+- `upstream` 指向原始的 `DeepScientist` 仓库，针对兼容审计（如 `med-deepscientist-upgrade-check`）和 intake 分叉准备的命令都应以 `upstream/main` 作为 comparison ref，确保不会误用 fork 的 `origin/main` 做上游引用。
 
 ## 允许吸收的更新类型
 
@@ -82,7 +97,7 @@ git worktree add .worktree/intake-2026-03-31-daemon-fix -b intake/2026-03-31-dae
 
 ```bash
 cd <med-autoscience-root>
-PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile /path/to/profile.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --profile /path/to/profile.toml --refresh
 ```
 
 至少要确认：
@@ -134,7 +149,7 @@ PYTHONPATH=src pytest -q tests/test_daemon_api.py -k 'document_asset_resolves_pa
 
 至少覆盖：
 
-- `deepscientist-upgrade-check`
+- `med-deepscientist-upgrade-check`
 - `workspace_contracts`
 - 与本次 intake 相关的 controller / protocol 测试
 

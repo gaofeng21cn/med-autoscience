@@ -96,7 +96,7 @@ uv run python -m med_autoscience.cli init-workspace \
     │   ├── profiles/
     │   ├── config.env
     │   └── README.md
-    └── deepscientist/
+    └── med-deepscientist/
         ├── bin/
         ├── config.env
         ├── runtime/
@@ -134,7 +134,7 @@ uv run python -m med_autoscience.cli init-workspace \
 
 1. 建立病种级 workspace 骨架
 2. 放入原始数据、数据说明、变量定义、终点定义和参考资料
-3. 编辑 `ops/medautoscience/config.env` 与 `ops/deepscientist/config.env`
+3. 编辑 `ops/medautoscience/config.env` 与 `ops/med-deepscientist/config.env`
 4. 审阅生成的 `ops/medautoscience/profiles/*.local.toml`
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`
@@ -146,7 +146,7 @@ uv run python -m med_autoscience.cli init-workspace \
 - `MedAutoScience` 是正式研究入口
 - `MedDeepScientist` 是默认受控 runtime
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
-- `ops/deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
+- `ops/med-deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
 
 ## 常见误区
 

@@ -63,7 +63,7 @@
 
 - Agent 不应直接调用 `MedDeepScientist` daemon HTTP API 发起 quest
 - Agent 不应把 `MedDeepScientist` UI / CLI 当成研究入口
-- `ops/deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
+- `ops/med-deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
 - 所有正式研究推进都应经由 `doctor`、`bootstrap`、`overlay-status`、`ensure-study-runtime` 和受管 route
 
 ## 运行层分工
@@ -203,7 +203,7 @@ quest 级 `data-asset-gate` 采用双层信号：
 Agent 在真正推进研究前，应先确认 workspace 已正确接入。最短路径是：
 
 1. 阅读并准备 [`bootstrap/README.md`](../bootstrap/README.md) 中的 profile 和 workspace 要求
-2. 用 `doctor` 检查 `workspace_root`、`runtime_root`、`studies_root`、`portfolio_root`、`deepscientist_runtime_root`
+2. 用 `doctor` 检查 `workspace_root`、`runtime_root`、`studies_root`、`portfolio_root`、`med_deepscientist_runtime_root`
 3. 用 `bootstrap` 初始化 overlay 和数据资产层
 
 典型命令如下：
@@ -212,7 +212,7 @@ Agent 在真正推进研究前，应先确认 workspace 已正确接入。最短
 PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-study.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-study.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
 ```
 
 如果这些环境还没接好，不要急着调用研究阶段接口，因为很多状态落盘路径都依赖 workspace contract。
@@ -222,13 +222,13 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 当 Agent 发现 `MedDeepScientist` 所跟踪的 upstream `DeepScientist` 有新提交，或者准备把本机运行时切到新的 intake 版本时，不应直接原地升级。推荐先执行：
 
 ```bash
-PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
 ```
 
 这个检查会统一汇总：
 
 - `repo_check`
-  - `deepscientist_repo_root` 是否已配置
+  - `med_deepscientist_repo_root` 是否已配置
   - 目标目录是否存在、是否是 Git repo
   - 当前 branch、`HEAD`、comparison ref
   - 相对 comparison ref 的 `ahead_count / behind_count`
@@ -241,7 +241,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
     - `upstream_remote_name`
     - `upstream_ref`
 - `workspace_check`
-  - 当前 workspace / runtime / deepscientist runtime contract 是否仍然完整
+  - 当前 workspace / runtime / MedDeepScientist runtime contract 是否仍然完整
 - `overlay_check`
   - 医学 overlay 是否仍然全部处于 `overlay_applied`
 
@@ -262,26 +262,26 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 
 对于 Agent 来说，推荐流程是：
 
-1. 先跑 `deepscientist-upgrade-check`
+1. 先跑 `med-deepscientist-upgrade-check`
 2. 只在结果明确允许时，才去更新 `MedDeepScientist` 运行时
-3. 更新后重新跑 `deepscientist-upgrade-check`
+3. 更新后重新跑 `med-deepscientist-upgrade-check`
 4. 必要时执行 `reapply-medical-overlay`
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
 
-普通的非 fork 仓库可以继续把 `origin/main` 作为默认的 comparison ref，当前 `deepscientist-upgrade-check` 也会以这个 ref 作为比较基础。
+普通的非 fork 仓库可以继续把 `origin/main` 作为默认的 comparison ref，当前 `med-deepscientist-upgrade-check` 也会以这个 ref 作为比较基础。
 
 如果目标 repo 是受控 fork，`recommended_actions` 可能返回 `run_controlled_fork_intake_workflow`，表示应走 intake 流程，而不是直接对稳定线执行 `pull origin main`。
 
 对于受控 fork，推荐的 remote 语义应固定为：
 
 - `origin` 指向 fork 自己的 GitHub 主仓，其 `main` 维护 fork 的稳定线和 intake 合并点
-- `upstream` 指向 `DeepScientist` 上游仓库，所有兼容审计、`deepscientist-upgrade-check` 等命令都应以 `upstream/main` 作为 comparison ref
+- `upstream` 指向 `DeepScientist` 上游仓库，所有兼容审计、`med-deepscientist-upgrade-check` 等命令都应以 `upstream/main` 作为 comparison ref
 
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`deepscientist_repo_root` 现阶段主要仍服务于 `deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
-只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `deepscientist_repo_root` 视作真正的执行真相来源。
+只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 
 ## Runtime Protocol Surface
 
@@ -289,7 +289,7 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 
 - `med_autoscience.runtime_protocol.topology`
   - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
-  - 当前显式承认的受管布局是 `ops/deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+  - 当前显式承认的受管布局是 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
   - `study_delivery_sync` 这类 controller 应调用 `resolve_paper_root_context()`，而不是自己拼 `.ds/worktrees/...` 或依赖 `parents[4]` 这类脆弱层级
 - `med_autoscience.runtime_protocol.quest_state`
   - 负责 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl` 与最近 stdout 行的统一读取
@@ -303,7 +303,7 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 
 Phase 3 开始，transport 面也开始显式收口：
 
-- `med_autoscience.runtime_transport.medicaldeepscientist`
+- `med_autoscience.runtime_transport.med_deepscientist`
   - 负责 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
   - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
@@ -326,7 +326,7 @@ Phase 3 开始，transport 面也开始显式收口：
    - 这是 filesystem-facing truth
 4. `runtime_transport`
   - 只负责 engine-specific transport
-  - 当前就是 `medicaldeepscientist` daemon HTTP create / pause / resume / control
+  - 当前就是 `med_deepscientist` daemon HTTP create / pause / resume / control
   - 这是 process/network-facing truth
 5. `engine`
   - 当前是受控 fork `med-deepscientist`
@@ -354,8 +354,8 @@ Phase 3 开始，transport 面也开始显式收口：
 - 只为兼容历史命名而保留的多层转发
   - 最终 `adapters/deepscientist/*` 应只剩极薄 shim，成熟后可以整体删除
 - 没有必要长期保留的 `DeepScientist` 品牌耦合命名
-  - 现在先保留 `deepscientist_runtime_root`、`medicaldeepscientist` 这样的过渡命名
-  - 等 protocol 与 transport 边界完全稳定，再评估统一成更中性的 runtime / engine 命名
+  - 对外 profile、transport 与 workspace 路径已经统一收口到 `med_deepscientist_*`、`med_deepscientist` 与 `ops/med-deepscientist/*`
+  - 剩余 legacy 命名只允许停留在 adapter shim 和上游比较语境里
 
 ## 审计与人类复核
 

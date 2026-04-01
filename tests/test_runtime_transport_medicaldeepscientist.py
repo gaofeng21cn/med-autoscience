@@ -11,7 +11,7 @@ def write_text(path: Path, content: str) -> None:
 
 
 def test_resolve_daemon_url_prefers_runtime_daemon_state(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     write_text(
         runtime_root / "runtime" / "daemon.json",
@@ -28,7 +28,7 @@ def test_resolve_daemon_url_prefers_runtime_daemon_state(tmp_path: Path) -> None
 
 
 def test_resolve_daemon_url_falls_back_to_runtime_config_and_normalizes_localhost(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     write_text(
         runtime_root / "config" / "config.yaml",
@@ -41,7 +41,7 @@ def test_resolve_daemon_url_falls_back_to_runtime_config_and_normalizes_localhos
 
 
 def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     write_text(
         runtime_root / "config" / "config.yaml",
@@ -85,7 +85,7 @@ def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> No
 
 
 def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     seen: dict[str, object] = {}
 
     class FakeResponse:
@@ -124,7 +124,7 @@ def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
 
 
 def test_resume_quest_posts_resume_action(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     seen: dict[str, object] = {}
 
@@ -146,7 +146,7 @@ def test_resume_quest_posts_resume_action(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.medicaldeepscientist")
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     seen: dict[str, object] = {}
 

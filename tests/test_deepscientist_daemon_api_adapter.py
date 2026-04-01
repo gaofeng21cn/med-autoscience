@@ -12,7 +12,7 @@ def test_resolve_daemon_url_delegates_to_runtime_transport(monkeypatch, tmp_path
         seen["runtime_root"] = runtime_root
         return "http://127.0.0.1:21999"
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "resolve_daemon_url", fake_resolve_daemon_url)
+    monkeypatch.setattr(module.med_deepscientist_transport, "resolve_daemon_url", fake_resolve_daemon_url)
 
     result = module.resolve_daemon_url(runtime_root=runtime_root)
 
@@ -35,7 +35,7 @@ def test_create_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path
         seen["payload"] = payload
         return {"ok": True, "snapshot": {"quest_id": "001-risk"}}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
 
     result = module.create_quest(
         runtime_root=runtime_root,
@@ -60,7 +60,7 @@ def test_resume_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path
         seen["source"] = source
         return {"ok": True, "status": "running"}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "resume_quest", fake_resume_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "resume_quest", fake_resume_quest)
 
     result = module.resume_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
@@ -83,7 +83,7 @@ def test_pause_quest_delegates_to_runtime_transport(monkeypatch, tmp_path: Path)
         seen["source"] = source
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "pause_quest", fake_pause_quest)
 
     result = module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 

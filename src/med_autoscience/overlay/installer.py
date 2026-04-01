@@ -26,7 +26,7 @@ from med_autoscience.submission_targets import render_submission_target_overlay_
 
 
 SCHEMA_VERSION = 1
-OVERLAY_NAME = "med_autoscience_medical_deepscientist_overlay"
+OVERLAY_NAME = "med_autoscience_med_deepscientist_overlay"
 MANIFEST_NAME = ".med_autoscience_overlay.json"
 ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
@@ -211,9 +211,9 @@ def _resolve_targets(
         OverlayTarget(
             skill_id=skill_id,
             scope=scope,
-            target_root=skills_root / f"deepscientist-{skill_id}",
-            skill_path=skills_root / f"deepscientist-{skill_id}" / "SKILL.md",
-            manifest_path=skills_root / f"deepscientist-{skill_id}" / MANIFEST_NAME,
+            target_root=skills_root / f"med-deepscientist-{skill_id}",
+            skill_path=skills_root / f"med-deepscientist-{skill_id}" / "SKILL.md",
+            manifest_path=skills_root / f"med-deepscientist-{skill_id}" / MANIFEST_NAME,
         )
         for skill_id in normalized_skill_ids
     ]
@@ -223,7 +223,7 @@ def _resolve_targets(
 def _resolve_authoritative_target_root(*, authoritative_root: Path | None, skill_id: str) -> Path | None:
     if authoritative_root is None:
         return None
-    return Path(authoritative_root).expanduser().resolve() / ".codex" / "skills" / f"deepscientist-{skill_id}"
+    return Path(authoritative_root).expanduser().resolve() / ".codex" / "skills" / f"med-deepscientist-{skill_id}"
 
 
 def _copy_authoritative_target_seed(*, target: OverlayTarget, authoritative_root: Path | None) -> None:
@@ -363,6 +363,7 @@ def describe_medical_overlay(
     *,
     quest_root: Path | None = None,
     home: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -413,18 +414,34 @@ def _ensure_target_ready(target: OverlayTarget) -> str:
     raise FileNotFoundError(f"DeepScientist skill target missing: {target.target_root}")
 
 
-def _seed_workspace_target_from_home(*, target: OverlayTarget, home: Path | None) -> None:
-    if target.scope != "quest":
+def _resolve_runtime_repo_skill_path(*, med_deepscientist_repo_root: Path | None, skill_id: str) -> Path | None:
+    if med_deepscientist_repo_root is None:
+        return None
+    return Path(med_deepscientist_repo_root).expanduser().resolve() / "src" / "skills" / skill_id / "SKILL.md"
+
+
+def _seed_workspace_target_from_runtime_repo(
+    *,
+    target: OverlayTarget,
+    med_deepscientist_repo_root: Path | None,
+) -> None:
+    if target.scope != "quest" or target.skill_path.exists():
         return
-    if target.skill_path.exists():
+    if target.skill_id in FULL_TEMPLATE_MAP:
         return
-    resolved_home = (Path(home) if home is not None else Path.home()).expanduser().resolve()
-    source_skill_path = resolved_home / ".codex" / "skills" / f"deepscientist-{target.skill_id}" / "SKILL.md"
-    if not source_skill_path.exists():
-        if target.skill_id in FULL_TEMPLATE_MAP:
-            return
+    source_skill_path = _resolve_runtime_repo_skill_path(
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
+        skill_id=target.skill_id,
+    )
+    if source_skill_path is None or not source_skill_path.exists():
+        expected = (
+            str(source_skill_path)
+            if source_skill_path is not None
+            else "<unset med_deepscientist_repo_root>/src/skills/<skill-id>/SKILL.md"
+        )
         raise FileNotFoundError(
-            f"Workspace-local overlay target missing and no upstream DeepScientist skill found at {source_skill_path}"
+            "Workspace-local overlay target missing and no authoritative med-deepscientist skill seed "
+            f"found for `{target.skill_id}` at {expected}"
         )
     target.target_root.mkdir(parents=True, exist_ok=True)
     target.skill_path.write_text(source_skill_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -462,8 +479,8 @@ def _install_for_target(
     *,
     target: OverlayTarget,
     quest_root: Path | None,
-    home: Path | None,
     authoritative_root: Path | None,
+    med_deepscientist_repo_root: Path | None,
     force: bool,
     policy_id: str,
     archetype_ids: tuple[str, ...],
@@ -472,7 +489,10 @@ def _install_for_target(
     default_citation_style: str | None,
 ) -> dict[str, Any]:
     _copy_authoritative_target_seed(target=target, authoritative_root=authoritative_root)
-    _seed_workspace_target_from_home(target=target, home=home)
+    _seed_workspace_target_from_runtime_repo(
+        target=target,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
+    )
     current_text = _ensure_target_ready(target)
     current_fingerprint = _fingerprint(current_text)
     manifest = _load_json(target.manifest_path)
@@ -533,6 +553,7 @@ def _install_overlay(
     quest_root: Path | None = None,
     home: Path | None = None,
     authoritative_root: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -556,8 +577,8 @@ def _install_overlay(
         _install_for_target(
             target=target,
             quest_root=resolved_quest_root,
-            home=home,
             authoritative_root=authoritative_root,
+            med_deepscientist_repo_root=med_deepscientist_repo_root,
             force=force,
             policy_id=normalized_policy_id,
             archetype_ids=normalized_archetype_ids,
@@ -588,6 +609,7 @@ def install_medical_overlay(
     quest_root: Path | None = None,
     home: Path | None = None,
     authoritative_root: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -599,6 +621,7 @@ def install_medical_overlay(
         quest_root=quest_root,
         home=home,
         authoritative_root=authoritative_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
@@ -614,6 +637,7 @@ def reapply_medical_overlay(
     quest_root: Path | None = None,
     home: Path | None = None,
     authoritative_root: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -625,6 +649,7 @@ def reapply_medical_overlay(
         quest_root=quest_root,
         home=home,
         authoritative_root=authoritative_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
@@ -640,6 +665,7 @@ def ensure_medical_overlay(
     quest_root: Path | None = None,
     home: Path | None = None,
     authoritative_root: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     mode: str = "ensure_ready",
     policy_id: str | None = None,
@@ -651,6 +677,7 @@ def ensure_medical_overlay(
     pre_status = describe_medical_overlay(
         quest_root=quest_root,
         home=home,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
         skill_ids=skill_ids,
         policy_id=policy_id,
         archetype_ids=archetype_ids,
@@ -684,6 +711,7 @@ def ensure_medical_overlay(
                 quest_root=quest_root,
                 home=home,
                 authoritative_root=authoritative_root,
+                med_deepscientist_repo_root=med_deepscientist_repo_root,
                 skill_ids=skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,
@@ -696,6 +724,7 @@ def ensure_medical_overlay(
                 quest_root=quest_root,
                 home=home,
                 authoritative_root=authoritative_root,
+                med_deepscientist_repo_root=med_deepscientist_repo_root,
                 skill_ids=skill_ids,
                 policy_id=policy_id,
                 archetype_ids=archetype_ids,

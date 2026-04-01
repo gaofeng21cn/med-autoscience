@@ -795,7 +795,7 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
         stopped.append((daemon_url, quest_id, action))
         return {"ok": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -834,7 +834,7 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
         stopped.append((daemon_url, quest_id, action))
         return {"ok": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
 
     result = module.run_controller(
         quest_root=quest_root,

@@ -10,11 +10,11 @@ def make_profile(tmp_path: Path):
     return profiles.WorkspaceProfile(
         name="nfpitnet",
         workspace_root=tmp_path / "workspace",
-        runtime_root=tmp_path / "workspace" / "ops" / "deepscientist" / "runtime" / "quests",
+        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
         studies_root=tmp_path / "workspace" / "studies",
         portfolio_root=tmp_path / "workspace" / "portfolio",
-        deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "deepscientist" / "runtime",
-        deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "DeepScientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,
@@ -37,14 +37,14 @@ def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> No
     result = module.inspect_workspace_contracts(profile)
 
     assert result["runtime_contract"]["checks"]["runtime_root_exists"] is False
-    assert result["runtime_contract"]["checks"]["deepscientist_runtime_root_exists"] is False
-    assert result["runtime_contract"]["checks"]["runtime_root_matches_deepscientist_runtime"] is True
+    assert result["runtime_contract"]["checks"]["med_deepscientist_runtime_root_exists"] is False
+    assert result["runtime_contract"]["checks"]["runtime_root_matches_med_deepscientist_runtime"] is True
     assert result["runtime_contract"]["ready"] is False
 
     assert result["launcher_contract"]["checks"]["medautoscience_config_env_exists"] is False
-    assert result["launcher_contract"]["checks"]["deepscientist_config_env_exists"] is False
-    assert result["launcher_contract"]["checks"]["deepscientist_bin_dir_exists"] is False
-    assert result["launcher_contract"]["checks"]["deepscientist_repo_root_configured"] is True
+    assert result["launcher_contract"]["checks"]["med_deepscientist_config_env_exists"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_bin_dir_exists"] is False
+    assert result["launcher_contract"]["checks"]["med_deepscientist_repo_root_configured"] is True
     assert result["launcher_contract"]["ready"] is False
 
     assert result["behavior_gate"]["checks"]["gate_file_exists"] is False
@@ -56,13 +56,13 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
     profile.runtime_root.mkdir(parents=True)
-    profile.deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
+    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
 
     medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
     medautosci_config.parent.mkdir(parents=True, exist_ok=True)
     medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
 
-    deepscientist_root = profile.workspace_root / "ops" / "deepscientist"
+    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
     deepscientist_root.mkdir(parents=True, exist_ok=True)
     (deepscientist_root / "config.env").write_text("DEEPSCIENTIST_PROFILE=nfpitnet\n", encoding="utf-8")
     (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
@@ -73,7 +73,7 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
                 "phase_25_ready: true",
                 "critical_overrides:",
                 "  - id: no_degrade_runtime_watch",
-                "    source_path: ops/deepscientist/policies/runtime_watch.md",
+                "    source_path: ops/med-deepscientist/policies/runtime_watch.md",
                 "    status: approved",
                 "    target_surface: runtime_watch",
             ]
@@ -94,7 +94,7 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
     assert result["behavior_gate"]["critical_overrides"] == [
         {
             "id": "no_degrade_runtime_watch",
-            "source_path": "ops/deepscientist/policies/runtime_watch.md",
+            "source_path": "ops/med-deepscientist/policies/runtime_watch.md",
             "status": "approved",
             "target_surface": "runtime_watch",
         }
@@ -105,13 +105,13 @@ def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Pa
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
     profile.runtime_root.mkdir(parents=True)
-    profile.deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
+    profile.med_deepscientist_runtime_root.mkdir(parents=True, exist_ok=True)
 
     medautosci_config = profile.workspace_root / "ops" / "medautoscience" / "config.env"
     medautosci_config.parent.mkdir(parents=True, exist_ok=True)
     medautosci_config.write_text("MEDAUTOSCI_PROFILE=nfpitnet\n", encoding="utf-8")
 
-    deepscientist_root = profile.workspace_root / "ops" / "deepscientist"
+    deepscientist_root = profile.workspace_root / "ops" / "med-deepscientist"
     deepscientist_root.mkdir(parents=True, exist_ok=True)
     (deepscientist_root / "config.env").write_text("DEEPSCIENTIST_PROFILE=nfpitnet\n", encoding="utf-8")
     (deepscientist_root / "bin").mkdir(parents=True, exist_ok=True)
@@ -122,7 +122,7 @@ def test_inspect_workspace_contracts_rejects_invalid_override_shape(tmp_path: Pa
                 "phase_25_ready: true",
                 "critical_overrides:",
                 "  - id: malformed_override",
-                "    source_path: ops/deepscientist/policies/runtime_watch.md",
+                "    source_path: ops/med-deepscientist/policies/runtime_watch.md",
                 "    status: approved",
             ]
         )
@@ -151,7 +151,7 @@ def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> No
 def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
-    repo_root = profile.deepscientist_repo_root
+    repo_root = profile.med_deepscientist_repo_root
     repo_root.mkdir(parents=True, exist_ok=True)
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
     manifest_payload = {

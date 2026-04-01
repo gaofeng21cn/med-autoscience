@@ -15,7 +15,7 @@ from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
-    deepscientist_upgrade_check,
+    med_deepscientist_upgrade_check,
     external_research as external_research_controller,
     figure_loop_guard,
     journal_shortlist as journal_shortlist_controller,
@@ -281,9 +281,9 @@ def build_parser() -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--dry-run", action="store_true")
     init_workspace_parser.add_argument("--force", action="store_true")
 
-    deepscientist_upgrade_check_parser = subparsers.add_parser("deepscientist-upgrade-check")
-    deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
-    deepscientist_upgrade_check_parser.add_argument("--refresh", action="store_true")
+    med_deepscientist_upgrade_check_parser = subparsers.add_parser("med-deepscientist-upgrade-check")
+    med_deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
+    med_deepscientist_upgrade_check_parser.add_argument("--refresh", action="store_true")
     return parser
 
 
@@ -313,9 +313,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "deepscientist-upgrade-check":
+    if args.command == "med-deepscientist-upgrade-check":
         profile = load_profile(args.profile)
-        result = deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
@@ -646,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
                 "runtime_exists": doctor_report.runtime_exists,
                 "studies_exists": doctor_report.studies_exists,
                 "portfolio_exists": doctor_report.portfolio_exists,
-                "deepscientist_runtime_exists": doctor_report.deepscientist_runtime_exists,
+                "med_deepscientist_runtime_exists": doctor_report.med_deepscientist_runtime_exists,
                 "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
                 "medical_overlay_ready": (
                     bool(overlay_status.get("all_targets_ready")) if overlay_status is not None else doctor_report.medical_overlay_ready
