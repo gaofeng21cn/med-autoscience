@@ -162,4 +162,4 @@
 - 数据 mutation 不允许通过静默纠偏掩盖输入错误
 - 私有版本差异必须尽量基于显式 manifest 和目录事实，不依赖推测性分类
 - 公开数据只有在能增强证据强度时才纳入
-- ToolUniverse 是外挂，不替代 `DeepScientist` 主控
+- ToolUniverse 是外挂，不替代 `MedDeepScientist` 主控

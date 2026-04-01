@@ -25,7 +25,7 @@
 
 - 仓库已 clone 到本机任意工作目录
 - Python：`>= 3.12`
-- 本机已具备可用的 `DeepScientist` 与 `Codex` 环境
+- 本机已具备可用的 `MedDeepScientist`（仓库名 `med-deepscientist`）与 `Codex` 环境
 - 已存在一个病种级医学研究 workspace，里面至少有：
   - `datasets/`
   - `contracts/`
@@ -65,7 +65,7 @@
 
 - 这是病种级顶层目录，不是某一篇论文自己的目录
 - 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
-- 不要在每个病种 workspace 里再 clone 一份 `DeepScientist`
+- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；默认应复用外部共享的 `med-deepscientist`
 
 现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
 
@@ -146,6 +146,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-disea
 - `deepscientist_runtime_exists: true`
 
 如果同时配置了 `deepscientist_repo_root`，`doctor` 和 `show-profile` 也会把它显示出来，方便 Agent 在升级前核对源码仓库位置。
+这个路径默认应指向本机的 `MedDeepScientist` checkout，而不是某个病种 workspace 里的临时副本。
 
 ### 5. 显示 profile
 
@@ -198,12 +199,12 @@ PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile 
 PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-disease.local.toml --refresh
 ```
 
-`deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `DeepScientist`，而是在真正升级前先回答几件事：
+`deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `MedDeepScientist`，而是在真正升级前先回答几件事：
 
-- profile 是否已经显式绑定本机 `DeepScientist` 源码仓库
+- profile 是否已经显式绑定本机 `MedDeepScientist` 源码仓库
 - 当前 checkout 是否是干净的 Git 工作树
 - 当前 branch 是否仍然适合作为运行时主线
-- `origin/main` 相对本机 checkout 是否已经有新提交
+- 当前受控 fork 相对 `DeepScientist upstream` 是否已经有新提交
 - 医学 overlay 当前是否仍处于 `overlay_applied` 状态，还是已经被 upstream 覆写或漂移
 
 这一步的输出是机器可读 JSON，适合给 Agent 作为“现在该不该升级”的前置门控，而不是靠人工目测仓库状态。

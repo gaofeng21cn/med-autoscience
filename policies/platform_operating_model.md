@@ -5,7 +5,7 @@
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
-- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 `DeepScientist` 与外挂工具、组织论文交付
+- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 `MedDeepScientist` 与外挂工具、组织论文交付
 - `MedAutoScience` 自身负责提供稳定、可验证、可审计的运行接口，而不是要求人手工维护底层状态文件
 
 ## 角色分工
@@ -23,7 +23,7 @@
 - 调用 controller 和 overlay 完成数据治理、门控、交付同步与实验编排
 - 在弱结果方向上尽快止损，而不是默认把整条线做完
 
-### DeepScientist
+### MedDeepScientist
 
 - 作为底层自动科研执行引擎，负责 scout、idea、experiment、write、finalize 等任务推进
 - 由 `MedAutoScience` 注入医学特化 overlay、研究偏置和论文门控
@@ -44,7 +44,7 @@
 - controller / CLI
   - 提供稳定、可测试、可组合的调用面
 - overlay
-  - 把医学前验约束前移到 `DeepScientist` 的关键 stage
+  - 把医学前验约束前移到 `MedDeepScientist` 的关键 stage
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
@@ -62,7 +62,7 @@
 2. Agent 检查数据资产状态，包括私有版本、公开数据机会、startup readiness。
 3. Agent 按研究偏置策略，优先选择高可塑性、易形成医学证据包的课题 archetype。
 4. Agent 为当前 quest 安装或重覆写医学 overlay，把门控与写作约束前移到执行阶段。
-5. `DeepScientist` 负责实验、写作和交付主链推进。
+5. `MedDeepScientist` 负责实验、写作和交付主链推进。
 6. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、medical publication surface 等外层治理。
 7. 若主线结果偏弱，Agent 应尽快止损、改题、补 sidecar 或切换路线，而不是继续空转。
 8. 当证据面足够时，平台导出投稿包，并同步到 study 的正式交付路径。
