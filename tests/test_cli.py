@@ -27,11 +27,11 @@ def write_profile(path: Path) -> None:
             [
                 'name = "nfpitnet"',
                 'workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"',
-                'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
-                'deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime"',
-                'deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
+                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
+                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -361,7 +361,7 @@ def test_external_research_status_command_dispatches_controller(monkeypatch, tmp
     assert '"prompt_file_count": 1' in captured.out
 
 
-def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_med_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -372,13 +372,13 @@ def test_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, 
         called["refresh"] = refresh
         return {"decision": "upgrade_available", "recommended_actions": ["pull_origin_main_then_reapply_medical_overlay"]}
 
-    monkeypatch.setattr(cli.deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
+    monkeypatch.setattr(cli.med_deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
 
-    exit_code = cli.main(["deepscientist-upgrade-check", "--profile", str(profile_path), "--refresh"])
+    exit_code = cli.main(["med-deepscientist-upgrade-check", "--profile", str(profile_path), "--refresh"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert called["profile"].deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
+    assert called["profile"].med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
     assert called["refresh"] is True
     assert '"decision": "upgrade_available"' in captured.out
 
@@ -1269,6 +1269,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
     def fake_status(
         *,
         quest_root: Path | None = None,
+        med_deepscientist_repo_root: Path | None = None,
         skill_ids: tuple[str, ...] | None = None,
         policy_id: str | None = None,
         archetype_ids: tuple[str, ...] | None = None,
@@ -1277,6 +1278,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
         default_citation_style: str | None = None,
     ) -> dict:
         called["quest_root"] = quest_root
+        called["med_deepscientist_repo_root"] = med_deepscientist_repo_root
         called["skill_ids"] = skill_ids
         called["policy_id"] = policy_id
         called["archetype_ids"] = archetype_ids
@@ -1292,6 +1294,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
 
     assert exit_code == 0
     assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert called["med_deepscientist_repo_root"] == Path("/Users/gaofeng/workspace/DeepScientist")
     assert called["skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert called["policy_id"] == "high_plasticity_medical"
     assert called["archetype_ids"] == (
@@ -1324,6 +1327,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     def fake_ensure(
         *,
         quest_root: Path | None = None,
+        med_deepscientist_repo_root: Path | None = None,
         skill_ids: tuple[str, ...] | None = None,
         mode: str = "ensure_ready",
         policy_id: str | None = None,
@@ -1333,6 +1337,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
         default_citation_style: str | None = None,
     ) -> dict:
         calls["ensure_quest_root"] = quest_root
+        calls["ensure_med_deepscientist_repo_root"] = med_deepscientist_repo_root
         calls["ensure_skill_ids"] = skill_ids
         calls["ensure_mode"] = mode
         calls["ensure_policy_id"] = policy_id
@@ -1375,6 +1380,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert exit_code == 0
     assert calls["ensure_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert calls["ensure_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert calls["ensure_med_deepscientist_repo_root"] == Path("/Users/gaofeng/workspace/DeepScientist")
     assert calls["ensure_mode"] == "ensure_ready"
     assert calls["ensure_policy_id"] == "high_plasticity_medical"
     assert calls["ensure_archetype_ids"] == (

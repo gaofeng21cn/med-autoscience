@@ -151,7 +151,7 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
         stopped.append((daemon_url, quest_id, action))
         return {"ok": True, "interrupted": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
 
     result = module.run_controller(
         quest_root=quest_root,

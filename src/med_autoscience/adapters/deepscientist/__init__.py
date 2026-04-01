@@ -1,1 +1,1 @@
-"""DeepScientist protocol adapters for MedAutoScience."""
+"""Legacy MedDeepScientist protocol adapters for MedAutoScience."""

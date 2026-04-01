@@ -10,7 +10,7 @@ from typing import Any
 
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
-from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
+from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 
 
 @dataclass
@@ -844,7 +844,7 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = medicaldeepscientist_transport.post_quest_control(
+            stop_result = med_deepscientist_transport.post_quest_control(
                 daemon_url=daemon_url,
                 quest_id=report["quest_id"],
                 action="stop",

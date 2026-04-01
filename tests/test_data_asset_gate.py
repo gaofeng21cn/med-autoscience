@@ -12,7 +12,7 @@ def dump_json(path: Path, payload: dict) -> None:
 
 def make_workspace_with_quest(tmp_path: Path, *, study_id: str = "002-early-residual-risk") -> tuple[Path, Path]:
     workspace_root = tmp_path / "workspace"
-    quest_root = workspace_root / "ops" / "deepscientist" / "runtime" / "quests" / study_id
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / study_id
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
         {
@@ -163,7 +163,7 @@ def test_build_gate_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_pat
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root = tmp_path / "workspace"
     study_id = "002-early-residual-risk"
-    quest_root = workspace_root / "ops" / "deepscientist" / "runtime" / "quests" / study_id
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / study_id
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(f"quest_id: {study_id}\n", encoding="utf-8")
     (workspace_root / "studies" / study_id).mkdir(parents=True, exist_ok=True)

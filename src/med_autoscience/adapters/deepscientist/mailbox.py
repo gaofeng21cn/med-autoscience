@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_protocol import user_message
-from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
+from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 
 
 def enqueue_user_message(
@@ -23,7 +23,7 @@ def enqueue_user_message(
 
 
 def post_quest_control(*, daemon_url: str, quest_id: str, action: str, source: str) -> dict[str, Any]:
-    return medicaldeepscientist_transport.post_quest_control(
+    return med_deepscientist_transport.post_quest_control(
         daemon_url=daemon_url,
         quest_id=quest_id,
         action=action,

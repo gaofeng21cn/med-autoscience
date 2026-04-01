@@ -15,10 +15,10 @@ def write_profile(path: Path) -> None:
             [
                 'name = "nfpitnet"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "",
@@ -57,7 +57,7 @@ def test_resolve_submission_targets_merges_profile_study_and_quest_targets(tmp_p
     module = importlib.import_module("med_autoscience.submission_targets")
     profile_path = tmp_path / "profile.local.toml"
     study_root = tmp_path / "workspace" / "studies" / "002-early-residual-risk"
-    quest_root = tmp_path / "workspace" / "ops" / "deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
     write_profile(profile_path)
     write_text(
         study_root / "study.yaml",

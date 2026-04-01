@@ -18,7 +18,7 @@ from med_autoscience.figure_routes import (
     supported_required_route_help,
 )
 from med_autoscience.runtime_protocol import quest_state, user_message
-from med_autoscience.runtime_transport import medicaldeepscientist as medicaldeepscientist_transport
+from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 
 
 RESOLVED_PATTERNS = [
@@ -374,9 +374,9 @@ def run_controller(
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = medicaldeepscientist_transport.post_quest_control(
+            stop_result = med_deepscientist_transport.post_quest_control(
                 daemon_url=daemon_url
-                or medicaldeepscientist_transport.resolve_daemon_url(runtime_root=quest_root.parent.parent),
+                or med_deepscientist_transport.resolve_daemon_url(runtime_root=quest_root.parent.parent),
                 quest_id=state.quest_id,
                 action="stop",
                 source=source,

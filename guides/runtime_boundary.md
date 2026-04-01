@@ -36,9 +36,9 @@
 
 这些路径即使技术上可达，在架构上也视为旁路。
 
-## `ops/deepscientist/` 的定位
+## `ops/med-deepscientist/` 的定位
 
-workspace 下的 `ops/deepscientist/` 只保留：
+workspace 下的 `ops/med-deepscientist/` 只保留：
 
 - runtime state
 - launcher config
@@ -47,7 +47,7 @@ workspace 下的 `ops/deepscientist/` 只保留：
 
 它不是面向研究用户或 Agent 的正式研究入口。
 
-`ops/deepscientist/bin/start-web`、`status`、`doctor`、`stop` 只用于 runtime 运维，不用于研究启动决策。
+`ops/med-deepscientist/bin/start-web`、`status`、`doctor`、`stop` 只用于 runtime 运维，不用于研究启动决策。
 
 ## 为什么不需要把研究门禁下沉到 MedDeepScientist runtime 内核
 

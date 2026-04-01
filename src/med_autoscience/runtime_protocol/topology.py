@@ -39,7 +39,7 @@ def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
 def resolve_quest_root_from_worktree_root(worktree_root: Path) -> Path:
     resolved = _resolve_path(worktree_root)
     if resolved.parent.name != "worktrees" or resolved.parent.parent.name != ".ds":
-        raise ValueError(f"worktree_root is not under a DeepScientist worktree layout: {worktree_root}")
+        raise ValueError(f"worktree_root is not under a MedDeepScientist quest worktree layout: {worktree_root}")
     return resolved.parent.parent.parent
 
 
@@ -60,10 +60,10 @@ def _resolve_workspace_root_from_quest_root(quest_root: Path) -> Path:
     if (
         resolved.parent.name != "quests"
         or resolved.parent.parent.name != "runtime"
-        or resolved.parent.parent.parent.name != "deepscientist"
+        or resolved.parent.parent.parent.name != "med-deepscientist"
         or resolved.parent.parent.parent.parent.name != "ops"
     ):
-        raise ValueError(f"quest_root is not under an ops/deepscientist/runtime/quests layout: {quest_root}")
+        raise ValueError(f"quest_root is not under an ops/med-deepscientist/runtime/quests layout: {quest_root}")
     return resolved.parent.parent.parent.parent.parent
 
 

@@ -21,11 +21,11 @@ def make_profile(tmp_path: Path):
     return profiles.WorkspaceProfile(
         name="diabetes",
         workspace_root=workspace_root,
-        runtime_root=workspace_root / "ops" / "deepscientist" / "runtime" / "quests",
+        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
         studies_root=workspace_root / "studies",
         portfolio_root=workspace_root / "portfolio",
-        deepscientist_runtime_root=workspace_root / "ops" / "deepscientist" / "runtime",
-        deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "DeepScientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,
@@ -63,7 +63,7 @@ def write_study(
     runtime_reentry_require_managed_skill_audit: bool | None = None,
 ) -> Path:
     study_root = workspace_root / "studies" / study_id
-    write_text(workspace_root / "ops" / "deepscientist" / "startup_briefs" / f"{study_id}.md", "# Startup brief\n")
+    write_text(workspace_root / "ops" / "med-deepscientist" / "startup_briefs" / f"{study_id}.md", "# Startup brief\n")
     lines = [
         f"study_id: {study_id}",
         "title: Diabetes mortality risk paper",
@@ -72,7 +72,7 @@ def write_study(
         "  Build a submission-ready survival-risk study.",
         "brief_file: brief.md",
         "protocol_file: protocol.md",
-        f"startup_brief: ../../ops/deepscientist/startup_briefs/{study_id}.md",
+        f"startup_brief: ../../ops/med-deepscientist/startup_briefs/{study_id}.md",
     ]
     if study_archetype is not None:
         lines.append(f"study_archetype: {study_archetype}")
@@ -141,7 +141,7 @@ def write_study(
     lines.extend(
         [
             "execution:",
-            "  engine: deepscientist",
+            "  engine: med-deepscientist",
             "  auto_entry: on_managed_research_intent",
             "  auto_resume: true",
             f"  quest_id: {study_id}",
@@ -264,9 +264,9 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
             "startup": {"queued": True},
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: resumed.update(
             {"runtime_root": runtime_root, "quest_id": quest_id, "source": source}
@@ -277,7 +277,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "create_and_start"
-    assert created["runtime_root"] == profile.deepscientist_runtime_root
+    assert created["runtime_root"] == profile.med_deepscientist_runtime_root
     payload = created["payload"]
     assert payload["quest_id"] == "001-risk"
     assert payload["auto_start"] is False
@@ -297,7 +297,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert result["startup_hydration"]["status"] == "hydrated"
     assert result["startup_hydration_validation"]["status"] == "clear"
     assert resumed == {
-        "runtime_root": profile.deepscientist_runtime_root,
+        "runtime_root": profile.med_deepscientist_runtime_root,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -351,7 +351,7 @@ def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "create_quest",
         lambda *, runtime_root, payload: created.update({"runtime_root": runtime_root, "payload": payload})
         or {
@@ -364,7 +364,7 @@ def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
         },
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -420,7 +420,7 @@ def test_ensure_study_runtime_creates_quest_before_runtime_overlay_materializati
         or {"authority": {"selected_action": "noop"}, "materialization": {}, "audit": {"all_roots_ready": True}},
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "create_quest",
         lambda *, runtime_root, payload: call_order.append("create")
         or {
@@ -433,7 +433,7 @@ def test_ensure_study_runtime_creates_quest_before_runtime_overlay_materializati
         },
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -486,9 +486,9 @@ def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tm
             "startup": {"queued": True},
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -562,9 +562,9 @@ def test_ensure_study_runtime_omits_reporting_guideline_when_reporting_contract_
             "startup": {"queued": True},
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -616,7 +616,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
             },
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
@@ -633,7 +633,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -677,7 +677,7 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "create_quest",
         lambda *, runtime_root, payload: calls.append(("create", payload["auto_start"]))
         or {"ok": True, "snapshot": {"quest_id": "001-risk", "status": "created"}},
@@ -698,7 +698,7 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -767,7 +767,7 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -839,7 +839,7 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -911,7 +911,7 @@ def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_valid
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -1015,7 +1015,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_required_startup_hydrati
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "pause_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "paused"},
     )
@@ -1182,7 +1182,7 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
             },
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -1298,7 +1298,7 @@ def test_ensure_study_runtime_applies_startup_boundary_to_non_continue_launch_pr
             },
         }
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -1347,7 +1347,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_startup_boundary_disallo
         paused["source"] = source
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "pause_quest", fake_pause_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -1355,7 +1355,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_startup_boundary_disallo
     assert result["reason"] == "startup_boundary_not_ready_for_running_quest"
     assert result["quest_status"] == "paused"
     assert paused == {
-        "runtime_root": profile.deepscientist_runtime_root,
+        "runtime_root": profile.med_deepscientist_runtime_root,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -1505,7 +1505,7 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         raising=False,
     )
     monkeypatch.setattr(
-        module.medicaldeepscientist_transport,
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
     )
@@ -1609,7 +1609,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
         paused["source"] = source
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(module.medicaldeepscientist_transport, "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "pause_quest", fake_pause_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -1617,7 +1617,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
     assert result["reason"] == "runtime_overlay_audit_failed_for_running_quest"
     assert result["quest_status"] == "paused"
     assert paused == {
-        "runtime_root": profile.deepscientist_runtime_root,
+        "runtime_root": profile.med_deepscientist_runtime_root,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

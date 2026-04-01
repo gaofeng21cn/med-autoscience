@@ -185,7 +185,7 @@ uv run python -m build --sdist --wheel
 如果你主要通过 Codex 驱动 `MedAutoScience`，现在已经可以直接使用仓库内置的 Codex plugin。
 它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
 
-研究真正运行前，仍需单独准备受控 runtime `MedDeepScientist`（仓库名 `med-deepscientist`），并把 profile 里的 `deepscientist_repo_root` 指向该 checkout。
+研究真正运行前，仍需单独准备受控 runtime `MedDeepScientist`（仓库名 `med-deepscientist`），并把 profile 里的 `med_deepscientist_repo_root` 指向该 checkout。
 
 - Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
 - 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)

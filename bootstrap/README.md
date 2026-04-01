@@ -32,7 +32,7 @@
   - `studies/`
   - `portfolio/`
   - `ops/medautoscience/`
-  - `ops/deepscientist/runtime/`
+  - `ops/med-deepscientist/runtime/`
   - 若要启用 finalize 的浅路径正式交付 contract，还需要 `ops/medautoscience/bin/sync-delivery`
 
 ## 新病种 workspace 的最小骨架
@@ -53,7 +53,7 @@
     │   ├── profiles/
     │   ├── config.env
     │   └── README.md
-    └── deepscientist/
+    └── med-deepscientist/
         ├── bin/
         ├── config.env
         ├── runtime/
@@ -106,8 +106,8 @@ python3 --version
 - `runtime_root`
 - `studies_root`
 - `portfolio_root`
-- `deepscientist_runtime_root`
-- `deepscientist_repo_root`
+- `med_deepscientist_runtime_root`
+- `med_deepscientist_repo_root`
 - `default_publication_profile`
 - `default_citation_style`
 - `enable_medical_overlay`
@@ -143,9 +143,9 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-disea
 - `runtime_exists: true`
 - `studies_exists: true`
 - `portfolio_exists: true`
-- `deepscientist_runtime_exists: true`
+- `med_deepscientist_runtime_exists: true`
 
-如果同时配置了 `deepscientist_repo_root`，`doctor` 和 `show-profile` 也会把它显示出来，方便 Agent 在升级前核对源码仓库位置。
+如果同时配置了 `med_deepscientist_repo_root`，`doctor` 和 `show-profile` 也会把它显示出来，方便 Agent 在升级前核对源码仓库位置。
 这个路径默认应指向本机的 `MedDeepScientist` checkout，而不是某个病种 workspace 里的临时副本。
 
 ### 5. 显示 profile
@@ -186,7 +186,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli startup-data-readiness --workspace
 PYTHONPATH=src python3 -m med_autoscience.cli apply-data-asset-update --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --payload-file /tmp/data_update.json
 PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/ops/deepscientist/runtime/quests/<study-id>
+PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime/quests/<study-id>
 ```
 
 如果只想单独检查或重覆写 overlay，也可以直接运行：
@@ -196,10 +196,10 @@ cd med-autoscience
 PYTHONPATH=src python3 -m med_autoscience.cli overlay-status --profile profiles/my-disease.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli install-medical-overlay --profile profiles/my-disease.local.toml
 PYTHONPATH=src python3 -m med_autoscience.cli reapply-medical-overlay --profile profiles/my-disease.local.toml
-PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-disease.local.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --profile profiles/my-disease.local.toml --refresh
 ```
 
-`deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `MedDeepScientist`，而是在真正升级前先回答几件事：
+`med-deepscientist-upgrade-check` 的目的不是替 Agent 直接升级 `MedDeepScientist`，而是在真正升级前先回答几件事：
 
 - profile 是否已经显式绑定本机 `MedDeepScientist` 源码仓库
 - 当前 checkout 是否是干净的 Git 工作树
@@ -216,7 +216,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 1. 运行 `init-workspace` 创建病种级 workspace 骨架
    如果 Agent 已经接入 MCP，优先用 `init_workspace`
 2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
-3. 编辑 `ops/medautoscience/config.env` 与 `ops/deepscientist/config.env`
+3. 编辑 `ops/medautoscience/config.env` 与 `ops/med-deepscientist/config.env`
 4. 检查生成的 `profiles/*.local.toml`
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`
@@ -238,7 +238,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 - AI 可以在 runtime 中区分 data hard block 与 public-data advisory，避免因为扩展机会本身中断主实验
 - AI 可以通过 CLI 调用关键 controller 与 `sync-study-delivery`，并且当 finalized paper bundle 已经形成 `submission_minimal` 时，finalize stage 的 overlay skill 会自动调度 `study_delivery_sync(stage="finalize")`，把论文交付、总结与 proofing 材料同步到 `studies/<study-id>/…/final`，使正式交付流程完全在平台内闭环
 
-需要明确的是，当前 Phase 1 只完成 state contract（runtime contract）、launcher contract 与 behavior equivalence gate 的审计；`deepscientist_repo_root` 仅在 `deepscientist-upgrade-check` 的 repo_check 中用作审计路径，实际执行仍可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。为了控制何时可以把执行移动到外部 repo，workspace 需要在 `ops/deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready`（布尔）与 `critical_overrides`（记录 site-packages/launcher 补丁）。只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会返回 `blocked_behavior_equivalence_gate`/`behavior_gate.phase_25_ready_false`，在 `repo_check` 和 `overlay_check` 里直接跳过后续检查，因此不能据此宣称已经完成外部执行切换；`critical_overrides` 之所以存在，是为了让 site-packages overlay 级别的补丁有明确的迁移或替换步骤，再经过 Phase 2/2.5 逐步清理。
+需要明确的是，当前 Phase 1 只完成 state contract（runtime contract）、launcher contract 与 behavior equivalence gate 的审计；`med_deepscientist_repo_root` 仅在 `med-deepscientist-upgrade-check` 的 `repo_check` 中用作审计路径，实际执行仍可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。为了控制何时可以把执行移动到外部 repo，workspace 需要在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready`（布尔）与 `critical_overrides`（记录 site-packages/launcher 补丁）。只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会返回 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，在 `repo_check` 和 `overlay_check` 里直接跳过后续检查，因此不能据此宣称已经完成外部执行切换；`critical_overrides` 之所以存在，是为了让 site-packages overlay 级别的补丁有明确的迁移或替换步骤，再经过 Phase 2/2.5 逐步清理。
 
 后续会继续补：
 

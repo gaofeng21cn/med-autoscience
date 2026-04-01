@@ -9,7 +9,7 @@ def render_automation_ready_block() -> str:
         "",
         "Automation-ready signals include:",
         "- startup boundary has passed",
-        "- execution engine is `deepscientist`",
+        "- execution engine is `med-deepscientist`",
         "- managed entry is enabled",
         "- `decision_policy` is `autonomous`",
         "- auto-resume is enabled for resumable quest states",

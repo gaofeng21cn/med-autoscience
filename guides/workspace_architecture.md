@@ -107,7 +107,7 @@ wrapper 不应继续硬编码：
 同时，wrapper 的职责边界也应明确：
 
 - `ops/medautoscience/bin/*` 是研究入口
-- `ops/deepscientist/bin/*` 是 runtime 运维入口
+- `ops/med-deepscientist/bin/*` 是 runtime 运维入口
 - 两者不能混用
 
 ## 标准分层
@@ -221,18 +221,17 @@ wrapper 不应继续硬编码：
 
 因此在 `MedAutoScience` 体系下，推荐进一步把 `MedDeepScientist` 的使用方式收敛为：
 
-- 外部共享 repo：`deepscientist_repo_root`
-- workspace 内项目状态 home：`deepscientist_runtime_root`
+- 外部共享 repo：`med_deepscientist_repo_root`
+- workspace 内项目状态 home：`med_deepscientist_runtime_root`
 - 外部共享重依赖：由 `MedDeepScientist` launcher / runtime 管理，不和疾病 workspace 绑定
 
-这里要特别注意命名：
+这里的命名已经不再保留 `deepscientist_*` 前缀。
 
-- 在当前实现里，`deepscientist_runtime_root` 仍然沿用 `DeepScientist home` 的兼容命名
-- 在目标架构里，它表示“project-local MedDeepScientist state root”
+`med_deepscientist_runtime_root` 明确表示 “project-local MedDeepScientist state root”。
 
-也就是说，这个路径在迁移完成前，可能仍暂时包含 upstream 默认放在 home 下的 `runtime/python-env`、`runtime/uv-cache`、`runtime/bundle`、`runtime/tools`
+也就是说，这个路径在迁移完成前，可能仍暂时包含 upstream 默认放在 home 下的 `runtime/python-env`、`runtime/uv-cache`、`runtime/bundle`、`runtime/tools`。
 
-迁移的目的不是立刻改字段名，而是逐步把这部分重依赖从同一路径中剥离出去，并保留 project-local state 不变。
+迁移的目的不是保留旧字段名，而是逐步把这部分重依赖从同一路径中剥离出去，并保留 project-local state 不变。
 
 ### 保留在 workspace 内的 MedDeepScientist 内容
 
@@ -259,8 +258,8 @@ wrapper 不应继续硬编码：
 - `runtime_root`
 - `studies_root`
 - `portfolio_root`
-- `deepscientist_runtime_root`
-- `deepscientist_repo_root`
+- `med_deepscientist_runtime_root`
+- `med_deepscientist_repo_root`
 
 当前实现下，一个“可直接启动”的最小 profile 还应包含：
 
@@ -276,11 +275,11 @@ wrapper 不应继续硬编码：
 - `workspace_root`
   - 当前疾病 workspace 根目录
 - `runtime_root`
-  - 当前 workspace 中 `MedDeepScientist` quest 根目录，通常是 `ops/deepscientist/runtime/quests`
-- `deepscientist_runtime_root`
+  - 当前 workspace 中 `MedDeepScientist` quest 根目录，通常是 `ops/med-deepscientist/runtime/quests`
+- `med_deepscientist_runtime_root`
   - 当前 workspace 中 `MedDeepScientist` 项目状态根目录
-- `deepscientist_repo_root`
-  - 外部共享 `MedDeepScientist` 源码仓库，变量名暂时保留 `deepscientist_*` 兼容前缀
+- `med_deepscientist_repo_root`
+  - 外部共享 `MedDeepScientist` 源码仓库
 
 这里的 `name` 也应理解为 workspace 名称，而不是单个 study 名称。
 
@@ -288,10 +287,10 @@ wrapper 不应继续硬编码：
 
 - `ops/medautoscience/config.env`
   - 显式指定外部共享 `MedAutoScience` repo
-- `ops/deepscientist/config.env`
+- `ops/med-deepscientist/config.env`
   - 显式指定外部共享 `MedDeepScientist` repo，或其受控 launcher 入口
 
-当前阶段 `deepscientist_repo_root` 主要为 `deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 repo 身份已受控，不说明 adapter 已可退出。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 `deepscientist_repo_root` 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
+当前阶段 `med_deepscientist_repo_root` 主要为 `med-deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 repo 身份已受控，不说明 adapter 已可退出。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 `med_deepscientist_repo_root` 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`med-deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。
@@ -304,11 +303,11 @@ wrapper 不应继续硬编码：
   - `portfolio/`
   - `datasets/` 或等价数据入口
   - `ops/medautoscience/`
-  - `ops/deepscientist/`
+  - `ops/med-deepscientist/`
 - 当前 controller 仍默认若干固定拓扑：
   - `studies/<study-id>/...`
   - `portfolio/data_assets/...`
-  - `ops/deepscientist/runtime/...`
+  - `ops/med-deepscientist/runtime/...`
 
 这也意味着当前实现默认承认下面的基数关系：
 
@@ -326,14 +325,14 @@ wrapper 不应继续硬编码：
 
 - `med_autoscience.runtime_protocol.topology`
   - 管理 `paper_root -> worktree_root -> quest_root -> study_root` 的关系
-  - 当前受管布局仍明确要求 `ops/deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+  - 当前受管布局仍明确要求 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
 - `med_autoscience.runtime_protocol.quest_state`
   - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
 - `med_autoscience.runtime_protocol.paper_artifacts`
   - 管理 `paper_root`、bundle manifest、artifact manifest、submission outputs 这些 paper-facing 交付拓扑
 - `med_autoscience.runtime_protocol.user_message`
   - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数
-- `med_autoscience.runtime_transport.medicaldeepscientist`
+- `med_autoscience.runtime_transport.med_deepscientist`
   - 管理 daemon URL 解析与 quest create / pause / resume / control 这类 engine-specific transport
 - `adapters.deepscientist.*`
   - 现在只保留兼容导出与 shim 角色
@@ -373,7 +372,7 @@ workspace 内的 wrapper 应满足：
 
 - `ops/medautoscience/bin/*`
   - 面向医学治理层和 controller
-- `ops/deepscientist/bin/*`
+- `ops/med-deepscientist/bin/*`
   - 面向 daemon 启动、doctor、runtime 运维等 `MedDeepScientist` 原生入口
 
 wrapper 不应继续做：
@@ -451,7 +450,7 @@ wrapper 不应继续做：
 
 这是后续迁移的审计基线。
 
-目前 Phase 1 只完成 state contract、launcher/runtime contract 与 behavior equivalence gate 的文档梳理与校验，真实执行仍可能是 workspace 内 legacy 的 `site-packages` overlay 或本地补丁。只有当 `ops/deepscientist/behavior_equivalence_gate.yaml` 里的 `phase_25_ready` 显式变为 `true`，并且 `critical_overrides` 中提到的 site-packages 层补丁都被明确迁出或替换后，`deepscientist-upgrade-check` 才会放行 Phase 2 及以后的外部执行迁移工作；在这之前不能宣称已经完成对外执行源的切换。
+目前 Phase 1 只完成 state contract、launcher/runtime contract 与 behavior equivalence gate 的文档梳理与校验，真实执行仍可能是 workspace 内 legacy 的 `site-packages` overlay 或本地补丁。只有当 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 里的 `phase_25_ready` 显式变为 `true`，并且 `critical_overrides` 中提到的 site-packages 层补丁都被明确迁出或替换后，`med-deepscientist-upgrade-check` 才会放行 Phase 2 及以后的外部执行迁移工作；在这之前不能宣称已经完成对外执行源的切换。
 ### Phase 2: wrapper 全量 profile-driven
 
 先改 workspace 入口层，而不是先动 quest。
@@ -459,7 +458,7 @@ wrapper 不应继续做：
 目标：
 
 - `ops/medautoscience/bin/*` 只从 profile 取 runtime 路径
-- 不再在 wrapper 中硬编码 `ops/deepscientist/runtime/quests`
+- 不再在 wrapper 中硬编码 `ops/med-deepscientist/runtime/quests`
 - 为未来新 workspace 直接复制 wrapper 打基础
 
 ### Phase 2.5: 行为等价门
@@ -477,7 +476,7 @@ wrapper 不应继续做：
 
 如果这个门没有通过，就不能先切到外部共享程序来源再回头补救；否则会先丢行为，再谈迁移。
 
-`behavior_equivalence_gate.yaml` 是 workspace 的长期 artifact，必须放在 `ops/deepscientist/` 里并交给 `med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 审核。这个文件会验证 `schema_version`、`phase_25_ready`、`critical_overrides`，其中 `critical_overrides` 正是对可能仍在 `site-packages` 或 controller 目录执行的本地补丁的清单；只有这些补丁被显式迁走、`phase_25_ready` 变为 `true` 时，才认定行为等价门通过，否则就会产生 `behavior_gate.phase_25_ready_false` 之类的阻断信息，`deepscientist-upgrade-check` 会把 `behavior_gate` 直接标记为阻塞，从而避免我们在还没确认等价的情况下把 `deepscientist_repo_root` 当作真实执行源。Phase 1 的 `MEDICAL_FORK_MANIFEST.json` 只是 repo-level 受控身份 artifact；它不能替代这道门。这道门既是 Phase 1 审计的结果，也是 Phase 2.5 对 site-packages overlay 级别补丁的最终挡板。
+`behavior_equivalence_gate.yaml` 是 workspace 的长期 artifact，必须放在 `ops/med-deepscientist/` 里并交给 `med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 审核。这个文件会验证 `schema_version`、`phase_25_ready`、`critical_overrides`，其中 `critical_overrides` 正是对可能仍在 `site-packages` 或 controller 目录执行的本地补丁的清单；只有这些补丁被显式迁走、`phase_25_ready` 变为 `true` 时，才认定行为等价门通过，否则就会产生 `behavior_gate.phase_25_ready_false` 之类的阻断信息，`med-deepscientist-upgrade-check` 会把 `behavior_gate` 直接标记为阻塞，从而避免我们在还没确认等价的情况下把 `med_deepscientist_repo_root` 当作真实执行源。Phase 1 的 `MEDICAL_FORK_MANIFEST.json` 只是 repo-level 受控身份 artifact；它不能替代这道门。这道门既是 Phase 1 审计的结果，也是 Phase 2.5 对 site-packages overlay 级别补丁的最终挡板。
 ### Phase 3: MedDeepScientist 调用外部程序化
 
 这一阶段的核心不是迁走项目状态，而是迁走程序本体依赖。
@@ -485,10 +484,10 @@ wrapper 不应继续做：
 目标：
 
 - 当前 workspace 不再依赖 workspace 内程序副本来“代表 MedDeepScientist”
-- 统一以外部共享 `deepscientist_repo_root` 作为程序来源
+- 统一以外部共享 `med_deepscientist_repo_root` 作为程序来源
 - 项目内只保留 runtime state 和 project-local 配置
 
-如果 Phase 1 已经切到受控的 `med-deepscientist` fork，那么这里的“外部共享 `deepscientist_repo_root`”可以具体落到该 fork；但命名仍暂时保留 `deepscientist_repo_root`，直到 runtime protocol convergence 完成。
+如果 Phase 1 已经切到受控的 `med-deepscientist` fork，那么这里的“外部共享 `med_deepscientist_repo_root`”可以具体落到该 fork。
 
 进入本阶段前，必须已经通过 Phase 2.5 的行为等价门。
 

@@ -15,10 +15,10 @@ def write_profile(path: Path, workspace_root: Path) -> None:
             [
                 'name = "nfpitnet"',
                 f'workspace_root = "{workspace_root}"',
-                f'runtime_root = "{workspace_root / "ops" / "deepscientist" / "runtime" / "quests"}"',
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
                 f'portfolio_root = "{workspace_root / "portfolio"}"',
-                f'deepscientist_runtime_root = "{workspace_root / "ops" / "deepscientist" / "runtime"}"',
+                f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "",
@@ -38,7 +38,7 @@ def make_submission_target_workspace(tmp_path: Path) -> tuple[Path, Path, Path, 
     workspace_root = tmp_path / "workspace"
     profile_path = tmp_path / "nfpitnet.local.toml"
     study_root = workspace_root / "studies" / "002-early-residual-risk"
-    quest_root = workspace_root / "ops" / "deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678" / "paper"
     write_profile(profile_path, workspace_root)
     write_text(

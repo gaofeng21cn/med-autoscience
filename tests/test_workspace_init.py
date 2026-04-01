@@ -46,7 +46,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "portfolio" / "research_memory" / "prompts").is_dir()
     assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
-    assert (workspace_root / "ops" / "deepscientist" / "bin").is_dir()
+    assert (workspace_root / "ops" / "med-deepscientist" / "bin").is_dir()
 
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "glioma.local.toml"
     assert profile_path.is_file()
@@ -62,7 +62,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "autofigure_edit_service_url" not in profile_text
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
-    deep_config = workspace_root / "ops" / "deepscientist" / "config.env"
+    deep_config = workspace_root / "ops" / "med-deepscientist" / "config.env"
     assert med_config.is_file()
     assert deep_config.is_file()
 
@@ -73,7 +73,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
     prepare_external_research = workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research"
     external_research_status = workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status"
-    ds_doctor = workspace_root / "ops" / "deepscientist" / "bin" / "doctor"
+    ds_doctor = workspace_root / "ops" / "med-deepscientist" / "bin" / "doctor"
     assert show_profile.is_file()
     assert enter_study.is_file()
     assert resolve_journal_shortlist.is_file()
@@ -102,10 +102,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     root_readme_text = root_readme.read_text(encoding="utf-8")
     assert "workspace" in root_readme_text.lower()
     assert "ops/medautoscience/bin/show-profile" in root_readme_text
-    assert "不要直接通过 DeepScientist UI、CLI 或 daemon HTTP API 发起研究 quest" in root_readme_text
+    assert "不要直接通过 `med-deepscientist` UI、CLI 或 daemon HTTP API 发起研究 quest" in root_readme_text
     assert "portfolio/research_memory/" in root_readme_text
 
-    deepscientist_readme = workspace_root / "ops" / "deepscientist" / "README.md"
+    deepscientist_readme = workspace_root / "ops" / "med-deepscientist" / "README.md"
     assert deepscientist_readme.is_file()
     deepscientist_readme_text = deepscientist_readme.read_text(encoding="utf-8")
     assert "runtime 运维面" in deepscientist_readme_text
@@ -116,7 +116,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert workspace_rules.is_file()
     workspace_rules_text = workspace_rules.read_text(encoding="utf-8")
     assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
-    assert "边界明确且 startup-ready 后，默认切入 DeepScientist managed runtime 的自动持续推进" in workspace_rules_text
+    assert "边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进" in workspace_rules_text
     assert "portfolio-memory-status" in workspace_rules_text
     assert "prepare-external-research" in workspace_rules_text
 

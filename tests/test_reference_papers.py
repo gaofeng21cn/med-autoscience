@@ -13,7 +13,7 @@ def write_text(path: Path, text: str) -> None:
 
 def test_resolve_reference_papers_reads_startup_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.reference_papers")
-    quest_root = tmp_path / "workspace" / "ops" / "deepscientist" / "runtime" / "quests" / "002-early-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-risk"
     write_text(
         quest_root / "quest.yaml",
         """quest_id: 002-early-risk

@@ -23,7 +23,7 @@ def _load_json_dict(path: Path) -> dict[str, Any]:
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
     if not path.exists():
-        raise FileNotFoundError(f"missing DeepScientist runtime config: {path}")
+        raise FileNotFoundError(f"missing med-deepscientist runtime config: {path}")
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise ValueError(f"expected YAML mapping at {path}")

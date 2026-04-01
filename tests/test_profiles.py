@@ -7,11 +7,11 @@ import pytest
 PROFILE_LINES = [
     'name = "nfpitnet"',
     'workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"',
-    'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime/quests"',
+    'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime/quests"',
     'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
     'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
-    'deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/deepscientist/runtime"',
-    'deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
+    'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
+    'med_deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
     'default_publication_profile = "general_medical_journal"',
     'default_citation_style = "AMA"',
     "enable_medical_overlay = true",
@@ -53,7 +53,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
 
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert profile.deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
+    assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -84,10 +84,10 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
             [
                 'name = "minimal"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -99,7 +99,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.load_profile(profile_path)
 
-    assert profile.deepscientist_repo_root is None
+    assert profile.med_deepscientist_repo_root is None
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "global"
     assert profile.medical_overlay_skills == (
@@ -154,8 +154,8 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["runtime_root"] == str(profile.runtime_root)
     assert contract["studies_root"] == str(profile.studies_root)
     assert contract["portfolio_root"] == str(profile.portfolio_root)
-    assert contract["deepscientist_runtime_root"] == str(profile.deepscientist_runtime_root)
-    assert contract["deepscientist_repo_root"] == str(profile.deepscientist_repo_root)
+    assert contract["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
+    assert contract["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
 
     publication = contract["publication"]
     assert publication["default_publication_profile"] == profile.default_publication_profile
@@ -188,11 +188,11 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
             [
                 'name = "relative"',
                 'workspace_root = "../workspace"',
-                'runtime_root = "../workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "../workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "../workspace/studies"',
                 'portfolio_root = "../workspace/portfolio"',
-                'deepscientist_runtime_root = "../workspace/ops/deepscientist/runtime"',
-                'deepscientist_repo_root = "../../DeepScientist"',
+                'med_deepscientist_runtime_root = "../workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_repo_root = "../../DeepScientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -205,9 +205,9 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     profile = profiles.load_profile(profile_path)
 
     assert profile.workspace_root == (profile_dir / "../workspace").resolve()
-    assert profile.runtime_root == (profile_dir / "../workspace/ops/deepscientist/runtime/quests").resolve()
-    assert profile.deepscientist_runtime_root == (profile_dir / "../workspace/ops/deepscientist/runtime").resolve()
-    assert profile.deepscientist_repo_root == (profile_dir / "../../DeepScientist").resolve()
+    assert profile.runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime/quests").resolve()
+    assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime").resolve()
+    assert profile.med_deepscientist_repo_root == (profile_dir / "../../DeepScientist").resolve()
 
 
 def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:
@@ -217,10 +217,10 @@ def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:
             [
                 'name = "invalid-bool"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'enable_medical_overlay = "false"',
@@ -242,10 +242,10 @@ def test_load_profile_rejects_invalid_list_shape(tmp_path: Path) -> None:
             [
                 'name = "invalid-list"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_skills = "write"',
@@ -267,10 +267,10 @@ def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path:
             [
                 'name = "invalid-targets"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'default_submission_targets = ["frontiers_family_harvard"]',
@@ -285,18 +285,18 @@ def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path:
         profiles.load_profile(profile_path)
 
 
-def test_load_profile_treats_empty_deepscientist_repo_root_as_unconfigured(tmp_path: Path) -> None:
+def test_load_profile_treats_empty_med_deepscientist_repo_root_as_unconfigured(tmp_path: Path) -> None:
     profile_path = tmp_path / "empty-ds-repo.local.toml"
     profile_path.write_text(
         "\n".join(
             [
                 'name = "empty-ds-repo"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
-                'deepscientist_repo_root = ""',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_repo_root = ""',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -308,7 +308,7 @@ def test_load_profile_treats_empty_deepscientist_repo_root_as_unconfigured(tmp_p
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.load_profile(profile_path)
 
-    assert profile.deepscientist_repo_root is None
+    assert profile.med_deepscientist_repo_root is None
 
 
 def test_load_profile_rejects_blank_medical_overlay_scope(tmp_path: Path) -> None:
@@ -318,10 +318,10 @@ def test_load_profile_rejects_blank_medical_overlay_scope(tmp_path: Path) -> Non
             [
                 'name = "blank-strings"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_scope = "   "',
@@ -343,10 +343,10 @@ def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -
             [
                 'name = "blank-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'research_route_bias_policy = "   "',
@@ -368,10 +368,10 @@ def test_load_profile_rejects_invalid_medical_overlay_bootstrap_mode(tmp_path: P
             [
                 'name = "invalid-bootstrap-mode"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_bootstrap_mode = "rebuild_everything"',
@@ -393,10 +393,10 @@ def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Pat
             [
                 'name = "invalid-legacy-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'deepscientist_runtime_root = "/tmp/workspace/ops/deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'legacy_code_execution_policy = "always_yes"',
