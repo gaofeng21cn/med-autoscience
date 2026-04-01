@@ -45,6 +45,9 @@ def inspect_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[st
         "freeze_base_commit": None,
         "applied_commits": (),
         "is_controlled_fork": False,
+        "upstream_remote_name": None,
+        "upstream_branch": None,
+        "upstream_ref": None,
         "checks": {
             "manifest_file_exists": False,
             "manifest_payload_is_mapping": False,
@@ -91,6 +94,18 @@ def inspect_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[st
         result["freeze_base_commit"] = freeze_base_commit
 
     result["applied_commits"] = _normalize_commits(payload.get("applied_commits"))
+
+    upstream_tracking = payload.get("upstream_tracking")
+    if isinstance(upstream_tracking, dict):
+        upstream_remote_name = _normalize_string(upstream_tracking.get("remote_name"))
+        upstream_branch = _normalize_string(upstream_tracking.get("branch"))
+        upstream_ref = _normalize_string(upstream_tracking.get("ref"))
+        if upstream_remote_name:
+            result["upstream_remote_name"] = upstream_remote_name
+        if upstream_branch:
+            result["upstream_branch"] = upstream_branch
+        if upstream_ref:
+            result["upstream_ref"] = upstream_ref
 
     is_controlled = payload.get("is_controlled_fork")
     if isinstance(is_controlled, bool):

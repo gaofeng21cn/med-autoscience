@@ -122,3 +122,27 @@ def test_inspect_deepscientist_repo_manifest_recognizes_new_runtime_name_without
     assert result["freeze_base_commit"] == "abc123"
     assert result["applied_commits"] == ("111",)
     assert result["is_controlled_fork"] is True
+
+
+def test_inspect_deepscientist_repo_manifest_parses_upstream_tracking_fields(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
+    payload = {
+        "engine_id": "med-deepscientist",
+        "engine_family": "MedDeepScientist",
+        "freeze_base_commit": "abc123",
+        "upstream_tracking": {
+            "remote_name": "upstream",
+            "branch": "main",
+            "ref": "upstream/main",
+        },
+    }
+    manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    result = inspect_deepscientist_repo_manifest(repo_root)
+
+    assert result["is_controlled_fork"] is True
+    assert result["upstream_remote_name"] == "upstream"
+    assert result["upstream_branch"] == "main"
+    assert result["upstream_ref"] == "upstream/main"

@@ -22,8 +22,24 @@ def _run_git(repo_root: Path, *args: str) -> tuple[int, str]:
     return completed.returncode, output
 
 
+def _resolve_comparison_target(manifest_info: dict[str, Any]) -> tuple[str, str, str]:
+    upstream_remote_name = str(manifest_info.get("upstream_remote_name") or "").strip()
+    upstream_branch = str(manifest_info.get("upstream_branch") or "").strip() or "main"
+    upstream_ref = str(manifest_info.get("upstream_ref") or "").strip()
+    is_controlled_fork = bool(manifest_info.get("is_controlled_fork"))
+
+    if upstream_ref:
+        return upstream_remote_name or upstream_ref.split("/", 1)[0], upstream_branch, upstream_ref
+    if upstream_remote_name:
+        return upstream_remote_name, upstream_branch, f"{upstream_remote_name}/{upstream_branch}"
+    if is_controlled_fork:
+        return "upstream", "main", "upstream/main"
+    return "origin", "main", "origin/main"
+
+
 def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False) -> dict[str, Any]:
     manifest_info = inspect_deepscientist_repo_manifest(repo_root)
+    comparison_remote_name, comparison_branch, comparison_ref = _resolve_comparison_target(manifest_info)
     if repo_root is None:
         return {
             "configured": False,
@@ -35,6 +51,11 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
             "current_branch": None,
             "head_commit": None,
             "origin_main_commit": None,
+            "comparison_remote_name": comparison_remote_name,
+            "comparison_branch": comparison_branch,
+            "comparison_ref": comparison_ref,
+            "comparison_main_commit": None,
+            "comparison_ref_resolved": False,
             "ahead_count": None,
             "behind_count": None,
             "working_tree_clean": None,
@@ -53,6 +74,11 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
         "current_branch": None,
         "head_commit": None,
         "origin_main_commit": None,
+        "comparison_remote_name": comparison_remote_name,
+        "comparison_branch": comparison_branch,
+        "comparison_ref": comparison_ref,
+        "comparison_main_commit": None,
+        "comparison_ref_resolved": False,
         "ahead_count": None,
         "behind_count": None,
         "working_tree_clean": None,
@@ -68,7 +94,7 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
     result["is_git_repo"] = True
 
     if refresh:
-        refresh_code, _ = _run_git(resolved_repo_root, "fetch", "origin", "--prune")
+        refresh_code, _ = _run_git(resolved_repo_root, "fetch", comparison_remote_name, "--prune")
         result["refresh_succeeded"] = refresh_code == 0
 
     branch_code, branch_name = _run_git(resolved_repo_root, "branch", "--show-current")
@@ -79,10 +105,13 @@ def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False)
     if head_code == 0 and head_commit:
         result["head_commit"] = head_commit
 
-    origin_code, origin_commit = _run_git(resolved_repo_root, "rev-parse", "--short", "origin/main")
-    if origin_code == 0 and origin_commit:
-        result["origin_main_commit"] = origin_commit
-        count_code, counts = _run_git(resolved_repo_root, "rev-list", "--left-right", "--count", "HEAD...origin/main")
+    comparison_code, comparison_commit = _run_git(resolved_repo_root, "rev-parse", "--short", comparison_ref)
+    if comparison_code == 0 and comparison_commit:
+        result["comparison_main_commit"] = comparison_commit
+        result["comparison_ref_resolved"] = True
+        if comparison_remote_name == "origin" and comparison_branch == "main":
+            result["origin_main_commit"] = comparison_commit
+        count_code, counts = _run_git(resolved_repo_root, "rev-list", "--left-right", "--count", f"HEAD...{comparison_ref}")
         if count_code == 0 and counts:
             left_right = counts.split()
             if len(left_right) == 2:
@@ -164,6 +193,7 @@ def _determine_decision(
     current_branch = str(repo_check.get("current_branch") or "").strip() or None
     ahead_count = int(repo_check.get("ahead_count") or 0)
     upstream_update_available = bool(repo_check.get("upstream_update_available"))
+    comparison_ref_resolved = bool(repo_check.get("comparison_ref_resolved"))
 
     behavior_gate = workspace_check.get("behavior_gate")
     phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
@@ -207,6 +237,10 @@ def _determine_decision(
     if repo_check["working_tree_clean"] is False:
         actions.append("clean_or_commit_deepscientist_repo_before_upgrade")
         return "blocked_dirty_repo", actions
+
+    if is_controlled_fork and not comparison_ref_resolved:
+        actions.append("configure_controlled_fork_upstream_tracking")
+        return "blocked_controlled_fork_upstream_tracking_missing", actions
 
     if current_branch != "main":
         actions.append("review_local_branch_before_upgrade")
