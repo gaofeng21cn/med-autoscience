@@ -18,7 +18,7 @@
 4. runtime watch controller
 5. study delivery sync
 6. data assets controller
-7. DeepScientist upstream upgrade check
+7. MedDeepScientist upstream upgrade check
 
 对应的 Python 实现在包内：
 
@@ -55,7 +55,7 @@
 - `data_asset_updates`
   - 负责统一的 Agent mutation 入口、mutation log 写入，以及 mutation 后的 refresh 汇总
 
-对于 `DeepScientist` 本体升级，当前 controller 采取的是“先审计、后升级”的策略：
+对于 `MedDeepScientist` 运行时升级，当前 controller 采取的是“先审计、后升级”的策略：
 
 - `deepscientist_upgrade_check`
   - 不直接执行升级
@@ -64,7 +64,7 @@
 
 后续优先顺序：
 
-1. DeepScientist adapter 分层
+1. MedDeepScientist adapter 分层
 2. policy/config 外置化
 3. workspace-local thin entry scripts
 4. publication profile 驱动更细粒度规则

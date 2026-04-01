@@ -20,7 +20,7 @@
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
-- `MedAutoScience` / `DeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
+- `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
@@ -57,12 +57,12 @@
 
 ## 唯一研究入口
 
-在当前架构里，`MedAutoScience` 是唯一研究入口，`DeepScientist` 只是 runtime。
+在当前架构里，`MedAutoScience` 是唯一研究入口，`MedDeepScientist`（仓库名 `med-deepscientist`）是默认受控 runtime；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
 
 因此：
 
-- Agent 不应直接调用 `DeepScientist` daemon HTTP API 发起 quest
-- Agent 不应把 `DeepScientist` UI / CLI 当成研究入口
+- Agent 不应直接调用 `MedDeepScientist` daemon HTTP API 发起 quest
+- Agent 不应把 `MedDeepScientist` UI / CLI 当成研究入口
 - `ops/deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
 - 所有正式研究推进都应经由 `doctor`、`bootstrap`、`overlay-status`、`ensure-study-runtime` 和受管 route
 
@@ -82,7 +82,7 @@ Agent 调用接口时，优先遵守以下顺序：
 
 1. 先读状态，再做变更
 2. 优先使用平台提供的稳定入口，不直接改底层状态文件
-3. 不直接调用 `DeepScientist` daemon API，也不绕过 `MedAutoScience` controller
+3. 不直接调用 `MedDeepScientist` daemon API，也不绕过 `MedAutoScience` controller
 4. 把可审计结果落到 workspace 中，而不是只停留在会话上下文
 5. 变更数据资产时，优先使用统一 mutation 入口，而不是散落地手工更新多个文件
 
@@ -217,9 +217,9 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 
 如果这些环境还没接好，不要急着调用研究阶段接口，因为很多状态落盘路径都依赖 workspace contract。
 
-## DeepScientist 上游升级检查
+## MedDeepScientist 上游升级检查
 
-当 Agent 发现 `DeepScientist` 上游有新提交，或者准备把本机运行时切到新的 upstream 版本时，不应直接原地升级。推荐先执行：
+当 Agent 发现 `MedDeepScientist` 所跟踪的 upstream `DeepScientist` 有新提交，或者准备把本机运行时切到新的 intake 版本时，不应直接原地升级。推荐先执行：
 
 ```bash
 PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --profile profiles/my-study.local.toml --refresh
@@ -254,7 +254,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 - `needs_branch_review`
   - 当前 checkout 不在稳定主线；如果只是受控 fork 的 `main` 保留了经过审计的领先提交，这一项不应触发
 - `blocked_dirty_repo`
-  - 本地 `DeepScientist` repo 有未提交改动，应先清理
+  - 本地 `MedDeepScientist` repo 有未提交改动，应先清理
 - `overlay_reapply_needed`
   - 当前没有 upstream 更新，但医学 overlay 已不再处于理想状态，应先重覆写
 - `up_to_date`
@@ -263,7 +263,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 对于 Agent 来说，推荐流程是：
 
 1. 先跑 `deepscientist-upgrade-check`
-2. 只在结果明确允许时，才去更新 `DeepScientist` 本体
+2. 只在结果明确允许时，才去更新 `MedDeepScientist` 运行时
 3. 更新后重新跑 `deepscientist-upgrade-check`
 4. 必要时执行 `reapply-medical-overlay`
 5. 最后再执行一次 `bootstrap` 或至少 `overlay-status`
@@ -279,7 +279,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli deepscientist-upgrade-check --prof
 
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或未来 GitHub repo `med-deepscientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`deepscientist_repo_root` 现阶段主要仍服务于 `deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 `deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`deepscientist_repo_root` 现阶段主要仍服务于 `deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
 只要 `phase_25_ready=false`，`deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `deepscientist_repo_root` 视作真正的执行真相来源。
 

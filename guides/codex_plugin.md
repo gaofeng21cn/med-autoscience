@@ -17,7 +17,8 @@
 - 不替代 `medautosci`
 - 不替代 controller contract
 - 不取消 profile 驱动的 workspace 绑定
-- 不改变 `DeepScientist` overlay 的安装模型
+- 不改变 `MedDeepScientist` overlay 的安装模型
+- 不会替你安装 `MedDeepScientist`；研究运行前仍需本机准备 `med-deepscientist` 并在 profile 中配置
 
 ## 兼容性边界
 
@@ -81,6 +82,8 @@ Compatibility note:
 - `.agents/plugins/marketplace.json` into `~/.agents/plugins/marketplace.json`
 
 然后确保 `medautosci-mcp` 仍然在 `PATH` 上。
+
+这里仍然只安装 `MedAutoScience` 的 plugin / skill / MCP 入口，不会顺带安装 `MedDeepScientist` runtime。
 
 ## 作用边界
 

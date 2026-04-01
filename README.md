@@ -133,7 +133,7 @@
 如果只看高层角色，可以把内部组成理解为：
 
 - 医学研究主控与门控：`MedAutoScience`
-- 主运行层与长期研究执行：`DeepScientist`
+- 主运行层与长期研究执行：`MedDeepScientist`（仓库：`med-deepscientist`，上游来源：`DeepScientist`）
 - 算法创新侧翼执行层：`ARIS`
 - 协调推进智能体：`Codex`
 - 外部知识、工具与专项分析扩展层：`ToolUniverse`
@@ -153,7 +153,7 @@
 - `workspace`：病种级长期资产层
 - `datasets/` 与 `portfolio/data_assets/`：workspace 级数据资产层
 - `studies/<study-id>/`：单条研究线，通常对应一篇主稿或一组强关联投稿产物
-- `quest`：`DeepScientist` 在该 study 下的运行状态
+- `quest`：`MedDeepScientist` 在该 study 下的运行状态
 - `paper bundle / submission package`：面向投稿的 study-local 交付物
 
 <details>
@@ -184,6 +184,8 @@ uv run python -m build --sdist --wheel
 
 如果你主要通过 Codex 驱动 `MedAutoScience`，现在已经可以直接使用仓库内置的 Codex plugin。
 它提供了 plugin、skill、MCP 和一键安装脚本，但不会替代现有的 `medautosci`、controller、profile 或 overlay 接口。
+
+研究真正运行前，仍需单独准备受控 runtime `MedDeepScientist`（仓库名 `med-deepscientist`），并把 profile 里的 `deepscientist_repo_root` 指向该 checkout。
 
 - Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
 - 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)
@@ -229,7 +231,7 @@ uv run python -m build --sdist --wheel
    - macOS，架构仅支持 Apple Silicon `arm64` 或 Intel `x86_64`
    - 系统里可用 `bash`、`curl`、`tar`
    - 有稳定的网络，用于下载 `uv`、Python 3.12 runtime 和当前 Release 资产
-   - 当前 Release 只解决 CLI 安装，不会替你安装 `DeepScientist`、`Codex`、`pandoc` 或创建研究 workspace
+   - 当前 Release 只解决 CLI 安装，不会替你安装 `MedDeepScientist`（仓库名 `med-deepscientist`）、`Codex`、`pandoc` 或创建研究 workspace
 
 3. 升级与卸载
 

@@ -18,7 +18,7 @@
 - repo-local / home-local plugin 目录形态
 - plugin skill
 - plugin-local MCP manifest
-- 只读 MCP server，覆盖 doctor、profile、overlay、runtime watch、data assets status、startup data readiness、DeepScientist upgrade check
+- 只读 MCP server，覆盖 doctor、profile、overlay、runtime watch、data assets status、startup data readiness、MedDeepScientist upgrade check
 
 ## 设计边界
 
@@ -51,6 +51,8 @@ bash scripts/install-codex-plugin.sh
 - 在 `~/plugins/med-autoscience` 建立 home-local plugin 链接
 - 在 `~/.agents/skills/med-autoscience` 建立 skill 发现链接
 - 在 `~/.agents/plugins/marketplace.json` 写入插件入口
+
+它不会替你安装 `MedDeepScientist` runtime；研究运行前仍需本机准备 `med-deepscientist` 并把 profile 指向该 checkout。
 
 执行后请重启 Codex。
 

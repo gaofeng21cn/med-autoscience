@@ -2,7 +2,7 @@
 
 这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
 
-目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入外部共享的 `MedAutoScience` 与 `DeepScientist`。
+目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入外部共享的 `MedAutoScience` 与 `MedDeepScientist`（仓库名 `med-deepscientist`）。
 
 ## 先记住一句话
 
@@ -56,7 +56,7 @@ workspace 级数据版本层。
 
 ### 4. `quest`
 
-`DeepScientist` 在某个 study 下的运行状态。
+`MedDeepScientist` 在某个 study 下的运行状态。
 
 它更像运行过程和任务执行面，不是病种级目录。
 
@@ -144,14 +144,14 @@ uv run python -m med_autoscience.cli init-workspace \
 ## Runtime Boundary
 
 - `MedAutoScience` 是正式研究入口
-- `DeepScientist` 只是 workspace 内的 runtime
-- 不要直接通过 `DeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
+- `MedDeepScientist` 是默认受控 runtime
+- 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - `ops/deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
 
 ## 常见误区
 
 - 不要复制整个 legacy workspace 当模板
-- 不要在每个病种 workspace 里再 clone 一份 `DeepScientist`
+- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；统一使用外部共享的 `med-deepscientist`
 - 不要把单篇论文目录当成 workspace 顶层
 - 不要在每个 study 下各自维护一份未经登记的数据真相源
 
