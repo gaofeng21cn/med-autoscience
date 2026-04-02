@@ -25,7 +25,7 @@ def make_profile(tmp_path: Path):
         studies_root=workspace_root / "studies",
         portfolio_root=workspace_root / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,
@@ -505,7 +505,7 @@ def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tm
     assert startup_contract["reporting_guideline_family"] == "TRIPOD"
 
 
-def test_ensure_study_runtime_omits_reporting_guideline_when_reporting_contract_is_unresolved(
+def test_ensure_study_runtime_blocks_before_create_when_reporting_contract_is_unresolved(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -528,6 +528,7 @@ def test_ensure_study_runtime_omits_reporting_guideline_when_reporting_contract_
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
         paper_framing_summary="Prediction framing is fixed.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
@@ -570,11 +571,15 @@ def test_ensure_study_runtime_omits_reporting_guideline_when_reporting_contract_
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
 
-    module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
 
-    startup_contract = created["payload"]["startup_contract"]
-    assert startup_contract["medical_reporting_contract_summary"]["status"] == "unsupported"
-    assert startup_contract["reporting_guideline_family"] is None
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "startup_contract_resolution_failed"
+    assert result["startup_contract_validation"]["blockers"] == [
+        "unsupported_medical_analysis_contract",
+        "unsupported_medical_reporting_contract",
+    ]
+    assert "payload" not in created
 
 
 def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path) -> None:
@@ -583,6 +588,9 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
         paper_framing_summary="Prediction framing is fixed.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
@@ -655,6 +663,9 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
         paper_framing_summary="Prediction framing is fixed.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
@@ -713,6 +724,189 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         ("create", False),
         ("hydrate", profile.runtime_root / "001-risk"),
         ("validate", profile.runtime_root / "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_blocks_before_create_when_startup_contract_is_unresolved(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = replace(make_profile(tmp_path), preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    created: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "create_quest",
+        lambda *, runtime_root, payload: created.setdefault("payload", payload)
+        or {"ok": True, "snapshot": {"quest_id": "001-risk", "status": "created"}},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "startup_contract_resolution_failed"
+    assert result["startup_contract_validation"]["status"] == "blocked"
+    assert result["startup_contract_validation"]["blockers"] == [
+        "unsupported_medical_analysis_contract",
+        "unsupported_medical_reporting_contract",
+    ]
+    assert "payload" not in created
+
+
+def test_ensure_study_runtime_archives_invalid_partial_quest_root_before_create(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    invalid_quest_root = profile.runtime_root / "001-risk"
+    write_text(invalid_quest_root / "paper" / "medical_analysis_contract.json", '{"status":"unsupported"}\n')
+    created: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "_timestamp_slug", lambda: "20260402T010203Z")
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
+        created["payload"] = payload
+        assert not invalid_quest_root.exists()
+        write_text(invalid_quest_root / "quest.yaml", "quest_id: 001-risk\n")
+        return {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(invalid_quest_root),
+                "status": "created",
+            },
+        }
+
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(run_validation=lambda **kwargs: {"status": "clear", "blockers": []}),
+        raising=False,
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    archived_root = (
+        profile.med_deepscientist_runtime_root
+        / "recovery"
+        / "invalid_partial_quest_roots"
+        / "001-risk-20260402T010203Z"
+    )
+    assert result["partial_quest_recovery"]["status"] == "archived_invalid_partial_quest_root"
+    assert result["partial_quest_recovery"]["archived_root"] == str(archived_root)
+    assert archived_root.joinpath("paper", "medical_analysis_contract.json").exists()
+    assert created["payload"]["quest_id"] == "001-risk"
+
+
+def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_quest_when_resume_is_blocked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"created"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "startup_boundary_not_ready_for_resume"
+    assert result["startup_hydration_validation"]["status"] == "clear"
+    assert calls == [
+        ("hydrate", quest_root),
+        ("validate", quest_root),
     ]
 
 
@@ -1034,6 +1228,9 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
@@ -1223,6 +1420,9 @@ def test_ensure_study_runtime_blocks_when_runtime_reentry_gate_is_incomplete(
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
@@ -1320,7 +1520,13 @@ def test_ensure_study_runtime_pauses_running_quest_when_startup_boundary_disallo
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(profile.workspace_root, "001-risk")
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
@@ -1368,7 +1574,13 @@ def test_ensure_study_runtime_blocks_resume_when_startup_boundary_disallows_comp
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(profile.workspace_root, "001-risk")
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
@@ -1600,6 +1812,9 @@ def test_ensure_study_runtime_blocks_when_analysis_bundle_is_not_ready(monkeypat
     write_study(
         profile.workspace_root,
         "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
         paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
