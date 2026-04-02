@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -10,6 +11,15 @@ from .layout import build_workspace_runtime_layout_for_profile
 
 if TYPE_CHECKING:
     from med_autoscience.profiles import WorkspaceProfile
+
+
+@dataclass(frozen=True)
+class StudyRuntimeContext:
+    runtime_root: Path
+    quest_root: Path
+    runtime_binding_path: Path
+    startup_payload_root: Path
+    launch_report_path: Path
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -23,6 +33,24 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
 
 
+def resolve_study_runtime_context(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+) -> StudyRuntimeContext:
+    layout = build_workspace_runtime_layout_for_profile(profile)
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    return StudyRuntimeContext(
+        runtime_root=layout.runtime_root,
+        quest_root=layout.quest_root(quest_id),
+        runtime_binding_path=resolved_study_root / "runtime_binding.yaml",
+        startup_payload_root=layout.startup_payload_root(study_id),
+        launch_report_path=resolved_study_root / "artifacts" / "runtime" / "last_launch_report.json",
+    )
+
+
 def resolve_study_runtime_paths(
     *,
     profile: WorkspaceProfile,
@@ -30,14 +58,18 @@ def resolve_study_runtime_paths(
     study_id: str,
     quest_id: str,
 ) -> dict[str, Path]:
-    layout = build_workspace_runtime_layout_for_profile(profile)
-    resolved_study_root = Path(study_root).expanduser().resolve()
+    context = resolve_study_runtime_context(
+        profile=profile,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+    )
     return {
-        "runtime_root": layout.runtime_root,
-        "quest_root": layout.quest_root(quest_id),
-        "runtime_binding_path": resolved_study_root / "runtime_binding.yaml",
-        "startup_payload_root": layout.startup_payload_root(study_id),
-        "launch_report_path": resolved_study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        "runtime_root": context.runtime_root,
+        "quest_root": context.quest_root,
+        "runtime_binding_path": context.runtime_binding_path,
+        "startup_payload_root": context.startup_payload_root,
+        "launch_report_path": context.launch_report_path,
     }
 
 

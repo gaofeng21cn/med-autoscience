@@ -422,15 +422,15 @@ def _status_payload(
     execution = _execution_payload(study_payload)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
-    paths = study_runtime_protocol.resolve_study_runtime_paths(
+    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
         profile=profile,
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
     )
-    runtime_root = Path(paths["runtime_root"])
-    quest_root = paths["quest_root"]
-    runtime_binding_path = paths["runtime_binding_path"]
+    runtime_root = runtime_context.runtime_root
+    quest_root = runtime_context.quest_root
+    runtime_binding_path = runtime_context.runtime_binding_path
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = bool(quest_runtime.get("quest_exists"))
     quest_status_value = str(quest_runtime.get("quest_status") or "").strip()
@@ -663,16 +663,16 @@ def ensure_study_runtime(
     )
     execution = _execution_payload(study_payload)
     quest_id = str(execution.get("quest_id") or resolved_study_id).strip() or resolved_study_id
-    paths = study_runtime_protocol.resolve_study_runtime_paths(
+    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
         profile=profile,
         study_root=resolved_study_root,
         study_id=resolved_study_id,
         quest_id=quest_id,
     )
-    runtime_root = Path(paths["runtime_root"])
-    quest_root = paths["quest_root"]
-    runtime_binding_path = paths["runtime_binding_path"]
-    launch_report_path = paths["launch_report_path"]
+    runtime_root = runtime_context.runtime_root
+    quest_root = runtime_context.quest_root
+    runtime_binding_path = runtime_context.runtime_binding_path
+    launch_report_path = runtime_context.launch_report_path
     startup_payload_path: Path | None = None
     binding_last_action: str | None = None
     daemon_result: dict[str, Any] | None = None
@@ -742,7 +742,7 @@ def ensure_study_runtime(
         create_payload["auto_start"] = False
         if status["decision"] in {"create_and_start", "create_only"}:
             startup_payload_path = study_runtime_protocol.write_startup_payload(
-                startup_payload_root=paths["startup_payload_root"],
+                startup_payload_root=runtime_context.startup_payload_root,
                 create_payload=create_payload,
                 slug=_timestamp_slug(),
             )
