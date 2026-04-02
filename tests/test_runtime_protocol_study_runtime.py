@@ -30,7 +30,7 @@ def make_profile(tmp_path: Path):
     )
 
 
-def test_resolve_study_runtime_paths_derives_binding_and_launch_paths(tmp_path: Path) -> None:
+def test_resolve_study_runtime_paths_derives_binding_launch_and_runtime_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     profile = make_profile(tmp_path)
     study_root = profile.studies_root / "001-risk"
@@ -42,6 +42,7 @@ def test_resolve_study_runtime_paths_derives_binding_and_launch_paths(tmp_path: 
         quest_id="quest-001",
     )
 
+    assert result["runtime_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
     assert result["quest_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     assert result["runtime_binding_path"] == study_root / "runtime_binding.yaml"
     assert result["startup_payload_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"

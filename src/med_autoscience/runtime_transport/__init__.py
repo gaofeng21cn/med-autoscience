@@ -9,6 +9,7 @@ from .med_deepscientist import (
     post_quest_control,
     resolve_daemon_url,
     resume_quest,
+    sync_completion_with_approval,
     stop_quest,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "post_quest_control",
     "resolve_daemon_url",
     "resume_quest",
+    "sync_completion_with_approval",
     "stop_quest",
 ]
