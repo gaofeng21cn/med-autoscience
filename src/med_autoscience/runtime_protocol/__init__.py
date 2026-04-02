@@ -28,7 +28,10 @@ from .runtime_watch import (
 )
 from .study_runtime import (
     archive_invalid_partial_quest_root,
+    build_hydration_payload,
     resolve_study_runtime_paths,
+    should_refresh_startup_hydration_while_blocked,
+    validate_startup_contract_resolution,
     write_launch_report,
     write_runtime_binding,
 )
@@ -48,6 +51,7 @@ __all__ = [
     "PaperRootContext",
     "WorkspaceRuntimeLayout",
     "archive_invalid_partial_quest_root",
+    "build_hydration_payload",
     "build_workspace_runtime_layout",
     "build_workspace_runtime_layout_for_profile",
     "enqueue_user_message",
@@ -73,6 +77,8 @@ __all__ = [
     "resolve_worktree_root_from_paper_root",
     "load_watch_state",
     "save_watch_state",
+    "should_refresh_startup_hydration_while_blocked",
+    "validate_startup_contract_resolution",
     "write_watch_report",
     "plan_controller_intervention",
     "resolve_study_runtime_paths",

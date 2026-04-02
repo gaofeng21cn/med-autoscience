@@ -40,6 +40,94 @@ def resolve_study_runtime_paths(
     }
 
 
+def build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, object]:
+    startup_contract = create_payload.get("startup_contract")
+    if not isinstance(startup_contract, dict):
+        raise ValueError("create payload missing startup_contract")
+    medical_analysis_contract = startup_contract.get("medical_analysis_contract_summary")
+    if not isinstance(medical_analysis_contract, dict):
+        raise ValueError("startup_contract missing medical_analysis_contract_summary")
+    medical_reporting_contract = startup_contract.get("medical_reporting_contract_summary")
+    if not isinstance(medical_reporting_contract, dict):
+        raise ValueError("startup_contract missing medical_reporting_contract_summary")
+    entry_state_summary = startup_contract.get("entry_state_summary")
+    if not isinstance(entry_state_summary, str) or not entry_state_summary.strip():
+        raise ValueError("startup_contract missing entry_state_summary")
+    return {
+        "medical_analysis_contract": dict(medical_analysis_contract),
+        "medical_reporting_contract": dict(medical_reporting_contract),
+        "entry_state_summary": entry_state_summary.strip(),
+    }
+
+
+def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> dict[str, Any]:
+    def validate_contract(
+        *,
+        payload: object,
+        missing_blocker: str,
+        invalid_blocker: str,
+        unsupported_blocker: str,
+        unresolved_blocker: str,
+    ) -> tuple[str | None, str | None, str | None]:
+        if payload is None:
+            return None, missing_blocker, None
+        if not isinstance(payload, dict):
+            return None, invalid_blocker, None
+        status = str(payload.get("status") or "").strip()
+        reason_code = str(payload.get("reason_code") or "").strip() or None
+        if status == "resolved":
+            return status, None, reason_code
+        if status == "unsupported":
+            return status, unsupported_blocker, reason_code
+        return status or None, unresolved_blocker, reason_code
+
+    blockers: list[str] = []
+    analysis_status, analysis_blocker, analysis_reason = validate_contract(
+        payload=startup_contract.get("medical_analysis_contract_summary"),
+        missing_blocker="missing_medical_analysis_contract",
+        invalid_blocker="invalid_medical_analysis_contract",
+        unsupported_blocker="unsupported_medical_analysis_contract",
+        unresolved_blocker="unresolved_medical_analysis_contract",
+    )
+    reporting_status, reporting_blocker, reporting_reason = validate_contract(
+        payload=startup_contract.get("medical_reporting_contract_summary"),
+        missing_blocker="missing_medical_reporting_contract",
+        invalid_blocker="invalid_medical_reporting_contract",
+        unsupported_blocker="unsupported_medical_reporting_contract",
+        unresolved_blocker="unresolved_medical_reporting_contract",
+    )
+    if analysis_blocker is not None:
+        blockers.append(analysis_blocker)
+    if reporting_blocker is not None:
+        blockers.append(reporting_blocker)
+    return {
+        "status": "blocked" if blockers else "clear",
+        "blockers": blockers,
+        "contract_statuses": {
+            "medical_analysis_contract": analysis_status,
+            "medical_reporting_contract": reporting_status,
+        },
+        "reason_codes": {
+            "medical_analysis_contract": analysis_reason,
+            "medical_reporting_contract": reporting_reason,
+        },
+    }
+
+
+def should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> bool:
+    if status.get("decision") != "blocked" or not bool(status.get("quest_exists")):
+        return False
+    quest_status = str(status.get("quest_status") or "").strip()
+    if quest_status not in {"created", "idle", "paused"}:
+        return False
+    return str(status.get("reason") or "").strip() in {
+        "startup_boundary_not_ready_for_resume",
+        "runtime_reentry_not_ready_for_resume",
+        "quest_paused_but_auto_resume_disabled",
+        "quest_initialized_but_auto_resume_disabled",
+    }
+
+
 def write_runtime_binding(
     *,
     runtime_binding_path: Path,

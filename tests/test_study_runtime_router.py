@@ -1211,6 +1211,63 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     ]
 
 
+def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"created"}\n')
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "should_refresh_startup_hydration_while_blocked",
+        lambda status: False,
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append("hydrate") or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(run_validation=lambda **kwargs: calls.append("validate") or {"status": "clear", "blockers": []}),
+        raising=False,
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert calls == []
+
+
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
@@ -2098,21 +2155,174 @@ def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeyp
     assert result["startup_boundary_gate"]["journal_shortlist_contract_status"] == "absent"
 
 
-def test_build_hydration_payload_is_protocol_explicit() -> None:
+def test_study_runtime_status_uses_protocol_startup_contract_validation(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    create_payload = {
-        "startup_contract": {
-            "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
-            "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
-            "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
-        }
-    }
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Prediction framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
 
-    payload = module._build_hydration_payload(create_payload=create_payload)
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "validate_startup_contract_resolution",
+        lambda *, startup_contract: {
+            "status": "blocked",
+            "blockers": ["forced_status_blocker"],
+            "contract_statuses": {},
+            "reason_codes": {},
+        },
+    )
 
-    assert payload["medical_analysis_contract"]["study_archetype"] == "clinical_classifier"
-    assert payload["medical_reporting_contract"]["reporting_guideline_family"] == "TRIPOD"
-    assert payload["entry_state_summary"].startswith("Study root:")
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "startup_contract_resolution_failed"
+    assert result["startup_contract_validation"]["blockers"] == ["forced_status_blocker"]
+
+
+def test_ensure_study_runtime_uses_protocol_hydration_payload_builder(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Prediction framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "create_quest",
+        lambda *, runtime_root, payload: {
+            "ok": True,
+            "snapshot": {"quest_id": "001-risk", "quest_root": str(runtime_root / "001-risk"), "status": "created"},
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "build_hydration_payload",
+        lambda *, create_payload: seen.setdefault("hydration_payload", {"sentinel": True}),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda *, quest_root, hydration_payload: seen.setdefault("run_hydration", hydration_payload)
+            or {"status": "hydrated"}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(run_validation=lambda *, quest_root: {"status": "clear", "blockers": []}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "create_and_start"
+    assert seen["hydration_payload"] == {"sentinel": True}
+    assert seen["run_hydration"] == {"sentinel": True}
+
+
+def test_ensure_study_runtime_uses_protocol_startup_contract_validation(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    called: dict[str, object] = {"create_called": False}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "validate_startup_contract_resolution",
+        lambda *, startup_contract: {
+            "status": "blocked",
+            "blockers": ["forced_blocker"],
+            "contract_statuses": {},
+            "reason_codes": {},
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "create_quest",
+        lambda **kwargs: called.__setitem__("create_called", True) or {},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert result["startup_contract_validation"]["blockers"] == ["forced_blocker"]
+    assert called["create_called"] is False
 
 
 def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
