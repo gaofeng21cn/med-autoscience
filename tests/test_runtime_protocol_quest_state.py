@@ -5,6 +5,7 @@ from pathlib import Path
 
 from med_autoscience.runtime_protocol.quest_state import (
     find_latest_main_result_path,
+    inspect_quest_runtime,
     load_runtime_state,
     read_recent_stdout_lines,
     resolve_active_stdout_path,
@@ -69,3 +70,29 @@ def test_read_recent_stdout_lines_filters_bad_json_and_limits_count(tmp_path: Pa
     result = read_recent_stdout_lines(stdout_path, limit=3)
 
     assert result == ["second", "third"]
+
+
+def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: q001\n", encoding="utf-8")
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
+
+    result = inspect_quest_runtime(quest_root)
+
+    assert result == {
+        "quest_exists": True,
+        "quest_status": "running",
+    }
+
+
+def test_inspect_quest_runtime_reports_missing_quest_when_quest_yaml_is_absent(tmp_path: Path) -> None:
+    quest_root = tmp_path / "q001"
+    dump_json(quest_root / ".ds" / "runtime_state.json", {"status": "running"})
+
+    result = inspect_quest_runtime(quest_root)
+
+    assert result == {
+        "quest_exists": False,
+        "quest_status": None,
+    }

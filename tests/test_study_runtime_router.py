@@ -381,9 +381,9 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        module.quest_state,
         "inspect_quest_runtime",
-        lambda *, runtime_root, quest_root, quest_id: {
+        lambda quest_root: {
             "quest_exists": False,
             "quest_status": None,
         },
@@ -509,9 +509,9 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
     write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
 
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        module.quest_state,
         "inspect_quest_runtime",
-        lambda *, runtime_root, quest_root, quest_id: {
+        lambda quest_root: {
             "quest_exists": True,
             "quest_status": "paused",
         },
@@ -565,9 +565,9 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
 
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        module.quest_state,
         "inspect_quest_runtime",
-        lambda *, runtime_root, quest_root, quest_id: {
+        lambda quest_root: {
             "quest_exists": True,
             "quest_status": "paused",
         },
