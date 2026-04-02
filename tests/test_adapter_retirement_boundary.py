@@ -19,3 +19,10 @@ def test_production_code_does_not_import_deepscientist_adapters() -> None:
         violations.append(str(path.relative_to(REPO_ROOT)))
 
     assert violations == []
+
+
+def test_legacy_deepscientist_adapter_modules_are_removed() -> None:
+    assert not (ADAPTER_ROOT / "daemon_api.py").exists()
+    assert not (ADAPTER_ROOT / "mailbox.py").exists()
+    assert not (ADAPTER_ROOT / "runtime.py").exists()
+    assert not (ADAPTER_ROOT / "paper_bundle.py").exists()

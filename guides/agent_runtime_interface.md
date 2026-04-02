@@ -279,7 +279,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。但这仍不等于 adapter 已可删除，也不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
 只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 
@@ -287,6 +287,9 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 
 Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析提升为自己的协议层，而不是继续散落在 controller 或 adapter 里。
 
+- `med_autoscience.runtime_protocol.layout`
+  - 负责 workspace 内 `ops/med-deepscientist/`、runtime root、quests root、startup brief / payload root、behavior gate 等 project-local runtime 路径契约
+  - `study_runtime_router`、`workspace_contracts`、`workspace_init` 等 controller / scaffold 代码应统一经由这层派生路径，而不是散落硬编码 `ops/med-deepscientist/...`
 - `med_autoscience.runtime_protocol.topology`
   - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
   - 当前显式承认的受管布局是 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
@@ -308,7 +311,7 @@ Phase 3 开始，transport 面也开始显式收口：
   - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
 
-这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前 `adapters/deepscientist/*` 仍保留兼容导出面，但它们现在只应作为 shim / forwarding layer 存在，不再承担 protocol 或 transport 真相。
+这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前正式主链已经不再保留 `adapters/deepscientist/*` 作为运行时依赖，production code 只允许依赖 `runtime_protocol` / `runtime_transport`。
 
 ## Target Layering
 
@@ -352,10 +355,10 @@ Phase 3 开始，transport 面也开始显式收口：
 - 同一概念混放在一个文件里
   - 例如一个模块同时做本地 queue 落盘和 daemon HTTP control
 - 只为兼容历史命名而保留的多层转发
-  - 最终 `adapters/deepscientist/*` 应只剩极薄 shim，成熟后可以整体删除
+  - `adapters/deepscientist/*` 已经从正式主链删除；后续不要重新引入第二套 protocol / transport 真相
 - 没有必要长期保留的 `DeepScientist` 品牌耦合命名
   - 对外 profile、transport 与 workspace 路径已经统一收口到 `med_deepscientist_*`、`med_deepscientist` 与 `ops/med-deepscientist/*`
-  - 剩余 legacy 命名只允许停留在 adapter shim 和上游比较语境里
+  - 剩余 legacy 命名只允许停留在上游比较语境或 runtime 兼容名里
 
 ## 审计与人类复核
 

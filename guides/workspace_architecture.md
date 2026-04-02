@@ -109,6 +109,7 @@ wrapper 不应继续硬编码：
 - `ops/medautoscience/bin/*` 是研究入口
 - `ops/med-deepscientist/bin/*` 是 runtime 运维入口
 - 两者不能混用
+- workspace 内所有 `ops/med-deepscientist/...` 路径派生应统一走 `med_autoscience.runtime_protocol.layout`
 
 ## 标准分层
 
@@ -458,7 +459,7 @@ wrapper 不应继续做：
 目标：
 
 - `ops/medautoscience/bin/*` 只从 profile 取 runtime 路径
-- 不再在 wrapper 中硬编码 `ops/med-deepscientist/runtime/quests`
+- 不再在 wrapper 或 workspace scaffold 中散落硬编码 `ops/med-deepscientist/runtime/quests`
 - 为未来新 workspace 直接复制 wrapper 打基础
 
 ### Phase 2.5: 行为等价门
