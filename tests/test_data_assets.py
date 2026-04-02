@@ -300,6 +300,11 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
     (from_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
     (to_root / "analysis_followup.csv").write_text("id\n1\n2\n", encoding="utf-8")
     (to_root / "new_dictionary.csv").write_text("name\nvalue\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "003-followup-risk" / "study.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../datasets/master/v2026-03-28/analysis.csv",
+    )
 
     result = module.build_private_release_diff(
         workspace_root=workspace_root,
@@ -316,6 +321,8 @@ def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
     assert result["summary"]["inventory"]["removed_files"] == ["analysis.csv"]
     assert result["summary"]["contract"]["changed_fields"][0]["field"] == "generated_by"
     assert result["summary"]["main_outputs"]["changed_outputs"][0]["output_name"] == "analysis_csv"
+    assert result["summary"]["study_impact"]["affected_studies"] == ["003-followup-risk"]
+    assert result["summary"]["study_impact"]["affected_dataset_ids"] == ["nfpitnet_master"]
 
 
 def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release(tmp_path: Path) -> None:
