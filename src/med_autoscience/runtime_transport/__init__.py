@@ -10,6 +10,7 @@ from .med_deepscientist import (
     resume_quest,
     sync_completion_with_approval,
     stop_quest,
+    update_quest_startup_context,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "resume_quest",
     "sync_completion_with_approval",
     "stop_quest",
+    "update_quest_startup_context",
 ]

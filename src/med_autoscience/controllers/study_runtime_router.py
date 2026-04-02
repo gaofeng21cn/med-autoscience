@@ -322,6 +322,22 @@ def _run_startup_hydration(
     return hydration_result, validation_result
 
 
+def _sync_existing_quest_startup_context(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    create_payload: dict[str, Any],
+) -> dict[str, Any]:
+    startup_contract = create_payload.get("startup_contract")
+    if not isinstance(startup_contract, dict):
+        raise ValueError("create payload missing startup_contract")
+    return med_deepscientist_transport.update_quest_startup_context(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        startup_contract=dict(startup_contract),
+    )
+
+
 def _study_completion_state(*, study_root: Path) -> dict[str, Any]:
     try:
         contract = resolve_study_completion_contract(study_root=study_root)
@@ -801,6 +817,12 @@ def ensure_study_runtime(
             study_payload=study_payload,
             execution=execution,
         )
+        startup_context_sync = _sync_existing_quest_startup_context(
+            runtime_root=runtime_root,
+            quest_id=str(status["quest_id"]),
+            create_payload=create_payload,
+        )
+        status["startup_context_sync"] = startup_context_sync
         hydration_result, validation_result = _run_startup_hydration(
             quest_root=quest_root,
             create_payload=create_payload,
@@ -834,6 +856,12 @@ def ensure_study_runtime(
         if startup_contract_validation.status != "clear":
             status["reason"] = "startup_contract_resolution_failed"
         else:
+            startup_context_sync = _sync_existing_quest_startup_context(
+                runtime_root=runtime_root,
+                quest_id=str(status["quest_id"]),
+                create_payload=create_payload,
+            )
+            status["startup_context_sync"] = startup_context_sync
             hydration_result, validation_result = _run_startup_hydration(
                 quest_root=quest_root,
                 create_payload=create_payload,
