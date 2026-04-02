@@ -24,6 +24,7 @@ from med_autoscience.policies.controller_first import render_controller_first_su
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
+from med_autoscience.study_completion import resolve_study_completion_contract
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -451,6 +452,116 @@ def _should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> b
     }
 
 
+def _study_completion_state(*, study_root: Path) -> dict[str, Any]:
+    try:
+        contract = resolve_study_completion_contract(study_root=study_root)
+    except ValueError as exc:
+        return {
+            "ready": False,
+            "status": "invalid",
+            "completion_status": None,
+            "summary": "",
+            "user_approval_text": "",
+            "completed_at": None,
+            "evidence_paths": [],
+            "missing_evidence_paths": [],
+            "errors": [str(exc)],
+        }
+    if contract is None:
+        return {
+            "ready": False,
+            "status": "absent",
+            "completion_status": None,
+            "summary": "",
+            "user_approval_text": "",
+            "completed_at": None,
+            "evidence_paths": [],
+            "missing_evidence_paths": [],
+            "errors": [],
+        }
+    return {
+        "ready": contract.ready,
+        "status": "resolved" if contract.ready else "incomplete",
+        "completion_status": contract.status,
+        "summary": contract.summary,
+        "user_approval_text": contract.user_approval_text,
+        "completed_at": contract.completed_at,
+        "evidence_paths": list(contract.evidence_paths),
+        "missing_evidence_paths": list(contract.missing_evidence_paths),
+        "errors": [],
+    }
+
+
+def _build_study_completion_request_message(*, study_id: str, study_root: Path, completion_state: dict[str, Any]) -> str:
+    summary = str(completion_state.get("summary") or "").strip()
+    evidence_paths = [str(item).strip() for item in (completion_state.get("evidence_paths") or []) if str(item).strip()]
+    lines = [
+        f"Managed study `{study_id}` already has an explicit study-level completion contract.",
+        f"Study root: `{study_root}`",
+        f"Completion summary: {summary}",
+    ]
+    if evidence_paths:
+        lines.append("Evidence paths:")
+        lines.extend(f"- `{item}`" for item in evidence_paths[:12])
+    lines.append("Please record explicit quest-completion approval so the managed runtime can close this study cleanly.")
+    return "\n".join(lines)
+
+
+def _sync_study_completion(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    study_id: str,
+    study_root: Path,
+    completion_state: dict[str, Any],
+    source: str,
+) -> dict[str, Any]:
+    summary = str(completion_state.get("summary") or "").strip()
+    approval_text = str(completion_state.get("user_approval_text") or "").strip()
+    if not summary or not approval_text:
+        raise ValueError("study completion sync requires summary and user approval text")
+    request_result = med_deepscientist_transport.artifact_interact(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        payload={
+            "kind": "decision_request",
+            "message": _build_study_completion_request_message(
+                study_id=study_id,
+                study_root=study_root,
+                completion_state=completion_state,
+            ),
+            "reply_mode": "blocking",
+            "deliver_to_bound_conversations": False,
+            "include_recent_inbound_messages": False,
+            "reply_schema": {"decision_type": "quest_completion_approval"},
+        },
+    )
+    interaction_id = str(request_result.get("interaction_id") or "").strip()
+    if str(request_result.get("status") or "").strip() != "ok" or not interaction_id:
+        raise RuntimeError("failed to create quest completion approval request")
+    approval_message = med_deepscientist_transport.chat_quest(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        text=approval_text,
+        source=source,
+        reply_to_interaction_id=interaction_id,
+    )
+    if approval_message.get("ok") is not True:
+        raise RuntimeError("failed to bind study-level approval into managed quest")
+    completion_result = med_deepscientist_transport.artifact_complete_quest(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        summary=summary,
+    )
+    if str(completion_result.get("status") or "").strip() not in {"completed", "already_completed"}:
+        raise RuntimeError("managed quest completion did not reach completed state")
+    return {
+        "completion_request": request_result,
+        "approval_message": approval_message,
+        "completion": completion_result,
+    }
+
+
 def _status_payload(
     *,
     profile: WorkspaceProfile,
@@ -489,6 +600,7 @@ def _status_payload(
         quest_root=quest_root if quest_exists else None,
         enforce_startup_hydration=quest_status_value in {"running", "active"},
     )
+    completion_state = _study_completion_state(study_root=study_root)
 
     result: dict[str, Any] = {
         "schema_version": 1,
@@ -506,6 +618,7 @@ def _status_payload(
         "startup_data_readiness": readiness,
         "startup_boundary_gate": startup_boundary_gate,
         "runtime_reentry_gate": runtime_reentry_gate,
+        "study_completion_contract": completion_state,
         "controller_first_policy_summary": render_controller_first_summary(),
         "automation_ready_summary": render_automation_ready_summary(),
     }
@@ -524,6 +637,33 @@ def _status_payload(
     if selected_entry_mode != default_entry_mode:
         result["decision"] = "lightweight"
         result["reason"] = "entry_mode_not_managed"
+        return result
+
+    completion_contract_status = str(completion_state.get("status") or "").strip()
+    if completion_contract_status in {"invalid", "incomplete"}:
+        result["decision"] = "blocked"
+        result["reason"] = "study_completion_contract_not_ready"
+        return result
+    if completion_state.get("ready") is True:
+        if not quest_exists:
+            result["decision"] = "completed"
+            result["reason"] = "study_completion_declared_without_managed_quest"
+            return result
+        if quest_status_value == "completed":
+            result["decision"] = "completed"
+            result["reason"] = "quest_already_completed"
+            return result
+        if quest_status_value in {"running", "active"}:
+            bash_session_audit = dict(quest_runtime.get("bash_session_audit") or {})
+            result["bash_session_audit"] = bash_session_audit
+            if str(bash_session_audit.get("status") or "").strip() == "live":
+                result["decision"] = "pause_and_complete"
+            else:
+                result["decision"] = "sync_completion"
+            result["reason"] = "study_completion_ready"
+            return result
+        result["decision"] = "sync_completion"
+        result["reason"] = "study_completion_ready"
         return result
 
     if not bool(contracts.get("overall_ready")):
@@ -732,6 +872,11 @@ def ensure_study_runtime(
     daemon_result: dict[str, Any] | None = None
     analysis_bundle_result: dict[str, Any] | None = None
     runtime_overlay_result: dict[str, Any] | None = None
+    completion_state = (
+        dict(status["study_completion_contract"])
+        if isinstance(status.get("study_completion_contract"), dict)
+        else {}
+    )
 
     if status["decision"] in {"create_and_start", "create_only", "resume"}:
         runtime_reentry_gate = (
@@ -959,6 +1104,58 @@ def ensure_study_runtime(
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="pause",
+            source=source,
+        )
+    elif status["decision"] in {"sync_completion", "pause_and_complete"}:
+        daemon_result = {}
+        if status["decision"] == "pause_and_complete":
+            pause_result = med_deepscientist_transport.pause_quest(
+                runtime_root=runtime_root,
+                quest_id=str(status["quest_id"]),
+                source=source,
+            )
+            daemon_result["pause"] = pause_result
+            status["quest_status"] = str(pause_result.get("status") or "paused")
+        completion_sync = _sync_study_completion(
+            runtime_root=runtime_root,
+            quest_id=str(status["quest_id"]),
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            completion_state=completion_state,
+            source=source,
+        )
+        daemon_result["completion_sync"] = completion_sync
+        status["completion_sync"] = completion_sync
+        completion_result = (
+            dict(completion_sync.get("completion") or {})
+            if isinstance(completion_sync.get("completion"), dict)
+            else {}
+        )
+        completion_snapshot = (
+            dict(completion_result.get("snapshot") or {})
+            if isinstance(completion_result.get("snapshot"), dict)
+            else {}
+        )
+        status["quest_status"] = str(completion_snapshot.get("status") or "completed")
+        status["decision"] = "completed"
+        status["reason"] = "study_completion_synced"
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=str(status["quest_id"]),
+            last_action="completed",
+            source=source,
+        )
+    elif status["decision"] == "completed":
+        _write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=resolved_study_root,
+            quest_id=str(status["quest_id"]),
+            last_action="completed",
             source=source,
         )
     elif status["decision"] == "noop":
