@@ -314,11 +314,11 @@ def _studies_affected_by_release(*, workspace_root: Path, family_id: str, versio
     affected_studies: list[str] = []
     affected_dataset_ids: list[str] = []
     for study_root in sorted(path for path in studies_root.iterdir() if path.is_dir()) if studies_root.exists() else []:
-        manifest_path = study_root / "data_input" / "dataset_manifest.yaml"
-        if not manifest_path.exists():
+        dataset_inputs_path = _study_dataset_inputs_path(study_root)
+        if dataset_inputs_path is None:
             continue
         matched = False
-        for item in _load_dataset_inputs(manifest_path):
+        for item in _load_dataset_inputs(dataset_inputs_path):
             source_path = str(item.get("path", ""))
             item_family_id, item_version_id = _extract_family_version(source_path)
             manifest_version = item.get("version")
@@ -520,6 +520,16 @@ def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
     return normalized
 
 
+def _study_dataset_inputs_path(study_root: Path) -> Path | None:
+    manifest_path = study_root / "data_input" / "dataset_manifest.yaml"
+    if manifest_path.exists():
+        return manifest_path
+    study_yaml_path = study_root / "study.yaml"
+    if study_yaml_path.exists():
+        return study_yaml_path
+    return None
+
+
 def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     init_data_assets(workspace_root=workspace_root)
     private_payload = _load_json(_private_registry_path(workspace_root), default={"schema_version": 1, "releases": []})
@@ -531,12 +541,12 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     studies_root = workspace_root / "studies"
     study_reports: list[dict[str, object]] = []
     for study_root in sorted(path for path in studies_root.iterdir() if path.is_dir()) if studies_root.exists() else []:
-        manifest_path = study_root / "data_input" / "dataset_manifest.yaml"
-        if not manifest_path.exists():
+        dataset_inputs_path = _study_dataset_inputs_path(study_root)
+        if dataset_inputs_path is None:
             continue
         dataset_reports: list[dict[str, object]] = []
         overall_status = "clear"
-        for item in _load_dataset_inputs(manifest_path):
+        for item in _load_dataset_inputs(dataset_inputs_path):
             dataset_id = str(item.get("dataset_id", ""))
             source_path = str(item.get("path", ""))
             family_id, version_id = _extract_family_version(source_path)
