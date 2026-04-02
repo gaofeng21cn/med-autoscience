@@ -7,15 +7,22 @@ from pathlib import Path
 import yaml
 
 
-def write_study_manifest(path: Path, *, dataset_id: str, relative_path: str, version: str | None = None) -> None:
+def write_study_manifest(
+    path: Path,
+    *,
+    dataset_id: str,
+    relative_path: str | None = None,
+    version: str | None = None,
+) -> None:
     payload: dict[str, object] = {
         "dataset_inputs": [
             {
                 "dataset_id": dataset_id,
-                "path": relative_path,
             }
         ]
     }
+    if relative_path is not None:
+        payload["dataset_inputs"][0]["path"] = relative_path
     if version is not None:
         payload["dataset_inputs"][0]["version"] = version
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -254,6 +261,36 @@ def test_startup_data_readiness_includes_study_yaml_dataset_inputs_when_manifest
         workspace_root / "studies" / "003-followup-risk" / "study.yaml",
         dataset_id="nfpitnet_master",
         relative_path="../../datasets/master/v2026-03-28/analysis.csv",
+        version="v2026-03-28",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["study_summary"]["study_count"] == 1
+    assert result["study_summary"]["clear_study_ids"] == ["003-followup-risk"]
+    assert result["study_summary"]["unresolved_contract_study_ids"] == []
+
+
+def test_startup_data_readiness_resolves_study_yaml_dataset_inputs_without_path_when_version_is_declared(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "003-followup-risk" / "study.yaml",
+        dataset_id="nfpitnet_master",
         version="v2026-03-28",
     )
 

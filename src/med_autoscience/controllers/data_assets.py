@@ -311,6 +311,9 @@ def _main_output_changes(from_release: dict[str, object], to_release: dict[str, 
 
 def _studies_affected_by_release(*, workspace_root: Path, family_id: str, version_id: str) -> tuple[list[str], list[str]]:
     studies_root = workspace_root / "studies"
+    releases = _scan_private_releases(workspace_root)
+    release_index = _release_index(releases)
+    dataset_version_index = _release_index_by_dataset_version(releases)
     affected_studies: list[str] = []
     affected_dataset_ids: list[str] = []
     for study_root in sorted(path for path in studies_root.iterdir() if path.is_dir()) if studies_root.exists() else []:
@@ -319,15 +322,14 @@ def _studies_affected_by_release(*, workspace_root: Path, family_id: str, versio
             continue
         matched = False
         for item in _load_dataset_inputs(dataset_inputs_path):
-            source_path = str(item.get("path", ""))
-            item_family_id, item_version_id = _extract_family_version(source_path)
-            manifest_version = item.get("version")
-            if isinstance(manifest_version, str) and manifest_version:
-                item_version_id = manifest_version
+            dataset_id, _, item_family_id, item_version_id, _ = _resolve_dataset_binding(
+                item=item,
+                release_index=release_index,
+                dataset_version_index=dataset_version_index,
+            )
             if item_family_id == family_id and item_version_id == version_id:
                 matched = True
-                dataset_id = item.get("dataset_id")
-                if isinstance(dataset_id, str) and dataset_id not in affected_dataset_ids:
+                if dataset_id and dataset_id not in affected_dataset_ids:
                     affected_dataset_ids.append(dataset_id)
         if matched:
             affected_studies.append(study_root.name)
@@ -506,6 +508,47 @@ def _release_index(releases: list[dict[str, object]]) -> dict[tuple[str, str], d
     return index
 
 
+def _release_index_by_dataset_version(
+    releases: list[dict[str, object]],
+) -> dict[tuple[str, str], list[dict[str, object]]]:
+    index: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for release in releases:
+        dataset_id = release.get("dataset_id")
+        version_id = release.get("version_id")
+        if isinstance(dataset_id, str) and isinstance(version_id, str):
+            index.setdefault((dataset_id, version_id), []).append(release)
+    return index
+
+
+def _resolve_dataset_binding(
+    *,
+    item: dict[str, object],
+    release_index: dict[tuple[str, str], dict[str, object]],
+    dataset_version_index: dict[tuple[str, str], list[dict[str, object]]],
+) -> tuple[str, str, str | None, str | None, dict[str, object] | None]:
+    dataset_id = str(item.get("dataset_id", ""))
+    source_path = str(item.get("path", ""))
+    family_id, version_id = _extract_family_version(source_path)
+    manifest_version = item.get("version")
+    if isinstance(manifest_version, str) and manifest_version:
+        version_id = manifest_version
+    if family_id is None and dataset_id and isinstance(version_id, str):
+        matches = dataset_version_index.get((dataset_id, version_id), [])
+        resolved_families = {
+            str(release.get("family_id"))
+            for release in matches
+            if isinstance(release.get("family_id"), str) and str(release.get("family_id")).strip()
+        }
+        if len(resolved_families) == 1:
+            family_id = next(iter(resolved_families))
+    bound_release = (
+        release_index.get((family_id, version_id))
+        if isinstance(family_id, str) and isinstance(version_id, str)
+        else None
+    )
+    return dataset_id, source_path, family_id, version_id, bound_release
+
+
 def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
     payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     dataset_inputs = payload.get("dataset_inputs")
@@ -536,6 +579,7 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
     public_payload = _load_public_registry(workspace_root)
     latest_versions = _latest_versions_by_family(private_payload["releases"])
     release_index = _release_index(private_payload["releases"])
+    dataset_version_index = _release_index_by_dataset_version(private_payload["releases"])
     diff_cache: dict[tuple[str, str, str], dict[str, object]] = {}
 
     studies_root = workspace_root / "studies"
@@ -547,18 +591,12 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
         dataset_reports: list[dict[str, object]] = []
         overall_status = "clear"
         for item in _load_dataset_inputs(dataset_inputs_path):
-            dataset_id = str(item.get("dataset_id", ""))
-            source_path = str(item.get("path", ""))
-            family_id, version_id = _extract_family_version(source_path)
-            manifest_version = item.get("version")
-            if isinstance(manifest_version, str) and manifest_version:
-                version_id = manifest_version
-            latest_version = latest_versions.get(family_id) if family_id is not None else None
-            bound_release = (
-                release_index.get((family_id, version_id))
-                if isinstance(family_id, str) and isinstance(version_id, str)
-                else None
+            dataset_id, source_path, family_id, version_id, bound_release = _resolve_dataset_binding(
+                item=item,
+                release_index=release_index,
+                dataset_version_index=dataset_version_index,
             )
+            latest_version = latest_versions.get(family_id) if family_id is not None else None
             if family_id is None or version_id is None:
                 private_status = "unversioned_path"
             elif latest_version is None:
