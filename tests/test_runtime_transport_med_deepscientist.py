@@ -219,6 +219,28 @@ def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
     }
 
 
+def test_stop_quest_posts_stop_action(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+
+    def fake_post_quest_control(**kwargs):
+        seen.update(kwargs)
+        return {"ok": True, "status": "stopped"}
+
+    monkeypatch.setattr(module, "post_quest_control", fake_post_quest_control)
+
+    result = module.stop_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+
+    assert result == {"ok": True, "status": "stopped"}
+    assert seen == {
+        "runtime_root": runtime_root,
+        "quest_id": "001-risk",
+        "action": "stop",
+        "source": "medautosci-test",
+    }
+
+
 def test_list_quest_bash_sessions_reads_daemon_sessions(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -330,4 +352,67 @@ def test_inspect_quest_live_bash_sessions_reports_unknown_when_daemon_probe_fail
         "live_session_count": None,
         "live_session_ids": [],
         "error": "daemon unavailable",
+    }
+
+
+def test_inspect_quest_runtime_reads_local_status_and_live_sessions(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: 001-risk\n", encoding="utf-8")
+
+    monkeypatch.setattr(module.quest_state, "quest_status", lambda path: "running")
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda *, runtime_root, quest_id, timeout=10: {
+            "ok": True,
+            "status": "live",
+            "session_count": 1,
+            "live_session_count": 1,
+            "live_session_ids": ["sess-1"],
+        },
+    )
+
+    result = module.inspect_quest_runtime(
+        runtime_root=tmp_path / "runtime",
+        quest_root=quest_root,
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "quest_exists": True,
+        "quest_status": "running",
+        "bash_session_audit": {
+            "ok": True,
+            "status": "live",
+            "session_count": 1,
+            "live_session_count": 1,
+            "live_session_ids": ["sess-1"],
+        },
+    }
+
+
+def test_inspect_quest_runtime_skips_live_probe_for_non_running_states(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    quest_root.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: 001-risk\n", encoding="utf-8")
+
+    monkeypatch.setattr(module.quest_state, "quest_status", lambda path: "paused")
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("live probe should not run")),
+    )
+
+    result = module.inspect_quest_runtime(
+        runtime_root=tmp_path / "runtime",
+        quest_root=quest_root,
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "quest_exists": True,
+        "quest_status": "paused",
     }

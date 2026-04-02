@@ -52,3 +52,12 @@ def test_workspace_runtime_layout_derives_quest_and_startup_payload_paths(tmp_pa
     assert layout.quest_root("study-001") == layout.quests_root / "study-001"
     assert layout.startup_payload_root("study-001") == layout.startup_payloads_root / "study-001"
     assert layout.startup_brief_path("study-001") == layout.startup_briefs_root / "study-001.md"
+
+
+def test_resolve_runtime_root_from_quest_root_returns_workspace_runtime_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "study-001"
+
+    assert module.resolve_runtime_root_from_quest_root(quest_root) == (
+        tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
+    )

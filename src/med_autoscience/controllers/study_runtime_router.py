@@ -22,7 +22,6 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
@@ -463,11 +462,18 @@ def _status_payload(
     execution = _execution_payload(study_payload)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
+    layout = build_workspace_runtime_layout_for_profile(profile)
     paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root, quest_id=quest_id)
     quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
-    quest_exists = (quest_root / "quest.yaml").exists()
-    quest_status_value = quest_state.quest_status(quest_root) if quest_exists else ""
+    runtime_root = layout.runtime_root
+    quest_runtime = med_deepscientist_transport.inspect_quest_runtime(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    quest_exists = bool(quest_runtime.get("quest_exists"))
+    quest_status_value = str(quest_runtime.get("quest_status") or "").strip()
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -561,10 +567,7 @@ def _status_payload(
         return result
 
     if quest_status_value in {"running", "active"}:
-        bash_session_audit = med_deepscientist_transport.inspect_quest_live_bash_sessions(
-            runtime_root=profile.med_deepscientist_runtime_root,
-            quest_id=quest_id,
-        )
+        bash_session_audit = dict(quest_runtime.get("bash_session_audit") or {})
         result["bash_session_audit"] = bash_session_audit
         audit_status = str(bash_session_audit.get("status") or "").strip()
         if audit_status == "unknown":
@@ -722,6 +725,7 @@ def ensure_study_runtime(
         quest_id=quest_id,
     )
     layout = build_workspace_runtime_layout_for_profile(profile)
+    runtime_root = layout.runtime_root
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
@@ -779,7 +783,7 @@ def ensure_study_runtime(
             status["reason"] = "startup_contract_resolution_failed"
         partial_quest_recovery = _recover_invalid_partial_quest_root(
             quest_root=layout.quest_root(str(create_payload["quest_id"])),
-            runtime_root=profile.med_deepscientist_runtime_root,
+            runtime_root=runtime_root,
         )
         if partial_quest_recovery is not None:
             status["partial_quest_recovery"] = partial_quest_recovery
@@ -788,7 +792,7 @@ def ensure_study_runtime(
             startup_payload_path = paths["startup_payload_root"] / f"{_timestamp_slug()}.json"
             _write_json(startup_payload_path, create_payload)
             create_result = med_deepscientist_transport.create_quest(
-                runtime_root=profile.med_deepscientist_runtime_root,
+                runtime_root=runtime_root,
                 payload=create_payload,
             )
             daemon_result = {"create": create_result}
@@ -840,7 +844,7 @@ def ensure_study_runtime(
                     )
                 elif planned_decision == "create_and_start":
                     resume_result = med_deepscientist_transport.resume_quest(
-                        runtime_root=profile.med_deepscientist_runtime_root,
+                        runtime_root=runtime_root,
                         quest_id=str(status["quest_id"]),
                         source=source,
                     )
@@ -894,7 +898,7 @@ def ensure_study_runtime(
             )
         else:
             daemon_result = med_deepscientist_transport.resume_quest(
-                runtime_root=profile.med_deepscientist_runtime_root,
+                runtime_root=runtime_root,
                 quest_id=str(status["quest_id"]),
                 source=source,
             )
@@ -943,7 +947,7 @@ def ensure_study_runtime(
         )
     elif status["decision"] == "pause":
         daemon_result = med_deepscientist_transport.pause_quest(
-            runtime_root=profile.med_deepscientist_runtime_root,
+            runtime_root=runtime_root,
             quest_id=str(status["quest_id"]),
             source=source,
         )

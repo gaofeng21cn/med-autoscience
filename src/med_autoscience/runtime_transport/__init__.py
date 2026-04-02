@@ -1,17 +1,21 @@
 from .med_deepscientist import (
     DEFAULT_DAEMON_TIMEOUT_SECONDS,
     create_quest,
+    inspect_quest_runtime,
     pause_quest,
     post_quest_control,
     resolve_daemon_url,
     resume_quest,
+    stop_quest,
 )
 
 __all__ = [
     "DEFAULT_DAEMON_TIMEOUT_SECONDS",
     "create_quest",
+    "inspect_quest_runtime",
     "pause_quest",
     "post_quest_control",
     "resolve_daemon_url",
     "resume_quest",
+    "stop_quest",
 ]

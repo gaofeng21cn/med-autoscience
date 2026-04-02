@@ -53,3 +53,8 @@ def build_workspace_runtime_layout(*, workspace_root: Path) -> WorkspaceRuntimeL
 
 def build_workspace_runtime_layout_for_profile(profile: WorkspaceProfile) -> WorkspaceRuntimeLayout:
     return build_workspace_runtime_layout(workspace_root=profile.workspace_root)
+
+
+def resolve_runtime_root_from_quest_root(quest_root: Path) -> Path:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    return resolved_quest_root.parent.parent

@@ -325,6 +325,70 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert report["study_root"] == str(study_root)
 
 
+def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = replace(
+        make_profile(tmp_path),
+        med_deepscientist_runtime_root=tmp_path / "unexpected-runtime-root",
+    )
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
+        seen["create_runtime_root"] = runtime_root
+        return {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(runtime_root / "quests" / "001-risk"),
+                "status": "created",
+            },
+        }
+
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        seen["resume_runtime_root"] = runtime_root
+        return {"ok": True, "status": "running"}
+
+    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(module.med_deepscientist_transport, "resume_quest", fake_resume_quest)
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    expected_runtime_root = profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
+    assert result["decision"] == "create_and_start"
+    assert seen["create_runtime_root"] == expected_runtime_root
+    assert seen["resume_runtime_root"] == expected_runtime_root
+
+
 def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
     monkeypatch,
     tmp_path: Path,

@@ -789,13 +789,19 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
 
     assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
-    stopped: list[tuple[str, str, str]] = []
+    stopped: list[tuple[str | None, str | None, str, str]] = []
 
-    def fake_post_quest_control(*, daemon_url: str, quest_id: str, action: str, source: str) -> dict:
-        stopped.append((daemon_url, quest_id, action))
+    def fake_stop_quest(
+        *,
+        daemon_url: str | None = None,
+        runtime_root: Path | None = None,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
         return {"ok": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -803,7 +809,7 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
         daemon_url="http://127.0.0.1:20999",
     )
 
-    assert stopped == [("http://127.0.0.1:20999", "002-early-residual-risk", "stop")]
+    assert stopped == [("http://127.0.0.1:20999", None, "002-early-residual-risk", "codex-medical-publication-surface")]
     assert result["intervention_enqueued"] is True
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert len(queue["pending"]) == 1
@@ -828,13 +834,19 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
 
     assert module is not None
     quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
-    stopped: list[tuple[str, str, str]] = []
+    stopped: list[tuple[str | None, str | None, str, str]] = []
 
-    def fake_post_quest_control(*, daemon_url: str, quest_id: str, action: str, source: str) -> dict:
-        stopped.append((daemon_url, quest_id, action))
+    def fake_stop_quest(
+        *,
+        daemon_url: str | None = None,
+        runtime_root: Path | None = None,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
         return {"ok": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,

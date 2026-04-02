@@ -2,6 +2,7 @@ from .layout import (
     WorkspaceRuntimeLayout,
     build_workspace_runtime_layout,
     build_workspace_runtime_layout_for_profile,
+    resolve_runtime_root_from_quest_root,
 )
 from .topology import (
     PaperRootContext,
@@ -50,6 +51,7 @@ __all__ = [
     "load_runtime_state",
     "quest_status",
     "read_recent_stdout_lines",
+    "resolve_runtime_root_from_quest_root",
     "resolve_paper_root_context",
     "resolve_quest_root_from_worktree_root",
     "resolve_study_id_from_worktree_root",
