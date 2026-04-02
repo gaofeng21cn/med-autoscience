@@ -33,6 +33,7 @@ def resolve_study_runtime_paths(
     layout = build_workspace_runtime_layout_for_profile(profile)
     resolved_study_root = Path(study_root).expanduser().resolve()
     return {
+        "runtime_root": layout.runtime_root,
         "quest_root": layout.quest_root(quest_id),
         "runtime_binding_path": resolved_study_root / "runtime_binding.yaml",
         "startup_payload_root": layout.startup_payload_root(study_id),

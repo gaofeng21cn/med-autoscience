@@ -22,7 +22,6 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import resolve_study_completion_contract
@@ -397,10 +396,10 @@ def _sync_study_completion(
     approval_text = str(completion_state.get("user_approval_text") or "").strip()
     if not summary or not approval_text:
         raise ValueError("study completion sync requires summary and user approval text")
-    request_result = med_deepscientist_transport.artifact_interact(
+    return med_deepscientist_transport.sync_completion_with_approval(
         runtime_root=runtime_root,
         quest_id=quest_id,
-        payload={
+        decision_request_payload={
             "kind": "decision_request",
             "message": _build_study_completion_request_message(
                 study_id=study_id,
@@ -412,31 +411,10 @@ def _sync_study_completion(
             "include_recent_inbound_messages": False,
             "reply_schema": {"decision_type": "quest_completion_approval"},
         },
-    )
-    interaction_id = str(request_result.get("interaction_id") or "").strip()
-    if str(request_result.get("status") or "").strip() != "ok" or not interaction_id:
-        raise RuntimeError("failed to create quest completion approval request")
-    approval_message = med_deepscientist_transport.chat_quest(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        text=approval_text,
-        source=source,
-        reply_to_interaction_id=interaction_id,
-    )
-    if approval_message.get("ok") is not True:
-        raise RuntimeError("failed to bind study-level approval into managed quest")
-    completion_result = med_deepscientist_transport.artifact_complete_quest(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
+        approval_text=approval_text,
         summary=summary,
+        source=source,
     )
-    if str(completion_result.get("status") or "").strip() not in {"completed", "already_completed"}:
-        raise RuntimeError("managed quest completion did not reach completed state")
-    return {
-        "completion_request": request_result,
-        "approval_message": approval_message,
-        "completion": completion_result,
-    }
 
 
 def _status_payload(
@@ -450,16 +428,15 @@ def _status_payload(
     execution = _execution_payload(study_payload)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
-    layout = build_workspace_runtime_layout_for_profile(profile)
     paths = study_runtime_protocol.resolve_study_runtime_paths(
         profile=profile,
         study_root=study_root,
         study_id=study_id,
         quest_id=quest_id,
     )
+    runtime_root = Path(paths["runtime_root"])
     quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
-    runtime_root = layout.runtime_root
     quest_runtime = med_deepscientist_transport.inspect_quest_runtime(
         runtime_root=runtime_root,
         quest_root=quest_root,
@@ -697,8 +674,7 @@ def ensure_study_runtime(
         study_id=resolved_study_id,
         quest_id=quest_id,
     )
-    layout = build_workspace_runtime_layout_for_profile(profile)
-    runtime_root = layout.runtime_root
+    runtime_root = Path(paths["runtime_root"])
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
@@ -760,7 +736,7 @@ def ensure_study_runtime(
             status["decision"] = "blocked"
             status["reason"] = "startup_contract_resolution_failed"
         partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
-            quest_root=layout.quest_root(str(create_payload["quest_id"])),
+            quest_root=Path(paths["quest_root"]),
             runtime_root=runtime_root,
             slug=_timestamp_slug(),
         )
@@ -776,7 +752,7 @@ def ensure_study_runtime(
             )
             daemon_result = {"create": create_result}
             status["quest_id"] = str(create_payload["quest_id"])
-            status["quest_root"] = str(layout.quest_root(status["quest_id"]))
+            status["quest_root"] = str(paths["quest_root"])
             status["quest_exists"] = True
             snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
             fallback_status = "created"

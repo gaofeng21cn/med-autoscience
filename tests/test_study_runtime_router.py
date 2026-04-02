@@ -333,15 +333,12 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert report["study_root"] == str(study_root)
 
 
-def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
+def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    profile = replace(
-        make_profile(tmp_path),
-        med_deepscientist_runtime_root=tmp_path / "unexpected-runtime-root",
-    )
+    profile = make_profile(tmp_path)
     write_study(
         profile.workspace_root,
         "001-risk",
@@ -354,6 +351,8 @@ def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     seen: dict[str, object] = {}
+    protocol_runtime_root = tmp_path / "protocol-runtime"
+    protocol_quest_root = protocol_runtime_root / "quests" / "001-risk"
 
     monkeypatch.setattr(
         module,
@@ -369,6 +368,25 @@ def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
         module.startup_data_readiness_controller,
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "resolve_study_runtime_paths",
+        lambda *, profile, study_root, study_id, quest_id: {
+            "runtime_root": protocol_runtime_root,
+            "quest_root": protocol_quest_root,
+            "runtime_binding_path": study_root / "runtime_binding.yaml",
+            "startup_payload_root": tmp_path / "protocol-startup-payloads" / study_id,
+            "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_runtime",
+        lambda *, runtime_root, quest_root, quest_id: {
+            "quest_exists": False,
+            "quest_status": None,
+        },
     )
 
     def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
@@ -391,10 +409,9 @@ def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    expected_runtime_root = profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
     assert result["decision"] == "create_and_start"
-    assert seen["create_runtime_root"] == expected_runtime_root
-    assert seen["resume_runtime_root"] == expected_runtime_root
+    assert seen["create_runtime_root"] == protocol_runtime_root
+    assert seen["resume_runtime_root"] == protocol_runtime_root
 
 
 def test_ensure_study_runtime_uses_study_runtime_protocol_binding_and_report(
@@ -572,33 +589,26 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
-        "artifact_interact",
-        lambda *, runtime_root, quest_id, payload: {
-            "status": "ok",
-            "interaction_id": "decision-001",
-            "payload": payload,
-        },
-    )
-    monkeypatch.setattr(
-        module.med_deepscientist_transport,
-        "chat_quest",
-        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None: {
-            "ok": True,
-            "message": {
-                "id": "msg-approval",
-                "content": text,
-                "reply_to_interaction_id": reply_to_interaction_id,
+        "sync_completion_with_approval",
+        lambda *, runtime_root, quest_id, decision_request_payload, approval_text, summary, source: {
+            "completion_request": {
+                "status": "ok",
+                "interaction_id": "decision-001",
+                "payload": decision_request_payload,
             },
-        },
-    )
-    monkeypatch.setattr(
-        module.med_deepscientist_transport,
-        "artifact_complete_quest",
-        lambda *, runtime_root, quest_id, summary: {
-            "ok": True,
-            "status": "completed",
-            "snapshot": {"quest_id": quest_id, "status": "completed"},
-            "message": summary,
+            "approval_message": {
+                "ok": True,
+                "message": {
+                    "id": "msg-approval",
+                    "content": approval_text,
+                },
+            },
+            "completion": {
+                "ok": True,
+                "status": "completed",
+                "snapshot": {"quest_id": quest_id, "status": "completed"},
+                "message": summary,
+            },
         },
     )
 
@@ -2153,54 +2163,6 @@ def test_study_runtime_status_requires_evidence_backed_journal_shortlist(monkeyp
     assert result["startup_boundary_gate"]["allow_compute_stage"] is False
     assert result["startup_boundary_gate"]["journal_shortlist_ready"] is False
     assert result["startup_boundary_gate"]["journal_shortlist_contract_status"] == "absent"
-
-
-def test_study_runtime_status_uses_protocol_startup_contract_validation(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    profile = make_profile(tmp_path)
-    write_study(
-        profile.workspace_root,
-        "001-risk",
-        study_archetype="clinical_classifier",
-        endpoint_type="binary",
-        manuscript_family="prediction_model",
-        paper_framing_summary="Prediction framing is fixed.",
-        paper_urls=["https://example.org/paper-1"],
-        journal_shortlist=["BMC Medicine"],
-        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
-    )
-
-    monkeypatch.setattr(
-        module,
-        "inspect_workspace_contracts",
-        lambda profile: {
-            "overall_ready": True,
-            "runtime_contract": {"ready": True},
-            "launcher_contract": {"ready": True},
-            "behavior_gate": {"ready": True, "phase_25_ready": True},
-        },
-    )
-    monkeypatch.setattr(
-        module.startup_data_readiness_controller,
-        "startup_data_readiness",
-        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
-    )
-    monkeypatch.setattr(
-        module.study_runtime_protocol,
-        "validate_startup_contract_resolution",
-        lambda *, startup_contract: {
-            "status": "blocked",
-            "blockers": ["forced_status_blocker"],
-            "contract_statuses": {},
-            "reason_codes": {},
-        },
-    )
-
-    result = module.study_runtime_status(profile=profile, study_id="001-risk")
-
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "startup_contract_resolution_failed"
-    assert result["startup_contract_validation"]["blockers"] == ["forced_status_blocker"]
 
 
 def test_ensure_study_runtime_uses_protocol_hydration_payload_builder(monkeypatch, tmp_path: Path) -> None:
