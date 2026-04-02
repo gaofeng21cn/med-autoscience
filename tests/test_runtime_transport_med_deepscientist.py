@@ -136,6 +136,132 @@ def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> No
     assert seen["payload"] == {"goal": "Launch study 001", "quest_id": "001-risk", "auto_start": True}
 
 
+def test_chat_quest_posts_text_and_reply_target(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "message": {"id": "msg-001"}}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        seen["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.chat_quest(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        text="同意",
+        source="medautosci-test",
+        reply_to_interaction_id="decision-001",
+    )
+
+    assert result == {"ok": True, "message": {"id": "msg-001"}}
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/chat"
+    assert seen["timeout"] == 10
+    assert seen["payload"] == {
+        "text": "同意",
+        "source": "medautosci-test",
+        "reply_to_interaction_id": "decision-001",
+    }
+
+
+def test_artifact_interact_posts_payload(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"status": "ok", "interaction_id": "decision-001"}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        seen["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.artifact_interact(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        payload={"kind": "decision_request", "reply_schema": {"decision_type": "quest_completion_approval"}},
+    )
+
+    assert result == {"status": "ok", "interaction_id": "decision-001"}
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/artifact/interact"
+    assert seen["timeout"] == 10
+    assert seen["payload"] == {
+        "kind": "decision_request",
+        "reply_schema": {"decision_type": "quest_completion_approval"},
+    }
+
+
+def test_artifact_complete_quest_posts_summary(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "status": "completed"}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        seen["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.artifact_complete_quest(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        summary="Study completed.",
+    )
+
+    assert result == {"ok": True, "status": "completed"}
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/artifact/complete"
+    assert seen["timeout"] == 10
+    assert seen["payload"] == {"summary": "Study completed."}
+
+
 def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     seen: dict[str, object] = {}

@@ -44,6 +44,7 @@ def write_study(
     workspace_root: Path,
     study_id: str,
     *,
+    study_status: str = "ready",
     quest_id: str | None = None,
     study_archetype: str | None = None,
     preferred_study_archetype: str | None = None,
@@ -57,6 +58,7 @@ def write_study(
     manuscript_family: str | None = None,
     submission_targets_mode: str | None = None,
     submission_targets: list[dict[str, object]] | None = None,
+    study_completion: dict[str, object] | None = None,
     runtime_reentry_required_paths: list[str] | None = None,
     runtime_reentry_execution_root: str | None = None,
     runtime_reentry_first_unit: str | None = None,
@@ -68,7 +70,7 @@ def write_study(
     lines = [
         f"study_id: {study_id}",
         "title: Diabetes mortality risk paper",
-        "status: ready",
+        f"status: {study_status}",
         "primary_question: >",
         "  Build a submission-ready survival-risk study.",
         "brief_file: brief.md",
@@ -138,6 +140,12 @@ def write_study(
         lines.extend(
             f"  {line}" if line else line
             for line in yaml.safe_dump(submission_targets, allow_unicode=True, sort_keys=False).splitlines()
+        )
+    if study_completion:
+        lines.append("study_completion:")
+        lines.extend(
+            f"  {line}" if line else line
+            for line in yaml.safe_dump(study_completion, allow_unicode=True, sort_keys=False).splitlines()
         )
     lines.extend(
         [
@@ -387,6 +395,153 @@ def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
     assert result["decision"] == "create_and_start"
     assert seen["create_runtime_root"] == expected_runtime_root
     assert seen["resume_runtime_root"] == expected_runtime_root
+
+
+def test_study_runtime_status_prefers_study_completion_contract_over_boundary_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_status="completed",
+        study_completion={
+            "status": "completed",
+            "summary": "Study-level finalized delivery is complete.",
+            "user_approval_text": "同意",
+            "evidence_paths": [
+                "notes/revision_status.md",
+                "manuscript/final/submission_manifest.json",
+            ],
+        },
+    )
+    write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
+    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_runtime",
+        lambda *, runtime_root, quest_root, quest_id: {
+            "quest_exists": True,
+            "quest_status": "paused",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "sync_completion"
+    assert result["reason"] == "study_completion_ready"
+    assert result["study_completion_contract"]["status"] == "resolved"
+    assert result["study_completion_contract"]["ready"] is True
+
+
+def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_status="completed",
+        quest_id="001-risk-managed",
+        study_completion={
+            "status": "completed",
+            "summary": "Study-level finalized delivery is complete.",
+            "user_approval_text": "同意",
+            "evidence_paths": [
+                "notes/revision_status.md",
+                "manuscript/final/submission_manifest.json",
+            ],
+        },
+    )
+    write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
+    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_runtime",
+        lambda *, runtime_root, quest_root, quest_id: {
+            "quest_exists": True,
+            "quest_status": "paused",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "artifact_interact",
+        lambda *, runtime_root, quest_id, payload: {
+            "status": "ok",
+            "interaction_id": "decision-001",
+            "payload": payload,
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "chat_quest",
+        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None: {
+            "ok": True,
+            "message": {
+                "id": "msg-approval",
+                "content": text,
+                "reply_to_interaction_id": reply_to_interaction_id,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "artifact_complete_quest",
+        lambda *, runtime_root, quest_id, summary: {
+            "ok": True,
+            "status": "completed",
+            "snapshot": {"quest_id": quest_id, "status": "completed"},
+            "message": summary,
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    runtime_binding = yaml.safe_load((study_root / "runtime_binding.yaml").read_text(encoding="utf-8"))
+    launch_report = json.loads((study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
+
+    assert result["decision"] == "completed"
+    assert result["reason"] == "study_completion_synced"
+    assert result["quest_status"] == "completed"
+    assert result["completion_sync"]["completion"]["status"] == "completed"
+    assert runtime_binding["last_action"] == "completed"
+    assert launch_report["decision"] == "completed"
+    assert launch_report["reason"] == "study_completion_synced"
 
 
 def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(

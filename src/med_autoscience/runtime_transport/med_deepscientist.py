@@ -225,6 +225,47 @@ def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, An
     return _post_json(url=f"{base_url}/api/quests", payload=payload)
 
 
+def chat_quest(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    text: str,
+    source: str,
+    reply_to_interaction_id: str | None = None,
+) -> dict[str, Any]:
+    base_url = resolve_daemon_url(runtime_root=runtime_root)
+    payload: dict[str, Any] = {"text": text, "source": source}
+    if reply_to_interaction_id:
+        payload["reply_to_interaction_id"] = reply_to_interaction_id
+    return _post_json(url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/chat", payload=payload)
+
+
+def artifact_interact(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    base_url = resolve_daemon_url(runtime_root=runtime_root)
+    return _post_json(
+        url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/artifact/interact",
+        payload=payload,
+    )
+
+
+def artifact_complete_quest(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    summary: str,
+) -> dict[str, Any]:
+    base_url = resolve_daemon_url(runtime_root=runtime_root)
+    return _post_json(
+        url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/artifact/complete",
+        payload={"summary": summary},
+    )
+
+
 def post_quest_control(
     *,
     quest_id: str,
