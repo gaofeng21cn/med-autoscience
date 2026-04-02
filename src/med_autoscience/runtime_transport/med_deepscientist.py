@@ -10,6 +10,7 @@ import yaml
 
 
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
+ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
@@ -28,6 +29,19 @@ def _load_yaml_dict(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"expected YAML mapping at {path}")
     return payload
+
+
+def _get_json(*, url: str, timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS) -> Any:
+    http_request = request.Request(
+        url,
+        headers={"Accept": "application/json"},
+        method="GET",
+    )
+    with request.urlopen(http_request, timeout=timeout) as response:
+        raw = response.read()
+    if not raw:
+        return None
+    return json.loads(raw.decode("utf-8"))
 
 
 def _normalize_local_host(host: str) -> str:
@@ -108,6 +122,78 @@ def _post_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAEM
     if not isinstance(decoded, dict):
         raise ValueError(f"daemon response must be a JSON object: {url}")
     return decoded
+
+
+def list_quest_bash_sessions(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> list[dict[str, Any]]:
+    base_url = str(daemon_url or "").strip().rstrip("/")
+    if not base_url:
+        if runtime_root is None:
+            raise ValueError("runtime_root or daemon_url is required")
+        base_url = resolve_daemon_url(runtime_root=runtime_root)
+    url = f"{base_url}/api/quests/{quote(quest_id, safe='')}/bash/sessions?limit=200"
+    try:
+        payload = _get_json(url=url, timeout=timeout)
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Bash session probe failed with HTTP {exc.code}: {body}") from exc
+    except error.URLError as exc:
+        raise RuntimeError(f"Bash session probe failed: {exc}") from exc
+    except (TimeoutError, OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Bash session probe failed: {exc}") from exc
+    if payload is None:
+        return []
+    if not isinstance(payload, list):
+        raise RuntimeError(f"Bash session probe returned non-list payload: {url}")
+    sessions: list[dict[str, Any]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise RuntimeError(f"Bash session probe returned non-object entry: {url}")
+        sessions.append(item)
+    return sessions
+
+
+def inspect_quest_live_bash_sessions(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    try:
+        sessions = list_quest_bash_sessions(
+            quest_id=quest_id,
+            daemon_url=daemon_url,
+            runtime_root=runtime_root,
+            timeout=timeout,
+        )
+    except RuntimeError as exc:
+        return {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": str(exc),
+        }
+    live_session_ids = [
+        str(session.get("bash_id") or "").strip()
+        for session in sessions
+        if str(session.get("status") or "").strip().lower() in ACTIVE_BASH_SESSION_STATUSES
+        and str(session.get("bash_id") or "").strip()
+    ]
+    return {
+        "ok": True,
+        "status": "live" if live_session_ids else "none",
+        "session_count": len(sessions),
+        "live_session_count": len(live_session_ids),
+        "live_session_ids": live_session_ids,
+    }
 
 
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:

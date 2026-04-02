@@ -218,6 +218,17 @@ def _patch_runtime_sidecars(monkeypatch):
         "audit_runtime_medical_overlay",
         lambda **kwargs: {"all_roots_ready": True, "surface_count": 1, "surfaces": []},
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_bash_sessions",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "session_count": 1,
+            "live_session_count": 1,
+            "live_session_ids": ["sess-default"],
+        },
+    )
 
 
 def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path: Path) -> None:
@@ -1255,10 +1266,161 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_bash_sessions",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "session_count": 1,
+            "live_session_count": 1,
+            "live_session_ids": ["sess-1"],
+        },
+    )
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "noop"
     assert result["reason"] == "quest_already_running"
+    assert result["bash_session_audit"]["status"] == "live"
+
+
+def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_session(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_bash_sessions",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "session_count": 1,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert result["bash_session_audit"]["status"] == "none"
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk"),
+        ("validate", profile.runtime_root / "001-risk"),
+        ("resume", "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_bash_sessions",
+        lambda *, runtime_root, quest_id: {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": "daemon unavailable",
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "running_quest_live_session_audit_failed"
+    assert result["bash_session_audit"]["status"] == "unknown"
 
 
 def test_ensure_study_runtime_stays_lightweight_for_non_managed_entry_mode(monkeypatch, tmp_path: Path) -> None:
