@@ -44,6 +44,7 @@ def write_study(
     workspace_root: Path,
     study_id: str,
     *,
+    quest_id: str | None = None,
     study_archetype: str | None = None,
     preferred_study_archetype: str | None = None,
     paper_framing_summary: str | None = None,
@@ -144,7 +145,7 @@ def write_study(
             "  engine: med-deepscientist",
             "  auto_entry: on_managed_research_intent",
             "  auto_resume: true",
-            f"  quest_id: {study_id}",
+            f"  quest_id: {quest_id or study_id}",
             "  default_entry_mode: full_research",
             "  startup_contract_profile: paper_required_autonomous",
             f"  launch_profile: {launch_profile}",
@@ -1519,6 +1520,77 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         ("hydrate", profile.runtime_root / "001-risk"),
         ("validate", profile.runtime_root / "001-risk"),
         ("resume", "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        quest_id="001-risk-reentry",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk-reentry"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk-reentry\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"idle"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or {"status": "clear", "blockers": []}
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert result["quest_id"] == "001-risk-reentry"
+    assert result["quest_root"] == str(profile.runtime_root / "001-risk-reentry")
+    assert result["quest_status"] == "active"
+    assert calls == [
+        ("hydrate", profile.runtime_root / "001-risk-reentry"),
+        ("validate", profile.runtime_root / "001-risk-reentry"),
+        ("resume", "001-risk-reentry"),
     ]
 
 

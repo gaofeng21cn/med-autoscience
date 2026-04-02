@@ -114,10 +114,10 @@ def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
     return isinstance(raw_targets, list) and bool(raw_targets)
 
 
-def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path) -> dict[str, Path]:
+def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path, quest_id: str) -> dict[str, Path]:
     layout = build_workspace_runtime_layout_for_profile(profile)
     return {
-        "quest_root": layout.quest_root(study_id),
+        "quest_root": layout.quest_root(quest_id),
         "runtime_binding_path": study_root / "runtime_binding.yaml",
         "startup_payload_root": layout.startup_payload_root(study_id),
         "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
@@ -375,7 +375,7 @@ def _status_payload(
     execution = _execution_payload(study_payload)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
-    paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root)
+    paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root, quest_id=quest_id)
     quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
     quest_exists = (quest_root / "quest.yaml").exists()
@@ -589,7 +589,13 @@ def ensure_study_runtime(
         entry_mode=entry_mode,
     )
     execution = _execution_payload(study_payload)
-    paths = _study_paths(profile=profile, study_id=resolved_study_id, study_root=resolved_study_root)
+    quest_id = str(execution.get("quest_id") or resolved_study_id).strip() or resolved_study_id
+    paths = _study_paths(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        quest_id=quest_id,
+    )
     layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
