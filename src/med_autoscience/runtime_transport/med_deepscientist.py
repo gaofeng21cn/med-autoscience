@@ -37,11 +37,48 @@ def _normalize_local_host(host: str) -> str:
     return normalized
 
 
+def _daemon_url_matches_runtime_home(
+    *,
+    daemon_url: str,
+    expected_home: Path,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> bool:
+    normalized_url = daemon_url.rstrip("/")
+    health_request = request.Request(
+        f"{normalized_url}/api/health",
+        headers={"Accept": "application/json"},
+        method="GET",
+    )
+    try:
+        with request.urlopen(health_request, timeout=timeout) as response:
+            raw = response.read()
+    except (error.HTTPError, error.URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError):
+        return False
+    if not raw:
+        return False
+    try:
+        decoded = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(decoded, dict):
+        return False
+    resolved_home = str(decoded.get("home") or "").strip()
+    if not resolved_home:
+        return False
+    try:
+        return Path(resolved_home).expanduser().resolve() == expected_home.expanduser().resolve()
+    except OSError:
+        return False
+
+
 def resolve_daemon_url(*, runtime_root: Path) -> str:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     daemon_state = _load_json_dict(resolved_runtime_root / "runtime" / "daemon.json")
     daemon_url = str(daemon_state.get("url") or "").strip()
-    if daemon_url:
+    if daemon_url and _daemon_url_matches_runtime_home(
+        daemon_url=daemon_url,
+        expected_home=resolved_runtime_root,
+    ):
         return daemon_url.rstrip("/")
     config = _load_yaml_dict(resolved_runtime_root / "config" / "config.yaml")
     ui = config.get("ui")

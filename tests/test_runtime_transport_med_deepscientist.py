@@ -10,7 +10,7 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def test_resolve_daemon_url_prefers_runtime_daemon_state(tmp_path: Path) -> None:
+def test_resolve_daemon_url_prefers_runtime_daemon_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
     write_text(
@@ -21,6 +21,22 @@ def test_resolve_daemon_url_prefers_runtime_daemon_state(tmp_path: Path) -> None
         runtime_root / "config" / "config.yaml",
         "ui:\n  host: 0.0.0.0\n  port: 20999\n",
     )
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"status": "ok", "home": str(runtime_root.resolve())}).encode("utf-8")
+
+    def fake_urlopen(http_request, timeout: int):
+        assert http_request.full_url == "http://127.0.0.1:21999/api/health"
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
 
     result = module.resolve_daemon_url(runtime_root=runtime_root)
 
@@ -38,6 +54,42 @@ def test_resolve_daemon_url_falls_back_to_runtime_config_and_normalizes_localhos
     result = module.resolve_daemon_url(runtime_root=runtime_root)
 
     assert result == "http://127.0.0.1:21999"
+
+
+def test_resolve_daemon_url_ignores_stale_daemon_state_when_health_home_mismatches_runtime_root(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "runtime" / "daemon.json",
+        json.dumps({"url": "http://127.0.0.1:21999/"}) + "\n",
+    )
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 0.0.0.0\n  port: 21001\n",
+    )
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"status": "ok", "home": "/tmp/other-workspace/runtime"}).encode("utf-8")
+
+    def fake_urlopen(http_request, timeout: int):
+        assert http_request.full_url == "http://127.0.0.1:21999/api/health"
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.resolve_daemon_url(runtime_root=runtime_root)
+
+    assert result == "http://127.0.0.1:21001"
 
 
 def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
