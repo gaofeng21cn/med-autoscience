@@ -22,6 +22,7 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import resolve_study_completion_contract
@@ -437,13 +438,14 @@ def _status_payload(
     runtime_root = Path(paths["runtime_root"])
     quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
-    quest_runtime = med_deepscientist_transport.inspect_quest_runtime(
-        runtime_root=runtime_root,
-        quest_root=quest_root,
-        quest_id=quest_id,
-    )
+    quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = bool(quest_runtime.get("quest_exists"))
     quest_status_value = str(quest_runtime.get("quest_status") or "").strip()
+    if quest_status_value in {"running", "active"}:
+        quest_runtime["bash_session_audit"] = med_deepscientist_transport.inspect_quest_live_bash_sessions(
+            runtime_root=runtime_root,
+            quest_id=quest_id,
+        )
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(

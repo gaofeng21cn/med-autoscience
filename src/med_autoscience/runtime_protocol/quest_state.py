@@ -23,6 +23,15 @@ def quest_status(quest_root: Path) -> str:
     return str(payload.get("status") or "").strip().lower()
 
 
+def inspect_quest_runtime(quest_root: Path) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    quest_exists = (resolved_quest_root / "quest.yaml").exists()
+    return {
+        "quest_exists": quest_exists,
+        "quest_status": quest_status(resolved_quest_root) if quest_exists else None,
+    }
+
+
 def iter_active_quests(runtime_root: Path) -> list[Path]:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     if not resolved_runtime_root.exists():
