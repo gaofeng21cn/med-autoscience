@@ -670,6 +670,7 @@ def ensure_study_runtime(
         quest_id=quest_id,
     )
     runtime_root = Path(paths["runtime_root"])
+    quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
@@ -700,7 +701,7 @@ def ensure_study_runtime(
         elif profile.enable_medical_overlay and status["decision"] == "resume":
             runtime_overlay_result = _prepare_runtime_overlay(
                 profile=profile,
-                quest_root=Path(status["quest_root"]),
+                quest_root=quest_root,
             )
             status["runtime_overlay"] = runtime_overlay_result
             audit = runtime_overlay_result["audit"]
@@ -708,7 +709,7 @@ def ensure_study_runtime(
                 status["decision"] = "blocked"
                 status["reason"] = "runtime_overlay_not_ready"
     elif profile.enable_medical_overlay and status["quest_exists"]:
-        runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=profile, quest_root=Path(status["quest_root"]))}
+        runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=profile, quest_root=quest_root)}
         status["runtime_overlay"] = runtime_overlay_result
         audit = runtime_overlay_result["audit"]
         if status["quest_status"] in {"running", "active"} and not bool(audit.get("all_roots_ready")):
@@ -732,7 +733,7 @@ def ensure_study_runtime(
             status["decision"] = "blocked"
             status["reason"] = "startup_contract_resolution_failed"
         partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
-            quest_root=Path(paths["quest_root"]),
+            quest_root=quest_root,
             runtime_root=runtime_root,
             slug=_timestamp_slug(),
         )
@@ -751,12 +752,11 @@ def ensure_study_runtime(
             )
             daemon_result = {"create": create_result}
             status["quest_id"] = str(create_payload["quest_id"])
-            status["quest_root"] = str(paths["quest_root"])
+            status["quest_root"] = str(quest_root)
             status["quest_exists"] = True
             snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
             fallback_status = "created"
             status["quest_status"] = str(snapshot.get("status") or fallback_status)
-            quest_root = Path(status["quest_root"])
             if profile.enable_medical_overlay:
                 runtime_overlay_result = _prepare_runtime_overlay(
                     profile=profile,
@@ -792,7 +792,6 @@ def ensure_study_runtime(
                 else:
                     binding_last_action = "create_only"
     elif status["decision"] == "resume":
-        quest_root = Path(status["quest_root"])
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -819,7 +818,6 @@ def ensure_study_runtime(
             status["quest_status"] = str(daemon_result.get("status") or "running")
             binding_last_action = "resume"
     elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(status):
-        quest_root = Path(status["quest_root"])
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
