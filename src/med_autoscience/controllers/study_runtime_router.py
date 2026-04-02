@@ -23,6 +23,7 @@ from med_autoscience.policies.automation_ready import render_automation_ready_su
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
+from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import resolve_study_completion_contract
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
@@ -44,12 +45,6 @@ def _timestamp_slug() -> str:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
-    path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
 
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
@@ -112,16 +107,6 @@ def _serialize_submission_targets(profile: WorkspaceProfile, study_root: Path) -
 def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
     raw_targets = study_payload.get("submission_targets")
     return isinstance(raw_targets, list) and bool(raw_targets)
-
-
-def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path, quest_id: str) -> dict[str, Path]:
-    layout = build_workspace_runtime_layout_for_profile(profile)
-    return {
-        "quest_root": layout.quest_root(quest_id),
-        "runtime_binding_path": study_root / "runtime_binding.yaml",
-        "startup_payload_root": layout.startup_payload_root(study_id),
-        "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
-    }
 
 
 def _overlay_request_kwargs(profile: WorkspaceProfile) -> dict[str, Any]:
@@ -396,26 +381,6 @@ def _validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -
     }
 
 
-def _recover_invalid_partial_quest_root(*, quest_root: Path, runtime_root: Path) -> dict[str, Any] | None:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    quest_yaml_path = resolved_quest_root / "quest.yaml"
-    if not resolved_quest_root.exists() or quest_yaml_path.exists():
-        return None
-
-    recovery_root = Path(runtime_root).expanduser().resolve() / "recovery" / "invalid_partial_quest_roots"
-    archive_root = recovery_root / f"{resolved_quest_root.name}-{_timestamp_slug()}"
-    recovery_root.mkdir(parents=True, exist_ok=True)
-    if archive_root.exists():
-        raise FileExistsError(f"invalid partial quest recovery target already exists: {archive_root}")
-    resolved_quest_root.rename(archive_root)
-    return {
-        "status": "archived_invalid_partial_quest_root",
-        "quest_root": str(resolved_quest_root),
-        "archived_root": str(archive_root),
-        "missing_required_files": ["quest.yaml"],
-    }
-
-
 def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
     return runtime_reentry_gate.get("require_startup_hydration") is True
 
@@ -574,7 +539,12 @@ def _status_payload(
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     layout = build_workspace_runtime_layout_for_profile(profile)
-    paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root, quest_id=quest_id)
+    paths = study_runtime_protocol.resolve_study_runtime_paths(
+        profile=profile,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+    )
     quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
     runtime_root = layout.runtime_root
@@ -786,55 +756,6 @@ def study_runtime_status(
     )
 
 
-def _write_runtime_binding(
-    *,
-    runtime_binding_path: Path,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    quest_id: str,
-    last_action: str,
-    source: str,
-) -> None:
-    _write_yaml(
-        runtime_binding_path,
-        {
-            "schema_version": 1,
-            "engine": "med-deepscientist",
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": quest_id,
-            "runtime_root": str(profile.runtime_root),
-            "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
-            "last_action": last_action,
-            "last_action_at": _utc_now(),
-            "last_source": source,
-        },
-    )
-
-
-def _write_launch_report(
-    *,
-    launch_report_path: Path,
-    status: dict[str, Any],
-    source: str,
-    force: bool,
-    startup_payload_path: Path | None,
-    daemon_result: dict[str, Any] | None,
-) -> None:
-    report = dict(status)
-    report.update(
-        {
-            "source": source,
-            "force": force,
-            "recorded_at": _utc_now(),
-            "startup_payload_path": str(startup_payload_path) if startup_payload_path is not None else None,
-            "daemon_result": daemon_result,
-        }
-    )
-    _write_json(launch_report_path, report)
-
-
 def ensure_study_runtime(
     *,
     profile: WorkspaceProfile,
@@ -858,10 +779,10 @@ def ensure_study_runtime(
     )
     execution = _execution_payload(study_payload)
     quest_id = str(execution.get("quest_id") or resolved_study_id).strip() or resolved_study_id
-    paths = _study_paths(
+    paths = study_runtime_protocol.resolve_study_runtime_paths(
         profile=profile,
-        study_id=resolved_study_id,
         study_root=resolved_study_root,
+        study_id=resolved_study_id,
         quest_id=quest_id,
     )
     layout = build_workspace_runtime_layout_for_profile(profile)
@@ -926,9 +847,10 @@ def ensure_study_runtime(
         if str(startup_contract_validation.get("status")) != "clear":
             status["decision"] = "blocked"
             status["reason"] = "startup_contract_resolution_failed"
-        partial_quest_recovery = _recover_invalid_partial_quest_root(
+        partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
             quest_root=layout.quest_root(str(create_payload["quest_id"])),
             runtime_root=runtime_root,
+            slug=_timestamp_slug(),
         )
         if partial_quest_recovery is not None:
             status["partial_quest_recovery"] = partial_quest_recovery
@@ -959,14 +881,15 @@ def ensure_study_runtime(
                     status["decision"] = "blocked"
                     status["reason"] = "runtime_overlay_not_ready"
             if status["decision"] == "blocked":
-                _write_runtime_binding(
+                study_runtime_protocol.write_runtime_binding(
                     runtime_binding_path=runtime_binding_path,
-                    profile=profile,
+                    runtime_root=runtime_root,
                     study_id=resolved_study_id,
                     study_root=resolved_study_root,
                     quest_id=status["quest_id"],
                     last_action="blocked",
                     source=source,
+                    recorded_at=_utc_now(),
                 )
             else:
                 hydration_result, validation_result = _run_startup_hydration(
@@ -978,14 +901,15 @@ def ensure_study_runtime(
                 if str(validation_result.get("status")) != "clear":
                     status["decision"] = "blocked"
                     status["reason"] = "hydration_validation_failed"
-                    _write_runtime_binding(
+                    study_runtime_protocol.write_runtime_binding(
                         runtime_binding_path=runtime_binding_path,
-                        profile=profile,
+                        runtime_root=runtime_root,
                         study_id=resolved_study_id,
                         study_root=resolved_study_root,
                         quest_id=status["quest_id"],
                         last_action="blocked",
                         source=source,
+                        recorded_at=_utc_now(),
                     )
                 elif planned_decision == "create_and_start":
                     resume_result = med_deepscientist_transport.resume_quest(
@@ -995,24 +919,26 @@ def ensure_study_runtime(
                     )
                     daemon_result["resume"] = resume_result
                     status["quest_status"] = str(resume_result.get("status") or "running")
-                    _write_runtime_binding(
+                    study_runtime_protocol.write_runtime_binding(
                         runtime_binding_path=runtime_binding_path,
-                        profile=profile,
+                        runtime_root=runtime_root,
                         study_id=resolved_study_id,
                         study_root=resolved_study_root,
                         quest_id=status["quest_id"],
                         last_action="create_and_start",
                         source=source,
+                        recorded_at=_utc_now(),
                     )
                 else:
-                    _write_runtime_binding(
+                    study_runtime_protocol.write_runtime_binding(
                         runtime_binding_path=runtime_binding_path,
-                        profile=profile,
+                        runtime_root=runtime_root,
                         study_id=resolved_study_id,
                         study_root=resolved_study_root,
                         quest_id=status["quest_id"],
                         last_action="create_only",
                         source=source,
+                        recorded_at=_utc_now(),
                     )
     elif status["decision"] == "resume":
         quest_root = Path(status["quest_root"])
@@ -1032,14 +958,15 @@ def ensure_study_runtime(
         if str(validation_result.get("status")) != "clear":
             status["decision"] = "blocked"
             status["reason"] = "hydration_validation_failed"
-            _write_runtime_binding(
+            study_runtime_protocol.write_runtime_binding(
                 runtime_binding_path=runtime_binding_path,
-                profile=profile,
+                runtime_root=runtime_root,
                 study_id=resolved_study_id,
                 study_root=resolved_study_root,
                 quest_id=str(status["quest_id"]),
                 last_action="blocked",
                 source=source,
+                recorded_at=_utc_now(),
             )
         else:
             daemon_result = med_deepscientist_transport.resume_quest(
@@ -1048,15 +975,16 @@ def ensure_study_runtime(
                 source=source,
             )
             status["quest_status"] = str(daemon_result.get("status") or "running")
-            _write_runtime_binding(
+            study_runtime_protocol.write_runtime_binding(
                 runtime_binding_path=runtime_binding_path,
-                profile=profile,
+                runtime_root=runtime_root,
                 study_id=resolved_study_id,
                 study_root=resolved_study_root,
                 quest_id=str(status["quest_id"]),
-                    last_action="resume",
-                    source=source,
-                )
+                last_action="resume",
+                source=source,
+                recorded_at=_utc_now(),
+            )
     elif _should_refresh_startup_hydration_while_blocked(status):
         quest_root = Path(status["quest_root"])
         create_payload = _build_create_payload(
@@ -1081,14 +1009,15 @@ def ensure_study_runtime(
             status["startup_hydration_validation"] = validation_result
             if str(validation_result.get("status")) != "clear":
                 status["reason"] = "hydration_validation_failed"
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="blocked",
             source=source,
+            recorded_at=_utc_now(),
         )
     elif status["decision"] == "pause":
         daemon_result = med_deepscientist_transport.pause_quest(
@@ -1097,14 +1026,15 @@ def ensure_study_runtime(
             source=source,
         )
         status["quest_status"] = str(daemon_result.get("status") or "paused")
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="pause",
             source=source,
+            recorded_at=_utc_now(),
         )
     elif status["decision"] in {"sync_completion", "pause_and_complete"}:
         daemon_result = {}
@@ -1139,53 +1069,58 @@ def ensure_study_runtime(
         status["quest_status"] = str(completion_snapshot.get("status") or "completed")
         status["decision"] = "completed"
         status["reason"] = "study_completion_synced"
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="completed",
             source=source,
+            recorded_at=_utc_now(),
         )
     elif status["decision"] == "completed":
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="completed",
             source=source,
+            recorded_at=_utc_now(),
         )
     elif status["decision"] == "noop":
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="noop",
             source=source,
+            recorded_at=_utc_now(),
         )
     elif status["decision"] == "blocked" and status["quest_exists"]:
-        _write_runtime_binding(
+        study_runtime_protocol.write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
-            profile=profile,
+            runtime_root=runtime_root,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             quest_id=str(status["quest_id"]),
             last_action="blocked",
             source=source,
+            recorded_at=_utc_now(),
         )
 
-    _write_launch_report(
+    study_runtime_protocol.write_launch_report(
         launch_report_path=launch_report_path,
         status=status,
         source=source,
         force=force,
         startup_payload_path=startup_payload_path,
         daemon_result=daemon_result,
+        recorded_at=_utc_now(),
     )
     status["runtime_binding_path"] = str(runtime_binding_path)
     status["launch_report_path"] = str(launch_report_path)

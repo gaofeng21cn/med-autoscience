@@ -20,6 +20,18 @@ from .paper_artifacts import (
     resolve_submission_minimal_manifest,
     resolve_submission_minimal_output_paths,
 )
+from .runtime_watch import (
+    load_watch_state,
+    plan_controller_intervention,
+    save_watch_state,
+    write_watch_report,
+)
+from .study_runtime import (
+    archive_invalid_partial_quest_root,
+    resolve_study_runtime_paths,
+    write_launch_report,
+    write_runtime_binding,
+)
 from .quest_state import (
     find_latest,
     find_latest_main_result,
@@ -35,6 +47,7 @@ from .user_message import enqueue_user_message
 __all__ = [
     "PaperRootContext",
     "WorkspaceRuntimeLayout",
+    "archive_invalid_partial_quest_root",
     "build_workspace_runtime_layout",
     "build_workspace_runtime_layout_for_profile",
     "enqueue_user_message",
@@ -58,4 +71,11 @@ __all__ = [
     "resolve_study_root_from_paper_root",
     "resolve_active_stdout_path",
     "resolve_worktree_root_from_paper_root",
+    "load_watch_state",
+    "save_watch_state",
+    "write_watch_report",
+    "plan_controller_intervention",
+    "resolve_study_runtime_paths",
+    "write_launch_report",
+    "write_runtime_binding",
 ]
