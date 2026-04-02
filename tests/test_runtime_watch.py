@@ -56,6 +56,75 @@ def test_applies_new_blocker_once(tmp_path: Path) -> None:
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
 
+def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    seen: dict[str, object] = {}
+
+    def fake_load_watch_state(path: Path) -> dict[str, object]:
+        seen["loaded"] = str(path)
+        return {"schema_version": 1, "controllers": {}}
+
+    def fake_plan_controller_intervention(**kwargs) -> dict[str, object]:
+        seen.setdefault("planned", []).append(kwargs)
+        return {
+            "action": "applied",
+            "should_apply": True,
+            "suppression_reason": None,
+            "controller_state": {
+                "last_seen_fingerprint": "fp-1",
+                "last_applied_fingerprint": "fp-1",
+                "last_applied_at": "2026-04-02T12:00:00+00:00",
+                "last_status": "blocked",
+                "last_suppression_reason": None,
+            },
+        }
+
+    monkeypatch.setattr(
+        module.runtime_watch_protocol,
+        "load_watch_state",
+        fake_load_watch_state,
+    )
+    monkeypatch.setattr(
+        module.runtime_watch_protocol,
+        "plan_controller_intervention",
+        fake_plan_controller_intervention,
+    )
+    monkeypatch.setattr(
+        module.runtime_watch_protocol,
+        "save_watch_state",
+        lambda quest_root, payload: seen.setdefault("saved", []).append((str(quest_root), payload)),
+    )
+    monkeypatch.setattr(
+        module.runtime_watch_protocol,
+        "write_watch_report",
+        lambda *, quest_root, report, markdown: seen.setdefault("reported", []).append((str(quest_root), report))
+        or (quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json", quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.md"),
+    )
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "blocked",
+                "blockers": ["missing_post_main_publishability_gate"],
+                "allow_write": False,
+                "missing_non_scalar_deliverables": ["calibration_plot"],
+                "submission_minimal_present": False,
+                "report_json": "dry.json",
+                "report_markdown": "dry.md",
+            }
+        },
+        apply=True,
+    )
+
+    assert seen["loaded"] == str(quest_root)
+    assert len(seen["planned"]) == 1
+    assert len(seen["saved"]) == 1
+    assert len(seen["reported"]) == 1
+    assert result["controllers"]["publication_gate"]["action"] == "applied"
+
+
 def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     runners = module.build_default_controller_runners()

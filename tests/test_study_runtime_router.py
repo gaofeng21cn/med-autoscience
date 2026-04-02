@@ -397,6 +397,77 @@ def test_ensure_study_runtime_prefers_layout_runtime_root_for_transport_calls(
     assert seen["resume_runtime_root"] == expected_runtime_root
 
 
+def test_ensure_study_runtime_uses_study_runtime_protocol_binding_and_report(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "create_quest",
+        lambda *, runtime_root, payload: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": "001-risk",
+                "quest_root": str(runtime_root / "quests" / "001-risk"),
+                "status": "created",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "write_runtime_binding",
+        lambda **kwargs: seen.setdefault("binding_calls", []).append(kwargs),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "write_launch_report",
+        lambda **kwargs: seen.setdefault("report_calls", []).append(kwargs),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "create_and_start"
+    assert len(seen["binding_calls"]) == 1
+    assert seen["binding_calls"][0]["last_action"] == "create_and_start"
+    assert len(seen["report_calls"]) == 1
+    assert seen["report_calls"][0]["source"] == "medautosci-test"
+
+
 def test_study_runtime_status_prefers_study_completion_contract_over_boundary_gate(
     monkeypatch,
     tmp_path: Path,

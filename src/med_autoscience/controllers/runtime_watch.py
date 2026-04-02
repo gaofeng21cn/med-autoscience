@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from med_autoscience.adapters import report_store
 from med_autoscience.controllers import (
     data_asset_gate,
     figure_loop_guard,
@@ -19,6 +18,7 @@ from med_autoscience.controllers import (
 )
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -135,10 +135,8 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
 
 
 def write_watch_report(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return report_store.write_timestamped_report(
+    return runtime_watch_protocol.write_watch_report(
         quest_root=quest_root,
-        report_group="runtime_watch",
-        timestamp=report["scanned_at"],
         report=report,
         markdown=render_watch_markdown(report),
     )
@@ -151,7 +149,7 @@ def run_watch_for_quest(
     apply: bool,
 ) -> dict[str, Any]:
     controller_runners = controller_runners or build_default_controller_runners()
-    current_state = report_store.load_watch_state(quest_root)
+    current_state = runtime_watch_protocol.load_watch_state(quest_root)
     controller_state = dict(current_state.get("controllers") or {})
     report: dict[str, Any] = {
         "schema_version": 1,
@@ -165,33 +163,26 @@ def run_watch_for_quest(
         dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)
         fingerprint = build_fingerprint(name, dry_run_result)
         previous = dict(controller_state.get(name) or {})
-        action = "clear"
-        suppression_reason = dry_run_result.get("suppression_reason")
-        final_result = dry_run_result
-        status = dry_run_result.get("status")
         intervention_statuses = {"blocked"}
         if name == "data_asset_gate":
             intervention_statuses.add("advisory")
-
-        if status in intervention_statuses:
-            should_apply = apply and previous.get("last_applied_fingerprint") != fingerprint
-            if should_apply:
-                final_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=True)
-                action = "applied"
-            else:
-                action = "suppressed"
-                suppression_reason = "duplicate_fingerprint" if apply else "apply_disabled"
-
-        controller_state[name] = {
-            "last_seen_fingerprint": fingerprint,
-            "last_applied_fingerprint": fingerprint if action == "applied" else previous.get("last_applied_fingerprint"),
-            "last_applied_at": report["scanned_at"] if action == "applied" else previous.get("last_applied_at"),
-            "last_status": dry_run_result.get("status"),
-            "last_suppression_reason": suppression_reason,
-        }
+        plan = runtime_watch_protocol.plan_controller_intervention(
+            previous_controller_state=previous,
+            dry_run_result=dry_run_result,
+            fingerprint=fingerprint,
+            apply=apply,
+            scanned_at=report["scanned_at"],
+            intervention_statuses=intervention_statuses,
+        )
+        final_result = dry_run_result
+        if plan["should_apply"]:
+            final_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=True)
+        controller_state[name] = plan["controller_state"]
+        status = dry_run_result.get("status")
+        suppression_reason = plan["suppression_reason"]
         report["controllers"][name] = {
             "status": status,
-            "action": action,
+            "action": plan["action"],
             "blockers": dry_run_result.get("blockers") or [],
             "advisories": dry_run_result.get("advisories") or [],
             "report_json": final_result.get("report_json"),
@@ -199,9 +190,9 @@ def run_watch_for_quest(
             "suppression_reason": suppression_reason,
         }
 
-    report_store.save_watch_state(
-        quest_root,
-        {
+    runtime_watch_protocol.save_watch_state(
+        quest_root=quest_root,
+        payload={
             "schema_version": 1,
             "updated_at": report["scanned_at"],
             "controllers": controller_state,
