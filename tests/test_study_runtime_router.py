@@ -414,6 +414,95 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     assert seen["resume_runtime_root"] == protocol_runtime_root
 
 
+def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_string(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    protocol_runtime_root = tmp_path / "protocol-runtime"
+    protocol_quest_root = protocol_runtime_root / "quests" / "001-risk"
+    seen: dict[str, Path] = {}
+
+    monkeypatch.setattr(
+        module,
+        "_status_payload",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(tmp_path / "wrong-status-quest-root"),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "runtime_reentry_gate": {},
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_paused",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "resolve_study_runtime_paths",
+        lambda *, profile, study_root, study_id, quest_id: {
+            "runtime_root": protocol_runtime_root,
+            "quest_root": protocol_quest_root,
+            "runtime_binding_path": study_root / "runtime_binding.yaml",
+            "startup_payload_root": tmp_path / "protocol-startup-payloads" / study_id,
+            "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: (
+            seen.__setitem__("overlay_quest_root", quest_root) or {"audit": {"all_roots_ready": True}}
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda *, quest_root, hydration_payload: (
+                seen.__setitem__("hydration_quest_root", quest_root) or {"status": "hydrated"}
+            )
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(run_validation=lambda *, quest_root: {"status": "clear", "blockers": []}),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert seen["overlay_quest_root"] == protocol_quest_root
+    assert seen["hydration_quest_root"] == protocol_quest_root
+
+
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     monkeypatch,
     tmp_path: Path,
