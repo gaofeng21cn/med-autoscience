@@ -217,3 +217,117 @@ def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
         "action": "pause",
         "source": "medautosci-test",
     }
+
+
+def test_list_quest_bash_sessions_reads_daemon_sessions(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                [
+                    {"bash_id": "s1", "status": "running"},
+                    {"bash_id": "s2", "status": "completed"},
+                ]
+            ).encode("utf-8")
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["method"] = http_request.get_method()
+        seen["timeout"] = timeout
+        seen["accept"] = http_request.headers["Accept"]
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.list_quest_bash_sessions(runtime_root=runtime_root, quest_id="001-risk")
+
+    assert result == [
+        {"bash_id": "s1", "status": "running"},
+        {"bash_id": "s2", "status": "completed"},
+    ]
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/bash/sessions?limit=200"
+    assert seen["method"] == "GET"
+    assert seen["timeout"] == 10
+    assert seen["accept"] == "application/json"
+
+
+def test_inspect_quest_live_bash_sessions_reports_live_and_none(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "list_quest_bash_sessions",
+        lambda **kwargs: [
+            {"bash_id": "s1", "status": "completed"},
+            {"bash_id": "s2", "status": "terminating"},
+        ],
+    )
+    live_result = module.inspect_quest_live_bash_sessions(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert live_result == {
+        "ok": True,
+        "status": "live",
+        "session_count": 2,
+        "live_session_count": 1,
+        "live_session_ids": ["s2"],
+    }
+
+    monkeypatch.setattr(
+        module,
+        "list_quest_bash_sessions",
+        lambda **kwargs: [
+            {"bash_id": "s1", "status": "completed"},
+        ],
+    )
+    none_result = module.inspect_quest_live_bash_sessions(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert none_result == {
+        "ok": True,
+        "status": "none",
+        "session_count": 1,
+        "live_session_count": 0,
+        "live_session_ids": [],
+    }
+
+
+def test_inspect_quest_live_bash_sessions_reports_unknown_when_daemon_probe_fails(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "list_quest_bash_sessions",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("daemon unavailable")),
+    )
+
+    result = module.inspect_quest_live_bash_sessions(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "unknown",
+        "session_count": None,
+        "live_session_count": None,
+        "live_session_ids": [],
+        "error": "daemon unavailable",
+    }

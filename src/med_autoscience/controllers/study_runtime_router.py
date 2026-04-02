@@ -561,15 +561,37 @@ def _status_payload(
         return result
 
     if quest_status_value in {"running", "active"}:
-        if not startup_boundary_gate["allow_compute_stage"]:
-            result["decision"] = "pause"
-            result["reason"] = "startup_boundary_not_ready_for_running_quest"
+        bash_session_audit = med_deepscientist_transport.inspect_quest_live_bash_sessions(
+            runtime_root=profile.med_deepscientist_runtime_root,
+            quest_id=quest_id,
+        )
+        result["bash_session_audit"] = bash_session_audit
+        audit_status = str(bash_session_audit.get("status") or "").strip()
+        if audit_status == "unknown":
+            result["decision"] = "blocked"
+            result["reason"] = "running_quest_live_session_audit_failed"
+        elif audit_status == "live":
+            if not startup_boundary_gate["allow_compute_stage"]:
+                result["decision"] = "pause"
+                result["reason"] = "startup_boundary_not_ready_for_running_quest"
+            elif not runtime_reentry_gate["allow_runtime_entry"]:
+                result["decision"] = "pause"
+                result["reason"] = "runtime_reentry_not_ready_for_running_quest"
+            else:
+                result["decision"] = "noop"
+                result["reason"] = "quest_already_running"
+        elif not startup_boundary_gate["allow_compute_stage"]:
+            result["decision"] = "blocked"
+            result["reason"] = "startup_boundary_not_ready_for_resume"
         elif not runtime_reentry_gate["allow_runtime_entry"]:
-            result["decision"] = "pause"
-            result["reason"] = "runtime_reentry_not_ready_for_running_quest"
+            result["decision"] = "blocked"
+            result["reason"] = "runtime_reentry_not_ready_for_resume"
+        elif execution.get("auto_resume") is True:
+            result["decision"] = "resume"
+            result["reason"] = "quest_marked_running_but_no_live_session"
         else:
-            result["decision"] = "noop"
-            result["reason"] = "quest_already_running"
+            result["decision"] = "blocked"
+            result["reason"] = "quest_marked_running_but_auto_resume_disabled"
         return result
 
     if quest_status_value in {"paused", "idle", "created"}:
