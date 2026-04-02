@@ -1,3 +1,8 @@
+from .layout import (
+    WorkspaceRuntimeLayout,
+    build_workspace_runtime_layout,
+    build_workspace_runtime_layout_for_profile,
+)
 from .topology import (
     PaperRootContext,
     resolve_paper_root_context,
@@ -28,6 +33,9 @@ from .user_message import enqueue_user_message
 
 __all__ = [
     "PaperRootContext",
+    "WorkspaceRuntimeLayout",
+    "build_workspace_runtime_layout",
+    "build_workspace_runtime_layout_for_profile",
     "enqueue_user_message",
     "resolve_artifact_manifest",
     "resolve_artifact_manifest_from_main_result",

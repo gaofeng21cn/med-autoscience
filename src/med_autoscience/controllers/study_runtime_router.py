@@ -23,6 +23,7 @@ from med_autoscience.policies.automation_ready import render_automation_ready_su
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
@@ -114,10 +115,11 @@ def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
 
 
 def _study_paths(*, profile: WorkspaceProfile, study_id: str, study_root: Path) -> dict[str, Path]:
+    layout = build_workspace_runtime_layout_for_profile(profile)
     return {
-        "quest_root": profile.runtime_root / study_id,
+        "quest_root": layout.quest_root(study_id),
         "runtime_binding_path": study_root / "runtime_binding.yaml",
-        "startup_payload_root": profile.workspace_root / "ops" / "med-deepscientist" / "startup_payloads" / study_id,
+        "startup_payload_root": layout.startup_payload_root(study_id),
         "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
     }
 
@@ -374,7 +376,7 @@ def _status_payload(
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     paths = _study_paths(profile=profile, study_id=study_id, study_root=study_root)
-    quest_root = profile.runtime_root / quest_id
+    quest_root = paths["quest_root"]
     runtime_binding_path = paths["runtime_binding_path"]
     quest_exists = (quest_root / "quest.yaml").exists()
     quest_status_value = quest_state.quest_status(quest_root) if quest_exists else ""
@@ -588,6 +590,7 @@ def ensure_study_runtime(
     )
     execution = _execution_payload(study_payload)
     paths = _study_paths(profile=profile, study_id=resolved_study_id, study_root=resolved_study_root)
+    layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
@@ -645,7 +648,7 @@ def ensure_study_runtime(
         )
         daemon_result = {"create": create_result}
         status["quest_id"] = str(create_payload["quest_id"])
-        status["quest_root"] = str(profile.runtime_root / status["quest_id"])
+        status["quest_root"] = str(layout.quest_root(status["quest_id"]))
         status["quest_exists"] = True
         snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
         fallback_status = "created"

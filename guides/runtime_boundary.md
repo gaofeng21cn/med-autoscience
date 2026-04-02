@@ -48,6 +48,7 @@ workspace 下的 `ops/med-deepscientist/` 只保留：
 它不是面向研究用户或 Agent 的正式研究入口。
 
 `ops/med-deepscientist/bin/start-web`、`status`、`doctor`、`stop` 只用于 runtime 运维，不用于研究启动决策。
+`ops/med-deepscientist/` 相关路径的程序化派生应统一走 `med_autoscience.runtime_protocol.layout`，而不是在 controller、workspace scaffold 或 wrapper 中重复硬编码。
 
 ## 为什么不需要把研究门禁下沉到 MedDeepScientist runtime 内核
 
@@ -66,4 +67,6 @@ workspace 下的 `ops/med-deepscientist/` 只保留：
 - 不新增直接面向用户的 `MedDeepScientist` 研究入口说明
 - 不新增绕过 `MedAutoScience` 的 quest 创建脚本
 - Agent 入口模板、workspace 脚手架和公开文档都必须把 `MedAutoScience` 写成唯一研究入口
+- 不重新引入 `adapters/deepscientist/*` 这类 legacy shim 作为 production 依赖
+- 不在 controller 中重复拼接 `ops/med-deepscientist/...`；统一走 `runtime_protocol.layout`
 - 如果未来出现第二个上层系统直连 `MedDeepScientist`，再考虑把门禁下沉到 runtime 本体

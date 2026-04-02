@@ -29,7 +29,7 @@
 - production controller 不再直接 import `adapters.deepscientist.*`
 - runtime 文件真相全部落在 `runtime_protocol`
 - daemon transport 真相全部落在 `runtime_transport`
-- `adapters/deepscientist/*` 只剩 compatibility shim
+- `adapters/deepscientist/*` 已经从正式主链移除
 
 ### 2. worktree 模式完全成立
 

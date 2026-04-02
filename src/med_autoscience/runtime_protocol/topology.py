@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from .layout import build_workspace_runtime_layout
+
 
 @dataclass(frozen=True)
 class PaperRootContext:
@@ -57,14 +59,14 @@ def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
 
 def _resolve_workspace_root_from_quest_root(quest_root: Path) -> Path:
     resolved = _resolve_path(quest_root)
-    if (
-        resolved.parent.name != "quests"
-        or resolved.parent.parent.name != "runtime"
-        or resolved.parent.parent.parent.name != "med-deepscientist"
-        or resolved.parent.parent.parent.parent.name != "ops"
-    ):
+    try:
+        workspace_root = resolved.parents[4]
+    except IndexError as exc:
+        raise ValueError(f"quest_root is not under an ops/med-deepscientist/runtime/quests layout: {quest_root}") from exc
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    if resolved.parent != layout.quests_root or resolved.parent.parent != layout.runtime_root:
         raise ValueError(f"quest_root is not under an ops/med-deepscientist/runtime/quests layout: {quest_root}")
-    return resolved.parent.parent.parent.parent.parent
+    return layout.workspace_root
 
 
 def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Path]:

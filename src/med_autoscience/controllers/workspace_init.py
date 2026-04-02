@@ -8,6 +8,7 @@ import re
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ def _profile_filename(workspace_name: str) -> str:
 
 
 def _workspace_directories(workspace_root: Path) -> list[Path]:
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     return [
         workspace_root / "datasets",
         workspace_root / "contracts",
@@ -38,10 +40,10 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "refs",
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "profiles",
-        workspace_root / "ops" / "med-deepscientist" / "bin",
-        workspace_root / "ops" / "med-deepscientist" / "runtime",
-        workspace_root / "ops" / "med-deepscientist" / "startup_briefs",
-        workspace_root / "ops" / "med-deepscientist" / "startup_payloads",
+        layout.bin_root,
+        layout.runtime_root,
+        layout.startup_briefs_root,
+        layout.startup_payloads_root,
     ]
 
 
@@ -95,13 +97,14 @@ def _render_workspace_profile(
     default_publication_profile: str,
     default_citation_style: str,
 ) -> str:
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     return (
         f'name = "{workspace_name}"\n'
         f'workspace_root = "{workspace_root}"\n'
-        f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"\n'
+        f'runtime_root = "{layout.quests_root}"\n'
         f'studies_root = "{workspace_root / "studies"}"\n'
         f'portfolio_root = "{workspace_root / "portfolio"}"\n'
-        f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"\n'
+        f'med_deepscientist_runtime_root = "{layout.runtime_root}"\n'
         'med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"\n'
         f'default_publication_profile = "{default_publication_profile}"\n'
         f'default_citation_style = "{default_citation_style}"\n'
@@ -225,13 +228,13 @@ def _render_profile_optional_forward_script(command: str) -> str:
     )
 
 
-def _render_watch_runtime_script() -> str:
+def _render_watch_runtime_script(*, runtime_quests_root: Path) -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         'run_medautosci watch \\\n'
-        '  --runtime-root "${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests" \\\n'
+        f'  --runtime-root "{runtime_quests_root}" \\\n'
         '  "$@"\n'
     )
 
@@ -402,6 +405,7 @@ def _rendered_files(
     default_publication_profile: str,
     default_citation_style: str,
 ) -> list[RenderedFile]:
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     profile_relpath = Path("ops") / "medautoscience" / "profiles" / _profile_filename(workspace_name)
     files = [
         RenderedFile(
@@ -430,11 +434,11 @@ def _rendered_files(
             content=_render_medautoscience_config(workspace_root=workspace_root, profile_relpath=profile_relpath),
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "config.env",
+            path=layout.config_env_path,
             content=_render_med_deepscientist_config(),
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "config.env.example",
+            path=layout.config_env_example_path,
             content=_render_med_deepscientist_config(),
         ),
         RenderedFile(
@@ -442,7 +446,7 @@ def _rendered_files(
             content=_render_medautoscience_readme(profile_relpath=profile_relpath),
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "README.md",
+            path=layout.readme_path,
             content=_render_med_deepscientist_readme(),
         ),
         RenderedFile(
@@ -467,7 +471,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
-            content=_render_watch_runtime_script(),
+            content=_render_watch_runtime_script(runtime_quests_root=layout.quests_root),
             executable=True,
         ),
         RenderedFile(
@@ -526,32 +530,32 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "_shared.sh",
+            path=layout.bin_root / "_shared.sh",
             content=_render_med_deepscientist_shared(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "doctor",
+            path=layout.bin_root / "doctor",
             content=_render_med_deepscientist_forward("doctor"),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "show-config",
+            path=layout.bin_root / "show-config",
             content=_render_med_deepscientist_show_config(),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "start-web",
+            path=layout.bin_root / "start-web",
             content=_render_med_deepscientist_forward("--port 20999"),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "status",
+            path=layout.bin_root / "status",
             content=_render_med_deepscientist_forward("--status"),
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "med-deepscientist" / "bin" / "stop",
+            path=layout.bin_root / "stop",
             content=_render_med_deepscientist_forward("--stop"),
             executable=True,
         ),
@@ -571,6 +575,7 @@ def init_workspace(
     default_citation_style: str = "AMA",
 ) -> dict[str, object]:
     workspace_root = workspace_root.expanduser().resolve()
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     directories = _workspace_directories(workspace_root)
     files = _rendered_files(
         workspace_root=workspace_root,
@@ -618,7 +623,7 @@ def init_workspace(
         "profile_path": str(profile_path),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",
-            f"edit {workspace_root / 'ops' / 'med-deepscientist' / 'config.env'}",
+            f"edit {layout.config_env_path}",
             f"review {profile_path}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'show-profile'}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'bootstrap'}",

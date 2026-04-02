@@ -7,6 +7,7 @@ import yaml
 
 from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 
 _REQUIRED_OVERRIDE_FIELDS = ("id", "source_path", "status", "target_surface")
@@ -143,7 +144,8 @@ def inspect_behavior_equivalence_gate(gate_path: Path) -> dict[str, object]:
 
 
 def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
-    runtime_root_expected = profile.med_deepscientist_runtime_root / "quests"
+    layout = build_workspace_runtime_layout_for_profile(profile)
+    runtime_root_expected = layout.quests_root
     runtime_checks: dict[str, bool] = {
         "runtime_root_matches_med_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
         "runtime_root_exists": profile.runtime_root.exists(),
@@ -159,10 +161,8 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     }
 
     medautoscience_config_env = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    med_deepscientist_ops_root = profile.workspace_root / "ops" / "med-deepscientist"
-    med_deepscientist_config_env = med_deepscientist_ops_root / "config.env"
-    med_deepscientist_bin_dir = med_deepscientist_ops_root / "bin"
-    behavior_gate_path = med_deepscientist_ops_root / "behavior_equivalence_gate.yaml"
+    med_deepscientist_config_env = layout.config_env_path
+    med_deepscientist_bin_dir = layout.bin_root
     manifest_info = inspect_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
@@ -186,7 +186,7 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "manifest_checks": manifest_checks,
     }
 
-    behavior_gate = inspect_behavior_equivalence_gate(behavior_gate_path)
+    behavior_gate = inspect_behavior_equivalence_gate(layout.behavior_gate_path)
     return {
         "runtime_contract": runtime_contract,
         "launcher_contract": launcher_contract,
