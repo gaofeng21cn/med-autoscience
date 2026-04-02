@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.runtime_protocol.quest_state import (
+    QuestRuntimeSnapshot,
     find_latest_main_result_path,
     inspect_quest_runtime,
     load_runtime_state,
@@ -80,10 +81,11 @@ def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path
 
     result = inspect_quest_runtime(quest_root)
 
-    assert result == {
-        "quest_exists": True,
-        "quest_status": "running",
-    }
+    assert result == QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+    )
 
 
 def test_inspect_quest_runtime_reports_missing_quest_when_quest_yaml_is_absent(tmp_path: Path) -> None:
@@ -92,7 +94,8 @@ def test_inspect_quest_runtime_reports_missing_quest_when_quest_yaml_is_absent(t
 
     result = inspect_quest_runtime(quest_root)
 
-    assert result == {
-        "quest_exists": False,
-        "quest_status": None,
-    }
+    assert result == QuestRuntimeSnapshot(
+        quest_exists=False,
+        quest_status=None,
+        bash_session_audit=None,
+    )

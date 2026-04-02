@@ -22,6 +22,37 @@ class StudyRuntimeContext:
     launch_report_path: Path
 
 
+@dataclass(frozen=True)
+class StudyRuntimeArtifacts:
+    runtime_binding_path: Path
+    launch_report_path: Path
+    startup_payload_path: Path | None
+
+
+@dataclass(frozen=True)
+class StartupContractValidation:
+    status: str
+    blockers: tuple[str, ...]
+    medical_analysis_contract_status: str | None
+    medical_reporting_contract_status: str | None
+    medical_analysis_reason_code: str | None
+    medical_reporting_reason_code: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "blockers": list(self.blockers),
+            "contract_statuses": {
+                "medical_analysis_contract": self.medical_analysis_contract_status,
+                "medical_reporting_contract": self.medical_reporting_contract_status,
+            },
+            "reason_codes": {
+                "medical_analysis_contract": self.medical_analysis_reason_code,
+                "medical_reporting_contract": self.medical_reporting_reason_code,
+            },
+        }
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -93,7 +124,7 @@ def build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, obje
     }
 
 
-def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> dict[str, Any]:
+def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> StartupContractValidation:
     def validate_contract(
         *,
         payload: object,
@@ -133,18 +164,14 @@ def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) ->
         blockers.append(analysis_blocker)
     if reporting_blocker is not None:
         blockers.append(reporting_blocker)
-    return {
-        "status": "blocked" if blockers else "clear",
-        "blockers": blockers,
-        "contract_statuses": {
-            "medical_analysis_contract": analysis_status,
-            "medical_reporting_contract": reporting_status,
-        },
-        "reason_codes": {
-            "medical_analysis_contract": analysis_reason,
-            "medical_reporting_contract": reporting_reason,
-        },
-    }
+    return StartupContractValidation(
+        status="blocked" if blockers else "clear",
+        blockers=tuple(blockers),
+        medical_analysis_contract_status=analysis_status,
+        medical_reporting_contract_status=reporting_status,
+        medical_analysis_reason_code=analysis_reason,
+        medical_reporting_reason_code=reporting_reason,
+    )
 
 
 def should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> bool:
@@ -217,7 +244,7 @@ def persist_runtime_artifacts(
     startup_payload_path: Path | None,
     daemon_result: dict[str, Any] | None,
     recorded_at: str,
-) -> dict[str, str | None]:
+) -> StudyRuntimeArtifacts:
     if last_action is not None:
         resolved_quest_id = str(quest_id or "").strip()
         if not resolved_quest_id:
@@ -241,11 +268,11 @@ def persist_runtime_artifacts(
         daemon_result=daemon_result,
         recorded_at=recorded_at,
     )
-    return {
-        "runtime_binding_path": str(runtime_binding_path),
-        "launch_report_path": str(launch_report_path),
-        "startup_payload_path": str(startup_payload_path) if startup_payload_path is not None else None,
-    }
+    return StudyRuntimeArtifacts(
+        runtime_binding_path=runtime_binding_path,
+        launch_report_path=launch_report_path,
+        startup_payload_path=startup_payload_path,
+    )
 
 
 def write_launch_report(
