@@ -371,14 +371,14 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
-        "resolve_study_runtime_paths",
-        lambda *, profile, study_root, study_id, quest_id: {
-            "runtime_root": protocol_runtime_root,
-            "quest_root": protocol_quest_root,
-            "runtime_binding_path": study_root / "runtime_binding.yaml",
-            "startup_payload_root": tmp_path / "protocol-startup-payloads" / study_id,
-            "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
-        },
+        "resolve_study_runtime_context",
+        lambda *, profile, study_root, study_id, quest_id: SimpleNamespace(
+            runtime_root=protocol_runtime_root,
+            quest_root=protocol_quest_root,
+            runtime_binding_path=study_root / "runtime_binding.yaml",
+            startup_payload_root=tmp_path / "protocol-startup-payloads" / study_id,
+            launch_report_path=study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        ),
     )
     monkeypatch.setattr(
         module.quest_state,
@@ -458,14 +458,14 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
-        "resolve_study_runtime_paths",
-        lambda *, profile, study_root, study_id, quest_id: {
-            "runtime_root": protocol_runtime_root,
-            "quest_root": protocol_quest_root,
-            "runtime_binding_path": study_root / "runtime_binding.yaml",
-            "startup_payload_root": tmp_path / "protocol-startup-payloads" / study_id,
-            "launch_report_path": study_root / "artifacts" / "runtime" / "last_launch_report.json",
-        },
+        "resolve_study_runtime_context",
+        lambda *, profile, study_root, study_id, quest_id: SimpleNamespace(
+            runtime_root=protocol_runtime_root,
+            quest_root=protocol_quest_root,
+            runtime_binding_path=study_root / "runtime_binding.yaml",
+            startup_payload_root=tmp_path / "protocol-startup-payloads" / study_id,
+            launch_report_path=study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        ),
     )
     monkeypatch.setattr(
         module,

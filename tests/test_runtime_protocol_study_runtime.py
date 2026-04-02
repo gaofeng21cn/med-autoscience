@@ -49,6 +49,25 @@ def test_resolve_study_runtime_paths_derives_binding_launch_and_runtime_roots(tm
     assert result["launch_report_path"] == study_root / "artifacts" / "runtime" / "last_launch_report.json"
 
 
+def test_resolve_study_runtime_context_derives_typed_paths(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    profile = make_profile(tmp_path)
+    study_root = profile.studies_root / "001-risk"
+
+    context = module.resolve_study_runtime_context(
+        profile=profile,
+        study_root=study_root,
+        study_id="001-risk",
+        quest_id="quest-001",
+    )
+
+    assert context.runtime_root == profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
+    assert context.quest_root == profile.workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    assert context.runtime_binding_path == study_root / "runtime_binding.yaml"
+    assert context.startup_payload_root == profile.workspace_root / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"
+    assert context.launch_report_path == study_root / "artifacts" / "runtime" / "last_launch_report.json"
+
+
 def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
