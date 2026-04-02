@@ -1,8 +1,23 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Any
+
+
+@dataclass(frozen=True)
+class QuestRuntimeSnapshot:
+    quest_exists: bool
+    quest_status: str | None
+    bash_session_audit: dict[str, Any] | None = None
+
+    def with_bash_session_audit(self, bash_session_audit: dict[str, Any]) -> "QuestRuntimeSnapshot":
+        return QuestRuntimeSnapshot(
+            quest_exists=self.quest_exists,
+            quest_status=self.quest_status,
+            bash_session_audit=dict(bash_session_audit),
+        )
 
 
 def find_latest(paths: list[Path]) -> Path | None:
@@ -23,13 +38,13 @@ def quest_status(quest_root: Path) -> str:
     return str(payload.get("status") or "").strip().lower()
 
 
-def inspect_quest_runtime(quest_root: Path) -> dict[str, Any]:
+def inspect_quest_runtime(quest_root: Path) -> QuestRuntimeSnapshot:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     quest_exists = (resolved_quest_root / "quest.yaml").exists()
-    return {
-        "quest_exists": quest_exists,
-        "quest_status": quest_status(resolved_quest_root) if quest_exists else None,
-    }
+    return QuestRuntimeSnapshot(
+        quest_exists=quest_exists,
+        quest_status=quest_status(resolved_quest_root) if quest_exists else None,
+    )
 
 
 def iter_active_quests(runtime_root: Path) -> list[Path]:

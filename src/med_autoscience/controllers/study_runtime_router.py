@@ -432,12 +432,14 @@ def _status_payload(
     quest_root = runtime_context.quest_root
     runtime_binding_path = runtime_context.runtime_binding_path
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
-    quest_exists = bool(quest_runtime.get("quest_exists"))
-    quest_status_value = str(quest_runtime.get("quest_status") or "").strip()
+    quest_exists = quest_runtime.quest_exists
+    quest_status_value = str(quest_runtime.quest_status or "").strip()
     if quest_status_value in {"running", "active"}:
-        quest_runtime["bash_session_audit"] = med_deepscientist_transport.inspect_quest_live_bash_sessions(
-            runtime_root=runtime_root,
-            quest_id=quest_id,
+        quest_runtime = quest_runtime.with_bash_session_audit(
+            med_deepscientist_transport.inspect_quest_live_bash_sessions(
+                runtime_root=runtime_root,
+                quest_id=quest_id,
+            )
         )
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
@@ -508,7 +510,7 @@ def _status_payload(
             result["reason"] = "quest_already_completed"
             return result
         if quest_status_value in {"running", "active"}:
-            bash_session_audit = dict(quest_runtime.get("bash_session_audit") or {})
+            bash_session_audit = dict(quest_runtime.bash_session_audit or {})
             result["bash_session_audit"] = bash_session_audit
             if str(bash_session_audit.get("status") or "").strip() == "live":
                 result["decision"] = "pause_and_complete"
@@ -541,8 +543,8 @@ def _status_payload(
             execution=execution,
         )
     )
-    result["startup_contract_validation"] = startup_contract_validation
-    if str(startup_contract_validation.get("status")) != "clear":
+    result["startup_contract_validation"] = startup_contract_validation.to_dict()
+    if startup_contract_validation.status != "clear":
         result["decision"] = "blocked"
         result["reason"] = "startup_contract_resolution_failed"
         return result
@@ -561,7 +563,7 @@ def _status_payload(
         return result
 
     if quest_status_value in {"running", "active"}:
-        bash_session_audit = dict(quest_runtime.get("bash_session_audit") or {})
+        bash_session_audit = dict(quest_runtime.bash_session_audit or {})
         result["bash_session_audit"] = bash_session_audit
         audit_status = str(bash_session_audit.get("status") or "").strip()
         if audit_status == "unknown":
@@ -728,8 +730,8 @@ def ensure_study_runtime(
         startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
             startup_contract=dict(create_payload.get("startup_contract") or {})
         )
-        status["startup_contract_validation"] = startup_contract_validation
-        if str(startup_contract_validation.get("status")) != "clear":
+        status["startup_contract_validation"] = startup_contract_validation.to_dict()
+        if startup_contract_validation.status != "clear":
             status["decision"] = "blocked"
             status["reason"] = "startup_contract_resolution_failed"
         partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
@@ -828,8 +830,8 @@ def ensure_study_runtime(
         startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
             startup_contract=dict(create_payload.get("startup_contract") or {})
         )
-        status["startup_contract_validation"] = startup_contract_validation
-        if str(startup_contract_validation.get("status")) != "clear":
+        status["startup_contract_validation"] = startup_contract_validation.to_dict()
+        if startup_contract_validation.status != "clear":
             status["reason"] = "startup_contract_resolution_failed"
         else:
             hydration_result, validation_result = _run_startup_hydration(
@@ -905,8 +907,8 @@ def ensure_study_runtime(
         daemon_result=daemon_result,
         recorded_at=_utc_now(),
     )
-    status["runtime_binding_path"] = str(artifact_paths["runtime_binding_path"])
-    status["launch_report_path"] = str(artifact_paths["launch_report_path"])
-    if artifact_paths["startup_payload_path"] is not None:
-        status["startup_payload_path"] = str(artifact_paths["startup_payload_path"])
+    status["runtime_binding_path"] = str(artifact_paths.runtime_binding_path)
+    status["launch_report_path"] = str(artifact_paths.launch_report_path)
+    if artifact_paths.startup_payload_path is not None:
+        status["startup_payload_path"] = str(artifact_paths.startup_payload_path)
     return status

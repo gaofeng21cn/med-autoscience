@@ -27,6 +27,8 @@ from .runtime_watch import (
     write_watch_report,
 )
 from .study_runtime import (
+    StartupContractValidation,
+    StudyRuntimeArtifacts,
     StudyRuntimeContext,
     archive_invalid_partial_quest_root,
     build_hydration_payload,
@@ -40,6 +42,7 @@ from .study_runtime import (
     write_startup_payload,
 )
 from .quest_state import (
+    QuestRuntimeSnapshot,
     find_latest,
     find_latest_main_result,
     find_latest_main_result_path,
@@ -54,6 +57,8 @@ from .user_message import enqueue_user_message
 
 __all__ = [
     "PaperRootContext",
+    "StartupContractValidation",
+    "StudyRuntimeArtifacts",
     "StudyRuntimeContext",
     "WorkspaceRuntimeLayout",
     "archive_invalid_partial_quest_root",
@@ -73,6 +78,7 @@ __all__ = [
     "inspect_quest_runtime",
     "iter_active_quests",
     "load_runtime_state",
+    "QuestRuntimeSnapshot",
     "quest_status",
     "read_recent_stdout_lines",
     "resolve_runtime_root_from_quest_root",

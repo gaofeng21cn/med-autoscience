@@ -170,11 +170,11 @@ def test_persist_runtime_artifacts_writes_binding_and_launch_report_when_last_ac
     assert binding["quest_id"] == "quest-001"
     assert report["decision"] == "resume"
     assert report["startup_payload_path"] == str(startup_payload_path)
-    assert result == {
-        "runtime_binding_path": str(runtime_binding_path),
-        "launch_report_path": str(launch_report_path),
-        "startup_payload_path": str(startup_payload_path),
-    }
+    assert result == module.StudyRuntimeArtifacts(
+        runtime_binding_path=runtime_binding_path,
+        launch_report_path=launch_report_path,
+        startup_payload_path=startup_payload_path,
+    )
 
 
 def test_persist_runtime_artifacts_skips_binding_when_last_action_is_absent(tmp_path: Path) -> None:
@@ -201,11 +201,11 @@ def test_persist_runtime_artifacts_skips_binding_when_last_action_is_absent(tmp_
 
     assert runtime_binding_path.exists() is False
     assert json.loads(launch_report_path.read_text(encoding="utf-8"))["decision"] == "blocked"
-    assert result == {
-        "runtime_binding_path": str(runtime_binding_path),
-        "launch_report_path": str(launch_report_path),
-        "startup_payload_path": None,
-    }
+    assert result == module.StudyRuntimeArtifacts(
+        runtime_binding_path=runtime_binding_path,
+        launch_report_path=launch_report_path,
+        startup_payload_path=None,
+    )
 
 
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
@@ -289,18 +289,14 @@ def test_validate_startup_contract_resolution_returns_clear_for_resolved_contrac
         }
     )
 
-    assert result == {
-        "status": "clear",
-        "blockers": [],
-        "contract_statuses": {
-            "medical_analysis_contract": "resolved",
-            "medical_reporting_contract": "resolved",
-        },
-        "reason_codes": {
-            "medical_analysis_contract": "analysis_ok",
-            "medical_reporting_contract": "reporting_ok",
-        },
-    }
+    assert result == module.StartupContractValidation(
+        status="clear",
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_reason_code="analysis_ok",
+        medical_reporting_reason_code="reporting_ok",
+    )
 
 
 def test_validate_startup_contract_resolution_classifies_missing_invalid_and_unsupported() -> None:
@@ -313,21 +309,17 @@ def test_validate_startup_contract_resolution_classifies_missing_invalid_and_uns
         }
     )
 
-    assert result == {
-        "status": "blocked",
-        "blockers": [
+    assert result == module.StartupContractValidation(
+        status="blocked",
+        blockers=(
             "unsupported_medical_analysis_contract",
             "invalid_medical_reporting_contract",
-        ],
-        "contract_statuses": {
-            "medical_analysis_contract": "unsupported",
-            "medical_reporting_contract": None,
-        },
-        "reason_codes": {
-            "medical_analysis_contract": "unsupported_family",
-            "medical_reporting_contract": None,
-        },
-    }
+        ),
+        medical_analysis_contract_status="unsupported",
+        medical_reporting_contract_status=None,
+        medical_analysis_reason_code="unsupported_family",
+        medical_reporting_reason_code=None,
+    )
 
 
 def test_validate_startup_contract_resolution_classifies_unresolved_contracts() -> None:
@@ -340,21 +332,17 @@ def test_validate_startup_contract_resolution_classifies_unresolved_contracts() 
         }
     )
 
-    assert result == {
-        "status": "blocked",
-        "blockers": [
+    assert result == module.StartupContractValidation(
+        status="blocked",
+        blockers=(
             "unresolved_medical_analysis_contract",
             "missing_medical_reporting_contract",
-        ],
-        "contract_statuses": {
-            "medical_analysis_contract": "draft",
-            "medical_reporting_contract": None,
-        },
-        "reason_codes": {
-            "medical_analysis_contract": "needs_mapping",
-            "medical_reporting_contract": None,
-        },
-    }
+        ),
+        medical_analysis_contract_status="draft",
+        medical_reporting_contract_status=None,
+        medical_analysis_reason_code="needs_mapping",
+        medical_reporting_reason_code=None,
+    )
 
 
 def test_should_refresh_startup_hydration_while_blocked_accepts_allowed_blocked_states() -> None:

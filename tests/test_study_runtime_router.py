@@ -383,10 +383,11 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     monkeypatch.setattr(
         module.quest_state,
         "inspect_quest_runtime",
-        lambda quest_root: {
-            "quest_exists": False,
-            "quest_status": None,
-        },
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=False,
+            quest_status=None,
+            bash_session_audit=None,
+        ),
     )
 
     def fake_create_quest(*, runtime_root: Path, payload: dict[str, object]) -> dict[str, object]:
@@ -573,11 +574,11 @@ def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
         module.study_runtime_protocol,
         "persist_runtime_artifacts",
         lambda **kwargs: seen.setdefault("persist_calls", []).append(kwargs)
-        or {
-            "runtime_binding_path": str(kwargs["runtime_binding_path"]),
-            "launch_report_path": str(kwargs["launch_report_path"]),
-            "startup_payload_path": str(kwargs["startup_payload_path"]) if kwargs["startup_payload_path"] is not None else None,
-        },
+        or module.study_runtime_protocol.StudyRuntimeArtifacts(
+            runtime_binding_path=kwargs["runtime_binding_path"],
+            launch_report_path=kwargs["launch_report_path"],
+            startup_payload_path=kwargs["startup_payload_path"],
+        ),
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
@@ -616,10 +617,11 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
     monkeypatch.setattr(
         module.quest_state,
         "inspect_quest_runtime",
-        lambda quest_root: {
-            "quest_exists": True,
-            "quest_status": "paused",
-        },
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=True,
+            quest_status="paused",
+            bash_session_audit=None,
+        ),
     )
     monkeypatch.setattr(
         module,
@@ -672,10 +674,11 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     monkeypatch.setattr(
         module.quest_state,
         "inspect_quest_runtime",
-        lambda quest_root: {
-            "quest_exists": True,
-            "quest_status": "paused",
-        },
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=True,
+            quest_status="paused",
+            bash_session_audit=None,
+        ),
     )
     monkeypatch.setattr(
         module,
@@ -2372,12 +2375,14 @@ def test_ensure_study_runtime_uses_protocol_startup_contract_validation(monkeypa
     monkeypatch.setattr(
         module.study_runtime_protocol,
         "validate_startup_contract_resolution",
-        lambda *, startup_contract: {
-            "status": "blocked",
-            "blockers": ["forced_blocker"],
-            "contract_statuses": {},
-            "reason_codes": {},
-        },
+        lambda *, startup_contract: module.study_runtime_protocol.StartupContractValidation(
+            status="blocked",
+            blockers=("forced_blocker",),
+            medical_analysis_contract_status=None,
+            medical_reporting_contract_status=None,
+            medical_analysis_reason_code=None,
+            medical_reporting_reason_code=None,
+        ),
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
