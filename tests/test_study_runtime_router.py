@@ -237,6 +237,18 @@ def _patch_runtime_sidecars(monkeypatch):
             "live_session_ids": ["sess-default"],
         },
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": quest_id,
+                "startup_contract": startup_contract,
+                "requested_baseline_ref": requested_baseline_ref,
+            },
+        },
+    )
 
 
 def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path: Path) -> None:
@@ -731,6 +743,38 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     assert runtime_binding["last_action"] == "completed"
     assert launch_report["decision"] == "completed"
     assert launch_report["reason"] == "study_completion_synced"
+
+
+def test_build_study_completion_request_message_accepts_typed_completion_state(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    completion_module = importlib.import_module("med_autoscience.study_completion")
+    study_root = tmp_path / "study"
+    completion_state = completion_module.StudyCompletionState(
+        status="resolved",
+        contract=completion_module.StudyCompletionContract(
+            study_root=study_root,
+            status="completed",
+            summary="Study-level finalized delivery is complete.",
+            user_approval_text="同意",
+            completed_at="2026-04-03T00:00:00+00:00",
+            evidence_paths=(
+                "notes/revision_status.md",
+                "manuscript/final/submission_manifest.json",
+            ),
+            missing_evidence_paths=(),
+        ),
+        errors=(),
+    )
+
+    message = module._build_study_completion_request_message(
+        study_id="001-risk",
+        study_root=study_root,
+        completion_state=completion_state,
+    )
+
+    assert "Completion summary: Study-level finalized delivery is complete." in message
+    assert "- `notes/revision_status.md`" in message
+    assert "Please record explicit quest-completion approval" in message
 
 
 def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
@@ -2543,6 +2587,15 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
+            ("sync_startup_context", quest_id, startup_contract.get("scope"))
+        )
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
     )
@@ -2554,6 +2607,7 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     assert result["quest_root"] == str(profile.runtime_root / "001-risk-reentry")
     assert result["quest_status"] == "active"
     assert calls == [
+        ("sync_startup_context", "001-risk-reentry", "full_research"),
         ("hydrate", profile.runtime_root / "001-risk-reentry"),
         ("validate", profile.runtime_root / "001-risk-reentry"),
         ("resume", "001-risk-reentry"),

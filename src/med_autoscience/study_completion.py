@@ -25,6 +25,31 @@ class StudyCompletionContract:
         return bool(self.evidence_paths) and not self.missing_evidence_paths
 
 
+@dataclass(frozen=True)
+class StudyCompletionState:
+    status: str
+    contract: StudyCompletionContract | None
+    errors: tuple[str, ...]
+
+    @property
+    def ready(self) -> bool:
+        return self.contract.ready if self.contract is not None else False
+
+    def to_dict(self) -> dict[str, Any]:
+        contract = self.contract
+        return {
+            "ready": self.ready,
+            "status": self.status,
+            "completion_status": contract.status if contract is not None else None,
+            "summary": contract.summary if contract is not None else "",
+            "user_approval_text": contract.user_approval_text if contract is not None else "",
+            "completed_at": contract.completed_at if contract is not None else None,
+            "evidence_paths": list(contract.evidence_paths) if contract is not None else [],
+            "missing_evidence_paths": list(contract.missing_evidence_paths) if contract is not None else [],
+            "errors": list(self.errors),
+        }
+
+
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -87,4 +112,26 @@ def resolve_study_completion_contract(*, study_root: Path | None) -> StudyComple
         completed_at=_optional_string(raw_completion.get("completed_at")),
         evidence_paths=evidence_paths,
         missing_evidence_paths=missing_evidence_paths,
+    )
+
+
+def resolve_study_completion_state(*, study_root: Path | None) -> StudyCompletionState:
+    try:
+        contract = resolve_study_completion_contract(study_root=study_root)
+    except ValueError as exc:
+        return StudyCompletionState(
+            status="invalid",
+            contract=None,
+            errors=(str(exc),),
+        )
+    if contract is None:
+        return StudyCompletionState(
+            status="absent",
+            contract=None,
+            errors=(),
+        )
+    return StudyCompletionState(
+        status="resolved" if contract.ready else "incomplete",
+        contract=contract,
+        errors=(),
     )

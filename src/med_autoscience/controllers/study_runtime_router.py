@@ -24,7 +24,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
-from med_autoscience.study_completion import resolve_study_completion_contract
+from med_autoscience.study_completion import StudyCompletionState, resolve_study_completion_state
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -338,49 +338,19 @@ def _sync_existing_quest_startup_context(
     )
 
 
-def _study_completion_state(*, study_root: Path) -> dict[str, Any]:
-    try:
-        contract = resolve_study_completion_contract(study_root=study_root)
-    except ValueError as exc:
-        return {
-            "ready": False,
-            "status": "invalid",
-            "completion_status": None,
-            "summary": "",
-            "user_approval_text": "",
-            "completed_at": None,
-            "evidence_paths": [],
-            "missing_evidence_paths": [],
-            "errors": [str(exc)],
-        }
-    if contract is None:
-        return {
-            "ready": False,
-            "status": "absent",
-            "completion_status": None,
-            "summary": "",
-            "user_approval_text": "",
-            "completed_at": None,
-            "evidence_paths": [],
-            "missing_evidence_paths": [],
-            "errors": [],
-        }
-    return {
-        "ready": contract.ready,
-        "status": "resolved" if contract.ready else "incomplete",
-        "completion_status": contract.status,
-        "summary": contract.summary,
-        "user_approval_text": contract.user_approval_text,
-        "completed_at": contract.completed_at,
-        "evidence_paths": list(contract.evidence_paths),
-        "missing_evidence_paths": list(contract.missing_evidence_paths),
-        "errors": [],
-    }
+def _study_completion_state(*, study_root: Path) -> StudyCompletionState:
+    return resolve_study_completion_state(study_root=study_root)
 
 
-def _build_study_completion_request_message(*, study_id: str, study_root: Path, completion_state: dict[str, Any]) -> str:
-    summary = str(completion_state.get("summary") or "").strip()
-    evidence_paths = [str(item).strip() for item in (completion_state.get("evidence_paths") or []) if str(item).strip()]
+def _build_study_completion_request_message(
+    *,
+    study_id: str,
+    study_root: Path,
+    completion_state: StudyCompletionState,
+) -> str:
+    contract = completion_state.contract
+    summary = contract.summary.strip() if contract is not None else ""
+    evidence_paths = list(contract.evidence_paths) if contract is not None else []
     lines = [
         f"Managed study `{study_id}` already has an explicit study-level completion contract.",
         f"Study root: `{study_root}`",
@@ -399,11 +369,12 @@ def _sync_study_completion(
     quest_id: str,
     study_id: str,
     study_root: Path,
-    completion_state: dict[str, Any],
+    completion_state: StudyCompletionState,
     source: str,
 ) -> dict[str, Any]:
-    summary = str(completion_state.get("summary") or "").strip()
-    approval_text = str(completion_state.get("user_approval_text") or "").strip()
+    contract = completion_state.contract
+    summary = contract.summary.strip() if contract is not None else ""
+    approval_text = contract.user_approval_text.strip() if contract is not None else ""
     if not summary or not approval_text:
         raise ValueError("study completion sync requires summary and user approval text")
     return med_deepscientist_transport.sync_completion_with_approval(
@@ -490,7 +461,7 @@ def _status_payload(
         "startup_data_readiness": readiness,
         "startup_boundary_gate": startup_boundary_gate,
         "runtime_reentry_gate": runtime_reentry_gate,
-        "study_completion_contract": completion_state,
+        "study_completion_contract": completion_state.to_dict(),
         "controller_first_policy_summary": render_controller_first_summary(),
         "automation_ready_summary": render_automation_ready_summary(),
     }
@@ -511,12 +482,12 @@ def _status_payload(
         result["reason"] = "entry_mode_not_managed"
         return result
 
-    completion_contract_status = str(completion_state.get("status") or "").strip()
+    completion_contract_status = completion_state.status
     if completion_contract_status in {"invalid", "incomplete"}:
         result["decision"] = "blocked"
         result["reason"] = "study_completion_contract_not_ready"
         return result
-    if completion_state.get("ready") is True:
+    if completion_state.ready:
         if not quest_exists:
             result["decision"] = "completed"
             result["reason"] = "study_completion_declared_without_managed_quest"
@@ -696,11 +667,7 @@ def ensure_study_runtime(
     daemon_result: dict[str, Any] | None = None
     analysis_bundle_result: dict[str, Any] | None = None
     runtime_overlay_result: dict[str, Any] | None = None
-    completion_state = (
-        dict(status["study_completion_contract"])
-        if isinstance(status.get("study_completion_contract"), dict)
-        else {}
-    )
+    completion_state = _study_completion_state(study_root=resolved_study_root)
 
     if status["decision"] in {"create_and_start", "create_only", "resume"}:
         runtime_reentry_gate = (
