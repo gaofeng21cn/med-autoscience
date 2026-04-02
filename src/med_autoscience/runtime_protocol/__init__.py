@@ -29,11 +29,13 @@ from .runtime_watch import (
 from .study_runtime import (
     archive_invalid_partial_quest_root,
     build_hydration_payload,
+    persist_runtime_artifacts,
     resolve_study_runtime_paths,
     should_refresh_startup_hydration_while_blocked,
     validate_startup_contract_resolution,
     write_launch_report,
     write_runtime_binding,
+    write_startup_payload,
 )
 from .quest_state import (
     find_latest,
@@ -83,7 +85,9 @@ __all__ = [
     "validate_startup_contract_resolution",
     "write_watch_report",
     "plan_controller_intervention",
+    "persist_runtime_artifacts",
     "resolve_study_runtime_paths",
     "write_launch_report",
     "write_runtime_binding",
+    "write_startup_payload",
 ]
