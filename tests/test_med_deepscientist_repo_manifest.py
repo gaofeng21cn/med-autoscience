@@ -1,14 +1,14 @@
 import json
 from pathlib import Path
 
-from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
+from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 
 
-def test_inspect_deepscientist_repo_manifest_missing(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_missing(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["manifest_path"] == str(repo_root / "MEDICAL_FORK_MANIFEST.json")
     assert result["manifest_found"] is False
@@ -20,13 +20,13 @@ def test_inspect_deepscientist_repo_manifest_missing(tmp_path: Path) -> None:
     assert result["is_controlled_fork"] is False
 
 
-def test_inspect_deepscientist_repo_manifest_handles_invalid_json(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_handles_invalid_json(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
     manifest_path.write_text("{not valid json}", encoding="utf-8")
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["manifest_found"] is True
     assert result["manifest_parsable"] is False
@@ -37,7 +37,7 @@ def test_inspect_deepscientist_repo_manifest_handles_invalid_json(tmp_path: Path
     assert result["is_controlled_fork"] is False
 
 
-def test_inspect_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
@@ -49,7 +49,7 @@ def test_inspect_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Pa
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["manifest_found"] is True
     assert result["manifest_parsable"] is True
@@ -59,7 +59,7 @@ def test_inspect_deepscientist_repo_manifest_parses_expected_fields(tmp_path: Pa
     assert result["is_controlled_fork"] is True
 
 
-def test_inspect_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
@@ -94,7 +94,7 @@ def test_inspect_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path:
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["manifest_found"] is True
     assert result["manifest_parsable"] is True
@@ -104,7 +104,7 @@ def test_inspect_deepscientist_repo_manifest_parses_phase1_full_schema(tmp_path:
     assert result["is_controlled_fork"] is True
 
 
-def test_inspect_deepscientist_repo_manifest_recognizes_new_runtime_name_without_explicit_flag(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_recognizes_new_runtime_name_without_explicit_flag(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
@@ -116,7 +116,7 @@ def test_inspect_deepscientist_repo_manifest_recognizes_new_runtime_name_without
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["engine_family"] == "MedDeepScientist"
     assert result["freeze_base_commit"] == "abc123"
@@ -124,7 +124,7 @@ def test_inspect_deepscientist_repo_manifest_recognizes_new_runtime_name_without
     assert result["is_controlled_fork"] is True
 
 
-def test_inspect_deepscientist_repo_manifest_parses_upstream_tracking_fields(tmp_path: Path) -> None:
+def test_inspect_med_deepscientist_repo_manifest_parses_upstream_tracking_fields(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     manifest_path = repo_root / "MEDICAL_FORK_MANIFEST.json"
@@ -140,7 +140,7 @@ def test_inspect_deepscientist_repo_manifest_parses_upstream_tracking_fields(tmp
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    result = inspect_deepscientist_repo_manifest(repo_root)
+    result = inspect_med_deepscientist_repo_manifest(repo_root)
 
     assert result["is_controlled_fork"] is True
     assert result["upstream_remote_name"] == "upstream"

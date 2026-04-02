@@ -6,7 +6,7 @@ description: Use when a quest has enough evidence to draft or refine a paper, re
 # Write
 
 Use this skill to turn accepted evidence into a faithful draft, report, or paper bundle.
-This skill intentionally absorbs the strongest old DeepScientist writing discipline, including:
+This skill intentionally absorbs the strongest legacy runtime writing discipline, including:
 
 - evidence assembly
 - storyline and outline

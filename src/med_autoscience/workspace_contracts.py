@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
+from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
@@ -163,7 +163,7 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     medautoscience_config_env = profile.workspace_root / "ops" / "medautoscience" / "config.env"
     med_deepscientist_config_env = layout.config_env_path
     med_deepscientist_bin_dir = layout.bin_root
-    manifest_info = inspect_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
+    manifest_info = inspect_med_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
         "med_deepscientist_config_env_exists": med_deepscientist_config_env.is_file(),

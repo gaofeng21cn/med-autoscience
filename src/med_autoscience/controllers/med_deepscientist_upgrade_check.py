@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from med_autoscience.deepscientist_repo_manifest import inspect_deepscientist_repo_manifest
+from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile
 from med_autoscience.overlay import describe_medical_overlay
 from med_autoscience.profiles import WorkspaceProfile
@@ -37,8 +37,8 @@ def _resolve_comparison_target(manifest_info: dict[str, Any]) -> tuple[str, str,
     return "origin", "main", "origin/main"
 
 
-def inspect_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False) -> dict[str, Any]:
-    manifest_info = inspect_deepscientist_repo_manifest(repo_root)
+def inspect_med_deepscientist_repo(*, repo_root: Path | None, refresh: bool = False) -> dict[str, Any]:
+    manifest_info = inspect_med_deepscientist_repo_manifest(repo_root)
     comparison_remote_name, comparison_branch, comparison_ref = _resolve_comparison_target(manifest_info)
     if repo_root is None:
         return {
@@ -291,7 +291,7 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         }
 
     overlay_check = _overlay_summary(profile)
-    repo_check = inspect_deepscientist_repo(repo_root=profile.med_deepscientist_repo_root, refresh=refresh)
+    repo_check = inspect_med_deepscientist_repo(repo_root=profile.med_deepscientist_repo_root, refresh=refresh)
     decision, recommended_actions = _determine_decision(
         repo_check=repo_check,
         workspace_check=workspace_check,

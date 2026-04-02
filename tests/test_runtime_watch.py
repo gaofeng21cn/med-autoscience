@@ -275,7 +275,7 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
         studies_root=workspace_root / "studies",
         portfolio_root=workspace_root / "portfolio",
         med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,

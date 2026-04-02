@@ -14,7 +14,7 @@ def write_profile(path: Path) -> None:
                 'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
                 'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
-                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
+                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",

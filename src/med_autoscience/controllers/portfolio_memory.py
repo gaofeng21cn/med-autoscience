@@ -72,7 +72,7 @@ def _render_readme() -> str:
         "这里存放同一 disease workspace 跨多个 future study 可复用的研究资产。\n\n"
         "它不是：\n\n"
         "- 单篇论文的结果目录\n"
-        "- DeepScientist quest-local memory 的替代品\n"
+        "- MedDeepScientist quest-local memory 的替代品\n"
         "- 临时聊天总结的堆放区\n\n"
         "它主要回答三类问题：\n\n"
         "1. 这个疾病当前哪些研究方向值得持续关注？\n"

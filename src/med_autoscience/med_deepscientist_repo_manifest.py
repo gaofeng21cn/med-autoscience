@@ -31,7 +31,7 @@ def _normalize_commits(value: object) -> tuple[str, ...]:
     return tuple(normalized)
 
 
-def inspect_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[str, Any]:
+def inspect_med_deepscientist_repo_manifest(repo_root: Path | str | None) -> dict[str, Any]:
     manifest_path: Path | None = None
     if repo_root is not None:
         manifest_path = (Path(repo_root).expanduser() / MANIFEST_FILENAME).resolve(strict=False)
