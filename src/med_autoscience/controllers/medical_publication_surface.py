@@ -844,10 +844,9 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = med_deepscientist_transport.post_quest_control(
+            stop_result = med_deepscientist_transport.stop_quest(
                 daemon_url=daemon_url,
                 quest_id=report["quest_id"],
-                action="stop",
                 source=source,
             )
         intervention = user_message.enqueue_user_message(

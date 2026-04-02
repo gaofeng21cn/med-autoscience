@@ -18,6 +18,7 @@ from med_autoscience.figure_routes import (
     supported_required_route_help,
 )
 from med_autoscience.runtime_protocol import quest_state, user_message
+from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 
 
@@ -76,7 +77,7 @@ def parse_key_value_pairs(values: list[str]) -> dict[str, str]:
 
 
 def resolve_outbox_path(quest_root: Path) -> Path:
-    runtime_root = quest_root.parent.parent
+    runtime_root = resolve_runtime_root_from_quest_root(quest_root)
     return runtime_root / "logs" / "connectors" / "local" / "outbox.jsonl"
 
 def extract_figures(message: str) -> list[str]:
@@ -374,11 +375,10 @@ def run_controller(
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = med_deepscientist_transport.post_quest_control(
-                daemon_url=daemon_url
-                or med_deepscientist_transport.resolve_daemon_url(runtime_root=quest_root.parent.parent),
+            stop_result = med_deepscientist_transport.stop_quest(
+                daemon_url=daemon_url,
+                runtime_root=None if daemon_url else resolve_runtime_root_from_quest_root(state.quest_root),
                 quest_id=state.quest_id,
-                action="stop",
                 source=source,
             )
         intervention = user_message.enqueue_user_message(

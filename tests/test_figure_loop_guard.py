@@ -145,13 +145,19 @@ def test_build_guard_state_rejects_ambiguous_sidecar_route(tmp_path: Path) -> No
 def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)
-    stopped: list[tuple[str, str, str]] = []
+    stopped: list[tuple[str | None, str | None, str, str]] = []
 
-    def fake_post_quest_control(*, daemon_url: str, quest_id: str, action: str, source: str) -> dict:
-        stopped.append((daemon_url, quest_id, action))
+    def fake_stop_quest(
+        *,
+        daemon_url: str | None = None,
+        runtime_root: Path | None = None,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
         return {"ok": True, "interrupted": True, "status": "stopped", "source": source}
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "post_quest_control", fake_post_quest_control)
+    monkeypatch.setattr(module.med_deepscientist_transport, "stop_quest", fake_stop_quest)
 
     result = module.run_controller(
         quest_root=quest_root,
@@ -171,7 +177,7 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
         min_reference_count=12,
     )
 
-    assert stopped == [("http://127.0.0.1:20999", "002-early-residual-risk", "stop")]
+    assert stopped == [("http://127.0.0.1:20999", None, "002-early-residual-risk", "medautosci-figure-loop-guard")]
     assert result["intervention_enqueued"] is True
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert len(queue["pending"]) == 1

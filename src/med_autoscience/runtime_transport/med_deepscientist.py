@@ -8,9 +8,12 @@ from urllib.parse import quote
 
 import yaml
 
+from med_autoscience.runtime_protocol import quest_state
+
 
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
+RUNNING_QUEST_STATUSES = frozenset({"running", "active"})
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
@@ -196,6 +199,27 @@ def inspect_quest_live_bash_sessions(
     }
 
 
+def inspect_quest_runtime(
+    *,
+    runtime_root: Path,
+    quest_root: Path,
+    quest_id: str,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    quest_exists = (resolved_quest_root / "quest.yaml").exists()
+    quest_status_value = quest_state.quest_status(resolved_quest_root) if quest_exists else ""
+    result: dict[str, Any] = {
+        "quest_exists": quest_exists,
+        "quest_status": quest_status_value or None,
+    }
+    if quest_status_value in RUNNING_QUEST_STATUSES:
+        result["bash_session_audit"] = inspect_quest_live_bash_sessions(
+            runtime_root=runtime_root,
+            quest_id=quest_id,
+        )
+    return result
+
+
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     base_url = resolve_daemon_url(runtime_root=runtime_root)
     return _post_json(url=f"{base_url}/api/quests", payload=payload)
@@ -240,3 +264,22 @@ def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, 
         action="pause",
         source=source,
     )
+
+
+def stop_quest(
+    *,
+    quest_id: str,
+    source: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "quest_id": quest_id,
+        "action": "stop",
+        "source": source,
+    }
+    if daemon_url is not None:
+        kwargs["daemon_url"] = daemon_url
+    if runtime_root is not None:
+        kwargs["runtime_root"] = runtime_root
+    return post_quest_control(**kwargs)
