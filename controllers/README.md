@@ -29,7 +29,7 @@
 - `src/med_autoscience/controllers/study_delivery_sync.py`
 - `src/med_autoscience/controllers/data_assets.py`
 - `src/med_autoscience/controllers/data_asset_updates.py`
-- `src/med_autoscience/controllers/deepscientist_upgrade_check.py`
+- `src/med_autoscience/controllers/med_deepscientist_upgrade_check.py`
 
 对应测试：
 
@@ -40,7 +40,7 @@
 - `tests/test_study_delivery_sync.py`
 - `tests/test_data_assets.py`
 - `tests/test_data_asset_updates.py`
-- `tests/test_deepscientist_upgrade_check.py`
+- upgrade-check 的专用测试模块
 
 当前迁移策略是：
 
@@ -57,14 +57,14 @@
 
 对于 `MedDeepScientist` 运行时升级，当前 controller 采取的是“先审计、后升级”的策略：
 
-- `deepscientist_upgrade_check`
+- `med_deepscientist_upgrade_check`
   - 不直接执行升级
   - 先统一检查 repo 配置、Git 状态、workspace contract 和医学 overlay 状态
   - 输出机器可读 decision，供 Agent 判断是否进入真实升级流程
 
 后续优先顺序：
 
-1. MedDeepScientist adapter 分层
+1. MedDeepScientist runtime protocol / transport 分层
 2. policy/config 外置化
 3. workspace-local thin entry scripts
 4. publication profile 驱动更细粒度规则

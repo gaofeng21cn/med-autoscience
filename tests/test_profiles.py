@@ -11,7 +11,7 @@ PROFILE_LINES = [
     'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
     'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
     'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
-    'med_deepscientist_repo_root = "/Users/gaofeng/workspace/DeepScientist"',
+    'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
     'default_publication_profile = "general_medical_journal"',
     'default_citation_style = "AMA"',
     "enable_medical_overlay = true",
@@ -53,7 +53,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
 
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/DeepScientist")
+    assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -192,7 +192,7 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
                 'studies_root = "../workspace/studies"',
                 'portfolio_root = "../workspace/portfolio"',
                 'med_deepscientist_runtime_root = "../workspace/ops/med-deepscientist/runtime"',
-                'med_deepscientist_repo_root = "../../DeepScientist"',
+                'med_deepscientist_repo_root = "../../med-deepscientist"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -207,7 +207,7 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     assert profile.workspace_root == (profile_dir / "../workspace").resolve()
     assert profile.runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime/quests").resolve()
     assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime").resolve()
-    assert profile.med_deepscientist_repo_root == (profile_dir / "../../DeepScientist").resolve()
+    assert profile.med_deepscientist_repo_root == (profile_dir / "../../med-deepscientist").resolve()
 
 
 def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:

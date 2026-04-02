@@ -66,7 +66,7 @@ If the active branch already has a durable main-experiment result and you are st
 
 At the direction level, prefer elegant algorithmic or theoretical improvements over brute-force cost-for-performance tradeoffs whenever possible.
 
-This stage should preserve the strongest old DeepScientist direction-selection logic:
+This stage should preserve the strongest legacy runtime direction-selection logic:
 
 - understand the baseline and its failure modes
 - search related work broadly before claiming an idea is good

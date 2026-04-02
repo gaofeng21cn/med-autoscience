@@ -14,7 +14,7 @@ def make_profile(tmp_path: Path):
         studies_root=tmp_path / "workspace" / "studies",
         portfolio_root=tmp_path / "workspace" / "portfolio",
         med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,
@@ -37,7 +37,7 @@ def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -96,7 +96,7 @@ def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -147,7 +147,7 @@ def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, 
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -205,7 +205,7 @@ def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tm
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -268,7 +268,7 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -356,9 +356,9 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
     profile = make_profile(tmp_path)
 
     def _repo_check_should_not_run(*, repo_root, refresh=False):
-        raise AssertionError("inspect_deepscientist_repo should not run when behavior gate is not ready")
+        raise AssertionError("inspect_med_deepscientist_repo should not run when behavior gate is not ready")
 
-    monkeypatch.setattr(module, "inspect_deepscientist_repo", _repo_check_should_not_run)
+    monkeypatch.setattr(module, "inspect_med_deepscientist_repo", _repo_check_should_not_run)
     monkeypatch.setattr(
         module,
         "build_doctor_report",
@@ -409,7 +409,7 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),
@@ -460,7 +460,7 @@ def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo_manifest",
+        "inspect_med_deepscientist_repo_manifest",
         lambda repo_root: {
             "is_controlled_fork": True,
             "upstream_remote_name": "upstream",
@@ -491,7 +491,7 @@ def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(
 
     monkeypatch.setattr(module, "_run_git", fake_run_git)
 
-    result = module.inspect_deepscientist_repo(repo_root=repo_root, refresh=True)
+    result = module.inspect_med_deepscientist_repo(repo_root=repo_root, refresh=True)
 
     assert result["refresh_succeeded"] is True
     assert result["comparison_remote_name"] == "upstream"
@@ -518,7 +518,7 @@ def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monke
 
     monkeypatch.setattr(
         module,
-        "inspect_deepscientist_repo",
+        "inspect_med_deepscientist_repo",
         lambda *, repo_root, refresh=False: {
             "configured": True,
             "repo_root": str(repo_root),

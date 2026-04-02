@@ -22,6 +22,7 @@ def test_production_code_does_not_import_deepscientist_adapters() -> None:
 
 
 def test_legacy_deepscientist_adapter_modules_are_removed() -> None:
+    assert not (ADAPTER_ROOT / "__init__.py").exists()
     assert not (ADAPTER_ROOT / "daemon_api.py").exists()
     assert not (ADAPTER_ROOT / "mailbox.py").exists()
     assert not (ADAPTER_ROOT / "runtime.py").exists()

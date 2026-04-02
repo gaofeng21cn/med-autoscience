@@ -14,7 +14,7 @@ def make_profile(tmp_path: Path):
         studies_root=tmp_path / "workspace" / "studies",
         portfolio_root=tmp_path / "workspace" / "portfolio",
         med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
-        med_deepscientist_repo_root=tmp_path / "DeepScientist",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
         enable_medical_overlay=True,

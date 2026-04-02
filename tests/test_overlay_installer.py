@@ -59,6 +59,15 @@ def write_system_prompt(root: Path, body: str) -> Path:
     return prompt_path
 
 
+def test_template_resource_names_use_med_deepscientist_prefix() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    template_names = tuple(module.FULL_TEMPLATE_MAP.values()) + tuple(module.APPEND_BLOCK_TEMPLATE_MAP.values())
+
+    assert template_names
+    assert all(name.startswith("med-deepscientist-") for name in template_names)
+
+
 def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"

@@ -60,7 +60,7 @@ If a figure needs semantic changes rather than presentation cleanup, route back 
 
 ## Style contract
 
-DeepScientist figures should feel academic, restrained, and clear.
+MedDeepScientist figures should feel academic, restrained, and clear.
 
 Default visual rules:
 

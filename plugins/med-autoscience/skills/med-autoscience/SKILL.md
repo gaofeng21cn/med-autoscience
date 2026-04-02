@@ -20,7 +20,7 @@
 - `medautosci watch --runtime-root <runtime-root>`
 - `medautosci overlay-status --profile <profile>`
 - `medautosci install-medical-overlay --profile <profile>`
-- `medautosci deepscientist-upgrade-check --profile <profile> --refresh`
+- `medautosci med-deepscientist-upgrade-check --profile <profile> --refresh`
 - `medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：

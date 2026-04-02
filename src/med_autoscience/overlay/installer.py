@@ -42,21 +42,21 @@ FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
 FULL_TEMPLATE_MAP = {
-    "scout": "deepscientist-scout.SKILL.md",
-    "idea": "deepscientist-idea.SKILL.md",
-    "decision": "deepscientist-decision.SKILL.md",
-    "figure-polish": "deepscientist-figure-polish.SKILL.md",
-    "write": "deepscientist-write.SKILL.md",
-    "finalize": "deepscientist-finalize.SKILL.md",
-    "journal-resolution": "deepscientist-journal-resolution.SKILL.md",
+    "scout": "med-deepscientist-scout.SKILL.md",
+    "idea": "med-deepscientist-idea.SKILL.md",
+    "decision": "med-deepscientist-decision.SKILL.md",
+    "figure-polish": "med-deepscientist-figure-polish.SKILL.md",
+    "write": "med-deepscientist-write.SKILL.md",
+    "finalize": "med-deepscientist-finalize.SKILL.md",
+    "journal-resolution": "med-deepscientist-journal-resolution.SKILL.md",
 }
 APPEND_BLOCK_TEMPLATE_MAP = {
-    "intake-audit": "deepscientist-intake-audit.block.md",
-    "baseline": "deepscientist-baseline.block.md",
-    "experiment": "deepscientist-experiment.block.md",
-    "analysis-campaign": "deepscientist-analysis-campaign.block.md",
-    "review": "deepscientist-review.block.md",
-    "rebuttal": "deepscientist-rebuttal.block.md",
+    "intake-audit": "med-deepscientist-intake-audit.block.md",
+    "baseline": "med-deepscientist-baseline.block.md",
+    "experiment": "med-deepscientist-experiment.block.md",
+    "analysis-campaign": "med-deepscientist-analysis-campaign.block.md",
+    "review": "med-deepscientist-review.block.md",
+    "rebuttal": "med-deepscientist-rebuttal.block.md",
 }
 
 
@@ -411,7 +411,7 @@ def _ensure_target_ready(target: OverlayTarget) -> str:
     if target.skill_id in FULL_TEMPLATE_MAP:
         target.target_root.mkdir(parents=True, exist_ok=True)
         return ""
-    raise FileNotFoundError(f"DeepScientist skill target missing: {target.target_root}")
+    raise FileNotFoundError(f"MedDeepScientist skill target missing: {target.target_root}")
 
 
 def _resolve_runtime_repo_skill_path(*, med_deepscientist_repo_root: Path | None, skill_id: str) -> Path | None:
