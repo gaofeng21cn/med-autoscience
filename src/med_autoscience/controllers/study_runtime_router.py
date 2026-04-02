@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime, timezone
-import json
 from pathlib import Path
 from typing import Any
 
@@ -40,12 +39,6 @@ def _utc_now() -> str:
 
 def _timestamp_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
     if not path.exists():
@@ -680,6 +673,7 @@ def ensure_study_runtime(
     runtime_binding_path = paths["runtime_binding_path"]
     launch_report_path = paths["launch_report_path"]
     startup_payload_path: Path | None = None
+    binding_last_action: str | None = None
     daemon_result: dict[str, Any] | None = None
     analysis_bundle_result: dict[str, Any] | None = None
     runtime_overlay_result: dict[str, Any] | None = None
@@ -746,8 +740,11 @@ def ensure_study_runtime(
             status["partial_quest_recovery"] = partial_quest_recovery
         create_payload["auto_start"] = False
         if status["decision"] in {"create_and_start", "create_only"}:
-            startup_payload_path = paths["startup_payload_root"] / f"{_timestamp_slug()}.json"
-            _write_json(startup_payload_path, create_payload)
+            startup_payload_path = study_runtime_protocol.write_startup_payload(
+                startup_payload_root=paths["startup_payload_root"],
+                create_payload=create_payload,
+                slug=_timestamp_slug(),
+            )
             create_result = med_deepscientist_transport.create_quest(
                 runtime_root=runtime_root,
                 payload=create_payload,
@@ -771,16 +768,7 @@ def ensure_study_runtime(
                     status["decision"] = "blocked"
                     status["reason"] = "runtime_overlay_not_ready"
             if status["decision"] == "blocked":
-                study_runtime_protocol.write_runtime_binding(
-                    runtime_binding_path=runtime_binding_path,
-                    runtime_root=runtime_root,
-                    study_id=resolved_study_id,
-                    study_root=resolved_study_root,
-                    quest_id=status["quest_id"],
-                    last_action="blocked",
-                    source=source,
-                    recorded_at=_utc_now(),
-                )
+                binding_last_action = "blocked"
             else:
                 hydration_result, validation_result = _run_startup_hydration(
                     quest_root=quest_root,
@@ -791,16 +779,7 @@ def ensure_study_runtime(
                 if str(validation_result.get("status")) != "clear":
                     status["decision"] = "blocked"
                     status["reason"] = "hydration_validation_failed"
-                    study_runtime_protocol.write_runtime_binding(
-                        runtime_binding_path=runtime_binding_path,
-                        runtime_root=runtime_root,
-                        study_id=resolved_study_id,
-                        study_root=resolved_study_root,
-                        quest_id=status["quest_id"],
-                        last_action="blocked",
-                        source=source,
-                        recorded_at=_utc_now(),
-                    )
+                    binding_last_action = "blocked"
                 elif planned_decision == "create_and_start":
                     resume_result = med_deepscientist_transport.resume_quest(
                         runtime_root=runtime_root,
@@ -809,27 +788,9 @@ def ensure_study_runtime(
                     )
                     daemon_result["resume"] = resume_result
                     status["quest_status"] = str(resume_result.get("status") or "running")
-                    study_runtime_protocol.write_runtime_binding(
-                        runtime_binding_path=runtime_binding_path,
-                        runtime_root=runtime_root,
-                        study_id=resolved_study_id,
-                        study_root=resolved_study_root,
-                        quest_id=status["quest_id"],
-                        last_action="create_and_start",
-                        source=source,
-                        recorded_at=_utc_now(),
-                    )
+                    binding_last_action = "create_and_start"
                 else:
-                    study_runtime_protocol.write_runtime_binding(
-                        runtime_binding_path=runtime_binding_path,
-                        runtime_root=runtime_root,
-                        study_id=resolved_study_id,
-                        study_root=resolved_study_root,
-                        quest_id=status["quest_id"],
-                        last_action="create_only",
-                        source=source,
-                        recorded_at=_utc_now(),
-                    )
+                    binding_last_action = "create_only"
     elif status["decision"] == "resume":
         quest_root = Path(status["quest_root"])
         create_payload = _build_create_payload(
@@ -848,16 +809,7 @@ def ensure_study_runtime(
         if str(validation_result.get("status")) != "clear":
             status["decision"] = "blocked"
             status["reason"] = "hydration_validation_failed"
-            study_runtime_protocol.write_runtime_binding(
-                runtime_binding_path=runtime_binding_path,
-                runtime_root=runtime_root,
-                study_id=resolved_study_id,
-                study_root=resolved_study_root,
-                quest_id=str(status["quest_id"]),
-                last_action="blocked",
-                source=source,
-                recorded_at=_utc_now(),
-            )
+            binding_last_action = "blocked"
         else:
             daemon_result = med_deepscientist_transport.resume_quest(
                 runtime_root=runtime_root,
@@ -865,16 +817,7 @@ def ensure_study_runtime(
                 source=source,
             )
             status["quest_status"] = str(daemon_result.get("status") or "running")
-            study_runtime_protocol.write_runtime_binding(
-                runtime_binding_path=runtime_binding_path,
-                runtime_root=runtime_root,
-                study_id=resolved_study_id,
-                study_root=resolved_study_root,
-                quest_id=str(status["quest_id"]),
-                last_action="resume",
-                source=source,
-                recorded_at=_utc_now(),
-            )
+            binding_last_action = "resume"
     elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(status):
         quest_root = Path(status["quest_root"])
         create_payload = _build_create_payload(
@@ -899,16 +842,7 @@ def ensure_study_runtime(
             status["startup_hydration_validation"] = validation_result
             if str(validation_result.get("status")) != "clear":
                 status["reason"] = "hydration_validation_failed"
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="blocked",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "blocked"
     elif status["decision"] == "pause":
         daemon_result = med_deepscientist_transport.pause_quest(
             runtime_root=runtime_root,
@@ -916,16 +850,7 @@ def ensure_study_runtime(
             source=source,
         )
         status["quest_status"] = str(daemon_result.get("status") or "paused")
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="pause",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "pause"
     elif status["decision"] in {"sync_completion", "pause_and_complete"}:
         daemon_result = {}
         if status["decision"] == "pause_and_complete":
@@ -959,52 +884,22 @@ def ensure_study_runtime(
         status["quest_status"] = str(completion_snapshot.get("status") or "completed")
         status["decision"] = "completed"
         status["reason"] = "study_completion_synced"
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="completed",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "completed"
     elif status["decision"] == "completed":
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="completed",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "completed"
     elif status["decision"] == "noop":
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="noop",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "noop"
     elif status["decision"] == "blocked" and status["quest_exists"]:
-        study_runtime_protocol.write_runtime_binding(
-            runtime_binding_path=runtime_binding_path,
-            runtime_root=runtime_root,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            quest_id=str(status["quest_id"]),
-            last_action="blocked",
-            source=source,
-            recorded_at=_utc_now(),
-        )
+        binding_last_action = "blocked"
 
-    study_runtime_protocol.write_launch_report(
+    artifact_paths = study_runtime_protocol.persist_runtime_artifacts(
+        runtime_binding_path=runtime_binding_path,
         launch_report_path=launch_report_path,
+        runtime_root=runtime_root,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        quest_id=str(status.get("quest_id") or "").strip() or None,
+        last_action=binding_last_action,
         status=status,
         source=source,
         force=force,
@@ -1012,8 +907,8 @@ def ensure_study_runtime(
         daemon_result=daemon_result,
         recorded_at=_utc_now(),
     )
-    status["runtime_binding_path"] = str(runtime_binding_path)
-    status["launch_report_path"] = str(launch_report_path)
-    if startup_payload_path is not None:
-        status["startup_payload_path"] = str(startup_payload_path)
+    status["runtime_binding_path"] = str(artifact_paths["runtime_binding_path"])
+    status["launch_report_path"] = str(artifact_paths["launch_report_path"])
+    if artifact_paths["startup_payload_path"] is not None:
+        status["startup_payload_path"] = str(artifact_paths["startup_payload_path"])
     return status

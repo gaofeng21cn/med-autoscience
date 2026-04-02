@@ -104,6 +104,91 @@ def test_write_launch_report_records_runtime_payload(tmp_path: Path) -> None:
     assert payload["daemon_result"] == {"resume": {"ok": True, "status": "running"}}
 
 
+def test_write_startup_payload_writes_create_payload_and_returns_written_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    startup_payload_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"
+
+    payload_path = module.write_startup_payload(
+        startup_payload_root=startup_payload_root,
+        create_payload={"quest_id": "001-risk", "goal": "Launch study 001"},
+        slug="20260402T120000Z",
+    )
+
+    assert payload_path == startup_payload_root / "20260402T120000Z.json"
+    assert json.loads(payload_path.read_text(encoding="utf-8")) == {
+        "quest_id": "001-risk",
+        "goal": "Launch study 001",
+    }
+
+
+def test_persist_runtime_artifacts_writes_binding_and_launch_report_when_last_action_present(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    runtime_binding_path = study_root / "runtime_binding.yaml"
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    startup_payload_path = tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk" / "20260402T120000Z.json"
+
+    result = module.persist_runtime_artifacts(
+        runtime_binding_path=runtime_binding_path,
+        launch_report_path=launch_report_path,
+        runtime_root=runtime_root,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-001",
+        last_action="resume",
+        status={"decision": "resume", "quest_status": "running"},
+        source="test-source",
+        force=True,
+        startup_payload_path=startup_payload_path,
+        daemon_result={"resume": {"ok": True, "status": "running"}},
+        recorded_at="2026-04-02T12:00:00+00:00",
+    )
+
+    binding = yaml.safe_load(runtime_binding_path.read_text(encoding="utf-8"))
+    report = json.loads(launch_report_path.read_text(encoding="utf-8"))
+    assert binding["last_action"] == "resume"
+    assert binding["quest_id"] == "quest-001"
+    assert report["decision"] == "resume"
+    assert report["startup_payload_path"] == str(startup_payload_path)
+    assert result == {
+        "runtime_binding_path": str(runtime_binding_path),
+        "launch_report_path": str(launch_report_path),
+        "startup_payload_path": str(startup_payload_path),
+    }
+
+
+def test_persist_runtime_artifacts_skips_binding_when_last_action_is_absent(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    runtime_binding_path = study_root / "runtime_binding.yaml"
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+
+    result = module.persist_runtime_artifacts(
+        runtime_binding_path=runtime_binding_path,
+        launch_report_path=launch_report_path,
+        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id=None,
+        last_action=None,
+        status={"decision": "blocked", "quest_exists": False},
+        source="test-source",
+        force=False,
+        startup_payload_path=None,
+        daemon_result=None,
+        recorded_at="2026-04-02T12:00:00+00:00",
+    )
+
+    assert runtime_binding_path.exists() is False
+    assert json.loads(launch_report_path.read_text(encoding="utf-8"))["decision"] == "blocked"
+    assert result == {
+        "runtime_binding_path": str(runtime_binding_path),
+        "launch_report_path": str(launch_report_path),
+        "startup_payload_path": None,
+    }
+
+
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"

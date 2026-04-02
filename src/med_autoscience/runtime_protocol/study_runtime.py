@@ -129,6 +129,17 @@ def should_refresh_startup_hydration_while_blocked(status: dict[str, Any]) -> bo
     }
 
 
+def write_startup_payload(
+    *,
+    startup_payload_root: Path,
+    create_payload: dict[str, Any],
+    slug: str,
+) -> Path:
+    payload_path = Path(startup_payload_root).expanduser().resolve() / f"{slug}.json"
+    _write_json(payload_path, create_payload)
+    return payload_path
+
+
 def write_runtime_binding(
     *,
     runtime_binding_path: Path,
@@ -157,6 +168,52 @@ def write_runtime_binding(
             "last_source": source,
         },
     )
+
+
+def persist_runtime_artifacts(
+    *,
+    runtime_binding_path: Path,
+    launch_report_path: Path,
+    runtime_root: Path,
+    study_id: str,
+    study_root: Path,
+    quest_id: str | None,
+    last_action: str | None,
+    status: dict[str, Any],
+    source: str,
+    force: bool,
+    startup_payload_path: Path | None,
+    daemon_result: dict[str, Any] | None,
+    recorded_at: str,
+) -> dict[str, str | None]:
+    if last_action is not None:
+        resolved_quest_id = str(quest_id or "").strip()
+        if not resolved_quest_id:
+            raise ValueError("quest_id is required when last_action is provided")
+        write_runtime_binding(
+            runtime_binding_path=runtime_binding_path,
+            runtime_root=runtime_root,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=resolved_quest_id,
+            last_action=last_action,
+            source=source,
+            recorded_at=recorded_at,
+        )
+    write_launch_report(
+        launch_report_path=launch_report_path,
+        status=status,
+        source=source,
+        force=force,
+        startup_payload_path=startup_payload_path,
+        daemon_result=daemon_result,
+        recorded_at=recorded_at,
+    )
+    return {
+        "runtime_binding_path": str(runtime_binding_path),
+        "launch_report_path": str(launch_report_path),
+        "startup_payload_path": str(startup_payload_path) if startup_payload_path is not None else None,
+    }
 
 
 def write_launch_report(

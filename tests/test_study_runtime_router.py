@@ -414,7 +414,7 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     assert seen["resume_runtime_root"] == protocol_runtime_root
 
 
-def test_ensure_study_runtime_uses_study_runtime_protocol_binding_and_report(
+def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -467,22 +467,38 @@ def test_ensure_study_runtime_uses_study_runtime_protocol_binding_and_report(
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
-        "write_runtime_binding",
-        lambda **kwargs: seen.setdefault("binding_calls", []).append(kwargs),
+        "write_startup_payload",
+        lambda *, startup_payload_root, create_payload, slug: seen.setdefault(
+            "startup_payload_calls",
+            [],
+        ).append(
+            {
+                "startup_payload_root": startup_payload_root,
+                "create_payload": create_payload,
+                "slug": slug,
+            }
+        )
+        or (tmp_path / "protocol-startup-payload.json"),
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
-        "write_launch_report",
-        lambda **kwargs: seen.setdefault("report_calls", []).append(kwargs),
+        "persist_runtime_artifacts",
+        lambda **kwargs: seen.setdefault("persist_calls", []).append(kwargs)
+        or {
+            "runtime_binding_path": str(kwargs["runtime_binding_path"]),
+            "launch_report_path": str(kwargs["launch_report_path"]),
+            "startup_payload_path": str(kwargs["startup_payload_path"]) if kwargs["startup_payload_path"] is not None else None,
+        },
     )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "create_and_start"
-    assert len(seen["binding_calls"]) == 1
-    assert seen["binding_calls"][0]["last_action"] == "create_and_start"
-    assert len(seen["report_calls"]) == 1
-    assert seen["report_calls"][0]["source"] == "medautosci-test"
+    assert len(seen["startup_payload_calls"]) == 1
+    assert seen["startup_payload_calls"][0]["create_payload"]["quest_id"] == "001-risk"
+    assert len(seen["persist_calls"]) == 1
+    assert seen["persist_calls"][0]["last_action"] == "create_and_start"
+    assert seen["persist_calls"][0]["source"] == "medautosci-test"
 
 
 def test_study_runtime_status_prefers_study_completion_contract_over_boundary_gate(
