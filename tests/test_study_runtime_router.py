@@ -1317,6 +1317,15 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
         ),
         raising=False,
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
+            ("sync_startup_context", quest_id, startup_contract.get("scope"))
+        )
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
 
@@ -1324,6 +1333,7 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     assert result["reason"] == "startup_boundary_not_ready_for_resume"
     assert result["startup_hydration_validation"]["status"] == "clear"
     assert calls == [
+        ("sync_startup_context", "001-risk", "full_research"),
         ("hydrate", quest_root),
         ("validate", quest_root),
     ]
@@ -2453,6 +2463,15 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
+            ("sync_startup_context", quest_id, startup_contract.get("scope"))
+        )
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
     )
@@ -2463,6 +2482,7 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     assert result["reason"] == "quest_initialized_waiting_to_start"
     assert result["quest_status"] == "active"
     assert calls == [
+        ("sync_startup_context", "001-risk", "full_research"),
         ("hydrate", profile.runtime_root / "001-risk"),
         ("validate", profile.runtime_root / "001-risk"),
         ("resume", "001-risk"),

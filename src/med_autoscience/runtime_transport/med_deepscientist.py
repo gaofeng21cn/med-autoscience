@@ -11,6 +11,7 @@ import yaml
 
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
+_UNSET = object()
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
@@ -105,13 +106,19 @@ def resolve_daemon_url(*, runtime_root: Path) -> str:
     return f"http://{host}:{port}"
 
 
-def _post_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS) -> dict[str, Any]:
+def _request_json(
+    *,
+    url: str,
+    payload: dict[str, Any],
+    method: str,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
     encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     http_request = request.Request(
         url,
         data=encoded,
         headers={"Content-Type": "application/json"},
-        method="POST",
+        method=method,
     )
     http_request.headers["Content-Type"] = "application/json"
     with request.urlopen(http_request, timeout=timeout) as response:
@@ -122,6 +129,14 @@ def _post_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAEM
     if not isinstance(decoded, dict):
         raise ValueError(f"daemon response must be a JSON object: {url}")
     return decoded
+
+
+def _post_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS) -> dict[str, Any]:
+    return _request_json(url=url, payload=payload, method="POST", timeout=timeout)
+
+
+def _patch_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS) -> dict[str, Any]:
+    return _request_json(url=url, payload=payload, method="PATCH", timeout=timeout)
 
 
 def list_quest_bash_sessions(
@@ -311,6 +326,27 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
         quest_id=quest_id,
         action="resume",
         source=source,
+    )
+
+
+def update_quest_startup_context(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    startup_contract: dict[str, Any] | None | object = _UNSET,
+    requested_baseline_ref: dict[str, Any] | None | object = _UNSET,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    if startup_contract is not _UNSET:
+        payload["startup_contract"] = startup_contract
+    if requested_baseline_ref is not _UNSET:
+        payload["requested_baseline_ref"] = requested_baseline_ref
+    if not payload:
+        raise ValueError("at least one startup-context field is required")
+    base_url = resolve_daemon_url(runtime_root=runtime_root)
+    return _patch_json(
+        url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/startup-context",
+        payload=payload,
     )
 
 

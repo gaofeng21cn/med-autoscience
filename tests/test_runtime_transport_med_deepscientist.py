@@ -424,6 +424,34 @@ def test_resume_quest_posts_resume_action(monkeypatch, tmp_path: Path) -> None:
     }
 
 
+def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+
+    def fake_patch_json(**kwargs):
+        seen.update(kwargs)
+        return {"ok": True, "snapshot": {"quest_id": "001-risk", "startup_contract": {"scope": "full_research"}}}
+
+    monkeypatch.setattr(module, "_patch_json", fake_patch_json)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+
+    result = handler(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        startup_contract={"scope": "full_research"},
+    )
+
+    assert result == {"ok": True, "snapshot": {"quest_id": "001-risk", "startup_contract": {"scope": "full_research"}}}
+    assert seen == {
+        "url": "http://127.0.0.1:20999/api/quests/001-risk/startup-context",
+        "payload": {"startup_contract": {"scope": "full_research"}},
+    }
+
+
 def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -580,4 +608,3 @@ def test_inspect_quest_live_bash_sessions_reports_unknown_when_daemon_probe_fail
         "live_session_ids": [],
         "error": "daemon unavailable",
     }
-
