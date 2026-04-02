@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 
@@ -123,3 +124,160 @@ def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_roo
     }
     assert not quest_root.exists()
     assert archived_root.exists()
+
+
+def test_build_hydration_payload_returns_protocol_surface() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    payload = module.build_hydration_payload(
+        create_payload={
+            "startup_contract": {
+                "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
+                "entry_state_summary": " Study root: /tmp/workspace/studies/001-risk ",
+            }
+        }
+    )
+
+    assert payload == {
+        "medical_analysis_contract": {"study_archetype": "clinical_classifier"},
+        "medical_reporting_contract": {"reporting_guideline_family": "TRIPOD"},
+        "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
+    }
+
+
+@pytest.mark.parametrize(
+    ("create_payload", "message"),
+    [
+        ({}, "create payload missing startup_contract"),
+        ({"startup_contract": {}}, "startup_contract missing medical_analysis_contract_summary"),
+        (
+            {"startup_contract": {"medical_analysis_contract_summary": {}}},
+            "startup_contract missing medical_reporting_contract_summary",
+        ),
+        (
+            {
+                "startup_contract": {
+                    "medical_analysis_contract_summary": {},
+                    "medical_reporting_contract_summary": {},
+                    "entry_state_summary": " ",
+                }
+            },
+            "startup_contract missing entry_state_summary",
+        ),
+    ],
+)
+def test_build_hydration_payload_rejects_invalid_payload(create_payload: dict[str, object], message: str) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match=message):
+        module.build_hydration_payload(create_payload=create_payload)
+
+
+def test_validate_startup_contract_resolution_returns_clear_for_resolved_contracts() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    result = module.validate_startup_contract_resolution(
+        startup_contract={
+            "medical_analysis_contract_summary": {"status": "resolved", "reason_code": "analysis_ok"},
+            "medical_reporting_contract_summary": {"status": "resolved", "reason_code": "reporting_ok"},
+        }
+    )
+
+    assert result == {
+        "status": "clear",
+        "blockers": [],
+        "contract_statuses": {
+            "medical_analysis_contract": "resolved",
+            "medical_reporting_contract": "resolved",
+        },
+        "reason_codes": {
+            "medical_analysis_contract": "analysis_ok",
+            "medical_reporting_contract": "reporting_ok",
+        },
+    }
+
+
+def test_validate_startup_contract_resolution_classifies_missing_invalid_and_unsupported() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    result = module.validate_startup_contract_resolution(
+        startup_contract={
+            "medical_analysis_contract_summary": {"status": "unsupported", "reason_code": "unsupported_family"},
+            "medical_reporting_contract_summary": "invalid-payload",
+        }
+    )
+
+    assert result == {
+        "status": "blocked",
+        "blockers": [
+            "unsupported_medical_analysis_contract",
+            "invalid_medical_reporting_contract",
+        ],
+        "contract_statuses": {
+            "medical_analysis_contract": "unsupported",
+            "medical_reporting_contract": None,
+        },
+        "reason_codes": {
+            "medical_analysis_contract": "unsupported_family",
+            "medical_reporting_contract": None,
+        },
+    }
+
+
+def test_validate_startup_contract_resolution_classifies_unresolved_contracts() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    result = module.validate_startup_contract_resolution(
+        startup_contract={
+            "medical_analysis_contract_summary": {"status": "draft", "reason_code": "needs_mapping"},
+            "medical_reporting_contract_summary": None,
+        }
+    )
+
+    assert result == {
+        "status": "blocked",
+        "blockers": [
+            "unresolved_medical_analysis_contract",
+            "missing_medical_reporting_contract",
+        ],
+        "contract_statuses": {
+            "medical_analysis_contract": "draft",
+            "medical_reporting_contract": None,
+        },
+        "reason_codes": {
+            "medical_analysis_contract": "needs_mapping",
+            "medical_reporting_contract": None,
+        },
+    }
+
+
+def test_should_refresh_startup_hydration_while_blocked_accepts_allowed_blocked_states() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    assert (
+        module.should_refresh_startup_hydration_while_blocked(
+            {
+                "decision": "blocked",
+                "quest_exists": True,
+                "quest_status": "created",
+                "reason": "startup_boundary_not_ready_for_resume",
+            }
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        {"decision": "resume", "quest_exists": True, "quest_status": "created", "reason": "startup_boundary_not_ready_for_resume"},
+        {"decision": "blocked", "quest_exists": False, "quest_status": "created", "reason": "startup_boundary_not_ready_for_resume"},
+        {"decision": "blocked", "quest_exists": True, "quest_status": "running", "reason": "startup_boundary_not_ready_for_resume"},
+        {"decision": "blocked", "quest_exists": True, "quest_status": "paused", "reason": "other_reason"},
+    ],
+)
+def test_should_refresh_startup_hydration_while_blocked_rejects_other_states(status: dict[str, object]) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    assert module.should_refresh_startup_hydration_while_blocked(status) is False
