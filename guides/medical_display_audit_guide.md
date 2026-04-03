@@ -46,10 +46,10 @@ The audited source files are:
 Current implemented display inventory:
 
 - Evidence figure classes: `8`
-- Implemented evidence figure templates: `16`
+- Implemented evidence figure templates: `20`
 - Illustration shells: `1`
 - Table shells: `3`
-- Total implemented display templates: `20`
+- Total implemented display templates: `24`
 
 ### Evidence Classes
 
@@ -57,10 +57,10 @@ Current implemented display inventory:
 | --- | ---: | --- | --- |
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
 | Clinical Utility | 2 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1` | `publication_evidence_curve`, `publication_decision_curve` |
-| Time-to-Event | 4 | `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_survival_curve`, `publication_evidence_curve` |
-| Data Geometry | 2 | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` |
-| Matrix Pattern | 2 | `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1` | `publication_heatmap` |
-| Effect Estimate | 1 | `forest_effect_inputs_v1` | `publication_forest_plot` |
+| Time-to-Event | 5 | `binary_prediction_curve_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_survival_curve`, `publication_evidence_curve` |
+| Data Geometry | 3 | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` |
+| Matrix Pattern | 3 | `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1` | `publication_heatmap` |
+| Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
 | Model Explanation | 1 | `shap_summary_inputs_v1` | `publication_shap_summary` |
 | Generalizability | 1 | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` |
 
@@ -115,16 +115,17 @@ Templates:
 
 - `kaplan_meier_grouped`
 - `cumulative_incidence_grouped`
+- `time_dependent_roc_horizon`
 - `time_to_event_discrimination_calibration_panel`
 - `time_to_event_risk_group_summary`
 
 Audit purpose:
 
-- Grouped survival separation, grouped event accumulation, horizon discrimination, grouped calibration, and risk-group summary views.
+- Grouped survival separation, event accumulation, fixed-horizon discrimination, grouped calibration, and risk-group summary views.
 
 Authoritative contract:
 
-- Input schemas: `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
+- Input schemas: `binary_prediction_curve_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
 - QC: `publication_survival_curve`, `publication_evidence_curve`
 
@@ -134,6 +135,7 @@ Templates:
 
 - `umap_scatter_grouped`
 - `pca_scatter_grouped`
+- `tsne_scatter_grouped`
 
 Audit purpose:
 
@@ -151,14 +153,15 @@ Templates:
 
 - `heatmap_group_comparison`
 - `correlation_heatmap`
+- `clustered_heatmap`
 
 Audit purpose:
 
-- Group contrast matrices and symmetric correlation structure.
+- Group contrast matrices, symmetric correlation structure, and externally fixed clustered ordering.
 
 Authoritative contract:
 
-- Input schemas: `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1`
+- Input schemas: `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`
 - Renderer family: `r_ggplot2`
 - QC: `publication_heatmap`
 
@@ -167,6 +170,7 @@ Authoritative contract:
 Templates:
 
 - `forest_effect_main`
+- `subgroup_forest`
 
 Audit purpose:
 

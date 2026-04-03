@@ -25,6 +25,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
+| `time_dependent_roc_horizon` | `evidence_figure` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `kaplan_meier_grouped` | `evidence_figure` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `cumulative_incidence_grouped` | `evidence_figure` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `time_to_event_discrimination_calibration_panel` | `evidence_figure` | Validation Discrimination and Grouped Calibration (Time-to-Event) | `python` | `time_to_event_discrimination_calibration_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
@@ -36,6 +37,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | --- | --- | --- | --- | --- | --- | --- |
 | `umap_scatter_grouped` | `evidence_figure` | UMAP Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `pca_scatter_grouped` | `evidence_figure` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `tsne_scatter_grouped` | `evidence_figure` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 
 ### Matrix Pattern
 
@@ -43,12 +45,14 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | --- | --- | --- | --- | --- | --- | --- |
 | `heatmap_group_comparison` | `evidence_figure` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `correlation_heatmap` | `evidence_figure` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `clustered_heatmap` | `evidence_figure` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 
 ### Effect Estimate
 
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
 | `forest_effect_main` | `evidence_figure` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
+| `subgroup_forest` | `evidence_figure` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 
 ### Model Explanation
 
@@ -77,7 +81,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 
 - Display kind: `evidence_figure`
 - Display name: Binary Prediction Curves
-- Templates: `roc_curve_binary`, `pr_curve_binary`, `calibration_curve_binary`, `decision_curve_binary`
+- Templates: `roc_curve_binary`, `pr_curve_binary`, `calibration_curve_binary`, `decision_curve_binary`, `time_dependent_roc_horizon`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `series`
@@ -137,7 +141,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 
 - Display kind: `evidence_figure`
 - Display name: Grouped Embedding Scatter
-- Templates: `umap_scatter_grouped`, `pca_scatter_grouped`
+- Templates: `umap_scatter_grouped`, `pca_scatter_grouped`, `tsne_scatter_grouped`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `points`
@@ -178,11 +182,26 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Optional nested collection fields: None
 - Additional constraints: `matrix_must_be_square`, `matrix_must_include_diagonal`, `matrix_must_be_symmetric`
 
+### `clustered_heatmap_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Clustered Heatmap
+- Templates: `clustered_heatmap`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`
+- Required collection fields: `row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_heatmap_grid_must_be_complete_and_unique`
+
 ### `forest_effect_inputs_v1`
 
 - Display kind: `evidence_figure`
 - Display name: Forest Effect Plot
-- Templates: `forest_effect_main`
+- Templates: `forest_effect_main`, `subgroup_forest`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `reference_value`, `rows`

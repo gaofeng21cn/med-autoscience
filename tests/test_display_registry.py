@@ -19,13 +19,17 @@ def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() ->
         "pr_curve_binary",
         "calibration_curve_binary",
         "decision_curve_binary",
+        "time_dependent_roc_horizon",
         "kaplan_meier_grouped",
         "cumulative_incidence_grouped",
         "umap_scatter_grouped",
         "pca_scatter_grouped",
+        "tsne_scatter_grouped",
         "heatmap_group_comparison",
         "correlation_heatmap",
+        "clustered_heatmap",
         "forest_effect_main",
+        "subgroup_forest",
         "shap_summary_beeswarm",
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
@@ -41,6 +45,10 @@ def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() ->
 
 
 def test_time_to_event_publication_surface_specs_are_registered() -> None:
+    figure7 = display_registry.get_evidence_figure_spec("time_dependent_roc_horizon")
+    figure9 = display_registry.get_evidence_figure_spec("tsne_scatter_grouped")
+    figure10 = display_registry.get_evidence_figure_spec("clustered_heatmap")
+    figure12 = display_registry.get_evidence_figure_spec("subgroup_forest")
     figure14 = display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
     figure15 = display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
     figure16 = display_registry.get_evidence_figure_spec("time_to_event_decision_curve")
@@ -48,6 +56,13 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     table2 = display_registry.get_table_shell_spec("table2_time_to_event_performance_summary")
     table3 = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
 
+    assert figure7.input_schema_id == "binary_prediction_curve_inputs_v1"
+    assert figure7.evidence_class == "time_to_event"
+    assert figure9.layout_qc_profile == "publication_embedding_scatter"
+    assert figure10.input_schema_id == "clustered_heatmap_inputs_v1"
+    assert figure10.layout_qc_profile == "publication_heatmap"
+    assert figure12.input_schema_id == "forest_effect_inputs_v1"
+    assert figure12.layout_qc_profile == "publication_forest_plot"
     assert figure14.renderer_family == "python"
     assert figure14.required_exports == ("png", "pdf")
     assert figure14.input_schema_id == "time_to_event_discrimination_calibration_inputs_v1"

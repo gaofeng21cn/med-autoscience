@@ -27,6 +27,7 @@ _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
+    "clustered_heatmap_inputs_v1": "clustered_heatmap_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
@@ -127,7 +128,22 @@ build_point_dataframe <- function(points_payload, x_field = "x", y_field = "y") 
   do.call(rbind, frames)
 }
 
-build_heatmap_dataframe <- function(cells_payload) {
+extract_label_vector <- function(items_payload, field_name) {
+  if (!is.list(items_payload) || length(items_payload) < 1) {
+    stop(sprintf("%s must contain at least one labeled item", field_name))
+  }
+  labels <- vapply(seq_along(items_payload), function(index) {
+    item <- items_payload[[index]]
+    label <- trimws(as.character(item$label %||% ""))
+    if (!nzchar(label)) {
+      stop(sprintf("%s[%d].label must be non-empty", field_name, index))
+    }
+    label
+  }, character(1))
+  labels
+}
+
+build_heatmap_dataframe <- function(cells_payload, column_order = NULL, row_order = NULL) {
   frames <- lapply(seq_along(cells_payload), function(index) {
     item <- cells_payload[[index]]
     data.frame(
@@ -138,8 +154,10 @@ build_heatmap_dataframe <- function(cells_payload) {
     )
   })
   heat_df <- do.call(rbind, frames)
-  heat_df$x <- factor(heat_df$x, levels = unique(heat_df$x))
-  heat_df$y <- factor(heat_df$y, levels = rev(unique(heat_df$y)))
+  x_levels <- if (is.null(column_order)) unique(heat_df$x) else column_order
+  y_levels <- if (is.null(row_order)) rev(unique(heat_df$y)) else rev(row_order)
+  heat_df$x <- factor(heat_df$x, levels = x_levels)
+  heat_df$y <- factor(heat_df$y, levels = y_levels)
   heat_df
 }
 
@@ -258,7 +276,9 @@ plot_heatmap <- function(display_payload) {
   if (!is.list(cells_payload) || length(cells_payload) < 1) {
     stop("cells must contain at least one matrix entry")
   }
-  heat_df <- build_heatmap_dataframe(cells_payload)
+  column_order <- if (is.null(display_payload$column_order)) NULL else extract_label_vector(display_payload$column_order, "column_order")
+  row_order <- if (is.null(display_payload$row_order)) NULL else extract_label_vector(display_payload$row_order, "row_order")
+  heat_df <- build_heatmap_dataframe(cells_payload, column_order = column_order, row_order = row_order)
   plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
     geom_tile(colour = "white", linewidth = 0.5) +
     geom_text(aes(label = sprintf("%.2f", value)), size = 3.1, colour = "#13293d") +
@@ -447,13 +467,17 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    time_dependent_roc_horizon = list(series = display_payload$series, reference_line = display_payload$reference_line),
     kaplan_meier_grouped = list(groups = display_payload$groups),
     cumulative_incidence_grouped = list(groups = display_payload$groups),
     umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     correlation_heatmap = list(matrix_cells = display_payload$cells),
+    clustered_heatmap = list(matrix_cells = display_payload$cells),
     forest_effect_main = list(rows = display_payload$rows),
+    subgroup_forest = list(rows = display_payload$rows),
     list()
   )
 }
@@ -480,21 +504,21 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     heights,
     c("panel"),
     "panel",
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "heatmap_tile_region" else "panel"
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "heatmap_tile_region" else "panel"
   )
   guide_box <- find_layout_box(
     gt,
     widths,
     heights,
     c("guide-box"),
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend",
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend"
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "colorbar" else "legend"
   )
   axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
   layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
   guide_boxes <- Filter(Negate(is.null), list(guide_box))
   metrics <- build_metrics(template_id, display_payload, panel_box)
-  if (identical(template_id, "forest_effect_main") && !is.null(panel_box)) {
+  if (template_id %in% c("forest_effect_main", "subgroup_forest") && !is.null(panel_box)) {
     forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
     layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
     guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
@@ -516,13 +540,17 @@ plot <- switch(
   pr_curve_binary = plot_binary_curve(payload),
   calibration_curve_binary = plot_binary_curve(payload),
   decision_curve_binary = plot_binary_curve(payload),
+  time_dependent_roc_horizon = plot_binary_curve(payload),
   kaplan_meier_grouped = plot_kaplan_meier(payload),
   cumulative_incidence_grouped = plot_kaplan_meier(payload),
   umap_scatter_grouped = plot_embedding_scatter(payload),
   pca_scatter_grouped = plot_embedding_scatter(payload),
+  tsne_scatter_grouped = plot_embedding_scatter(payload),
   heatmap_group_comparison = plot_heatmap(payload),
   correlation_heatmap = plot_heatmap(payload),
+  clustered_heatmap = plot_heatmap(payload),
   forest_effect_main = plot_forest(payload),
+  subgroup_forest = plot_forest(payload),
   stop(sprintf("unsupported evidence template `%s`", template_id))
 )
 
@@ -1056,6 +1084,110 @@ def _validate_heatmap_display_payload(
     }
 
 
+def _validate_labeled_order_payload(
+    *,
+    path: Path,
+    payload: object,
+    label: str,
+) -> list[dict[str, str]]:
+    if not isinstance(payload, list) or not payload:
+        raise ValueError(f"{path.name} {label} must contain a non-empty list")
+    normalized_items: list[dict[str, str]] = []
+    seen_labels: set[str] = set()
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} {label}[{index}] must be an object")
+        item_label = _require_non_empty_string(item.get("label"), label=f"{path.name} {label}[{index}].label")
+        if item_label in seen_labels:
+            raise ValueError(f"{path.name} {label}[{index}].label must be unique")
+        seen_labels.add(item_label)
+        normalized_items.append({"label": item_label})
+    return normalized_items
+
+
+def _validate_clustered_heatmap_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    row_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("row_order"),
+        label=f"display `{expected_display_id}` row_order",
+    )
+    column_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("column_order"),
+        label=f"display `{expected_display_id}` column_order",
+    )
+    cells = payload.get("cells")
+    if not isinstance(cells, list) or not cells:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty cells list")
+    normalized_cells: list[dict[str, Any]] = []
+    observed_rows: set[str] = set()
+    observed_columns: set[str] = set()
+    observed_coordinates: set[tuple[str, str]] = set()
+    for index, item in enumerate(cells):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` cells[{index}] must be an object")
+        column_label = _require_non_empty_string(
+            item.get("x"),
+            label=f"{path.name} display `{expected_display_id}` cells[{index}].x",
+        )
+        row_label = _require_non_empty_string(
+            item.get("y"),
+            label=f"{path.name} display `{expected_display_id}` cells[{index}].y",
+        )
+        coordinate = (column_label, row_label)
+        if coordinate in observed_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` must cover every declared row/column coordinate exactly once"
+            )
+        observed_coordinates.add(coordinate)
+        observed_columns.add(column_label)
+        observed_rows.add(row_label)
+        normalized_cells.append(
+            {
+                "x": column_label,
+                "y": row_label,
+                "value": _require_numeric_value(
+                    item.get("value"),
+                    label=f"{path.name} display `{expected_display_id}` cells[{index}].value",
+                ),
+            }
+        )
+
+    declared_rows = {item["label"] for item in row_order}
+    declared_columns = {item["label"] for item in column_order}
+    if observed_rows != declared_rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` row_order labels must match cell y labels")
+    if observed_columns != declared_columns:
+        raise ValueError(f"{path.name} display `{expected_display_id}` column_order labels must match cell x labels")
+    expected_coordinates = {(column["label"], row["label"]) for row in row_order for column in column_order}
+    if observed_coordinates != expected_coordinates:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must cover every declared row/column coordinate exactly once")
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "row_order": row_order,
+        "column_order": column_order,
+        "cells": normalized_cells,
+    }
+
+
 def _validate_forest_display_payload(
     *,
     path: Path,
@@ -1320,6 +1452,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id in {"heatmap_group_comparison_inputs_v1", "correlation_heatmap_inputs_v1"}:
         return payload_path, _validate_heatmap_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "clustered_heatmap_inputs_v1":
+        return payload_path, _validate_clustered_heatmap_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,
