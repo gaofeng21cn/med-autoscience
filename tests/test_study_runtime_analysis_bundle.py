@@ -13,6 +13,7 @@ def test_default_r_analysis_bundle_includes_publication_ready_packages() -> None
         "patchwork",
         "ggrepel",
         "ggsci",
+        "jsonlite",
         "cowplot",
         "pROC",
         "precrec",
