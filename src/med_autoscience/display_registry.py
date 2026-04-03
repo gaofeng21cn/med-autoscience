@@ -151,7 +151,7 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
     IllustrationShellSpec(
         shell_id="cohort_flow_figure",
         display_name="Cohort Flow Figure",
-        renderer_family="html_svg",
+        renderer_family="python",
         input_schema_id="cohort_flow_shell_inputs_v1",
         shell_qc_profile="publication_illustration_flow",
         required_exports=("png", "svg"),

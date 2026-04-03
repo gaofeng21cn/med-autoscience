@@ -215,6 +215,8 @@ The write stage should usually produce most of the following:
 
 The exact paths may vary, but the structure and meaning should remain clear.
 
+If `paper/display_registry.json` declares official shells such as `cohort_flow_figure` or `table1_baseline_characteristics`, materialize them through `medautosci materialize-display-surface --paper-root paper` before you finalize figure or table catalogs.
+
 Treat the approved outline as the authoritative blueprint for the draft.
 Treat `paper/draft.md` or the equivalent working note as the running evidence ledger where useful findings, citation notes, and writing decisions are accumulated as work proceeds.
 After every significant search, plot, paragraph, revision pass, or claim downgrade, update the working note and writing plan immediately so important writing state is not trapped in transient chat output.
