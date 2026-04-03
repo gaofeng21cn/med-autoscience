@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from med_autoscience.runtime_protocol.topology import (
     resolve_paper_root_context,
     resolve_worktree_root_from_paper_root,
@@ -69,7 +71,118 @@ def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path
     assert context.study_id == "001-risk"
 
 
-def test_resolve_paper_root_context_reads_reentry_study_id_from_nested_startup_contract(tmp_path: Path) -> None:
+def test_resolve_paper_root_context_uses_runtime_reentry_gate_study_id_for_managed_quest(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "\n".join(
+            [
+                "quest_id: 001-risk-managed-20260402",
+                "runtime_reentry_gate:",
+                "  study_id: 001-risk",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_uses_nested_startup_contract_runtime_reentry_gate_study_id(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "\n".join(
+            [
+                "quest_id: 001-risk-managed-20260402",
+                "startup_contract:",
+                "  runtime_reentry_gate:",
+                "    study_id: 001-risk",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_uses_nested_startup_contract_study_id(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "\n".join(
+            [
+                "quest_id: 001-risk-managed-20260402",
+                "startup_contract:",
+                "  study_id: 001-risk",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_reads_reentry_study_id_from_quest_root_nested_startup_contract(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     quest_root = (
         workspace_root
@@ -87,6 +200,36 @@ def test_resolve_paper_root_context_reads_reentry_study_id_from_nested_startup_c
 startup_contract:
   runtime_reentry_gate:
     study_id: 001-risk
+""",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_reads_reentry_study_id_from_quest_root_startup_contract(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-reentry-20260401"
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text("quest_id: 001-risk-reentry-20260401\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(
+        """quest_id: 001-risk-reentry-20260401
+startup_contract:
+  study_id: 001-risk
 """,
         encoding="utf-8",
     )
@@ -139,3 +282,34 @@ def test_resolve_paper_root_context_uses_runtime_binding_for_managed_quest_ids(t
 
     assert context.study_id == "003-endocrine-burden-followup"
     assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_rejects_conflicting_declared_study_ids(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-reentry-20260401"
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        """quest_id: 001-risk-reentry-20260401
+runtime_reentry_gate:
+  study_id: 001-risk
+""",
+        encoding="utf-8",
+    )
+    (quest_root / "quest.yaml").write_text(
+        """quest_id: 001-risk-reentry-20260401
+startup_contract:
+  study_id: 002-risk
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="conflicting study_id declarations"):
+        resolve_paper_root_context(paper_root)

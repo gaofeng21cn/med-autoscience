@@ -27,19 +27,40 @@ def write_png(path: Path) -> None:
     path.write_bytes(base64.b64decode(PNG_1X1_BASE64))
 
 
-def make_delivery_workspace(tmp_path: Path) -> tuple[Path, Path]:
+def make_delivery_workspace(
+    tmp_path: Path,
+    *,
+    quest_id: str = "002-early-residual-risk",
+    runtime_reentry_study_id: str | None = None,
+    nest_runtime_reentry_under_startup_contract: bool = False,
+) -> tuple[Path, Path]:
     repo_root = tmp_path / "repo"
-    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
+    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / quest_id
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678"
     paper_root = worktree_root / "paper"
     study_root = repo_root / "studies" / "002-early-residual-risk"
 
-    write_text(
-        worktree_root / "quest.yaml",
-        """quest_id: 002-early-residual-risk
-quest_root: /tmp/fake-quest-root
-""",
-    )
+    quest_yaml_lines = [
+        f"quest_id: {quest_id}",
+        "quest_root: /tmp/fake-quest-root",
+    ]
+    if runtime_reentry_study_id:
+        if nest_runtime_reentry_under_startup_contract:
+            quest_yaml_lines.extend(
+                [
+                    "startup_contract:",
+                    "  runtime_reentry_gate:",
+                    f"    study_id: {runtime_reentry_study_id}",
+                ]
+            )
+        else:
+            quest_yaml_lines.extend(
+                [
+                    "runtime_reentry_gate:",
+                    f"  study_id: {runtime_reentry_study_id}",
+                ]
+            )
+    write_text(worktree_root / "quest.yaml", "\n".join(quest_yaml_lines) + "\n")
     write_text(worktree_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
     write_text(worktree_root / "status.md", "# Status\nCompleted.\n")
 
@@ -224,6 +245,61 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     assert (journal_package_root / "Supplementary_Material.docx").exists()
     assert (journal_package_root / "README.md").exists()
     assert (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
+
+
+def test_sync_study_delivery_rejects_unsupported_publication_profile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, _ = make_delivery_workspace(tmp_path)
+
+    try:
+        module.sync_study_delivery(
+            paper_root=paper_root,
+            stage="submission_minimal",
+            publication_profile="pituitary",
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected sync_study_delivery to reject unsupported publication profiles")
+
+    assert "unsupported publication profile" in message
+
+
+def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_declares_study_id(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(
+        tmp_path,
+        quest_id="002-early-residual-risk-managed-20260402",
+        runtime_reentry_study_id="002-early-residual-risk",
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
+
+
+def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_is_nested_in_startup_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(
+        tmp_path,
+        quest_id="002-early-residual-risk-managed-20260402",
+        runtime_reentry_study_id="002-early-residual-risk",
+        nest_runtime_reentry_under_startup_contract=True,
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
 
 
 def test_can_sync_study_delivery_accepts_quest_yaml_with_nested_startup_contract(tmp_path: Path) -> None:

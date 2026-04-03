@@ -111,9 +111,9 @@ Language redlines under this profile:
 
 - do not use internal engineering terms in manuscript body text, figure titles, or captions
 - do not use internal model names or internal model-family names in manuscript body text, figure titles, or captions
-- do not use dataset version labels, freeze labels, or workspace cohort labels in manuscript body text, figure titles, or captions
-- do not use internal editorial labels such as `paper-facing`, `mainline`, `sidecar`, `analysis surface`, or `study surface` in manuscript body text, figure titles, or captions
-- explicit forbidden examples include `locked vYYYY-MM-DD`, `follow-up freeze`, `data freeze`, and `workspace cohort`
+- do not use dataset version labels, workspace cohort labels, or freeze labels in manuscript body text, figure titles, captions, or table notes
+- do not use internal editorial labels such as `paper-facing`, `mainline`, `sidecar`, `analysis surface`, or `study surface` in manuscript body text, figure titles, captions, or table notes
+- explicit forbidden examples include `locked vYYYY-MM-DD`, `workspace cohort`, `data freeze`, `follow-up freeze`, `paper-facing`, and `mainline`
 - replace internal labels with externally legible, reviewer-facing terminology
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
@@ -1527,7 +1527,7 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
     {
       "key": "terminology_redline",
       "status": "pass",
-      "notes": "No internal engineering terms or internal model names in body text, figure titles, or captions."
+      "notes": "No internal engineering terms, internal model names, dataset version labels, workspace cohort labels, or freeze labels in body text, figure titles, captions, or table notes."
     },
     {
       "key": "submission_minimal",
@@ -1686,6 +1686,7 @@ Keep each writing artifact tightly linked to evidence paths.
 - do not silently treat unsupported claims as settled
 - do not use internal engineering terms in manuscript body text, figure titles, or captions
 - do not use internal model names in manuscript body text, figure titles, or captions
+- do not use dataset version labels, workspace cohort labels, or freeze labels such as `locked vYYYY-MM-DD`, `workspace cohort`, `data freeze`, or `follow-up freeze`
 - do not let Methods prose omit the software package and version for the main analytical stack
 - do not let Results drift into figure-table-led narration instead of question-led medical interpretation
 - do not let figure legends carry unexplained decision-curve or risk-stratification terms
