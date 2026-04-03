@@ -425,8 +425,8 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
     assert "## Figure 1. Main figure" in submission_markdown
     assert "Caption." in submission_markdown
     assert "The primary display item supports the manuscript-facing clinical message." in submission_markdown
-    assert "Panel interpretation: A: Panel A summarizes the main paper-facing interpretation." in submission_markdown
-    assert "Legend glossary: treat all: Assumes every patient is managed as high risk" in submission_markdown
+    assert "Panel A: Panel A summarizes the main paper-facing interpretation." in submission_markdown
+    assert "Abbreviations: treat all, Assumes every patient is managed as high risk" in submission_markdown
     assert "# Tables" in submission_markdown
     assert "## Table 1" in submission_markdown
     assert "| Characteristic | Value |" in submission_markdown
