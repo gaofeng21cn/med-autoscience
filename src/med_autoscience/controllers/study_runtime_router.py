@@ -50,6 +50,44 @@ class StudyRuntimeDecision(StrEnum):
     COMPLETED = "completed"
 
 
+class StudyRuntimeReason(StrEnum):
+    STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST = "study_execution_not_med_deepscientist"
+    STUDY_EXECUTION_NOT_MANAGED = "study_execution_not_managed"
+    ENTRY_MODE_NOT_MANAGED = "entry_mode_not_managed"
+    STUDY_COMPLETION_CONTRACT_NOT_READY = "study_completion_contract_not_ready"
+    STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST = "study_completion_declared_without_managed_quest"
+    QUEST_ALREADY_COMPLETED = "quest_already_completed"
+    STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED = "study_completion_live_runtime_audit_failed"
+    STUDY_COMPLETION_READY = "study_completion_ready"
+    WORKSPACE_CONTRACT_NOT_READY = "workspace_contract_not_ready"
+    STUDY_DATA_READINESS_BLOCKED = "study_data_readiness_blocked"
+    STARTUP_CONTRACT_RESOLUTION_FAILED = "startup_contract_resolution_failed"
+    QUEST_MISSING = "quest_missing"
+    RUNTIME_REENTRY_NOT_READY_FOR_AUTO_START = "runtime_reentry_not_ready_for_auto_start"
+    STARTUP_BOUNDARY_NOT_READY_FOR_AUTO_START = "startup_boundary_not_ready_for_auto_start"
+    RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED = "running_quest_live_session_audit_failed"
+    STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST = "startup_boundary_not_ready_for_running_quest"
+    RUNTIME_REENTRY_NOT_READY_FOR_RUNNING_QUEST = "runtime_reentry_not_ready_for_running_quest"
+    QUEST_ALREADY_RUNNING = "quest_already_running"
+    STARTUP_BOUNDARY_NOT_READY_FOR_RESUME = "startup_boundary_not_ready_for_resume"
+    RUNTIME_REENTRY_NOT_READY_FOR_RESUME = "runtime_reentry_not_ready_for_resume"
+    QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION = "quest_marked_running_but_no_live_session"
+    QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
+    QUEST_PAUSED = "quest_paused"
+    QUEST_STOPPED = "quest_stopped"
+    QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"
+    QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED = "quest_paused_but_auto_resume_disabled"
+    QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED = "quest_stopped_but_auto_resume_disabled"
+    QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED = "quest_initialized_but_auto_resume_disabled"
+    QUEST_EXISTS_WITH_NON_RESUMABLE_STATE = "quest_exists_with_non_resumable_state"
+    STUDY_RUNTIME_ANALYSIS_BUNDLE_NOT_READY = "study_runtime_analysis_bundle_not_ready"
+    MANAGED_SKILL_AUDIT_NOT_AVAILABLE = "managed_skill_audit_not_available"
+    RUNTIME_OVERLAY_NOT_READY = "runtime_overlay_not_ready"
+    RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST = "runtime_overlay_audit_failed_for_running_quest"
+    HYDRATION_VALIDATION_FAILED = "hydration_validation_failed"
+    STUDY_COMPLETION_SYNCED = "study_completion_synced"
+
+
 @dataclass
 class StudyRuntimeStatus(MutableMapping[str, Any]):
     schema_version: int
@@ -71,7 +109,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     controller_first_policy_summary: str = ""
     automation_ready_summary: str = ""
     decision: StudyRuntimeDecision | None = None
-    reason: str = ""
+    reason: StudyRuntimeReason | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     _CORE_KEYS = {
@@ -125,7 +163,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             controller_first_policy_summary=str(resolved_payload.get("controller_first_policy_summary") or ""),
             automation_ready_summary=str(resolved_payload.get("automation_ready_summary") or ""),
             decision=cls._normalize_decision_field(resolved_payload.get("decision")),
-            reason=str(resolved_payload.get("reason") or ""),
+            reason=cls._normalize_reason_field(resolved_payload.get("reason")),
             extras=extras,
         )
 
@@ -152,8 +190,8 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         }
         if self.decision is not None:
             payload["decision"] = self.decision.value
-        if self.reason:
-            payload["reason"] = self.reason
+        if self.reason is not None:
+            payload["reason"] = self.reason.value
         payload.update(self.extras)
         return payload
 
@@ -169,6 +207,19 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             return StudyRuntimeDecision(value)
         except ValueError as exc:
             raise ValueError(f"unknown study runtime decision: {value}") from exc
+
+    @staticmethod
+    def _normalize_reason_field(value: Any) -> StudyRuntimeReason | None:
+        if value is None or value == "":
+            return None
+        if isinstance(value, StudyRuntimeReason):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("reason must be str")
+        try:
+            return StudyRuntimeReason(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study runtime reason: {value}") from exc
 
     @staticmethod
     def _require_text_field(field_name: str, value: Any) -> str:
@@ -207,12 +258,19 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
 
-    def set_decision(self, decision: str | StudyRuntimeDecision, reason: str) -> None:
+    def set_decision(
+        self,
+        decision: str | StudyRuntimeDecision,
+        reason: str | StudyRuntimeReason,
+    ) -> None:
         resolved_decision = self._normalize_decision_field(decision)
+        resolved_reason = self._normalize_reason_field(reason)
         if resolved_decision is None:
             raise ValueError("decision must not be empty")
+        if resolved_reason is None:
+            raise ValueError("reason must not be empty")
         self.decision = resolved_decision
-        self.reason = self._require_text_field("reason", reason)
+        self.reason = resolved_reason
 
     def update_quest_runtime(
         self,
@@ -260,6 +318,9 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     def record_bash_session_audit(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("bash_session_audit", value)
 
+    def record_runtime_liveness_audit(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("runtime_liveness_audit", value)
+
     def record_runtime_artifacts(
         self,
         *,
@@ -287,7 +348,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             self.decision = self._normalize_decision_field(value)
             return
         if key == "reason":
-            self.reason = self._require_text_field("reason", value)
+            self.reason = self._normalize_reason_field(value)
             return
         if key == "quest_id":
             self.update_quest_runtime(quest_id=value)
@@ -758,11 +819,12 @@ def _status_state(
     quest_exists = quest_runtime.quest_exists
     quest_status_value = str(quest_runtime.quest_status or "").strip()
     if quest_status_value in {"running", "active"}:
-        quest_runtime = quest_runtime.with_bash_session_audit(
-            med_deepscientist_transport.inspect_quest_live_bash_sessions(
-                runtime_root=runtime_root,
-                quest_id=quest_id,
-            )
+        runtime_liveness_audit = med_deepscientist_transport.inspect_quest_live_execution(
+            runtime_root=runtime_root,
+            quest_id=quest_id,
+        )
+        quest_runtime = quest_runtime.with_runtime_liveness_audit(runtime_liveness_audit).with_bash_session_audit(
+            dict(runtime_liveness_audit.get("bash_session_audit") or {})
         )
     contracts = inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
@@ -803,48 +865,89 @@ def _status_state(
     )
 
     if str(execution.get("engine") or "").strip() != "med-deepscientist":
-        result.set_decision(StudyRuntimeDecision.LIGHTWEIGHT, "study_execution_not_med_deepscientist")
+        result.set_decision(
+            StudyRuntimeDecision.LIGHTWEIGHT,
+            StudyRuntimeReason.STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST,
+        )
         return result
 
     auto_entry = str(execution.get("auto_entry") or "").strip()
     default_entry_mode = str(execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     if auto_entry != "on_managed_research_intent":
-        result.set_decision(StudyRuntimeDecision.LIGHTWEIGHT, "study_execution_not_managed")
+        result.set_decision(
+            StudyRuntimeDecision.LIGHTWEIGHT,
+            StudyRuntimeReason.STUDY_EXECUTION_NOT_MANAGED,
+        )
         return result
     if selected_entry_mode != default_entry_mode:
-        result.set_decision(StudyRuntimeDecision.LIGHTWEIGHT, "entry_mode_not_managed")
+        result.set_decision(
+            StudyRuntimeDecision.LIGHTWEIGHT,
+            StudyRuntimeReason.ENTRY_MODE_NOT_MANAGED,
+        )
         return result
 
     completion_contract_status = completion_state.status
     if completion_contract_status in {"invalid", "incomplete"}:
-        result.set_decision(StudyRuntimeDecision.BLOCKED, "study_completion_contract_not_ready")
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STUDY_COMPLETION_CONTRACT_NOT_READY,
+        )
         return result
     if completion_state.ready:
         if not quest_exists:
-            result.set_decision(StudyRuntimeDecision.COMPLETED, "study_completion_declared_without_managed_quest")
+            result.set_decision(
+                StudyRuntimeDecision.COMPLETED,
+                StudyRuntimeReason.STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST,
+            )
             return result
         if quest_status_value == "completed":
-            result.set_decision(StudyRuntimeDecision.COMPLETED, "quest_already_completed")
+            result.set_decision(
+                StudyRuntimeDecision.COMPLETED,
+                StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
+            )
             return result
         if quest_status_value in {"running", "active"}:
+            runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
             bash_session_audit = dict(quest_runtime.bash_session_audit or {})
+            result.record_runtime_liveness_audit(runtime_liveness_audit)
             result.record_bash_session_audit(bash_session_audit)
-            if str(bash_session_audit.get("status") or "").strip() == "live":
-                result.set_decision(StudyRuntimeDecision.PAUSE_AND_COMPLETE, "study_completion_ready")
+            audit_status = str(runtime_liveness_audit.get("status") or "").strip()
+            if audit_status == "unknown":
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED,
+                )
+            elif audit_status == "live":
+                result.set_decision(
+                    StudyRuntimeDecision.PAUSE_AND_COMPLETE,
+                    StudyRuntimeReason.STUDY_COMPLETION_READY,
+                )
             else:
-                result.set_decision(StudyRuntimeDecision.SYNC_COMPLETION, "study_completion_ready")
+                result.set_decision(
+                    StudyRuntimeDecision.SYNC_COMPLETION,
+                    StudyRuntimeReason.STUDY_COMPLETION_READY,
+                )
             return result
-        result.set_decision(StudyRuntimeDecision.SYNC_COMPLETION, "study_completion_ready")
+        result.set_decision(
+            StudyRuntimeDecision.SYNC_COMPLETION,
+            StudyRuntimeReason.STUDY_COMPLETION_READY,
+        )
         return result
 
     if not bool(contracts.get("overall_ready")):
-        result.set_decision(StudyRuntimeDecision.BLOCKED, "workspace_contract_not_ready")
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.WORKSPACE_CONTRACT_NOT_READY,
+        )
         return result
 
     study_summary = readiness.get("study_summary") if isinstance(readiness.get("study_summary"), dict) else {}
     unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
     if isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids:
-        result.set_decision(StudyRuntimeDecision.BLOCKED, "study_data_readiness_blocked")
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STUDY_DATA_READINESS_BLOCKED,
+        )
         return result
 
     startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
@@ -858,70 +961,117 @@ def _status_state(
     )
     result.record_startup_contract_validation(startup_contract_validation.to_dict())
     if startup_contract_validation.status != "clear":
-        result.set_decision(StudyRuntimeDecision.BLOCKED, "startup_contract_resolution_failed")
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
+        )
         return result
 
     if not quest_exists:
         if startup_boundary_gate["allow_compute_stage"]:
             if runtime_reentry_gate["allow_runtime_entry"]:
-                result.set_decision(StudyRuntimeDecision.CREATE_AND_START, "quest_missing")
+                result.set_decision(
+                    StudyRuntimeDecision.CREATE_AND_START,
+                    StudyRuntimeReason.QUEST_MISSING,
+                )
             else:
-                result.set_decision(StudyRuntimeDecision.BLOCKED, "runtime_reentry_not_ready_for_auto_start")
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_AUTO_START,
+                )
         else:
-            result.set_decision(StudyRuntimeDecision.CREATE_ONLY, "startup_boundary_not_ready_for_auto_start")
+            result.set_decision(
+                StudyRuntimeDecision.CREATE_ONLY,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_AUTO_START,
+            )
         return result
 
     if quest_status_value in {"running", "active"}:
+        runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
         bash_session_audit = dict(quest_runtime.bash_session_audit or {})
+        result.record_runtime_liveness_audit(runtime_liveness_audit)
         result.record_bash_session_audit(bash_session_audit)
-        audit_status = str(bash_session_audit.get("status") or "").strip()
+        audit_status = str(runtime_liveness_audit.get("status") or "").strip()
         if audit_status == "unknown":
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "running_quest_live_session_audit_failed")
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
+            )
         elif audit_status == "live":
             if not startup_boundary_gate["allow_compute_stage"]:
-                result.set_decision(StudyRuntimeDecision.PAUSE, "startup_boundary_not_ready_for_running_quest")
+                result.set_decision(
+                    StudyRuntimeDecision.PAUSE,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST,
+                )
             elif not runtime_reentry_gate["allow_runtime_entry"]:
-                result.set_decision(StudyRuntimeDecision.PAUSE, "runtime_reentry_not_ready_for_running_quest")
+                result.set_decision(
+                    StudyRuntimeDecision.PAUSE,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RUNNING_QUEST,
+                )
             else:
-                result.set_decision(StudyRuntimeDecision.NOOP, "quest_already_running")
+                result.set_decision(
+                    StudyRuntimeDecision.NOOP,
+                    StudyRuntimeReason.QUEST_ALREADY_RUNNING,
+                )
         elif not startup_boundary_gate["allow_compute_stage"]:
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "startup_boundary_not_ready_for_resume")
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            )
         elif not runtime_reentry_gate["allow_runtime_entry"]:
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "runtime_reentry_not_ready_for_resume")
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
         elif execution.get("auto_resume") is True:
-            result.set_decision(StudyRuntimeDecision.RESUME, "quest_marked_running_but_no_live_session")
-        else:
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "quest_marked_running_but_auto_resume_disabled")
-        return result
-
-    if quest_status_value in {"paused", "idle", "created", "stopped"}:
-        if not startup_boundary_gate["allow_compute_stage"]:
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "startup_boundary_not_ready_for_resume")
-            return result
-        if not runtime_reentry_gate["allow_runtime_entry"]:
-            result.set_decision(StudyRuntimeDecision.BLOCKED, "runtime_reentry_not_ready_for_resume")
-            return result
-        if execution.get("auto_resume") is True:
             result.set_decision(
                 StudyRuntimeDecision.RESUME,
-                "quest_paused"
-                if quest_status_value == "paused"
-                else "quest_stopped"
-                if quest_status_value == "stopped"
-                else "quest_initialized_waiting_to_start"
+                StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
             )
         else:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
-                "quest_paused_but_auto_resume_disabled"
-                if quest_status_value == "paused"
-                else "quest_stopped_but_auto_resume_disabled"
-                if quest_status_value == "stopped"
-                else "quest_initialized_but_auto_resume_disabled"
+                StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
             )
         return result
 
-    result.set_decision(StudyRuntimeDecision.BLOCKED, "quest_exists_with_non_resumable_state")
+    if quest_status_value in {"paused", "idle", "created", "stopped"}:
+        if not startup_boundary_gate["allow_compute_stage"]:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            )
+            return result
+        if not runtime_reentry_gate["allow_runtime_entry"]:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
+            return result
+        if execution.get("auto_resume") is True:
+            resumable_reason = {
+                "paused": StudyRuntimeReason.QUEST_PAUSED,
+                "stopped": StudyRuntimeReason.QUEST_STOPPED,
+            }.get(quest_status_value, StudyRuntimeReason.QUEST_INITIALIZED_WAITING_TO_START)
+            result.set_decision(
+                StudyRuntimeDecision.RESUME,
+                resumable_reason,
+            )
+        else:
+            blocked_reason = {
+                "paused": StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+                "stopped": StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+            }.get(quest_status_value, StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED)
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                blocked_reason,
+            )
+        return result
+
+    result.set_decision(
+        StudyRuntimeDecision.BLOCKED,
+        StudyRuntimeReason.QUEST_EXISTS_WITH_NON_RESUMABLE_STATE,
+    )
     return result
 
 
@@ -1000,9 +1150,15 @@ def _run_runtime_preflight(
         analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         status.record_analysis_bundle(analysis_bundle_result)
         if not bool(analysis_bundle_result.get("ready")):
-            status.set_decision(StudyRuntimeDecision.BLOCKED, "study_runtime_analysis_bundle_not_ready")
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STUDY_RUNTIME_ANALYSIS_BUNDLE_NOT_READY,
+            )
         elif _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate) and not context.profile.enable_medical_overlay:
-            status.set_decision(StudyRuntimeDecision.BLOCKED, "managed_skill_audit_not_available")
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.MANAGED_SKILL_AUDIT_NOT_AVAILABLE,
+            )
         elif context.profile.enable_medical_overlay and status.decision == StudyRuntimeDecision.RESUME:
             runtime_overlay_result = _prepare_runtime_overlay(
                 profile=context.profile,
@@ -1011,13 +1167,19 @@ def _run_runtime_preflight(
             status.record_runtime_overlay(runtime_overlay_result)
             audit = runtime_overlay_result["audit"]
             if not bool(audit.get("all_roots_ready")):
-                status.set_decision(StudyRuntimeDecision.BLOCKED, "runtime_overlay_not_ready")
+                status.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
+                )
     elif context.profile.enable_medical_overlay and status.quest_exists:
         runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
         status.record_runtime_overlay(runtime_overlay_result)
         audit = runtime_overlay_result["audit"]
         if status.quest_status in {"running", "active"} and not bool(audit.get("all_roots_ready")):
-            status.set_decision(StudyRuntimeDecision.PAUSE, "runtime_overlay_audit_failed_for_running_quest")
+            status.set_decision(
+                StudyRuntimeDecision.PAUSE,
+                StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
+            )
 
 
 def _execute_create_runtime_decision(
@@ -1033,7 +1195,10 @@ def _execute_create_runtime_decision(
     )
     status.record_startup_contract_validation(startup_contract_validation.to_dict())
     if startup_contract_validation.status != "clear":
-        status.set_decision(StudyRuntimeDecision.BLOCKED, "startup_contract_resolution_failed")
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
+        )
     partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
         quest_root=context.quest_root,
         runtime_root=context.runtime_root,
@@ -1070,7 +1235,10 @@ def _execute_create_runtime_decision(
         status.record_runtime_overlay(runtime_overlay_result)
         audit = runtime_overlay_result["audit"]
         if not bool(audit.get("all_roots_ready")):
-            status.set_decision(StudyRuntimeDecision.BLOCKED, "runtime_overlay_not_ready")
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
+            )
     if status.decision == StudyRuntimeDecision.BLOCKED:
         outcome.binding_last_action = "blocked"
         return outcome
@@ -1080,7 +1248,10 @@ def _execute_create_runtime_decision(
     )
     status.record_startup_hydration(hydration_result, validation_result)
     if str(validation_result.get("status")) != "clear":
-        status.set_decision(StudyRuntimeDecision.BLOCKED, "hydration_validation_failed")
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+        )
         outcome.binding_last_action = "blocked"
         return outcome
     if planned_decision == StudyRuntimeDecision.CREATE_AND_START:
@@ -1116,7 +1287,10 @@ def _execute_resume_runtime_decision(
     )
     status.record_startup_hydration(hydration_result, validation_result)
     if str(validation_result.get("status")) != "clear":
-        status.set_decision(StudyRuntimeDecision.BLOCKED, "hydration_validation_failed")
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+        )
         outcome.binding_last_action = "blocked"
         return outcome
     outcome.daemon_result = med_deepscientist_transport.resume_quest(
@@ -1141,7 +1315,10 @@ def _execute_blocked_refresh_runtime_decision(
     )
     status.record_startup_contract_validation(startup_contract_validation.to_dict())
     if startup_contract_validation.status != "clear":
-        status.set_decision(StudyRuntimeDecision.BLOCKED, "startup_contract_resolution_failed")
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
+        )
         return outcome
     startup_context_sync = _sync_existing_quest_startup_context(
         runtime_root=context.runtime_root,
@@ -1155,7 +1332,10 @@ def _execute_blocked_refresh_runtime_decision(
     )
     status.record_startup_hydration(hydration_result, validation_result)
     if str(validation_result.get("status")) != "clear":
-        status.set_decision(StudyRuntimeDecision.BLOCKED, "hydration_validation_failed")
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+        )
     return outcome
 
 
@@ -1212,7 +1392,10 @@ def _execute_completion_runtime_decision(
         else {}
     )
     status.update_quest_runtime(quest_status=str(completion_snapshot.get("status") or "completed"))
-    status.set_decision(StudyRuntimeDecision.COMPLETED, "study_completion_synced")
+    status.set_decision(
+        StudyRuntimeDecision.COMPLETED,
+        StudyRuntimeReason.STUDY_COMPLETION_SYNCED,
+    )
     outcome.binding_last_action = "completed"
     return outcome
 
