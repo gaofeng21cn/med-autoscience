@@ -185,3 +185,47 @@ def test_build_gate_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_pat
 
     assert seen == {"quest_root": quest_root}
     assert state.runtime_state["status"] == "patched"
+
+
+def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    _, quest_root = make_workspace_with_quest(tmp_path)
+    seen: dict[str, object] = {}
+
+    def fake_write_timestamped_report(
+        *,
+        quest_root: Path,
+        report_group: str,
+        timestamp: str,
+        report: dict[str, object],
+        markdown: str,
+    ) -> tuple[Path, Path]:
+        seen["quest_root"] = quest_root
+        seen["report_group"] = report_group
+        seen["timestamp"] = timestamp
+        seen["report"] = report
+        seen["markdown"] = markdown
+        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
+
+    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
+
+    report = {
+        "generated_at": "2026-04-03T04:10:00+00:00",
+        "study_id": quest_root.name,
+        "status": "blocked",
+        "recommended_action": "stop",
+        "blockers": ["outdated_private_release"],
+        "advisories": [],
+        "study_status": "blocked",
+        "outdated_dataset_ids": ["nfpitnet_master"],
+        "public_support_dataset_ids": [],
+        "controller_note": "note",
+    }
+
+    json_path, md_path = module.write_gate_files(quest_root, report)
+
+    assert seen["quest_root"] == quest_root
+    assert seen["report_group"] == "data_asset_gate"
+    assert seen["timestamp"] == "2026-04-03T04:10:00+00:00"
+    assert json_path.name == "latest.json"
+    assert md_path.name == "latest.md"
