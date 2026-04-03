@@ -598,6 +598,32 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
     return "\n\n".join(part for part in legend_parts if part).strip()
 
 
+def build_figure_legend_blocks(
+    *,
+    main_figures: str,
+    figure_semantics_map: dict[str, dict[str, Any]],
+) -> list[str]:
+    figure_legend_blocks: list[str] = []
+    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
+        figure_id = parse_figure_id_from_heading(heading)
+        legend = merge_legend_with_figure_semantics(
+            base_legend=strip_image_lines(block_body),
+            figure_semantics=figure_semantics_map.get(figure_id or ""),
+        )
+        if legend:
+            figure_legend_blocks.append(f"## {heading}\n\n{legend}")
+    return figure_legend_blocks
+
+
+def build_table_blocks(*, main_tables: str) -> list[str]:
+    table_blocks: list[str] = []
+    for heading, block_body in parse_top_level_blocks(main_tables):
+        table_blocks.append(f"## {heading}\n\n{block_body}")
+    if not table_blocks and main_tables.strip():
+        table_blocks.append(f"## Table 1\n\n{main_tables.strip()}")
+    return table_blocks
+
+
 def strip_image_lines(text: str) -> str:
     cleaned_lines = [line for line in text.splitlines() if not line.strip().startswith("![](")]
     return "\n".join(cleaned_lines).strip()
@@ -632,6 +658,9 @@ def build_general_medical_submission_markdown(
     paper_root = compiled_markdown_path.parent if compiled_markdown_path.name == "draft.md" else compiled_markdown_path.parents[1]
     compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
+    main_tables = ""
+    main_figures = ""
+    figure_semantics_map: dict[str, dict[str, Any]] = {}
 
     if compiled_text.lstrip().startswith("# Draft"):
         title = extract_block_between_markers(
@@ -711,8 +740,16 @@ def build_general_medical_submission_markdown(
             "Conclusion",
             ["Main Tables", "Main Figures", "Appendix"],
         )
+        main_tables = extract_optional_markdown_block(body, "Main Tables", ["Main Figures", "Appendix"])
+        main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix"])
+        figure_semantics_map = load_figure_semantics_map(paper_root)
 
     bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    figure_legend_blocks = build_figure_legend_blocks(
+        main_figures=main_figures,
+        figure_semantics_map=figure_semantics_map,
+    )
+    table_blocks = build_table_blocks(main_tables=main_tables)
     section_blocks = [
         ("# Abstract", abstract),
         ("# Introduction", introduction),
@@ -731,6 +768,10 @@ def build_general_medical_submission_markdown(
     for heading, content in section_blocks:
         if content.strip():
             markdown_parts.append(f"{heading}\n\n{content.strip()}")
+    if figure_legend_blocks:
+        markdown_parts.append(f"# Figure Legends\n\n{'\n\n'.join(figure_legend_blocks).strip()}")
+    if table_blocks:
+        markdown_parts.append(f"# Tables\n\n{'\n\n'.join(table_blocks).strip()}")
     output_path = submission_root / "manuscript_submission.md"
     write_text(output_path, "\n\n".join(markdown_parts).strip() + "\n")
     return output_path
@@ -778,20 +819,11 @@ def build_frontiers_manuscript_markdown(
     main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix"])
     figure_semantics_map = load_figure_semantics_map(paper_root)
 
-    figure_legend_blocks = []
-    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
-        figure_id = parse_figure_id_from_heading(heading)
-        legend = merge_legend_with_figure_semantics(
-            base_legend=strip_image_lines(block_body),
-            figure_semantics=figure_semantics_map.get(figure_id or ""),
-        )
-        figure_legend_blocks.append(f"## {heading}\n\n{legend}")
-
-    table_blocks = []
-    for heading, block_body in parse_top_level_blocks(main_tables):
-        table_blocks.append(f"## {heading}\n\n{block_body}")
-    if not table_blocks and main_tables.strip():
-        table_blocks.append(f"## Table 1\n\n{main_tables.strip()}")
+    figure_legend_blocks = build_figure_legend_blocks(
+        main_figures=main_figures,
+        figure_semantics_map=figure_semantics_map,
+    )
+    table_blocks = build_table_blocks(main_tables=main_tables)
 
     markdown_text = (
         f"---\n"
@@ -930,12 +962,10 @@ def create_submission_minimal_package(
     supplementary_output_docx_path: Path | None = None
 
     if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
-        compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
-        if should_build_general_medical_submission_markdown(compiled_text=compiled_text):
-            source_markdown_path = build_general_medical_submission_markdown(
-                compiled_markdown_path=compiled_markdown_path,
-                submission_root=submission_root,
-            )
+        source_markdown_path = build_general_medical_submission_markdown(
+            compiled_markdown_path=compiled_markdown_path,
+            submission_root=submission_root,
+        )
     elif is_frontiers_family_harvard_profile(resolved_publication_profile):
         source_markdown_path = build_frontiers_manuscript_markdown(
             compiled_markdown_path=compiled_markdown_path,
