@@ -102,6 +102,16 @@ class StudyRuntimeQuestStatus(StrEnum):
     COMPLETED = "completed"
 
 
+class StudyRuntimeBindingAction(StrEnum):
+    BLOCKED = "blocked"
+    CREATE_AND_START = "create_and_start"
+    CREATE_ONLY = "create_only"
+    RESUME = "resume"
+    PAUSE = "pause"
+    COMPLETED = "completed"
+    NOOP = "noop"
+
+
 _LIVE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.RUNNING,
     StudyRuntimeQuestStatus.ACTIVE,
@@ -449,14 +459,32 @@ class StudyRuntimeExecutionContext:
 
 @dataclass
 class StudyRuntimeExecutionOutcome:
-    binding_last_action: str | None = None
+    binding_last_action: StudyRuntimeBindingAction | None = None
     startup_payload_path: Path | None = None
     daemon_result: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        self.binding_last_action = self._normalize_binding_last_action(self.binding_last_action)
 
     def ensure_daemon_result(self) -> dict[str, Any]:
         if self.daemon_result is None:
             self.daemon_result = {}
         return self.daemon_result
+
+    @staticmethod
+    def _normalize_binding_last_action(
+        value: StudyRuntimeBindingAction | str | None,
+    ) -> StudyRuntimeBindingAction | None:
+        if value is None or value == "":
+            return None
+        if isinstance(value, StudyRuntimeBindingAction):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("binding_last_action must be str or None")
+        try:
+            return StudyRuntimeBindingAction(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study runtime binding action: {value}") from exc
 
 
 def _utc_now() -> str:
@@ -1272,7 +1300,7 @@ def _execute_create_runtime_decision(
                 StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
             )
     if status.decision == StudyRuntimeDecision.BLOCKED:
-        outcome.binding_last_action = "blocked"
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
     hydration_result, validation_result = _run_startup_hydration(
         quest_root=context.quest_root,
@@ -1284,7 +1312,7 @@ def _execute_create_runtime_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
         )
-        outcome.binding_last_action = "blocked"
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
     if planned_decision == StudyRuntimeDecision.CREATE_AND_START:
         resume_result = med_deepscientist_transport.resume_quest(
@@ -1294,9 +1322,9 @@ def _execute_create_runtime_decision(
         )
         outcome.ensure_daemon_result()["resume"] = resume_result
         status.update_quest_runtime(quest_status=str(resume_result.get("status") or "running"))
-        outcome.binding_last_action = "create_and_start"
+        outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_AND_START
     else:
-        outcome.binding_last_action = "create_only"
+        outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_ONLY
     return outcome
 
 
@@ -1323,7 +1351,7 @@ def _execute_resume_runtime_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
         )
-        outcome.binding_last_action = "blocked"
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
     outcome.daemon_result = med_deepscientist_transport.resume_quest(
         runtime_root=context.runtime_root,
@@ -1331,7 +1359,7 @@ def _execute_resume_runtime_decision(
         source=context.source,
     )
     status.update_quest_runtime(quest_status=str(outcome.daemon_result.get("status") or "running"))
-    outcome.binding_last_action = "resume"
+    outcome.binding_last_action = StudyRuntimeBindingAction.RESUME
     return outcome
 
 
@@ -1340,7 +1368,7 @@ def _execute_blocked_refresh_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    outcome = StudyRuntimeExecutionOutcome(binding_last_action="blocked")
+    outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.BLOCKED)
     create_payload = _build_context_create_payload(context)
     startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
         startup_contract=dict(create_payload.get("startup_contract") or {})
@@ -1383,7 +1411,7 @@ def _execute_pause_runtime_decision(
     )
     status.update_quest_runtime(quest_status=str(daemon_result.get("status") or "paused"))
     return StudyRuntimeExecutionOutcome(
-        binding_last_action="pause",
+        binding_last_action=StudyRuntimeBindingAction.PAUSE,
         daemon_result=daemon_result,
     )
 
@@ -1428,7 +1456,7 @@ def _execute_completion_runtime_decision(
         StudyRuntimeDecision.COMPLETED,
         StudyRuntimeReason.STUDY_COMPLETION_SYNCED,
     )
-    outcome.binding_last_action = "completed"
+    outcome.binding_last_action = StudyRuntimeBindingAction.COMPLETED
     return outcome
 
 
@@ -1450,11 +1478,13 @@ def _execute_runtime_decision(
     if status.decision in {StudyRuntimeDecision.SYNC_COMPLETION, StudyRuntimeDecision.PAUSE_AND_COMPLETE}:
         return _execute_completion_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.COMPLETED:
-        return StudyRuntimeExecutionOutcome(binding_last_action="completed")
+        return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.COMPLETED)
     if status.decision == StudyRuntimeDecision.NOOP:
-        return StudyRuntimeExecutionOutcome(binding_last_action="noop")
+        return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
     if status.decision == StudyRuntimeDecision.BLOCKED:
-        return StudyRuntimeExecutionOutcome(binding_last_action="blocked" if status.quest_exists else None)
+        return StudyRuntimeExecutionOutcome(
+            binding_last_action=StudyRuntimeBindingAction.BLOCKED if status.quest_exists else None
+        )
     if status.decision == StudyRuntimeDecision.LIGHTWEIGHT:
         return StudyRuntimeExecutionOutcome()
     raise ValueError(f"unsupported study runtime decision: {status.decision}")
@@ -1519,7 +1549,7 @@ def ensure_study_runtime(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
         quest_id=status.quest_id.strip() or None,
-        last_action=outcome.binding_last_action,
+        last_action=outcome.binding_last_action.value if outcome.binding_last_action is not None else None,
         status=status.to_dict(),
         source=source,
         force=force,
