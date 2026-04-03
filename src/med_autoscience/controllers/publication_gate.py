@@ -10,6 +10,7 @@ from typing import Any
 
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
+from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 
 @dataclass
@@ -249,13 +250,13 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
 
 
 def write_gate_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    stamp = report["generated_at"].replace(":", "").replace("+00:00", "Z")
-    base = quest_root / "artifacts" / "reports" / "publishability_gate"
-    json_path = base / f"{stamp}.json"
-    md_path = base / f"{stamp}.md"
-    dump_json(json_path, report)
-    md_path.write_text(render_gate_markdown(report))
-    return json_path, md_path
+    return runtime_protocol_report_store.write_timestamped_report(
+        quest_root=quest_root,
+        report_group="publishability_gate",
+        timestamp=str(report["generated_at"]),
+        report=report,
+        markdown=render_gate_markdown(report),
+    )
 
 
 def run_controller(
