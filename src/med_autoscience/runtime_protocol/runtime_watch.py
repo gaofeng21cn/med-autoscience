@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+from . import report_store
 
 
 class RuntimeWatchControllerAction(StrEnum):
@@ -117,53 +118,26 @@ def _optional_text(value: object) -> str | None:
     return stripped or None
 
 
-def _dump_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-def _load_json(path: Path, *, default: dict[str, Any]) -> dict[str, Any]:
-    if not path.exists():
-        return dict(default)
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"expected JSON object at {path}")
-    return dict(payload)
-
-
-def _watch_dir(quest_root: Path) -> Path:
-    return Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "runtime_watch"
-
-
-def _state_path(quest_root: Path) -> Path:
-    return _watch_dir(quest_root) / "state.json"
-
-
-def _timestamp_slug(timestamp: str) -> str:
-    return timestamp.replace("+00:00", "Z").replace(":", "")
-
-
 def load_watch_state(quest_root: Path) -> RuntimeWatchState:
-    payload = _load_json(_state_path(quest_root), default={"schema_version": 1, "controllers": {}})
+    payload = report_store.load_watch_state(quest_root)
     return RuntimeWatchState.from_payload(payload)
 
 
 def save_watch_state(quest_root: Path, payload: RuntimeWatchState) -> None:
     if not isinstance(payload, RuntimeWatchState):
         raise TypeError("payload must be RuntimeWatchState")
-    _dump_json(_state_path(quest_root), payload.to_dict())
+    report_store.save_watch_state(quest_root, payload.to_dict())
 
 
 def write_watch_report(*, quest_root: Path, report: Mapping[str, Any], markdown: str) -> tuple[Path, Path]:
     scanned_at = _require_text("report.scanned_at", report.get("scanned_at"))
-    base = _watch_dir(quest_root)
-    stamp = _timestamp_slug(scanned_at)
-    json_path = base / f"{stamp}.json"
-    md_path = base / f"{stamp}.md"
-    _dump_json(json_path, dict(report))
-    md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_path.write_text(markdown, encoding="utf-8")
-    return json_path, md_path
+    return report_store.write_timestamped_report(
+        quest_root=quest_root,
+        report_group="runtime_watch",
+        timestamp=scanned_at,
+        report=report,
+        markdown=markdown,
+    )
 
 
 def plan_controller_intervention(
