@@ -1636,6 +1636,42 @@ def test_study_runtime_execution_outcome_serializes_single_resume_and_pause_step
     }
 
 
+def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    assert router.StudyRuntimeDecision is typed_surface.StudyRuntimeDecision
+    assert router.StudyRuntimeReason is typed_surface.StudyRuntimeReason
+    assert router.StudyRuntimeQuestStatus is typed_surface.StudyRuntimeQuestStatus
+    assert router.StudyRuntimeBindingAction is typed_surface.StudyRuntimeBindingAction
+    assert router.StudyRuntimeDaemonStep is typed_surface.StudyRuntimeDaemonStep
+    assert router.StudyRuntimeAuditStatus is typed_surface.StudyRuntimeAuditStatus
+    assert router.StudyRuntimeAuditRecord is typed_surface.StudyRuntimeAuditRecord
+    assert router.StudyRuntimeAnalysisBundleResult is typed_surface.StudyRuntimeAnalysisBundleResult
+    assert router.StudyRuntimeOverlayAudit is typed_surface.StudyRuntimeOverlayAudit
+    assert router.StudyRuntimeOverlayResult is typed_surface.StudyRuntimeOverlayResult
+    assert (
+        router.StudyRuntimeStartupContextSyncResult
+        is typed_surface.StudyRuntimeStartupContextSyncResult
+    )
+    assert router.StudyRuntimePartialQuestRecoveryResult is typed_surface.StudyRuntimePartialQuestRecoveryResult
+    assert router.StudyRuntimeWorkspaceContractsSummary is typed_surface.StudyRuntimeWorkspaceContractsSummary
+    assert (
+        router.StudyRuntimeStartupDataReadinessReport
+        is typed_surface.StudyRuntimeStartupDataReadinessReport
+    )
+    assert router.StudyRuntimeStartupBoundaryGate is typed_surface.StudyRuntimeStartupBoundaryGate
+    assert router.StudyRuntimeReentryGate is typed_surface.StudyRuntimeReentryGate
+    assert router.StudyCompletionSyncResult is typed_surface.StudyCompletionSyncResult
+    assert router.StudyRuntimeStatus is typed_surface.StudyRuntimeStatus
+    assert router.StudyRuntimeExecutionContext is typed_surface.StudyRuntimeExecutionContext
+    assert router.StudyRuntimeExecutionOutcome is typed_surface.StudyRuntimeExecutionOutcome
+    assert router.StudyRuntimeStatus.__module__ == typed_surface.__name__
+    assert router.StudyRuntimeExecutionOutcome.__module__ == typed_surface.__name__
+    assert router.study_runtime_status.__module__ == router.__name__
+    assert router.ensure_study_runtime.__module__ == router.__name__
+
+
 def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
     monkeypatch,
     tmp_path: Path,
