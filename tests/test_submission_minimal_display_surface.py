@@ -90,7 +90,14 @@ Caption.
                     "paper_role": "main_text",
                     "input_schema_id": "binary_prediction_curve_inputs_v1",
                     "qc_profile": "publication_evidence_curve",
-                    "qc_result": {"status": "pass", "issues": []},
+                    "qc_result": {
+                        "status": "pass",
+                        "checked_at": "2026-04-03T10:00:00+00:00",
+                        "engine_id": "display_layout_qc_v1",
+                        "qc_profile": "publication_evidence_curve",
+                        "layout_sidecar_path": "paper/figures/generated/F1.layout.json",
+                        "issues": [],
+                    },
                     "title": "Main figure",
                     "export_paths": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
                 }

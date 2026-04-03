@@ -20,6 +20,7 @@ DEFAULT_R_ANALYSIS_BUNDLE_PACKAGES = (
     "ggplot2",
     "ggrepel",
     "ggsci",
+    "jsonlite",
     "dplyr",
     "readr",
     "tidyr",
