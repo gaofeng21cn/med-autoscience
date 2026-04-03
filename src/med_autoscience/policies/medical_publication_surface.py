@@ -335,6 +335,20 @@ def validate_figure_catalog(payload: object) -> list[str]:
         if display_registry.is_evidence_figure_template(template_id):
             spec = display_registry.get_evidence_figure_spec(template_id)
             expected_qc_profile = spec.layout_qc_profile
+            required_qc_fields = ("status", "checked_at", "engine_id", "qc_profile", "layout_sidecar_path")
+            missing_qc_fields = _missing_required_fields(qc_result, required_qc_fields)
+            if missing_qc_fields:
+                return [f"figures[{index}].qc_result missing fields: {', '.join(missing_qc_fields)}"]
+            qc_status = str(qc_result.get("status") or "").strip()
+            if qc_status not in {"pass", "fail"}:
+                return [f"figures[{index}].qc_result.status `{qc_status}` must be `pass` or `fail`"]
+            if qc_status == "fail":
+                return [f"figures[{index}].qc_result.status `fail` blocks publication"]
+            qc_result_profile = str(qc_result.get("qc_profile") or "").strip()
+            if qc_result_profile != expected_qc_profile:
+                return [
+                    f"figures[{index}].qc_result.qc_profile `{qc_result_profile}` does not match registered qc profile `{expected_qc_profile}`"
+                ]
         elif display_registry.is_illustration_shell(template_id):
             spec = display_registry.get_illustration_shell_spec(template_id)
             expected_qc_profile = spec.shell_qc_profile
