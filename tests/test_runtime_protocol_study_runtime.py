@@ -295,6 +295,31 @@ def test_write_startup_hydration_validation_report_persists_typed_protocol_surfa
     assert payload == written.to_dict()
 
 
+def test_startup_hydration_report_rejects_missing_required_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup hydration payload missing recorded_at"):
+        module.StartupHydrationReport.from_payload({"status": "hydrated"})
+
+
+def test_startup_hydration_validation_report_rejects_missing_required_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup hydration validation payload missing checked_paths"):
+        module.StartupHydrationValidationReport.from_payload(
+            {
+                "status": "clear",
+                "recorded_at": "2026-04-03T08:05:00+00:00",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "blockers": [],
+                "contract_statuses": {
+                    "medical_analysis_contract": "resolved",
+                    "medical_reporting_contract": "resolved",
+                },
+            }
+        )
+
+
 @pytest.mark.parametrize(
     ("create_payload", "message"),
     [

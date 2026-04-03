@@ -348,8 +348,14 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         hydration_result: dict[str, Any],
         validation_result: dict[str, Any],
     ) -> None:
-        self._record_dict_extra("startup_hydration", hydration_result)
-        self._record_dict_extra("startup_hydration_validation", validation_result)
+        hydration_report = study_runtime_protocol.StartupHydrationReport.from_payload(
+            self._require_dict_field("startup_hydration", hydration_result)
+        )
+        validation_report = study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+            self._require_dict_field("startup_hydration_validation", validation_result)
+        )
+        self._record_dict_extra("startup_hydration", hydration_report.to_dict())
+        self._record_dict_extra("startup_hydration_validation", validation_report.to_dict())
 
     def record_completion_sync(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("completion_sync", value)
