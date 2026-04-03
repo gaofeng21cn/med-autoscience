@@ -1306,6 +1306,11 @@ def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> N
     assert status.runtime_reentry_requires_managed_skill_audit is True
     assert status.has_unresolved_contract_for("001-risk") is True
     assert status.has_unresolved_contract_for("002-risk") is False
+    assert status.workspace_contracts_summary.overall_ready is True
+    assert status.startup_boundary_gate_result.allow_compute_stage is True
+    assert status.runtime_reentry_gate_result.allow_runtime_entry is False
+    assert status.runtime_reentry_gate_result.require_managed_skill_audit is True
+    assert status.startup_data_readiness_report.has_unresolved_contract_for("001-risk") is True
     assert status.study_completion_state.status is module.StudyCompletionStateStatus.RESOLVED
     assert status.study_completion_state.ready is True
     assert status.study_completion_state.contract is not None
