@@ -121,6 +121,13 @@ class StudyRuntimeBindingAction(StrEnum):
     NOOP = "noop"
 
 
+class StudyRuntimeDaemonStep(StrEnum):
+    CREATE = "create"
+    RESUME = "resume"
+    PAUSE = "pause"
+    COMPLETION_SYNC = "completion_sync"
+
+
 _LIVE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.RUNNING,
     StudyRuntimeQuestStatus.ACTIVE,
@@ -545,11 +552,68 @@ class StudyRuntimeExecutionOutcome:
 
     def __post_init__(self) -> None:
         self.binding_last_action = self._normalize_binding_last_action(self.binding_last_action)
+        if self.daemon_result is not None and not isinstance(self.daemon_result, dict):
+            raise TypeError("daemon_result must be dict or None")
 
     def ensure_daemon_result(self) -> dict[str, Any]:
         if self.daemon_result is None:
             self.daemon_result = {}
+        elif not isinstance(self.daemon_result, dict):
+            raise TypeError("daemon_result must be dict or None")
         return self.daemon_result
+
+    def record_daemon_step(
+        self,
+        step: StudyRuntimeDaemonStep | str,
+        payload: dict[str, Any],
+    ) -> None:
+        if not isinstance(payload, dict):
+            raise TypeError("daemon step payload must be dict")
+        resolved_step = self._normalize_daemon_step(step)
+        self.ensure_daemon_result()[resolved_step.value] = dict(payload)
+
+    def daemon_step(
+        self,
+        step: StudyRuntimeDaemonStep | str,
+    ) -> dict[str, Any]:
+        resolved_step = self._normalize_daemon_step(step)
+        daemon_result = self.daemon_result
+        if not isinstance(daemon_result, dict):
+            return {}
+        nested_payload = daemon_result.get(resolved_step.value)
+        if isinstance(nested_payload, dict):
+            return dict(nested_payload)
+        if resolved_step in {StudyRuntimeDaemonStep.RESUME, StudyRuntimeDaemonStep.PAUSE} and not any(
+            key in daemon_result for key in StudyRuntimeDaemonStep
+        ):
+            return dict(daemon_result)
+        return {}
+
+    def quest_status_for_step(
+        self,
+        step: StudyRuntimeDaemonStep | str,
+        *,
+        fallback: str,
+    ) -> str:
+        payload = self.daemon_step(step)
+        snapshot = payload.get("snapshot")
+        if isinstance(snapshot, dict):
+            status = str(snapshot.get("status") or "").strip()
+            if status:
+                return status
+        status = str(payload.get("status") or "").strip()
+        return status or fallback
+
+    def completion_snapshot_status(self, *, fallback: str) -> str:
+        completion_sync = self.daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC)
+        completion = completion_sync.get("completion")
+        if not isinstance(completion, dict):
+            return fallback
+        snapshot = completion.get("snapshot")
+        if not isinstance(snapshot, dict):
+            return fallback
+        status = str(snapshot.get("status") or "").strip()
+        return status or fallback
 
     @staticmethod
     def _normalize_binding_last_action(
@@ -565,6 +629,19 @@ class StudyRuntimeExecutionOutcome:
             return StudyRuntimeBindingAction(value)
         except ValueError as exc:
             raise ValueError(f"unknown study runtime binding action: {value}") from exc
+
+    @staticmethod
+    def _normalize_daemon_step(
+        value: StudyRuntimeDaemonStep | str,
+    ) -> StudyRuntimeDaemonStep:
+        if isinstance(value, StudyRuntimeDaemonStep):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("daemon step must be str")
+        try:
+            return StudyRuntimeDaemonStep(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study runtime daemon step: {value}") from exc
 
 
 def _utc_now() -> str:
@@ -1351,14 +1428,12 @@ def _execute_create_runtime_decision(
         runtime_root=context.runtime_root,
         payload=create_payload,
     )
-    outcome.ensure_daemon_result()["create"] = create_result
-    snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
-    fallback_status = "created"
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.CREATE, create_result)
     status.update_quest_runtime(
         quest_id=create_payload["quest_id"],
         quest_root=context.quest_root,
         quest_exists=True,
-        quest_status=str(snapshot.get("status") or fallback_status),
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created"),
     )
     if context.profile.enable_medical_overlay:
         runtime_overlay_result = _prepare_runtime_overlay(
@@ -1393,7 +1468,7 @@ def _execute_create_runtime_decision(
             quest_id=status.quest_id,
             source=context.source,
         )
-        outcome.ensure_daemon_result()["resume"] = resume_result
+        outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
         status.update_quest_runtime(quest_status=str(resume_result.get("status") or "running"))
         outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_AND_START
     else:
@@ -1495,14 +1570,13 @@ def _execute_completion_runtime_decision(
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
     outcome = StudyRuntimeExecutionOutcome()
-    daemon_result = outcome.ensure_daemon_result()
     if status.decision == StudyRuntimeDecision.PAUSE_AND_COMPLETE:
         pause_result = med_deepscientist_transport.pause_quest(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
             source=context.source,
         )
-        daemon_result["pause"] = pause_result
+        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
         status.update_quest_runtime(quest_status=str(pause_result.get("status") or "paused"))
     completion_sync = _sync_study_completion(
         runtime_root=context.runtime_root,
@@ -1512,19 +1586,11 @@ def _execute_completion_runtime_decision(
         completion_state=context.completion_state,
         source=context.source,
     )
-    daemon_result["completion_sync"] = completion_sync
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC, completion_sync)
     status.record_completion_sync(completion_sync)
-    completion_result = (
-        dict(completion_sync.get("completion") or {})
-        if isinstance(completion_sync.get("completion"), dict)
-        else {}
+    status.update_quest_runtime(
+        quest_status=outcome.completion_snapshot_status(fallback="completed"),
     )
-    completion_snapshot = (
-        dict(completion_result.get("snapshot") or {})
-        if isinstance(completion_result.get("snapshot"), dict)
-        else {}
-    )
-    status.update_quest_runtime(quest_status=str(completion_snapshot.get("status") or "completed"))
     status.set_decision(
         StudyRuntimeDecision.COMPLETED,
         StudyRuntimeReason.STUDY_COMPLETION_SYNCED,
