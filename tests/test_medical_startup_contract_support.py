@@ -282,6 +282,12 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
             "catalog_id": "F4",
         },
         {
+            "display_id": "multicenter_generalizability",
+            "display_kind": "figure",
+            "requirement_key": "multicenter_generalizability_overview",
+            "catalog_id": "F5",
+        },
+        {
             "display_id": "baseline_characteristics",
             "display_kind": "table",
             "requirement_key": "table1_baseline_characteristics",
@@ -454,6 +460,39 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
             ],
         },
     )
+    dump_json(
+        paper_root / "multicenter_generalizability_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "multicenter_generalizability_overview",
+                    "title": "Internal multicenter generalizability overview",
+                    "caption": "Center-level interval overview and event support boundary.",
+                    "x_label": "C-index",
+                    "centers": [
+                        {
+                            "center_label": "Center A",
+                            "sample_size": 420,
+                            "estimate": 0.81,
+                            "lower": 0.73,
+                            "upper": 0.88,
+                        },
+                        {
+                            "center_label": "Center B",
+                            "sample_size": 395,
+                            "estimate": 0.77,
+                            "lower": 0.68,
+                            "upper": 0.85,
+                        },
+                    ],
+                    "reference_line": {"x": [0.75, 0.75], "y": [0.0, 1.0], "label": "Overall"},
+                }
+            ],
+        },
+    )
 
     def fake_render_r_evidence_figure(
         *,
@@ -497,9 +536,9 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
 
     result = materialization_module.materialize_display_surface(paper_root=paper_root)
 
-    assert result["figures_materialized"] == ["F1", "F2", "F3", "F4"]
+    assert result["figures_materialized"] == ["F1", "F2", "F3", "F4", "F5"]
     assert result["tables_materialized"] == ["T1", "T2"]
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
-    assert {item["figure_id"] for item in figure_catalog["figures"]} == {"F1", "F2", "F3", "F4"}
+    assert {item["figure_id"] for item in figure_catalog["figures"]} == {"F1", "F2", "F3", "F4", "F5"}
     assert {item["table_id"] for item in table_catalog["tables"]} == {"T1", "T2"}

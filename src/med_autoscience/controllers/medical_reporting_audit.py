@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
+from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
@@ -162,12 +163,11 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             if not shell_path.exists():
                 blockers.append(f"missing_{item['display_id'].lower()}_shell")
 
-        if item["requirement_key"] == "cohort_flow_figure" and not (paper_root / "cohort_flow.json").exists():
-            blockers.append("missing_cohort_flow")
-        if item["requirement_key"] == "table1_baseline_characteristics" and not (
-            paper_root / "baseline_characteristics_schema.json"
-        ).exists():
-            blockers.append("missing_baseline_characteristics_schema")
+        stub = resolve_required_display_surface_stub(item["requirement_key"])
+        if stub is None:
+            continue
+        if not (paper_root / stub.filename).exists():
+            blockers.append(stub.blocker_key)
 
     if not (paper_root / "reporting_guideline_checklist.json").exists():
         blockers.append("missing_reporting_guideline_checklist")
