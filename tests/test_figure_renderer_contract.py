@@ -10,6 +10,7 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         template_id = "cohort_flow_figure"
         layout_qc_profile = "publication_illustration_flow"
         required_exports = ["png", "svg"]
+        renderer_family = "python"
     elif renderer_family == "python":
         template_id = "shap_summary_beeswarm"
         layout_qc_profile = "publication_shap_summary"
@@ -48,7 +49,7 @@ def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
         valid_contract(figure_semantics="evidence", renderer_family="r_ggplot2")
     ) == []
     assert module.validate_renderer_contract(
-        valid_contract(figure_semantics="illustration", renderer_family="html_svg")
+        valid_contract(figure_semantics="illustration", renderer_family="python")
     ) == []
 
 

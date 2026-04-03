@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
+    display_surface_materialization,
     med_deepscientist_upgrade_check,
     external_research as external_research_controller,
     figure_loop_guard,
@@ -160,6 +161,9 @@ def build_parser() -> argparse.ArgumentParser:
     export_parser.add_argument("--paper-root", required=True)
     export_parser.add_argument("--publication-profile", default="general_medical_journal")
     export_parser.add_argument("--citation-style", default="auto")
+
+    display_surface_parser = subparsers.add_parser("materialize-display-surface")
+    display_surface_parser.add_argument("--paper-root", required=True)
 
     resolve_submission_targets_parser = subparsers.add_parser("resolve-submission-targets")
     resolve_submission_targets_parser.add_argument("--profile", type=str)
@@ -459,6 +463,13 @@ def main(argv: list[str] | None = None) -> int:
             paper_root=Path(args.paper_root),
             publication_profile=args.publication_profile,
             citation_style=args.citation_style,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "materialize-display-surface":
+        result = display_surface_materialization.materialize_display_surface(
+            paper_root=Path(args.paper_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
