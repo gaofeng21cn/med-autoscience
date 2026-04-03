@@ -21,6 +21,7 @@
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
 - `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
+- managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
@@ -312,6 +313,8 @@ Phase 3 开始，transport 面也开始显式收口：
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
 
 这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前正式主链已经不再保留 `adapters/deepscientist/*` 作为运行时依赖，production code 只允许依赖 `runtime_protocol` / `runtime_transport`。
+
+对于单个 study 的 runtime 编排，`study_runtime_router` 的稳定入口、typed surface 归属、decision 执行边界与 side-effect 约束，另见 [`guides/study_runtime_orchestration.md`](./study_runtime_orchestration.md)。
 
 ## Target Layering
 
