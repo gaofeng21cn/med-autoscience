@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
@@ -100,6 +101,9 @@ def run_validation(*, quest_root: Path) -> dict[str, object]:
                     shell_path = resolved_quest_root / "paper" / "tables" / f"{item['display_id']}.shell.json"
                 if not shell_path.exists():
                     blockers.append(f"missing_{item['display_id'].lower()}_shell")
+                stub = resolve_required_display_surface_stub(item["requirement_key"])
+                if stub is not None and not (resolved_quest_root / "paper" / stub.filename).exists():
+                    blockers.append(stub.blocker_key)
 
     report = study_runtime_protocol.write_startup_hydration_validation_report(
         quest_root=resolved_quest_root,
