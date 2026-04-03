@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
+from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 
@@ -104,7 +105,10 @@ def write_audit_files(quest_root: Path, report: dict[str, object]) -> tuple[Path
 def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
     del apply
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    paper_root = resolved_quest_root / "paper"
+    try:
+        paper_root = paper_artifacts.resolve_latest_paper_root(resolved_quest_root)
+    except FileNotFoundError:
+        paper_root = resolved_quest_root / "paper"
     blockers: list[str] = []
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     if not reporting_contract_path.exists():

@@ -65,6 +65,14 @@ CONTROLLER_NOTE = (
     "or manuscript-facing text still carries internal runtime terminology."
 )
 
+
+def _format_metric(metrics: dict[str, object], key: str) -> str:
+    value = metrics.get(key)
+    if isinstance(value, (int, float)):
+        return f"{value:.4f}"
+    return "n/a"
+
+
 def build_intervention_message(report: dict[str, object]) -> str:
     missing = ", ".join(report.get("missing_non_scalar_deliverables") or []) or "none"
     metrics = report.get("headline_metrics") or {}
@@ -75,9 +83,9 @@ def build_intervention_message(report: dict[str, object]) -> str:
         f"The latest recorded main run (`{report['run_id']}`) currently has controller blockers: "
         f"{', '.join(report.get('blockers') or ['none'])}. "
         f"Required contract deliverables still missing from the recorded output bundle: {missing}. "
-        f"Headline metrics are A1 roc_auc={metrics.get('roc_auc'):.4f}, "
-        f"average_precision={metrics.get('average_precision'):.4f}, "
-        f"brier_score={metrics.get('brier_score'):.4f}. "
+        f"Headline metrics are A1 roc_auc={_format_metric(metrics, 'roc_auc')}, "
+        f"average_precision={_format_metric(metrics, 'average_precision')}, "
+        f"brier_score={_format_metric(metrics, 'brier_score')}. "
         "Do not launch new model search. Do not continue write. "
         "Return to `decision` and record an explicit publishability gate memo that compares: "
         "(1) A1 calibration-first interpretable package, "

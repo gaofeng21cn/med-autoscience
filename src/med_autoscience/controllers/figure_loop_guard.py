@@ -80,6 +80,13 @@ def resolve_outbox_path(quest_root: Path) -> Path:
     runtime_root = resolve_runtime_root_from_quest_root(quest_root)
     return runtime_root / "logs" / "connectors" / "local" / "outbox.jsonl"
 
+
+def _normalize_optional_path(value: object) -> str | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    return str(Path(raw).expanduser().resolve())
+
 def extract_figures(message: str) -> list[str]:
     found: set[str] = set()
     for raw_id, panel in re.findall(r"(?i)\bfigure\s+(s?\d+)\s*([A-Z])?\b", message):
@@ -96,6 +103,7 @@ def extract_figures(message: str) -> list[str]:
 def read_recent_outbox_rows(outbox_path: Path, quest_root: Path, limit: int) -> list[dict[str, Any]]:
     if not outbox_path.exists():
         return []
+    resolved_quest_root = str(Path(quest_root).expanduser().resolve())
     rows: list[dict[str, Any]] = []
     for raw in outbox_path.read_text(encoding="utf-8").splitlines():
         try:
@@ -103,6 +111,9 @@ def read_recent_outbox_rows(outbox_path: Path, quest_root: Path, limit: int) -> 
         except json.JSONDecodeError:
             continue
         if str(payload.get("quest_id") or "").strip() != quest_root.name:
+            continue
+        payload_quest_root = _normalize_optional_path(payload.get("quest_root"))
+        if payload_quest_root is not None and payload_quest_root != resolved_quest_root:
             continue
         rows.append(payload)
     return rows[-max(limit, 0):]

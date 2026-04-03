@@ -195,6 +195,22 @@ def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Pa
     assert (study_root / "artifacts" / "final" / "compile_report.json").exists()
 
 
+def test_sync_study_delivery_for_finalize_accepts_canonical_handoff_from_worktree(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    (paper_root / "finalize_resume_packet.md").unlink()
+    write_text(paper_root.parent / "handoffs" / "finalize_resume_packet.md", "# Canonical Finalize Resume Packet\n")
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="finalize",
+    )
+
+    assert (study_root / "manuscript" / "final" / "finalize_resume_packet.md").read_text(encoding="utf-8") == (
+        "# Canonical Finalize Resume Packet\n"
+    )
+
+
 def test_sync_study_delivery_for_frontiers_family_creates_family_package_without_resetting_generic_root(
     tmp_path: Path,
 ) -> None:
