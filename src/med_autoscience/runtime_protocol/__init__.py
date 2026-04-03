@@ -28,6 +28,7 @@ from .runtime_watch import (
 )
 from .study_runtime import (
     StartupContractValidation,
+    StartupContractValidationStatus,
     StudyRuntimeArtifacts,
     StudyRuntimeContext,
     archive_invalid_partial_quest_root,
@@ -58,6 +59,7 @@ from .user_message import enqueue_user_message
 __all__ = [
     "PaperRootContext",
     "StartupContractValidation",
+    "StartupContractValidationStatus",
     "StudyRuntimeArtifacts",
     "StudyRuntimeContext",
     "WorkspaceRuntimeLayout",

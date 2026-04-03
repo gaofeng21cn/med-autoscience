@@ -1020,7 +1020,7 @@ def _status_state(
         )
     )
     result.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status != "clear":
+    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
@@ -1254,7 +1254,7 @@ def _execute_create_runtime_decision(
         startup_contract=dict(create_payload.get("startup_contract") or {})
     )
     status.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status != "clear":
+    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
@@ -1374,7 +1374,7 @@ def _execute_blocked_refresh_runtime_decision(
         startup_contract=dict(create_payload.get("startup_contract") or {})
     )
     status.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status != "clear":
+    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,

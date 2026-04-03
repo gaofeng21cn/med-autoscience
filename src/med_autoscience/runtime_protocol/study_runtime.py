@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -29,18 +30,26 @@ class StudyRuntimeArtifacts:
     startup_payload_path: Path | None
 
 
+class StartupContractValidationStatus(StrEnum):
+    CLEAR = "clear"
+    BLOCKED = "blocked"
+
+
 @dataclass(frozen=True)
 class StartupContractValidation:
-    status: str
+    status: StartupContractValidationStatus
     blockers: tuple[str, ...]
     medical_analysis_contract_status: str | None
     medical_reporting_contract_status: str | None
     medical_analysis_reason_code: str | None
     medical_reporting_reason_code: str | None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+
     def to_dict(self) -> dict[str, object]:
         return {
-            "status": self.status,
+            "status": self.status.value,
             "blockers": list(self.blockers),
             "contract_statuses": {
                 "medical_analysis_contract": self.medical_analysis_contract_status,
@@ -51,6 +60,17 @@ class StartupContractValidation:
                 "medical_reporting_contract": self.medical_reporting_reason_code,
             },
         }
+
+    @staticmethod
+    def _normalize_status(value: StartupContractValidationStatus | str) -> StartupContractValidationStatus:
+        if isinstance(value, StartupContractValidationStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StartupContractValidationStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown startup contract validation status: {value}") from exc
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -165,7 +185,7 @@ def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) ->
     if reporting_blocker is not None:
         blockers.append(reporting_blocker)
     return StartupContractValidation(
-        status="blocked" if blockers else "clear",
+        status=StartupContractValidationStatus.BLOCKED if blockers else StartupContractValidationStatus.CLEAR,
         blockers=tuple(blockers),
         medical_analysis_contract_status=analysis_status,
         medical_reporting_contract_status=reporting_status,
