@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import StudyCompletionState, resolve_study_completion_state
 
 
+def _router_module():
+    return import_module("med_autoscience.controllers.study_runtime_router")
+
+
 def _study_completion_state(*, study_root: Path) -> StudyCompletionState:
-    return resolve_study_completion_state(study_root=study_root)
+    return _router_module().resolve_study_completion_state(study_root=study_root)
 
 
 def _build_study_completion_request_message(
@@ -40,6 +45,7 @@ def _sync_study_completion(
     completion_state: StudyCompletionState,
     source: str,
 ) -> dict[str, object]:
+    router = _router_module()
     contract = completion_state.contract
     summary = contract.summary.strip() if contract is not None else ""
     approval_text = contract.user_approval_text.strip() if contract is not None else ""
@@ -50,7 +56,7 @@ def _sync_study_completion(
         quest_id=quest_id,
         decision_request_payload={
             "kind": "decision_request",
-            "message": _build_study_completion_request_message(
+            "message": router._build_study_completion_request_message(
                 study_id=study_id,
                 study_root=study_root,
                 completion_state=completion_state,
