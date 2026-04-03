@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -143,5 +144,10 @@ def resolve_medical_reporting_contract_for_study(
             "baseline_characteristics_required": contract.baseline_characteristics_required,
             "table_shell_requirements": list(contract.table_shell_requirements),
             "figure_shell_requirements": list(contract.figure_shell_requirements),
+            "required_illustration_shells": list(contract.required_illustration_shells),
+            "required_table_shells": list(contract.required_table_shells),
+            "required_evidence_templates": list(contract.required_evidence_templates),
+            "display_registry_required": contract.display_registry_required,
+            "display_shell_plan": [asdict(item) for item in contract.display_shell_plan],
         },
     )

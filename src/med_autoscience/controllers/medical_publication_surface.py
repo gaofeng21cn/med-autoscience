@@ -571,6 +571,18 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits.extend(scan_text_file(state.review_manuscript_path))
     forbidden_hits.extend(scan_catalog_strings(state.figure_catalog_path, collection_key="figures"))
     forbidden_hits.extend(scan_catalog_strings(state.table_catalog_path, collection_key="tables"))
+    figure_catalog_valid, figure_catalog_hits = inspect_required_json_contract(
+        path=state.figure_catalog_path,
+        validator=medical_surface_policy.validate_figure_catalog,
+        pattern_id="figure_catalog",
+        label="figure catalog",
+    )
+    table_catalog_valid, table_catalog_hits = inspect_required_json_contract(
+        path=state.table_catalog_path,
+        validator=medical_surface_policy.validate_table_catalog,
+        pattern_id="table_catalog",
+        label="table catalog",
+    )
     for path in discover_figure_text_assets(state.paper_root, state.figure_catalog_path):
         forbidden_hits.extend(scan_text_file(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
@@ -693,6 +705,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
             continue
         undefined_methodology_label_hits.append(hit)
     hits: list[dict[str, Any]] = []
+    hits.extend(figure_catalog_hits)
+    hits.extend(table_catalog_hits)
     hits.extend(methods_manifest_hits)
     hits.extend(results_narrative_hits)
     hits.extend(figure_semantics_hits)
@@ -708,6 +722,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     blockers: list[str] = []
     if forbidden_hits:
         blockers.append("forbidden_manuscript_terms_present")
+    if not figure_catalog_valid:
+        blockers.append("figure_catalog_missing_or_incomplete")
+    if not table_catalog_valid:
+        blockers.append("table_catalog_missing_or_incomplete")
     ama_csl_present = state.ama_csl_path.exists()
     ama_defaults_present = ama_pdf_defaults_present(state.review_defaults_path, state.ama_csl_path)
     if not ama_defaults_present:
@@ -748,6 +766,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "ama_csl_path": str(state.ama_csl_path),
         "ama_csl_present": ama_csl_present,
         "ama_pdf_defaults_present": ama_defaults_present,
+        "figure_catalog_path": str(state.figure_catalog_path),
+        "figure_catalog_present": state.figure_catalog_path.exists(),
+        "figure_catalog_valid": figure_catalog_valid,
+        "table_catalog_path": str(state.table_catalog_path),
+        "table_catalog_present": state.table_catalog_path.exists(),
+        "table_catalog_valid": table_catalog_valid,
         "methods_implementation_manifest_path": str(state.methods_implementation_manifest_path),
         "methods_implementation_manifest_present": state.methods_implementation_manifest_path.exists(),
         "methods_implementation_manifest_valid": methods_manifest_valid,
@@ -789,6 +813,10 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- blockers: `{', '.join(report.get('blockers') or ['none'])}`",
         f"- ama_csl_present: `{report['ama_csl_present']}`",
         f"- ama_pdf_defaults_present: `{report['ama_pdf_defaults_present']}`",
+        f"- figure_catalog_present: `{report['figure_catalog_present']}`",
+        f"- figure_catalog_valid: `{report['figure_catalog_valid']}`",
+        f"- table_catalog_present: `{report['table_catalog_present']}`",
+        f"- table_catalog_valid: `{report['table_catalog_valid']}`",
         f"- methods_implementation_manifest_present: `{report['methods_implementation_manifest_present']}`",
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
         f"- results_narrative_map_present: `{report['results_narrative_map_present']}`",

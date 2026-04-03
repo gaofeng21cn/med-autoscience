@@ -6,13 +6,28 @@ import pytest
 
 
 def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str = "python") -> dict[str, object]:
+    if figure_semantics == "illustration":
+        template_id = "cohort_flow_figure"
+        layout_qc_profile = "publication_illustration_flow"
+        required_exports = ["png", "svg"]
+    elif renderer_family == "python":
+        template_id = "shap_summary_beeswarm"
+        layout_qc_profile = "publication_shap_summary"
+        required_exports = ["png", "pdf"]
+    else:
+        template_id = "roc_curve_binary"
+        layout_qc_profile = "publication_evidence_curve"
+        required_exports = ["png", "pdf"]
     return {
         "figure_semantics": figure_semantics,
         "renderer_family": renderer_family,
+        "template_id": template_id,
         "selection_rationale": (
             "This figure stays on an audited programmatic renderer so the exported artifact remains coupled "
             "to the manuscript-safe analysis surface."
         ),
+        "layout_qc_profile": layout_qc_profile,
+        "required_exports": required_exports,
         "fallback_on_failure": False,
         "failure_action": "block_and_fix_environment",
     }
@@ -72,6 +87,24 @@ def test_validate_renderer_contract_requires_block_and_fix_environment_failure_a
     )
 
     assert errors == ["failure_action must be `block_and_fix_environment`"]
+
+
+def test_validate_renderer_contract_requires_template_and_qc_fields() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    errors = module.validate_renderer_contract(
+        {
+            "figure_semantics": "evidence",
+            "renderer_family": "r_ggplot2",
+            "selection_rationale": "Publication-facing ROC figure stays on the audited R stack.",
+            "fallback_on_failure": False,
+            "failure_action": "block_and_fix_environment",
+        }
+    )
+
+    assert "template_id must be non-empty" in errors
+    assert "layout_qc_profile must be non-empty" in errors
+    assert "required_exports must contain at least one export format" in errors
 
 
 def test_normalize_renderer_contract_raises_for_invalid_combination() -> None:

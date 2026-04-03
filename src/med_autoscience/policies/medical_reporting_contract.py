@@ -4,12 +4,24 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class DisplayShellPlanItem:
+    display_id: str
+    display_kind: str
+    requirement_key: str
+
+
+@dataclass(frozen=True)
 class MedicalReportingContract:
     reporting_guideline_family: str
     cohort_flow_required: bool
     baseline_characteristics_required: bool
     table_shell_requirements: tuple[str, ...]
     figure_shell_requirements: tuple[str, ...]
+    required_illustration_shells: tuple[str, ...]
+    required_table_shells: tuple[str, ...]
+    required_evidence_templates: tuple[str, ...]
+    display_registry_required: bool
+    display_shell_plan: tuple[DisplayShellPlanItem, ...]
 
 
 SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
@@ -20,6 +32,35 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
 SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier",)
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
+_DISPLAY_SLOT_MAP: dict[str, tuple[str, str]] = {
+    "cohort_flow_figure": ("Figure1", "figure"),
+    "table1_baseline_characteristics": ("Table1", "table"),
+    "table2_primary_performance_by_horizon": ("Table2", "table"),
+    "discrimination_calibration_figure": ("Figure2", "figure"),
+    "km_risk_stratification_figure": ("Figure3", "figure"),
+    "decision_curve_figure": ("Figure4", "figure"),
+}
+
+
+def _build_display_shell_plan(
+    *,
+    figure_shell_requirements: tuple[str, ...],
+    table_shell_requirements: tuple[str, ...],
+) -> tuple[DisplayShellPlanItem, ...]:
+    items: list[DisplayShellPlanItem] = []
+    for requirement_key in figure_shell_requirements + table_shell_requirements:
+        display_slot = _DISPLAY_SLOT_MAP.get(requirement_key)
+        if display_slot is None:
+            continue
+        display_id, display_kind = display_slot
+        items.append(
+            DisplayShellPlanItem(
+                display_id=display_id,
+                display_kind=display_kind,
+                requirement_key=requirement_key,
+            )
+        )
+    return tuple(items)
 
 
 def resolve_medical_reporting_contract(
@@ -77,4 +118,14 @@ def resolve_medical_reporting_contract(
         baseline_characteristics_required=True,
         table_shell_requirements=table_shell_requirements,
         figure_shell_requirements=figure_shell_requirements,
+        required_illustration_shells=tuple(
+            item for item in figure_shell_requirements if item == "cohort_flow_figure"
+        ),
+        required_table_shells=table_shell_requirements,
+        required_evidence_templates=(),
+        display_registry_required=True,
+        display_shell_plan=_build_display_shell_plan(
+            figure_shell_requirements=figure_shell_requirements,
+            table_shell_requirements=table_shell_requirements,
+        ),
     )

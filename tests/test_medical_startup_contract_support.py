@@ -248,3 +248,41 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
         "endpoint_type",
         "manuscript_family",
     ]
+    assert result["display_registry_required"] is True
+    assert result["required_illustration_shells"] == ["cohort_flow_figure"]
+    assert result["required_table_shells"] == [
+        "table1_baseline_characteristics",
+        "table2_primary_performance_by_horizon",
+    ]
+    assert result["display_shell_plan"] == [
+        {
+            "display_id": "Figure1",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+        },
+        {
+            "display_id": "Figure2",
+            "display_kind": "figure",
+            "requirement_key": "discrimination_calibration_figure",
+        },
+        {
+            "display_id": "Figure3",
+            "display_kind": "figure",
+            "requirement_key": "km_risk_stratification_figure",
+        },
+        {
+            "display_id": "Figure4",
+            "display_kind": "figure",
+            "requirement_key": "decision_curve_figure",
+        },
+        {
+            "display_id": "Table1",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+        },
+        {
+            "display_id": "Table2",
+            "display_kind": "table",
+            "requirement_key": "table2_primary_performance_by_horizon",
+        },
+    ]

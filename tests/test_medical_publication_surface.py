@@ -167,10 +167,15 @@ def make_quest(
             "figures": [
                 {
                     "figure_id": "F4",
+                    "template_id": "roc_curve_binary",
+                    "renderer_family": "r_ggplot2",
+                    "input_schema_id": "binary_prediction_curve_inputs_v1",
+                    "qc_profile": "publication_evidence_curve",
+                    "qc_result": {"status": "pass", "issues": []},
                     "title": figure_title,
                     "caption": figure_caption,
                     "paper_role": "main_text",
-                    "export_paths": ["paper/figures/F4.png"],
+                    "export_paths": ["paper/figures/F4.png", "paper/figures/F4.pdf"],
                 }
             ],
         },
@@ -185,10 +190,14 @@ def make_quest(
             "tables": [
                 {
                     "table_id": "T1",
+                    "table_shell_id": "table1_baseline_characteristics",
+                    "input_schema_id": "baseline_characteristics_schema_v1",
+                    "qc_profile": "publication_table_baseline",
+                    "qc_result": {"status": "pass", "issues": []},
                     "title": "Patient characteristics",
                     "caption": table_caption,
                     "paper_role": "main_text",
-                    "asset_paths": ["paper/tables/T1.md"],
+                    "asset_paths": ["paper/tables/T1.csv", "paper/tables/T1.md"],
                 }
             ],
         },
@@ -389,16 +398,21 @@ def make_quest(
         )
 
     if include_figure_semantics_manifest:
-        renderer_contract = renderer_contract_override or {
+        renderer_contract = {
             "figure_semantics": "evidence",
-            "renderer_family": "python",
+            "renderer_family": "r_ggplot2",
+            "template_id": "roc_curve_binary",
             "selection_rationale": (
-                "This result figure is regenerated from the locked Python analysis stack so the plotted "
+                "This result figure is regenerated from the locked R analysis stack so the plotted "
                 "evidence remains coupled to the audited statistical outputs."
             ),
+            "layout_qc_profile": "publication_evidence_curve",
+            "required_exports": ["png", "pdf"],
             "fallback_on_failure": False,
             "failure_action": "block_and_fix_environment",
         }
+        if renderer_contract_override is not None:
+            renderer_contract.update(renderer_contract_override)
         dump_json(
             paper_root / "figure_semantics_manifest.json",
             {
@@ -766,8 +780,8 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
         ama_defaults=True,
         renderer_contract_override={
             "figure_semantics": "evidence",
-            "renderer_family": "python",
-            "selection_rationale": "The evidence plot should stay on the audited Python stack.",
+            "renderer_family": "r_ggplot2",
+            "selection_rationale": "The evidence plot should stay on the audited R stack.",
             "fallback_on_failure": True,
             "failure_action": "block_and_fix_environment",
         },
@@ -781,6 +795,26 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
     assert "fallback_on_failure" in excerpts
 
 
+def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    figure_catalog_path = (
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "figure_catalog.json"
+    )
+    payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    payload["figures"][0].pop("template_id", None)
+    figure_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_catalog_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_catalog")
+    assert "template_id" in excerpts
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")

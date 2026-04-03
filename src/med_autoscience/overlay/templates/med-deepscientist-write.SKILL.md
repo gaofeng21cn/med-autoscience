@@ -1431,14 +1431,19 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
 {
   "figures": [
     {
-      "id": "F1",
-      "path": "paper/figures/fig1.pdf",
-      "script_path": "paper/figures/generate_figures.py",
-      "source_artifacts": ["artifacts/runs/run-main-001.json"],
+      "figure_id": "F1",
+      "template_id": "roc_curve_binary",
+      "renderer_family": "r_ggplot2",
+      "paper_role": "main_text",
+      "input_schema_id": "binary_prediction_curve_inputs_v1",
+      "export_paths": ["paper/figures/F1.pdf", "paper/figures/F1.png"],
+      "qc_profile": "publication_evidence_curve",
+      "qc_result": {
+        "status": "pass",
+        "issues": []
+      },
       "claim_ids": ["C1"],
-      "style_notes": {
-        "grayscale_safe": true
-      }
+      "source_artifacts": ["artifacts/runs/run-main-001.json"]
     }
   ]
 }
@@ -1450,13 +1455,18 @@ If a critical packaging issue remains, mark the stage as blocked or warn explici
 {
   "tables": [
     {
-      "id": "T1",
-      "path": "paper/tables/table1.tex",
-      "source_artifacts": ["artifacts/runs/run-main-001.json"],
+      "table_id": "T1",
+      "table_shell_id": "table1_baseline_characteristics",
+      "paper_role": "main_text",
+      "input_schema_id": "baseline_characteristics_schema_v1",
+      "asset_paths": ["paper/tables/T1.csv", "paper/tables/T1.md"],
+      "qc_profile": "publication_table_baseline",
+      "qc_result": {
+        "status": "pass",
+        "issues": []
+      },
       "claim_ids": ["C1"],
-      "layout_notes": {
-        "overflow_checked": true
-      }
+      "source_artifacts": ["artifacts/runs/run-main-001.json"]
     }
   ]
 }

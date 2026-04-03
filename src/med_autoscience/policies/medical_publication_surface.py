@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from med_autoscience import display_registry
 from med_autoscience import figure_renderer_contract
 
 
@@ -277,6 +278,147 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
         renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
         if renderer_contract_errors:
             return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
+    return []
+
+
+def _normalize_string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _path_suffixes(paths: list[str]) -> set[str]:
+    suffixes: set[str] = set()
+    for path in paths:
+        match = re.search(r"\.([A-Za-z0-9]+)$", path)
+        if match:
+            suffixes.add(match.group(1).lower())
+    return suffixes
+
+
+def validate_figure_catalog(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    figures = payload.get("figures")
+    if not isinstance(figures, list):
+        return ["figures must be a list"]
+    for index, figure in enumerate(figures):
+        if not isinstance(figure, dict):
+            return [f"figures[{index}] must be an object"]
+        required_fields = (
+            "figure_id",
+            "template_id",
+            "renderer_family",
+            "paper_role",
+            "input_schema_id",
+            "qc_profile",
+            "qc_result",
+        )
+        missing_fields = _missing_required_fields(figure, required_fields)
+        if missing_fields:
+            return [f"missing figures[{index}] fields: {', '.join(missing_fields)}"]
+        qc_result = figure.get("qc_result")
+        if not isinstance(qc_result, dict) or not str(qc_result.get("status") or "").strip():
+            return [f"figures[{index}].qc_result must be an object with non-empty status"]
+
+        template_id = str(figure.get("template_id") or "").strip()
+        renderer_family = str(figure.get("renderer_family") or "").strip()
+        input_schema_id = str(figure.get("input_schema_id") or "").strip()
+        qc_profile = str(figure.get("qc_profile") or "").strip()
+        paper_role = str(figure.get("paper_role") or "").strip()
+        export_paths = _normalize_string_list(figure.get("export_paths"))
+        if not export_paths:
+            export_paths = _normalize_string_list(figure.get("planned_exports"))
+        if not export_paths:
+            return [f"figures[{index}] must include export_paths or planned_exports"]
+
+        if display_registry.is_evidence_figure_template(template_id):
+            spec = display_registry.get_evidence_figure_spec(template_id)
+            expected_qc_profile = spec.layout_qc_profile
+        elif display_registry.is_illustration_shell(template_id):
+            spec = display_registry.get_illustration_shell_spec(template_id)
+            expected_qc_profile = spec.shell_qc_profile
+        else:
+            return [f"figures[{index}].template_id `{template_id}` is not registered"]
+
+        if renderer_family != spec.renderer_family:
+            return [
+                f"figures[{index}].renderer_family `{renderer_family}` does not match registered renderer `{spec.renderer_family}`"
+            ]
+        if input_schema_id != spec.input_schema_id:
+            return [
+                f"figures[{index}].input_schema_id `{input_schema_id}` does not match registered schema `{spec.input_schema_id}`"
+            ]
+        if qc_profile != expected_qc_profile:
+            return [
+                f"figures[{index}].qc_profile `{qc_profile}` does not match registered qc profile `{expected_qc_profile}`"
+            ]
+        if paper_role not in spec.allowed_paper_roles:
+            return [f"figures[{index}].paper_role `{paper_role}` is not allowed for template_id `{template_id}`"]
+        missing_export_formats = sorted(set(spec.required_exports) - _path_suffixes(export_paths))
+        if missing_export_formats:
+            return [
+                f"figures[{index}].export_paths missing required export formats for template_id `{template_id}`: "
+                f"{', '.join(missing_export_formats)}"
+            ]
+    return []
+
+
+def validate_table_catalog(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    tables = payload.get("tables")
+    if not isinstance(tables, list):
+        return ["tables must be a list"]
+    for index, table in enumerate(tables):
+        if not isinstance(table, dict):
+            return [f"tables[{index}] must be an object"]
+        required_fields = (
+            "table_id",
+            "table_shell_id",
+            "paper_role",
+            "input_schema_id",
+            "qc_profile",
+            "qc_result",
+        )
+        missing_fields = _missing_required_fields(table, required_fields)
+        if missing_fields:
+            return [f"missing tables[{index}] fields: {', '.join(missing_fields)}"]
+        qc_result = table.get("qc_result")
+        if not isinstance(qc_result, dict) or not str(qc_result.get("status") or "").strip():
+            return [f"tables[{index}].qc_result must be an object with non-empty status"]
+
+        shell_id = str(table.get("table_shell_id") or "").strip()
+        paper_role = str(table.get("paper_role") or "").strip()
+        input_schema_id = str(table.get("input_schema_id") or "").strip()
+        qc_profile = str(table.get("qc_profile") or "").strip()
+        asset_paths = _normalize_string_list(table.get("asset_paths"))
+        if not asset_paths:
+            path_value = str(table.get("path") or "").strip()
+            if path_value:
+                asset_paths = [path_value]
+        if not asset_paths:
+            return [f"tables[{index}] must include asset_paths or path"]
+
+        if not display_registry.is_table_shell(shell_id):
+            return [f"tables[{index}].table_shell_id `{shell_id}` is not registered"]
+        spec = display_registry.get_table_shell_spec(shell_id)
+        if paper_role not in spec.allowed_paper_roles:
+            return [f"tables[{index}].paper_role `{paper_role}` is not allowed for table_shell_id `{shell_id}`"]
+        if input_schema_id != spec.input_schema_id:
+            return [
+                f"tables[{index}].input_schema_id `{input_schema_id}` does not match registered schema `{spec.input_schema_id}`"
+            ]
+        if qc_profile != spec.table_qc_profile:
+            return [
+                f"tables[{index}].qc_profile `{qc_profile}` does not match registered qc profile `{spec.table_qc_profile}`"
+            ]
+        missing_export_formats = sorted(set(spec.required_exports) - _path_suffixes(asset_paths))
+        if missing_export_formats:
+            return [
+                f"tables[{index}].asset_paths missing required export formats for table_shell_id `{shell_id}`: "
+                f"{', '.join(missing_export_formats)}"
+            ]
     return []
 
 
