@@ -227,9 +227,10 @@ def _build_create_payload(
     study_payload: dict[str, Any],
     execution: dict[str, Any],
 ) -> dict[str, Any]:
+    router = _router_module()
     title = str(study_payload.get("title") or study_id).strip() or study_id
     goal = str(study_payload.get("primary_question") or title).strip() or title
-    startup_contract = _build_startup_contract(
+    startup_contract = router._build_startup_contract(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
