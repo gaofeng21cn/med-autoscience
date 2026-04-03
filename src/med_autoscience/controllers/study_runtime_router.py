@@ -886,7 +886,16 @@ def _run_runtime_preflight(
             {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
         )
         status.record_runtime_overlay(runtime_overlay_result)
-        if status.quest_status in _LIVE_QUEST_STATUSES and not runtime_overlay_result.audit.all_roots_ready:
+        if (
+            status.quest_status in _LIVE_QUEST_STATUSES
+            and status.decision
+            in {
+                StudyRuntimeDecision.NOOP,
+                StudyRuntimeDecision.PAUSE,
+                StudyRuntimeDecision.PAUSE_AND_COMPLETE,
+            }
+            and not runtime_overlay_result.audit.all_roots_ready
+        ):
             status.set_decision(
                 StudyRuntimeDecision.PAUSE,
                 StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
@@ -925,10 +934,26 @@ def _execute_create_runtime_decision(
         create_payload=create_payload,
         slug=_timestamp_slug(),
     )
-    create_result = med_deepscientist_transport.create_quest(
-        runtime_root=context.runtime_root,
-        payload=create_payload,
-    )
+    try:
+        create_result = med_deepscientist_transport.create_quest(
+            runtime_root=context.runtime_root,
+            payload=create_payload,
+        )
+    except RuntimeError as exc:
+        outcome.record_daemon_step(
+            StudyRuntimeDaemonStep.CREATE,
+            {
+                "ok": False,
+                "status": "unavailable",
+                "error": str(exc),
+            },
+        )
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.CREATE_REQUEST_FAILED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+        return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.CREATE, create_result)
     status.update_quest_runtime(
         quest_id=create_payload["quest_id"],
@@ -965,11 +990,27 @@ def _execute_create_runtime_decision(
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
     if planned_decision == StudyRuntimeDecision.CREATE_AND_START:
-        resume_result = med_deepscientist_transport.resume_quest(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            source=context.source,
-        )
+        try:
+            resume_result = med_deepscientist_transport.resume_quest(
+                runtime_root=context.runtime_root,
+                quest_id=status.quest_id,
+                source=context.source,
+            )
+        except RuntimeError as exc:
+            outcome.record_daemon_step(
+                StudyRuntimeDaemonStep.RESUME,
+                {
+                    "ok": False,
+                    "status": "unavailable",
+                    "error": str(exc),
+                },
+            )
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RESUME_REQUEST_FAILED,
+            )
+            outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+            return outcome
         outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
         status.update_quest_runtime(
             quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
@@ -1005,11 +1046,27 @@ def _execute_resume_runtime_decision(
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
-    resume_result = med_deepscientist_transport.resume_quest(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        source=context.source,
-    )
+    try:
+        resume_result = med_deepscientist_transport.resume_quest(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+            source=context.source,
+        )
+    except RuntimeError as exc:
+        outcome.record_daemon_step(
+            StudyRuntimeDaemonStep.RESUME,
+            {
+                "ok": False,
+                "status": "unavailable",
+                "error": str(exc),
+            },
+        )
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RESUME_REQUEST_FAILED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+        return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
     status.update_quest_runtime(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),

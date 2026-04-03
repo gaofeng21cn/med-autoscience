@@ -64,11 +64,16 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
     deep_config = workspace_root / "ops" / "med-deepscientist" / "config.env"
     med_shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    ds_shared = workspace_root / "ops" / "med-deepscientist" / "bin" / "_shared.sh"
     assert med_config.is_file()
     assert deep_config.is_file()
     assert med_shared.is_file()
+    assert ds_shared.is_file()
     med_shared_text = med_shared.read_text(encoding="utf-8")
+    ds_shared_text = ds_shared.read_text(encoding="utf-8")
     assert 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
+    assert 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}"' in ds_shared_text
+    assert 'CONTRACT_JSON="${payload_json}" uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<' in ds_shared_text
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
@@ -115,6 +120,16 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "runtime 运维面" in deepscientist_readme_text
     assert "不是研究入口" in deepscientist_readme_text
     assert "ops/medautoscience/bin/enter-study" in deepscientist_readme_text
+
+    workspace_pyproject = workspace_root / "pyproject.toml"
+    assert workspace_pyproject.is_file()
+    workspace_pyproject_text = workspace_pyproject.read_text(encoding="utf-8")
+    expected_repo_relpath = Path(os.path.relpath(Path(module.__file__).resolve().parents[3], workspace_root)).as_posix()
+    assert 'name = "glioma-workspace"' in workspace_pyproject_text
+    assert 'description = "Managed Python environment for the glioma workspace."' in workspace_pyproject_text
+    assert '"med-autoscience"' in workspace_pyproject_text
+    assert "[tool.uv.sources]" in workspace_pyproject_text
+    assert f'med-autoscience = {{ path = "{expected_repo_relpath}", editable = true }}' in workspace_pyproject_text
 
     workspace_rules = workspace_root / "WORKSPACE_AUTOSCIENCE_RULES.md"
     assert workspace_rules.is_file()
