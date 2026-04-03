@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,6 +114,42 @@ def build_display_surface_workspace(
                     "requirement_key": "shap_summary_beeswarm",
                     "shell_path": "paper/figures/Figure13.shell.json",
                 },
+                {
+                    "display_id": "Figure14",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    "shell_path": "paper/figures/Figure14.shell.json",
+                },
+                {
+                    "display_id": "Figure15",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_risk_group_summary",
+                    "shell_path": "paper/figures/Figure15.shell.json",
+                },
+                {
+                    "display_id": "Figure16",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_decision_curve",
+                    "shell_path": "paper/figures/Figure16.shell.json",
+                },
+                {
+                    "display_id": "Figure17",
+                    "display_kind": "figure",
+                    "requirement_key": "multicenter_generalizability_overview",
+                    "shell_path": "paper/figures/Figure17.shell.json",
+                },
+                {
+                    "display_id": "Table2",
+                    "display_kind": "table",
+                    "requirement_key": "table2_time_to_event_performance_summary",
+                    "shell_path": "paper/tables/Table2.shell.json",
+                },
+                {
+                    "display_id": "Table3",
+                    "display_kind": "table",
+                    "requirement_key": "table3_clinical_interpretation_summary",
+                    "shell_path": "paper/tables/Table3.shell.json",
+                },
             ]
         )
     dump_json(
@@ -158,6 +196,10 @@ def build_display_surface_workspace(
                     (11, "correlation_heatmap"),
                     (12, "forest_effect_main"),
                     (13, "shap_summary_beeswarm"),
+                    (14, "time_to_event_discrimination_calibration_panel"),
+                    (15, "time_to_event_risk_group_summary"),
+                    (16, "time_to_event_decision_curve"),
+                    (17, "multicenter_generalizability_overview"),
                 ]
             )
         for figure_index, template_id in template_bindings:
@@ -168,6 +210,20 @@ def build_display_surface_workspace(
                     "display_id": f"Figure{figure_index}",
                     "display_kind": "figure",
                     "requirement_key": template_id,
+                },
+            )
+    if include_extended_evidence:
+        for table_index, requirement_key in (
+            (2, "table2_time_to_event_performance_summary"),
+            (3, "table3_clinical_interpretation_summary"),
+        ):
+            dump_json(
+                paper_root / "tables" / f"Table{table_index}.shell.json",
+                {
+                    "schema_version": 1,
+                    "display_id": f"Table{table_index}",
+                    "display_kind": "table",
+                    "requirement_key": requirement_key,
                 },
             )
     dump_json(
@@ -283,55 +339,85 @@ def build_display_surface_workspace(
                 ],
             },
         )
+        time_to_event_grouped_displays = [
+            {
+                "display_id": "Figure6",
+                "template_id": "kaplan_meier_grouped",
+                "title": "Kaplan-Meier risk stratification",
+                "caption": "Time-to-event separation across prespecified risk groups.",
+                "x_label": "Months from surgery",
+                "y_label": "Survival probability",
+                "groups": [
+                    {
+                        "label": "Low risk",
+                        "times": [0, 6, 12, 18, 24],
+                        "values": [1.0, 0.96, 0.93, 0.90, 0.88],
+                    },
+                    {
+                        "label": "High risk",
+                        "times": [0, 6, 12, 18, 24],
+                        "values": [1.0, 0.88, 0.77, 0.69, 0.62],
+                    },
+                ],
+                "annotation": "Log-rank P < .001",
+            },
+            {
+                "display_id": "Figure7",
+                "template_id": "cumulative_incidence_grouped",
+                "title": "Cumulative incidence by risk group",
+                "caption": "Event accumulation across prespecified risk strata.",
+                "x_label": "Months from surgery",
+                "y_label": "Cumulative incidence",
+                "groups": [
+                    {
+                        "label": "Low risk",
+                        "times": [0, 6, 12, 18, 24],
+                        "values": [0.00, 0.04, 0.07, 0.09, 0.12],
+                    },
+                    {
+                        "label": "High risk",
+                        "times": [0, 6, 12, 18, 24],
+                        "values": [0.00, 0.12, 0.23, 0.31, 0.38],
+                    },
+                ],
+                "annotation": "Gray test P = .002",
+            },
+        ]
+        if include_extended_evidence:
+            time_to_event_grouped_displays.append(
+                {
+                    "display_id": "Figure15",
+                    "template_id": "time_to_event_risk_group_summary",
+                    "title": "Risk-group summary across follow-up horizons",
+                    "caption": "Grouped event trajectories and retained cohort size across follow-up horizons.",
+                    "x_label": "Months from surgery",
+                    "y_label": "Event-free probability",
+                    "groups": [
+                        {
+                            "label": "Low risk",
+                            "times": [0, 6, 12, 18, 24],
+                            "values": [1.0, 0.95, 0.91, 0.88, 0.85],
+                        },
+                        {
+                            "label": "Intermediate risk",
+                            "times": [0, 6, 12, 18, 24],
+                            "values": [1.0, 0.90, 0.82, 0.76, 0.69],
+                        },
+                        {
+                            "label": "High risk",
+                            "times": [0, 6, 12, 18, 24],
+                            "values": [1.0, 0.84, 0.72, 0.63, 0.55],
+                        },
+                    ],
+                    "annotation": "Trend P < .001",
+                }
+            )
         dump_json(
             paper_root / "time_to_event_grouped_inputs.json",
             {
                 "schema_version": 1,
                 "input_schema_id": "time_to_event_grouped_inputs_v1",
-                "displays": [
-                    {
-                        "display_id": "Figure6",
-                        "template_id": "kaplan_meier_grouped",
-                        "title": "Kaplan-Meier risk stratification",
-                        "caption": "Time-to-event separation across prespecified risk groups.",
-                        "x_label": "Months from surgery",
-                        "y_label": "Survival probability",
-                        "groups": [
-                            {
-                                "label": "Low risk",
-                                "times": [0, 6, 12, 18, 24],
-                                "values": [1.0, 0.96, 0.93, 0.90, 0.88],
-                            },
-                            {
-                                "label": "High risk",
-                                "times": [0, 6, 12, 18, 24],
-                                "values": [1.0, 0.88, 0.77, 0.69, 0.62],
-                            },
-                        ],
-                        "annotation": "Log-rank P < .001",
-                    },
-                    {
-                        "display_id": "Figure7",
-                        "template_id": "cumulative_incidence_grouped",
-                        "title": "Cumulative incidence by risk group",
-                        "caption": "Event accumulation across prespecified risk strata.",
-                        "x_label": "Months from surgery",
-                        "y_label": "Cumulative incidence",
-                        "groups": [
-                            {
-                                "label": "Low risk",
-                                "times": [0, 6, 12, 18, 24],
-                                "values": [0.00, 0.04, 0.07, 0.09, 0.12],
-                            },
-                            {
-                                "label": "High risk",
-                                "times": [0, 6, 12, 18, 24],
-                                "values": [0.00, 0.12, 0.23, 0.31, 0.38],
-                            },
-                        ],
-                        "annotation": "Gray test P = .002",
-                    }
-                ],
+                "displays": time_to_event_grouped_displays,
             },
         )
         if include_extended_evidence:
@@ -471,6 +557,141 @@ def build_display_surface_workspace(
                     ],
                 },
             )
+            dump_json(
+                paper_root / "time_to_event_discrimination_calibration_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure14",
+                            "template_id": "time_to_event_discrimination_calibration_panel",
+                            "title": "Time-to-event discrimination and grouped calibration",
+                            "caption": "Horizon-specific discrimination and calibration structure for the locked survival model.",
+                            "discrimination_x_label": "1 - Specificity",
+                            "discrimination_y_label": "Sensitivity",
+                            "calibration_x_label": "Months from surgery",
+                            "calibration_y_label": "Observed event-free probability",
+                            "discrimination_reference_line": {
+                                "x": [0.0, 1.0],
+                                "y": [0.0, 1.0],
+                                "label": "Chance",
+                            },
+                            "calibration_reference_line": {
+                                "x": [0.0, 24.0],
+                                "y": [1.0, 0.60],
+                                "label": "Expected",
+                            },
+                            "discrimination_series": [
+                                {
+                                    "label": "12-month horizon",
+                                    "x": [0.0, 0.10, 0.22, 1.0],
+                                    "y": [0.0, 0.71, 0.86, 1.0],
+                                    "annotation": "AUC = 0.83",
+                                },
+                                {
+                                    "label": "24-month horizon",
+                                    "x": [0.0, 0.15, 0.30, 1.0],
+                                    "y": [0.0, 0.66, 0.81, 1.0],
+                                    "annotation": "AUC = 0.79",
+                                },
+                            ],
+                            "calibration_groups": [
+                                {
+                                    "label": "Predicted low risk",
+                                    "times": [0, 6, 12, 18, 24],
+                                    "values": [1.0, 0.96, 0.92, 0.90, 0.87],
+                                },
+                                {
+                                    "label": "Predicted high risk",
+                                    "times": [0, 6, 12, 18, 24],
+                                    "values": [1.0, 0.86, 0.75, 0.66, 0.58],
+                                },
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "time_to_event_decision_curve_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "time_to_event_decision_curve_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure16",
+                            "template_id": "time_to_event_decision_curve",
+                            "title": "Time-to-event decision curve at 24 months",
+                            "caption": "Net benefit for the survival model at the 24-month clinical decision horizon.",
+                            "x_label": "Threshold probability",
+                            "y_label": "Net benefit",
+                            "reference_line": {
+                                "x": [0.05, 0.45],
+                                "y": [0.0, 0.0],
+                                "label": "Treat none",
+                            },
+                            "series": [
+                                {
+                                    "label": "Locked survival model",
+                                    "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.45],
+                                    "y": [0.18, 0.17, 0.15, 0.12, 0.08, 0.05],
+                                    "annotation": "24-month horizon",
+                                },
+                                {
+                                    "label": "Treat all",
+                                    "x": [0.05, 0.10, 0.20, 0.30, 0.40, 0.45],
+                                    "y": [0.15, 0.12, 0.08, 0.03, -0.01, -0.04],
+                                    "annotation": "Treat all",
+                                },
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "multicenter_generalizability_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "multicenter_generalizability_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure17",
+                            "template_id": "multicenter_generalizability_overview",
+                            "title": "Multicenter generalizability overview",
+                            "caption": "Center-level transportability summary with sample size and effect interval alignment.",
+                            "x_label": "Hazard ratio",
+                            "centers": [
+                                {
+                                    "center_label": "Center A",
+                                    "sample_size": 84,
+                                    "estimate": 0.92,
+                                    "lower": 0.74,
+                                    "upper": 1.11,
+                                },
+                                {
+                                    "center_label": "Center B",
+                                    "sample_size": 63,
+                                    "estimate": 1.04,
+                                    "lower": 0.82,
+                                    "upper": 1.29,
+                                },
+                                {
+                                    "center_label": "Center C",
+                                    "sample_size": 51,
+                                    "estimate": 1.18,
+                                    "lower": 0.91,
+                                    "upper": 1.48,
+                                },
+                            ],
+                            "reference_line": {
+                                "x": [1.0, 1.0],
+                                "y": [0.0, 1.0],
+                                "label": "No center shift",
+                            },
+                        }
+                    ],
+                },
+            )
     dump_json(
         paper_root / "baseline_characteristics_schema.json",
         {
@@ -497,13 +718,68 @@ def build_display_surface_workspace(
             ],
         },
     )
+    if include_extended_evidence:
+        dump_json(
+            paper_root / "time_to_event_performance_summary.json",
+            {
+                "schema_version": 1,
+                "table_shell_id": "table2_time_to_event_performance_summary",
+                "display_id": "Table2",
+                "title": "Time-to-event model performance summary",
+                "columns": [
+                    {"column_id": "development", "label": "Development"},
+                    {"column_id": "external", "label": "External validation"},
+                ],
+                "rows": [
+                    {"row_id": "c_index", "label": "Harrell C-index", "values": ["0.81", "0.77"]},
+                    {"row_id": "ibs", "label": "Integrated Brier score", "values": ["0.112", "0.128"]},
+                ],
+            },
+        )
+        dump_json(
+            paper_root / "clinical_interpretation_summary.json",
+            {
+                "schema_version": 1,
+                "table_shell_id": "table3_clinical_interpretation_summary",
+                "display_id": "Table3",
+                "title": "Clinical interpretation summary",
+                "columns": [
+                    {"column_id": "signal", "label": "Observed signal"},
+                    {"column_id": "interpretation", "label": "Clinical interpretation"},
+                ],
+                "rows": [
+                    {
+                        "row_id": "high_risk",
+                        "label": "High-risk subgroup",
+                        "values": [
+                            "Higher 24-month event burden",
+                            "Escalated imaging surveillance after surgery",
+                        ],
+                    },
+                    {
+                        "row_id": "low_risk",
+                        "label": "Low-risk subgroup",
+                        "values": [
+                            "Stable event-free course",
+                            "Suitable for standard follow-up cadence",
+                        ],
+                    },
+                ],
+            },
+        )
     dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
     return paper_root
 
 
 def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
-    if template_id in {"roc_curve_binary", "pr_curve_binary", "calibration_curve_binary", "decision_curve_binary"}:
+    if template_id in {
+        "roc_curve_binary",
+        "pr_curve_binary",
+        "calibration_curve_binary",
+        "decision_curve_binary",
+        "time_to_event_decision_curve",
+    }:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -523,7 +799,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
             },
         }
-    if template_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
+    if template_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped", "time_to_event_risk_group_summary"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -540,6 +816,30 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             ],
             "metrics": {
                 "groups": [{"label": "Low risk", "times": [0.0, 12.0], "values": [1.0, 0.78]}],
+            },
+        }
+    if template_id == "time_to_event_discrimination_calibration_panel":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.12, "y0": 0.02, "x1": 0.62, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.23, "y0": 0.90, "x1": 0.43, "y1": 0.95},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_left", "box_type": "panel", "x0": 0.10, "y0": 0.18, "x1": 0.44, "y1": 0.84},
+                {"box_id": "panel_right", "box_type": "panel", "x0": 0.54, "y0": 0.18, "x1": 0.88, "y1": 0.84},
+            ],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.76, "y0": 0.08, "x1": 0.94, "y1": 0.16},
+            ],
+            "metrics": {
+                "series": [
+                    {"label": "12-month horizon", "x": [0.0, 0.4, 1.0], "y": [0.0, 0.72, 1.0]},
+                    {"label": "24-month horizon", "x": [0.0, 0.5, 1.0], "y": [0.0, 0.68, 1.0]},
+                ],
+                "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
             },
         }
     if template_id in {"umap_scatter_grouped", "pca_scatter_grouped"}:
@@ -619,6 +919,36 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "guide_boxes": [],
             "metrics": {
                 "rows": [{"row_id": "1", "label": "Age >= 60", "lower": 0.90, "estimate": 1.05, "upper": 1.20}],
+            },
+        }
+    if template_id == "multicenter_generalizability_overview":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.62, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.56, "y0": 0.92, "x1": 0.80, "y1": 0.97},
+                {"box_id": "row_label_1", "box_type": "row_label", "x0": 0.02, "y0": 0.62, "x1": 0.18, "y1": 0.68},
+                {"box_id": "row_label_2", "box_type": "row_label", "x0": 0.02, "y0": 0.46, "x1": 0.18, "y1": 0.52},
+                {"box_id": "sample_bar_1", "box_type": "sample_bar", "x0": 0.24, "y0": 0.62, "x1": 0.42, "y1": 0.68},
+                {"box_id": "sample_bar_2", "box_type": "sample_bar", "x0": 0.24, "y0": 0.46, "x1": 0.36, "y1": 0.52},
+                {"box_id": "estimate_marker_1", "box_type": "estimate_marker", "x0": 0.68, "y0": 0.63, "x1": 0.70, "y1": 0.67},
+                {"box_id": "estimate_marker_2", "box_type": "estimate_marker", "x0": 0.74, "y0": 0.47, "x1": 0.76, "y1": 0.51},
+                {"box_id": "ci_segment_1", "box_type": "ci_segment", "x0": 0.60, "y0": 0.65, "x1": 0.80, "y1": 0.65},
+                {"box_id": "ci_segment_2", "box_type": "ci_segment", "x0": 0.66, "y0": 0.49, "x1": 0.84, "y1": 0.49},
+            ],
+            "panel_boxes": [
+                {"box_id": "sample_panel", "box_type": "sample_panel", "x0": 0.22, "y0": 0.22, "x1": 0.44, "y1": 0.82},
+                {"box_id": "estimate_panel", "box_type": "estimate_panel", "x0": 0.56, "y0": 0.22, "x1": 0.86, "y1": 0.82},
+            ],
+            "guide_boxes": [
+                {"box_id": "reference_line", "box_type": "reference_line", "x0": 0.72, "y0": 0.22, "x1": 0.72, "y1": 0.82},
+            ],
+            "metrics": {
+                "centers": [
+                    {"center_label": "Center A", "sample_size": 84, "estimate": 0.92, "lower": 0.74, "upper": 1.11},
+                    {"center_label": "Center B", "sample_size": 63, "estimate": 1.04, "lower": 0.82, "upper": 1.29},
+                ]
             },
         }
     if template_id == "shap_summary_beeswarm":
@@ -786,13 +1116,23 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "F11",
         "F12",
         "F13",
+        "F14",
+        "F15",
+        "F16",
+        "F17",
     ]
-    assert result["tables_materialized"] == ["T1"]
+    assert result["tables_materialized"] == ["T1", "T2", "T3"]
     assert (paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.png").exists()
     assert (paper_root / "figures" / "generated" / "F8_umap_scatter_grouped.pdf").exists()
     assert (paper_root / "figures" / "generated" / "F10_heatmap_group_comparison.png").exists()
     assert (paper_root / "figures" / "generated" / "F12_forest_effect_main.pdf").exists()
     assert (paper_root / "figures" / "generated" / "F13_shap_summary_beeswarm.png").exists()
+    assert (paper_root / "figures" / "generated" / "F14_time_to_event_discrimination_calibration_panel.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F15_time_to_event_risk_group_summary.png").exists()
+    assert (paper_root / "figures" / "generated" / "F16_time_to_event_decision_curve.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F17_multicenter_generalizability_overview.png").exists()
+    assert (paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").exists()
+    assert (paper_root / "tables" / "generated" / "T3_clinical_interpretation_summary.md").exists()
     assert {template_id for template_id, _ in render_calls} == {
         "roc_curve_binary",
         "pr_curve_binary",
@@ -806,6 +1146,10 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "correlation_heatmap",
         "forest_effect_main",
         "shap_summary_beeswarm",
+        "time_to_event_discrimination_calibration_panel",
+        "time_to_event_risk_group_summary",
+        "time_to_event_decision_curve",
+        "multicenter_generalizability_overview",
     }
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
@@ -816,6 +1160,17 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F12"]["qc_profile"] == "publication_forest_plot"
     assert figures_by_id["F13"]["renderer_family"] == "python"
     assert figures_by_id["F13"]["input_schema_id"] == "shap_summary_inputs_v1"
+    assert figures_by_id["F14"]["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
+    assert figures_by_id["F15"]["qc_profile"] == "publication_survival_curve"
+    assert figures_by_id["F16"]["qc_profile"] == "publication_decision_curve"
+    assert figures_by_id["F17"]["qc_profile"] == "publication_multicenter_overview"
+
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
+    assert tables_by_id["T2"]["table_shell_id"] == "table2_time_to_event_performance_summary"
+    assert tables_by_id["T2"]["qc_profile"] == "publication_table_performance"
+    assert tables_by_id["T3"]["table_shell_id"] == "table3_clinical_interpretation_summary"
+    assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
 
 
 def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tmp_path: Path, monkeypatch) -> None:
@@ -859,31 +1214,45 @@ def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tm
 
     module.materialize_display_surface(paper_root=paper_root)
 
-    layout_sidecar_path = paper_root / "figures" / "generated" / "F8_umap_scatter_grouped.layout.json"
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F17_multicenter_generalizability_overview.layout.json"
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
-    qc_result = {item["figure_id"]: item["qc_result"] for item in figure_catalog["figures"]}["F8"]
+    qc_result = {item["figure_id"]: item["qc_result"] for item in figure_catalog["figures"]}["F17"]
 
     assert layout_sidecar_path.exists()
-    assert qc_result["status"] == "pass"
+    assert qc_result["status"] == "pass", qc_result
     assert qc_result["engine_id"] == "display_layout_qc_v1"
-    assert qc_result["qc_profile"] == "publication_embedding_scatter"
+    assert qc_result["qc_profile"] == "publication_multicenter_overview"
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
     assert qc_result["issues"] == []
 
 
-def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("template_id", "display_id"),
+    [
+        ("shap_summary_beeswarm", "Figure13"),
+        ("time_to_event_discrimination_calibration_panel", "Figure14"),
+        ("time_to_event_risk_group_summary", "Figure15"),
+        ("time_to_event_decision_curve", "Figure16"),
+        ("multicenter_generalizability_overview", "Figure17"),
+    ],
+)
+def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
+    tmp_path: Path,
+    template_id: str,
+    display_id: str,
+) -> None:
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     qc_module = importlib.import_module("med_autoscience.display_layout_qc")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
-    spec = controller_module.display_registry.get_evidence_figure_spec("shap_summary_beeswarm")
+    spec = controller_module.display_registry.get_evidence_figure_spec(template_id)
     _, display_payload = controller_module._load_evidence_display_payload(
         paper_root=paper_root,
         spec=spec,
-        display_id="Figure13",
+        display_id=display_id,
     )
-    output_png_path = tmp_path / "F13_shap_summary_beeswarm.png"
-    output_pdf_path = tmp_path / "F13_shap_summary_beeswarm.pdf"
-    layout_sidecar_path = tmp_path / "F13_shap_summary_beeswarm.layout.json"
+    output_png_path = tmp_path / f"{display_id}_{template_id}.png"
+    output_pdf_path = tmp_path / f"{display_id}_{template_id}.pdf"
+    layout_sidecar_path = tmp_path / f"{display_id}_{template_id}.layout.json"
 
     controller_module._render_python_evidence_figure(
         template_id=spec.template_id,
@@ -898,7 +1267,7 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(tmp_path
         layout_sidecar=json.loads(layout_sidecar_path.read_text(encoding="utf-8")),
     )
 
-    assert qc_result["status"] == "pass"
+    assert qc_result["status"] == "pass", qc_result
     assert qc_result["issues"] == []
 
 
