@@ -171,6 +171,15 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             return str(value)
         raise TypeError(f"{field_name} must be str or PathLike")
 
+    @staticmethod
+    def _require_dict_field(field_name: str, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise TypeError(f"{field_name} must be dict")
+        return dict(value)
+
+    def _record_dict_extra(self, key: str, value: Any) -> None:
+        self.extras[key] = self._require_dict_field(key, value)
+
     def set_decision(self, decision: str, reason: str) -> None:
         self.decision = self._require_text_field("decision", decision)
         self.reason = self._require_text_field("reason", reason)
@@ -191,6 +200,51 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             self.quest_exists = self._require_bool_field("quest_exists", quest_exists)
         if quest_status is not _UNSET:
             self.quest_status = self._require_optional_text_field("quest_status", quest_status)
+
+    def record_analysis_bundle(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("analysis_bundle", value)
+
+    def record_runtime_overlay(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("runtime_overlay", value)
+
+    def record_startup_contract_validation(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("startup_contract_validation", value)
+
+    def record_partial_quest_recovery(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("partial_quest_recovery", value)
+
+    def record_startup_context_sync(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("startup_context_sync", value)
+
+    def record_startup_hydration(
+        self,
+        hydration_result: dict[str, Any],
+        validation_result: dict[str, Any],
+    ) -> None:
+        self._record_dict_extra("startup_hydration", hydration_result)
+        self._record_dict_extra("startup_hydration_validation", validation_result)
+
+    def record_completion_sync(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("completion_sync", value)
+
+    def record_bash_session_audit(self, value: dict[str, Any]) -> None:
+        self._record_dict_extra("bash_session_audit", value)
+
+    def record_runtime_artifacts(
+        self,
+        *,
+        runtime_binding_path: str | PathLike[str],
+        launch_report_path: str | PathLike[str],
+        startup_payload_path: str | PathLike[str] | None,
+    ) -> None:
+        self.runtime_binding_path = self._normalize_path_field("runtime_binding_path", runtime_binding_path)
+        self.runtime_binding_exists = True
+        self.extras["launch_report_path"] = self._normalize_path_field("launch_report_path", launch_report_path)
+        if startup_payload_path is not None:
+            self.extras["startup_payload_path"] = self._normalize_path_field(
+                "startup_payload_path",
+                startup_payload_path,
+            )
 
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()
@@ -216,6 +270,12 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             return
         if key == "quest_status":
             self.update_quest_runtime(quest_status=value)
+            return
+        if key == "runtime_binding_path":
+            self.runtime_binding_path = self._normalize_path_field("runtime_binding_path", value)
+            return
+        if key == "runtime_binding_exists":
+            self.runtime_binding_exists = self._require_bool_field("runtime_binding_exists", value)
             return
         if key in self._CORE_KEYS:
             setattr(self, key, value)
@@ -693,12 +753,11 @@ def _status_state(
             return result
         if quest_status_value in {"running", "active"}:
             bash_session_audit = dict(quest_runtime.bash_session_audit or {})
-            result["bash_session_audit"] = bash_session_audit
+            result.record_bash_session_audit(bash_session_audit)
             if str(bash_session_audit.get("status") or "").strip() == "live":
-                result.decision = "pause_and_complete"
+                result.set_decision("pause_and_complete", "study_completion_ready")
             else:
-                result.decision = "sync_completion"
-            result.reason = "study_completion_ready"
+                result.set_decision("sync_completion", "study_completion_ready")
             return result
         result.set_decision("sync_completion", "study_completion_ready")
         return result
@@ -722,7 +781,7 @@ def _status_state(
             execution=execution,
         )
     )
-    result["startup_contract_validation"] = startup_contract_validation.to_dict()
+    result.record_startup_contract_validation(startup_contract_validation.to_dict())
     if startup_contract_validation.status != "clear":
         result.set_decision("blocked", "startup_contract_resolution_failed")
         return result
@@ -739,7 +798,7 @@ def _status_state(
 
     if quest_status_value in {"running", "active"}:
         bash_session_audit = dict(quest_runtime.bash_session_audit or {})
-        result["bash_session_audit"] = bash_session_audit
+        result.record_bash_session_audit(bash_session_audit)
         audit_status = str(bash_session_audit.get("status") or "").strip()
         if audit_status == "unknown":
             result.set_decision("blocked", "running_quest_live_session_audit_failed")
@@ -870,7 +929,7 @@ def ensure_study_runtime(
             else {}
         )
         analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
-        status["analysis_bundle"] = analysis_bundle_result
+        status.record_analysis_bundle(analysis_bundle_result)
         if not bool(analysis_bundle_result.get("ready")):
             status.set_decision("blocked", "study_runtime_analysis_bundle_not_ready")
         elif _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate) and not profile.enable_medical_overlay:
@@ -880,13 +939,13 @@ def ensure_study_runtime(
                 profile=profile,
                 quest_root=quest_root,
             )
-            status["runtime_overlay"] = runtime_overlay_result
+            status.record_runtime_overlay(runtime_overlay_result)
             audit = runtime_overlay_result["audit"]
             if not bool(audit.get("all_roots_ready")):
                 status.set_decision("blocked", "runtime_overlay_not_ready")
     elif profile.enable_medical_overlay and status.quest_exists:
         runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=profile, quest_root=quest_root)}
-        status["runtime_overlay"] = runtime_overlay_result
+        status.record_runtime_overlay(runtime_overlay_result)
         audit = runtime_overlay_result["audit"]
         if status.quest_status in {"running", "active"} and not bool(audit.get("all_roots_ready")):
             status.set_decision("pause", "runtime_overlay_audit_failed_for_running_quest")
@@ -903,7 +962,7 @@ def ensure_study_runtime(
         startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
             startup_contract=dict(create_payload.get("startup_contract") or {})
         )
-        status["startup_contract_validation"] = startup_contract_validation.to_dict()
+        status.record_startup_contract_validation(startup_contract_validation.to_dict())
         if startup_contract_validation.status != "clear":
             status.set_decision("blocked", "startup_contract_resolution_failed")
         partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
@@ -912,7 +971,7 @@ def ensure_study_runtime(
             slug=_timestamp_slug(),
         )
         if partial_quest_recovery is not None:
-            status["partial_quest_recovery"] = partial_quest_recovery
+            status.record_partial_quest_recovery(partial_quest_recovery)
         create_payload["auto_start"] = False
         if status.decision in {"create_and_start", "create_only"}:
             startup_payload_path = study_runtime_protocol.write_startup_payload(
@@ -938,7 +997,7 @@ def ensure_study_runtime(
                     profile=profile,
                     quest_root=quest_root,
                 )
-                status["runtime_overlay"] = runtime_overlay_result
+                status.record_runtime_overlay(runtime_overlay_result)
                 audit = runtime_overlay_result["audit"]
                 if not bool(audit.get("all_roots_ready")):
                     status.set_decision("blocked", "runtime_overlay_not_ready")
@@ -949,8 +1008,7 @@ def ensure_study_runtime(
                     quest_root=quest_root,
                     create_payload=create_payload,
                 )
-                status["startup_hydration"] = hydration_result
-                status["startup_hydration_validation"] = validation_result
+                status.record_startup_hydration(hydration_result, validation_result)
                 if str(validation_result.get("status")) != "clear":
                     status.set_decision("blocked", "hydration_validation_failed")
                     binding_last_action = "blocked"
@@ -978,13 +1036,12 @@ def ensure_study_runtime(
             quest_id=status.quest_id,
             create_payload=create_payload,
         )
-        status["startup_context_sync"] = startup_context_sync
+        status.record_startup_context_sync(startup_context_sync)
         hydration_result, validation_result = _run_startup_hydration(
             quest_root=quest_root,
             create_payload=create_payload,
         )
-        status["startup_hydration"] = hydration_result
-        status["startup_hydration_validation"] = validation_result
+        status.record_startup_hydration(hydration_result, validation_result)
         if str(validation_result.get("status")) != "clear":
             status.set_decision("blocked", "hydration_validation_failed")
             binding_last_action = "blocked"
@@ -1007,24 +1064,23 @@ def ensure_study_runtime(
         startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
             startup_contract=dict(create_payload.get("startup_contract") or {})
         )
-        status["startup_contract_validation"] = startup_contract_validation.to_dict()
+        status.record_startup_contract_validation(startup_contract_validation.to_dict())
         if startup_contract_validation.status != "clear":
-            status.reason = "startup_contract_resolution_failed"
+            status.set_decision("blocked", "startup_contract_resolution_failed")
         else:
             startup_context_sync = _sync_existing_quest_startup_context(
                 runtime_root=runtime_root,
                 quest_id=status.quest_id,
                 create_payload=create_payload,
             )
-            status["startup_context_sync"] = startup_context_sync
+            status.record_startup_context_sync(startup_context_sync)
             hydration_result, validation_result = _run_startup_hydration(
                 quest_root=quest_root,
                 create_payload=create_payload,
             )
-            status["startup_hydration"] = hydration_result
-            status["startup_hydration_validation"] = validation_result
+            status.record_startup_hydration(hydration_result, validation_result)
             if str(validation_result.get("status")) != "clear":
-                status.reason = "hydration_validation_failed"
+                status.set_decision("blocked", "hydration_validation_failed")
         binding_last_action = "blocked"
     elif status.decision == "pause":
         daemon_result = med_deepscientist_transport.pause_quest(
@@ -1053,7 +1109,7 @@ def ensure_study_runtime(
             source=source,
         )
         daemon_result["completion_sync"] = completion_sync
-        status["completion_sync"] = completion_sync
+        status.record_completion_sync(completion_sync)
         completion_result = (
             dict(completion_sync.get("completion") or {})
             if isinstance(completion_sync.get("completion"), dict)
@@ -1089,8 +1145,9 @@ def ensure_study_runtime(
         daemon_result=daemon_result,
         recorded_at=_utc_now(),
     )
-    status["runtime_binding_path"] = str(artifact_paths.runtime_binding_path)
-    status["launch_report_path"] = str(artifact_paths.launch_report_path)
-    if artifact_paths.startup_payload_path is not None:
-        status["startup_payload_path"] = str(artifact_paths.startup_payload_path)
+    status.record_runtime_artifacts(
+        runtime_binding_path=artifact_paths.runtime_binding_path,
+        launch_report_path=artifact_paths.launch_report_path,
+        startup_payload_path=artifact_paths.startup_payload_path,
+    )
     return status.to_dict()
