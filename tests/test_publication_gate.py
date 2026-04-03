@@ -160,3 +160,54 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
     assert "missing_post_main_publishability_gate" in report["blockers"]
     assert "active_run_drifting_into_write_without_gate_approval" in report["blockers"]
     assert "missing_required_non_scalar_deliverables" not in report["blockers"]
+
+
+def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=False)
+    seen: dict[str, object] = {}
+
+    def fake_write_timestamped_report(
+        *,
+        quest_root: Path,
+        report_group: str,
+        timestamp: str,
+        report: dict[str, object],
+        markdown: str,
+    ) -> tuple[Path, Path]:
+        seen["quest_root"] = quest_root
+        seen["report_group"] = report_group
+        seen["timestamp"] = timestamp
+        seen["report"] = report
+        seen["markdown"] = markdown
+        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
+
+    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
+
+    report = {
+        "generated_at": "2026-04-03T04:00:00+00:00",
+        "quest_id": quest_root.name,
+        "run_id": "run-1",
+        "status": "blocked",
+        "allow_write": False,
+        "recommended_action": "stop",
+        "blockers": ["missing_post_main_publishability_gate"],
+        "missing_non_scalar_deliverables": [],
+        "paper_bundle_manifest_path": None,
+        "submission_minimal_manifest_path": None,
+        "submission_minimal_present": False,
+        "submission_minimal_docx_present": False,
+        "submission_minimal_pdf_present": False,
+        "headline_metrics": {},
+        "results_summary": "summary",
+        "conclusion": "conclusion",
+        "controller_note": "note",
+    }
+
+    json_path, md_path = module.write_gate_files(quest_root, report)
+
+    assert seen["quest_root"] == quest_root
+    assert seen["report_group"] == "publishability_gate"
+    assert seen["timestamp"] == "2026-04-03T04:00:00+00:00"
+    assert json_path.name == "latest.json"
+    assert md_path.name == "latest.md"
