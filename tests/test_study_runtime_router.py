@@ -239,6 +239,34 @@ def _patch_runtime_sidecars(monkeypatch):
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-default",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-default",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-default"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
             "ok": True,
@@ -547,7 +575,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     status = module.StudyRuntimeStatus.from_payload(payload)
 
     assert status.decision is module.StudyRuntimeDecision.RESUME
-    assert status.reason == "quest_paused"
+    assert status.reason is module.StudyRuntimeReason.QUEST_PAUSED
     assert status.quest_id == "quest-001"
     assert status.quest_root == "/tmp/runtime/quests/quest-001"
     assert status.quest_exists is True
@@ -563,7 +591,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     )
 
     assert status.decision is module.StudyRuntimeDecision.BLOCKED
-    assert status.reason == "startup_contract_resolution_failed"
+    assert status.reason is module.StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED
     assert status.quest_id == "quest-002"
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
     assert status.quest_exists is False
@@ -676,7 +704,7 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
     status["quest_status"] = None
 
     assert status.decision is module.StudyRuntimeDecision.BLOCKED
-    assert status.reason == "runtime_overlay_not_ready"
+    assert status.reason is module.StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
     assert status.quest_exists is False
     assert status.quest_status is None
@@ -713,6 +741,35 @@ def test_study_runtime_status_rejects_unknown_decision_value() -> None:
 
     with pytest.raises(ValueError, match="unknown study runtime decision"):
         status.set_decision("unexpected_action", "test_only")
+
+
+def test_study_runtime_status_rejects_unknown_reason_value() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    with pytest.raises(ValueError, match="unknown study runtime reason"):
+        status.set_decision("blocked", "unexpected_reason")
 
 
 def test_study_runtime_status_records_structured_runtime_extras() -> None:
@@ -819,7 +876,7 @@ def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> No
         entry_mode=None,
     )
     status.decision = "unexpected_action"
-    status.reason = "test_only"
+    status.reason = module.StudyRuntimeReason.QUEST_ALREADY_COMPLETED
     context = module._build_execution_context(
         profile=profile,
         study_id=resolved_study_id,
@@ -2104,19 +2161,37 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
-        "inspect_quest_live_bash_sessions",
+        "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
             "status": "live",
-            "session_count": 1,
-            "live_session_count": 1,
-            "live_session_ids": ["sess-1"],
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-1"],
+            },
         },
     )
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "noop"
     assert result["reason"] == "quest_already_running"
+    assert result["runtime_liveness_audit"]["status"] == "live"
     assert result["bash_session_audit"]["status"] == "live"
 
 
@@ -2161,13 +2236,30 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
-        "inspect_quest_live_bash_sessions",
+        "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
             "status": "none",
-            "session_count": 1,
-            "live_session_count": 0,
-            "live_session_ids": [],
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-stale",
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-stale",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 1,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
         },
     )
     monkeypatch.setattr(
@@ -2195,6 +2287,7 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
 
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert result["runtime_liveness_audit"]["status"] == "none"
     assert result["bash_session_audit"]["status"] == "none"
     assert calls == [
         ("hydrate", profile.runtime_root / "001-risk"),
@@ -2241,14 +2334,33 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
-        "inspect_quest_live_bash_sessions",
+        "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": False,
             "status": "unknown",
-            "session_count": None,
-            "live_session_count": None,
-            "live_session_ids": [],
-            "error": "daemon unavailable",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": None,
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": False,
+                "status": "unknown",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": None,
+                "worker_pending": None,
+                "stop_requested": None,
+                "error": "daemon unavailable",
+            },
+            "bash_session_audit": {
+                "ok": False,
+                "status": "unknown",
+                "session_count": None,
+                "live_session_count": None,
+                "live_session_ids": [],
+                "error": "daemon unavailable",
+            },
+            "error": "daemon unavailable | daemon unavailable",
         },
     )
 
@@ -2256,6 +2368,7 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "running_quest_live_session_audit_failed"
+    assert result["runtime_liveness_audit"]["status"] == "unknown"
     assert result["bash_session_audit"]["status"] == "unknown"
 
 
