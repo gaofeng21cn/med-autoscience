@@ -360,6 +360,7 @@ def export_docx(
     command = [
         "pandoc",
         compiled_markdown_path.name,
+        "--standalone",
         "--citeproc",
         "--csl",
         str(csl_path.resolve()),
@@ -399,19 +400,50 @@ def split_front_matter(markdown_text: str) -> tuple[dict[str, str], str]:
     return metadata, body
 
 
-def extract_markdown_block(body: str, start_heading: str, end_headings: list[str]) -> str:
-    start_token = f"# {start_heading}\n"
-    start_index = body.find(start_token)
+def extract_block_between_markers(
+    text: str,
+    *,
+    start_marker: str,
+    end_markers: list[str],
+    label: str,
+) -> str:
+    start_index = text.find(start_marker)
     if start_index == -1:
-        raise ValueError(f"missing section `{start_heading}` in compiled manuscript")
-    content_start = start_index + len(start_token)
-    content_end = len(body)
-    for heading in end_headings:
-        marker = f"\n# {heading}\n"
-        marker_index = body.find(marker, content_start)
+        raise ValueError(f"missing section `{label}` in compiled manuscript")
+    content_start = start_index + len(start_marker)
+    content_end = len(text)
+    for marker in end_markers:
+        marker_index = text.find(marker, content_start)
         if marker_index != -1:
             content_end = min(content_end, marker_index)
-    return body[content_start:content_end].strip()
+    return text[content_start:content_end].strip()
+
+
+def extract_markdown_block(body: str, start_heading: str, end_headings: list[str]) -> str:
+    return extract_block_between_markers(
+        body,
+        start_marker=f"# {start_heading}\n",
+        end_markers=[f"\n# {heading}\n" for heading in end_headings],
+        label=start_heading,
+    )
+
+
+def extract_optional_block_between_markers(
+    text: str,
+    *,
+    start_marker: str,
+    end_markers: list[str],
+    label: str,
+) -> str:
+    try:
+        return extract_block_between_markers(
+            text,
+            start_marker=start_marker,
+            end_markers=end_markers,
+            label=label,
+        )
+    except ValueError:
+        return ""
 
 
 def extract_optional_markdown_block(body: str, start_heading: str, end_headings: list[str]) -> str:
@@ -561,6 +593,125 @@ def rewrite_image_paths(*, markdown_text: str, source_markdown_dir: Path, target
         return f"{match.group(1)}{relative_path}{match.group(3)}"
 
     return image_pattern.sub(replace, markdown_text)
+
+
+def should_build_general_medical_submission_markdown(*, compiled_text: str) -> bool:
+    metadata, _ = split_front_matter(compiled_text)
+    if compiled_text.lstrip().startswith("# Draft"):
+        return True
+    return not metadata.get("title") or not metadata.get("bibliography")
+
+
+def build_general_medical_submission_markdown(
+    *,
+    compiled_markdown_path: Path,
+    submission_root: Path,
+) -> Path:
+    paper_root = compiled_markdown_path.parent if compiled_markdown_path.name == "draft.md" else compiled_markdown_path.parents[1]
+    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    metadata, body = split_front_matter(compiled_text)
+
+    if compiled_text.lstrip().startswith("# Draft"):
+        title = extract_block_between_markers(
+            compiled_text,
+            start_marker="## Title\n\n",
+            end_markers=["\n## Abstract\n"],
+            label="Title",
+        )
+        abstract = extract_block_between_markers(
+            compiled_text,
+            start_marker="## Abstract\n\n",
+            end_markers=["\n## Introduction\n", "\n## Methods\n", "\n## Results\n", "\n## Discussion\n", "\n## Conclusion\n"],
+            label="Abstract",
+        )
+        introduction = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Introduction\n\n",
+            end_markers=["\n## Methods\n", "\n## Results\n", "\n## Discussion\n", "\n## Conclusion\n"],
+            label="Introduction",
+        )
+        methods = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Methods\n\n",
+            end_markers=["\n## Results\n", "\n## Discussion\n", "\n## Conclusion\n"],
+            label="Methods",
+        )
+        results = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Results\n\n",
+            end_markers=["\n## Discussion\n", "\n## Conclusion\n"],
+            label="Results",
+        )
+        discussion = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Discussion\n\n",
+            end_markers=["\n## Conclusion\n"],
+            label="Discussion",
+        )
+        conclusion = extract_optional_block_between_markers(
+            compiled_text,
+            start_marker="\n## Conclusion\n\n",
+            end_markers=[],
+            label="Conclusion",
+        )
+        bibliography_path = (paper_root / "references.bib").resolve()
+    else:
+        title = metadata.get("title", "Article Title")
+        bibliography_value = metadata.get("bibliography", "../references.bib")
+        bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
+        abstract = extract_optional_markdown_block(
+            body,
+            "Abstract",
+            ["Introduction", "Methods", "Results", "Discussion", "Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        introduction = extract_optional_markdown_block(
+            body,
+            "Introduction",
+            ["Methods", "Results", "Discussion", "Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        methods = extract_optional_markdown_block(
+            body,
+            "Methods",
+            ["Results", "Discussion", "Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        results = extract_optional_markdown_block(
+            body,
+            "Results",
+            ["Discussion", "Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        discussion = extract_optional_markdown_block(
+            body,
+            "Discussion",
+            ["Conclusion", "Main Tables", "Main Figures", "Appendix"],
+        )
+        conclusion = extract_optional_markdown_block(
+            body,
+            "Conclusion",
+            ["Main Tables", "Main Figures", "Appendix"],
+        )
+
+    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    section_blocks = [
+        ("# Abstract", abstract),
+        ("# Introduction", introduction),
+        ("# Methods", methods),
+        ("# Results", results),
+        ("# Discussion", discussion),
+        ("# Conclusion", conclusion),
+    ]
+    markdown_parts = [
+        "---\n"
+        f'title: "{title}"\n'
+        f"bibliography: {bibliography_rel}\n"
+        "link-citations: true\n"
+        "---"
+    ]
+    for heading, content in section_blocks:
+        if content.strip():
+            markdown_parts.append(f"{heading}\n\n{content.strip()}")
+    output_path = submission_root / "manuscript_submission.md"
+    write_text(output_path, "\n\n".join(markdown_parts).strip() + "\n")
+    return output_path
 
 
 def build_frontiers_manuscript_markdown(
@@ -754,7 +905,14 @@ def create_submission_minimal_package(
     supplementary_source_markdown_path: Path | None = None
     supplementary_output_docx_path: Path | None = None
 
-    if is_frontiers_family_harvard_profile(resolved_publication_profile):
+    if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
+        compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+        if should_build_general_medical_submission_markdown(compiled_text=compiled_text):
+            source_markdown_path = build_general_medical_submission_markdown(
+                compiled_markdown_path=compiled_markdown_path,
+                submission_root=submission_root,
+            )
+    elif is_frontiers_family_harvard_profile(resolved_publication_profile):
         source_markdown_path = build_frontiers_manuscript_markdown(
             compiled_markdown_path=compiled_markdown_path,
             submission_root=submission_root,

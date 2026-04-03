@@ -91,3 +91,73 @@ def test_literature_hydration_rejects_invalid_record_schema(tmp_path: Path) -> N
                 }
             ],
         )
+
+
+def test_literature_hydration_preserves_existing_materialized_surface_when_payload_is_empty(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-main"
+    (worktree_root / "paper").mkdir(parents=True, exist_ok=True)
+    (worktree_root / "literature" / "pubmed").mkdir(parents=True, exist_ok=True)
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+    (quest_root / "literature" / "pubmed").mkdir(parents=True, exist_ok=True)
+
+    worktree_records = [
+        {
+            "record_id": "pmid:12345",
+            "title": "Prediction model paper",
+            "authors": ["A. Author"],
+            "year": 2024,
+            "journal": "BMC Medicine",
+            "doi": "10.1000/example",
+            "pmid": "12345",
+            "pmcid": None,
+            "arxiv_id": None,
+            "abstract": "Structured abstract",
+            "full_text_availability": "abstract_only",
+            "source_priority": 2,
+            "citation_payload": {"journal": "BMC Medicine"},
+            "local_asset_paths": [],
+            "relevance_role": "anchor",
+            "claim_support_scope": ["primary_claim"],
+        },
+        {
+            "record_id": "pmid:67890",
+            "title": "Calibration paper",
+            "authors": ["B. Author"],
+            "year": 2025,
+            "journal": "Heart",
+            "doi": "10.1000/example-2",
+            "pmid": "67890",
+            "pmcid": None,
+            "arxiv_id": None,
+            "abstract": "Structured abstract",
+            "full_text_availability": "abstract_only",
+            "source_priority": 2,
+            "citation_payload": {"journal": "Heart"},
+            "local_asset_paths": [],
+            "relevance_role": "anchor",
+            "claim_support_scope": ["primary_claim"],
+        },
+    ]
+    worktree_report = module.run_literature_hydration(
+        quest_root=worktree_root,
+        records=worktree_records,
+    )
+    assert worktree_report["record_count"] == 2
+
+    (quest_root / "paper" / "references.bib").write_text("", encoding="utf-8")
+    (quest_root / "literature" / "pubmed" / "records.jsonl").write_text("", encoding="utf-8")
+
+    report = module.run_literature_hydration(
+        quest_root=quest_root,
+        records=[],
+    )
+
+    records_path = quest_root / "literature" / "pubmed" / "records.jsonl"
+    references_bib_path = quest_root / "paper" / "references.bib"
+
+    assert report["record_count"] == 2
+    assert report["source_mode"] == "preserved_existing_surface"
+    assert len(records_path.read_text(encoding="utf-8").strip().splitlines()) == 2
+    assert references_bib_path.read_text(encoding="utf-8").count("@article{") == 2

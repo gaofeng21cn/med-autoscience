@@ -37,6 +37,16 @@ DEFAULT_R_ANALYSIS_BUNDLE_PACKAGES = (
     "data.table",
 )
 DEFAULT_R_REPOSITORY = "https://cloud.r-project.org"
+BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
+
+
+def _split_r_packages_by_repository(packages: tuple[str, ...] | list[str]) -> dict[str, list[str]]:
+    bioconductor = [package for package in packages if package in BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES]
+    cran = [package for package in packages if package not in BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES]
+    return {
+        "cran": cran,
+        "bioconductor": bioconductor,
+    }
 
 
 def _inspect_r_packages(*, packages: tuple[str, ...] | list[str] | None = None) -> dict[str, Any]:
@@ -101,17 +111,69 @@ def ensure_r_analysis_bundle(*, packages: tuple[str, ...] | list[str] | None = N
         }
 
     missing_packages = [str(item) for item in before["missing_packages"]]
-    install_script = (
-        "args <- commandArgs(trailingOnly=TRUE); "
-        f"options(repos = c(CRAN = '{DEFAULT_R_REPOSITORY}')); "
-        "install.packages(args, quiet = TRUE)"
-    )
-    completed = subprocess.run(
-        [str(before["rscript"]), "-e", install_script, *missing_packages],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    package_channels = _split_r_packages_by_repository(missing_packages)
+    install_steps: list[dict[str, Any]] = []
+    combined_stdout: list[str] = []
+    combined_stderr: list[str] = []
+    exit_code = 0
+
+    if package_channels["cran"]:
+        cran_install_script = (
+            "args <- commandArgs(trailingOnly=TRUE); "
+            f"options(repos = c(CRAN = '{DEFAULT_R_REPOSITORY}')); "
+            "install.packages(args, quiet = TRUE)"
+        )
+        cran_completed = subprocess.run(
+            [str(before["rscript"]), "-e", cran_install_script, *package_channels["cran"]],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        install_steps.append(
+            {
+                "repository": "CRAN",
+                "packages": list(package_channels["cran"]),
+                "exit_code": cran_completed.returncode,
+                "stdout": cran_completed.stdout,
+                "stderr": cran_completed.stderr,
+            }
+        )
+        if cran_completed.stdout:
+            combined_stdout.append(cran_completed.stdout)
+        if cran_completed.stderr:
+            combined_stderr.append(cran_completed.stderr)
+        if exit_code == 0 and cran_completed.returncode != 0:
+            exit_code = cran_completed.returncode
+
+    if package_channels["bioconductor"]:
+        bioconductor_install_script = (
+            "args <- commandArgs(trailingOnly=TRUE); "
+            f"options(repos = c(CRAN = '{DEFAULT_R_REPOSITORY}')); "
+            "if (!requireNamespace('BiocManager', quietly = TRUE)) install.packages('BiocManager', quiet = TRUE); "
+            "suppressMessages(BiocManager::install(args, ask = FALSE, update = FALSE))"
+        )
+        bioconductor_completed = subprocess.run(
+            [str(before["rscript"]), "-e", bioconductor_install_script, *package_channels["bioconductor"]],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        install_steps.append(
+            {
+                "repository": "Bioconductor",
+                "packages": list(package_channels["bioconductor"]),
+                "exit_code": bioconductor_completed.returncode,
+                "stdout": bioconductor_completed.stdout,
+                "stderr": bioconductor_completed.stderr,
+            }
+        )
+        if bioconductor_completed.stdout:
+            combined_stdout.append(bioconductor_completed.stdout)
+        if bioconductor_completed.stderr:
+            combined_stderr.append(bioconductor_completed.stderr)
+        if exit_code == 0 and bioconductor_completed.returncode != 0:
+            exit_code = bioconductor_completed.returncode
+
     after = _inspect_r_packages(packages=packages)
     return {
         "action": "install_packages",
@@ -119,9 +181,10 @@ def ensure_r_analysis_bundle(*, packages: tuple[str, ...] | list[str] | None = N
         "after": after,
         "requested_packages": before["packages"],
         "missing_packages": missing_packages,
-        "exit_code": completed.returncode,
-        "stdout": completed.stdout,
-        "stderr": completed.stderr,
+        "install_steps": install_steps,
+        "exit_code": exit_code,
+        "stdout": "\n".join(item.rstrip() for item in combined_stdout if item).strip(),
+        "stderr": "\n".join(item.rstrip() for item in combined_stderr if item).strip(),
     }
 
 

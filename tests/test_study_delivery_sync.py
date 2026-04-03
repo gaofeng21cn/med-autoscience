@@ -88,6 +88,58 @@ quest_root: /tmp/fake-quest-root
     return paper_root, study_root
 
 
+def make_reentry_delivery_workspace(tmp_path: Path) -> tuple[Path, Path]:
+    repo_root = tmp_path / "repo"
+    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk-reentry-20260401"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678"
+    paper_root = worktree_root / "paper"
+    study_root = repo_root / "studies" / "002-early-residual-risk"
+
+    write_text(
+        worktree_root / "quest.yaml",
+        """quest_id: 002-early-residual-risk-reentry-20260401
+quest_root: /tmp/fake-quest-root
+status: active
+""",
+    )
+    write_text(
+        quest_root / "quest.yaml",
+        """quest_id: 002-early-residual-risk-reentry-20260401
+runtime_reentry_gate:
+  status: ready
+  study_id: 002-early-residual-risk
+  study_root: /tmp/repo/studies/002-early-residual-risk
+""",
+    )
+    write_text(worktree_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
+    write_text(worktree_root / "status.md", "# Status\nCompleted.\n")
+
+    write_text(study_root / "study.yaml", "study_id: 002-early-residual-risk\n")
+    write_text(study_root / "manuscript" / "README.md", "manuscript\n")
+    write_text(study_root / "artifacts" / "README.md", "artifacts\n")
+
+    write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx")
+    write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
+    dump_json(
+        paper_root / "submission_minimal" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "generated_at": "2026-04-03T01:00:00+00:00",
+            "citation_style": "AMA",
+            "manuscript": {
+                "docx_path": "paper/submission_minimal/manuscript.docx",
+                "pdf_path": "paper/submission_minimal/paper.pdf",
+            },
+        },
+    )
+    write_text(paper_root / "submission_minimal" / "figures" / "Figure1.pdf", "%PDF-1.4\n")
+    write_png(paper_root / "submission_minimal" / "figures" / "Figure1.png")
+    write_text(paper_root / "submission_minimal" / "tables" / "Table1.csv", "a,b\n1,2\n")
+    write_text(paper_root / "submission_minimal" / "tables" / "Table1.md", "| a | b |\n| --- | --- |\n| 1 | 2 |\n")
+
+    return paper_root, study_root
+
+
 def test_sync_study_delivery_for_submission_minimal_populates_study_final_directories(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -190,3 +242,17 @@ startup_contract:
     )
 
     assert module.can_sync_study_delivery(paper_root=paper_root) is True
+
+
+def test_sync_study_delivery_maps_reentry_quest_back_to_study_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_reentry_delivery_workspace(tmp_path)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
+    assert manifest["study_id"] == "002-early-residual-risk"
