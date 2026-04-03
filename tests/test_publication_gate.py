@@ -131,6 +131,50 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_pdf_present"] is False
 
 
+def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_result(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "paper_bundle"
+    assert report["status"] == "clear"
+    assert report["allow_write"] is True
+    assert report["paper_bundle_manifest_path"].endswith("paper/paper_bundle_manifest.json")
+    assert report["submission_minimal_manifest_path"].endswith("paper/submission_minimal/submission_manifest.json")
+    assert report["submission_minimal_present"] is True
+    assert report["submission_minimal_docx_present"] is True
+    assert report["submission_minimal_pdf_present"] is True
+    assert report["run_id"] is None
+    assert report["headline_metrics"] == {}
+    assert report["results_summary"] == "compile report summary"
+
+
+def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metrics(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    assert result["status"] == "blocked"
+    assert "missing_submission_minimal" in result["blockers"]
+    assert result["intervention_enqueued"] is True
+    assert len(queue["pending"]) == 1
+    assert "missing_submission_minimal" in queue["pending"][0]["content"]
+
+
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

@@ -10,18 +10,33 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def make_workspace_with_quest(tmp_path: Path, *, study_id: str = "002-early-residual-risk") -> tuple[Path, Path]:
+def make_workspace_with_quest(
+    tmp_path: Path,
+    *,
+    study_id: str = "002-early-residual-risk",
+    quest_id: str | None = None,
+) -> tuple[Path, Path]:
     workspace_root = tmp_path / "workspace"
-    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / study_id
+    resolved_quest_id = quest_id or study_id
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / resolved_quest_id
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
         {
-            "quest_id": study_id,
+            "quest_id": resolved_quest_id,
             "status": "running",
             "active_run_id": "run-1",
         },
     )
-    (quest_root / "quest.yaml").write_text(f"quest_id: {study_id}\n", encoding="utf-8")
+    quest_yaml_lines = [f"quest_id: {resolved_quest_id}"]
+    if resolved_quest_id != study_id:
+        quest_yaml_lines.extend(
+            [
+                "startup_contract:",
+                "  runtime_reentry_gate:",
+                f"    study_id: {study_id}",
+            ]
+        )
+    (quest_root / "quest.yaml").write_text("\n".join(quest_yaml_lines) + "\n", encoding="utf-8")
     (workspace_root / "studies" / study_id).mkdir(parents=True, exist_ok=True)
     (workspace_root / "studies" / study_id / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
     return workspace_root, quest_root
@@ -185,6 +200,23 @@ def test_build_gate_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_pat
 
     assert seen == {"quest_root": quest_root}
     assert state.runtime_state["status"] == "patched"
+
+
+def test_build_gate_state_prefers_runtime_reentry_gate_study_id(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    study_id = "002-early-residual-risk"
+    quest_id = "002-early-residual-risk-reentry-20260403"
+    _, quest_root = make_workspace_with_quest(tmp_path, study_id=study_id, quest_id=quest_id)
+    monkeypatch.setattr(
+        module.data_assets,
+        "assess_data_asset_impact",
+        lambda *, workspace_root: {"studies": [{"study_id": study_id, "status": "clear", "dataset_inputs": []}]},
+    )
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.study_id == study_id
+    assert state.study_report == {"study_id": study_id, "status": "clear", "dataset_inputs": []}
 
 
 def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:

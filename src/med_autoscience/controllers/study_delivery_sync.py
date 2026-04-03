@@ -90,6 +90,8 @@ def copy_tree(
 
 def build_submission_source_root(*, paper_root: Path, publication_profile: str) -> Path:
     normalized_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return paper_root / "submission_minimal"
     return paper_root / "journal_submissions" / normalized_profile
@@ -97,6 +99,8 @@ def build_submission_source_root(*, paper_root: Path, publication_profile: str) 
 
 def build_submission_package_readme(*, study_id: str, stage: str, publication_profile: str) -> str:
     normalized_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return (
             f"# Submission Package\n\n"
@@ -123,6 +127,20 @@ def build_submission_package_readme(*, study_id: str, stage: str, publication_pr
         f"  - `figures/`\n"
         f"  - `tables/`\n\n"
         f"This journal-specific package is assembled automatically so the target-journal version can coexist with the generic final delivery.\n"
+    )
+
+
+def resolve_finalize_resume_packet_source(*, paper_root: Path, worktree_root: Path) -> Path:
+    candidates = [
+        paper_root / "finalize_resume_packet.md",
+        worktree_root / "handoffs" / "finalize_resume_packet.md",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "missing delivery source: no finalize resume packet found in "
+        f"{paper_root / 'finalize_resume_packet.md'} or {worktree_root / 'handoffs' / 'finalize_resume_packet.md'}"
     )
 
 
@@ -208,7 +226,7 @@ def sync_general_delivery(
             copied_files=copied_files,
         )
         copy_file(
-            source=paper_root / "finalize_resume_packet.md",
+            source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
             target=manuscript_final_root / "finalize_resume_packet.md",
             category="closeout",
             copied_files=copied_files,
@@ -426,6 +444,8 @@ def sync_study_delivery(
     if normalized_stage not in SYNC_STAGES:
         raise ValueError(f"unsupported sync stage: {stage}")
     normalized_publication_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_publication_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
 
     context = resolve_paper_root_context(paper_root.resolve())
     paper_root = context.paper_root

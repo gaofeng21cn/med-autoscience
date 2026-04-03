@@ -142,6 +142,47 @@ def test_build_guard_state_rejects_ambiguous_sidecar_route(tmp_path: Path) -> No
         )
 
 
+def test_build_guard_state_filters_outbox_rows_by_normalized_quest_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+    existing_rows = [
+        json.loads(line)
+        for line in outbox_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    append_jsonl(
+        outbox_path,
+        existing_rows
+        + [
+            {
+                "sent_at": "2026-03-29T00:05:14+00:00",
+                "quest_id": quest_root.name,
+                "quest_root": str((tmp_path / "runtime" / "quests" / "legacy-root").resolve()),
+                "kind": "progress",
+                "message": "我继续只处理 `Figure 4B` 的旧路径遗留问题。",
+            },
+            {
+                "sent_at": "2026-03-29T00:06:14+00:00",
+                "quest_id": quest_root.name,
+                "quest_root": str(quest_root),
+                "kind": "progress",
+                "message": "当前 quest 只剩 `Figure 3A` 的一处注释重叠。",
+            },
+        ],
+    )
+
+    state = module.build_guard_state(
+        quest_root,
+        outbox_path=outbox_path,
+        min_figure_mentions=4,
+    )
+
+    assert state.figure_counts["F4B"] == 4
+    assert state.figure_counts["F3A"] == 1
+    assert state.dominant_figure_id == "F4B"
+    assert state.dominant_figure_mentions == 4
+
+
 def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)
