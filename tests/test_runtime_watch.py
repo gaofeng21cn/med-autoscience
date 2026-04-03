@@ -61,24 +61,28 @@ def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path
     quest_root = make_quest(tmp_path, "q001", status="running")
     seen: dict[str, object] = {}
 
-    def fake_load_watch_state(path: Path) -> dict[str, object]:
+    def fake_load_watch_state(path: Path) -> object:
         seen["loaded"] = str(path)
-        return {"schema_version": 1, "controllers": {}}
+        return module.runtime_watch_protocol.RuntimeWatchState(
+            schema_version=1,
+            updated_at=None,
+            controllers={},
+        )
 
-    def fake_plan_controller_intervention(**kwargs) -> dict[str, object]:
+    def fake_plan_controller_intervention(**kwargs) -> object:
         seen.setdefault("planned", []).append(kwargs)
-        return {
-            "action": "applied",
-            "should_apply": True,
-            "suppression_reason": None,
-            "controller_state": {
-                "last_seen_fingerprint": "fp-1",
-                "last_applied_fingerprint": "fp-1",
-                "last_applied_at": "2026-04-02T12:00:00+00:00",
-                "last_status": "blocked",
-                "last_suppression_reason": None,
-            },
-        }
+        return module.runtime_watch_protocol.RuntimeWatchInterventionPlan(
+            action=module.runtime_watch_protocol.RuntimeWatchControllerAction.APPLIED,
+            should_apply=True,
+            suppression_reason=None,
+            controller_state=module.runtime_watch_protocol.RuntimeWatchControllerState(
+                last_seen_fingerprint="fp-1",
+                last_applied_fingerprint="fp-1",
+                last_applied_at="2026-04-02T12:00:00+00:00",
+                last_status="blocked",
+                last_suppression_reason=None,
+            ),
+        )
 
     monkeypatch.setattr(
         module.runtime_watch_protocol,
@@ -122,6 +126,8 @@ def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path
     assert len(seen["planned"]) == 1
     assert len(seen["saved"]) == 1
     assert len(seen["reported"]) == 1
+    saved_state = seen["saved"][0][1]
+    assert saved_state.controllers["publication_gate"].last_applied_fingerprint == "fp-1"
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
 
