@@ -546,7 +546,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
 
     status = module.StudyRuntimeStatus.from_payload(payload)
 
-    assert status.decision == "resume"
+    assert status.decision is module.StudyRuntimeDecision.RESUME
     assert status.reason == "quest_paused"
     assert status.quest_id == "quest-001"
     assert status.quest_root == "/tmp/runtime/quests/quest-001"
@@ -562,7 +562,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
         quest_status="created",
     )
 
-    assert status.decision == "blocked"
+    assert status.decision is module.StudyRuntimeDecision.BLOCKED
     assert status.reason == "startup_contract_resolution_failed"
     assert status.quest_id == "quest-002"
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
@@ -675,7 +675,7 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
     status["quest_exists"] = False
     status["quest_status"] = None
 
-    assert status.decision == "blocked"
+    assert status.decision is module.StudyRuntimeDecision.BLOCKED
     assert status.reason == "runtime_overlay_not_ready"
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
     assert status.quest_exists is False
@@ -684,6 +684,35 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
 
     with pytest.raises(TypeError, match="quest_exists"):
         status["quest_exists"] = "false"
+
+
+def test_study_runtime_status_rejects_unknown_decision_value() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    with pytest.raises(ValueError, match="unknown study runtime decision"):
+        status.set_decision("unexpected_action", "test_only")
 
 
 def test_study_runtime_status_records_structured_runtime_extras() -> None:
@@ -789,7 +818,8 @@ def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> No
         study_payload=study_payload,
         entry_mode=None,
     )
-    status.set_decision("unexpected_action", "test_only")
+    status.decision = "unexpected_action"
+    status.reason = "test_only"
     context = module._build_execution_context(
         profile=profile,
         study_id=resolved_study_id,
