@@ -391,11 +391,20 @@ class StudyRuntimeStartupDataReadinessReport:
 @dataclass(frozen=True)
 class StudyRuntimeStartupBoundaryGate:
     allow_compute_stage: bool
+    required_first_anchor: str
+    effective_custom_profile: str
+    legacy_code_execution_allowed: bool
     payload: dict[str, Any]
 
     def __post_init__(self) -> None:
         if not isinstance(self.allow_compute_stage, bool):
             raise TypeError("study runtime startup boundary allow_compute_stage must be bool")
+        if not isinstance(self.required_first_anchor, str):
+            raise TypeError("study runtime startup boundary required_first_anchor must be str")
+        if not isinstance(self.effective_custom_profile, str):
+            raise TypeError("study runtime startup boundary effective_custom_profile must be str")
+        if not isinstance(self.legacy_code_execution_allowed, bool):
+            raise TypeError("study runtime startup boundary legacy_code_execution_allowed must be bool")
         object.__setattr__(self, "payload", dict(self.payload))
 
     def to_dict(self) -> dict[str, Any]:
@@ -408,7 +417,18 @@ class StudyRuntimeStartupBoundaryGate:
         allow_compute_stage = payload.get("allow_compute_stage", False)
         if not isinstance(allow_compute_stage, bool):
             raise TypeError("study runtime startup boundary allow_compute_stage must be bool")
-        return cls(allow_compute_stage=allow_compute_stage, payload=dict(payload))
+        required_first_anchor = str(payload.get("required_first_anchor") or "")
+        effective_custom_profile = str(payload.get("effective_custom_profile") or "")
+        legacy_code_execution_allowed = payload.get("legacy_code_execution_allowed", False)
+        if not isinstance(legacy_code_execution_allowed, bool):
+            raise TypeError("study runtime startup boundary legacy_code_execution_allowed must be bool")
+        return cls(
+            allow_compute_stage=allow_compute_stage,
+            required_first_anchor=required_first_anchor,
+            effective_custom_profile=effective_custom_profile,
+            legacy_code_execution_allowed=legacy_code_execution_allowed,
+            payload=dict(payload),
+        )
 
 
 @dataclass(frozen=True)
@@ -1287,6 +1307,11 @@ def _build_startup_contract(
         study_payload=study_payload,
         execution=execution,
     )
+    startup_boundary_gate = StudyRuntimeStartupBoundaryGate.from_payload(boundary_gate)
+    runtime_reentry_gate_result = StudyRuntimeReentryGate.from_payload(
+        runtime_reentry_gate,
+        default_allow_runtime_entry=True,
+    )
     journal_shortlist = journal_shortlist_controller.resolve_journal_shortlist(study_root=study_root)
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
@@ -1302,7 +1327,7 @@ def _build_startup_contract(
         profile=profile,
     )
 
-    if not boundary_gate["allow_compute_stage"]:
+    if not startup_boundary_gate.allow_compute_stage:
         scope = "full_research"
         baseline_mode = "stop_if_insufficient"
         baseline_execution_policy = "skip_unless_blocking"
@@ -1340,7 +1365,7 @@ def _build_startup_contract(
         "research_intensity": research_intensity,
         "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
         "launch_mode": "custom",
-        "custom_profile": boundary_gate["effective_custom_profile"],
+        "custom_profile": startup_boundary_gate.effective_custom_profile,
         "scope": scope,
         "baseline_mode": baseline_mode,
         "baseline_execution_policy": baseline_execution_policy,
@@ -1359,10 +1384,10 @@ def _build_startup_contract(
             existing_brief=existing_brief,
             boundary_gate=boundary_gate,
         ),
-        "required_first_anchor": boundary_gate["required_first_anchor"],
-        "legacy_code_execution_allowed": boundary_gate["legacy_code_execution_allowed"],
-        "startup_boundary_gate": boundary_gate,
-        "runtime_reentry_gate": runtime_reentry_gate,
+        "required_first_anchor": startup_boundary_gate.required_first_anchor,
+        "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
+        "startup_boundary_gate": startup_boundary_gate.to_dict(),
+        "runtime_reentry_gate": runtime_reentry_gate_result.to_dict(),
         "journal_shortlist": journal_shortlist,
         "medical_analysis_contract_summary": medical_analysis_contract_summary,
         "medical_reporting_contract_summary": medical_reporting_contract_summary,
@@ -1392,25 +1417,6 @@ def _build_create_payload(
         study_payload=study_payload,
         execution=execution,
     )
-    return {
-        "title": title,
-        "goal": goal,
-        "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
-        "source": "med_autoscience.study_runtime_router",
-        "auto_start": _startup_contract_allows_auto_start(startup_contract),
-        "startup_contract": startup_contract,
-    }
-
-
-def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
-    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_startup_hydration
-
-
-def _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate: dict[str, Any]) -> bool:
-    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_managed_skill_audit
-
-
-def _startup_contract_allows_auto_start(startup_contract: dict[str, Any]) -> bool:
     startup_boundary_gate = StudyRuntimeStartupBoundaryGate.from_payload(
         startup_contract.get("startup_boundary_gate")
         if isinstance(startup_contract.get("startup_boundary_gate"), dict)
@@ -1422,7 +1428,22 @@ def _startup_contract_allows_auto_start(startup_contract: dict[str, Any]) -> boo
         else {},
         default_allow_runtime_entry=True,
     )
-    return startup_boundary_gate.allow_compute_stage and runtime_reentry_gate.allow_runtime_entry
+    return {
+        "title": title,
+        "goal": goal,
+        "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
+        "source": "med_autoscience.study_runtime_router",
+        "auto_start": startup_boundary_gate.allow_compute_stage and runtime_reentry_gate.allow_runtime_entry,
+        "startup_contract": startup_contract,
+    }
+
+
+def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
+    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_startup_hydration
+
+
+def _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate: dict[str, Any]) -> bool:
+    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_managed_skill_audit
 
 
 def _run_startup_hydration(

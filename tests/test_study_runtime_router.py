@@ -1277,9 +1277,15 @@ def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> N
                     "unresolved_contract_study_ids": ["001-risk"],
                 }
             },
-            "startup_boundary_gate": {"allow_compute_stage": True},
+            "startup_boundary_gate": {
+                "allow_compute_stage": True,
+                "required_first_anchor": "00_entry_validation",
+                "effective_custom_profile": "continue_existing_state",
+                "legacy_code_execution_allowed": False,
+            },
             "runtime_reentry_gate": {
                 "allow_runtime_entry": False,
+                "require_startup_hydration": False,
                 "require_managed_skill_audit": True,
             },
             "study_completion_contract": {
@@ -1308,7 +1314,11 @@ def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> N
     assert status.has_unresolved_contract_for("002-risk") is False
     assert status.workspace_contracts_summary.overall_ready is True
     assert status.startup_boundary_gate_result.allow_compute_stage is True
+    assert status.startup_boundary_gate_result.required_first_anchor == "00_entry_validation"
+    assert status.startup_boundary_gate_result.effective_custom_profile == "continue_existing_state"
+    assert status.startup_boundary_gate_result.legacy_code_execution_allowed is False
     assert status.runtime_reentry_gate_result.allow_runtime_entry is False
+    assert status.runtime_reentry_gate_result.require_startup_hydration is False
     assert status.runtime_reentry_gate_result.require_managed_skill_audit is True
     assert status.startup_data_readiness_report.has_unresolved_contract_for("001-risk") is True
     assert status.study_completion_state.status is module.StudyCompletionStateStatus.RESOLVED
