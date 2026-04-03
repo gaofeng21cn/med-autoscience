@@ -84,13 +84,19 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         "time_to_event_discrimination_calibration_panel",
         "kaplan_meier_grouped",
         "time_to_event_decision_curve",
+        "multicenter_generalizability_overview",
     )
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
     assert contract.required_table_shells == (
         "table1_baseline_characteristics",
         "table2_time_to_event_performance_summary",
     )
-    assert contract.required_evidence_templates == ()
+    assert contract.required_evidence_templates == (
+        "time_to_event_discrimination_calibration_panel",
+        "kaplan_meier_grouped",
+        "time_to_event_decision_curve",
+        "multicenter_generalizability_overview",
+    )
     assert contract.display_shell_plan == (
         module.DisplayShellPlanItem(
             display_id="cohort_flow",
@@ -115,6 +121,12 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
             display_kind="figure",
             requirement_key="time_to_event_decision_curve",
             catalog_id="F4",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="multicenter_generalizability",
+            display_kind="figure",
+            requirement_key="multicenter_generalizability_overview",
+            catalog_id="F5",
         ),
         module.DisplayShellPlanItem(
             display_id="baseline_characteristics",
