@@ -404,6 +404,16 @@ At minimum, repeatedly verify:
 - figure and table provenance
 - file inclusion integrity for the draft or bundle
 
+### 4.1 Submission packaging boundary
+
+Before preparing any journal-facing package, read `paper/submission_targets.resolved.json` and the current journal-resolution guidance in `paper/journal-resolution/SKILL.md`.
+
+Do not invent ad-hoc package roots such as `paper/submission_<journal>`.
+Journal-specific package material belongs under the managed `paper/journal_submissions/<publication_profile>/...` surface, and study-facing delivery lands under `studies/<study-id>/manuscript/final`.
+
+Treat `studies/<study-id>/manuscript/final` as the authoritative post-sync handoff surface for humans and downstream automation.
+Do not replace it with parallel paper-local delivery roots.
+
 ## Paper experiment matrix contract
 
 For any paper-like writing line that has more than a trivial single-result story, create and maintain:

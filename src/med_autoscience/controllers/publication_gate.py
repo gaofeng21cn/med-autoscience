@@ -38,6 +38,7 @@ class GateState:
     submission_minimal_manifest: dict[str, Any] | None
     submission_minimal_docx_present: bool
     submission_minimal_pdf_present: bool
+    unmanaged_submission_surface_roots: list[str]
 
 
 def utc_now() -> str:
@@ -174,6 +175,14 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
     )
+    unmanaged_submission_surface_roots = (
+        [
+            str(path)
+            for path in paper_artifacts.find_unmanaged_submission_surface_roots(paper_bundle_manifest_path.parent)
+        ]
+        if paper_bundle_manifest_path is not None
+        else []
+    )
     return GateState(
         quest_root=quest_root,
         runtime_state=runtime_state,
@@ -198,6 +207,7 @@ def build_gate_state(quest_root: Path) -> GateState:
         submission_minimal_manifest=submission_minimal_manifest,
         submission_minimal_docx_present=bool(submission_minimal_docx_path and submission_minimal_docx_path.exists()),
         submission_minimal_pdf_present=bool(submission_minimal_pdf_path and submission_minimal_pdf_path.exists()),
+        unmanaged_submission_surface_roots=unmanaged_submission_surface_roots,
     )
 
 
@@ -249,6 +259,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         results_summary = (state.compile_report or {}).get("summary") or (state.paper_bundle_manifest or {}).get("summary")
     if not conclusion:
         conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
+    if state.unmanaged_submission_surface_roots:
+        blockers.append("unmanaged_submission_surface_present")
 
     return {
         "schema_version": 1,
@@ -287,6 +299,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
+        "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
         "headline_metrics": (state.main_result or {}).get("metrics_summary") or {},
         "primary_metric_delta_vs_baseline": primary_delta,
         "results_summary": results_summary,
@@ -348,6 +361,20 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
+        ]
+    )
+    unmanaged_roots = report.get("unmanaged_submission_surface_roots") or []
+    if unmanaged_roots:
+        lines.extend(
+            [
+                "",
+                "## Unmanaged Submission Surfaces",
+                "",
+                *[f"- `{item}`" for item in unmanaged_roots],
+            ]
+        )
+    lines.extend(
+        [
             "",
             "## Result Context",
             "",

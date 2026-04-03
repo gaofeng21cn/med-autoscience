@@ -10,6 +10,7 @@ from typing import Any
 
 from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
+    is_supported_publication_profile,
     normalize_publication_profile,
 )
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
@@ -89,6 +90,8 @@ def copy_tree(
 
 def build_submission_source_root(*, paper_root: Path, publication_profile: str) -> Path:
     normalized_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return paper_root / "submission_minimal"
     return paper_root / "journal_submissions" / normalized_profile
@@ -96,6 +99,8 @@ def build_submission_source_root(*, paper_root: Path, publication_profile: str) 
 
 def build_submission_package_readme(*, study_id: str, stage: str, publication_profile: str) -> str:
     normalized_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return (
             f"# Submission Package\n\n"
@@ -439,6 +444,8 @@ def sync_study_delivery(
     if normalized_stage not in SYNC_STAGES:
         raise ValueError(f"unsupported sync stage: {stage}")
     normalized_publication_profile = normalize_publication_profile(publication_profile)
+    if not is_supported_publication_profile(normalized_publication_profile):
+        raise ValueError(f"unsupported publication profile: {publication_profile}")
 
     context = resolve_paper_root_context(paper_root.resolve())
     paper_root = context.paper_root
