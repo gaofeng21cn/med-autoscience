@@ -1143,6 +1143,53 @@ def test_study_runtime_execution_outcome_rejects_unknown_binding_action() -> Non
         module.StudyRuntimeExecutionOutcome(binding_last_action="unexpected_action")
 
 
+def test_study_runtime_execution_outcome_records_named_daemon_steps_and_resolves_status() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    outcome = module.StudyRuntimeExecutionOutcome()
+
+    outcome.record_daemon_step(
+        "create",
+        {
+            "snapshot": {
+                "status": "created",
+            }
+        },
+    )
+    outcome.record_daemon_step(
+        "resume",
+        {
+            "ok": True,
+            "status": "running",
+        },
+    )
+    outcome.record_daemon_step(
+        "completion_sync",
+        {
+            "completion": {
+                "snapshot": {
+                    "status": "completed",
+                }
+            }
+        },
+    )
+
+    assert outcome.daemon_step("create") == {"snapshot": {"status": "created"}}
+    assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
+    assert outcome.quest_status_for_step("create", fallback="unknown") == "created"
+    assert outcome.quest_status_for_step("resume", fallback="unknown") == "running"
+    assert outcome.completion_snapshot_status(fallback="unknown") == "completed"
+
+
+def test_study_runtime_execution_outcome_rejects_invalid_daemon_step_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    outcome = module.StudyRuntimeExecutionOutcome()
+
+    with pytest.raises(ValueError, match="unknown study runtime daemon step"):
+        outcome.record_daemon_step("unexpected_step", {"ok": True})
+    with pytest.raises(TypeError, match="daemon step payload must be dict"):
+        outcome.record_daemon_step("resume", [])
+
+
 def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
