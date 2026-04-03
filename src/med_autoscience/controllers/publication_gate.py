@@ -17,8 +17,14 @@ from med_autoscience.runtime_protocol import report_store as runtime_protocol_re
 class GateState:
     quest_root: Path
     runtime_state: dict[str, Any]
-    main_result_path: Path
-    main_result: dict[str, Any]
+    anchor_kind: str
+    anchor_path: Path
+    paper_line_state_path: Path | None
+    paper_line_state: dict[str, Any] | None
+    main_result_path: Path | None
+    main_result: dict[str, Any] | None
+    compile_report_path: Path | None
+    compile_report: dict[str, Any] | None
     latest_gate_path: Path | None
     latest_gate: dict[str, Any] | None
     active_run_stdout_path: Path | None
@@ -87,17 +93,79 @@ def gate_allows_write(latest_gate: dict[str, Any] | None, latest_gate_path: Path
     return bool(latest_gate.get("allow_write"))
 
 
+def resolve_compile_report_path(
+    *,
+    paper_bundle_manifest_path: Path | None,
+    paper_bundle_manifest: dict[str, Any] | None,
+) -> Path | None:
+    if paper_bundle_manifest_path is None or paper_bundle_manifest is None:
+        return None
+    candidates = [
+        str(paper_bundle_manifest.get("compile_report_path") or "").strip(),
+        str((paper_bundle_manifest.get("bundle_inputs") or {}).get("compile_report_path") or "").strip(),
+    ]
+    worktree_root = paper_bundle_manifest_path.resolve().parent.parent
+    for candidate in candidates:
+        if not candidate:
+            continue
+        path = Path(candidate).expanduser()
+        if not path.is_absolute():
+            path = worktree_root / path
+        resolved = path.resolve()
+        if resolved.exists():
+            return resolved
+    return None
+
+
+def resolve_primary_anchor(
+    *,
+    quest_root: Path,
+    paper_bundle_manifest_path: Path | None,
+    paper_bundle_manifest: dict[str, Any] | None,
+) -> tuple[str, Path, Path | None, dict[str, Any] | None]:
+    try:
+        main_result_path = quest_state.find_latest_main_result_path(quest_root)
+    except FileNotFoundError:
+        main_result_path = None
+    if main_result_path is not None:
+        return "main_result", main_result_path, main_result_path, load_json(main_result_path)
+    if paper_bundle_manifest_path is not None and paper_bundle_manifest is not None:
+        return "paper_bundle", paper_bundle_manifest_path, None, None
+    return "missing", quest_root, None, None
+
+
 def build_gate_state(quest_root: Path) -> GateState:
     runtime_state = quest_state.load_runtime_state(quest_root)
-    main_result_path = quest_state.find_latest_main_result_path(quest_root)
-    main_result = load_json(main_result_path)
+    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
+    paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
+    paper_line_state_path = (
+        paper_bundle_manifest_path.parent / "paper_line_state.json"
+        if paper_bundle_manifest_path is not None
+        else None
+    )
+    paper_line_state = (
+        load_json(paper_line_state_path)
+        if paper_line_state_path is not None and paper_line_state_path.exists()
+        else None
+    )
+    anchor_kind, anchor_path, main_result_path, main_result = resolve_primary_anchor(
+        quest_root=quest_root,
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+        paper_bundle_manifest=paper_bundle_manifest,
+    )
+    compile_report_path = resolve_compile_report_path(
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+        paper_bundle_manifest=paper_bundle_manifest,
+    )
+    compile_report = load_json(compile_report_path) if compile_report_path else None
     latest_gate_path = find_latest_gate_report(quest_root)
     latest_gate = load_json(latest_gate_path) if latest_gate_path else None
     stdout_path = quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
     recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
-    present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
-    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
-    paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
+    if main_result_path is not None and main_result is not None:
+        present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
+    else:
+        present_deliverables, missing_deliverables = [], []
     submission_minimal_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
     submission_minimal_manifest = (
         load_json(submission_minimal_manifest_path) if submission_minimal_manifest_path else None
@@ -109,8 +177,14 @@ def build_gate_state(quest_root: Path) -> GateState:
     return GateState(
         quest_root=quest_root,
         runtime_state=runtime_state,
+        anchor_kind=anchor_kind,
+        anchor_path=anchor_path,
+        paper_line_state_path=paper_line_state_path if paper_line_state is not None else None,
+        paper_line_state=paper_line_state,
         main_result_path=main_result_path,
         main_result=main_result,
+        compile_report_path=compile_report_path,
+        compile_report=compile_report,
         latest_gate_path=latest_gate_path,
         latest_gate=latest_gate,
         active_run_stdout_path=stdout_path,
@@ -128,7 +202,7 @@ def build_gate_state(quest_root: Path) -> GateState:
 
 
 def build_gate_report(state: GateState) -> dict[str, Any]:
-    baseline_items = state.main_result.get("baseline_comparisons", {}).get("items") or []
+    baseline_items = (state.main_result or {}).get("baseline_comparisons", {}).get("items") or []
     primary_delta = None
     for item in baseline_items:
         if item.get("metric_id") == "roc_auc":
@@ -136,24 +210,61 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             break
     latest_gate_up_to_date = (
         state.latest_gate_path is not None
-        and state.latest_gate_path.stat().st_mtime >= state.main_result_path.stat().st_mtime
+        and state.latest_gate_path.stat().st_mtime >= state.anchor_path.stat().st_mtime
     )
-    allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
     blockers: list[str] = []
-    if not latest_gate_up_to_date:
-        blockers.append("missing_post_main_publishability_gate")
-    if state.missing_deliverables:
-        blockers.append("missing_required_non_scalar_deliverables")
-    if state.write_drift_detected and not allow_write:
-        blockers.append("active_run_drifting_into_write_without_gate_approval")
+    if state.anchor_kind == "main_result":
+        allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
+        if not latest_gate_up_to_date:
+            blockers.append("missing_post_main_publishability_gate")
+        if state.missing_deliverables:
+            blockers.append("missing_required_non_scalar_deliverables")
+        if state.write_drift_detected and not allow_write:
+            blockers.append("active_run_drifting_into_write_without_gate_approval")
+    elif state.anchor_kind == "paper_bundle":
+        allow_write = (
+            state.compile_report_path is not None
+            and state.submission_minimal_manifest is not None
+            and state.submission_minimal_docx_present
+            and state.submission_minimal_pdf_present
+        )
+        if state.compile_report_path is None or state.compile_report is None:
+            blockers.append("missing_paper_compile_report")
+        if (
+            state.submission_minimal_manifest is None
+            or not state.submission_minimal_docx_present
+            or not state.submission_minimal_pdf_present
+        ):
+            blockers.append("missing_submission_minimal")
+    else:
+        allow_write = False
+        blockers.append("missing_publication_anchor")
+
+    results_summary = None
+    conclusion = None
+    if state.main_result is not None:
+        results_summary = state.main_result.get("results_summary")
+        conclusion = state.main_result.get("conclusion")
+    if not results_summary:
+        results_summary = (state.compile_report or {}).get("summary") or (state.paper_bundle_manifest or {}).get("summary")
+    if not conclusion:
+        conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
 
     return {
         "schema_version": 1,
         "gate_kind": "publishability_control",
         "generated_at": utc_now(),
-        "quest_id": state.main_result.get("quest_id"),
-        "run_id": state.main_result.get("run_id"),
-        "main_result_path": str(state.main_result_path),
+        "anchor_kind": state.anchor_kind,
+        "anchor_path": str(state.anchor_path),
+        "quest_id": (state.main_result or {}).get("quest_id") or state.quest_root.name,
+        "run_id": (
+            (state.main_result or {}).get("run_id")
+            or (state.paper_line_state or {}).get("paper_line_id")
+            or state.runtime_state.get("active_run_id")
+        ),
+        "main_result_path": str(state.main_result_path) if state.main_result_path else None,
+        "paper_line_state_path": str(state.paper_line_state_path) if state.paper_line_state_path else None,
+        "compile_report_path": str(state.compile_report_path) if state.compile_report_path else None,
         "latest_gate_path": str(state.latest_gate_path) if state.latest_gate_path else None,
         "allow_write": allow_write,
         "recommended_action": (
@@ -165,7 +276,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "blockers": blockers,
         "write_drift_detected": state.write_drift_detected,
         "required_non_scalar_deliverables": list(
-            state.main_result.get("metric_contract", {}).get("required_non_scalar_deliverables") or []
+            (state.main_result or {}).get("metric_contract", {}).get("required_non_scalar_deliverables") or []
         ),
         "present_non_scalar_deliverables": state.present_deliverables,
         "missing_non_scalar_deliverables": state.missing_deliverables,
@@ -176,10 +287,10 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
-        "headline_metrics": state.main_result.get("metrics_summary") or {},
+        "headline_metrics": (state.main_result or {}).get("metrics_summary") or {},
         "primary_metric_delta_vs_baseline": primary_delta,
-        "results_summary": state.main_result.get("results_summary"),
-        "conclusion": state.main_result.get("conclusion"),
+        "results_summary": results_summary,
+        "conclusion": conclusion,
         "controller_note": publication_gate_policy.CONTROLLER_NOTE,
     }
 
@@ -229,7 +340,10 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             "",
             "## Paper Package Status",
             "",
+            f"- `anchor_kind`: `{report.get('anchor_kind')}`",
+            f"- `anchor_path`: `{report.get('anchor_path')}`",
             f"- `paper_bundle_manifest_path`: `{report.get('paper_bundle_manifest_path')}`",
+            f"- `compile_report_path`: `{report.get('compile_report_path')}`",
             f"- `submission_minimal_manifest_path`: `{report.get('submission_minimal_manifest_path')}`",
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",

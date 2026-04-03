@@ -125,6 +125,20 @@ def build_submission_package_readme(*, study_id: str, stage: str, publication_pr
     )
 
 
+def resolve_finalize_resume_packet_source(*, paper_root: Path, worktree_root: Path) -> Path:
+    candidates = [
+        paper_root / "finalize_resume_packet.md",
+        worktree_root / "handoffs" / "finalize_resume_packet.md",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "missing delivery source: no finalize resume packet found in "
+        f"{paper_root / 'finalize_resume_packet.md'} or {worktree_root / 'handoffs' / 'finalize_resume_packet.md'}"
+    )
+
+
 def build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists():
@@ -207,7 +221,7 @@ def sync_general_delivery(
             copied_files=copied_files,
         )
         copy_file(
-            source=paper_root / "finalize_resume_packet.md",
+            source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
             target=manuscript_final_root / "finalize_resume_packet.md",
             category="closeout",
             copied_files=copied_files,
