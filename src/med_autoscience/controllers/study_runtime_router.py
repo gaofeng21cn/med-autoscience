@@ -27,7 +27,11 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
-from med_autoscience.study_completion import StudyCompletionState, resolve_study_completion_state
+from med_autoscience.study_completion import (
+    StudyCompletionState,
+    StudyCompletionStateStatus,
+    resolve_study_completion_state,
+)
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.submission_targets import resolve_submission_target_contract
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -912,7 +916,10 @@ def _status_state(
         return result
 
     completion_contract_status = completion_state.status
-    if completion_contract_status in {"invalid", "incomplete"}:
+    if completion_contract_status in {
+        StudyCompletionStateStatus.INVALID,
+        StudyCompletionStateStatus.INCOMPLETE,
+    }:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STUDY_COMPLETION_CONTRACT_NOT_READY,

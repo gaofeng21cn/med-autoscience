@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,13 @@ import yaml
 
 
 SUPPORTED_STUDY_COMPLETION_STATUSES = ("completed",)
+
+
+class StudyCompletionStateStatus(StrEnum):
+    ABSENT = "absent"
+    INVALID = "invalid"
+    INCOMPLETE = "incomplete"
+    RESOLVED = "resolved"
 
 
 @dataclass(frozen=True)
@@ -27,9 +35,12 @@ class StudyCompletionContract:
 
 @dataclass(frozen=True)
 class StudyCompletionState:
-    status: str
+    status: StudyCompletionStateStatus
     contract: StudyCompletionContract | None
     errors: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
 
     @property
     def ready(self) -> bool:
@@ -39,7 +50,7 @@ class StudyCompletionState:
         contract = self.contract
         return {
             "ready": self.ready,
-            "status": self.status,
+            "status": self.status.value,
             "completion_status": contract.status if contract is not None else None,
             "summary": contract.summary if contract is not None else "",
             "user_approval_text": contract.user_approval_text if contract is not None else "",
@@ -48,6 +59,17 @@ class StudyCompletionState:
             "missing_evidence_paths": list(contract.missing_evidence_paths) if contract is not None else [],
             "errors": list(self.errors),
         }
+
+    @staticmethod
+    def _normalize_status(value: StudyCompletionStateStatus | str) -> StudyCompletionStateStatus:
+        if isinstance(value, StudyCompletionStateStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StudyCompletionStateStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study completion state status: {value}") from exc
 
 
 def _load_yaml_dict(path: Path) -> dict[str, Any]:
@@ -120,18 +142,18 @@ def resolve_study_completion_state(*, study_root: Path | None) -> StudyCompletio
         contract = resolve_study_completion_contract(study_root=study_root)
     except ValueError as exc:
         return StudyCompletionState(
-            status="invalid",
+            status=StudyCompletionStateStatus.INVALID,
             contract=None,
             errors=(str(exc),),
         )
     if contract is None:
         return StudyCompletionState(
-            status="absent",
+            status=StudyCompletionStateStatus.ABSENT,
             contract=None,
             errors=(),
         )
     return StudyCompletionState(
-        status="resolved" if contract.ready else "incomplete",
+        status=StudyCompletionStateStatus.RESOLVED if contract.ready else StudyCompletionStateStatus.INCOMPLETE,
         contract=contract,
         errors=(),
     )
