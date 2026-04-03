@@ -1006,6 +1006,44 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
 
 
+def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+    hydration_report = module.study_runtime_protocol.StartupHydrationReport.from_payload(
+        make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001"))
+    )
+    validation_report = module.study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+        make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001"))
+    )
+
+    status.record_startup_hydration(hydration_report, validation_report)
+
+    payload = status.to_dict()
+    assert payload["startup_hydration"]["status"] == "hydrated"
+    assert payload["startup_hydration_validation"]["status"] == "clear"
+
+
 def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     status = module.StudyRuntimeStatus.from_payload(
@@ -1191,8 +1229,12 @@ def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monke
         module,
         "_run_startup_hydration",
         lambda **kwargs: (
-            make_startup_hydration_report(kwargs["quest_root"]),
-            make_startup_hydration_validation_report(kwargs["quest_root"]),
+            module.study_runtime_protocol.StartupHydrationReport.from_payload(
+                make_startup_hydration_report(kwargs["quest_root"])
+            ),
+            module.study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+                make_startup_hydration_validation_report(kwargs["quest_root"])
+            ),
         ),
     )
     monkeypatch.setattr(
@@ -1526,6 +1568,45 @@ def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     assert len(seen["persist_calls"]) == 1
     assert seen["persist_calls"][0]["last_action"] == "create_and_start"
     assert seen["persist_calls"][0]["source"] == "medautosci-test"
+
+
+def test_run_startup_hydration_returns_typed_protocol_reports(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    create_payload = {"quest_id": "001-risk", "startup_contract": {"schema_version": 4}}
+
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "build_hydration_payload",
+        lambda *, create_payload: {"quest_id": create_payload["quest_id"]},
+    )
+
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+
+    hydration_report, validation_report = module._run_startup_hydration(
+        quest_root=quest_root,
+        create_payload=create_payload,
+    )
+
+    assert isinstance(hydration_report, module.study_runtime_protocol.StartupHydrationReport)
+    assert isinstance(validation_report, module.study_runtime_protocol.StartupHydrationValidationReport)
+    assert hydration_report.status is module.study_runtime_protocol.StartupHydrationStatus.HYDRATED
+    assert validation_report.status is module.study_runtime_protocol.StartupHydrationValidationStatus.CLEAR
 
 
 def test_study_runtime_status_prefers_study_completion_contract_over_boundary_gate(
