@@ -100,6 +100,35 @@ def make_startup_contract_validation_payload(
     }
 
 
+def make_completion_sync_payload(
+    *,
+    quest_id: str = "quest-001",
+    status: str = "completed",
+    summary: str = "Study completed.",
+    approval_text: str = "同意结题",
+) -> dict[str, object]:
+    return {
+        "completion_request": {
+            "status": "ok",
+            "interaction_id": "interaction-001",
+            "snapshot": {"quest_id": quest_id, "status": "running"},
+        },
+        "approval_message": {
+            "ok": True,
+            "message": {
+                "id": "msg-approval",
+                "content": approval_text,
+            },
+        },
+        "completion": {
+            "ok": True,
+            "status": status,
+            "snapshot": {"quest_id": quest_id, "status": status},
+            "message": summary,
+        },
+    }
+
+
 def write_study(
     workspace_root: Path,
     study_id: str,
@@ -977,7 +1006,7 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
         make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001")),
         make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001")),
     )
-    status.record_completion_sync({"ok": True})
+    status.record_completion_sync(make_completion_sync_payload())
     status.record_bash_session_audit({"status": "live"})
     status.record_runtime_artifacts(
         runtime_binding_path=Path("/tmp/studies/001-risk/runtime_binding.updated.yaml"),
@@ -999,11 +1028,65 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["startup_hydration_validation"]["report_path"] == (
         "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json"
     )
-    assert payload["completion_sync"] == {"ok": True}
+    assert payload["completion_sync"] == make_completion_sync_payload()
     assert payload["bash_session_audit"] == {"status": "live"}
     assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
     assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
+
+
+def test_study_runtime_status_records_typed_completion_sync_and_audits() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+    completion_sync = module.StudyCompletionSyncResult.from_payload(make_completion_sync_payload())
+    runtime_liveness_audit = module.StudyRuntimeAuditRecord.from_payload(
+        {
+            "ok": True,
+            "status": "live",
+            "active_run_id": "run-001",
+        }
+    )
+    bash_session_audit = module.StudyRuntimeAuditRecord.from_payload(
+        {
+            "ok": True,
+            "status": "none",
+            "session_count": 1,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        }
+    )
+
+    status.record_completion_sync(completion_sync)
+    status.record_runtime_liveness_audit(runtime_liveness_audit)
+    status.record_bash_session_audit(bash_session_audit)
+
+    payload = status.to_dict()
+
+    assert payload["completion_sync"] == make_completion_sync_payload()
+    assert status.completion_sync_result.completion_snapshot_status == "completed"
+    assert status.runtime_liveness_audit_record.status is module.StudyRuntimeAuditStatus.LIVE
+    assert status.bash_session_audit_record.status is module.StudyRuntimeAuditStatus.NONE
 
 
 def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
@@ -1374,6 +1457,16 @@ def test_study_runtime_execution_outcome_records_named_daemon_steps_and_resolves
     assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
     assert outcome.quest_status_for_step("create", fallback="unknown") == "created"
     assert outcome.quest_status_for_step("resume", fallback="unknown") == "running"
+    assert outcome.completion_snapshot_status(fallback="unknown") == "completed"
+
+
+def test_study_runtime_execution_outcome_resolves_completion_status_from_typed_sync_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    outcome = module.StudyRuntimeExecutionOutcome()
+    completion_sync = module.StudyCompletionSyncResult.from_payload(make_completion_sync_payload(status="completed"))
+
+    outcome.record_daemon_step("completion_sync", completion_sync.to_dict())
+
     assert outcome.completion_snapshot_status(fallback="unknown") == "completed"
 
 
