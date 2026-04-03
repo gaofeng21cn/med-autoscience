@@ -67,3 +67,35 @@ def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path
     context = resolve_paper_root_context(paper_root)
 
     assert context.study_id == "001-risk"
+
+
+def test_resolve_paper_root_context_prefers_runtime_reentry_gate_study_id(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-reentry-20260403"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "quest_id: 001-risk-reentry-20260403\n"
+        "startup_contract:\n"
+        "  runtime_reentry_gate:\n"
+        "    study_id: 001-risk\n",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root

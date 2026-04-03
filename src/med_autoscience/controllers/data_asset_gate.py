@@ -44,6 +44,13 @@ def read_quest_id(quest_root: Path) -> str:
     quest_yaml_path = quest_root / "quest.yaml"
     payload = yaml.safe_load(quest_yaml_path.read_text(encoding="utf-8")) or {}
     if isinstance(payload, dict):
+        startup_contract = payload.get("startup_contract")
+        if isinstance(startup_contract, dict):
+            runtime_reentry_gate = startup_contract.get("runtime_reentry_gate")
+            if isinstance(runtime_reentry_gate, dict):
+                study_id = runtime_reentry_gate.get("study_id")
+                if isinstance(study_id, str) and study_id:
+                    return study_id
         quest_id = payload.get("quest_id")
         if isinstance(quest_id, str) and quest_id:
             return quest_id

@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from med_autoscience.runtime_protocol import paper_artifacts
+
 
 def _load_json_dict(path: Path) -> dict[str, object] | None:
     if not path.exists():
@@ -73,7 +75,10 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
 def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
     del apply
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    paper_root = resolved_quest_root / "paper"
+    try:
+        paper_root = paper_artifacts.resolve_latest_paper_root(resolved_quest_root)
+    except FileNotFoundError:
+        paper_root = resolved_quest_root / "paper"
     blockers: list[str] = []
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     if not reporting_contract_path.exists():

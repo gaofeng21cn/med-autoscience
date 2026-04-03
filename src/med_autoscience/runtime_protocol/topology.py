@@ -51,6 +51,13 @@ def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
     if not quest_yaml_path.exists():
         raise FileNotFoundError(f"missing worktree quest.yaml: {quest_yaml_path}")
     payload = _load_yaml_mapping(quest_yaml_path)
+    startup_contract = payload.get("startup_contract")
+    if isinstance(startup_contract, dict):
+        runtime_reentry_gate = startup_contract.get("runtime_reentry_gate")
+        if isinstance(runtime_reentry_gate, dict):
+            study_id = runtime_reentry_gate.get("study_id")
+            if isinstance(study_id, str) and study_id.strip():
+                return study_id.strip()
     study_id = payload.get("quest_id")
     if not isinstance(study_id, str) or not study_id.strip():
         raise ValueError(f"missing string quest_id in {quest_yaml_path}")
