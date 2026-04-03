@@ -128,6 +128,13 @@ class StudyRuntimeDaemonStep(StrEnum):
     COMPLETION_SYNC = "completion_sync"
 
 
+class StudyRuntimeAuditStatus(StrEnum):
+    LIVE = "live"
+    NONE = "none"
+    UNKNOWN = "unknown"
+    OTHER = "other"
+
+
 _LIVE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.RUNNING,
     StudyRuntimeQuestStatus.ACTIVE,
@@ -138,6 +145,84 @@ _RESUMABLE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.CREATED,
     StudyRuntimeQuestStatus.STOPPED,
 }
+
+
+@dataclass(frozen=True)
+class StudyRuntimeAuditRecord:
+    status: StudyRuntimeAuditStatus
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeAuditRecord":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime audit payload must be a mapping")
+        if "status" not in payload:
+            raise ValueError("study runtime audit payload missing status")
+        return cls(status=payload.get("status"), payload=dict(payload))
+
+    @staticmethod
+    def _normalize_status(value: StudyRuntimeAuditStatus | str) -> StudyRuntimeAuditStatus:
+        if isinstance(value, StudyRuntimeAuditStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("study runtime audit status must be str")
+        normalized = value.strip().lower()
+        if normalized == StudyRuntimeAuditStatus.LIVE.value:
+            return StudyRuntimeAuditStatus.LIVE
+        if normalized == StudyRuntimeAuditStatus.NONE.value:
+            return StudyRuntimeAuditStatus.NONE
+        if normalized == StudyRuntimeAuditStatus.UNKNOWN.value:
+            return StudyRuntimeAuditStatus.UNKNOWN
+        return StudyRuntimeAuditStatus.OTHER
+
+
+@dataclass(frozen=True)
+class StudyCompletionSyncResult:
+    payload: dict[str, Any]
+    completion_snapshot_status: str | None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", dict(self.payload))
+        if self.completion_snapshot_status == "":
+            object.__setattr__(self, "completion_snapshot_status", None)
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    def snapshot_status_or(self, fallback: str) -> str:
+        return self.completion_snapshot_status or fallback
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyCompletionSyncResult":
+        if not isinstance(payload, dict):
+            raise TypeError("study completion sync payload must be a mapping")
+        completion_request = payload.get("completion_request")
+        if completion_request is not None and not isinstance(completion_request, dict):
+            raise ValueError("study completion sync payload completion_request must be a mapping")
+        approval_message = payload.get("approval_message")
+        if approval_message is not None and not isinstance(approval_message, dict):
+            raise ValueError("study completion sync payload approval_message must be a mapping")
+        completion = payload.get("completion")
+        if not isinstance(completion, dict):
+            raise ValueError("study completion sync payload missing completion")
+        snapshot = completion.get("snapshot")
+        if snapshot is not None and not isinstance(snapshot, dict):
+            raise ValueError("study completion sync payload completion.snapshot must be a mapping")
+        completion_status = str(completion.get("status") or "").strip() or None
+        snapshot_status = (
+            str(snapshot.get("status") or "").strip() or None if isinstance(snapshot, dict) else None
+        )
+        return cls(
+            payload=dict(payload),
+            completion_snapshot_status=snapshot_status or completion_status,
+        )
 
 
 @dataclass
@@ -457,14 +542,53 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         self._record_dict_extra("startup_hydration", hydration_report.to_dict())
         self._record_dict_extra("startup_hydration_validation", validation_report.to_dict())
 
-    def record_completion_sync(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("completion_sync", value)
+    @property
+    def completion_sync_result(self) -> StudyCompletionSyncResult:
+        payload = self.extras.get("completion_sync")
+        if not isinstance(payload, dict):
+            raise KeyError("completion_sync")
+        return StudyCompletionSyncResult.from_payload(payload)
 
-    def record_bash_session_audit(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("bash_session_audit", value)
+    @property
+    def bash_session_audit_record(self) -> StudyRuntimeAuditRecord:
+        payload = self.extras.get("bash_session_audit")
+        if not isinstance(payload, dict):
+            raise KeyError("bash_session_audit")
+        return StudyRuntimeAuditRecord.from_payload(payload)
 
-    def record_runtime_liveness_audit(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("runtime_liveness_audit", value)
+    @property
+    def runtime_liveness_audit_record(self) -> StudyRuntimeAuditRecord:
+        payload = self.extras.get("runtime_liveness_audit")
+        if not isinstance(payload, dict):
+            raise KeyError("runtime_liveness_audit")
+        return StudyRuntimeAuditRecord.from_payload(payload)
+
+    def record_completion_sync(
+        self,
+        value: dict[str, Any] | StudyCompletionSyncResult,
+    ) -> None:
+        completion_sync = (
+            value if isinstance(value, StudyCompletionSyncResult) else StudyCompletionSyncResult.from_payload(value)
+        )
+        self._record_dict_extra("completion_sync", completion_sync.to_dict())
+
+    def record_bash_session_audit(
+        self,
+        value: dict[str, Any] | StudyRuntimeAuditRecord,
+    ) -> None:
+        bash_session_audit = (
+            value if isinstance(value, StudyRuntimeAuditRecord) else StudyRuntimeAuditRecord.from_payload(value)
+        )
+        self._record_dict_extra("bash_session_audit", bash_session_audit.to_dict())
+
+    def record_runtime_liveness_audit(
+        self,
+        value: dict[str, Any] | StudyRuntimeAuditRecord,
+    ) -> None:
+        runtime_liveness_audit = (
+            value if isinstance(value, StudyRuntimeAuditRecord) else StudyRuntimeAuditRecord.from_payload(value)
+        )
+        self._record_dict_extra("runtime_liveness_audit", runtime_liveness_audit.to_dict())
 
     def record_runtime_artifacts(
         self,
@@ -637,14 +761,10 @@ class StudyRuntimeExecutionOutcome:
 
     def completion_snapshot_status(self, *, fallback: str) -> str:
         completion_sync = self.daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC)
-        completion = completion_sync.get("completion")
-        if not isinstance(completion, dict):
+        try:
+            return StudyCompletionSyncResult.from_payload(completion_sync).snapshot_status_or(fallback)
+        except (TypeError, ValueError):
             return fallback
-        snapshot = completion.get("snapshot")
-        if not isinstance(snapshot, dict):
-            return fallback
-        status = str(snapshot.get("status") or "").strip()
-        return status or fallback
 
     def serialized_daemon_result(self) -> dict[str, Any] | None:
         daemon_result = self.daemon_result
@@ -1011,8 +1131,8 @@ def _record_quest_runtime_audits(
     status: StudyRuntimeStatus,
     quest_runtime: quest_state.QuestRuntimeSnapshot,
 ) -> quest_state.QuestRuntimeLivenessStatus:
-    runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
-    bash_session_audit = dict(quest_runtime.bash_session_audit or {})
+    runtime_liveness_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.runtime_liveness_audit or {}))
+    bash_session_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.bash_session_audit or {}))
     status.record_runtime_liveness_audit(runtime_liveness_audit)
     status.record_bash_session_audit(bash_session_audit)
     return quest_runtime.runtime_liveness_status
@@ -1643,18 +1763,20 @@ def _execute_completion_runtime_decision(
         status.update_quest_runtime(
             quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
         )
-    completion_sync = _sync_study_completion(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        study_id=context.study_id,
-        study_root=context.study_root,
-        completion_state=context.completion_state,
-        source=context.source,
+    completion_sync = StudyCompletionSyncResult.from_payload(
+        _sync_study_completion(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+            study_id=context.study_id,
+            study_root=context.study_root,
+            completion_state=context.completion_state,
+            source=context.source,
+        )
     )
-    outcome.record_daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC, completion_sync)
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC, completion_sync.to_dict())
     status.record_completion_sync(completion_sync)
     status.update_quest_runtime(
-        quest_status=outcome.completion_snapshot_status(fallback="completed"),
+        quest_status=completion_sync.snapshot_status_or("completed"),
     )
     status.set_decision(
         StudyRuntimeDecision.COMPLETED,
