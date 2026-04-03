@@ -574,6 +574,46 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
 
 
+def test_study_runtime_status_treats_stopped_quest_as_resumable(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_stopped"
+    assert result["quest_status"] == "stopped"
+
+
 def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = {
@@ -697,6 +737,69 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
     assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
+
+
+def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+
+    resolved_study_id, resolved_study_root, study_payload = module._resolve_study(
+        profile=profile,
+        study_id="001-risk",
+        study_root=None,
+    )
+    status = module._status_state(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=None,
+    )
+    status.set_decision("completed", "quest_already_completed")
+    context = module._build_execution_context(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        source="test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action == "completed"
+    assert outcome.daemon_result is None
+    assert outcome.startup_payload_path is None
+
+
+def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+
+    resolved_study_id, resolved_study_root, study_payload = module._resolve_study(
+        profile=profile,
+        study_id="001-risk",
+        study_root=None,
+    )
+    status = module._status_state(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=None,
+    )
+    status.set_decision("unexpected_action", "test_only")
+    context = module._build_execution_context(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        source="test",
+    )
+
+    with pytest.raises(ValueError, match="unsupported study runtime decision"):
+        module._execute_runtime_decision(status=status, context=context)
 
 
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
