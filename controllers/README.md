@@ -19,6 +19,7 @@
 5. study delivery sync
 6. data assets controller
 7. MedDeepScientist upstream upgrade check
+8. managed study runtime orchestration
 
 对应的 Python 实现在包内：
 
@@ -30,6 +31,8 @@
 - `src/med_autoscience/controllers/data_assets.py`
 - `src/med_autoscience/controllers/data_asset_updates.py`
 - `src/med_autoscience/controllers/med_deepscientist_upgrade_check.py`
+- `src/med_autoscience/controllers/study_runtime_router.py`
+- `src/med_autoscience/controllers/study_runtime_types.py`
 
 对应测试：
 
@@ -41,6 +44,7 @@
 - `tests/test_data_assets.py`
 - `tests/test_data_asset_updates.py`
 - upgrade-check 的专用测试模块
+- `tests/test_study_runtime_router.py`
 
 当前迁移策略是：
 
@@ -61,6 +65,17 @@
   - 不直接执行升级
   - 先统一检查 repo 配置、Git 状态、workspace contract 和医学 overlay 状态
   - 输出机器可读 decision，供 Agent 判断是否进入真实升级流程
+
+对于 managed study runtime，当前 controller 已明确分成两层：
+
+- `study_runtime_router`
+  - 负责 orchestration、preflight、transport 调用和 artifact 落盘
+- `study_runtime_types`
+  - 负责 `study_runtime_router` 的稳定 typed surface，并由 router 对外 re-export
+
+对应稳定技术说明见：
+
+- `guides/study_runtime_orchestration.md`
 
 后续优先顺序：
 
