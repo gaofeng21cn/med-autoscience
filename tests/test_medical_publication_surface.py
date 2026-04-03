@@ -824,6 +824,145 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     assert "template_id" in excerpts
 
 
+def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table3_path = paper_root / "tables" / "T3_interpretation.md"
+    table3_path.parent.mkdir(parents=True, exist_ok=True)
+    table3_path.write_text(
+        "| Clinical Item | Interpretation |\n| --- | --- |\n| High risk | deployment-facing follow-up recommendation |\n",
+        encoding="utf-8",
+    )
+    payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    payload["tables"].append(
+        {
+            "table_id": "T3",
+            "table_shell_id": "table3_clinical_interpretation_summary",
+            "input_schema_id": "clinical_interpretation_summary_v1",
+            "qc_profile": "publication_table_interpretation",
+            "qc_result": {"status": "pass", "issues": []},
+            "title": "Clinical interpretation summary",
+            "caption": "Clinical interpretation anchors.",
+            "paper_role": "supplementary",
+            "asset_paths": ["paper/tables/T3_interpretation.md"],
+        }
+    )
+    table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terms_present" in report["blockers"]
+    assert any(hit["path"].endswith("T3_interpretation.md") for hit in report["top_hits"])
+    assert any(hit["phrase"] == "deployment-facing" for hit in report["top_hits"])
+
+
+def test_build_report_does_not_scan_non_table3_markdown_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    table1_path = paper_root / "tables" / "T1.md"
+    table1_path.parent.mkdir(parents=True, exist_ok=True)
+    table1_path.write_text(
+        "| Characteristic | Value |\n| --- | --- |\n| Follow-up | deployment-facing summary |\n",
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert report["top_hits"] == []
+
+
+def test_build_report_does_not_scan_non_markdown_table3_assets(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table3_path = paper_root / "tables" / "T3_interpretation.md"
+    table3_json_path = paper_root / "tables" / "T3_sidecar.json"
+    table3_path.parent.mkdir(parents=True, exist_ok=True)
+    table3_path.write_text(
+        "| Clinical Item | Interpretation |\n| --- | --- |\n| High risk | Close endocrine follow-up |\n",
+        encoding="utf-8",
+    )
+    table3_json_path.write_text(
+        json.dumps({"note": "deployment-facing debug artifact"}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    payload["tables"].append(
+        {
+            "table_id": "T3",
+            "table_shell_id": "table3_clinical_interpretation_summary",
+            "input_schema_id": "clinical_interpretation_summary_v1",
+            "qc_profile": "publication_table_interpretation",
+            "qc_result": {"status": "pass", "issues": []},
+            "title": "Clinical interpretation summary",
+            "caption": "Clinical interpretation anchors.",
+            "paper_role": "supplementary",
+            "asset_paths": ["paper/tables/T3_interpretation.md", "paper/tables/T3_sidecar.json"],
+        }
+    )
+    table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert report["top_hits"] == []
+
+
+def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table3_path = paper_root / "tables" / "T3_interpretation.md"
+    table3_path.parent.mkdir(parents=True, exist_ok=True)
+    table3_path.write_text(
+        "# deployment-facing title\n\n| Clinical Item | Interpretation |\n| --- | --- |\n| High risk | Close endocrine follow-up |\n",
+        encoding="utf-8",
+    )
+    payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    payload["tables"].append(
+        {
+            "table_id": "T3",
+            "table_shell_id": "table3_clinical_interpretation_summary",
+            "input_schema_id": "clinical_interpretation_summary_v1",
+            "qc_profile": "publication_table_interpretation",
+            "qc_result": {"status": "pass", "issues": []},
+            "title": "Clinical interpretation summary",
+            "caption": "Clinical interpretation anchors.",
+            "paper_role": "supplementary",
+            "asset_paths": ["paper/tables/T3_interpretation.md"],
+        }
+    )
+    table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert report["top_hits"] == []
+
+
 def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
