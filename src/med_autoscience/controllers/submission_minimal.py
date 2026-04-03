@@ -602,7 +602,10 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
             panel_id = str(panel.get("panel_id") or "").strip()
             message = str(panel.get("message") or "").strip()
             if panel_id and message:
-                panel_sentences.append(normalize_sentence(f"Panel {panel_id}: {message}"))
+                if re.match(rf"(?i)^panel\s+{re.escape(panel_id)}\b", message):
+                    panel_sentences.append(normalize_sentence(message))
+                else:
+                    panel_sentences.append(normalize_sentence(f"Panel {panel_id}: {message}"))
 
     legend_glossary = figure_semantics.get("legend_glossary")
     if isinstance(legend_glossary, list) and legend_glossary:
@@ -611,7 +614,7 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
             if not isinstance(item, dict):
                 continue
             term = str(item.get("term") or "").strip()
-            explanation = str(item.get("explanation") or "").strip()
+            explanation = str(item.get("explanation") or "").strip().rstrip(".; ")
             if term and explanation:
                 glossary_parts.append(f"{term}, {explanation}")
         if glossary_parts:
