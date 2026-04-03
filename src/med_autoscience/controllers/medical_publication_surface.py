@@ -105,6 +105,8 @@ def scan_text_file(path: Path) -> list[dict[str, Any]]:
 
 
 TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml", ".json"}
+MARKDOWN_TABLE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
+MARKDOWN_TABLE_DELIMITER_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 
 
 def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
@@ -152,6 +154,63 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
                 seen.add(resolved)
                 candidates.append(resolved)
     return candidates
+
+
+def discover_table_text_assets(
+    paper_root: Path,
+    table_catalog_path: Path,
+    *,
+    table_shell_ids: set[str] | None = None,
+) -> list[Path]:
+    payload = load_json(table_catalog_path, default={}) or {}
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    allowed_shell_ids = {str(item).strip() for item in (table_shell_ids or set()) if str(item).strip()}
+    for item in payload.get("tables", []) or []:
+        if not isinstance(item, dict):
+            continue
+        shell_id = str(item.get("table_shell_id") or "").strip()
+        if allowed_shell_ids and shell_id not in allowed_shell_ids:
+            continue
+        raw_paths: list[str] = []
+        asset_paths = item.get("asset_paths")
+        if isinstance(asset_paths, list):
+            raw_paths.extend(str(path).strip() for path in asset_paths if str(path).strip())
+        path_value = str(item.get("path") or "").strip()
+        if path_value:
+            raw_paths.append(path_value)
+        for raw_path in raw_paths:
+            resolved = resolve_paper_relative_path(paper_root, raw_path)
+            if resolved.suffix.lower() != ".md":
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            candidates.append(resolved)
+    return candidates
+
+
+def scan_markdown_table_body(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    hits: list[dict[str, Any]] = []
+    line_index = 0
+    while line_index + 1 < len(lines):
+        header_line = lines[line_index]
+        delimiter_line = lines[line_index + 1]
+        if not MARKDOWN_TABLE_ROW_RE.fullmatch(header_line) or not MARKDOWN_TABLE_DELIMITER_RE.fullmatch(delimiter_line):
+            line_index += 1
+            continue
+        body_index = line_index + 2
+        while body_index < len(lines):
+            row_line = lines[body_index]
+            if not MARKDOWN_TABLE_ROW_RE.fullmatch(row_line) or MARKDOWN_TABLE_DELIMITER_RE.fullmatch(row_line):
+                break
+            hits.extend(scan_string_value(path, f"line {body_index + 1}", row_line))
+            body_index += 1
+        line_index = body_index
+    return hits
 
 
 def scan_catalog_strings(path: Path, *, collection_key: str) -> list[dict[str, Any]]:
@@ -585,6 +644,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     )
     for path in discover_figure_text_assets(state.paper_root, state.figure_catalog_path):
         forbidden_hits.extend(scan_text_file(path))
+    for path in discover_table_text_assets(
+        state.paper_root,
+        state.table_catalog_path,
+        table_shell_ids={"table3_clinical_interpretation_summary"},
+    ):
+        forbidden_hits.extend(scan_markdown_table_body(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
     methods_manifest_valid, methods_manifest_hits = inspect_required_json_contract(
