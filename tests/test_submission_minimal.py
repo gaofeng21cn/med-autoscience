@@ -375,6 +375,63 @@ def test_create_submission_minimal_package_copies_figures_and_tables(tmp_path: P
         assert path.exists(), path
 
 
+def test_create_submission_minimal_package_general_profile_writes_figure_legends_and_tables(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "story_role": "overall_performance_and_clinical_utility",
+                    "research_question": "Does the main figure support the paper-facing interpretation?",
+                    "direct_message": "The primary display item supports the manuscript-facing clinical message.",
+                    "clinical_implication": "The figure can be read as a reviewer-facing legend rather than a slide-style caption.",
+                    "interpretation_boundary": "The figure legend does not establish a treatment recommendation by itself.",
+                    "panel_messages": [
+                        {"panel_id": "A", "message": "Panel A summarizes the main paper-facing interpretation."}
+                    ],
+                    "legend_glossary": [
+                        {
+                            "term": "treat all",
+                            "explanation": "Assumes every patient is managed as high risk at the chosen threshold."
+                        }
+                    ],
+                    "threshold_semantics": "Thresholds are illustrative operating points rather than mandated cut-offs.",
+                    "stratification_basis": "Displayed groups follow the prespecified manuscript presentation.",
+                    "recommendation_boundary": "Clinical decisions should not rely on this figure alone.",
+                    "renderer_contract": {
+                        "figure_semantics": "evidence",
+                        "renderer_family": "python",
+                        "selection_rationale": "The legend is derived from an audited paper-facing figure.",
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment"
+                    }
+                }
+            ],
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "# Figure Legends" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "Caption." in submission_markdown
+    assert "The primary display item supports the manuscript-facing clinical message." in submission_markdown
+    assert "Panel interpretation: A: Panel A summarizes the main paper-facing interpretation." in submission_markdown
+    assert "Legend glossary: treat all: Assumes every patient is managed as high risk" in submission_markdown
+    assert "# Tables" in submission_markdown
+    assert "## Table 1" in submission_markdown
+    assert "| Characteristic | Value |" in submission_markdown
+
+
 def test_create_submission_minimal_package_accepts_current_bundle_contract_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
@@ -410,7 +467,7 @@ def test_create_submission_minimal_package_accepts_current_bundle_contract_shape
     submission_root = paper_root / "submission_minimal"
     assert (submission_root / "manuscript.docx").exists()
     assert (submission_root / "paper.pdf").exists()
-    assert manifest["manuscript"]["source_markdown_path"] == "paper/build/review_manuscript.md"
+    assert manifest["manuscript"]["source_markdown_path"] == "paper/submission_minimal/manuscript_submission.md"
     assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
 
 
