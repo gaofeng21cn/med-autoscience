@@ -63,8 +63,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     med_config = workspace_root / "ops" / "medautoscience" / "config.env"
     deep_config = workspace_root / "ops" / "med-deepscientist" / "config.env"
+    med_shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
     assert med_config.is_file()
     assert deep_config.is_file()
+    assert med_shared.is_file()
+    med_shared_text = med_shared.read_text(encoding="utf-8")
+    assert 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"

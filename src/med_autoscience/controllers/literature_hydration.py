@@ -109,6 +109,122 @@ def _render_bib_entry(record: LiteratureRecord) -> str:
     return "\n".join(lines) + "\n\n"
 
 
+def _bibtex_entry_count(text: str) -> int:
+    if not text.strip():
+        return 0
+    return text.count("\n@") + (1 if text.lstrip().startswith("@") else 0)
+
+
+def _read_jsonl_records(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, object]] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        payload = json.loads(line)
+        if isinstance(payload, dict):
+            records.append(dict(payload))
+    return records
+
+
+def _has_any_key(record: dict[str, object], *keys: str) -> bool:
+    return any(isinstance(record.get(key), str) and str(record.get(key)).strip() for key in keys)
+
+
+def _coverage_payload_from_raw_records(
+    *,
+    pubmed_records: list[dict[str, object]],
+    imported_records: list[dict[str, object]],
+) -> dict[str, object]:
+    combined = [*pubmed_records, *imported_records]
+    return {
+        "record_count": len(combined),
+        "records_with_doi": sum(1 for item in combined if _has_any_key(item, "doi", "DOI")),
+        "records_with_pmid": sum(1 for item in combined if _has_any_key(item, "pmid", "PMID")),
+        "records_by_primary_source": {
+            "pubmed": len(pubmed_records),
+            "imported": len(imported_records),
+        },
+        "high_priority_missing": [],
+    }
+
+
+def _existing_runtime_roots(quest_root: Path) -> list[Path]:
+    roots = [quest_root]
+    worktrees_root = quest_root / ".ds" / "worktrees"
+    if worktrees_root.exists():
+        roots.extend(sorted(path for path in worktrees_root.iterdir() if path.is_dir()))
+    return roots
+
+
+def _preserve_existing_surface(quest_root: Path) -> dict[str, object] | None:
+    best_pubmed_text = ""
+    best_pubmed_records: list[dict[str, object]] = []
+    best_pubmed_count = -1
+    best_imported_text = ""
+    best_imported_records: list[dict[str, object]] = []
+    best_imported_count = -1
+    best_bibliography_text = ""
+    best_bibliography_count = -1
+    best_coverage_payload: dict[str, object] | None = None
+    best_coverage_count = -1
+
+    for root in _existing_runtime_roots(quest_root):
+        pubmed_path = root / "literature" / "pubmed" / "records.jsonl"
+        imported_path = root / "literature" / "imported" / "records.jsonl"
+        bibliography_path = root / "paper" / "references.bib"
+        coverage_path = root / "paper" / "reference_coverage_report.json"
+
+        pubmed_text = pubmed_path.read_text(encoding="utf-8") if pubmed_path.exists() else ""
+        pubmed_records = _read_jsonl_records(pubmed_path)
+        if len(pubmed_records) > best_pubmed_count:
+            best_pubmed_text = pubmed_text
+            best_pubmed_records = pubmed_records
+            best_pubmed_count = len(pubmed_records)
+
+        imported_text = imported_path.read_text(encoding="utf-8") if imported_path.exists() else ""
+        imported_records = _read_jsonl_records(imported_path)
+        if len(imported_records) > best_imported_count:
+            best_imported_text = imported_text
+            best_imported_records = imported_records
+            best_imported_count = len(imported_records)
+
+        bibliography_text = bibliography_path.read_text(encoding="utf-8") if bibliography_path.exists() else ""
+        bibliography_count = _bibtex_entry_count(bibliography_text)
+        if bibliography_count > best_bibliography_count:
+            best_bibliography_text = bibliography_text
+            best_bibliography_count = bibliography_count
+
+        if coverage_path.exists():
+            coverage_payload = json.loads(coverage_path.read_text(encoding="utf-8"))
+            if isinstance(coverage_payload, dict):
+                coverage_count = int(coverage_payload.get("record_count") or 0)
+                if coverage_count > best_coverage_count:
+                    best_coverage_payload = coverage_payload
+                    best_coverage_count = coverage_count
+
+    if max(best_pubmed_count, best_imported_count, best_bibliography_count, best_coverage_count) <= 0:
+        return None
+
+    coverage_payload = best_coverage_payload
+    raw_record_count = max(best_pubmed_count, 0) + max(best_imported_count, 0)
+    if not isinstance(coverage_payload, dict) or int(coverage_payload.get("record_count") or 0) < raw_record_count:
+        coverage_payload = _coverage_payload_from_raw_records(
+            pubmed_records=best_pubmed_records,
+            imported_records=best_imported_records,
+        )
+
+    return {
+        "pubmed_text": best_pubmed_text,
+        "imported_text": best_imported_text,
+        "bibliography_text": best_bibliography_text,
+        "coverage_payload": coverage_payload,
+        "record_count": int(coverage_payload.get("record_count") or 0),
+    }
+
+
 def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object]]) -> dict[str, object]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     normalized_records = [_normalize_record(item) for item in records]
@@ -118,15 +234,14 @@ def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object
     references_bib_path = resolved_quest_root / "paper" / "references.bib"
     coverage_path = resolved_quest_root / "paper" / "reference_coverage_report.json"
 
-    pubmed_records = [record for record in normalized_records if record.primary_source == "pubmed"]
-    imported_records = [record for record in normalized_records if record.primary_source != "pubmed"]
-
-    _write_text(pubmed_records_path, _render_jsonl(pubmed_records))
-    _write_text(imported_records_path, _render_jsonl(imported_records))
-    _write_text(references_bib_path, "".join(_render_bib_entry(record) for record in normalized_records))
-    _write_json(
-        coverage_path,
-        {
+    source_mode = "input_records"
+    if normalized_records:
+        pubmed_records = [record for record in normalized_records if record.primary_source == "pubmed"]
+        imported_records = [record for record in normalized_records if record.primary_source != "pubmed"]
+        pubmed_text = _render_jsonl(pubmed_records)
+        imported_text = _render_jsonl(imported_records)
+        bibliography_text = "".join(_render_bib_entry(record) for record in normalized_records)
+        coverage_payload = {
             "record_count": len(normalized_records),
             "records_with_doi": sum(1 for record in normalized_records if record.doi),
             "records_with_pmid": sum(1 for record in normalized_records if record.pmid),
@@ -135,14 +250,41 @@ def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object
                 "imported": sum(1 for record in normalized_records if record.primary_source != "pubmed"),
             },
             "high_priority_missing": [],
-        },
-    )
+        }
+    else:
+        preserved_surface = _preserve_existing_surface(resolved_quest_root)
+        if preserved_surface is None:
+            pubmed_text = ""
+            imported_text = ""
+            bibliography_text = ""
+            coverage_payload = {
+                "record_count": 0,
+                "records_with_doi": 0,
+                "records_with_pmid": 0,
+                "records_by_primary_source": {
+                    "pubmed": 0,
+                    "imported": 0,
+                },
+                "high_priority_missing": [],
+            }
+        else:
+            source_mode = "preserved_existing_surface"
+            pubmed_text = str(preserved_surface.get("pubmed_text") or "")
+            imported_text = str(preserved_surface.get("imported_text") or "")
+            bibliography_text = str(preserved_surface.get("bibliography_text") or "")
+            coverage_payload = dict(preserved_surface.get("coverage_payload") or {})
+
+    _write_text(pubmed_records_path, pubmed_text)
+    _write_text(imported_records_path, imported_text)
+    _write_text(references_bib_path, bibliography_text)
+    _write_json(coverage_path, coverage_payload)
 
     return {
         "status": "hydrated",
-        "record_count": len(normalized_records),
+        "record_count": int(coverage_payload.get("record_count") or 0),
         "records_path": str(pubmed_records_path),
         "imported_records_path": str(imported_records_path),
         "references_bib_path": str(references_bib_path),
         "coverage_report_path": str(coverage_path),
+        "source_mode": source_mode,
     }

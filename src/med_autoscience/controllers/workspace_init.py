@@ -191,8 +191,7 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         "  exit 1\n"
         "fi\n\n"
         "run_medautosci() {\n"
-        '  PYTHONPATH="${MED_AUTOSCIENCE_REPO_RESOLVED}/src${PYTHONPATH:+:${PYTHONPATH}}" \\\n'
-        '    python3 -m med_autoscience.cli "$@"\n'
+        '  uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
         "}\n"
     )
 
