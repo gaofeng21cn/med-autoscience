@@ -871,6 +871,37 @@ def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tm
     assert qc_result["issues"] == []
 
 
+def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(tmp_path: Path) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    qc_module = importlib.import_module("med_autoscience.display_layout_qc")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    spec = controller_module.display_registry.get_evidence_figure_spec("shap_summary_beeswarm")
+    _, display_payload = controller_module._load_evidence_display_payload(
+        paper_root=paper_root,
+        spec=spec,
+        display_id="Figure13",
+    )
+    output_png_path = tmp_path / "F13_shap_summary_beeswarm.png"
+    output_pdf_path = tmp_path / "F13_shap_summary_beeswarm.pdf"
+    layout_sidecar_path = tmp_path / "F13_shap_summary_beeswarm.layout.json"
+
+    controller_module._render_python_evidence_figure(
+        template_id=spec.template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    qc_result = qc_module.run_display_layout_qc(
+        qc_profile=spec.layout_qc_profile,
+        layout_sidecar=json.loads(layout_sidecar_path.read_text(encoding="utf-8")),
+    )
+
+    assert qc_result["status"] == "pass"
+    assert qc_result["issues"] == []
+
+
 def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
