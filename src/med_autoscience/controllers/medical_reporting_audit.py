@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
+
+from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _load_json_dict(path: Path) -> dict[str, object] | None:
@@ -70,6 +77,30 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
     return normalized
 
 
+def render_audit_markdown(report: dict[str, object]) -> str:
+    lines = [
+        "# Medical Reporting Audit Report",
+        "",
+        f"- generated_at: `{report['generated_at']}`",
+        f"- quest_root: `{report['quest_root']}`",
+        f"- status: `{report['status']}`",
+        f"- action: `{report['action']}`",
+        f"- blockers: `{', '.join(report.get('blockers') or ['none'])}`",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def write_audit_files(quest_root: Path, report: dict[str, object]) -> tuple[Path, Path]:
+    return runtime_protocol_report_store.write_timestamped_report(
+        quest_root=quest_root,
+        report_group="medical_reporting_audit",
+        timestamp=str(report["generated_at"]),
+        report=report,
+        markdown=render_audit_markdown(report),
+    )
+
+
 def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
     del apply
     resolved_quest_root = Path(quest_root).expanduser().resolve()
@@ -136,11 +167,19 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
 
     if not (paper_root / "reporting_guideline_checklist.json").exists():
         blockers.append("missing_reporting_guideline_checklist")
-    return {
+    report = {
+        "generated_at": utc_now(),
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
         "action": "clear",
         "quest_root": str(resolved_quest_root),
-        "report_json": None,
-        "report_markdown": None,
+    }
+    json_path, md_path = write_audit_files(resolved_quest_root, report)
+    return {
+        "status": str(report["status"]),
+        "blockers": blockers,
+        "action": "clear",
+        "quest_root": str(resolved_quest_root),
+        "report_json": str(json_path),
+        "report_markdown": str(md_path),
     }

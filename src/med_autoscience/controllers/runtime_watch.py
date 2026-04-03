@@ -87,6 +87,12 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
             "action": result.get("action"),
             "missing_pmids": result.get("missing_pmids") or [],
         }
+    elif controller_name == "medical_reporting_audit":
+        payload = {
+            "status": result.get("status"),
+            "blockers": result.get("blockers") or [],
+            "action": result.get("action"),
+        }
     else:
         payload = result
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True)
