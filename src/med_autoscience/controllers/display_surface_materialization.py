@@ -404,7 +404,7 @@ build_forest_layout <- function(display_payload, panel_box, axis_left_box) {
 
 build_embedding_metrics <- function(display_payload, panel_box) {
   points <- display_payload$points
-  if (!is.list(points) || length(points) < 1) {
+  if (is.null(panel_box) || !is.list(points) || length(points) < 1) {
     return(list(points = list()))
   }
   x_values <- vapply(points, function(item) as.numeric(item$x), numeric(1))
@@ -442,7 +442,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     cumulative_incidence_grouped = list(groups = display_payload$groups),
     umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
-    heatmap_group_comparison = list(),
+    heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     correlation_heatmap = list(matrix_cells = display_payload$cells),
     forest_effect_main = list(rows = display_payload$rows),
     list()
@@ -1245,7 +1245,7 @@ def _build_python_shap_layout_sidecar(
     row_box_id_by_feature = {f"{row['feature']}": f"feature_row_{row['feature']}" for row in rows}
     point_metrics: list[dict[str, Any]] = []
     for item in point_rows:
-        _, figure_y = _data_point_to_figure_xy(
+        figure_x, figure_y = _data_point_to_figure_xy(
             axes=axes,
             figure=figure,
             x=float(item["shap_value"]),
@@ -1255,7 +1255,7 @@ def _build_python_shap_layout_sidecar(
             {
                 "feature": str(item["feature"]),
                 "row_box_id": row_box_id_by_feature[str(item["feature"])],
-                "x": float(item["shap_value"]),
+                "x": figure_x,
                 "y": figure_y,
             }
         )
