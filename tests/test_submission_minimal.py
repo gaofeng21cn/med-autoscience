@@ -385,7 +385,7 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
             "schema_version": 1,
             "figures": [
                 {
-                    "figure_id": "F1",
+                    "figure_id": "Figure1",
                     "story_role": "overall_performance_and_clinical_utility",
                     "research_question": "Does the main figure support the paper-facing interpretation?",
                     "direct_message": "The primary display item supports the manuscript-facing clinical message.",
