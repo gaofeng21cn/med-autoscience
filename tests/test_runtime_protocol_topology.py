@@ -67,3 +67,78 @@ def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path
     context = resolve_paper_root_context(paper_root)
 
     assert context.study_id == "001-risk"
+
+
+def test_resolve_paper_root_context_uses_runtime_reentry_gate_study_id_for_managed_quest(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "\n".join(
+            [
+                "quest_id: 001-risk-managed-20260402",
+                "runtime_reentry_gate:",
+                "  study_id: 001-risk",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_uses_nested_startup_contract_runtime_reentry_gate_study_id(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "001-risk-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "\n".join(
+            [
+                "quest_id: 001-risk-managed-20260402",
+                "startup_contract:",
+                "  runtime_reentry_gate:",
+                "    study_id: 001-risk",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "001-risk"
+    assert context.study_root == study_root

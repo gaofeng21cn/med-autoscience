@@ -308,6 +308,12 @@ def render_submission_target_overlay_block(
         "- `paper/submission_target_resolution.md`\n"
         "- `paper/submission_targets.resolved.json`\n\n"
         "Do not infer journal requirements from memory. Do not export a venue-specific package for unresolved targets.\n\n"
+        "Package-root contract:\n"
+        "- Do not invent ad-hoc package roots such as `paper/submission_<journal>`.\n"
+        "- Generic package roots are limited to `paper/submission_minimal`.\n"
+        "- Venue-specific package roots are limited to `paper/journal_submissions/<publication_profile>`.\n"
+        "- If journal resolution is still unresolved, keep the output as research state and do not treat it as a user-facing delivery surface.\n"
+        "- The runtime quest tree is the build surface. The user-facing audit surface is `studies/<study-id>/manuscript/final` after delivery sync.\n\n"
         + "\n".join(resolved_lines)
         + "\n"
     )

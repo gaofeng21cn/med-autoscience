@@ -10,6 +10,7 @@ from typing import Any
 
 from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
+    is_supported_publication_profile,
     normalize_publication_profile,
 )
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
@@ -440,6 +441,9 @@ def sync_study_delivery(
             study_root=study_root,
             normalized_stage=normalized_stage,
         )
+
+    if not is_supported_publication_profile(normalized_publication_profile):
+        raise ValueError(f"unsupported publication profile: {normalized_publication_profile}")
 
     return sync_journal_specific_delivery(
         paper_root=paper_root,
