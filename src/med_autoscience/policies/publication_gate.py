@@ -9,12 +9,49 @@ WRITE_DRIFT_PATTERNS = [
     r"route.*write",
 ]
 
+MANUSCRIPT_SURFACE_GLOBS = (
+    "draft.md",
+    "build/review_manuscript.md",
+    "tables/*.md",
+    "supplementary_tables.md",
+)
+
+MANAGED_SUBMISSION_SURFACE_GLOBS = (
+    "**/*.md",
+    "**/*.tex",
+    "**/*.txt",
+)
+
+MANUSCRIPT_TERMINOLOGY_REDLINE_PATTERNS = (
+    {
+        "label": "locked_dataset_version_label",
+        "pattern": r"\blocked\s+v\d{4}-\d{2}-\d{2}\b",
+    },
+    {
+        "label": "workspace_cohort_label",
+        "pattern": r"\bworkspace cohort\b",
+    },
+    {
+        "label": "followup_freeze_label",
+        "pattern": r"\bfollow-up freeze\b",
+    },
+    {
+        "label": "data_freeze_label",
+        "pattern": r"\b(?:data|dataset)\s+freeze\b",
+    },
+    {
+        "label": "locked_followup_surface_label",
+        "pattern": r"\blocked\s+\d+-month\s+follow-up surface\b",
+    },
+)
+
 BLOCKED_RECOMMENDED_ACTION = "return_to_publishability_gate"
 CLEAR_RECOMMENDED_ACTION = "continue_per_gate"
 CONTROLLER_NOTE = (
     "The controller does not decide scientific publishability by itself. "
     "It only blocks uncontrolled transitions into write when the post-main gate "
-    "is missing or the contract-level clinical-utility deliverables are absent."
+    "is missing, the contract-level clinical-utility deliverables are absent, "
+    "or manuscript-facing text still carries internal runtime terminology."
 )
 
 

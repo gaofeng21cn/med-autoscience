@@ -153,6 +153,66 @@ def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: P
     ]
 
 
+def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    (worktree_root / "paper" / "draft.md").write_text(
+        "We analyzed 357 cases from the locked v2026-03-31 dataset.\n",
+        encoding="utf-8",
+    )
+    submission_table = worktree_root / "paper" / "submission_minimal" / "tables" / "Table1.md"
+    submission_table.parent.mkdir(parents=True, exist_ok=True)
+    submission_table.write_text(
+        "Note: the analysis used the workspace cohort and the 2024-06-30 follow-up freeze.\n",
+        encoding="utf-8",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terminology" in report["blockers"]
+    assert report["manuscript_terminology_violations"] == [
+        {
+            "path": str((worktree_root / "paper" / "draft.md").resolve()),
+            "label": "locked_dataset_version_label",
+            "match": "locked v2026-03-31",
+        },
+        {
+            "path": str(submission_table.resolve()),
+            "label": "workspace_cohort_label",
+            "match": "workspace cohort",
+        },
+        {
+            "path": str(submission_table.resolve()),
+            "label": "followup_freeze_label",
+            "match": "follow-up freeze",
+        },
+    ]
+
+
+def test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    (worktree_root / "paper" / "draft.md").write_text(
+        (
+            "We analyzed the institutional first-surgery NF-PitNET cohort and "
+            "ascertained outcomes through June 30, 2024.\n"
+        ),
+        encoding="utf-8",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert "forbidden_manuscript_terminology" not in report["blockers"]
+    assert report["manuscript_terminology_violations"] == []
+
+
 def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.publication_gate")
