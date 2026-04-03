@@ -862,16 +862,41 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
     status["quest_root"] = Path("/tmp/runtime/quests/quest-002")
     status["quest_exists"] = False
     status["quest_status"] = None
+    status["workspace_contracts"] = {"overall_ready": False}
+    status["startup_data_readiness"] = {"study_summary": {"unresolved_contract_study_ids": ["001-risk"]}}
+    status["startup_boundary_gate"] = {
+        "allow_compute_stage": False,
+        "required_first_anchor": "scout",
+        "effective_custom_profile": "freeform",
+        "legacy_code_execution_allowed": False,
+    }
+    status["runtime_reentry_gate"] = {
+        "allow_runtime_entry": False,
+        "require_startup_hydration": True,
+        "require_managed_skill_audit": True,
+    }
 
     assert status.decision is module.StudyRuntimeDecision.BLOCKED
     assert status.reason is module.StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
     assert status.quest_exists is False
     assert status.quest_status is None
+    assert status.workspace_contracts_summary.overall_ready is False
+    assert status.startup_data_readiness_report.has_unresolved_contract_for("001-risk") is True
+    assert status.startup_boundary_gate_result.allow_compute_stage is False
+    assert status.runtime_reentry_gate_result.require_startup_hydration is True
     assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
 
     with pytest.raises(TypeError, match="quest_exists"):
         status["quest_exists"] = "false"
+    with pytest.raises(TypeError, match="study runtime workspace contracts payload"):
+        status["workspace_contracts"] = []
+    with pytest.raises(ValueError, match="study runtime startup data readiness study_summary"):
+        status["startup_data_readiness"] = {"study_summary": []}
+    with pytest.raises(TypeError, match="study runtime startup boundary allow_compute_stage"):
+        status["startup_boundary_gate"] = {"allow_compute_stage": "false"}
+    with pytest.raises(TypeError, match="study runtime reentry require_managed_skill_audit"):
+        status["runtime_reentry_gate"] = {"allow_runtime_entry": True, "require_managed_skill_audit": "true"}
 
 
 def test_study_runtime_status_normalizes_study_completion_contract_to_typed_state(tmp_path: Path) -> None:

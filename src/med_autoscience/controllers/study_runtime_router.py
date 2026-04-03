@@ -982,6 +982,23 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         return payload[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
+        if key == "schema_version":
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise TypeError("schema_version must be int")
+            self.schema_version = value
+            return
+        if key == "study_id":
+            self.study_id = self._require_text_field("study_id", value)
+            return
+        if key == "study_root":
+            self.study_root = self._normalize_path_field("study_root", value)
+            return
+        if key == "entry_mode":
+            self.entry_mode = self._require_text_field("entry_mode", value)
+            return
+        if key == "execution":
+            self.execution = self._require_dict_field("execution", value)
+            return
         if key == "decision":
             self.decision = self._normalize_decision_field(value)
             return
@@ -1011,6 +1028,24 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
                 value,
                 study_root=self.study_root,
             )
+            return
+        if key == "workspace_contracts":
+            self.workspace_contracts = StudyRuntimeWorkspaceContractsSummary.from_payload(value).to_dict()
+            return
+        if key == "startup_data_readiness":
+            self.startup_data_readiness = StudyRuntimeStartupDataReadinessReport.from_payload(value).to_dict()
+            return
+        if key == "startup_boundary_gate":
+            self.startup_boundary_gate = StudyRuntimeStartupBoundaryGate.from_payload(value).to_dict()
+            return
+        if key == "runtime_reentry_gate":
+            self.runtime_reentry_gate = StudyRuntimeReentryGate.from_payload(value).to_dict()
+            return
+        if key == "controller_first_policy_summary":
+            self.controller_first_policy_summary = self._require_text_field("controller_first_policy_summary", value)
+            return
+        if key == "automation_ready_summary":
+            self.automation_ready_summary = self._require_text_field("automation_ready_summary", value)
             return
         if key in self._CORE_KEYS:
             setattr(self, key, value)
