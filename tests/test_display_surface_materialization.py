@@ -1002,6 +1002,98 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_uses_catalog_ids_for_semantic_shell_display_ids(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                    "shell_path": "paper/figures/cohort_flow.shell.json",
+                },
+                {
+                    "display_id": "baseline_characteristics",
+                    "display_kind": "table",
+                    "requirement_key": "table1_baseline_characteristics",
+                    "catalog_id": "T1",
+                    "shell_path": "paper/tables/baseline_characteristics.shell.json",
+                },
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"tables": []})
+    dump_json(
+        paper_root / "figures" / "cohort_flow.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "baseline_characteristics.shell.json",
+        {
+            "schema_version": 1,
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+        },
+    )
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "cohort_flow",
+            "title": "Study cohort flow",
+            "steps": [
+                {
+                    "step_id": "screened",
+                    "label": "Patients screened",
+                    "n": 186,
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "baseline_characteristics_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table1_baseline_characteristics",
+            "display_id": "baseline_characteristics",
+            "title": "Baseline characteristics",
+            "groups": [
+                {"group_id": "all", "label": "All patients"},
+            ],
+            "variables": [
+                {"variable_id": "age", "label": "Age, y", "values": ["61 (54-68)"]},
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["figures_materialized"] == ["F1"]
+    assert result["tables_materialized"] == ["T1"]
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+    assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").exists()
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["figure_id"] == "F1"
+    assert table_catalog["tables"][0]["table_id"] == "T1"
+
+
 def test_materialize_display_surface_generates_registered_evidence_figures(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)

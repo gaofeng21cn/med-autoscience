@@ -554,18 +554,45 @@ def _paper_relative_path(path: Path, *, paper_root: Path) -> str:
     return path.resolve().relative_to(paper_root.parent.resolve()).as_posix()
 
 
-def _display_id_to_figure_id(display_id: str) -> str:
-    match = re.fullmatch(r"Figure(\d+)", str(display_id).strip(), flags=re.IGNORECASE)
+def _normalize_figure_catalog_id(raw_id: str) -> str:
+    item = str(raw_id).strip()
+    supplementary_match = re.fullmatch(r"SupplementaryFigureS(\d+)", item, flags=re.IGNORECASE)
+    if supplementary_match:
+        return f"FS{int(supplementary_match.group(1))}"
+    supplementary_short_match = re.fullmatch(r"FS(\d+)", item, flags=re.IGNORECASE)
+    if supplementary_short_match:
+        return f"FS{int(supplementary_short_match.group(1))}"
+    match = re.fullmatch(r"F(?:igure)?(\d+)([A-Z]?)", item, flags=re.IGNORECASE)
     if not match:
-        raise ValueError(f"unsupported figure display_id `{display_id}`")
-    return f"F{int(match.group(1))}"
+        raise ValueError(f"unsupported figure catalog_id `{raw_id}`")
+    panel_suffix = str(match.group(2) or "").upper()
+    return f"F{int(match.group(1))}{panel_suffix}"
 
 
-def _display_id_to_table_id(display_id: str) -> str:
-    match = re.fullmatch(r"Table(\d+)", str(display_id).strip(), flags=re.IGNORECASE)
+def _normalize_table_catalog_id(raw_id: str) -> str:
+    item = str(raw_id).strip()
+    appendix_match = re.fullmatch(r"AppendixTable(\d+)", item, flags=re.IGNORECASE)
+    if appendix_match:
+        return f"TA{int(appendix_match.group(1))}"
+    appendix_short_match = re.fullmatch(r"TA(\d+)", item, flags=re.IGNORECASE)
+    if appendix_short_match:
+        return f"TA{int(appendix_short_match.group(1))}"
+    match = re.fullmatch(r"T(?:able)?(\d+)", item, flags=re.IGNORECASE)
     if not match:
-        raise ValueError(f"unsupported table display_id `{display_id}`")
+        raise ValueError(f"unsupported table catalog_id `{raw_id}`")
     return f"T{int(match.group(1))}"
+
+
+def _resolve_figure_catalog_id(*, display_id: str, catalog_id: str | None = None) -> str:
+    if str(catalog_id or "").strip():
+        return _normalize_figure_catalog_id(str(catalog_id))
+    return _normalize_figure_catalog_id(str(display_id))
+
+
+def _resolve_table_catalog_id(*, display_id: str, catalog_id: str | None = None) -> str:
+    if str(catalog_id or "").strip():
+        return _normalize_table_catalog_id(str(catalog_id))
+    return _normalize_table_catalog_id(str(display_id))
 
 
 def _replace_catalog_entry(items: list[dict[str, Any]], *, key: str, value: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
@@ -2371,6 +2398,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         requirement_key = str(item.get("requirement_key") or "").strip()
         display_id = str(item.get("display_id") or "").strip()
         display_kind = str(item.get("display_kind") or "").strip()
+        catalog_id = str(item.get("catalog_id") or "").strip()
 
         if requirement_key == "cohort_flow_figure":
             if display_kind != "figure":
@@ -2380,7 +2408,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             payload = load_json(payload_path)
             steps = _validate_cohort_flow_payload(payload_path, payload)
             title = str(payload.get("title") or "Cohort flow").strip() or "Cohort flow"
-            figure_id = _display_id_to_figure_id(display_id)
+            figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
             output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_cohort_flow.svg"
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_cohort_flow.png"
             _render_cohort_flow_figure(
@@ -2430,7 +2458,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             payload = load_json(payload_path)
             group_labels, rows = _validate_baseline_table_payload(payload_path, payload)
             title = str(payload.get("title") or "Baseline characteristics").strip() or "Baseline characteristics"
-            table_id = _display_id_to_table_id(display_id)
+            table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
             output_csv_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_baseline_characteristics.csv"
             output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_baseline_characteristics.md"
             _write_table_outputs(
@@ -2483,7 +2511,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
             column_labels, rows = _validate_column_table_payload(payload_path, payload)
-            table_id = _display_id_to_table_id(display_id)
+            table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
             if requirement_key == "table2_time_to_event_performance_summary":
                 title = (
                     str(payload.get("title") or "Time-to-event model performance summary").strip()
@@ -2537,7 +2565,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
 
         if display_kind == "figure" and display_registry.is_evidence_figure_template(requirement_key):
             spec = display_registry.get_evidence_figure_spec(requirement_key)
-            figure_id = _display_id_to_figure_id(display_id)
+            figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
             payload_path, display_payload = _load_evidence_display_payload(
                 paper_root=resolved_paper_root,
                 spec=spec,
