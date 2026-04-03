@@ -1044,6 +1044,39 @@ def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
     assert payload["startup_hydration_validation"]["status"] == "clear"
 
 
+def test_study_runtime_status_records_typed_startup_contract_validation() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+    validation = module.study_runtime_protocol.StartupContractValidation.from_payload(
+        make_startup_contract_validation_payload()
+    )
+
+    status.record_startup_contract_validation(validation)
+
+    assert status.to_dict()["startup_contract_validation"] == make_startup_contract_validation_payload()
+
+
 def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     status = module.StudyRuntimeStatus.from_payload(
@@ -2436,9 +2469,9 @@ def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_qu
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.study_runtime_protocol,
+        module.StudyRuntimeStatus,
         "should_refresh_startup_hydration_while_blocked",
-        lambda status: False,
+        lambda self: False,
     )
     monkeypatch.setattr(
         module,
@@ -2463,6 +2496,40 @@ def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_qu
 
     assert result["decision"] == "blocked"
     assert calls == []
+
+
+def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": False},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "created",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": False},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "blocked",
+            "reason": "startup_boundary_not_ready_for_resume",
+        }
+    )
+
+    assert status.should_refresh_startup_hydration_while_blocked() is True
+
+    status.set_decision("blocked", "workspace_contract_not_ready")
+
+    assert status.should_refresh_startup_hydration_while_blocked() is False
 
 
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:

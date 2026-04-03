@@ -360,6 +360,22 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
         return isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids
 
+    def should_refresh_startup_hydration_while_blocked(self) -> bool:
+        if self.decision is not StudyRuntimeDecision.BLOCKED or not self.quest_exists:
+            return False
+        if self.quest_status not in {
+            StudyRuntimeQuestStatus.CREATED,
+            StudyRuntimeQuestStatus.IDLE,
+            StudyRuntimeQuestStatus.PAUSED,
+        }:
+            return False
+        return self.reason in {
+            StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+            StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED,
+        }
+
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
 
@@ -400,9 +416,16 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     def record_runtime_overlay(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("runtime_overlay", value)
 
-    def record_startup_contract_validation(self, value: dict[str, Any]) -> None:
-        startup_contract_validation = study_runtime_protocol.StartupContractValidation.from_payload(
-            self._require_dict_field("startup_contract_validation", value)
+    def record_startup_contract_validation(
+        self,
+        value: dict[str, Any] | study_runtime_protocol.StartupContractValidation,
+    ) -> None:
+        startup_contract_validation = (
+            value
+            if isinstance(value, study_runtime_protocol.StartupContractValidation)
+            else study_runtime_protocol.StartupContractValidation.from_payload(
+                self._require_dict_field("startup_contract_validation", value)
+            )
         )
         self._record_dict_extra("startup_contract_validation", startup_contract_validation.to_dict())
 
@@ -1646,9 +1669,7 @@ def _execute_runtime_decision(
         return _execute_create_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.RESUME:
         return _execute_resume_runtime_decision(status=status, context=context)
-    if status.decision == StudyRuntimeDecision.BLOCKED and study_runtime_protocol.should_refresh_startup_hydration_while_blocked(
-        status.to_dict()
-    ):
+    if status.should_refresh_startup_hydration_while_blocked():
         return _execute_blocked_refresh_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.PAUSE:
         return _execute_pause_runtime_decision(status=status, context=context)
