@@ -145,6 +145,42 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         layout_qc_profile="publication_shap_summary",
         required_exports=("png", "pdf"),
     ),
+    EvidenceFigureSpec(
+        template_id="time_to_event_discrimination_calibration_panel",
+        display_name="Validation Discrimination and Grouped Calibration (Time-to-Event)",
+        evidence_class="time_to_event",
+        renderer_family="python",
+        input_schema_id="time_to_event_discrimination_calibration_inputs_v1",
+        layout_qc_profile="publication_evidence_curve",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
+        template_id="time_to_event_risk_group_summary",
+        display_name="Risk-Group Summary (Time-to-Event)",
+        evidence_class="time_to_event",
+        renderer_family="python",
+        input_schema_id="time_to_event_grouped_inputs_v1",
+        layout_qc_profile="publication_survival_curve",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
+        template_id="time_to_event_decision_curve",
+        display_name="Decision Curve (Time-to-Event Horizon)",
+        evidence_class="clinical_utility",
+        renderer_family="python",
+        input_schema_id="time_to_event_decision_curve_inputs_v1",
+        layout_qc_profile="publication_decision_curve",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
+        template_id="multicenter_generalizability_overview",
+        display_name="Multicenter Generalizability Overview",
+        evidence_class="generalizability",
+        renderer_family="python",
+        input_schema_id="multicenter_generalizability_inputs_v1",
+        layout_qc_profile="publication_multicenter_overview",
+        required_exports=("png", "pdf"),
+    ),
 )
 
 _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
@@ -165,6 +201,20 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         input_schema_id="baseline_characteristics_schema_v1",
         table_qc_profile="publication_table_baseline",
         required_exports=("csv", "md"),
+    ),
+    TableShellSpec(
+        shell_id="table2_time_to_event_performance_summary",
+        display_name="Table 2 Time-to-Event Performance Summary",
+        input_schema_id="time_to_event_performance_summary_v1",
+        table_qc_profile="publication_table_performance",
+        required_exports=("md",),
+    ),
+    TableShellSpec(
+        shell_id="table3_clinical_interpretation_summary",
+        display_name="Table 3 Clinical Interpretation Summary",
+        input_schema_id="clinical_interpretation_summary_v1",
+        table_qc_profile="publication_table_interpretation",
+        required_exports=("md",),
     ),
 )
 

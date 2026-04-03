@@ -121,6 +121,36 @@ def test_run_display_layout_qc_fails_when_curve_text_leaves_device() -> None:
     assert any(issue["rule_id"] == "box_out_of_device" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_fails_when_decision_curve_series_lengths_mismatch() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_decision_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_decision_curve",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
+                make_box("x_axis_title", "x_axis_title", x0=0.32, y0=0.92, x1=0.62, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.01, y0=0.24, x1=0.06, y1=0.70),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.10, y0=0.16, x1=0.74, y1=0.88),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.78, y0=0.28, x1=0.96, y1=0.46),
+            ],
+            "metrics": {
+                "series": [{"label": "24-month horizon", "x": [0.05, 0.20, 0.40], "y": [0.16, 0.12]}],
+                "reference_line": {"x": [0.05, 0.45], "y": [0.0, 0.0]},
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "series_length_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_correlation_matrix_is_not_symmetric() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
@@ -182,6 +212,37 @@ def test_run_display_layout_qc_fails_when_forest_marker_is_outside_interval() ->
 
     assert result["status"] == "fail"
     assert any(issue["rule_id"] == "estimate_outside_interval" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_multicenter_centers_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_multicenter_overview",
+        layout_sidecar={
+            "template_id": "multicenter_generalizability_overview",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
+                make_box("x_axis_title", "x_axis_title", x0=0.56, y0=0.92, x1=0.80, y1=0.97),
+                make_box("row_label_1", "row_label", x0=0.02, y0=0.62, x1=0.18, y1=0.68),
+                make_box("sample_bar_1", "sample_bar", x0=0.24, y0=0.62, x1=0.42, y1=0.68),
+                make_box("estimate_marker_1", "estimate_marker", x0=0.68, y0=0.63, x1=0.70, y1=0.67),
+                make_box("ci_segment_1", "ci_segment", x0=0.60, y0=0.65, x1=0.80, y1=0.65),
+            ],
+            "panel_boxes": [
+                make_box("sample_panel", "sample_panel", x0=0.22, y0=0.22, x1=0.44, y1=0.82),
+                make_box("estimate_panel", "estimate_panel", x0=0.56, y0=0.22, x1=0.86, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "centers": [],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "centers_missing" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_fails_when_shap_feature_rows_overlap() -> None:

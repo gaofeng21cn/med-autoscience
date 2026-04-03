@@ -78,13 +78,16 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         class_id="clinical_utility",
         display_name="Clinical Utility",
         template_ids=_template_ids_for_evidence_class("clinical_utility"),
-        input_schema_ids=("binary_prediction_curve_inputs_v1",),
+        input_schema_ids=("binary_prediction_curve_inputs_v1", "time_to_event_decision_curve_inputs_v1"),
     ),
     DisplaySchemaClass(
         class_id="time_to_event",
         display_name="Time-to-Event",
         template_ids=_template_ids_for_evidence_class("time_to_event"),
-        input_schema_ids=("time_to_event_grouped_inputs_v1",),
+        input_schema_ids=(
+            "time_to_event_grouped_inputs_v1",
+            "time_to_event_discrimination_calibration_inputs_v1",
+        ),
     ),
     DisplaySchemaClass(
         class_id="data_geometry",
@@ -111,13 +114,24 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         input_schema_ids=("shap_summary_inputs_v1",),
     ),
     DisplaySchemaClass(
+        class_id="generalizability",
+        display_name="Generalizability",
+        template_ids=_template_ids_for_evidence_class("generalizability"),
+        input_schema_ids=("multicenter_generalizability_inputs_v1",),
+    ),
+    DisplaySchemaClass(
         class_id="publication_shells_and_tables",
         display_name="Publication Shells and Tables",
         template_ids=tuple(
             [item.shell_id for item in display_registry.list_illustration_shell_specs()]
             + [item.shell_id for item in display_registry.list_table_shell_specs()]
         ),
-        input_schema_ids=("cohort_flow_shell_inputs_v1", "baseline_characteristics_schema_v1"),
+        input_schema_ids=(
+            "cohort_flow_shell_inputs_v1",
+            "baseline_characteristics_schema_v1",
+            "time_to_event_performance_summary_v1",
+            "clinical_interpretation_summary_v1",
+        ),
     ),
 )
 
@@ -154,6 +168,64 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "groups_must_be_non_empty",
             "group_times_values_lengths_must_match",
             "group_values_must_be_finite",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="time_to_event_discrimination_calibration_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="Time-to-Event Discrimination and Calibration Panel",
+        template_ids=("time_to_event_discrimination_calibration_panel",),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=(
+            "display_id",
+            "template_id",
+            "title",
+            "caption",
+            "discrimination_x_label",
+            "discrimination_y_label",
+            "calibration_x_label",
+            "calibration_y_label",
+            "discrimination_series",
+            "calibration_groups",
+        ),
+        display_optional_fields=("paper_role", "discrimination_reference_line", "calibration_reference_line"),
+        collection_required_fields={
+            "discrimination_series": ("label", "x", "y"),
+            "calibration_groups": ("label", "times", "values"),
+        },
+        collection_optional_fields={
+            "discrimination_series": ("annotation",),
+            "discrimination_reference_line": ("label",),
+            "calibration_reference_line": ("label",),
+        },
+        nested_collection_required_fields={
+            "discrimination_reference_line": ("x", "y"),
+            "calibration_reference_line": ("x", "y"),
+        },
+        additional_constraints=(
+            "discrimination_series_must_be_non_empty",
+            "discrimination_series_x_y_lengths_must_match",
+            "calibration_groups_must_be_non_empty",
+            "calibration_group_times_values_lengths_must_match",
+            "calibration_values_must_be_finite",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="time_to_event_decision_curve_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="Time-to-Event Decision Curves",
+        template_ids=("time_to_event_decision_curve",),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "y_label", "series"),
+        display_optional_fields=("paper_role", "reference_line"),
+        collection_required_fields={"series": ("label", "x", "y")},
+        collection_optional_fields={"series": ("annotation",), "reference_line": ("label",)},
+        nested_collection_required_fields={"reference_line": ("x", "y")},
+        additional_constraints=(
+            "series_must_be_non_empty",
+            "series_x_y_lengths_must_match",
+            "series_values_must_be_finite",
+            "reference_line_x_y_lengths_must_match_when_present",
         ),
     ),
     InputSchemaContract(
@@ -235,6 +307,22 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         ),
     ),
     InputSchemaContract(
+        input_schema_id="multicenter_generalizability_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="Multicenter Generalizability Overview",
+        template_ids=("multicenter_generalizability_overview",),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "centers"),
+        display_optional_fields=("paper_role", "reference_line"),
+        collection_required_fields={"centers": ("center_label", "sample_size", "estimate", "lower", "upper")},
+        additional_constraints=(
+            "centers_must_be_non_empty",
+            "center_labels_must_be_unique",
+            "sample_size_must_be_positive",
+            "effect_interval_must_bound_estimate",
+        ),
+    ),
+    InputSchemaContract(
         input_schema_id="cohort_flow_shell_inputs_v1",
         display_kind="illustration_shell",
         display_name="Cohort Flow Figure",
@@ -264,6 +352,40 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "groups_must_be_non_empty",
             "variables_must_be_non_empty",
             "variable_values_length_must_match_groups",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="time_to_event_performance_summary_v1",
+        display_kind="table_shell",
+        display_name="Time-to-Event Performance Summary Table",
+        template_ids=("table2_time_to_event_performance_summary",),
+        required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "columns", "rows"),
+        optional_top_level_fields=("caption",),
+        collection_required_fields={
+            "columns": ("column_id", "label"),
+            "rows": ("row_id", "label", "values"),
+        },
+        additional_constraints=(
+            "columns_must_be_non_empty",
+            "rows_must_be_non_empty",
+            "row_values_length_must_match_columns",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="clinical_interpretation_summary_v1",
+        display_kind="table_shell",
+        display_name="Clinical Interpretation Summary Table",
+        template_ids=("table3_clinical_interpretation_summary",),
+        required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "columns", "rows"),
+        optional_top_level_fields=("caption",),
+        collection_required_fields={
+            "columns": ("column_id", "label"),
+            "rows": ("row_id", "label", "values"),
+        },
+        additional_constraints=(
+            "columns_must_be_non_empty",
+            "rows_must_be_non_empty",
+            "row_values_length_must_match_columns",
         ),
     ),
 )

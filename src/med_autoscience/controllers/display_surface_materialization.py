@@ -22,11 +22,20 @@ from med_autoscience import display_layout_qc, display_registry
 _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "binary_prediction_curve_inputs_v1": "binary_prediction_curve_inputs.json",
     "time_to_event_grouped_inputs_v1": "time_to_event_grouped_inputs.json",
+    "time_to_event_discrimination_calibration_inputs_v1": "time_to_event_discrimination_calibration_inputs.json",
+    "time_to_event_decision_curve_inputs_v1": "time_to_event_decision_curve_inputs.json",
     "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
+    "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
+}
+
+_TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
+    "baseline_characteristics_schema_v1": "baseline_characteristics_schema.json",
+    "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
+    "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
 }
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -639,11 +648,69 @@ def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tup
     return group_labels, normalized_rows
 
 
+def _validate_column_table_payload(path: Path, payload: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]]]:
+    columns = payload.get("columns")
+    if not isinstance(columns, list) or not columns:
+        raise ValueError(f"{path.name} must contain a non-empty columns list")
+    column_labels: list[str] = []
+    for index, column in enumerate(columns):
+        if not isinstance(column, dict):
+            raise ValueError(f"{path.name} columns[{index}] must be an object")
+        column_labels.append(
+            _require_non_empty_string(column.get("label"), label=f"{path.name} columns[{index}].label")
+        )
+
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} must contain a non-empty rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} rows[{index}] must be an object")
+        label = _require_non_empty_string(row.get("label"), label=f"{path.name} rows[{index}].label")
+        values = row.get("values")
+        if not isinstance(values, list) or len(values) != len(column_labels):
+            raise ValueError(
+                f"{path.name} rows[{index}] must include values matching the number of columns"
+            )
+        normalized_rows.append({"label": label, "values": [str(item).strip() for item in values]})
+    return column_labels, normalized_rows
+
+
+def _validate_reference_line_payload(
+    *,
+    path: Path,
+    payload: object,
+    label: str,
+) -> dict[str, Any] | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, dict):
+        raise ValueError(f"{path.name} {label} must be an object")
+    ref_x = _require_numeric_list(payload.get("x"), label=f"{path.name} {label}.x")
+    ref_y = _require_numeric_list(payload.get("y"), label=f"{path.name} {label}.y")
+    if len(ref_x) != len(ref_y):
+        raise ValueError(f"{path.name} {label}.x and .y must have the same length")
+    return {
+        "x": ref_x,
+        "y": ref_y,
+        "label": str(payload.get("label") or "").strip(),
+    }
+
+
 def _evidence_payload_path(*, paper_root: Path, input_schema_id: str) -> Path:
     try:
         filename = _INPUT_FILENAME_BY_SCHEMA_ID[input_schema_id]
     except KeyError as exc:
         raise ValueError(f"unsupported evidence input schema `{input_schema_id}`") from exc
+    return paper_root / filename
+
+
+def _table_payload_path(*, paper_root: Path, input_schema_id: str) -> Path:
+    try:
+        filename = _TABLE_INPUT_FILENAME_BY_SCHEMA_ID[input_schema_id]
+    except KeyError as exc:
+        raise ValueError(f"unsupported table input schema `{input_schema_id}`") from exc
     return paper_root / filename
 
 
@@ -761,6 +828,122 @@ def _validate_time_to_event_display_payload(
         "y_label": y_label,
         "groups": normalized_groups,
         "annotation": str(payload.get("annotation") or "").strip(),
+    }
+
+
+def _validate_time_to_event_discrimination_calibration_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    discrimination_x_label = _require_non_empty_string(
+        payload.get("discrimination_x_label"),
+        label=f"{path.name} display `{expected_display_id}` discrimination_x_label",
+    )
+    discrimination_y_label = _require_non_empty_string(
+        payload.get("discrimination_y_label"),
+        label=f"{path.name} display `{expected_display_id}` discrimination_y_label",
+    )
+    calibration_x_label = _require_non_empty_string(
+        payload.get("calibration_x_label"),
+        label=f"{path.name} display `{expected_display_id}` calibration_x_label",
+    )
+    calibration_y_label = _require_non_empty_string(
+        payload.get("calibration_y_label"),
+        label=f"{path.name} display `{expected_display_id}` calibration_y_label",
+    )
+    discrimination_series_payload = payload.get("discrimination_series")
+    if not isinstance(discrimination_series_payload, list) or not discrimination_series_payload:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must contain a non-empty discrimination_series list"
+        )
+    normalized_series: list[dict[str, Any]] = []
+    for index, item in enumerate(discrimination_series_payload):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` discrimination_series[{index}] must be an object"
+            )
+        label = _require_non_empty_string(
+            item.get("label"),
+            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].label",
+        )
+        x = _require_numeric_list(
+            item.get("x"),
+            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].x",
+        )
+        y = _require_numeric_list(
+            item.get("y"),
+            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].y",
+        )
+        if len(x) != len(y):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` discrimination_series[{index}].x and .y "
+                "must have the same length"
+            )
+        normalized_series.append(
+            {
+                "label": label,
+                "x": x,
+                "y": y,
+                "annotation": str(item.get("annotation") or "").strip(),
+            }
+        )
+
+    calibration_groups_payload = payload.get("calibration_groups")
+    if not isinstance(calibration_groups_payload, list) or not calibration_groups_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty calibration_groups list")
+    normalized_groups: list[dict[str, Any]] = []
+    for index, item in enumerate(calibration_groups_payload):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` calibration_groups[{index}] must be an object"
+            )
+        label = _require_non_empty_string(
+            item.get("label"),
+            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].label",
+        )
+        times = _require_numeric_list(
+            item.get("times"),
+            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].times",
+        )
+        values = _require_numeric_list(
+            item.get("values"),
+            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].values",
+        )
+        if len(times) != len(values):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` calibration_groups[{index}].times and .values "
+                "must have the same length"
+            )
+        normalized_groups.append({"label": label, "times": times, "values": values})
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "discrimination_x_label": discrimination_x_label,
+        "discrimination_y_label": discrimination_y_label,
+        "calibration_x_label": calibration_x_label,
+        "calibration_y_label": calibration_y_label,
+        "discrimination_reference_line": _validate_reference_line_payload(
+            path=path,
+            payload=payload.get("discrimination_reference_line"),
+            label=f"display `{expected_display_id}` discrimination_reference_line",
+        ),
+        "calibration_reference_line": _validate_reference_line_payload(
+            path=path,
+            payload=payload.get("calibration_reference_line"),
+            label=f"display `{expected_display_id}` calibration_reference_line",
+        ),
+        "discrimination_series": normalized_series,
+        "calibration_groups": normalized_groups,
     }
 
 
@@ -973,6 +1156,83 @@ def _validate_shap_summary_display_payload(
     }
 
 
+def _validate_multicenter_generalizability_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    centers = payload.get("centers")
+    if not isinstance(centers, list) or not centers:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty centers list")
+    normalized_centers: list[dict[str, Any]] = []
+    seen_labels: set[str] = set()
+    for index, center in enumerate(centers):
+        if not isinstance(center, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` centers[{index}] must be an object")
+        center_label = _require_non_empty_string(
+            center.get("center_label"),
+            label=f"{path.name} display `{expected_display_id}` centers[{index}].center_label",
+        )
+        if center_label in seen_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{index}].center_label must be unique"
+            )
+        seen_labels.add(center_label)
+        sample_size = _require_numeric_value(
+            center.get("sample_size"),
+            label=f"{path.name} display `{expected_display_id}` centers[{index}].sample_size",
+        )
+        if sample_size <= 0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{index}].sample_size must be positive"
+            )
+        estimate = _require_numeric_value(
+            center.get("estimate"),
+            label=f"{path.name} display `{expected_display_id}` centers[{index}].estimate",
+        )
+        lower = _require_numeric_value(
+            center.get("lower"),
+            label=f"{path.name} display `{expected_display_id}` centers[{index}].lower",
+        )
+        upper = _require_numeric_value(
+            center.get("upper"),
+            label=f"{path.name} display `{expected_display_id}` centers[{index}].upper",
+        )
+        if not (lower <= estimate <= upper):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{index}] must satisfy lower <= estimate <= upper"
+            )
+        normalized_centers.append(
+            {
+                "center_label": center_label,
+                "sample_size": sample_size,
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "reference_line": _validate_reference_line_payload(
+            path=path,
+            payload=payload.get("reference_line"),
+            label=f"display `{expected_display_id}` reference_line",
+        ),
+        "centers": normalized_centers,
+    }
+
+
 def _load_evidence_display_payload(
     *,
     paper_root: Path,
@@ -1010,6 +1270,20 @@ def _load_evidence_display_payload(
             expected_template_id=spec.template_id,
             expected_display_id=display_id,
         )
+    if spec.input_schema_id == "time_to_event_discrimination_calibration_inputs_v1":
+        return payload_path, _validate_time_to_event_discrimination_calibration_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "time_to_event_decision_curve_inputs_v1":
+        return payload_path, _validate_binary_curve_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
     if spec.input_schema_id == "embedding_grouped_inputs_v1":
         return payload_path, _validate_embedding_display_payload(
             path=payload_path,
@@ -1033,6 +1307,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_summary_inputs_v1":
         return payload_path, _validate_shap_summary_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "multicenter_generalizability_inputs_v1":
+        return payload_path, _validate_multicenter_generalizability_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,
@@ -1117,21 +1398,24 @@ def _render_cohort_flow_figure(
 
 def _write_table_outputs(
     *,
-    output_csv_path: Path,
     output_md_path: Path,
     title: str,
-    group_labels: list[str],
+    column_labels: list[str],
     rows: list[dict[str, Any]],
+    stub_header: str,
+    output_csv_path: Path | None = None,
 ) -> None:
-    headers = ["Characteristic", *group_labels]
+    headers = [stub_header, *column_labels]
     table_rows = [[row["label"], *row["values"]] for row in rows]
 
-    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(headers)
-        writer.writerows(table_rows)
+    if output_csv_path is not None:
+        output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_csv_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(headers)
+            writer.writerows(table_rows)
 
+    output_md_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_lines = [f"# {title}", "", "| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
     for row in table_rows:
         markdown_lines.append("| " + " | ".join(row) + " |")
@@ -1330,7 +1614,90 @@ def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
     return [(-half_span + step * float(index)) for index in range(count)]
 
 
-def _render_python_evidence_figure(
+def _prepare_python_render_output_paths(*, output_png_path: Path, output_pdf_path: Path, layout_sidecar_path: Path) -> None:
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _apply_publication_axes_style(axes) -> None:
+    axes.grid(axis="x", color="#e6edf2", linewidth=0.4)
+    axes.grid(axis="y", visible=False)
+    axes.spines["top"].set_visible(False)
+    axes.spines["right"].set_visible(False)
+
+
+def _build_single_panel_layout_sidecar(
+    *,
+    figure: plt.Figure,
+    axes,
+    template_id: str,
+    metrics: dict[str, Any],
+    legend=None,
+    annotation_artist=None,
+    title_artist=None,
+    panel_box_id: str = "panel",
+    panel_box_type: str = "panel",
+) -> dict[str, Any]:
+    renderer = figure.canvas.get_renderer()
+    resolved_title_artist = title_artist if title_artist is not None else axes.title
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=resolved_title_artist.get_window_extent(renderer=renderer),
+            box_id="title",
+            box_type="title",
+        ),
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="y_axis_title",
+            box_type="y_axis_title",
+        ),
+    ]
+    if annotation_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=figure,
+                bbox=annotation_artist.get_window_extent(renderer=renderer),
+                box_id="annotation_block",
+                box_type="annotation_block",
+            )
+        )
+    guide_boxes: list[dict[str, Any]] = []
+    if legend is not None:
+        guide_boxes.append(
+            _bbox_to_layout_box(
+                figure=figure,
+                bbox=legend.get_window_extent(renderer=renderer),
+                box_id="legend",
+                box_type="legend",
+            )
+        )
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": layout_boxes,
+        "panel_boxes": [
+            _bbox_to_layout_box(
+                figure=figure,
+                bbox=axes.get_window_extent(renderer=renderer),
+                box_id=panel_box_id,
+                box_type=panel_box_type,
+            )
+        ],
+        "guide_boxes": guide_boxes,
+        "metrics": metrics,
+    }
+
+
+def _render_python_shap_summary_beeswarm(
     *,
     template_id: str,
     display_payload: dict[str, Any],
@@ -1338,16 +1705,15 @@ def _render_python_evidence_figure(
     output_pdf_path: Path,
     layout_sidecar_path: Path,
 ) -> None:
-    if template_id != "shap_summary_beeswarm":
-        raise RuntimeError(f"unsupported python evidence template `{template_id}`")
-
     rows = list(display_payload.get("rows") or [])
     if not rows:
         raise RuntimeError("shap_summary_beeswarm requires non-empty rows")
 
-    output_png_path.parent.mkdir(parents=True, exist_ok=True)
-    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
 
     figure_height = max(4.8, 0.85 * len(rows) + 1.4)
     fig, ax = plt.subplots(figsize=(7.2, figure_height))
@@ -1391,10 +1757,7 @@ def _render_python_evidence_figure(
     ax.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
     ax.set_ylabel("")
     ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
-    ax.grid(axis="x", color="#e6edf2", linewidth=0.4)
-    ax.grid(axis="y", visible=False)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    _apply_publication_axes_style(ax)
 
     scalar_mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
     scalar_mappable.set_array([])
@@ -1417,6 +1780,579 @@ def _render_python_evidence_figure(
     fig.savefig(output_png_path, format="png", dpi=320)
     fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
+
+
+def _render_python_time_to_event_risk_group_summary(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    groups = list(display_payload.get("groups") or [])
+    if not groups:
+        raise RuntimeError(f"{template_id} requires non-empty groups")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    fig, ax = plt.subplots(figsize=(7.4, 5.0))
+    fig.patch.set_facecolor("white")
+    palette = ("#1f4e79", "#c94f3d", "#2a9d8f", "#8c6d31")
+    max_time = max(max(float(item) for item in group["times"]) for group in groups)
+    for index, group in enumerate(groups):
+        ax.step(
+            group["times"],
+            group["values"],
+            where="post",
+            linewidth=2.0,
+            color=palette[index % len(palette)],
+            label=str(group["label"]),
+        )
+    ax.set_xlim(0.0, max_time)
+    ax.set_ylim(0.0, 1.02)
+    ax.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
+    _apply_publication_axes_style(ax)
+    legend = ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0), frameon=False)
+    annotation_artist = None
+    annotation = str(display_payload.get("annotation") or "").strip()
+    if annotation:
+        annotation_artist = fig.text(0.79, 0.18, annotation, ha="left", va="center", fontsize=9.5, color="#334155")
+    fig.subplots_adjust(left=0.12, right=0.74, bottom=0.15, top=0.88)
+    fig.canvas.draw()
+    dump_json(
+        layout_sidecar_path,
+        _build_single_panel_layout_sidecar(
+            figure=fig,
+            axes=ax,
+            template_id=template_id,
+            metrics={"groups": groups},
+            legend=legend,
+            annotation_artist=annotation_artist,
+        ),
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
+def _render_python_time_to_event_decision_curve(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    series = list(display_payload.get("series") or [])
+    if not series:
+        raise RuntimeError(f"{template_id} requires non-empty series")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    fig, ax = plt.subplots(figsize=(7.4, 5.0))
+    fig.patch.set_facecolor("white")
+    palette = ("#1f4e79", "#c94f3d", "#2a9d8f", "#8c6d31")
+    x_values = [float(value) for item in series for value in item["x"]]
+    y_values = [float(value) for item in series for value in item["y"]]
+    reference_line = display_payload.get("reference_line")
+    if isinstance(reference_line, dict):
+        x_values.extend(float(value) for value in reference_line.get("x", []))
+        y_values.extend(float(value) for value in reference_line.get("y", []))
+    for index, item in enumerate(series):
+        ax.plot(
+            item["x"],
+            item["y"],
+            linewidth=2.0,
+            color=palette[index % len(palette)],
+            label=str(item["label"]),
+        )
+    if isinstance(reference_line, dict):
+        ax.plot(
+            reference_line["x"],
+            reference_line["y"],
+            linewidth=1.0,
+            linestyle="--",
+            color="#6b7280",
+            label=str(reference_line.get("label") or ""),
+        )
+    x_min = min(x_values)
+    x_max = max(x_values)
+    y_min = min(y_values)
+    y_max = max(y_values)
+    x_padding = max((x_max - x_min) * 0.04, 0.01)
+    y_padding = max((y_max - y_min) * 0.10, 0.02)
+    ax.set_xlim(x_min - x_padding, x_max + x_padding)
+    ax.set_ylim(y_min - y_padding, y_max + y_padding)
+    ax.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
+    _apply_publication_axes_style(ax)
+    handles, labels = ax.get_legend_handles_labels()
+    legend = fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.69, 0.84), frameon=False)
+    fig.subplots_adjust(left=0.12, right=0.66, bottom=0.15, top=0.88)
+    fig.canvas.draw()
+    dump_json(
+        layout_sidecar_path,
+        _build_single_panel_layout_sidecar(
+            figure=fig,
+            axes=ax,
+            template_id=template_id,
+            metrics={"series": series, "reference_line": reference_line},
+            legend=legend,
+        ),
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
+def _render_python_time_to_event_discrimination_calibration_panel(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    discrimination_series = list(display_payload.get("discrimination_series") or [])
+    calibration_groups = list(display_payload.get("calibration_groups") or [])
+    if not discrimination_series or not calibration_groups:
+        raise RuntimeError(f"{template_id} requires non-empty discrimination_series and calibration_groups")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(9.0, 4.8))
+    fig.patch.set_facecolor("white")
+    title_artist = fig.suptitle(
+        str(display_payload.get("title") or "").strip(),
+        fontsize=12.5,
+        fontweight="bold",
+        color="#13293d",
+    )
+    palette = ("#1f4e79", "#c94f3d", "#2a9d8f", "#8c6d31")
+
+    for index, item in enumerate(discrimination_series):
+        left_axes.plot(
+            item["x"],
+            item["y"],
+            linewidth=2.0,
+            color=palette[index % len(palette)],
+            label=str(item["label"]),
+        )
+    discrimination_reference_line = display_payload.get("discrimination_reference_line")
+    if isinstance(discrimination_reference_line, dict):
+        left_axes.plot(
+            discrimination_reference_line["x"],
+            discrimination_reference_line["y"],
+            linewidth=1.0,
+            linestyle="--",
+            color="#6b7280",
+        )
+    left_axes.set_xlim(0.0, 1.0)
+    left_axes.set_ylim(0.0, 1.02)
+    left_axes.set_xlabel(
+        str(display_payload.get("discrimination_x_label") or "").strip(),
+        fontsize=11,
+        fontweight="bold",
+        color="#13293d",
+    )
+    left_axes.set_ylabel(
+        str(display_payload.get("discrimination_y_label") or "").strip(),
+        fontsize=11,
+        fontweight="bold",
+        color="#13293d",
+    )
+    left_axes.set_title("Discrimination", fontsize=11, fontweight="bold", color="#334155")
+    _apply_publication_axes_style(left_axes)
+
+    max_time = max(max(float(item) for item in group["times"]) for group in calibration_groups)
+    for index, group in enumerate(calibration_groups):
+        right_axes.plot(
+            group["times"],
+            group["values"],
+            linewidth=1.8,
+            marker="o",
+            markersize=4.2,
+            color=palette[index % len(palette)],
+            label=str(group["label"]),
+        )
+    calibration_reference_line = display_payload.get("calibration_reference_line")
+    if isinstance(calibration_reference_line, dict):
+        right_axes.plot(
+            calibration_reference_line["x"],
+            calibration_reference_line["y"],
+            linewidth=1.0,
+            linestyle="--",
+            color="#6b7280",
+        )
+    right_axes.set_xlim(0.0, max_time)
+    right_axes.set_ylim(0.0, 1.02)
+    right_axes.set_xlabel(
+        str(display_payload.get("calibration_x_label") or "").strip(),
+        fontsize=11,
+        fontweight="bold",
+        color="#13293d",
+    )
+    right_axes.set_ylabel(
+        str(display_payload.get("calibration_y_label") or "").strip(),
+        fontsize=11,
+        fontweight="bold",
+        color="#13293d",
+    )
+    right_axes.set_title("Grouped Calibration", fontsize=11, fontweight="bold", color="#334155")
+    _apply_publication_axes_style(right_axes)
+
+    handles, labels = [], []
+    for axes in (left_axes, right_axes):
+        axis_handles, axis_labels = axes.get_legend_handles_labels()
+        for handle, label in zip(axis_handles, axis_labels, strict=True):
+            if label in labels or not label:
+                continue
+            handles.append(handle)
+            labels.append(label)
+    legend = fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.03), ncol=2, frameon=False)
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.80, bottom=0.22, wspace=0.28)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=title_artist.get_window_extent(renderer=renderer),
+            box_id="title",
+            box_type="title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="y_axis_title",
+            box_type="y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="calibration_x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="calibration_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+    ]
+    panel_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.get_window_extent(renderer=renderer),
+            box_id="panel_left",
+            box_type="panel",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.get_window_extent(renderer=renderer),
+            box_id="panel_right",
+            box_type="panel",
+        ),
+    ]
+    guide_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=legend.get_window_extent(renderer=renderer),
+            box_id="legend",
+            box_type="legend",
+        )
+    ]
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "series": discrimination_series,
+                "reference_line": discrimination_reference_line,
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
+def _render_python_multicenter_generalizability_overview(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    centers = list(display_payload.get("centers") or [])
+    if not centers:
+        raise RuntimeError(f"{template_id} requires non-empty centers")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    figure_height = max(4.8, 0.72 * len(centers) + 1.8)
+    fig, (label_axes, sample_axes, estimate_axes) = plt.subplots(
+        1,
+        3,
+        figsize=(8.6, figure_height),
+        sharey=True,
+        gridspec_kw={"width_ratios": [1.5, 1.6, 2.6]},
+    )
+    fig.patch.set_facecolor("white")
+    title_artist = fig.suptitle(
+        str(display_payload.get("title") or "").strip(),
+        fontsize=12.5,
+        fontweight="bold",
+        color="#13293d",
+    )
+    y_positions = list(range(len(centers)))
+    label_axes.set_xlim(0.0, 1.0)
+    label_axes.set_ylim(-0.5, len(centers) - 0.5)
+    label_axes.invert_yaxis()
+    label_axes.axis("off")
+    label_texts = []
+    for index, center in enumerate(centers):
+        label_texts.append(
+            label_axes.text(
+                0.98,
+                y_positions[index],
+                str(center["center_label"]),
+                ha="right",
+                va="center",
+                fontsize=10,
+                color="#1f2937",
+            )
+        )
+
+    sample_sizes = [float(center["sample_size"]) for center in centers]
+    sample_axes.barh(y_positions, sample_sizes, height=0.56, color="#9db4c0", edgecolor="#6b8794")
+    sample_axes.set_title("Sample Size", fontsize=10.5, fontweight="bold", color="#334155")
+    sample_axes.set_yticks(y_positions)
+    sample_axes.set_yticklabels([])
+    _apply_publication_axes_style(sample_axes)
+
+    lower_errors = [float(center["estimate"]) - float(center["lower"]) for center in centers]
+    upper_errors = [float(center["upper"]) - float(center["estimate"]) for center in centers]
+    estimate_values = [float(center["estimate"]) for center in centers]
+    estimate_axes.errorbar(
+        estimate_values,
+        y_positions,
+        xerr=[lower_errors, upper_errors],
+        fmt="o",
+        markersize=5.8,
+        linewidth=1.2,
+        capsize=0,
+        color="#1f4e79",
+        ecolor="#1f4e79",
+    )
+    reference_line = display_payload.get("reference_line")
+    reference_x = None
+    if isinstance(reference_line, dict) and reference_line.get("x"):
+        reference_x = float(reference_line["x"][0])
+        estimate_axes.axvline(reference_x, color="#6b7280", linewidth=1.0, linestyle="--")
+    estimate_axes.set_yticks(y_positions)
+    estimate_axes.set_yticklabels([])
+    estimate_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    estimate_axes.set_title("Center Effect", fontsize=10.5, fontweight="bold", color="#334155")
+    _apply_publication_axes_style(estimate_axes)
+
+    for axes in (sample_axes, estimate_axes):
+        axes.set_ylim(-0.5, len(centers) - 0.5)
+        axes.invert_yaxis()
+
+    fig.subplots_adjust(left=0.04, right=0.98, top=0.84, bottom=0.16, wspace=0.06)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    sample_xlim = sample_axes.get_xlim()
+    estimate_xlim = estimate_axes.get_xlim()
+    marker_half_width = max((estimate_xlim[1] - estimate_xlim[0]) * 0.02, 1e-3)
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=title_artist.get_window_extent(renderer=renderer),
+            box_id="title",
+            box_type="title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=estimate_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+    ]
+    for index, text_artist in enumerate(label_texts, start=1):
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=text_artist.get_window_extent(renderer=renderer),
+                box_id=f"row_label_{index}",
+                box_type="row_label",
+            )
+        )
+    for index, (center, y_position) in enumerate(zip(centers, y_positions, strict=True), start=1):
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=sample_axes,
+                figure=fig,
+                x0=sample_xlim[0],
+                y0=y_position - 0.28,
+                x1=float(center["sample_size"]),
+                y1=y_position + 0.28,
+                box_id=f"sample_bar_{index}",
+                box_type="sample_bar",
+            )
+        )
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=estimate_axes,
+                figure=fig,
+                x0=float(center["estimate"]) - marker_half_width,
+                y0=y_position - 0.12,
+                x1=float(center["estimate"]) + marker_half_width,
+                y1=y_position + 0.12,
+                box_id=f"estimate_marker_{index}",
+                box_type="estimate_marker",
+            )
+        )
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=estimate_axes,
+                figure=fig,
+                x0=float(center["lower"]),
+                y0=y_position,
+                x1=float(center["upper"]),
+                y1=y_position,
+                box_id=f"ci_segment_{index}",
+                box_type="ci_segment",
+            )
+        )
+    guide_boxes: list[dict[str, Any]] = []
+    if reference_x is not None:
+        guide_boxes.append(
+            _data_box_to_layout_box(
+                axes=estimate_axes,
+                figure=fig,
+                x0=reference_x,
+                y0=-0.45,
+                x1=reference_x,
+                y1=len(centers) - 0.55,
+                box_id="reference_line",
+                box_type="reference_line",
+            )
+        )
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": [
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=sample_axes.get_window_extent(renderer=renderer),
+                    box_id="sample_panel",
+                    box_type="sample_panel",
+                ),
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=estimate_axes.get_window_extent(renderer=renderer),
+                    box_id="estimate_panel",
+                    box_type="estimate_panel",
+                ),
+            ],
+            "guide_boxes": guide_boxes,
+            "metrics": {"centers": centers},
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
+def _render_python_evidence_figure(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    if template_id == "shap_summary_beeswarm":
+        _render_python_shap_summary_beeswarm(
+            template_id=template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+    if template_id == "time_to_event_risk_group_summary":
+        _render_python_time_to_event_risk_group_summary(
+            template_id=template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+    if template_id == "time_to_event_decision_curve":
+        _render_python_time_to_event_decision_curve(
+            template_id=template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+    if template_id == "time_to_event_discrimination_calibration_panel":
+        _render_python_time_to_event_discrimination_calibration_panel(
+            template_id=template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+    if template_id == "multicenter_generalizability_overview":
+        _render_python_multicenter_generalizability_overview(
+            template_id=template_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+    raise RuntimeError(f"unsupported python evidence template `{template_id}`")
 
 
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
@@ -1490,7 +2426,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             if display_kind != "table":
                 raise ValueError("table1_baseline_characteristics must be registered as a table display")
             spec = display_registry.get_table_shell_spec("table1_baseline_characteristics")
-            payload_path = resolved_paper_root / "baseline_characteristics_schema.json"
+            payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
             group_labels, rows = _validate_baseline_table_payload(payload_path, payload)
             title = str(payload.get("title") or "Baseline characteristics").strip() or "Baseline characteristics"
@@ -1498,11 +2434,12 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             output_csv_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_baseline_characteristics.csv"
             output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_baseline_characteristics.md"
             _write_table_outputs(
-                output_csv_path=output_csv_path,
                 output_md_path=output_md_path,
                 title=title,
-                group_labels=group_labels,
+                column_labels=group_labels,
                 rows=rows,
+                stub_header="Characteristic",
+                output_csv_path=output_csv_path,
             )
             written_files.extend([str(output_csv_path), str(output_md_path)])
             entry = {
@@ -1520,6 +2457,68 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "caption": str(payload.get("caption") or "Baseline characteristics across prespecified groups.").strip(),
                 "asset_paths": [
                     _paper_relative_path(output_csv_path, paper_root=resolved_paper_root),
+                    _paper_relative_path(output_md_path, paper_root=resolved_paper_root),
+                ],
+                "source_paths": [
+                    _paper_relative_path(payload_path, paper_root=resolved_paper_root),
+                ],
+                "claim_ids": [],
+            }
+            table_catalog["tables"] = _replace_catalog_entry(
+                list(table_catalog.get("tables") or []),
+                key="table_id",
+                value=table_id,
+                entry=entry,
+            )
+            tables_materialized.append(table_id)
+            continue
+
+        if requirement_key in {
+            "table2_time_to_event_performance_summary",
+            "table3_clinical_interpretation_summary",
+        }:
+            if display_kind != "table":
+                raise ValueError(f"{requirement_key} must be registered as a table display")
+            spec = display_registry.get_table_shell_spec(requirement_key)
+            payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
+            payload = load_json(payload_path)
+            column_labels, rows = _validate_column_table_payload(payload_path, payload)
+            table_id = _display_id_to_table_id(display_id)
+            if requirement_key == "table2_time_to_event_performance_summary":
+                title = (
+                    str(payload.get("title") or "Time-to-event model performance summary").strip()
+                    or "Time-to-event model performance summary"
+                )
+                output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_time_to_event_performance_summary.md"
+                stub_header = "Metric"
+                default_caption = "Time-to-event discrimination and error metrics across analysis cohorts."
+            else:
+                title = str(payload.get("title") or "Clinical interpretation summary").strip() or "Clinical interpretation summary"
+                output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_clinical_interpretation_summary.md"
+                stub_header = "Clinical Item"
+                default_caption = "Clinical interpretation anchors for prespecified risk groups and use cases."
+            _write_table_outputs(
+                output_md_path=output_md_path,
+                title=title,
+                column_labels=column_labels,
+                rows=rows,
+                stub_header=stub_header,
+            )
+            written_files.append(str(output_md_path))
+            entry = {
+                "table_id": table_id,
+                "table_shell_id": spec.shell_id,
+                "paper_role": spec.allowed_paper_roles[0],
+                "input_schema_id": spec.input_schema_id,
+                "qc_profile": spec.table_qc_profile,
+                "qc_result": {
+                    "status": "pass",
+                    "issues": [],
+                    "checked_at": utc_now(),
+                },
+                "title": title,
+                "caption": str(payload.get("caption") or default_caption).strip(),
+                "asset_paths": [
                     _paper_relative_path(output_md_path, paper_root=resolved_paper_root),
                 ],
                 "source_paths": [
