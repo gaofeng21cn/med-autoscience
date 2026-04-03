@@ -107,6 +107,90 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     assert result["structuredContent"]["quest_id"] == "001-risk"
 
 
+def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "study_root": "/tmp/studies/001-risk",
+                "entry_mode": "full_research",
+                "execution": {"quest_id": "001-risk", "auto_resume": True},
+                "quest_id": "001-risk",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "quest_exists": True,
+                "quest_status": "created",
+                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+                "runtime_binding_exists": True,
+                "study_completion_contract": {},
+                "decision": "create_and_start",
+                "reason": "quest_missing",
+            }
+        ),
+    )
+
+    result = module.call_tool(
+        "ensure_study_runtime",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+
+    assert result["isError"] is False
+    assert result["structuredContent"]["decision"] == "create_and_start"
+    assert result["structuredContent"]["study_id"] == "001-risk"
+
+
+def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "study_root": "/tmp/studies/001-risk",
+                "entry_mode": "full_research",
+                "execution": {"quest_id": "001-risk", "auto_resume": True},
+                "quest_id": "001-risk",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "quest_exists": True,
+                "quest_status": "created",
+                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+                "runtime_binding_exists": True,
+                "study_completion_contract": {},
+                "decision": "noop",
+                "reason": "quest_missing",
+            }
+        ),
+    )
+
+    result = module.call_tool(
+        "study_runtime_status",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+
+    assert result["isError"] is False
+    assert result["structuredContent"]["decision"] == "noop"
+    assert result["structuredContent"]["study_id"] == "001-risk"
+
+
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     captured: dict[str, object] = {}

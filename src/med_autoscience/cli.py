@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 from med_autoscience.doctor import (
     build_doctor_report,
@@ -37,6 +38,7 @@ from med_autoscience.controllers import (
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
+from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
@@ -85,6 +87,14 @@ def _parse_key_value_pairs(values: list[str]) -> dict[str, str]:
             key, note = item, ""
         parsed[key.strip().upper()] = note.strip()
     return parsed
+
+
+def _serialize_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
+    if isinstance(result, StudyRuntimeStatus):
+        return result.to_dict()
+    if isinstance(result, dict):
+        return dict(result)
+    raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -335,7 +345,7 @@ def main(argv: list[str] | None = None) -> int:
             force=bool(args.force),
             source="cli",
         )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "study-runtime-status":
@@ -348,7 +358,7 @@ def main(argv: list[str] | None = None) -> int:
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
         )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "watch":
