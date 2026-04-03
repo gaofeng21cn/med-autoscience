@@ -150,7 +150,7 @@ def run_watch_for_quest(
 ) -> dict[str, Any]:
     controller_runners = controller_runners or build_default_controller_runners()
     current_state = runtime_watch_protocol.load_watch_state(quest_root)
-    controller_state = dict(current_state.get("controllers") or {})
+    controller_state = dict(current_state.controllers)
     report: dict[str, Any] = {
         "schema_version": 1,
         "scanned_at": utc_now(),
@@ -162,7 +162,7 @@ def run_watch_for_quest(
     for name, runner in controller_runners.items():
         dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)
         fingerprint = build_fingerprint(name, dry_run_result)
-        previous = dict(controller_state.get(name) or {})
+        previous = controller_state.get(name) or runtime_watch_protocol.RuntimeWatchControllerState()
         intervention_statuses = {"blocked"}
         if name == "data_asset_gate":
             intervention_statuses.add("advisory")
@@ -175,14 +175,14 @@ def run_watch_for_quest(
             intervention_statuses=intervention_statuses,
         )
         final_result = dry_run_result
-        if plan["should_apply"]:
+        if plan.should_apply:
             final_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=True)
-        controller_state[name] = plan["controller_state"]
+        controller_state[name] = plan.controller_state
         status = dry_run_result.get("status")
-        suppression_reason = plan["suppression_reason"]
+        suppression_reason = plan.suppression_reason
         report["controllers"][name] = {
             "status": status,
-            "action": plan["action"],
+            "action": plan.action.value,
             "blockers": dry_run_result.get("blockers") or [],
             "advisories": dry_run_result.get("advisories") or [],
             "report_json": final_result.get("report_json"),
@@ -192,11 +192,11 @@ def run_watch_for_quest(
 
     runtime_watch_protocol.save_watch_state(
         quest_root=quest_root,
-        payload={
-            "schema_version": 1,
-            "updated_at": report["scanned_at"],
-            "controllers": controller_state,
-        },
+        payload=runtime_watch_protocol.RuntimeWatchState(
+            schema_version=1,
+            updated_at=report["scanned_at"],
+            controllers=controller_state,
+        ),
     )
     json_path, md_path = write_watch_report(quest_root, report)
     report["report_json"] = str(json_path)
