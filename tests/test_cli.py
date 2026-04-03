@@ -1448,3 +1448,20 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
     assert exit_code == 0
     assert calls["mode"] == "status_only"
     assert '"selected_action": "status_only"' in captured.out
+
+
+def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    payload = {"action": "already_ready", "ready": True}
+
+    monkeypatch.setattr(
+        cli.analysis_bundle_controller,
+        "ensure_study_runtime_analysis_bundle",
+        lambda: payload,
+    )
+
+    exit_code = cli.main(["ensure-study-runtime-analysis-bundle"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(captured.out) == payload

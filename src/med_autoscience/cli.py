@@ -261,6 +261,8 @@ def build_parser() -> argparse.ArgumentParser:
     reapply_overlay_parser.add_argument("--quest-root", type=str)
     reapply_overlay_parser.add_argument("--profile", type=str)
 
+    subparsers.add_parser("ensure-study-runtime-analysis-bundle")
+
     ensure_study_runtime_parser = subparsers.add_parser("ensure-study-runtime")
     ensure_study_runtime_parser.add_argument("--profile", required=True)
     ensure_study_runtime_parser.add_argument("--study-id", type=str)
@@ -320,6 +322,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "med-deepscientist-upgrade-check":
         profile = load_profile(args.profile)
         result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "ensure-study-runtime-analysis-bundle":
+        result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

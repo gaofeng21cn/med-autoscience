@@ -24,7 +24,7 @@ from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_protocol import paper_artifacts, quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import (
@@ -39,6 +39,21 @@ from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
 
 SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
+_SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS = frozenset(
+    {
+        "author_metadata",
+        "author_affiliations",
+        "corresponding_author",
+        "corresponding_author_contact",
+        "ethics_statement",
+        "human_subjects_consent_statement",
+        "ai_declaration",
+        "funding_statement",
+        "conflict_of_interest_statement",
+        "data_availability_statement",
+        "acknowledgments",
+    }
+)
 _UNSET = object()
 
 
@@ -88,6 +103,11 @@ class StudyRuntimeReason(StrEnum):
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
+    QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
+    QUEST_WAITING_FOR_SUBMISSION_METADATA = "quest_waiting_for_submission_metadata"
+    QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED = (
+        "quest_waiting_for_submission_metadata_but_auto_resume_disabled"
+    )
     QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"
     QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED = "quest_paused_but_auto_resume_disabled"
     QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED = "quest_stopped_but_auto_resume_disabled"
@@ -106,6 +126,7 @@ class StudyRuntimeQuestStatus(StrEnum):
     IDLE = "idle"
     PAUSED = "paused"
     STOPPED = "stopped"
+    WAITING_FOR_USER = "waiting_for_user"
     RUNNING = "running"
     ACTIVE = "active"
     COMPLETED = "completed"
@@ -1593,6 +1614,36 @@ def _sync_study_completion(
     )
 
 
+def _normalize_submission_blocking_item_ids(payload: dict[str, Any]) -> tuple[str, ...]:
+    raw_items = payload.get("blocking_items")
+    if not isinstance(raw_items, list):
+        return tuple()
+    normalized: list[str] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        item_id = str(item.get("id") or "").strip()
+        if item_id:
+            normalized.append(item_id)
+    return tuple(normalized)
+
+
+def _waiting_submission_metadata_only(quest_root: Path) -> bool:
+    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
+    if paper_bundle_manifest_path is None:
+        return False
+    checklist_path = paper_bundle_manifest_path.parent / "review" / "submission_checklist.json"
+    if not checklist_path.exists():
+        return False
+    payload = yaml.safe_load(checklist_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        return False
+    blocking_item_ids = _normalize_submission_blocking_item_ids(payload)
+    if not blocking_item_ids:
+        return False
+    return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS for item_id in blocking_item_ids)
+
+
 def _status_state(
     *,
     profile: WorkspaceProfile,
@@ -1857,6 +1908,25 @@ def _status_state(
                 StudyRuntimeDecision.BLOCKED,
                 blocked_reason,
             )
+        return result
+
+    if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
+        if _waiting_submission_metadata_only(quest_root):
+            if execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED,
+                )
+            return result
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_WAITING_FOR_USER,
+        )
         return result
 
     result.set_decision(
