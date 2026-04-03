@@ -554,6 +554,97 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     assert status.quest_status == "paused"
     assert status.to_dict() == payload
 
+    status.set_decision("blocked", "startup_contract_resolution_failed")
+    status.update_quest_runtime(
+        quest_id="quest-002",
+        quest_root="/tmp/runtime/quests/quest-002",
+        quest_exists=False,
+        quest_status="created",
+    )
+
+    assert status.decision == "blocked"
+    assert status.reason == "startup_contract_resolution_failed"
+    assert status.quest_id == "quest-002"
+    assert status.quest_root == "/tmp/runtime/quests/quest-002"
+    assert status.quest_exists is False
+    assert status.quest_status == "created"
+    assert status.to_dict()["decision"] == "blocked"
+    assert status.to_dict()["reason"] == "startup_contract_resolution_failed"
+    assert status.to_dict()["quest_id"] == "quest-002"
+    assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
+
+
+def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    assert dict(status) == payload
+    assert "decision" not in status
+    assert status.get("decision", "fallback") == "fallback"
+
+
+def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    status["decision"] = "blocked"
+    status["reason"] = "runtime_overlay_not_ready"
+    status["quest_root"] = Path("/tmp/runtime/quests/quest-002")
+    status["quest_exists"] = False
+    status["quest_status"] = None
+
+    assert status.decision == "blocked"
+    assert status.reason == "runtime_overlay_not_ready"
+    assert status.quest_root == "/tmp/runtime/quests/quest-002"
+    assert status.quest_exists is False
+    assert status.quest_status is None
+    assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
+
+    with pytest.raises(TypeError, match="quest_exists"):
+        status["quest_exists"] = "false"
+
 
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     monkeypatch,
@@ -634,6 +725,7 @@ def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
+    assert isinstance(result, dict)
     assert result["decision"] == "create_and_start"
     assert len(seen["startup_payload_calls"]) == 1
     assert seen["startup_payload_calls"][0]["create_payload"]["quest_id"] == "001-risk"

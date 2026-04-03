@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator, MutableMapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from os import PathLike
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
 
 SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
+_UNSET = object()
 
 
 @dataclass
@@ -141,12 +143,80 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         payload.update(self.extras)
         return payload
 
+    @staticmethod
+    def _require_text_field(field_name: str, value: Any) -> str:
+        if not isinstance(value, str):
+            raise TypeError(f"{field_name} must be str")
+        return value
+
+    @staticmethod
+    def _require_optional_text_field(field_name: str, value: Any) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise TypeError(f"{field_name} must be str or None")
+        return value
+
+    @staticmethod
+    def _require_bool_field(field_name: str, value: Any) -> bool:
+        if not isinstance(value, bool):
+            raise TypeError(f"{field_name} must be bool")
+        return value
+
+    @staticmethod
+    def _normalize_path_field(field_name: str, value: Any) -> str:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, PathLike):
+            return str(value)
+        raise TypeError(f"{field_name} must be str or PathLike")
+
+    def set_decision(self, decision: str, reason: str) -> None:
+        self.decision = self._require_text_field("decision", decision)
+        self.reason = self._require_text_field("reason", reason)
+
+    def update_quest_runtime(
+        self,
+        *,
+        quest_id: str | object = _UNSET,
+        quest_root: str | PathLike[str] | object = _UNSET,
+        quest_exists: bool | object = _UNSET,
+        quest_status: str | None | object = _UNSET,
+    ) -> None:
+        if quest_id is not _UNSET:
+            self.quest_id = self._require_text_field("quest_id", quest_id)
+        if quest_root is not _UNSET:
+            self.quest_root = self._normalize_path_field("quest_root", quest_root)
+        if quest_exists is not _UNSET:
+            self.quest_exists = self._require_bool_field("quest_exists", quest_exists)
+        if quest_status is not _UNSET:
+            self.quest_status = self._require_optional_text_field("quest_status", quest_status)
+
     def __getitem__(self, key: str) -> Any:
-        if key in self._CORE_KEYS:
-            return getattr(self, key)
-        return self.extras[key]
+        payload = self.to_dict()
+        if key not in payload:
+            raise KeyError(key)
+        return payload[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
+        if key == "decision":
+            self.set_decision(value, self.reason)
+            return
+        if key == "reason":
+            self.set_decision(self.decision, value)
+            return
+        if key == "quest_id":
+            self.update_quest_runtime(quest_id=value)
+            return
+        if key == "quest_root":
+            self.update_quest_runtime(quest_root=value)
+            return
+        if key == "quest_exists":
+            self.update_quest_runtime(quest_exists=value)
+            return
+        if key == "quest_status":
+            self.update_quest_runtime(quest_status=value)
+            return
         if key in self._CORE_KEYS:
             setattr(self, key, value)
             return
@@ -598,58 +668,49 @@ def _status_state(
     )
 
     if str(execution.get("engine") or "").strip() != "med-deepscientist":
-        result["decision"] = "lightweight"
-        result["reason"] = "study_execution_not_med_deepscientist"
+        result.set_decision("lightweight", "study_execution_not_med_deepscientist")
         return result
 
     auto_entry = str(execution.get("auto_entry") or "").strip()
     default_entry_mode = str(execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     if auto_entry != "on_managed_research_intent":
-        result["decision"] = "lightweight"
-        result["reason"] = "study_execution_not_managed"
+        result.set_decision("lightweight", "study_execution_not_managed")
         return result
     if selected_entry_mode != default_entry_mode:
-        result["decision"] = "lightweight"
-        result["reason"] = "entry_mode_not_managed"
+        result.set_decision("lightweight", "entry_mode_not_managed")
         return result
 
     completion_contract_status = completion_state.status
     if completion_contract_status in {"invalid", "incomplete"}:
-        result["decision"] = "blocked"
-        result["reason"] = "study_completion_contract_not_ready"
+        result.set_decision("blocked", "study_completion_contract_not_ready")
         return result
     if completion_state.ready:
         if not quest_exists:
-            result["decision"] = "completed"
-            result["reason"] = "study_completion_declared_without_managed_quest"
+            result.set_decision("completed", "study_completion_declared_without_managed_quest")
             return result
         if quest_status_value == "completed":
-            result["decision"] = "completed"
-            result["reason"] = "quest_already_completed"
+            result.set_decision("completed", "quest_already_completed")
             return result
         if quest_status_value in {"running", "active"}:
             bash_session_audit = dict(quest_runtime.bash_session_audit or {})
             result["bash_session_audit"] = bash_session_audit
             if str(bash_session_audit.get("status") or "").strip() == "live":
-                result["decision"] = "pause_and_complete"
+                result.decision = "pause_and_complete"
             else:
-                result["decision"] = "sync_completion"
-            result["reason"] = "study_completion_ready"
+                result.decision = "sync_completion"
+            result.reason = "study_completion_ready"
             return result
-        result["decision"] = "sync_completion"
-        result["reason"] = "study_completion_ready"
+        result.set_decision("sync_completion", "study_completion_ready")
         return result
 
     if not bool(contracts.get("overall_ready")):
-        result["decision"] = "blocked"
-        result["reason"] = "workspace_contract_not_ready"
+        result.set_decision("blocked", "workspace_contract_not_ready")
         return result
 
     study_summary = readiness.get("study_summary") if isinstance(readiness.get("study_summary"), dict) else {}
     unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
     if isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids:
-        result["decision"] = "blocked"
-        result["reason"] = "study_data_readiness_blocked"
+        result.set_decision("blocked", "study_data_readiness_blocked")
         return result
 
     startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
@@ -663,21 +724,17 @@ def _status_state(
     )
     result["startup_contract_validation"] = startup_contract_validation.to_dict()
     if startup_contract_validation.status != "clear":
-        result["decision"] = "blocked"
-        result["reason"] = "startup_contract_resolution_failed"
+        result.set_decision("blocked", "startup_contract_resolution_failed")
         return result
 
     if not quest_exists:
         if startup_boundary_gate["allow_compute_stage"]:
             if runtime_reentry_gate["allow_runtime_entry"]:
-                result["decision"] = "create_and_start"
-                result["reason"] = "quest_missing"
+                result.set_decision("create_and_start", "quest_missing")
             else:
-                result["decision"] = "blocked"
-                result["reason"] = "runtime_reentry_not_ready_for_auto_start"
+                result.set_decision("blocked", "runtime_reentry_not_ready_for_auto_start")
         else:
-            result["decision"] = "create_only"
-            result["reason"] = "startup_boundary_not_ready_for_auto_start"
+            result.set_decision("create_only", "startup_boundary_not_ready_for_auto_start")
         return result
 
     if quest_status_value in {"running", "active"}:
@@ -685,57 +742,46 @@ def _status_state(
         result["bash_session_audit"] = bash_session_audit
         audit_status = str(bash_session_audit.get("status") or "").strip()
         if audit_status == "unknown":
-            result["decision"] = "blocked"
-            result["reason"] = "running_quest_live_session_audit_failed"
+            result.set_decision("blocked", "running_quest_live_session_audit_failed")
         elif audit_status == "live":
             if not startup_boundary_gate["allow_compute_stage"]:
-                result["decision"] = "pause"
-                result["reason"] = "startup_boundary_not_ready_for_running_quest"
+                result.set_decision("pause", "startup_boundary_not_ready_for_running_quest")
             elif not runtime_reentry_gate["allow_runtime_entry"]:
-                result["decision"] = "pause"
-                result["reason"] = "runtime_reentry_not_ready_for_running_quest"
+                result.set_decision("pause", "runtime_reentry_not_ready_for_running_quest")
             else:
-                result["decision"] = "noop"
-                result["reason"] = "quest_already_running"
+                result.set_decision("noop", "quest_already_running")
         elif not startup_boundary_gate["allow_compute_stage"]:
-            result["decision"] = "blocked"
-            result["reason"] = "startup_boundary_not_ready_for_resume"
+            result.set_decision("blocked", "startup_boundary_not_ready_for_resume")
         elif not runtime_reentry_gate["allow_runtime_entry"]:
-            result["decision"] = "blocked"
-            result["reason"] = "runtime_reentry_not_ready_for_resume"
+            result.set_decision("blocked", "runtime_reentry_not_ready_for_resume")
         elif execution.get("auto_resume") is True:
-            result["decision"] = "resume"
-            result["reason"] = "quest_marked_running_but_no_live_session"
+            result.set_decision("resume", "quest_marked_running_but_no_live_session")
         else:
-            result["decision"] = "blocked"
-            result["reason"] = "quest_marked_running_but_auto_resume_disabled"
+            result.set_decision("blocked", "quest_marked_running_but_auto_resume_disabled")
         return result
 
     if quest_status_value in {"paused", "idle", "created"}:
         if not startup_boundary_gate["allow_compute_stage"]:
-            result["decision"] = "blocked"
-            result["reason"] = "startup_boundary_not_ready_for_resume"
+            result.set_decision("blocked", "startup_boundary_not_ready_for_resume")
             return result
         if not runtime_reentry_gate["allow_runtime_entry"]:
-            result["decision"] = "blocked"
-            result["reason"] = "runtime_reentry_not_ready_for_resume"
+            result.set_decision("blocked", "runtime_reentry_not_ready_for_resume")
             return result
         if execution.get("auto_resume") is True:
-            result["decision"] = "resume"
-            result["reason"] = (
+            result.set_decision(
+                "resume",
                 "quest_paused" if quest_status_value == "paused" else "quest_initialized_waiting_to_start"
             )
         else:
-            result["decision"] = "blocked"
-            result["reason"] = (
+            result.set_decision(
+                "blocked",
                 "quest_paused_but_auto_resume_disabled"
                 if quest_status_value == "paused"
                 else "quest_initialized_but_auto_resume_disabled"
             )
         return result
 
-    result["decision"] = "blocked"
-    result["reason"] = "quest_exists_with_non_resumable_state"
+    result.set_decision("blocked", "quest_exists_with_non_resumable_state")
     return result
 
 
@@ -817,21 +863,19 @@ def ensure_study_runtime(
     runtime_overlay_result: dict[str, Any] | None = None
     completion_state = _study_completion_state(study_root=resolved_study_root)
 
-    if status["decision"] in {"create_and_start", "create_only", "resume"}:
+    if status.decision in {"create_and_start", "create_only", "resume"}:
         runtime_reentry_gate = (
-            dict(status["runtime_reentry_gate"])
-            if isinstance(status.get("runtime_reentry_gate"), dict)
+            dict(status.runtime_reentry_gate)
+            if isinstance(status.runtime_reentry_gate, dict)
             else {}
         )
         analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         status["analysis_bundle"] = analysis_bundle_result
         if not bool(analysis_bundle_result.get("ready")):
-            status["decision"] = "blocked"
-            status["reason"] = "study_runtime_analysis_bundle_not_ready"
+            status.set_decision("blocked", "study_runtime_analysis_bundle_not_ready")
         elif _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate) and not profile.enable_medical_overlay:
-            status["decision"] = "blocked"
-            status["reason"] = "managed_skill_audit_not_available"
-        elif profile.enable_medical_overlay and status["decision"] == "resume":
+            status.set_decision("blocked", "managed_skill_audit_not_available")
+        elif profile.enable_medical_overlay and status.decision == "resume":
             runtime_overlay_result = _prepare_runtime_overlay(
                 profile=profile,
                 quest_root=quest_root,
@@ -839,18 +883,16 @@ def ensure_study_runtime(
             status["runtime_overlay"] = runtime_overlay_result
             audit = runtime_overlay_result["audit"]
             if not bool(audit.get("all_roots_ready")):
-                status["decision"] = "blocked"
-                status["reason"] = "runtime_overlay_not_ready"
-    elif profile.enable_medical_overlay and status["quest_exists"]:
+                status.set_decision("blocked", "runtime_overlay_not_ready")
+    elif profile.enable_medical_overlay and status.quest_exists:
         runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=profile, quest_root=quest_root)}
         status["runtime_overlay"] = runtime_overlay_result
         audit = runtime_overlay_result["audit"]
-        if status["quest_status"] in {"running", "active"} and not bool(audit.get("all_roots_ready")):
-            status["decision"] = "pause"
-            status["reason"] = "runtime_overlay_audit_failed_for_running_quest"
+        if status.quest_status in {"running", "active"} and not bool(audit.get("all_roots_ready")):
+            status.set_decision("pause", "runtime_overlay_audit_failed_for_running_quest")
 
-    if status["decision"] in {"create_and_start", "create_only"}:
-        planned_decision = str(status["decision"])
+    if status.decision in {"create_and_start", "create_only"}:
+        planned_decision = status.decision
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -863,8 +905,7 @@ def ensure_study_runtime(
         )
         status["startup_contract_validation"] = startup_contract_validation.to_dict()
         if startup_contract_validation.status != "clear":
-            status["decision"] = "blocked"
-            status["reason"] = "startup_contract_resolution_failed"
+            status.set_decision("blocked", "startup_contract_resolution_failed")
         partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
             quest_root=quest_root,
             runtime_root=runtime_root,
@@ -873,7 +914,7 @@ def ensure_study_runtime(
         if partial_quest_recovery is not None:
             status["partial_quest_recovery"] = partial_quest_recovery
         create_payload["auto_start"] = False
-        if status["decision"] in {"create_and_start", "create_only"}:
+        if status.decision in {"create_and_start", "create_only"}:
             startup_payload_path = study_runtime_protocol.write_startup_payload(
                 startup_payload_root=runtime_context.startup_payload_root,
                 create_payload=create_payload,
@@ -884,12 +925,14 @@ def ensure_study_runtime(
                 payload=create_payload,
             )
             daemon_result = {"create": create_result}
-            status["quest_id"] = str(create_payload["quest_id"])
-            status["quest_root"] = str(quest_root)
-            status["quest_exists"] = True
             snapshot = create_result.get("snapshot") if isinstance(create_result.get("snapshot"), dict) else {}
             fallback_status = "created"
-            status["quest_status"] = str(snapshot.get("status") or fallback_status)
+            status.update_quest_runtime(
+                quest_id=create_payload["quest_id"],
+                quest_root=quest_root,
+                quest_exists=True,
+                quest_status=str(snapshot.get("status") or fallback_status),
+            )
             if profile.enable_medical_overlay:
                 runtime_overlay_result = _prepare_runtime_overlay(
                     profile=profile,
@@ -898,9 +941,8 @@ def ensure_study_runtime(
                 status["runtime_overlay"] = runtime_overlay_result
                 audit = runtime_overlay_result["audit"]
                 if not bool(audit.get("all_roots_ready")):
-                    status["decision"] = "blocked"
-                    status["reason"] = "runtime_overlay_not_ready"
-            if status["decision"] == "blocked":
+                    status.set_decision("blocked", "runtime_overlay_not_ready")
+            if status.decision == "blocked":
                 binding_last_action = "blocked"
             else:
                 hydration_result, validation_result = _run_startup_hydration(
@@ -910,21 +952,20 @@ def ensure_study_runtime(
                 status["startup_hydration"] = hydration_result
                 status["startup_hydration_validation"] = validation_result
                 if str(validation_result.get("status")) != "clear":
-                    status["decision"] = "blocked"
-                    status["reason"] = "hydration_validation_failed"
+                    status.set_decision("blocked", "hydration_validation_failed")
                     binding_last_action = "blocked"
                 elif planned_decision == "create_and_start":
                     resume_result = med_deepscientist_transport.resume_quest(
                         runtime_root=runtime_root,
-                        quest_id=str(status["quest_id"]),
+                        quest_id=status.quest_id,
                         source=source,
                     )
                     daemon_result["resume"] = resume_result
-                    status["quest_status"] = str(resume_result.get("status") or "running")
+                    status.update_quest_runtime(quest_status=str(resume_result.get("status") or "running"))
                     binding_last_action = "create_and_start"
                 else:
                     binding_last_action = "create_only"
-    elif status["decision"] == "resume":
+    elif status.decision == "resume":
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -934,7 +975,7 @@ def ensure_study_runtime(
         )
         startup_context_sync = _sync_existing_quest_startup_context(
             runtime_root=runtime_root,
-            quest_id=str(status["quest_id"]),
+            quest_id=status.quest_id,
             create_payload=create_payload,
         )
         status["startup_context_sync"] = startup_context_sync
@@ -945,18 +986,17 @@ def ensure_study_runtime(
         status["startup_hydration"] = hydration_result
         status["startup_hydration_validation"] = validation_result
         if str(validation_result.get("status")) != "clear":
-            status["decision"] = "blocked"
-            status["reason"] = "hydration_validation_failed"
+            status.set_decision("blocked", "hydration_validation_failed")
             binding_last_action = "blocked"
         else:
             daemon_result = med_deepscientist_transport.resume_quest(
                 runtime_root=runtime_root,
-                quest_id=str(status["quest_id"]),
+                quest_id=status.quest_id,
                 source=source,
             )
-            status["quest_status"] = str(daemon_result.get("status") or "running")
+            status.update_quest_runtime(quest_status=str(daemon_result.get("status") or "running"))
             binding_last_action = "resume"
-    elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(dict(status)):
+    elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(status.to_dict()):
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -969,11 +1009,11 @@ def ensure_study_runtime(
         )
         status["startup_contract_validation"] = startup_contract_validation.to_dict()
         if startup_contract_validation.status != "clear":
-            status["reason"] = "startup_contract_resolution_failed"
+            status.reason = "startup_contract_resolution_failed"
         else:
             startup_context_sync = _sync_existing_quest_startup_context(
                 runtime_root=runtime_root,
-                quest_id=str(status["quest_id"]),
+                quest_id=status.quest_id,
                 create_payload=create_payload,
             )
             status["startup_context_sync"] = startup_context_sync
@@ -984,29 +1024,29 @@ def ensure_study_runtime(
             status["startup_hydration"] = hydration_result
             status["startup_hydration_validation"] = validation_result
             if str(validation_result.get("status")) != "clear":
-                status["reason"] = "hydration_validation_failed"
+                status.reason = "hydration_validation_failed"
         binding_last_action = "blocked"
-    elif status["decision"] == "pause":
+    elif status.decision == "pause":
         daemon_result = med_deepscientist_transport.pause_quest(
             runtime_root=runtime_root,
-            quest_id=str(status["quest_id"]),
+            quest_id=status.quest_id,
             source=source,
         )
-        status["quest_status"] = str(daemon_result.get("status") or "paused")
+        status.update_quest_runtime(quest_status=str(daemon_result.get("status") or "paused"))
         binding_last_action = "pause"
-    elif status["decision"] in {"sync_completion", "pause_and_complete"}:
+    elif status.decision in {"sync_completion", "pause_and_complete"}:
         daemon_result = {}
-        if status["decision"] == "pause_and_complete":
+        if status.decision == "pause_and_complete":
             pause_result = med_deepscientist_transport.pause_quest(
                 runtime_root=runtime_root,
-                quest_id=str(status["quest_id"]),
+                quest_id=status.quest_id,
                 source=source,
             )
             daemon_result["pause"] = pause_result
-            status["quest_status"] = str(pause_result.get("status") or "paused")
+            status.update_quest_runtime(quest_status=str(pause_result.get("status") or "paused"))
         completion_sync = _sync_study_completion(
             runtime_root=runtime_root,
-            quest_id=str(status["quest_id"]),
+            quest_id=status.quest_id,
             study_id=resolved_study_id,
             study_root=resolved_study_root,
             completion_state=completion_state,
@@ -1024,15 +1064,14 @@ def ensure_study_runtime(
             if isinstance(completion_result.get("snapshot"), dict)
             else {}
         )
-        status["quest_status"] = str(completion_snapshot.get("status") or "completed")
-        status["decision"] = "completed"
-        status["reason"] = "study_completion_synced"
+        status.update_quest_runtime(quest_status=str(completion_snapshot.get("status") or "completed"))
+        status.set_decision("completed", "study_completion_synced")
         binding_last_action = "completed"
-    elif status["decision"] == "completed":
+    elif status.decision == "completed":
         binding_last_action = "completed"
-    elif status["decision"] == "noop":
+    elif status.decision == "noop":
         binding_last_action = "noop"
-    elif status["decision"] == "blocked" and status["quest_exists"]:
+    elif status.decision == "blocked" and status.quest_exists:
         binding_last_action = "blocked"
 
     artifact_paths = study_runtime_protocol.persist_runtime_artifacts(
@@ -1041,9 +1080,9 @@ def ensure_study_runtime(
         runtime_root=runtime_root,
         study_id=resolved_study_id,
         study_root=resolved_study_root,
-        quest_id=str(status.get("quest_id") or "").strip() or None,
+        quest_id=status.quest_id.strip() or None,
         last_action=binding_last_action,
-        status=dict(status),
+        status=status.to_dict(),
         source=source,
         force=force,
         startup_payload_path=startup_payload_path,
@@ -1054,4 +1093,4 @@ def ensure_study_runtime(
     status["launch_report_path"] = str(artifact_paths.launch_report_path)
     if artifact_paths.startup_payload_path is not None:
         status["startup_payload_path"] = str(artifact_paths.startup_payload_path)
-    return status
+    return status.to_dict()
