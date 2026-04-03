@@ -1154,7 +1154,7 @@ def test_build_study_completion_request_message_accepts_typed_completion_state(t
     completion_module = importlib.import_module("med_autoscience.study_completion")
     study_root = tmp_path / "study"
     completion_state = completion_module.StudyCompletionState(
-        status="resolved",
+        status=completion_module.StudyCompletionStateStatus.RESOLVED,
         contract=completion_module.StudyCompletionContract(
             study_root=study_root,
             status="completed",

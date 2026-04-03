@@ -42,7 +42,7 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
 
     state = module.resolve_study_completion_state(study_root=study_root)
 
-    assert state.status == "resolved"
+    assert state.status is module.StudyCompletionStateStatus.RESOLVED
     assert state.ready is True
     assert state.contract is not None
     assert state.to_dict() == {
@@ -110,7 +110,7 @@ def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(
 
     state = module.resolve_study_completion_state(study_root=study_root)
 
-    assert state.status == "invalid"
+    assert state.status is module.StudyCompletionStateStatus.INVALID
     assert state.ready is False
     assert state.contract is None
     assert len(state.errors) == 1
@@ -126,6 +126,21 @@ def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(
         "missing_evidence_paths": [],
         "errors": [state.errors[0]],
     }
+
+
+def test_study_completion_state_rejects_unknown_status() -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+
+    try:
+        module.StudyCompletionState(
+            status="unexpected",
+            contract=None,
+            errors=(),
+        )
+    except ValueError as exc:
+        assert "unknown study completion state status" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for unsupported StudyCompletionState.status")
 
 
 def test_resolve_study_completion_contract_rejects_unsupported_status(tmp_path: Path) -> None:
