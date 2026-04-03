@@ -928,6 +928,47 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
 
 
+def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    binding_path = tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"
+    launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+    startup_payload_path = tmp_path / "runtime" / "startup_payloads" / "001-risk.json"
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(tmp_path / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": str(tmp_path / "runtime" / "quests" / "quest-001"),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(binding_path),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+
+    status.record_runtime_artifacts(
+        runtime_binding_path=binding_path,
+        launch_report_path=launch_report_path,
+        startup_payload_path=startup_payload_path,
+    )
+
+    payload = status.to_dict()
+
+    assert payload["runtime_binding_exists"] is False
+    assert payload["launch_report_path"] == str(launch_report_path)
+    assert payload["startup_payload_path"] == str(startup_payload_path)
+
+
 def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
