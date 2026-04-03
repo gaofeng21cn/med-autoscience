@@ -156,6 +156,124 @@ Caption.
     return paper_root
 
 
+def make_current_draft_workspace(tmp_path: Path) -> Path:
+    workspace_root = tmp_path / "workspace"
+    paper_root = workspace_root / "paper"
+
+    write_text(
+        paper_root / "draft.md",
+        """# Draft
+
+## Title
+
+Current Draft Title
+
+## Abstract
+
+### Aims
+
+Draft abstract aim with evidence [@ref1].
+
+### Methods
+
+Draft abstract methods.
+
+### Results
+
+Draft abstract results.
+
+### Conclusions
+
+Draft abstract conclusions.
+
+## Introduction
+
+Intro paragraph with citation [@ref1].
+
+## Methods
+
+Methods paragraph.
+
+## Results
+
+Results paragraph.
+
+## Discussion
+
+Discussion paragraph.
+
+## Conclusion
+
+Conclusion paragraph.
+""",
+        )
+    write_text(
+        paper_root / "references.bib",
+        """@article{ref1,
+  title={A primary source},
+  author={Author, A. and Author, B.},
+  journal={Journal},
+  year={2024}
+}
+""",
+    )
+    write_png(paper_root / "figures" / "F1_main.png")
+    write_text(paper_root / "figures" / "F1_main.pdf", "%PDF-1.4\n%main figure\n")
+    write_text(paper_root / "tables" / "T1_summary.md", "| Characteristic | Value |\n| --- | --- |\n| Age | 52 |\n")
+    write_text(paper_root / "paper.pdf", "%PDF-1.4\n%paper bundle\n")
+
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "pdf_path": "paper/paper.pdf",
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "Main figure",
+                    "planned_exports": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T1",
+                    "paper_role": "main_text",
+                    "path": "paper/tables/T1_summary.md",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/draft.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+            "included_assets": [
+                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
+            ],
+        },
+    )
+    return paper_root
+
+
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -255,6 +373,119 @@ def test_create_submission_minimal_package_copies_figures_and_tables(tmp_path: P
 
     for path in expected_paths:
         assert path.exists(), path
+
+
+def test_create_submission_minimal_package_accepts_current_bundle_contract_shape(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "pdf_path": "paper/paper.pdf",
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+            "included_assets": [
+                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
+            ],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "manuscript.docx").exists()
+    assert (submission_root / "paper.pdf").exists()
+    assert manifest["manuscript"]["source_markdown_path"] == "paper/build/review_manuscript.md"
+    assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
+
+
+def test_create_submission_minimal_package_accepts_current_figure_and_table_catalog_shape(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "figure1",
+                    "role": "paper_main",
+                    "planned_exports": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "table1",
+                    "path": "paper/tables/T1_summary.md",
+                }
+            ],
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "figures" / "figure1.pdf").exists()
+    assert (submission_root / "figures" / "figure1.png").exists()
+    assert (submission_root / "tables" / "table1.md").exists()
+
+
+def test_create_submission_minimal_package_skips_missing_planned_table_entries(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "table1",
+                    "status": "rendered_and_cleaned",
+                    "path": "paper/tables/T1_summary.md",
+                },
+                {
+                    "table_id": "table3",
+                    "status": "planned_from_trusted_reports",
+                    "path": "paper/tables/T3_missing.md",
+                },
+            ],
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "tables" / "table1.md").exists()
+    assert not (submission_root / "tables" / "table3.md").exists()
 
 
 def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_available(
@@ -511,3 +742,37 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
     assert called["paper_root"] == paper_root
     assert called["stage"] == "submission_minimal"
     assert called["publication_profile"] == "frontiers_family_harvard"
+
+
+def test_create_submission_minimal_package_builds_submission_facing_docx_for_current_draft_shape(
+    tmp_path: Path,
+) -> None:
+    from docx import Document
+
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_current_draft_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    compiled_submission_markdown = submission_root / "manuscript_submission.md"
+    assert compiled_submission_markdown.exists()
+
+    submission_markdown = compiled_submission_markdown.read_text(encoding="utf-8")
+    assert submission_markdown.startswith("---\n")
+    assert 'title: "Current Draft Title"' in submission_markdown
+    assert "bibliography: ../references.bib" in submission_markdown
+    assert "\n# Abstract\n" in submission_markdown
+    assert "\n# Conclusion\n" in submission_markdown
+    assert not submission_markdown.startswith("# Draft")
+    assert manifest["manuscript"]["source_markdown_path"] == "paper/submission_minimal/manuscript_submission.md"
+
+    document = Document(submission_root / "manuscript.docx")
+    paragraphs = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+    assert paragraphs[0] == "Current Draft Title"
+    assert "Draft" not in paragraphs[:3]
+    assert any("A primary source" in paragraph for paragraph in paragraphs)
+    assert not any("ref1?" in paragraph for paragraph in paragraphs)
