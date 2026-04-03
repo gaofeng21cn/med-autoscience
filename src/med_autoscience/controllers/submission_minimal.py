@@ -528,6 +528,29 @@ def parse_figure_id_from_heading(heading: str) -> str | None:
     return None
 
 
+def figure_id_aliases(figure_id: str) -> set[str]:
+    normalized = str(figure_id or "").strip()
+    if not normalized:
+        return set()
+    aliases = {normalized}
+    supplementary_match = re.match(r"^SupplementaryFigureS(\d+)$", normalized, flags=re.IGNORECASE)
+    if supplementary_match:
+        aliases.add(f"FS{supplementary_match.group(1)}")
+        return aliases
+    supplementary_short_match = re.match(r"^FS(\d+)$", normalized, flags=re.IGNORECASE)
+    if supplementary_short_match:
+        aliases.add(f"SupplementaryFigureS{supplementary_short_match.group(1)}")
+        return aliases
+    main_match = re.match(r"^Figure(\d+)$", normalized, flags=re.IGNORECASE)
+    if main_match:
+        aliases.add(f"F{main_match.group(1)}")
+        return aliases
+    main_short_match = re.match(r"^F(\d+)$", normalized, flags=re.IGNORECASE)
+    if main_short_match:
+        aliases.add(f"Figure{main_short_match.group(1)}")
+    return aliases
+
+
 def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
     path = paper_root / "figure_semantics_manifest.json"
     payload = load_json(path) if path.exists() else {}
@@ -539,8 +562,8 @@ def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
         if not isinstance(item, dict):
             continue
         figure_id = str(item.get("figure_id") or "").strip()
-        if figure_id:
-            normalized[figure_id] = item
+        for alias in figure_id_aliases(figure_id):
+            normalized[alias] = item
     return normalized
 
 
