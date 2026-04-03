@@ -184,6 +184,15 @@ def _box_within_device(box: Box, device: Device) -> bool:
     )
 
 
+def _box_within_box(inner: Box, outer: Box) -> bool:
+    return (
+        outer.x0 <= inner.x0 <= outer.x1
+        and outer.x0 <= inner.x1 <= outer.x1
+        and outer.y0 <= inner.y0 <= outer.y1
+        and outer.y0 <= inner.y1 <= outer.y1
+    )
+
+
 def _check_boxes_within_device(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     for box in _all_boxes(sidecar):
@@ -700,6 +709,142 @@ def _check_publication_forest_plot(sidecar: LayoutSidecar) -> list[dict[str, Any
     return issues
 
 
+def _check_publication_multicenter_overview(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(
+        _check_required_box_types(
+            all_boxes,
+            required_box_types=("title", "x_axis_title", "row_label", "sample_bar", "estimate_marker", "ci_segment"),
+        )
+    )
+
+    sample_panel = _first_box_of_type(sidecar.panel_boxes, "sample_panel")
+    estimate_panel = _first_box_of_type(sidecar.panel_boxes, "estimate_panel")
+    if sample_panel is None:
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="multicenter overview requires a sample-size panel",
+                target="sample_panel",
+                expected="present",
+            )
+        )
+    if estimate_panel is None:
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="multicenter overview requires an estimate panel",
+                target="estimate_panel",
+                expected="present",
+            )
+        )
+
+    for row_label in _boxes_of_type(sidecar.layout_boxes, "row_label"):
+        if sample_panel is not None and _boxes_overlap(row_label, sample_panel):
+            issues.append(
+                _issue(
+                    rule_id="row_label_panel_overlap",
+                    message="row label must not overlap the sample-size panel",
+                    target="row_label",
+                    box_refs=(row_label.box_id, sample_panel.box_id),
+                )
+            )
+        if estimate_panel is not None and _boxes_overlap(row_label, estimate_panel):
+            issues.append(
+                _issue(
+                    rule_id="row_label_panel_overlap",
+                    message="row label must not overlap the estimate panel",
+                    target="row_label",
+                    box_refs=(row_label.box_id, estimate_panel.box_id),
+                )
+            )
+    if sample_panel is not None:
+        for sample_bar in _boxes_of_type(sidecar.layout_boxes, "sample_bar"):
+            if _box_within_box(sample_bar, sample_panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="sample_bar_outside_panel",
+                    message="sample-size bar must stay within the sample-size panel",
+                    target="sample_bar",
+                    box_refs=(sample_bar.box_id, sample_panel.box_id),
+                )
+            )
+        reference_line = _first_box_of_type(sidecar.guide_boxes, "reference_line")
+        if reference_line is not None and estimate_panel is not None and not _box_within_box(reference_line, estimate_panel):
+            issues.append(
+                _issue(
+                    rule_id="reference_line_outside_panel",
+                    message="reference line must stay within the estimate panel",
+                    target="reference_line",
+                    box_refs=(reference_line.box_id, estimate_panel.box_id),
+                )
+            )
+    if estimate_panel is not None:
+        for estimate_marker in _boxes_of_type(sidecar.layout_boxes, "estimate_marker"):
+            if _box_within_box(estimate_marker, estimate_panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="estimate_marker_outside_panel",
+                    message="estimate marker must stay within the estimate panel",
+                    target="estimate_marker",
+                    box_refs=(estimate_marker.box_id, estimate_panel.box_id),
+                )
+            )
+        for ci_segment in _boxes_of_type(sidecar.layout_boxes, "ci_segment"):
+            if _box_within_box(ci_segment, estimate_panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="ci_segment_outside_panel",
+                    message="confidence-interval segment must stay within the estimate panel",
+                    target="ci_segment",
+                    box_refs=(ci_segment.box_id, estimate_panel.box_id),
+                )
+            )
+
+    centers = sidecar.metrics.get("centers")
+    if not isinstance(centers, list) or not centers:
+        issues.append(
+            _issue(
+                rule_id="centers_missing",
+                message="multicenter overview requires non-empty center metrics",
+                target="metrics.centers",
+            )
+        )
+        return issues
+    for index, center in enumerate(centers):
+        if not isinstance(center, dict):
+            raise ValueError(f"layout_sidecar.metrics.centers[{index}] must be an object")
+        sample_size = _require_numeric(center.get("sample_size"), label=f"layout_sidecar.metrics.centers[{index}].sample_size")
+        lower = _require_numeric(center.get("lower"), label=f"layout_sidecar.metrics.centers[{index}].lower")
+        estimate = _require_numeric(center.get("estimate"), label=f"layout_sidecar.metrics.centers[{index}].estimate")
+        upper = _require_numeric(center.get("upper"), label=f"layout_sidecar.metrics.centers[{index}].upper")
+        if sample_size <= 0:
+            issues.append(
+                _issue(
+                    rule_id="sample_size_non_positive",
+                    message="sample size must be positive",
+                    target=f"metrics.centers[{index}]",
+                    observed=sample_size,
+                )
+            )
+        if lower <= estimate <= upper:
+            continue
+        issues.append(
+            _issue(
+                rule_id="estimate_outside_interval",
+                message="estimate must lie within the confidence interval",
+                target=f"metrics.centers[{index}]",
+                observed={"lower": lower, "estimate": estimate, "upper": upper},
+            )
+        )
+    return issues
+
+
 def _check_publication_shap_summary(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -750,6 +895,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
     normalized_profile = str(qc_profile or "").strip()
     if normalized_profile == "publication_evidence_curve":
         issues = _check_publication_evidence_curve(normalized_sidecar)
+    elif normalized_profile == "publication_decision_curve":
+        issues = _check_publication_evidence_curve(normalized_sidecar)
     elif normalized_profile == "publication_survival_curve":
         issues = _check_publication_survival_curve(normalized_sidecar)
     elif normalized_profile == "publication_embedding_scatter":
@@ -758,6 +905,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         issues = _check_publication_heatmap(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":
         issues = _check_publication_forest_plot(normalized_sidecar)
+    elif normalized_profile == "publication_multicenter_overview":
+        issues = _check_publication_multicenter_overview(normalized_sidecar)
     elif normalized_profile == "publication_shap_summary":
         issues = _check_publication_shap_summary(normalized_sidecar)
     else:

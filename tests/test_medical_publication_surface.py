@@ -845,6 +845,60 @@ def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     )
 
     assert "engine_id" in errors[0]
+
+
+def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "table2_time_to_event_performance_summary",
+                    "paper_role": "main_text",
+                    "input_schema_id": "time_to_event_performance_summary_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": ["paper/tables/T2_summary.md"],
+                },
+                {
+                    "table_id": "T3",
+                    "table_shell_id": "table3_clinical_interpretation_summary",
+                    "paper_role": "supplementary",
+                    "input_schema_id": "clinical_interpretation_summary_v1",
+                    "qc_profile": "publication_table_interpretation",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": ["paper/tables/T3_summary.md"],
+                },
+            ]
+        }
+    )
+
+    assert errors == []
+
+
+def test_validate_table_catalog_rejects_missing_md_export_for_second_stage_table() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "table2_time_to_event_performance_summary",
+                    "paper_role": "main_text",
+                    "input_schema_id": "time_to_event_performance_summary_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": ["paper/tables/T2_summary.csv"],
+                }
+            ]
+        }
+    )
+
+    assert "missing required export formats" in errors[0]
+    assert "md" in errors[0]
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
