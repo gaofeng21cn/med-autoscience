@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers._medical_display_surface_support import build_required_display_surface_stub_payload
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -178,35 +179,16 @@ def _write_display_surface_stubs(
         if _write_json_if_missing(shell_path, shell_payload):
             written_files.append(str(shell_path))
 
-        if item["requirement_key"] == "cohort_flow_figure":
-            cohort_flow_path = paper_root / "cohort_flow.json"
-            cohort_flow_payload = {
-                "schema_version": 1,
-                "shell_id": "cohort_flow_figure",
-                "display_id": item["display_id"],
-                "source_contract_path": reporting_contract_relpath,
-                "status": "required_pending_population_accounting",
-                "population_accounting": [],
-            }
-            if item.get("catalog_id"):
-                cohort_flow_payload["catalog_id"] = item["catalog_id"]
-            if _write_json_if_missing(cohort_flow_path, cohort_flow_payload):
-                written_files.append(str(cohort_flow_path))
-        if item["requirement_key"] == "table1_baseline_characteristics":
-            baseline_schema_path = paper_root / "baseline_characteristics_schema.json"
-            baseline_schema_payload = {
-                "schema_version": 1,
-                "table_shell_id": "table1_baseline_characteristics",
-                "display_id": item["display_id"],
-                "source_contract_path": reporting_contract_relpath,
-                "status": "required_pending_table_materialization",
-                "group_columns": [],
-                "variables": [],
-            }
-            if item.get("catalog_id"):
-                baseline_schema_payload["catalog_id"] = item["catalog_id"]
-            if _write_json_if_missing(baseline_schema_path, baseline_schema_payload):
-                written_files.append(str(baseline_schema_path))
+        stub = build_required_display_surface_stub_payload(
+            item=item,
+            reporting_contract_relpath=reporting_contract_relpath,
+        )
+        if stub is None:
+            continue
+        stub_filename, stub_payload = stub
+        stub_path = paper_root / stub_filename
+        if _write_json_if_missing(stub_path, stub_payload):
+            written_files.append(str(stub_path))
 
     return written_files
 

@@ -32,8 +32,30 @@ def _resolve_repo_root(*, module_file: Path | None = None) -> Path:
     return common_dir
 
 
+def _resolve_checkout_root(*, module_file: Path | None = None) -> Path:
+    candidate = (module_file or Path(__file__)).resolve().parents[2]
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=candidate,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return candidate
+    if completed.returncode != 0:
+        return candidate
+    checkout_root = Path(completed.stdout.strip())
+    if not checkout_root.is_absolute():
+        return candidate
+    return checkout_root
+
+
 REPO_ROOT = _resolve_repo_root()
+CHECKOUT_ROOT = _resolve_checkout_root()
 MANAGED_RUNTIME_PREFIX = (REPO_ROOT / ".venv").resolve()
+CHECKOUT_MANAGED_RUNTIME_PREFIX = (CHECKOUT_ROOT / ".venv").resolve()
 REQUIRED_RUNTIME_REQUIREMENTS = ("matplotlib>=3.9", "pandas>=2.2")
 CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (
     "matplotlib>=3.9",
@@ -123,9 +145,13 @@ def inspect_python_environment_contract(
 
 def _is_managed_runtime() -> bool:
     try:
-        return Path(sys.prefix).resolve() == MANAGED_RUNTIME_PREFIX
+        runtime_prefix = Path(sys.prefix).resolve()
     except OSError:
         return False
+    return runtime_prefix in {
+        MANAGED_RUNTIME_PREFIX,
+        CHECKOUT_MANAGED_RUNTIME_PREFIX,
+    }
 
 
 def ensure_python_environment_contract(

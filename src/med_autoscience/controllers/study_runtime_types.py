@@ -84,6 +84,11 @@ class StudyRuntimeReason(StrEnum):
     RUNTIME_REENTRY_NOT_READY_FOR_RESUME = "runtime_reentry_not_ready_for_resume"
     QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION = "quest_marked_running_but_no_live_session"
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
+    QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
+    QUEST_WAITING_FOR_SUBMISSION_METADATA = "quest_waiting_for_submission_metadata"
+    QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED = (
+        "quest_waiting_for_submission_metadata_but_auto_resume_disabled"
+    )
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
     QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"
@@ -104,6 +109,7 @@ class StudyRuntimeQuestStatus(StrEnum):
     IDLE = "idle"
     PAUSED = "paused"
     STOPPED = "stopped"
+    WAITING_FOR_USER = "waiting_for_user"
     RUNNING = "running"
     ACTIVE = "active"
     COMPLETED = "completed"

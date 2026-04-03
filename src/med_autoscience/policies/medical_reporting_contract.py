@@ -40,6 +40,7 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
     "kaplan_meier_grouped": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
+    "multicenter_generalizability_overview": ("multicenter_generalizability", "figure", "F5"),
 }
 
 
@@ -112,6 +113,7 @@ def resolve_medical_reporting_contract(
             "time_to_event_discrimination_calibration_panel",
             "kaplan_meier_grouped",
             "time_to_event_decision_curve",
+            "multicenter_generalizability_overview",
         )
 
     return MedicalReportingContract(
@@ -124,7 +126,9 @@ def resolve_medical_reporting_contract(
             item for item in figure_shell_requirements if item == "cohort_flow_figure"
         ),
         required_table_shells=table_shell_requirements,
-        required_evidence_templates=(),
+        required_evidence_templates=tuple(
+            item for item in figure_shell_requirements if item != "cohort_flow_figure"
+        ),
         display_registry_required=True,
         display_shell_plan=_build_display_shell_plan(
             figure_shell_requirements=figure_shell_requirements,
