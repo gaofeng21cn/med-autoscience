@@ -76,9 +76,13 @@ def test_study_runtime_router_sync_completion_uses_router_message_builder_bindin
 
 def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     startup = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
     completion = importlib.import_module("med_autoscience.controllers.study_runtime_completion")
 
+    assert router._record_quest_runtime_audits is decision._record_quest_runtime_audits
+    assert router._status_state is decision._status_state
+    assert router._status_payload is decision._status_payload
     assert router._prepare_runtime_overlay is startup._prepare_runtime_overlay
     assert router._audit_runtime_overlay is startup._audit_runtime_overlay
     assert router._build_startup_contract is startup._build_startup_contract
