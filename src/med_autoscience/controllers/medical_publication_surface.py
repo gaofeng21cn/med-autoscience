@@ -366,6 +366,31 @@ def inspect_required_text_contract(
     return True, text, []
 
 
+def load_required_display_catalog_ids(path: Path) -> tuple[set[str], set[str]]:
+    if not path.exists():
+        return set(), set()
+    payload = load_json(path, default={}) or {}
+    if not isinstance(payload, dict):
+        raise ValueError(f"medical_reporting_contract at {path} must be a JSON object")
+    figure_ids: set[str] = set()
+    table_ids: set[str] = set()
+    display_shell_plan = payload.get("display_shell_plan")
+    if not isinstance(display_shell_plan, list):
+        return figure_ids, table_ids
+    for item in display_shell_plan:
+        if not isinstance(item, dict):
+            continue
+        catalog_id = str(item.get("catalog_id") or "").strip()
+        display_kind = str(item.get("display_kind") or "").strip()
+        if not catalog_id:
+            continue
+        if display_kind == "figure":
+            figure_ids.add(catalog_id)
+        elif display_kind == "table":
+            table_ids.add(catalog_id)
+    return figure_ids, table_ids
+
+
 def figure_ids_from_catalog(path: Path) -> set[str]:
     payload = load_json(path, default={}) or {}
     figure_ids: set[str] = set()
@@ -479,6 +504,54 @@ def inspect_figure_semantics_coverage(
             }
         )
     return hits
+
+
+def inspect_required_display_catalog_coverage(
+    *,
+    reporting_contract_path: Path,
+    figure_ids: set[str],
+    table_ids: set[str],
+) -> tuple[bool, list[dict[str, Any]]]:
+    try:
+        required_figure_ids, required_table_ids = load_required_display_catalog_ids(reporting_contract_path)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return False, [
+            {
+                "path": str(reporting_contract_path),
+                "location": "file",
+                "pattern_id": "required_display_catalog_contract_invalid",
+                "phrase": reporting_contract_path.name,
+                "excerpt": str(exc),
+            }
+        ]
+    hits: list[dict[str, Any]] = []
+    for figure_id in sorted(required_figure_ids - figure_ids):
+        hits.append(
+            {
+                "path": str(reporting_contract_path),
+                "location": "display_shell_plan",
+                "pattern_id": "required_display_catalog_item_missing",
+                "phrase": figure_id,
+                "excerpt": (
+                    f"Required figure catalog item `{figure_id}` declared by "
+                    "medical_reporting_contract.display_shell_plan is missing from the current figure catalog."
+                ),
+            }
+        )
+    for table_id in sorted(required_table_ids - table_ids):
+        hits.append(
+            {
+                "path": str(reporting_contract_path),
+                "location": "display_shell_plan",
+                "pattern_id": "required_display_catalog_item_missing",
+                "phrase": table_id,
+                "excerpt": (
+                    f"Required table catalog item `{table_id}` declared by "
+                    "medical_reporting_contract.display_shell_plan is missing from the current table catalog."
+                ),
+            }
+        )
+    return not hits, hits
 
 
 def inspect_derived_analysis_links(
@@ -652,6 +725,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         forbidden_hits.extend(scan_markdown_table_body(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
+    reporting_contract_path = state.paper_root / "medical_reporting_contract.json"
+    required_display_catalog_coverage_valid, required_display_catalog_hits = inspect_required_display_catalog_coverage(
+        reporting_contract_path=reporting_contract_path,
+        figure_ids=figure_ids,
+        table_ids=table_ids,
+    )
     methods_manifest_valid, methods_manifest_hits = inspect_required_json_contract(
         path=state.methods_implementation_manifest_path,
         validator=medical_surface_policy.validate_methods_implementation_manifest,
@@ -772,6 +851,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits: list[dict[str, Any]] = []
     hits.extend(figure_catalog_hits)
     hits.extend(table_catalog_hits)
+    hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
     hits.extend(results_narrative_hits)
     hits.extend(figure_semantics_hits)
@@ -791,6 +871,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_catalog_missing_or_incomplete")
     if not table_catalog_valid:
         blockers.append("table_catalog_missing_or_incomplete")
+    if not required_display_catalog_coverage_valid:
+        blockers.append("required_display_catalog_coverage_incomplete")
     ama_csl_present = state.ama_csl_path.exists()
     ama_defaults_present = ama_pdf_defaults_present(state.review_defaults_path, state.ama_csl_path)
     if not ama_defaults_present:
@@ -837,6 +919,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "table_catalog_path": str(state.table_catalog_path),
         "table_catalog_present": state.table_catalog_path.exists(),
         "table_catalog_valid": table_catalog_valid,
+        "required_display_catalog_contract_path": str(reporting_contract_path),
+        "required_display_catalog_contract_present": reporting_contract_path.exists(),
+        "required_display_catalog_coverage_valid": required_display_catalog_coverage_valid,
         "methods_implementation_manifest_path": str(state.methods_implementation_manifest_path),
         "methods_implementation_manifest_present": state.methods_implementation_manifest_path.exists(),
         "methods_implementation_manifest_valid": methods_manifest_valid,
@@ -882,6 +967,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- figure_catalog_valid: `{report['figure_catalog_valid']}`",
         f"- table_catalog_present: `{report['table_catalog_present']}`",
         f"- table_catalog_valid: `{report['table_catalog_valid']}`",
+        f"- required_display_catalog_contract_present: `{report.get('required_display_catalog_contract_present', False)}`",
+        f"- required_display_catalog_coverage_valid: `{report.get('required_display_catalog_coverage_valid', True)}`",
         f"- methods_implementation_manifest_present: `{report['methods_implementation_manifest_present']}`",
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
         f"- results_narrative_map_present: `{report['results_narrative_map_present']}`",
