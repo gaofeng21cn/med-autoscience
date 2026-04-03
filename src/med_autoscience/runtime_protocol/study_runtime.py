@@ -35,6 +35,15 @@ class StartupContractValidationStatus(StrEnum):
     BLOCKED = "blocked"
 
 
+class StartupHydrationStatus(StrEnum):
+    HYDRATED = "hydrated"
+
+
+class StartupHydrationValidationStatus(StrEnum):
+    CLEAR = "clear"
+    BLOCKED = "blocked"
+
+
 @dataclass(frozen=True)
 class StartupContractValidation:
     status: StartupContractValidationStatus
@@ -73,6 +82,151 @@ class StartupContractValidation:
             raise ValueError(f"unknown startup contract validation status: {value}") from exc
 
 
+@dataclass(frozen=True)
+class StartupHydrationReport:
+    status: StartupHydrationStatus
+    recorded_at: str
+    quest_root: str
+    entry_state_summary: str
+    literature_report: dict[str, Any]
+    written_files: tuple[str, ...]
+    report_path: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+        object.__setattr__(self, "written_files", tuple(str(item) for item in self.written_files))
+        if self.report_path is not None:
+            object.__setattr__(self, "report_path", str(self.report_path))
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "status": self.status.value,
+            "recorded_at": self.recorded_at,
+            "quest_root": self.quest_root,
+            "entry_state_summary": self.entry_state_summary,
+            "literature_report": dict(self.literature_report),
+            "written_files": list(self.written_files),
+        }
+        if self.report_path is not None:
+            payload["report_path"] = self.report_path
+        return payload
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StartupHydrationReport":
+        if not isinstance(payload, dict):
+            raise TypeError("startup hydration payload must be a mapping")
+        written_files = payload.get("written_files") or []
+        if not isinstance(written_files, list):
+            raise ValueError("startup hydration payload written_files must be a list")
+        literature_report = payload.get("literature_report") or {}
+        if not isinstance(literature_report, dict):
+            raise ValueError("startup hydration payload literature_report must be a mapping")
+        return cls(
+            status=payload.get("status"),
+            recorded_at=str(payload.get("recorded_at") or ""),
+            quest_root=str(payload.get("quest_root") or ""),
+            entry_state_summary=str(payload.get("entry_state_summary") or ""),
+            literature_report=dict(literature_report),
+            written_files=tuple(str(item) for item in written_files),
+            report_path=str(payload.get("report_path") or "") or None,
+        )
+
+    @staticmethod
+    def _normalize_status(value: StartupHydrationStatus | str) -> StartupHydrationStatus:
+        if isinstance(value, StartupHydrationStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StartupHydrationStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown startup hydration status: {value}") from exc
+
+
+@dataclass(frozen=True)
+class StartupHydrationValidationReport:
+    status: StartupHydrationValidationStatus
+    recorded_at: str
+    quest_root: str
+    blockers: tuple[str, ...]
+    medical_analysis_contract_status: str | None
+    medical_reporting_contract_status: str | None
+    medical_analysis_contract_path: str
+    medical_reporting_contract_path: str
+    report_path: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+        object.__setattr__(self, "blockers", tuple(str(item) for item in self.blockers))
+        if self.medical_analysis_contract_status == "":
+            object.__setattr__(self, "medical_analysis_contract_status", None)
+        if self.medical_reporting_contract_status == "":
+            object.__setattr__(self, "medical_reporting_contract_status", None)
+        if self.report_path is not None:
+            object.__setattr__(self, "report_path", str(self.report_path))
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "status": self.status.value,
+            "recorded_at": self.recorded_at,
+            "quest_root": self.quest_root,
+            "blockers": list(self.blockers),
+            "contract_statuses": {
+                "medical_analysis_contract": self.medical_analysis_contract_status,
+                "medical_reporting_contract": self.medical_reporting_contract_status,
+            },
+            "checked_paths": {
+                "medical_analysis_contract_path": self.medical_analysis_contract_path,
+                "medical_reporting_contract_path": self.medical_reporting_contract_path,
+            },
+        }
+        if self.report_path is not None:
+            payload["report_path"] = self.report_path
+        return payload
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StartupHydrationValidationReport":
+        if not isinstance(payload, dict):
+            raise TypeError("startup hydration validation payload must be a mapping")
+        blockers = payload.get("blockers") or []
+        if not isinstance(blockers, list):
+            raise ValueError("startup hydration validation blockers must be a list")
+        contract_statuses = payload.get("contract_statuses") or {}
+        if not isinstance(contract_statuses, dict):
+            raise ValueError("startup hydration validation contract_statuses must be a mapping")
+        checked_paths = payload.get("checked_paths") or {}
+        if not isinstance(checked_paths, dict):
+            raise ValueError("startup hydration validation checked_paths must be a mapping")
+        return cls(
+            status=payload.get("status"),
+            recorded_at=str(payload.get("recorded_at") or ""),
+            quest_root=str(payload.get("quest_root") or ""),
+            blockers=tuple(str(item) for item in blockers),
+            medical_analysis_contract_status=(
+                str(contract_statuses.get("medical_analysis_contract") or "") or None
+            ),
+            medical_reporting_contract_status=(
+                str(contract_statuses.get("medical_reporting_contract") or "") or None
+            ),
+            medical_analysis_contract_path=str(checked_paths.get("medical_analysis_contract_path") or ""),
+            medical_reporting_contract_path=str(checked_paths.get("medical_reporting_contract_path") or ""),
+            report_path=str(payload.get("report_path") or "") or None,
+        )
+
+    @staticmethod
+    def _normalize_status(
+        value: StartupHydrationValidationStatus | str,
+    ) -> StartupHydrationValidationStatus:
+        if isinstance(value, StartupHydrationValidationStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StartupHydrationValidationStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown startup hydration validation status: {value}") from exc
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -82,6 +236,44 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
+
+
+def _startup_hydration_report_path(quest_root: Path) -> Path:
+    return Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "startup" / "hydration_report.json"
+
+
+def _startup_hydration_validation_report_path(quest_root: Path) -> Path:
+    return (
+        Path(quest_root).expanduser().resolve()
+        / "artifacts"
+        / "reports"
+        / "startup"
+        / "hydration_validation_report.json"
+    )
+
+
+def write_startup_hydration_report(
+    *,
+    quest_root: Path,
+    report: StartupHydrationReport,
+) -> StartupHydrationReport:
+    path = _startup_hydration_report_path(quest_root)
+    payload = report.to_dict()
+    payload["report_path"] = str(path)
+    _write_json(path, payload)
+    return StartupHydrationReport.from_payload(payload)
+
+
+def write_startup_hydration_validation_report(
+    *,
+    quest_root: Path,
+    report: StartupHydrationValidationReport,
+) -> StartupHydrationValidationReport:
+    path = _startup_hydration_validation_report_path(quest_root)
+    payload = report.to_dict()
+    payload["report_path"] = str(path)
+    _write_json(path, payload)
+    return StartupHydrationValidationReport.from_payload(payload)
 
 
 def resolve_study_runtime_context(

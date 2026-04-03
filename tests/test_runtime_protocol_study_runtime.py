@@ -251,6 +251,50 @@ def test_build_hydration_payload_returns_protocol_surface() -> None:
     }
 
 
+def test_write_startup_hydration_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    report = module.StartupHydrationReport(
+        status=module.StartupHydrationStatus.HYDRATED,
+        recorded_at="2026-04-03T08:00:00+00:00",
+        quest_root=str(quest_root),
+        entry_state_summary="Study root: /tmp/workspace/studies/001-risk",
+        literature_report={"record_count": 1},
+        written_files=(str(quest_root / "paper" / "medical_analysis_contract.json"),),
+        report_path=None,
+    )
+
+    written = module.write_startup_hydration_report(quest_root=quest_root, report=report)
+
+    expected_path = quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"
+    assert written.report_path == str(expected_path)
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert payload == written.to_dict()
+
+
+def test_write_startup_hydration_validation_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    report = module.StartupHydrationValidationReport(
+        status=module.StartupHydrationValidationStatus.CLEAR,
+        recorded_at="2026-04-03T08:05:00+00:00",
+        quest_root=str(quest_root),
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_contract_path=str(quest_root / "paper" / "medical_analysis_contract.json"),
+        medical_reporting_contract_path=str(quest_root / "paper" / "medical_reporting_contract.json"),
+        report_path=None,
+    )
+
+    written = module.write_startup_hydration_validation_report(quest_root=quest_root, report=report)
+
+    expected_path = quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
+    assert written.report_path == str(expected_path)
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert payload == written.to_dict()
+
+
 @pytest.mark.parametrize(
     ("create_payload", "message"),
     [

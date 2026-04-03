@@ -151,3 +151,6 @@ def test_startup_hydration_validation_clears_when_display_registry_and_shells_ex
 
     assert report["status"] == "clear"
     assert report["blockers"] == []
+    assert report["report_path"] == str(
+        quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
+    )
