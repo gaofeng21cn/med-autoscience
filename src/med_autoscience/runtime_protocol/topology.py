@@ -29,6 +29,30 @@ def _load_yaml_mapping(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _extract_study_id_from_payload(payload: dict[str, Any]) -> str | None:
+    direct = payload.get("study_id")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+
+    runtime_reentry_gate = payload.get("runtime_reentry_gate")
+    if isinstance(runtime_reentry_gate, dict):
+        nested = runtime_reentry_gate.get("study_id")
+        if isinstance(nested, str) and nested.strip():
+            return nested.strip()
+
+    startup_contract = payload.get("startup_contract")
+    if isinstance(startup_contract, dict):
+        nested = startup_contract.get("study_id")
+        if isinstance(nested, str) and nested.strip():
+            return nested.strip()
+        runtime_reentry_gate = startup_contract.get("runtime_reentry_gate")
+        if isinstance(runtime_reentry_gate, dict):
+            nested = runtime_reentry_gate.get("study_id")
+            if isinstance(nested, str) and nested.strip():
+                return nested.strip()
+    return None
+
+
 def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
     resolved = _resolve_path(paper_root)
     if resolved.name != "paper":
@@ -51,10 +75,22 @@ def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
     if not quest_yaml_path.exists():
         raise FileNotFoundError(f"missing worktree quest.yaml: {quest_yaml_path}")
     payload = _load_yaml_mapping(quest_yaml_path)
-    study_id = payload.get("quest_id")
-    if not isinstance(study_id, str) or not study_id.strip():
+    study_id = _extract_study_id_from_payload(payload)
+    if study_id:
+        return study_id
+
+    quest_root = resolve_quest_root_from_worktree_root(resolved_worktree_root)
+    quest_root_yaml_path = quest_root / "quest.yaml"
+    if quest_root_yaml_path.exists():
+        quest_payload = _load_yaml_mapping(quest_root_yaml_path)
+        study_id = _extract_study_id_from_payload(quest_payload)
+        if study_id:
+            return study_id
+
+    fallback_quest_id = payload.get("quest_id")
+    if not isinstance(fallback_quest_id, str) or not fallback_quest_id.strip():
         raise ValueError(f"missing string quest_id in {quest_yaml_path}")
-    return study_id.strip()
+    return fallback_quest_id.strip()
 
 
 def _resolve_workspace_root_from_quest_root(quest_root: Path) -> Path:

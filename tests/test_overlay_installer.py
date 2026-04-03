@@ -464,6 +464,16 @@ def test_load_overlay_skill_text_for_write_does_not_advertise_tooling_in_caption
     assert "https://deepscientist" not in write_text
 
 
+def test_load_overlay_skill_text_for_write_keeps_author_metadata_gaps_non_blocking_when_package_is_auditable() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    write_text = module.load_overlay_skill_text("write")
+
+    assert "must not trigger a blocking request by default" in write_text
+    assert "Materialize the auditable package first" in write_text
+    assert "title-page or declaration metadata and an auditable package already exists" in write_text
+
+
 def test_load_overlay_skill_text_for_journal_resolution_requires_official_sources() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
