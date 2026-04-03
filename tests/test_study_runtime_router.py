@@ -1136,6 +1136,128 @@ def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(
     assert outcome.startup_payload_path is None
 
 
+def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Prediction framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "resume",
+            "reason": "quest_paused",
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_sync_existing_quest_startup_context",
+        lambda **kwargs: {"ok": True},
+    )
+    monkeypatch.setattr(
+        module,
+        "_run_startup_hydration",
+        lambda **kwargs: (
+            make_startup_hydration_report(kwargs["quest_root"]),
+            make_startup_hydration_validation_report(kwargs["quest_root"]),
+        ),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    outcome = module._execute_resume_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.RESUME
+    assert outcome.daemon_result == {"resume": {"ok": True, "status": "running"}}
+    assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
+    assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
+
+
+def test_execute_pause_runtime_decision_records_nested_pause_daemon_step(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "pause",
+            "reason": "runtime_reentry_not_ready_for_running_quest",
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "paused"},
+    )
+
+    outcome = module._execute_pause_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.PAUSE
+    assert outcome.daemon_result == {"pause": {"ok": True, "status": "paused"}}
+    assert outcome.daemon_step("pause") == {"ok": True, "status": "paused"}
+    assert status.quest_status is module.StudyRuntimeQuestStatus.PAUSED
+
+
 def test_study_runtime_execution_outcome_rejects_unknown_binding_action() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
 
@@ -1188,6 +1310,103 @@ def test_study_runtime_execution_outcome_rejects_invalid_daemon_step_payload() -
         outcome.record_daemon_step("unexpected_step", {"ok": True})
     with pytest.raises(TypeError, match="daemon step payload must be dict"):
         outcome.record_daemon_step("resume", [])
+
+
+def test_study_runtime_execution_outcome_serializes_single_resume_and_pause_steps_as_legacy_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    resume_outcome = module.StudyRuntimeExecutionOutcome(binding_last_action="resume")
+    resume_outcome.record_daemon_step("resume", {"ok": True, "status": "running"})
+
+    pause_outcome = module.StudyRuntimeExecutionOutcome(binding_last_action="pause")
+    pause_outcome.record_daemon_step("pause", {"ok": True, "status": "paused"})
+
+    create_outcome = module.StudyRuntimeExecutionOutcome(binding_last_action="create_and_start")
+    create_outcome.record_daemon_step("create", {"ok": True, "snapshot": {"status": "created"}})
+    create_outcome.record_daemon_step("resume", {"ok": True, "status": "running"})
+
+    assert resume_outcome.serialized_daemon_result() == {"ok": True, "status": "running"}
+    assert pause_outcome.serialized_daemon_result() == {"ok": True, "status": "paused"}
+    assert create_outcome.serialized_daemon_result() == {
+        "create": {"ok": True, "snapshot": {"status": "created"}},
+        "resume": {"ok": True, "status": "running"},
+    }
+
+
+def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "active"},
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "persist_runtime_artifacts",
+        lambda **kwargs: seen.setdefault("persist_calls", []).append(kwargs)
+        or module.study_runtime_protocol.StudyRuntimeArtifacts(
+            runtime_binding_path=kwargs["runtime_binding_path"],
+            launch_report_path=kwargs["launch_report_path"],
+            startup_payload_path=kwargs["startup_payload_path"],
+        ),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert len(seen["persist_calls"]) == 1
+    assert seen["persist_calls"][0]["last_action"] == "resume"
+    assert seen["persist_calls"][0]["daemon_result"] == {"ok": True, "status": "active"}
 
 
 def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> None:
