@@ -61,46 +61,27 @@
 
 ## 医学论文展示面已经进入正式模板化阶段
 
-`MedAutoScience` 现在不是把论文图表交给 Agent 自由发挥，而是已经有一套正式注册、可审计、可继续扩充的医学论文展示面。
+`MedAutoScience` 正在把医学论文中高频、强约束、直接影响投稿质量的图表与表格，沉淀为正式模板能力。平台约束的不只是出图风格，更包括临床论文常用的展示结构、字段组织、版式边界与质量检查，以减少文字遮挡、元素重叠、布局失衡和展示逻辑不一致等常见问题。
 
-当前已经进入 audited surface 的包括：
+目前已经建立面向临床医学 AI 论文的 8 大类模板体系，覆盖：
 
-- `20` 个 evidence figure 模板
-- `Figure 1` cohort flow shell
-- `Table 1`、`Table 2`、`Table 3` 三个正式 table shell
+- 预测性能
+- 临床效用
+- 生存与时间结局
+- 数据结构与降维分布
+- 矩阵模式与热图
+- 效应量与亚组比较
+- 模型解释
+- 泛化与外部验证
 
-这些模板不是“仅有名字”的 catalog 项，而是同时具备：
+这一体系面向医学论文中高频使用的 40 种图表类型持续扩展，目标是直接支持发表级高质量论文配图与表格输出。当前已经纳入正式模板体系的，包括 20 个证据图模板，以及临床入组流程图、基线特征表、主要结果表、补充结果表等高频展示壳层。
 
-- 注册过的 `template_id` / `shell_id`
-- 对应的输入 schema 约束
-- 固定 renderer family
-- 固定 export contract
-- 固定 QC profile
-- 可落盘、可审计的 materialization 与 catalog 记录
+在实际投稿中，展示质量主要取决于模板约束、字段组织、导出边界与质量检查是否一致，而不是临时增加多少绘图脚本。基于这一原则，`MedAutoScience` 对常见展示内容采用统一模板体系，并沿同一套可审计机制持续扩展。
 
-这意味着：
-
-- 常见医学论文图表不再依赖一次性即兴绘图
-- 高质量模板输出是平台正式能力的一部分
-- 后续扩容会继续沿同一条 audited contract 主线推进，而不是零散加脚本
-
-目前模板已经覆盖的主类包括：
-
-- Prediction Performance
-- Clinical Utility
-- Time-to-Event
-- Data Geometry
-- Matrix Pattern
-- Effect Estimate
-- Model Explanation
-- Generalizability
-
-如果你关心“当前已经实现了哪些模板、每个模板用什么 schema、什么 renderer、什么 QC profile”，请直接看：
+如果你想了解当前已经支持的具体模板、适用场景和扩展方向，可以继续查看：
 
 - [医学展示面审计指南](guides/medical_display_audit_guide.md)
 - [医学展示面模板目录](guides/medical_display_template_catalog.md)
-
-当前内部扩容目标已经收敛为 `v1 = 40` 个总模板；后续会继续把临床医学 AI 论文中高频、强约束、可审计的图表类型逐步纳入正式模板面。
 
 ## 典型交付结果
 
