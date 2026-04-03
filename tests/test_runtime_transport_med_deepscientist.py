@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import subprocess
+from urllib import error
 
 import pytest
 
@@ -94,13 +96,61 @@ def test_resolve_daemon_url_ignores_stale_daemon_state_when_health_home_mismatch
     assert result == "http://127.0.0.1:21001"
 
 
+def test_ensure_managed_daemon_restarts_stale_launcher_state(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    launcher_path = tmp_path / "bin" / "ds.js"
+    write_text(
+        runtime_root.parent / "config.env",
+        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+    )
+    write_text(launcher_path, "#!/usr/bin/env bash\nexit 0\n")
+    launcher_path.chmod(0o755)
+
+    status_stale = {
+        "healthy": False,
+        "identity_match": False,
+        "managed": True,
+        "home": str(runtime_root),
+        "url": "http://127.0.0.1:21001",
+        "daemon": {"pid": 77838},
+        "health": None,
+    }
+    status_healthy = {
+        "healthy": True,
+        "identity_match": True,
+        "managed": True,
+        "home": str(runtime_root),
+        "url": "http://127.0.0.1:21001",
+        "daemon": {"pid": 88991},
+        "health": {"status": "ok", "home": str(runtime_root), "daemon_id": "daemon-001"},
+    }
+    calls: list[list[str]] = []
+
+    def fake_run(args, capture_output, text, check, timeout):
+        calls.append(list(args))
+        if args[-1] == "--status":
+            payload = status_stale if len([item for item in calls if item[-1] == "--status"]) == 1 else status_healthy
+            return subprocess.CompletedProcess(args, 1 if payload is status_stale else 0, json.dumps(payload), "")
+        if "--daemon-only" in args:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError(f"unexpected launcher args: {args}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.ensure_managed_daemon(runtime_root=runtime_root)
+
+    assert result == status_healthy
+    assert calls == [
+        [str(launcher_path), "--home", str(runtime_root), "--status"],
+        [str(launcher_path), "--home", str(runtime_root), "--daemon-only", "--no-browser", "--skip-update-check"],
+        [str(launcher_path), "--home", str(runtime_root), "--status"],
+    ]
+
+
 def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
-    write_text(
-        runtime_root / "config" / "config.yaml",
-        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
-    )
     seen: dict[str, object] = {}
 
     class FakeResponse:
@@ -121,6 +171,7 @@ def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> No
         return FakeResponse()
 
     monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module, "ensure_managed_daemon", lambda *, runtime_root: {"url": "http://127.0.0.1:20999"})
 
     result = module.create_quest(
         runtime_root=runtime_root,
@@ -136,6 +187,77 @@ def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> No
     assert seen["method"] == "POST"
     assert seen["timeout"] == 10
     assert seen["payload"] == {"goal": "Launch study 001", "quest_id": "001-risk", "auto_start": True}
+
+
+def test_create_quest_ensures_managed_daemon_before_posting(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "ensure_managed_daemon", lambda *, runtime_root: {"url": "http://127.0.0.1:21999"})
+    monkeypatch.setattr(
+        module,
+        "_post_json",
+        lambda *, url, payload, timeout=10: seen.update({"url": url, "payload": payload, "timeout": timeout})
+        or {"ok": True, "snapshot": {"quest_id": "001-risk"}},
+    )
+    monkeypatch.setattr(
+        module,
+        "resolve_daemon_url",
+        lambda *, runtime_root: (_ for _ in ()).throw(AssertionError("create_quest should ensure daemon first")),
+    )
+
+    result = module.create_quest(
+        runtime_root=runtime_root,
+        payload={"quest_id": "001-risk", "auto_start": False},
+    )
+
+    assert result == {"ok": True, "snapshot": {"quest_id": "001-risk"}}
+    assert seen == {
+        "url": "http://127.0.0.1:21999/api/quests",
+        "payload": {"quest_id": "001-risk", "auto_start": False},
+        "timeout": 10,
+    }
+
+
+def test_create_quest_wraps_http_error_as_runtime_error(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+
+    class FakeHttpError(error.HTTPError):
+        def __init__(self) -> None:
+            super().__init__(
+                url="http://127.0.0.1:21999/api/quests",
+                code=503,
+                msg="Service Unavailable",
+                hdrs=None,
+                fp=None,
+            )
+
+        def read(self) -> bytes:
+            return b'{"error":"daemon rejected create"}'
+
+    monkeypatch.setattr(module, "ensure_managed_daemon", lambda *, runtime_root: {"url": "http://127.0.0.1:21999"})
+    monkeypatch.setattr(module, "_post_json", lambda **kwargs: (_ for _ in ()).throw(FakeHttpError()))
+
+    with pytest.raises(RuntimeError, match='Quest create request failed with HTTP 503: \\{"error":"daemon rejected create"\\}'):
+        module.create_quest(runtime_root=runtime_root, payload={"quest_id": "001-risk"})
+
+
+def test_ensure_managed_daemon_wraps_launcher_contract_errors(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+
+    monkeypatch.setattr(
+        module,
+        "_run_launcher",
+        lambda *, runtime_root, args, timeout=120: (_ for _ in ()).throw(
+            ValueError("MED_DEEPSCIENTIST_LAUNCHER is not configured")
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="launcher contract failed"):
+        module.ensure_managed_daemon(runtime_root=runtime_root)
 
 
 def test_chat_quest_posts_text_and_reply_target(monkeypatch, tmp_path: Path) -> None:
@@ -424,6 +546,39 @@ def test_resume_quest_posts_resume_action(monkeypatch, tmp_path: Path) -> None:
     }
 
 
+def test_post_quest_control_ensures_managed_daemon_before_resume(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "ensure_managed_daemon", lambda *, runtime_root: {"url": "http://127.0.0.1:21999"})
+    monkeypatch.setattr(
+        module,
+        "_post_json",
+        lambda *, url, payload, timeout=10: seen.update({"url": url, "payload": payload, "timeout": timeout})
+        or {"ok": True, "status": "running"},
+    )
+    monkeypatch.setattr(
+        module,
+        "resolve_daemon_url",
+        lambda *, runtime_root: (_ for _ in ()).throw(AssertionError("resume should ensure daemon first")),
+    )
+
+    result = module.post_quest_control(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        action="resume",
+        source="medautosci-test",
+    )
+
+    assert result == {"ok": True, "status": "running"}
+    assert seen == {
+        "url": "http://127.0.0.1:21999/api/quests/001-risk/control",
+        "payload": {"action": "resume", "source": "medautosci-test"},
+        "timeout": 10,
+    }
+
+
 def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -452,6 +607,40 @@ def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Pat
     }
 
 
+def test_update_quest_startup_context_writes_locally_when_daemon_is_unreachable(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(
+        quest_root / "quest.yaml",
+        "quest_id: 001-risk\nstatus: paused\nstartup_contract:\n  scope: scout\n",
+    )
+
+    def fake_patch_json(**kwargs):
+        raise error.URLError(ConnectionRefusedError(61, "Connection refused"))
+
+    monkeypatch.setattr(module, "_patch_json", fake_patch_json)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+
+    result = module.update_quest_startup_context(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        startup_contract={"scope": "full_research"},
+    )
+
+    quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
+
+    assert result["ok"] is True
+    assert result["sync_mode"] == "local_file"
+    assert result["snapshot"]["startup_contract"] == {"scope": "full_research"}
+    assert quest_payload["startup_contract"] == {"scope": "full_research"}
+    assert isinstance(quest_payload.get("updated_at"), str)
+    assert quest_payload["updated_at"]
+
+
 def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -472,6 +661,85 @@ def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
         "action": "pause",
         "source": "medautosci-test",
     }
+
+
+def test_pause_quest_writes_locally_when_daemon_is_unreachable_and_no_active_run_id(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstatus: active\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "active",
+                "display_status": "active",
+                "active_run_id": None,
+                "stop_reason": None,
+            }
+        )
+        + "\n",
+    )
+
+    def fake_post_json(**kwargs):
+        raise error.URLError(ConnectionRefusedError(61, "Connection refused"))
+
+    monkeypatch.setattr(module, "_post_json", fake_post_json)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+
+    result = module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+
+    runtime_state = module._load_json_dict(quest_root / ".ds" / "runtime_state.json")
+    quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
+
+    assert result["ok"] is True
+    assert result["sync_mode"] == "local_file"
+    assert result["status"] == "paused"
+    assert result["snapshot"]["status"] == "paused"
+    assert runtime_state["status"] == "paused"
+    assert runtime_state["display_status"] == "paused"
+    assert runtime_state["active_run_id"] is None
+    assert runtime_state["stop_reason"] == "user_pause"
+    assert isinstance(runtime_state.get("last_transition_at"), str)
+    assert runtime_state["last_transition_at"]
+    assert quest_payload["status"] == "paused"
+    assert isinstance(quest_payload.get("updated_at"), str)
+    assert quest_payload["updated_at"]
+
+
+def test_pause_quest_refuses_local_fallback_when_active_run_id_is_present(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstatus: active\nactive_run_id: run-live\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "active",
+                "display_status": "active",
+                "active_run_id": "run-live",
+            }
+        )
+        + "\n",
+    )
+
+    def fake_post_json(**kwargs):
+        raise error.URLError(ConnectionRefusedError(61, "Connection refused"))
+
+    monkeypatch.setattr(module, "_post_json", fake_post_json)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+
+    with pytest.raises(RuntimeError, match="active_run_id"):
+        module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
 
 def test_stop_quest_posts_stop_action(monkeypatch, tmp_path: Path) -> None:
@@ -819,4 +1087,170 @@ def test_inspect_quest_live_execution_combines_runtime_and_bash_audits(monkeypat
             "live_session_count": 0,
             "live_session_ids": [],
         },
+    }
+
+
+def test_inspect_quest_live_execution_falls_back_to_local_runtime_state_contract(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstatus: active\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "active",
+                "display_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": None,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": "daemon unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": "daemon unavailable",
+        },
+    )
+
+    result = module.inspect_quest_live_execution(runtime_root=runtime_root, quest_id="001-risk")
+
+    assert result == {
+        "ok": True,
+        "status": "none",
+        "source": "local_runtime_state_contract",
+        "active_run_id": None,
+        "runner_live": False,
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": None,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": "daemon unavailable",
+        },
+        "bash_session_audit": {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": "daemon unavailable",
+        },
+        "local_runtime_state": {
+            "status": "active",
+            "active_run_id": None,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "decision",
+        },
+        "probe_error": "daemon unavailable | daemon unavailable",
+    }
+
+
+def test_inspect_quest_live_execution_keeps_unknown_when_local_runtime_state_is_running(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstatus: running\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "running",
+                "display_status": "running",
+                "active_run_id": None,
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": None,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": "daemon unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": "daemon unavailable",
+        },
+    )
+
+    result = module.inspect_quest_live_execution(runtime_root=runtime_root, quest_id="001-risk")
+
+    assert result == {
+        "ok": False,
+        "status": "unknown",
+        "source": "combined_runner_or_bash_session",
+        "active_run_id": None,
+        "runner_live": False,
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": None,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": "daemon unavailable",
+        },
+        "bash_session_audit": {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": "daemon unavailable",
+        },
+        "error": "daemon unavailable | daemon unavailable",
     }

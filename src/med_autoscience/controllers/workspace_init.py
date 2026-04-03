@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import json
 import re
@@ -87,6 +88,33 @@ def _render_workspace_rules() -> str:
         "- 边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进。\n"
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         f"- {automation_ready_summary}\n"
+    )
+
+
+def _medautoscience_repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) -> str:
+    repo_relpath = Path(os.path.relpath(_medautoscience_repo_root(), workspace_root)).as_posix()
+    project_name = f"{_slugify_workspace_name(workspace_name)}-workspace"
+    return (
+        "[project]\n"
+        f'name = "{project_name}"\n'
+        'version = "0.1.0"\n'
+        f'description = "Managed Python environment for the {workspace_name} workspace."\n'
+        'requires-python = ">=3.12,<3.13"\n'
+        "dependencies = [\n"
+        '  "med-autoscience",\n'
+        "]\n\n"
+        "[dependency-groups]\n"
+        "dev = [\n"
+        '  "pytest>=9,<10",\n'
+        "]\n\n"
+        "[tool.uv]\n"
+        'default-groups = ["dev"]\n\n'
+        "[tool.uv.sources]\n"
+        f'med-autoscience = {{ path = "{repo_relpath}", editable = true }}\n'
     )
 
 
@@ -272,8 +300,7 @@ def _render_med_deepscientist_shared() -> str:
         "load_med_deepscientist_contract() {\n"
         "  local payload_json\n"
         '  payload_json="$(\n'
-        '    PYTHONPATH="${MED_AUTOSCIENCE_REPO_RESOLVED}/src${PYTHONPATH:+:${PYTHONPATH}}" \\\n'
-        '      python3 - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
+        '    uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
         "import json\n"
         "import sys\n\n"
         "from med_autoscience.profiles import load_profile, profile_to_dict\n"
@@ -293,7 +320,7 @@ def _render_med_deepscientist_shared() -> str:
         '  export MEDAUTOSCI_MED_DEEPSCIENTIST_CONTRACT_JSON="${payload_json}"\n\n'
         "  local contract_lines\n"
         '  contract_lines="$(\n'
-        '    CONTRACT_JSON="${payload_json}" python3 - <<'"'"'PY'"'"'\n'
+        '    CONTRACT_JSON="${payload_json}" uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'"'"'PY'"'"'\n'
         "import json\n"
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
@@ -407,6 +434,10 @@ def _rendered_files(
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
     profile_relpath = Path("ops") / "medautoscience" / "profiles" / _profile_filename(workspace_name)
     files = [
+        RenderedFile(
+            path=workspace_root / "pyproject.toml",
+            content=_render_workspace_pyproject(workspace_root=workspace_root, workspace_name=workspace_name),
+        ),
         RenderedFile(
             path=workspace_root / "README.md",
             content=_render_workspace_readme(workspace_name=workspace_name, profile_relpath=profile_relpath),
