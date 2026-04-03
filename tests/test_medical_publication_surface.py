@@ -171,7 +171,14 @@ def make_quest(
                     "renderer_family": "r_ggplot2",
                     "input_schema_id": "binary_prediction_curve_inputs_v1",
                     "qc_profile": "publication_evidence_curve",
-                    "qc_result": {"status": "pass", "issues": []},
+                    "qc_result": {
+                        "status": "pass",
+                        "checked_at": "2026-04-03T10:00:00+00:00",
+                        "engine_id": "display_layout_qc_v1",
+                        "qc_profile": "publication_evidence_curve",
+                        "layout_sidecar_path": "paper/figures/generated/F4.layout.json",
+                        "issues": [],
+                    },
                     "title": figure_title,
                     "caption": figure_caption,
                     "paper_role": "main_text",
@@ -815,6 +822,29 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     assert "figure_catalog_missing_or_incomplete" in report["blockers"]
     excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_catalog")
     assert "template_id" in excerpts
+
+
+def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_figure_catalog(
+        {
+            "figures": [
+                {
+                    "figure_id": "F8",
+                    "template_id": "umap_scatter_grouped",
+                    "renderer_family": "r_ggplot2",
+                    "paper_role": "main_text",
+                    "input_schema_id": "embedding_grouped_inputs_v1",
+                    "qc_profile": "publication_embedding_scatter",
+                    "qc_result": {"status": "pass"},
+                    "export_paths": ["paper/figures/F8.png", "paper/figures/F8.pdf"],
+                }
+            ]
+        }
+    )
+
+    assert "engine_id" in errors[0]
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
