@@ -823,7 +823,6 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_catalog")
     assert "template_id" in excerpts
 
-
 def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
@@ -845,6 +844,8 @@ def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     )
 
     assert "engine_id" in errors[0]
+
+
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
@@ -940,3 +941,71 @@ def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_
 
     assert seen == {"quest_root": quest_root}
     assert state.runtime_state["status"] == "patched"
+
+
+def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    seen: dict[str, object] = {}
+
+    def fake_write_timestamped_report(
+        *,
+        quest_root: Path,
+        report_group: str,
+        timestamp: str,
+        report: dict[str, object],
+        markdown: str,
+    ) -> tuple[Path, Path]:
+        seen["quest_root"] = quest_root
+        seen["report_group"] = report_group
+        seen["timestamp"] = timestamp
+        seen["report"] = report
+        seen["markdown"] = markdown
+        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
+
+    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
+
+    report = {
+        "generated_at": "2026-04-03T04:20:00+00:00",
+        "quest_id": quest_root.name,
+        "run_id": "run-1",
+        "status": "blocked",
+        "recommended_action": "stop",
+        "blockers": ["forbidden_tool_disclosure_in_caption"],
+        "top_hits": [],
+        "ama_defaults_present": True,
+        "ama_csl_present": True,
+        "ama_pdf_defaults_present": True,
+        "paper_pdf_present": True,
+        "draft_present": True,
+        "review_manuscript_present": True,
+        "figure_catalog_present": True,
+        "figure_catalog_valid": True,
+        "table_catalog_present": True,
+        "table_catalog_valid": True,
+        "methods_implementation_manifest_present": True,
+        "methods_implementation_manifest_valid": True,
+        "results_narrative_map_present": True,
+        "results_narrative_map_valid": True,
+        "figure_semantics_manifest_present": True,
+        "figure_semantics_manifest_valid": True,
+        "derived_analysis_manifest_present": True,
+        "derived_analysis_manifest_valid": True,
+        "reproducibility_supplement_present": True,
+        "reproducibility_supplement_valid": True,
+        "missing_data_policy_consistent": True,
+        "endpoint_provenance_note_present": True,
+        "endpoint_provenance_note_valid": True,
+        "endpoint_provenance_note_applied": True,
+        "forbidden_hit_count": 1,
+        "undefined_methodology_label_hit_count": 0,
+        "results_narration_hit_count": 0,
+    }
+
+    json_path, md_path = module.write_surface_files(quest_root, report)
+
+    assert seen["quest_root"] == quest_root
+    assert seen["report_group"] == "medical_publication_surface"
+    assert seen["timestamp"] == "2026-04-03T04:20:00+00:00"
+    assert json_path.name == "latest.json"
+    assert md_path.name == "latest.md"

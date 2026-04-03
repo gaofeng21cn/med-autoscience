@@ -5,14 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _read_json_dict(path: Path) -> dict[str, Any]:
@@ -104,22 +101,22 @@ def run_validation(*, quest_root: Path) -> dict[str, object]:
                 if not shell_path.exists():
                     blockers.append(f"missing_{item['display_id'].lower()}_shell")
 
-    report = {
-        "status": "blocked" if blockers else "clear",
-        "recorded_at": _utc_now(),
-        "quest_root": str(resolved_quest_root),
-        "blockers": blockers,
-        "contract_statuses": {
-            "medical_analysis_contract": analysis_status,
-            "medical_reporting_contract": reporting_status,
-        },
-        "checked_paths": {
-            "medical_analysis_contract_path": str(analysis_path),
-            "medical_reporting_contract_path": str(reporting_path),
-        },
-    }
-    _write_json(
-        resolved_quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json",
-        report,
+    report = study_runtime_protocol.write_startup_hydration_validation_report(
+        quest_root=resolved_quest_root,
+        report=study_runtime_protocol.StartupHydrationValidationReport(
+            status=(
+                study_runtime_protocol.StartupHydrationValidationStatus.BLOCKED
+                if blockers
+                else study_runtime_protocol.StartupHydrationValidationStatus.CLEAR
+            ),
+            recorded_at=_utc_now(),
+            quest_root=str(resolved_quest_root),
+            blockers=tuple(blockers),
+            medical_analysis_contract_status=analysis_status,
+            medical_reporting_contract_status=reporting_status,
+            medical_analysis_contract_path=str(analysis_path),
+            medical_reporting_contract_path=str(reporting_path),
+            report_path=None,
+        ),
     )
-    return report
+    return report.to_dict()

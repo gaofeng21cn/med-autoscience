@@ -335,7 +335,10 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         self._record_dict_extra("runtime_overlay", value)
 
     def record_startup_contract_validation(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("startup_contract_validation", value)
+        startup_contract_validation = study_runtime_protocol.StartupContractValidation.from_payload(
+            self._require_dict_field("startup_contract_validation", value)
+        )
+        self._record_dict_extra("startup_contract_validation", startup_contract_validation.to_dict())
 
     def record_partial_quest_recovery(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("partial_quest_recovery", value)
@@ -348,8 +351,14 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         hydration_result: dict[str, Any],
         validation_result: dict[str, Any],
     ) -> None:
-        self._record_dict_extra("startup_hydration", hydration_result)
-        self._record_dict_extra("startup_hydration_validation", validation_result)
+        hydration_report = study_runtime_protocol.StartupHydrationReport.from_payload(
+            self._require_dict_field("startup_hydration", hydration_result)
+        )
+        validation_report = study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+            self._require_dict_field("startup_hydration_validation", validation_result)
+        )
+        self._record_dict_extra("startup_hydration", hydration_report.to_dict())
+        self._record_dict_extra("startup_hydration_validation", validation_report.to_dict())
 
     def record_completion_sync(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("completion_sync", value)
@@ -367,14 +376,20 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         launch_report_path: str | PathLike[str],
         startup_payload_path: str | PathLike[str] | None,
     ) -> None:
-        self.runtime_binding_path = self._normalize_path_field("runtime_binding_path", runtime_binding_path)
-        self.runtime_binding_exists = True
-        self.extras["launch_report_path"] = self._normalize_path_field("launch_report_path", launch_report_path)
-        if startup_payload_path is not None:
-            self.extras["startup_payload_path"] = self._normalize_path_field(
-                "startup_payload_path",
-                startup_payload_path,
-            )
+        artifacts = study_runtime_protocol.StudyRuntimeArtifacts(
+            runtime_binding_path=Path(self._normalize_path_field("runtime_binding_path", runtime_binding_path)),
+            launch_report_path=Path(self._normalize_path_field("launch_report_path", launch_report_path)),
+            startup_payload_path=(
+                Path(self._normalize_path_field("startup_payload_path", startup_payload_path))
+                if startup_payload_path is not None
+                else None
+            ),
+        )
+        artifact_payload = artifacts.to_dict()
+        self.runtime_binding_path = str(artifacts.runtime_binding_path)
+        self.runtime_binding_exists = artifacts.runtime_binding_path.exists()
+        self.extras["launch_report_path"] = str(artifacts.launch_report_path)
+        self.extras["startup_payload_path"] = artifact_payload["startup_payload_path"]
 
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()

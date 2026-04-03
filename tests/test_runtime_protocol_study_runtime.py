@@ -208,6 +208,30 @@ def test_persist_runtime_artifacts_skips_binding_when_last_action_is_absent(tmp_
     )
 
 
+def test_study_runtime_artifacts_from_payload_round_trips_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    payload = {
+        "runtime_binding_path": str(tmp_path / "workspace" / "studies" / "001-risk" / "runtime_binding.yaml"),
+        "launch_report_path": str(
+            tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+        ),
+        "startup_payload_path": str(
+            tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk" / "payload.json"
+        ),
+    }
+
+    result = module.StudyRuntimeArtifacts.from_payload(payload)
+
+    assert result.to_dict() == payload
+
+
+def test_study_runtime_artifacts_from_payload_rejects_missing_launch_report_path() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="study runtime artifacts payload missing launch_report_path"):
+        module.StudyRuntimeArtifacts.from_payload({"runtime_binding_path": "/tmp/runtime_binding.yaml"})
+
+
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
@@ -249,6 +273,75 @@ def test_build_hydration_payload_returns_protocol_surface() -> None:
         "medical_reporting_contract": {"reporting_guideline_family": "TRIPOD"},
         "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
     }
+
+
+def test_write_startup_hydration_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    report = module.StartupHydrationReport(
+        status=module.StartupHydrationStatus.HYDRATED,
+        recorded_at="2026-04-03T08:00:00+00:00",
+        quest_root=str(quest_root),
+        entry_state_summary="Study root: /tmp/workspace/studies/001-risk",
+        literature_report={"record_count": 1},
+        written_files=(str(quest_root / "paper" / "medical_analysis_contract.json"),),
+        report_path=None,
+    )
+
+    written = module.write_startup_hydration_report(quest_root=quest_root, report=report)
+
+    expected_path = quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"
+    assert written.report_path == str(expected_path)
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert payload == written.to_dict()
+
+
+def test_write_startup_hydration_validation_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    report = module.StartupHydrationValidationReport(
+        status=module.StartupHydrationValidationStatus.CLEAR,
+        recorded_at="2026-04-03T08:05:00+00:00",
+        quest_root=str(quest_root),
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_contract_path=str(quest_root / "paper" / "medical_analysis_contract.json"),
+        medical_reporting_contract_path=str(quest_root / "paper" / "medical_reporting_contract.json"),
+        report_path=None,
+    )
+
+    written = module.write_startup_hydration_validation_report(quest_root=quest_root, report=report)
+
+    expected_path = quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
+    assert written.report_path == str(expected_path)
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert payload == written.to_dict()
+
+
+def test_startup_hydration_report_rejects_missing_required_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup hydration payload missing recorded_at"):
+        module.StartupHydrationReport.from_payload({"status": "hydrated"})
+
+
+def test_startup_hydration_validation_report_rejects_missing_required_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup hydration validation payload missing checked_paths"):
+        module.StartupHydrationValidationReport.from_payload(
+            {
+                "status": "clear",
+                "recorded_at": "2026-04-03T08:05:00+00:00",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "blockers": [],
+                "contract_statuses": {
+                    "medical_analysis_contract": "resolved",
+                    "medical_reporting_contract": "resolved",
+                },
+            }
+        )
 
 
 @pytest.mark.parametrize(
@@ -300,6 +393,50 @@ def test_validate_startup_contract_resolution_returns_clear_for_resolved_contrac
     )
 
 
+def test_startup_contract_validation_from_payload_reconstructs_protocol_surface() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    result = module.StartupContractValidation.from_payload(
+        {
+            "status": "blocked",
+            "blockers": ["missing_medical_reporting_contract"],
+            "contract_statuses": {
+                "medical_analysis_contract": "resolved",
+                "medical_reporting_contract": None,
+            },
+            "reason_codes": {
+                "medical_analysis_contract": "analysis_ok",
+                "medical_reporting_contract": None,
+            },
+        }
+    )
+
+    assert result == module.StartupContractValidation(
+        status=module.StartupContractValidationStatus.BLOCKED,
+        blockers=("missing_medical_reporting_contract",),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status=None,
+        medical_analysis_reason_code="analysis_ok",
+        medical_reporting_reason_code=None,
+    )
+
+
+def test_startup_contract_validation_from_payload_rejects_missing_protocol_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup contract validation payload missing contract_statuses"):
+        module.StartupContractValidation.from_payload(
+            {
+                "status": "clear",
+                "blockers": [],
+                "reason_codes": {
+                    "medical_analysis_contract": None,
+                    "medical_reporting_contract": None,
+                },
+            }
+        )
+
+
 def test_validate_startup_contract_resolution_classifies_missing_invalid_and_unsupported() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
@@ -346,6 +483,42 @@ def test_validate_startup_contract_resolution_classifies_unresolved_contracts() 
         medical_analysis_reason_code="needs_mapping",
         medical_reporting_reason_code=None,
     )
+
+
+def test_startup_contract_validation_from_payload_round_trips_protocol_surface() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    payload = {
+        "status": "clear",
+        "blockers": [],
+        "contract_statuses": {
+            "medical_analysis_contract": "resolved",
+            "medical_reporting_contract": "resolved",
+        },
+        "reason_codes": {
+            "medical_analysis_contract": "analysis_ok",
+            "medical_reporting_contract": "reporting_ok",
+        },
+    }
+
+    result = module.StartupContractValidation.from_payload(payload)
+
+    assert result == module.StartupContractValidation(
+        status=module.StartupContractValidationStatus.CLEAR,
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_reason_code="analysis_ok",
+        medical_reporting_reason_code="reporting_ok",
+    )
+    assert result.to_dict() == payload
+
+
+def test_startup_contract_validation_from_payload_rejects_missing_contract_statuses() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup contract validation payload missing contract_statuses"):
+        module.StartupContractValidation.from_payload({"status": "clear", "blockers": []})
 
 
 def test_startup_contract_validation_rejects_unknown_status() -> None:
