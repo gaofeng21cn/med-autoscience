@@ -173,6 +173,35 @@ def list_quest_bash_sessions(
     return sessions
 
 
+def get_quest_session(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    base_url = str(daemon_url or "").strip().rstrip("/")
+    if not base_url:
+        if runtime_root is None:
+            raise ValueError("runtime_root or daemon_url is required")
+        base_url = resolve_daemon_url(runtime_root=runtime_root)
+    url = f"{base_url}/api/quests/{quote(quest_id, safe='')}/session"
+    try:
+        payload = _get_json(url=url, timeout=timeout)
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Quest session probe failed with HTTP {exc.code}: {body}") from exc
+    except error.URLError as exc:
+        raise RuntimeError(f"Quest session probe failed: {exc}") from exc
+    except (TimeoutError, OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Quest session probe failed: {exc}") from exc
+    if payload is None:
+        return {}
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Quest session probe returned non-object payload: {url}")
+    return dict(payload)
+
+
 def inspect_quest_live_bash_sessions(
     *,
     quest_id: str,
@@ -209,6 +238,119 @@ def inspect_quest_live_bash_sessions(
         "live_session_count": len(live_session_ids),
         "live_session_ids": live_session_ids,
     }
+
+
+def inspect_quest_live_runtime(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    try:
+        payload = get_quest_session(
+            quest_id=quest_id,
+            daemon_url=daemon_url,
+            runtime_root=runtime_root,
+            timeout=timeout,
+        )
+    except RuntimeError as exc:
+        return {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": None,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": str(exc),
+        }
+
+    runtime_audit = payload.get("runtime_audit") if isinstance(payload.get("runtime_audit"), dict) else None
+    snapshot = payload.get("snapshot") if isinstance(payload.get("snapshot"), dict) else {}
+    active_run_id = str((runtime_audit or {}).get("active_run_id") or snapshot.get("active_run_id") or "").strip() or None
+    if runtime_audit is None:
+        return {
+            "ok": False,
+            "status": "unknown",
+            "source": "quest_session_runtime_audit",
+            "active_run_id": active_run_id,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": "Quest session probe returned no runtime_audit payload.",
+        }
+
+    status = str(runtime_audit.get("status") or "").strip().lower()
+    if status not in {"live", "none"}:
+        return {
+            "ok": False,
+            "status": "unknown",
+            "source": str(runtime_audit.get("source") or "quest_session_runtime_audit"),
+            "active_run_id": active_run_id,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": f"Unsupported runtime audit status: {status or 'empty'}",
+        }
+
+    return {
+        "ok": bool(runtime_audit.get("ok", True)),
+        "status": status,
+        "source": str(runtime_audit.get("source") or "quest_session_runtime_audit"),
+        "active_run_id": active_run_id,
+        "worker_running": bool(runtime_audit.get("worker_running")) if "worker_running" in runtime_audit else None,
+        "worker_pending": bool(runtime_audit.get("worker_pending")) if "worker_pending" in runtime_audit else None,
+        "stop_requested": bool(runtime_audit.get("stop_requested")) if "stop_requested" in runtime_audit else None,
+    }
+
+
+def inspect_quest_live_execution(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int = DEFAULT_DAEMON_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    runtime_audit = inspect_quest_live_runtime(
+        quest_id=quest_id,
+        daemon_url=daemon_url,
+        runtime_root=runtime_root,
+        timeout=timeout,
+    )
+    bash_session_audit = inspect_quest_live_bash_sessions(
+        quest_id=quest_id,
+        daemon_url=daemon_url,
+        runtime_root=runtime_root,
+        timeout=timeout,
+    )
+    runtime_live = str(runtime_audit.get("status") or "").strip() == "live"
+    bash_live = str(bash_session_audit.get("status") or "").strip() == "live"
+    runtime_known = str(runtime_audit.get("status") or "").strip() in {"live", "none"}
+    bash_known = str(bash_session_audit.get("status") or "").strip() in {"live", "none"}
+    if runtime_live or bash_live:
+        status = "live"
+        ok = True
+    elif runtime_known and bash_known:
+        status = "none"
+        ok = True
+    else:
+        status = "unknown"
+        ok = False
+    payload = {
+        "ok": ok,
+        "status": status,
+        "source": "combined_runner_or_bash_session",
+        "active_run_id": runtime_audit.get("active_run_id"),
+        "runner_live": runtime_live,
+        "bash_live": bash_live,
+        "runtime_audit": runtime_audit,
+        "bash_session_audit": bash_session_audit,
+    }
+    errors = [str(item) for item in [runtime_audit.get("error"), bash_session_audit.get("error")] if item]
+    if errors:
+        payload["error"] = " | ".join(errors)
+    return payload
 
 
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:

@@ -608,3 +608,215 @@ def test_inspect_quest_live_bash_sessions_reports_unknown_when_daemon_probe_fail
         "live_session_ids": [],
         "error": "daemon unavailable",
     }
+
+
+def test_get_quest_session_reads_session_payload(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"ok": True, "snapshot": {"active_run_id": "run-1"}}).encode("utf-8")
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["url"] = http_request.full_url
+        seen["method"] = http_request.get_method()
+        seen["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
+
+    assert result == {"ok": True, "snapshot": {"active_run_id": "run-1"}}
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/session"
+    assert seen["method"] == "GET"
+    assert seen["timeout"] == 10
+
+
+def test_inspect_quest_live_runtime_reports_live_and_none(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {"active_run_id": "run-live"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+    live_result = module.inspect_quest_live_runtime(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert live_result == {
+        "ok": True,
+        "status": "live",
+        "source": "daemon_turn_worker",
+        "active_run_id": "run-live",
+        "worker_running": True,
+        "worker_pending": False,
+        "stop_requested": False,
+    }
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {"active_run_id": "run-stale"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-stale",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+    none_result = module.inspect_quest_live_runtime(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert none_result == {
+        "ok": True,
+        "status": "none",
+        "source": "daemon_turn_worker",
+        "active_run_id": "run-stale",
+        "worker_running": False,
+        "worker_pending": False,
+        "stop_requested": False,
+    }
+
+
+def test_inspect_quest_live_execution_combines_runtime_and_bash_audits(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-live",
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "none",
+            "session_count": 1,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    )
+
+    live_result = module.inspect_quest_live_execution(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert live_result == {
+        "ok": True,
+        "status": "live",
+        "source": "combined_runner_or_bash_session",
+        "active_run_id": "run-live",
+        "runner_live": True,
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-live",
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+        "bash_session_audit": {
+            "ok": True,
+            "status": "none",
+            "session_count": 1,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    }
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "none",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-stale",
+            "worker_running": False,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    )
+
+    none_result = module.inspect_quest_live_execution(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert none_result == {
+        "ok": True,
+        "status": "none",
+        "source": "combined_runner_or_bash_session",
+        "active_run_id": "run-stale",
+        "runner_live": False,
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": True,
+            "status": "none",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-stale",
+            "worker_running": False,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+        "bash_session_audit": {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    }
