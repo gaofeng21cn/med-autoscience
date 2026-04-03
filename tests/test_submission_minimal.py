@@ -471,6 +471,47 @@ def test_create_submission_minimal_package_accepts_current_bundle_contract_shape
     assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
 
 
+def test_create_submission_minimal_package_prefers_compiled_markdown_over_draft_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    write_text(
+        paper_root / "draft.md",
+        """# Draft
+
+## Title
+
+Wrong draft title
+
+## Abstract
+
+Wrong draft abstract.
+""",
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/draft.md",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert 'title: "Test Medical Manuscript"' in submission_markdown
+    assert 'bibliography: ../references.bib' in submission_markdown
+    assert "Wrong draft title" not in submission_markdown
+
+
 def test_create_submission_minimal_package_accepts_current_figure_and_table_catalog_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
