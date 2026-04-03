@@ -11,14 +11,19 @@
 
 ## 作用域
 
-当前实现分成两层：
+当前实现分成四个清晰层次：
 
 - [`src/med_autoscience/controllers/study_runtime_router.py`](../src/med_autoscience/controllers/study_runtime_router.py)
-  - 负责 orchestration、决策推进、transport 调用和 runtime artifact 落盘
+  - 作为 facade，保留正式入口 `study_runtime_status(...)` / `ensure_study_runtime(...)`
+  - 持有决策推进、preflight、transport orchestration 与 runtime artifact 落盘主干
 - [`src/med_autoscience/controllers/study_runtime_types.py`](../src/med_autoscience/controllers/study_runtime_types.py)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
-
-`study_runtime_router.py` 继续对外 re-export 这些 typed symbols，因此既有调用面不需要因为模块化拆分而改导入。
+- [`src/med_autoscience/controllers/study_runtime_startup.py`](../src/med_autoscience/controllers/study_runtime_startup.py)
+  - 负责 startup contract、create payload、overlay helper、startup hydration / context sync
+- [`src/med_autoscience/controllers/study_runtime_completion.py`](../src/med_autoscience/controllers/study_runtime_completion.py)
+  - 负责 study-level completion state 读取、completion request message 构造、completion sync
+`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 startup / completion helper。
+因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
 ## 正式入口
 
@@ -235,7 +240,7 @@
 以下内容当前仍视为实现细节，不应被其他模块直接绑定：
 
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
-- startup contract 内部更细的构造细节
+- `study_runtime_startup.py` / `study_runtime_completion.py` 内部尚未升级成 spec 的组装细节
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构
 - runtime audit payload 中未被 typed wrapper 明确收口的自由字段
@@ -248,12 +253,14 @@
 当前这份 spec 主要由以下测试约束：
 
 - [`tests/test_study_runtime_router.py`](../tests/test_study_runtime_router.py)
+- [`tests/test_study_runtime_router_topology.py`](../tests/test_study_runtime_router_topology.py)
 - [`tests/test_runtime_protocol_topology.py`](../tests/test_runtime_protocol_topology.py)
 - [`tests/test_workspace_contracts.py`](../tests/test_workspace_contracts.py)
 
 其中：
 
 - router tests 约束 decision、typed surface、preflight 和 execution behavior
+- router topology tests 约束 router facade 继续 re-export 已拆分的 startup / completion helper
 - runtime protocol topology tests 约束 runtime layout / path contract
 - workspace contract tests 约束 orchestration 依赖的 workspace readiness 前提
 
