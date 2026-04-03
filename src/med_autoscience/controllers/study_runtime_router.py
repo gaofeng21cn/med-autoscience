@@ -326,6 +326,137 @@ class StudyRuntimePartialQuestRecoveryResult:
 
 
 @dataclass(frozen=True)
+class StudyRuntimeWorkspaceContractsSummary:
+    overall_ready: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.overall_ready, bool):
+            raise TypeError("study runtime workspace contracts overall_ready must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeWorkspaceContractsSummary":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime workspace contracts payload must be a mapping")
+        overall_ready = payload.get("overall_ready", False)
+        if not isinstance(overall_ready, bool):
+            raise TypeError("study runtime workspace contracts overall_ready must be bool")
+        return cls(overall_ready=overall_ready, payload=dict(payload))
+
+
+@dataclass(frozen=True)
+class StudyRuntimeStartupDataReadinessReport:
+    unresolved_contract_study_ids: tuple[str, ...]
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "unresolved_contract_study_ids",
+            tuple(str(item) for item in self.unresolved_contract_study_ids),
+        )
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    def has_unresolved_contract_for(self, study_id: str) -> bool:
+        return study_id in self.unresolved_contract_study_ids
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeStartupDataReadinessReport":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime startup data readiness payload must be a mapping")
+        study_summary = payload.get("study_summary")
+        unresolved_contract_study_ids: tuple[str, ...] = ()
+        if study_summary is not None:
+            if not isinstance(study_summary, dict):
+                raise ValueError("study runtime startup data readiness study_summary must be a mapping")
+            raw_unresolved = study_summary.get("unresolved_contract_study_ids", [])
+            if not isinstance(raw_unresolved, list):
+                raise ValueError(
+                    "study runtime startup data readiness unresolved_contract_study_ids must be a list"
+                )
+            unresolved_contract_study_ids = tuple(str(item) for item in raw_unresolved)
+        return cls(
+            unresolved_contract_study_ids=unresolved_contract_study_ids,
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeStartupBoundaryGate:
+    allow_compute_stage: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.allow_compute_stage, bool):
+            raise TypeError("study runtime startup boundary allow_compute_stage must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeStartupBoundaryGate":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime startup boundary payload must be a mapping")
+        allow_compute_stage = payload.get("allow_compute_stage", False)
+        if not isinstance(allow_compute_stage, bool):
+            raise TypeError("study runtime startup boundary allow_compute_stage must be bool")
+        return cls(allow_compute_stage=allow_compute_stage, payload=dict(payload))
+
+
+@dataclass(frozen=True)
+class StudyRuntimeReentryGate:
+    allow_runtime_entry: bool
+    require_startup_hydration: bool
+    require_managed_skill_audit: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.allow_runtime_entry, bool):
+            raise TypeError("study runtime reentry allow_runtime_entry must be bool")
+        if not isinstance(self.require_startup_hydration, bool):
+            raise TypeError("study runtime reentry require_startup_hydration must be bool")
+        if not isinstance(self.require_managed_skill_audit, bool):
+            raise TypeError("study runtime reentry require_managed_skill_audit must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(
+        cls,
+        payload: dict[str, Any],
+        *,
+        default_allow_runtime_entry: bool = False,
+    ) -> "StudyRuntimeReentryGate":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime reentry payload must be a mapping")
+        allow_runtime_entry = payload.get("allow_runtime_entry", default_allow_runtime_entry)
+        require_startup_hydration = payload.get("require_startup_hydration", False)
+        require_managed_skill_audit = payload.get("require_managed_skill_audit", False)
+        if not isinstance(allow_runtime_entry, bool):
+            raise TypeError("study runtime reentry allow_runtime_entry must be bool")
+        if not isinstance(require_startup_hydration, bool):
+            raise TypeError("study runtime reentry require_startup_hydration must be bool")
+        if not isinstance(require_managed_skill_audit, bool):
+            raise TypeError("study runtime reentry require_managed_skill_audit must be bool")
+        return cls(
+            allow_runtime_entry=allow_runtime_entry,
+            require_startup_hydration=require_startup_hydration,
+            require_managed_skill_audit=require_managed_skill_audit,
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
 class StudyCompletionSyncResult:
     payload: dict[str, Any]
     completion_snapshot_status: str | None
@@ -565,27 +696,39 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         return self.study_completion_state.to_dict()
 
     @property
+    def workspace_contracts_summary(self) -> StudyRuntimeWorkspaceContractsSummary:
+        return StudyRuntimeWorkspaceContractsSummary.from_payload(self.workspace_contracts)
+
+    @property
+    def startup_data_readiness_report(self) -> StudyRuntimeStartupDataReadinessReport:
+        return StudyRuntimeStartupDataReadinessReport.from_payload(self.startup_data_readiness)
+
+    @property
+    def startup_boundary_gate_result(self) -> StudyRuntimeStartupBoundaryGate:
+        return StudyRuntimeStartupBoundaryGate.from_payload(self.startup_boundary_gate)
+
+    @property
+    def runtime_reentry_gate_result(self) -> StudyRuntimeReentryGate:
+        return StudyRuntimeReentryGate.from_payload(self.runtime_reentry_gate)
+
+    @property
     def workspace_overall_ready(self) -> bool:
-        return bool(self.workspace_contracts.get("overall_ready"))
+        return self.workspace_contracts_summary.overall_ready
 
     @property
     def startup_boundary_allows_compute_stage(self) -> bool:
-        return bool(self.startup_boundary_gate.get("allow_compute_stage"))
+        return self.startup_boundary_gate_result.allow_compute_stage
 
     @property
     def runtime_reentry_allows_runtime_entry(self) -> bool:
-        return bool(self.runtime_reentry_gate.get("allow_runtime_entry"))
+        return self.runtime_reentry_gate_result.allow_runtime_entry
 
     @property
     def runtime_reentry_requires_managed_skill_audit(self) -> bool:
-        return _runtime_reentry_requires_managed_skill_audit(self.runtime_reentry_gate)
+        return self.runtime_reentry_gate_result.require_managed_skill_audit
 
     def has_unresolved_contract_for(self, study_id: str) -> bool:
-        study_summary = self.startup_data_readiness.get("study_summary")
-        if not isinstance(study_summary, dict):
-            return False
-        unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
-        return isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids
+        return self.startup_data_readiness_report.has_unresolved_contract_for(study_id)
 
     def should_refresh_startup_hydration_while_blocked(self) -> bool:
         if self.decision is not StudyRuntimeDecision.BLOCKED or not self.quest_exists:
@@ -1254,32 +1397,32 @@ def _build_create_payload(
         "goal": goal,
         "quest_id": str(execution.get("quest_id") or study_id).strip() or study_id,
         "source": "med_autoscience.study_runtime_router",
-        "auto_start": bool(
-            (
-                (
-                    startup_contract.get("startup_boundary_gate")
-                    if isinstance(startup_contract.get("startup_boundary_gate"), dict)
-                    else {}
-                ).get("allow_compute_stage")
-            )
-            and (
-                (
-                    startup_contract.get("runtime_reentry_gate")
-                    if isinstance(startup_contract.get("runtime_reentry_gate"), dict)
-                    else {}
-                ).get("allow_runtime_entry", True)
-            )
-        ),
+        "auto_start": _startup_contract_allows_auto_start(startup_contract),
         "startup_contract": startup_contract,
     }
 
 
 def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
-    return runtime_reentry_gate.get("require_startup_hydration") is True
+    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_startup_hydration
 
 
 def _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate: dict[str, Any]) -> bool:
-    return runtime_reentry_gate.get("require_managed_skill_audit") is True
+    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_managed_skill_audit
+
+
+def _startup_contract_allows_auto_start(startup_contract: dict[str, Any]) -> bool:
+    startup_boundary_gate = StudyRuntimeStartupBoundaryGate.from_payload(
+        startup_contract.get("startup_boundary_gate")
+        if isinstance(startup_contract.get("startup_boundary_gate"), dict)
+        else {}
+    )
+    runtime_reentry_gate = StudyRuntimeReentryGate.from_payload(
+        startup_contract.get("runtime_reentry_gate")
+        if isinstance(startup_contract.get("runtime_reentry_gate"), dict)
+        else {},
+        default_allow_runtime_entry=True,
+    )
+    return startup_boundary_gate.allow_compute_stage and runtime_reentry_gate.allow_runtime_entry
 
 
 def _run_startup_hydration(
