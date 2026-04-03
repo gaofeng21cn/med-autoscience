@@ -883,9 +883,16 @@ def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(
 
     outcome = module._execute_runtime_decision(status=status, context=context)
 
-    assert outcome.binding_last_action == "completed"
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.COMPLETED
     assert outcome.daemon_result is None
     assert outcome.startup_payload_path is None
+
+
+def test_study_runtime_execution_outcome_rejects_unknown_binding_action() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+
+    with pytest.raises(ValueError, match="unknown study runtime binding action"):
+        module.StudyRuntimeExecutionOutcome(binding_last_action="unexpected_action")
 
 
 def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> None:
