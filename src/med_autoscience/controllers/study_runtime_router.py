@@ -88,6 +88,28 @@ class StudyRuntimeReason(StrEnum):
     STUDY_COMPLETION_SYNCED = "study_completion_synced"
 
 
+class StudyRuntimeQuestStatus(StrEnum):
+    CREATED = "created"
+    IDLE = "idle"
+    PAUSED = "paused"
+    STOPPED = "stopped"
+    RUNNING = "running"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+
+_LIVE_QUEST_STATUSES = {
+    StudyRuntimeQuestStatus.RUNNING,
+    StudyRuntimeQuestStatus.ACTIVE,
+}
+_RESUMABLE_QUEST_STATUSES = {
+    StudyRuntimeQuestStatus.PAUSED,
+    StudyRuntimeQuestStatus.IDLE,
+    StudyRuntimeQuestStatus.CREATED,
+    StudyRuntimeQuestStatus.STOPPED,
+}
+
+
 @dataclass
 class StudyRuntimeStatus(MutableMapping[str, Any]):
     schema_version: int
@@ -98,7 +120,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     quest_id: str
     quest_root: str
     quest_exists: bool
-    quest_status: str | None
+    quest_status: StudyRuntimeQuestStatus | None
     runtime_binding_path: str
     runtime_binding_exists: bool
     workspace_contracts: dict[str, Any] = field(default_factory=dict)
@@ -148,11 +170,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             quest_id=str(resolved_payload.get("quest_id") or ""),
             quest_root=str(resolved_payload.get("quest_root") or ""),
             quest_exists=bool(resolved_payload.get("quest_exists")),
-            quest_status=(
-                str(resolved_payload["quest_status"])
-                if resolved_payload.get("quest_status") is not None
-                else None
-            ),
+            quest_status=cls._normalize_quest_status_field(resolved_payload.get("quest_status")),
             runtime_binding_path=str(resolved_payload.get("runtime_binding_path") or ""),
             runtime_binding_exists=bool(resolved_payload.get("runtime_binding_exists")),
             workspace_contracts=dict(resolved_payload.get("workspace_contracts") or {}),
@@ -177,7 +195,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             "quest_id": self.quest_id,
             "quest_root": self.quest_root,
             "quest_exists": self.quest_exists,
-            "quest_status": self.quest_status,
+            "quest_status": self.quest_status.value if self.quest_status is not None else None,
             "runtime_binding_path": self.runtime_binding_path,
             "runtime_binding_exists": self.runtime_binding_exists,
             "workspace_contracts": self.workspace_contracts,
@@ -222,17 +240,24 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise ValueError(f"unknown study runtime reason: {value}") from exc
 
     @staticmethod
+    def _normalize_quest_status_field(value: Any) -> StudyRuntimeQuestStatus | None:
+        if value is None:
+            return None
+        if value == "":
+            return None
+        if isinstance(value, StudyRuntimeQuestStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("quest_status must be str or None")
+        try:
+            return StudyRuntimeQuestStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study runtime quest status: {value}") from exc
+
+    @staticmethod
     def _require_text_field(field_name: str, value: Any) -> str:
         if not isinstance(value, str):
             raise TypeError(f"{field_name} must be str")
-        return value
-
-    @staticmethod
-    def _require_optional_text_field(field_name: str, value: Any) -> str | None:
-        if value is None:
-            return None
-        if not isinstance(value, str):
-            raise TypeError(f"{field_name} must be str or None")
         return value
 
     @staticmethod
@@ -278,7 +303,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         quest_id: str | object = _UNSET,
         quest_root: str | PathLike[str] | object = _UNSET,
         quest_exists: bool | object = _UNSET,
-        quest_status: str | None | object = _UNSET,
+        quest_status: str | StudyRuntimeQuestStatus | None | object = _UNSET,
     ) -> None:
         if quest_id is not _UNSET:
             self.quest_id = self._require_text_field("quest_id", quest_id)
@@ -287,7 +312,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         if quest_exists is not _UNSET:
             self.quest_exists = self._require_bool_field("quest_exists", quest_exists)
         if quest_status is not _UNSET:
-            self.quest_status = self._require_optional_text_field("quest_status", quest_status)
+            self.quest_status = self._normalize_quest_status_field(quest_status)
 
     def record_analysis_bundle(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("analysis_bundle", value)
@@ -817,8 +842,8 @@ def _status_state(
     runtime_binding_path = runtime_context.runtime_binding_path
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
-    quest_status_value = str(quest_runtime.quest_status or "").strip()
-    if quest_status_value in {"running", "active"}:
+    quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
+    if quest_status in _LIVE_QUEST_STATUSES:
         runtime_liveness_audit = med_deepscientist_transport.inspect_quest_live_execution(
             runtime_root=runtime_root,
             quest_id=quest_id,
@@ -839,7 +864,7 @@ def _status_state(
         study_payload=study_payload,
         execution=execution,
         quest_root=quest_root if quest_exists else None,
-        enforce_startup_hydration=quest_status_value in {"running", "active"},
+        enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = _study_completion_state(study_root=study_root)
 
@@ -852,7 +877,7 @@ def _status_state(
         quest_id=quest_id,
         quest_root=str(quest_root),
         quest_exists=quest_exists,
-        quest_status=quest_status_value or None,
+        quest_status=quest_status,
         runtime_binding_path=str(runtime_binding_path),
         runtime_binding_exists=runtime_binding_path.exists(),
         workspace_contracts=contracts,
@@ -900,13 +925,13 @@ def _status_state(
                 StudyRuntimeReason.STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST,
             )
             return result
-        if quest_status_value == "completed":
+        if quest_status == StudyRuntimeQuestStatus.COMPLETED:
             result.set_decision(
                 StudyRuntimeDecision.COMPLETED,
                 StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
             )
             return result
-        if quest_status_value in {"running", "active"}:
+        if quest_status in _LIVE_QUEST_STATUSES:
             runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
             bash_session_audit = dict(quest_runtime.bash_session_audit or {})
             result.record_runtime_liveness_audit(runtime_liveness_audit)
@@ -986,7 +1011,7 @@ def _status_state(
             )
         return result
 
-    if quest_status_value in {"running", "active"}:
+    if quest_status in _LIVE_QUEST_STATUSES:
         runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
         bash_session_audit = dict(quest_runtime.bash_session_audit or {})
         result.record_runtime_liveness_audit(runtime_liveness_audit)
@@ -1035,7 +1060,7 @@ def _status_state(
             )
         return result
 
-    if quest_status_value in {"paused", "idle", "created", "stopped"}:
+    if quest_status in _RESUMABLE_QUEST_STATUSES:
         if not startup_boundary_gate["allow_compute_stage"]:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -1050,18 +1075,18 @@ def _status_state(
             return result
         if execution.get("auto_resume") is True:
             resumable_reason = {
-                "paused": StudyRuntimeReason.QUEST_PAUSED,
-                "stopped": StudyRuntimeReason.QUEST_STOPPED,
-            }.get(quest_status_value, StudyRuntimeReason.QUEST_INITIALIZED_WAITING_TO_START)
+                StudyRuntimeQuestStatus.PAUSED: StudyRuntimeReason.QUEST_PAUSED,
+                StudyRuntimeQuestStatus.STOPPED: StudyRuntimeReason.QUEST_STOPPED,
+            }.get(quest_status, StudyRuntimeReason.QUEST_INITIALIZED_WAITING_TO_START)
             result.set_decision(
                 StudyRuntimeDecision.RESUME,
                 resumable_reason,
             )
         else:
             blocked_reason = {
-                "paused": StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
-                "stopped": StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
-            }.get(quest_status_value, StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED)
+                StudyRuntimeQuestStatus.PAUSED: StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+                StudyRuntimeQuestStatus.STOPPED: StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+            }.get(quest_status, StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED)
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 blocked_reason,
@@ -1175,7 +1200,7 @@ def _run_runtime_preflight(
         runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
         status.record_runtime_overlay(runtime_overlay_result)
         audit = runtime_overlay_result["audit"]
-        if status.quest_status in {"running", "active"} and not bool(audit.get("all_roots_ready")):
+        if status.quest_status in _LIVE_QUEST_STATUSES and not bool(audit.get("all_roots_ready")):
             status.set_decision(
                 StudyRuntimeDecision.PAUSE,
                 StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
