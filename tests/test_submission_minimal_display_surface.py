@@ -151,3 +151,96 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
     assert manifest["figures"][0]["qc_profile"] == "publication_evidence_curve"
     assert manifest["tables"][0]["table_shell_id"] == "table1_baseline_characteristics"
     assert manifest["tables"][0]["qc_profile"] == "publication_table_baseline"
+
+
+def test_create_submission_minimal_package_accepts_table_catalog_csv_and_markdown_paths(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T1",
+                    "title": "Summary table",
+                    "paper_role": "main_text",
+                    "csv_path": str((paper_root / "tables" / "T1_summary.csv").resolve()),
+                    "markdown_path": str((paper_root / "tables" / "T1_summary.md").resolve()),
+                }
+            ],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert manifest["tables"][0]["table_id"] == "T1"
+    assert manifest["naming_map"]["tables"]["T1"] == "Table1"
+    assert (paper_root / "submission_minimal" / "tables" / "Table1.csv").exists()
+    assert (paper_root / "submission_minimal" / "tables" / "Table1.md").exists()
+
+
+def test_create_submission_minimal_package_accepts_prefixed_catalog_ids_and_direct_paths(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "Figure1",
+                    "title": "Main figure",
+                    "pdf_path": str((paper_root / "figures" / "F1_main.pdf").resolve()),
+                    "png_path": str((paper_root / "figures" / "F1_main.png").resolve()),
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "Table1",
+                    "title": "Summary table",
+                    "paper_role": "main_text",
+                    "csv_path": str((paper_root / "tables" / "T1_summary.csv").resolve()),
+                    "markdown_path": str((paper_root / "tables" / "T1_summary.md").resolve()),
+                }
+            ],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert manifest["naming_map"]["figures"]["Figure1"] == "Figure1"
+    assert manifest["naming_map"]["tables"]["Table1"] == "Table1"
+    assert (paper_root / "submission_minimal" / "figures" / "Figure1.pdf").exists()
+    assert (paper_root / "submission_minimal" / "figures" / "Figure1.png").exists()
+    assert (paper_root / "submission_minimal" / "tables" / "Table1.csv").exists()
+    assert (paper_root / "submission_minimal" / "tables" / "Table1.md").exists()
+
+
+def test_create_submission_minimal_package_resets_stale_generated_assets(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+
+    stale_path = paper_root / "submission_minimal" / "tables" / "stale.txt"
+    write_text(stale_path, "stale")
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert not stale_path.exists()

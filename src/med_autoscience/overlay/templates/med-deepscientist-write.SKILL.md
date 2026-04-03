@@ -109,6 +109,9 @@ Language redlines under this profile:
 
 - do not use internal engineering terms in manuscript body text, figure titles, or captions
 - do not use internal model names or internal model-family names in manuscript body text, figure titles, or captions
+- do not use dataset version labels, freeze labels, or workspace cohort labels in manuscript body text, figure titles, or captions
+- do not use internal editorial labels such as `paper-facing`, `mainline`, `sidecar`, `analysis surface`, or `study surface` in manuscript body text, figure titles, or captions
+- explicit forbidden examples include `locked vYYYY-MM-DD`, `follow-up freeze`, `data freeze`, and `workspace cohort`
 - replace internal labels with externally legible, reviewer-facing terminology
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
