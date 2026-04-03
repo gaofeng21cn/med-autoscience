@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 import json
 import re
 from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 from typing import Any
 
 import matplotlib
@@ -13,7 +16,513 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from med_autoscience import display_registry
+from med_autoscience import display_layout_qc, display_registry
+
+
+_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
+    "binary_prediction_curve_inputs_v1": "binary_prediction_curve_inputs.json",
+    "time_to_event_grouped_inputs_v1": "time_to_event_grouped_inputs.json",
+    "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
+    "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
+    "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
+    "forest_effect_inputs_v1": "forest_effect_inputs.json",
+    "shap_summary_inputs_v1": "shap_summary_inputs.json",
+}
+
+_R_EVIDENCE_RENDERER_SOURCE = r"""
+suppressPackageStartupMessages({
+  library(jsonlite)
+  library(ggplot2)
+  library(ggsci)
+  library(grid)
+})
+
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) != 5) {
+  stop("expected args: <template_id> <payload_json> <output_png> <output_pdf> <output_layout>")
+}
+
+template_id <- args[[1]]
+payload_path <- args[[2]]
+output_png <- args[[3]]
+output_pdf <- args[[4]]
+output_layout <- args[[5]]
+
+payload <- fromJSON(payload_path, simplifyVector = FALSE)
+
+as_numeric_vector <- function(values, field_name) {
+  if (!is.list(values) || length(values) < 2) {
+    stop(sprintf("%s must contain at least two numeric values", field_name))
+  }
+  numeric_values <- vapply(values, function(item) {
+    if (!is.numeric(item)) {
+      stop(sprintf("%s must contain only numeric values", field_name))
+    }
+    as.numeric(item)
+  }, numeric(1))
+  numeric_values
+}
+
+theme_publication <- function() {
+  theme_bw(base_size = 11) +
+    theme(
+      plot.title = element_text(face = "bold", colour = "#13293d", size = 12.5),
+      axis.title = element_text(face = "bold", colour = "#13293d"),
+      legend.position = "bottom",
+      legend.title = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(colour = "#e6edf2", linewidth = 0.25)
+    )
+}
+
+build_curve_dataframe <- function(series_payload) {
+  frames <- lapply(seq_along(series_payload), function(index) {
+    item <- series_payload[[index]]
+    x <- as_numeric_vector(item$x, sprintf("series[%d].x", index))
+    y <- as_numeric_vector(item$y, sprintf("series[%d].y", index))
+    if (length(x) != length(y)) {
+      stop(sprintf("series[%d].x and series[%d].y must have the same length", index, index))
+    }
+    data.frame(
+      label = rep(trimws(as.character(item$label %||% "")), length(x)),
+      x = x,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, frames)
+}
+
+build_reference_dataframe <- function(reference_line) {
+  if (is.null(reference_line)) {
+    return(NULL)
+  }
+  x <- as_numeric_vector(reference_line$x, "reference_line.x")
+  y <- as_numeric_vector(reference_line$y, "reference_line.y")
+  if (length(x) != length(y)) {
+    stop("reference_line.x and reference_line.y must have the same length")
+  }
+  data.frame(x = x, y = y)
+}
+
+build_point_dataframe <- function(points_payload, x_field = "x", y_field = "y") {
+  frames <- lapply(seq_along(points_payload), function(index) {
+    item <- points_payload[[index]]
+    data.frame(
+      x = as.numeric(item[[x_field]]),
+      y = as.numeric(item[[y_field]]),
+      group = trimws(as.character(item$group %||% "")),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, frames)
+}
+
+build_heatmap_dataframe <- function(cells_payload) {
+  frames <- lapply(seq_along(cells_payload), function(index) {
+    item <- cells_payload[[index]]
+    data.frame(
+      x = trimws(as.character(item$x %||% "")),
+      y = trimws(as.character(item$y %||% "")),
+      value = as.numeric(item$value),
+      stringsAsFactors = FALSE
+    )
+  })
+  heat_df <- do.call(rbind, frames)
+  heat_df$x <- factor(heat_df$x, levels = unique(heat_df$x))
+  heat_df$y <- factor(heat_df$y, levels = rev(unique(heat_df$y)))
+  heat_df
+}
+
+build_forest_dataframe <- function(rows_payload) {
+  frames <- lapply(seq_along(rows_payload), function(index) {
+    item <- rows_payload[[index]]
+    data.frame(
+      label = trimws(as.character(item$label %||% "")),
+      estimate = as.numeric(item$estimate),
+      lower = as.numeric(item$lower),
+      upper = as.numeric(item$upper),
+      stringsAsFactors = FALSE
+    )
+  })
+  forest_df <- do.call(rbind, frames)
+  forest_df$label <- factor(forest_df$label, levels = rev(forest_df$label))
+  forest_df
+}
+
+plot_binary_curve <- function(display_payload) {
+  series_payload <- display_payload$series
+  if (!is.list(series_payload) || length(series_payload) < 1) {
+    stop("series must contain at least one curve")
+  }
+  curve_df <- build_curve_dataframe(series_payload)
+  reference_df <- build_reference_dataframe(display_payload$reference_line)
+  plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
+    geom_line(linewidth = 0.9) +
+    coord_cartesian(xlim = c(0, 1), ylim = c(min(curve_df$y, 0), max(curve_df$y, 1))) +
+    scale_color_lancet() +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication()
+  if (!is.null(reference_df)) {
+    plot <- plot + geom_line(
+      data = reference_df,
+      aes(x = x, y = y),
+      inherit.aes = FALSE,
+      colour = "#6b7280",
+      linewidth = 0.6,
+      linetype = "dashed"
+    )
+  }
+  plot
+}
+
+plot_kaplan_meier <- function(display_payload) {
+  groups_payload <- display_payload$groups
+  if (!is.list(groups_payload) || length(groups_payload) < 1) {
+    stop("groups must contain at least one survival series")
+  }
+  frames <- lapply(seq_along(groups_payload), function(index) {
+    item <- groups_payload[[index]]
+    x <- as_numeric_vector(item$times, sprintf("groups[%d].times", index))
+    y <- as_numeric_vector(item$values, sprintf("groups[%d].values", index))
+    if (length(x) != length(y)) {
+      stop(sprintf("groups[%d].times and groups[%d].values must have the same length", index, index))
+    }
+    data.frame(
+      label = rep(trimws(as.character(item$label %||% "")), length(x)),
+      x = x,
+      y = y,
+      stringsAsFactors = FALSE
+    )
+  })
+  curve_df <- do.call(rbind, frames)
+  plot <- ggplot(curve_df, aes(x = x, y = y, colour = label)) +
+    geom_step(linewidth = 0.9, direction = "hv") +
+    coord_cartesian(xlim = c(0, max(curve_df$x)), ylim = c(0, 1)) +
+    scale_color_lancet() +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication()
+  annotation <- trimws(as.character(display_payload$annotation %||% ""))
+  if (nzchar(annotation)) {
+    plot <- plot + annotate(
+      "text",
+      x = max(curve_df$x) * 0.98,
+      y = 0.08,
+      label = annotation,
+      hjust = 1,
+      vjust = 0,
+      size = 3.3,
+      colour = "#13293d"
+    )
+  }
+  plot
+}
+
+plot_embedding_scatter <- function(display_payload) {
+  points_payload <- display_payload$points
+  if (!is.list(points_payload) || length(points_payload) < 1) {
+    stop("points must contain at least one observation")
+  }
+  point_df <- build_point_dataframe(points_payload)
+  plot <- ggplot(point_df, aes(x = x, y = y, colour = group)) +
+    geom_point(size = 2.8, alpha = 0.9) +
+    scale_color_lancet() +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication()
+  plot
+}
+
+plot_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  heat_df <- build_heatmap_dataframe(cells_payload)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.5) +
+    geom_text(aes(label = sprintf("%.2f", value)), size = 3.1, colour = "#13293d") +
+    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication() +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+  plot
+}
+
+plot_forest <- function(display_payload) {
+  rows_payload <- display_payload$rows
+  if (!is.list(rows_payload) || length(rows_payload) < 1) {
+    stop("rows must contain at least one effect estimate")
+  }
+  forest_df <- build_forest_dataframe(rows_payload)
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  plot <- ggplot(forest_df, aes(y = label, x = estimate)) +
+    geom_vline(xintercept = reference_value, colour = "#6b7280", linewidth = 0.6, linetype = "dashed") +
+    geom_segment(aes(x = lower, xend = upper, y = label, yend = label), linewidth = 0.9, colour = "#1f4e79") +
+    geom_point(size = 2.8, colour = "#1f4e79") +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = ""
+    ) +
+    theme_publication()
+  plot
+}
+
+`%||%` <- function(left, right) {
+  if (is.null(left)) right else left
+}
+
+box_record <- function(box_id, box_type, x0, y0, x1, y1) {
+  list(
+    box_id = box_id,
+    box_type = box_type,
+    x0 = as.numeric(x0),
+    y0 = as.numeric(y0),
+    x1 = as.numeric(x1),
+    y1 = as.numeric(y1)
+  )
+}
+
+layout_box_from_indices <- function(widths, heights, left, right, top, bottom, box_id, box_type) {
+  x0 <- if (left <= 1) 0 else sum(widths[seq_len(left - 1)])
+  x1 <- sum(widths[seq_len(right)])
+  y1 <- 1 - if (top <= 1) 0 else sum(heights[seq_len(top - 1)])
+  y0 <- 1 - sum(heights[seq_len(bottom)])
+  box_record(box_id, box_type, x0, y0, x1, y1)
+}
+
+find_layout_box <- function(gt, widths, heights, prefixes, box_id, box_type) {
+  layout_names <- gt$layout$name
+  layout_index <- integer(0)
+  for (prefix in prefixes) {
+    matches <- which(startsWith(layout_names, prefix))
+    if (length(matches) > 0) {
+      layout_index <- matches
+      break
+    }
+  }
+  if (length(layout_index) < 1) {
+    return(NULL)
+  }
+  row <- gt$layout[layout_index[1], , drop = FALSE]
+  layout_box_from_indices(widths, heights, row$l[[1]], row$r[[1]], row$t[[1]], row$b[[1]], box_id, box_type)
+}
+
+map_value_to_panel_x <- function(value, panel_box, x_min, x_max) {
+  if (!is.finite(x_min) || !is.finite(x_max) || identical(x_min, x_max)) {
+    return((panel_box$x0 + panel_box$x1) / 2)
+  }
+  span <- panel_box$x1 - panel_box$x0
+  panel_box$x0 + ((value - x_min) / (x_max - x_min)) * span
+}
+
+map_row_to_panel_y <- function(row_index, row_count, panel_box) {
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1)
+  panel_box$y1 - ((row_index - 0.5) * row_height)
+}
+
+build_forest_layout <- function(display_payload, panel_box, axis_left_box) {
+  rows <- display_payload$rows
+  if (!is.list(rows) || length(rows) < 1) {
+    return(list(layout_boxes = list(), guide_boxes = list(), metrics = list(rows = list())))
+  }
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  lower_values <- vapply(rows, function(item) as.numeric(item$lower), numeric(1))
+  estimate_values <- vapply(rows, function(item) as.numeric(item$estimate), numeric(1))
+  upper_values <- vapply(rows, function(item) as.numeric(item$upper), numeric(1))
+  x_min <- min(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  x_max <- max(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  row_count <- length(rows)
+  label_box <- axis_left_box %||% box_record("axis_left", "axis_left", 0.02, panel_box$y0, max(0.03, panel_box$x0 - 0.04), panel_box$y1)
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1) * 0.55
+  layout_boxes <- list()
+  metric_rows <- list()
+  for (index in seq_along(rows)) {
+    row <- rows[[index]]
+    row_center <- map_row_to_panel_y(index, row_count, panel_box)
+    lower_x <- map_value_to_panel_x(as.numeric(row$lower), panel_box, x_min, x_max)
+    estimate_x <- map_value_to_panel_x(as.numeric(row$estimate), panel_box, x_min, x_max)
+    upper_x <- map_value_to_panel_x(as.numeric(row$upper), panel_box, x_min, x_max)
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("row_label_%d", index),
+      "row_label",
+      label_box$x0,
+      row_center - row_height / 2,
+      label_box$x1,
+      row_center + row_height / 2
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("estimate_marker_%d", index),
+      "estimate_marker",
+      estimate_x - 0.01,
+      row_center - row_height / 4,
+      estimate_x + 0.01,
+      row_center + row_height / 4
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("ci_segment_%d", index),
+      "ci_segment",
+      lower_x,
+      row_center,
+      upper_x,
+      row_center
+    )
+    metric_rows[[length(metric_rows) + 1]] <- list(
+      row_id = trimws(as.character(row$label %||% sprintf("row_%d", index))),
+      label = trimws(as.character(row$label %||% "")),
+      lower = as.numeric(row$lower),
+      estimate = as.numeric(row$estimate),
+      upper = as.numeric(row$upper)
+    )
+  }
+  reference_x <- map_value_to_panel_x(reference_value, panel_box, x_min, x_max)
+  guide_boxes <- list(
+    box_record("reference_line", "reference_line", reference_x, panel_box$y0, reference_x, panel_box$y1)
+  )
+  list(layout_boxes = layout_boxes, guide_boxes = guide_boxes, metrics = list(rows = metric_rows))
+}
+
+build_embedding_metrics <- function(display_payload, panel_box) {
+  points <- display_payload$points
+  if (is.null(panel_box) || !is.list(points) || length(points) < 1) {
+    return(list(points = list()))
+  }
+  x_values <- vapply(points, function(item) as.numeric(item$x), numeric(1))
+  y_values <- vapply(points, function(item) as.numeric(item$y), numeric(1))
+  x_min <- min(x_values)
+  x_max <- max(x_values)
+  y_min <- min(y_values)
+  y_max <- max(y_values)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  if (identical(y_min, y_max)) {
+    y_min <- y_min - 0.5
+    y_max <- y_max + 0.5
+  }
+  point_metrics <- lapply(points, function(item) {
+    list(
+      x = map_value_to_panel_x(as.numeric(item$x), panel_box, x_min, x_max),
+      y = panel_box$y0 + ((as.numeric(item$y) - y_min) / (y_max - y_min)) * (panel_box$y1 - panel_box$y0),
+      group = trimws(as.character(item$group %||% ""))
+    )
+  })
+  list(points = point_metrics)
+}
+
+build_metrics <- function(template_id, display_payload, panel_box) {
+  switch(
+    template_id,
+    roc_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    kaplan_meier_grouped = list(groups = display_payload$groups),
+    cumulative_incidence_grouped = list(groups = display_payload$groups),
+    umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
+    correlation_heatmap = list(matrix_cells = display_payload$cells),
+    forest_effect_main = list(rows = display_payload$rows),
+    list()
+  )
+}
+
+build_layout_sidecar <- function(plot, template_id, display_payload) {
+  tmp_pdf <- tempfile(fileext = ".pdf")
+  grDevices::pdf(tmp_pdf, width = 7.2, height = 5.0)
+  on.exit({
+    grDevices::dev.off()
+    unlink(tmp_pdf)
+  }, add = TRUE)
+  gt <- ggplotGrob(plot)
+  grid::grid.newpage()
+  grid::grid.draw(gt)
+  grid::grid.force()
+  widths <- grid::convertWidth(gt$widths, "npc", valueOnly = TRUE)
+  heights <- grid::convertHeight(gt$heights, "npc", valueOnly = TRUE)
+  title_box <- find_layout_box(gt, widths, heights, c("title"), "title", "title")
+  x_axis_title_box <- find_layout_box(gt, widths, heights, c("xlab-b"), "x_axis_title", "x_axis_title")
+  y_axis_title_box <- find_layout_box(gt, widths, heights, c("ylab-l"), "y_axis_title", "y_axis_title")
+  panel_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("panel"),
+    "panel",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "heatmap_tile_region" else "panel"
+  )
+  guide_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("guide-box"),
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend"
+  )
+  axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
+  layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
+  guide_boxes <- Filter(Negate(is.null), list(guide_box))
+  metrics <- build_metrics(template_id, display_payload, panel_box)
+  if (identical(template_id, "forest_effect_main") && !is.null(panel_box)) {
+    forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
+    layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
+    guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
+    metrics <- forest_layout$metrics
+  }
+  list(
+    template_id = template_id,
+    device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+    layout_boxes = layout_boxes,
+    panel_boxes = Filter(Negate(is.null), list(panel_box)),
+    guide_boxes = guide_boxes,
+    metrics = metrics
+  )
+}
+
+plot <- switch(
+  template_id,
+  roc_curve_binary = plot_binary_curve(payload),
+  pr_curve_binary = plot_binary_curve(payload),
+  calibration_curve_binary = plot_binary_curve(payload),
+  decision_curve_binary = plot_binary_curve(payload),
+  kaplan_meier_grouped = plot_kaplan_meier(payload),
+  cumulative_incidence_grouped = plot_kaplan_meier(payload),
+  umap_scatter_grouped = plot_embedding_scatter(payload),
+  pca_scatter_grouped = plot_embedding_scatter(payload),
+  heatmap_group_comparison = plot_heatmap(payload),
+  correlation_heatmap = plot_heatmap(payload),
+  forest_effect_main = plot_forest(payload),
+  stop(sprintf("unsupported evidence template `%s`", template_id))
+)
+
+layout_sidecar <- build_layout_sidecar(plot, template_id, payload)
+write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
+
+ggsave(output_png, plot = plot, width = 7.2, height = 5.0, dpi = 320, units = "in", bg = "white")
+ggsave(output_pdf, plot = plot, width = 7.2, height = 5.0, units = "in", bg = "white")
+"""
 
 
 def utc_now() -> str:
@@ -54,6 +563,30 @@ def _replace_catalog_entry(items: list[dict[str, Any]], *, key: str, value: str,
     updated = [item for item in items if str(item.get(key) or "").strip() != value]
     updated.append(entry)
     return updated
+
+
+def _require_non_empty_string(value: object, *, label: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        raise ValueError(f"{label} must be non-empty")
+    return normalized
+
+
+def _require_numeric_list(value: object, *, label: str, min_length: int = 2) -> list[float]:
+    if not isinstance(value, list) or len(value) < min_length:
+        raise ValueError(f"{label} must contain at least {min_length} numeric values")
+    normalized: list[float] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, (int, float)) or isinstance(item, bool):
+            raise ValueError(f"{label}[{index}] must be numeric")
+        normalized.append(float(item))
+    return normalized
+
+
+def _require_numeric_value(value: object, *, label: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{label} must be numeric")
+    return float(value)
 
 
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -104,6 +637,408 @@ def _validate_baseline_table_payload(path: Path, payload: dict[str, Any]) -> tup
             )
         normalized_rows.append({"label": label, "values": [str(item).strip() for item in values]})
     return group_labels, normalized_rows
+
+
+def _evidence_payload_path(*, paper_root: Path, input_schema_id: str) -> Path:
+    try:
+        filename = _INPUT_FILENAME_BY_SCHEMA_ID[input_schema_id]
+    except KeyError as exc:
+        raise ValueError(f"unsupported evidence input schema `{input_schema_id}`") from exc
+    return paper_root / filename
+
+
+def _validate_binary_curve_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    series_payload = payload.get("series")
+    if not isinstance(series_payload, list) or not series_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty series list")
+    normalized_series: list[dict[str, Any]] = []
+    for index, item in enumerate(series_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` series[{index}] must be an object")
+        label = _require_non_empty_string(
+            item.get("label"), label=f"{path.name} display `{expected_display_id}` series[{index}].label"
+        )
+        x = _require_numeric_list(item.get("x"), label=f"{path.name} display `{expected_display_id}` series[{index}].x")
+        y = _require_numeric_list(item.get("y"), label=f"{path.name} display `{expected_display_id}` series[{index}].y")
+        if len(x) != len(y):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` series[{index}].x and .y must have the same length"
+            )
+        normalized_series.append(
+            {
+                "label": label,
+                "x": x,
+                "y": y,
+                "annotation": str(item.get("annotation") or "").strip(),
+            }
+        )
+    reference_line = payload.get("reference_line")
+    normalized_reference_line: dict[str, Any] | None = None
+    if reference_line is not None:
+        if not isinstance(reference_line, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` reference_line must be an object")
+        ref_x = _require_numeric_list(
+            reference_line.get("x"),
+            label=f"{path.name} display `{expected_display_id}` reference_line.x",
+        )
+        ref_y = _require_numeric_list(
+            reference_line.get("y"),
+            label=f"{path.name} display `{expected_display_id}` reference_line.y",
+        )
+        if len(ref_x) != len(ref_y):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` reference_line.x and .y must have the same length"
+            )
+        normalized_reference_line = {
+            "x": ref_x,
+            "y": ref_y,
+            "label": str(reference_line.get("label") or "").strip(),
+        }
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "reference_line": normalized_reference_line,
+        "series": normalized_series,
+    }
+
+
+def _validate_time_to_event_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    groups = payload.get("groups")
+    if not isinstance(groups, list) or not groups:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty groups list")
+    normalized_groups: list[dict[str, Any]] = []
+    for index, item in enumerate(groups):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` groups[{index}] must be an object")
+        label = _require_non_empty_string(
+            item.get("label"), label=f"{path.name} display `{expected_display_id}` groups[{index}].label"
+        )
+        times = _require_numeric_list(
+            item.get("times"), label=f"{path.name} display `{expected_display_id}` groups[{index}].times"
+        )
+        values = _require_numeric_list(
+            item.get("values"), label=f"{path.name} display `{expected_display_id}` groups[{index}].values"
+        )
+        if len(times) != len(values):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` groups[{index}].times and .values must have the same length"
+            )
+        normalized_groups.append({"label": label, "times": times, "values": values})
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "groups": normalized_groups,
+        "annotation": str(payload.get("annotation") or "").strip(),
+    }
+
+
+def _validate_embedding_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    points = payload.get("points")
+    if not isinstance(points, list) or not points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty points list")
+    normalized_points: list[dict[str, Any]] = []
+    for index, item in enumerate(points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}] must be an object")
+        normalized_points.append(
+            {
+                "x": _require_numeric_value(item.get("x"), label=f"{path.name} display `{expected_display_id}` points[{index}].x"),
+                "y": _require_numeric_value(item.get("y"), label=f"{path.name} display `{expected_display_id}` points[{index}].y"),
+                "group": _require_non_empty_string(
+                    item.get("group"),
+                    label=f"{path.name} display `{expected_display_id}` points[{index}].group",
+                ),
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "points": normalized_points,
+    }
+
+
+def _validate_heatmap_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    cells = payload.get("cells")
+    if not isinstance(cells, list) or not cells:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty cells list")
+    normalized_cells: list[dict[str, Any]] = []
+    for index, item in enumerate(cells):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` cells[{index}] must be an object")
+        normalized_cells.append(
+            {
+                "x": _require_non_empty_string(item.get("x"), label=f"{path.name} display `{expected_display_id}` cells[{index}].x"),
+                "y": _require_non_empty_string(item.get("y"), label=f"{path.name} display `{expected_display_id}` cells[{index}].y"),
+                "value": _require_numeric_value(
+                    item.get("value"),
+                    label=f"{path.name} display `{expected_display_id}` cells[{index}].value",
+                ),
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "cells": normalized_cells,
+    }
+
+
+def _validate_forest_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    for index, item in enumerate(rows):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` rows[{index}] must be an object")
+        estimate = _require_numeric_value(
+            item.get("estimate"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].estimate",
+        )
+        lower = _require_numeric_value(
+            item.get("lower"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].lower",
+        )
+        upper = _require_numeric_value(
+            item.get("upper"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].upper",
+        )
+        if not (lower <= estimate <= upper):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` rows[{index}] must satisfy lower <= estimate <= upper"
+            )
+        normalized_rows.append(
+            {
+                "label": _require_non_empty_string(
+                    item.get("label"),
+                    label=f"{path.name} display `{expected_display_id}` rows[{index}].label",
+                ),
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "reference_value": _require_numeric_value(
+            payload.get("reference_value", 1.0),
+            label=f"{path.name} display `{expected_display_id}` reference_value",
+        ),
+        "rows": normalized_rows,
+    }
+
+
+def _validate_shap_summary_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    for row_index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` rows[{row_index}] must be an object")
+        points = row.get("points")
+        if not isinstance(points, list) or not points:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` rows[{row_index}] must contain a non-empty points list"
+            )
+        normalized_points: list[dict[str, Any]] = []
+        for point_index, point in enumerate(points):
+            if not isinstance(point, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}] must be an object"
+                )
+            normalized_points.append(
+                {
+                    "shap_value": _require_numeric_value(
+                        point.get("shap_value"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}]."
+                            "shap_value"
+                        ),
+                    ),
+                    "feature_value": _require_numeric_value(
+                        point.get("feature_value"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}]."
+                            "feature_value"
+                        ),
+                    ),
+                }
+            )
+        normalized_rows.append(
+            {
+                "feature": _require_non_empty_string(
+                    row.get("feature"),
+                    label=f"{path.name} display `{expected_display_id}` rows[{row_index}].feature",
+                ),
+                "points": normalized_points,
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "rows": normalized_rows,
+    }
+
+
+def _load_evidence_display_payload(
+    *,
+    paper_root: Path,
+    spec: display_registry.EvidenceFigureSpec,
+    display_id: str,
+) -> tuple[Path, dict[str, Any]]:
+    payload_path = _evidence_payload_path(paper_root=paper_root, input_schema_id=spec.input_schema_id)
+    payload = load_json(payload_path)
+    if str(payload.get("input_schema_id") or "").strip() != spec.input_schema_id:
+        raise ValueError(f"{payload_path.name} must declare input_schema_id `{spec.input_schema_id}`")
+    displays = payload.get("displays")
+    if not isinstance(displays, list) or not displays:
+        raise ValueError(f"{payload_path.name} must contain a non-empty displays list")
+    matched_display: dict[str, Any] | None = None
+    for index, item in enumerate(displays):
+        if not isinstance(item, dict):
+            raise ValueError(f"{payload_path.name} displays[{index}] must be an object")
+        if str(item.get("display_id") or "").strip() == display_id:
+            matched_display = item
+            break
+    if matched_display is None:
+        raise ValueError(f"{payload_path.name} does not define display `{display_id}` for template `{spec.template_id}`")
+
+    if spec.input_schema_id == "binary_prediction_curve_inputs_v1":
+        return payload_path, _validate_binary_curve_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "time_to_event_grouped_inputs_v1":
+        return payload_path, _validate_time_to_event_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "embedding_grouped_inputs_v1":
+        return payload_path, _validate_embedding_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id in {"heatmap_group_comparison_inputs_v1", "correlation_heatmap_inputs_v1"}:
+        return payload_path, _validate_heatmap_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "forest_effect_inputs_v1":
+        return payload_path, _validate_forest_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_summary_inputs_v1":
+        return payload_path, _validate_shap_summary_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    raise ValueError(f"unsupported evidence input schema `{spec.input_schema_id}`")
 
 
 def _render_cohort_flow_figure(
@@ -201,6 +1136,287 @@ def _write_table_outputs(
     for row in table_rows:
         markdown_lines.append("| " + " | ".join(row) + " |")
     output_md_path.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
+
+
+def _bbox_to_layout_box(
+    *,
+    figure: plt.Figure,
+    bbox,
+    box_id: str,
+    box_type: str,
+) -> dict[str, Any]:
+    x0, y0 = figure.transFigure.inverted().transform((bbox.x0, bbox.y0))
+    x1, y1 = figure.transFigure.inverted().transform((bbox.x1, bbox.y1))
+    return {
+        "box_id": box_id,
+        "box_type": box_type,
+        "x0": float(min(x0, x1)),
+        "y0": float(min(y0, y1)),
+        "x1": float(max(x0, x1)),
+        "y1": float(max(y0, y1)),
+    }
+
+
+def _data_box_to_layout_box(
+    *,
+    axes,
+    figure: plt.Figure,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    box_id: str,
+    box_type: str,
+) -> dict[str, Any]:
+    left_bottom = axes.transData.transform((x0, y0))
+    right_top = axes.transData.transform((x1, y1))
+    bbox = matplotlib.transforms.Bbox.from_extents(left_bottom[0], left_bottom[1], right_top[0], right_top[1])
+    return _bbox_to_layout_box(figure=figure, bbox=bbox, box_id=box_id, box_type=box_type)
+
+
+def _data_point_to_figure_xy(*, axes, figure: plt.Figure, x: float, y: float) -> tuple[float, float]:
+    display_x, display_y = axes.transData.transform((x, y))
+    figure_x, figure_y = figure.transFigure.inverted().transform((display_x, display_y))
+    return float(figure_x), float(figure_y)
+
+
+def _build_python_shap_layout_sidecar(
+    *,
+    figure: plt.Figure,
+    axes,
+    colorbar,
+    rows: list[dict[str, Any]],
+    point_rows: list[dict[str, Any]],
+    template_id: str,
+) -> dict[str, Any]:
+    renderer = figure.canvas.get_renderer()
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.title.get_window_extent(renderer=renderer),
+            box_id="title",
+            box_type="title",
+        ),
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+    ]
+    panel_box = _bbox_to_layout_box(
+        figure=figure,
+        bbox=axes.get_window_extent(renderer=renderer),
+        box_id="panel",
+        box_type="panel",
+    )
+    x_min, x_max = axes.get_xlim()
+    for row_index, row in enumerate(rows):
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=axes,
+                figure=figure,
+                x0=x_min,
+                y0=row_index - 0.42,
+                x1=x_max,
+                y1=row_index + 0.42,
+                box_id=f"feature_row_{row['feature']}",
+                box_type="feature_row",
+            )
+        )
+    guide_boxes = [
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=colorbar.ax.get_window_extent(renderer=renderer),
+            box_id="colorbar",
+            box_type="colorbar",
+        ),
+        _data_box_to_layout_box(
+            axes=axes,
+            figure=figure,
+            x0=0.0,
+            y0=-0.5,
+            x1=0.0,
+            y1=float(len(rows)) - 0.5,
+            box_id="zero_line",
+            box_type="zero_line",
+        ),
+    ]
+    row_box_id_by_feature = {f"{row['feature']}": f"feature_row_{row['feature']}" for row in rows}
+    point_metrics: list[dict[str, Any]] = []
+    for item in point_rows:
+        figure_x, figure_y = _data_point_to_figure_xy(
+            axes=axes,
+            figure=figure,
+            x=float(item["shap_value"]),
+            y=float(item["row_position"]),
+        )
+        point_metrics.append(
+            {
+                "feature": str(item["feature"]),
+                "row_box_id": row_box_id_by_feature[str(item["feature"])],
+                "x": figure_x,
+                "y": figure_y,
+            }
+        )
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": layout_boxes,
+        "panel_boxes": [panel_box],
+        "guide_boxes": guide_boxes,
+        "metrics": {
+            "points": point_metrics,
+        },
+    }
+
+
+def _load_layout_sidecar_or_raise(*, path: Path, template_id: str) -> dict[str, Any]:
+    if not path.exists():
+        raise RuntimeError(f"renderer did not produce layout sidecar for `{template_id}`: {path}")
+    return load_json(path)
+
+
+def _render_r_evidence_figure(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        raise RuntimeError("Rscript not found on PATH; required for r_ggplot2 evidence figure materialization")
+
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="medautosci-evidence-") as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        payload_path = tmpdir_path / "display_payload.json"
+        script_path = tmpdir_path / "render_evidence_figure.R"
+        payload_path.write_text(json.dumps(display_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        script_path.write_text(_R_EVIDENCE_RENDERER_SOURCE, encoding="utf-8")
+        completed = subprocess.run(
+            [
+                rscript,
+                str(script_path),
+                template_id,
+                str(payload_path),
+                str(output_png_path),
+                str(output_pdf_path),
+                str(layout_sidecar_path),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    if completed.returncode != 0:
+        stderr = completed.stderr.strip() or completed.stdout.strip()
+        raise RuntimeError(f"R evidence renderer failed for `{template_id}`: {stderr or 'unknown R error'}")
+    missing_outputs = [str(path) for path in (output_png_path, output_pdf_path, layout_sidecar_path) if not path.exists()]
+    if missing_outputs:
+        raise RuntimeError(
+            f"R evidence renderer did not produce required exports for `{template_id}`: {', '.join(missing_outputs)}"
+        )
+
+
+def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
+    if count <= 1:
+        return [0.0]
+    step = (half_span * 2.0) / float(count - 1)
+    return [(-half_span + step * float(index)) for index in range(count)]
+
+
+def _render_python_evidence_figure(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    if template_id != "shap_summary_beeswarm":
+        raise RuntimeError(f"unsupported python evidence template `{template_id}`")
+
+    rows = list(display_payload.get("rows") or [])
+    if not rows:
+        raise RuntimeError("shap_summary_beeswarm requires non-empty rows")
+
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    figure_height = max(4.8, 0.85 * len(rows) + 1.4)
+    fig, ax = plt.subplots(figsize=(7.2, figure_height))
+    fig.patch.set_facecolor("white")
+
+    feature_values = [point["feature_value"] for row in rows for point in row["points"]]
+    min_value = min(feature_values)
+    max_value = max(feature_values)
+    if max_value == min_value:
+        max_value = min_value + 1.0
+    norm = matplotlib.colors.Normalize(vmin=min_value, vmax=max_value)
+    cmap = plt.get_cmap("coolwarm")
+    point_rows: list[dict[str, Any]] = []
+
+    for row_index, row in enumerate(rows):
+        ordered_points = sorted(row["points"], key=lambda item: float(item["shap_value"]))
+        offsets = _centered_offsets(len(ordered_points))
+        for point_index, point in enumerate(ordered_points):
+            row_position = row_index + offsets[point_index]
+            ax.scatter(
+                point["shap_value"],
+                row_position,
+                s=42,
+                c=[cmap(norm(point["feature_value"]))],
+                edgecolors="white",
+                linewidths=0.35,
+                alpha=0.95,
+            )
+            point_rows.append(
+                {
+                    "feature": str(row["feature"]),
+                    "row_position": row_position,
+                    "shap_value": float(point["shap_value"]),
+                }
+            )
+
+    ax.axvline(0.0, color="#6b7280", linewidth=0.8, linestyle="--")
+    ax.set_yticks(list(range(len(rows))))
+    ax.set_yticklabels([str(row["feature"]) for row in rows], fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_ylabel("")
+    ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
+    ax.grid(axis="x", color="#e6edf2", linewidth=0.4)
+    ax.grid(axis="y", visible=False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    scalar_mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    scalar_mappable.set_array([])
+    colorbar = fig.colorbar(scalar_mappable, ax=ax, pad=0.02)
+    colorbar.set_label("Feature value", fontsize=10, color="#13293d")
+
+    fig.tight_layout()
+    fig.canvas.draw()
+    dump_json(
+        layout_sidecar_path,
+        _build_python_shap_layout_sidecar(
+            figure=fig,
+            axes=ax,
+            colorbar=colorbar,
+            rows=rows,
+            point_rows=point_rows,
+            template_id=template_id,
+        ),
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
 
 
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
@@ -318,6 +1534,79 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 entry=entry,
             )
             tables_materialized.append(table_id)
+            continue
+
+        if display_kind == "figure" and display_registry.is_evidence_figure_template(requirement_key):
+            spec = display_registry.get_evidence_figure_spec(requirement_key)
+            figure_id = _display_id_to_figure_id(display_id)
+            payload_path, display_payload = _load_evidence_display_payload(
+                paper_root=resolved_paper_root,
+                spec=spec,
+                display_id=display_id,
+            )
+            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.png"
+            output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.pdf"
+            layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.layout.json"
+            if spec.renderer_family == "r_ggplot2":
+                _render_r_evidence_figure(
+                    template_id=spec.template_id,
+                    display_payload=display_payload,
+                    output_png_path=output_png_path,
+                    output_pdf_path=output_pdf_path,
+                    layout_sidecar_path=layout_sidecar_path,
+                )
+            elif spec.renderer_family == "python":
+                _render_python_evidence_figure(
+                    template_id=spec.template_id,
+                    display_payload=display_payload,
+                    output_png_path=output_png_path,
+                    output_pdf_path=output_pdf_path,
+                    layout_sidecar_path=layout_sidecar_path,
+                )
+            else:
+                raise RuntimeError(
+                    f"unsupported renderer_family `{spec.renderer_family}` for evidence template `{spec.template_id}`"
+                )
+            layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
+            qc_result = display_layout_qc.run_display_layout_qc(
+                qc_profile=spec.layout_qc_profile,
+                layout_sidecar=layout_sidecar,
+            )
+            qc_result["layout_sidecar_path"] = _paper_relative_path(layout_sidecar_path, paper_root=resolved_paper_root)
+            written_files.extend([str(output_png_path), str(output_pdf_path), str(layout_sidecar_path)])
+            paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
+            if paper_role not in spec.allowed_paper_roles:
+                allowed_roles = ", ".join(spec.allowed_paper_roles)
+                raise ValueError(
+                    f"display `{display_id}` paper_role `{paper_role}` is not allowed for template `{spec.template_id}`; "
+                    f"allowed: {allowed_roles}"
+                )
+            entry = {
+                "figure_id": figure_id,
+                "template_id": spec.template_id,
+                "renderer_family": spec.renderer_family,
+                "paper_role": paper_role,
+                "input_schema_id": spec.input_schema_id,
+                "qc_profile": spec.layout_qc_profile,
+                "qc_result": qc_result,
+                "title": str(display_payload.get("title") or "").strip(),
+                "caption": str(display_payload.get("caption") or "").strip(),
+                "export_paths": [
+                    _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
+                    _paper_relative_path(output_pdf_path, paper_root=resolved_paper_root),
+                ],
+                "source_paths": [
+                    _paper_relative_path(payload_path, paper_root=resolved_paper_root),
+                ],
+                "claim_ids": [],
+            }
+            figure_catalog["figures"] = _replace_catalog_entry(
+                list(figure_catalog.get("figures") or []),
+                key="figure_id",
+                value=figure_id,
+                entry=entry,
+            )
+            figures_materialized.append(figure_id)
             continue
 
     dump_json(resolved_paper_root / "figures" / "figure_catalog.json", figure_catalog)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 import json
+from pathlib import Path
+import runpy
 
 
 def dump_json(path, payload) -> None:
@@ -99,4 +101,118 @@ def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> 
     assert exit_code == 0
     assert payload["status"] == "materialized"
     assert payload["figures_materialized"] == ["F1"]
+    assert payload["tables_materialized"] == ["T1"]
+
+
+def test_cli_materialize_display_surface_includes_registered_evidence_figures(tmp_path, monkeypatch, capsys) -> None:
+    cli_module = importlib.import_module("med_autoscience.cli")
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
+    paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_evidence=True)
+    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
+
+    def fake_render_r_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path,
+        output_pdf_path,
+        layout_sidecar_path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(
+        controller_module,
+        "_render_r_evidence_figure",
+        fake_render_r_evidence_figure,
+        raising=False,
+    )
+
+    exit_code = cli_module.main(["materialize-display-surface", "--paper-root", str(paper_root)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["figures_materialized"] == ["F1", "F2", "F3", "F4", "F5", "F6"]
+    assert payload["tables_materialized"] == ["T1"]
+
+
+def test_cli_materialize_display_surface_includes_full_registered_template_set(tmp_path, monkeypatch, capsys) -> None:
+    cli_module = importlib.import_module("med_autoscience.cli")
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
+    paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_extended_evidence=True)
+    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
+
+    def fake_render_r_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path,
+        output_pdf_path,
+        layout_sidecar_path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    def fake_render_python_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path,
+        output_pdf_path,
+        layout_sidecar_path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(
+        controller_module,
+        "_render_r_evidence_figure",
+        fake_render_r_evidence_figure,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        controller_module,
+        "_render_python_evidence_figure",
+        fake_render_python_evidence_figure,
+        raising=False,
+    )
+
+    exit_code = cli_module.main(["materialize-display-surface", "--paper-root", str(paper_root)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["figures_materialized"] == [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+    ]
     assert payload["tables_materialized"] == ["T1"]
