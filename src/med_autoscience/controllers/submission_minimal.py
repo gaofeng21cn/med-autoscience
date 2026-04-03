@@ -161,8 +161,8 @@ def resolve_compiled_markdown_path(
     bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
     candidate = _first_nonempty_string(
         bundle_inputs.get("compiled_markdown_path"),
-        bundle_manifest.get("draft_path"),
         compile_report.get("source_markdown"),
+        bundle_manifest.get("draft_path"),
     )
     if candidate is None:
         raise KeyError(
