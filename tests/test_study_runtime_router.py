@@ -646,6 +646,59 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
         status["quest_exists"] = "false"
 
 
+def test_study_runtime_status_records_structured_runtime_extras() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    status.record_analysis_bundle({"ready": True})
+    status.record_runtime_overlay({"audit": {"all_roots_ready": True}})
+    status.record_startup_contract_validation({"status": "clear"})
+    status.record_startup_context_sync({"ok": True})
+    status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
+    status.record_completion_sync({"ok": True})
+    status.record_bash_session_audit({"status": "live"})
+    status.record_runtime_artifacts(
+        runtime_binding_path=Path("/tmp/studies/001-risk/runtime_binding.updated.yaml"),
+        launch_report_path=Path("/tmp/studies/001-risk/launch_report.json"),
+        startup_payload_path=Path("/tmp/runtime/startup_payloads/001-risk.json"),
+    )
+
+    payload = status.to_dict()
+
+    assert payload["analysis_bundle"] == {"ready": True}
+    assert payload["runtime_overlay"] == {"audit": {"all_roots_ready": True}}
+    assert payload["startup_contract_validation"] == {"status": "clear"}
+    assert payload["startup_context_sync"] == {"ok": True}
+    assert payload["startup_hydration"] == {"status": "hydrated"}
+    assert payload["startup_hydration_validation"] == {"status": "clear"}
+    assert payload["completion_sync"] == {"ok": True}
+    assert payload["bash_session_audit"] == {"status": "live"}
+    assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
+    assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
+    assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
+
+
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(
     monkeypatch,
     tmp_path: Path,
