@@ -55,9 +55,52 @@
 | 病种级组织 | 以一个 workspace 管理同一病种的私有/公开数据、多个 studies 与持续累积的研究组合 |
 | 研究推进 | 研究入口、策略门控、运行监控，以及把课题持续推进到交付收口 |
 | 数据资产 | 私有数据版本登记、公开数据扩展登记、数据影响评估与可审计更新 |
-| 证据组织 | 把分析结果、扩展验证、功能解释和医学写作前验要求收束到同一研究链 |
+| 证据组织 | 把分析结果、扩展验证、功能解释、论文图表模板与医学写作前验要求收束到同一研究链 |
 | 投稿交付 | 最小投稿包导出、正式交付同步，以及面向稿件的最终收口流程 |
 | 审计与协作 | Agent 通过稳定接口推进任务，人类可对关键状态和结果进行复核 |
+
+## 医学论文展示面已经进入正式模板化阶段
+
+`MedAutoScience` 现在不是把论文图表交给 Agent 自由发挥，而是已经有一套正式注册、可审计、可继续扩充的医学论文展示面。
+
+当前已经进入 audited surface 的包括：
+
+- `20` 个 evidence figure 模板
+- `Figure 1` cohort flow shell
+- `Table 1`、`Table 2`、`Table 3` 三个正式 table shell
+
+这些模板不是“仅有名字”的 catalog 项，而是同时具备：
+
+- 注册过的 `template_id` / `shell_id`
+- 对应的输入 schema 约束
+- 固定 renderer family
+- 固定 export contract
+- 固定 QC profile
+- 可落盘、可审计的 materialization 与 catalog 记录
+
+这意味着：
+
+- 常见医学论文图表不再依赖一次性即兴绘图
+- 高质量模板输出是平台正式能力的一部分
+- 后续扩容会继续沿同一条 audited contract 主线推进，而不是零散加脚本
+
+目前模板已经覆盖的主类包括：
+
+- Prediction Performance
+- Clinical Utility
+- Time-to-Event
+- Data Geometry
+- Matrix Pattern
+- Effect Estimate
+- Model Explanation
+- Generalizability
+
+如果你关心“当前已经实现了哪些模板、每个模板用什么 schema、什么 renderer、什么 QC profile”，请直接看：
+
+- [医学展示面审计指南](guides/medical_display_audit_guide.md)
+- [医学展示面模板目录](guides/medical_display_template_catalog.md)
+
+当前内部扩容目标已经收敛为 `v1 = 40` 个总模板；后续会继续把临床医学 AI 论文中高频、强约束、可审计的图表类型逐步纳入正式模板面。
 
 ## 典型交付结果
 

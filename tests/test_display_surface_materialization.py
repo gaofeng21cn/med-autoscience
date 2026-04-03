@@ -139,6 +139,30 @@ def build_display_surface_workspace(
                     "shell_path": "paper/figures/Figure17.shell.json",
                 },
                 {
+                    "display_id": "Figure18",
+                    "display_kind": "figure",
+                    "requirement_key": "time_dependent_roc_horizon",
+                    "shell_path": "paper/figures/Figure18.shell.json",
+                },
+                {
+                    "display_id": "Figure19",
+                    "display_kind": "figure",
+                    "requirement_key": "tsne_scatter_grouped",
+                    "shell_path": "paper/figures/Figure19.shell.json",
+                },
+                {
+                    "display_id": "Figure20",
+                    "display_kind": "figure",
+                    "requirement_key": "subgroup_forest",
+                    "shell_path": "paper/figures/Figure20.shell.json",
+                },
+                {
+                    "display_id": "Figure21",
+                    "display_kind": "figure",
+                    "requirement_key": "clustered_heatmap",
+                    "shell_path": "paper/figures/Figure21.shell.json",
+                },
+                {
                     "display_id": "Table2",
                     "display_kind": "table",
                     "requirement_key": "table2_time_to_event_performance_summary",
@@ -200,6 +224,10 @@ def build_display_surface_workspace(
                     (15, "time_to_event_risk_group_summary"),
                     (16, "time_to_event_decision_curve"),
                     (17, "multicenter_generalizability_overview"),
+                    (18, "time_dependent_roc_horizon"),
+                    (19, "tsne_scatter_grouped"),
+                    (20, "subgroup_forest"),
+                    (21, "clustered_heatmap"),
                 ]
             )
         for figure_index, template_id in template_bindings:
@@ -336,6 +364,23 @@ def build_display_surface_workspace(
                             },
                         ],
                     },
+                    {
+                        "display_id": "Figure18",
+                        "template_id": "time_dependent_roc_horizon",
+                        "title": "Time-dependent ROC at 24 months",
+                        "caption": "Horizon-specific discrimination of the locked survival model at 24 months.",
+                        "x_label": "1 - Specificity",
+                        "y_label": "Sensitivity",
+                        "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0], "label": "Chance"},
+                        "series": [
+                            {
+                                "label": "24-month horizon",
+                                "x": [0.0, 0.12, 0.28, 1.0],
+                                "y": [0.0, 0.69, 0.84, 1.0],
+                                "annotation": "AUC = 0.81",
+                            }
+                        ],
+                    },
                 ],
             },
         )
@@ -455,6 +500,20 @@ def build_display_surface_workspace(
                                 {"x": 1.1, "y": -0.7, "group": "Subtype B"},
                             ],
                         },
+                        {
+                            "display_id": "Figure19",
+                            "template_id": "tsne_scatter_grouped",
+                            "title": "t-SNE embedding by subtype",
+                            "caption": "Local neighborhood preservation across latent subgroups.",
+                            "x_label": "t-SNE 1",
+                            "y_label": "t-SNE 2",
+                            "points": [
+                                {"x": -14.2, "y": 9.1, "group": "Subtype A"},
+                                {"x": -12.8, "y": 8.5, "group": "Subtype A"},
+                                {"x": 11.3, "y": -7.6, "group": "Subtype B"},
+                                {"x": 12.7, "y": -8.9, "group": "Subtype B"},
+                            ],
+                        },
                     ],
                 },
             )
@@ -505,6 +564,40 @@ def build_display_surface_workspace(
                 },
             )
             dump_json(
+                paper_root / "clustered_heatmap_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "clustered_heatmap_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure21",
+                            "template_id": "clustered_heatmap",
+                            "title": "Clustered heatmap",
+                            "caption": "Heatmap rendered from an externally fixed row and column clustering order.",
+                            "x_label": "Patient subgroup",
+                            "y_label": "Feature",
+                            "row_order": [
+                                {"label": "Ki-67"},
+                                {"label": "Tumor size"},
+                                {"label": "Age"},
+                            ],
+                            "column_order": [
+                                {"label": "Cluster A"},
+                                {"label": "Cluster B"},
+                            ],
+                            "cells": [
+                                {"x": "Cluster A", "y": "Ki-67", "value": 0.82},
+                                {"x": "Cluster B", "y": "Ki-67", "value": -0.14},
+                                {"x": "Cluster A", "y": "Tumor size", "value": 0.56},
+                                {"x": "Cluster B", "y": "Tumor size", "value": 0.08},
+                                {"x": "Cluster A", "y": "Age", "value": -0.22},
+                                {"x": "Cluster B", "y": "Age", "value": 0.63},
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
                 paper_root / "forest_effect_inputs.json",
                 {
                     "schema_version": 1,
@@ -520,6 +613,19 @@ def build_display_surface_workspace(
                             "rows": [
                                 {"label": "Age > 60 years", "estimate": 1.42, "lower": 1.11, "upper": 1.83},
                                 {"label": "Tumor size > 30 mm", "estimate": 1.89, "lower": 1.35, "upper": 2.62},
+                            ],
+                        },
+                        {
+                            "display_id": "Figure20",
+                            "template_id": "subgroup_forest",
+                            "title": "Subgroup forest plot",
+                            "caption": "Effect heterogeneity across clinically prespecified subgroups.",
+                            "x_label": "Hazard ratio",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Female", "estimate": 0.88, "lower": 0.71, "upper": 1.08},
+                                {"label": "Age > 60 years", "estimate": 1.21, "lower": 0.98, "upper": 1.49},
+                                {"label": "Macroadenoma", "estimate": 1.36, "lower": 1.08, "upper": 1.72},
                             ],
                         }
                     ],
@@ -778,6 +884,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
         "pr_curve_binary",
         "calibration_curve_binary",
         "decision_curve_binary",
+        "time_dependent_roc_horizon",
         "time_to_event_decision_curve",
     }:
         return {
@@ -842,7 +949,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
             },
         }
-    if template_id in {"umap_scatter_grouped", "pca_scatter_grouped"}:
+    if template_id in {"umap_scatter_grouped", "pca_scatter_grouped", "tsne_scatter_grouped"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -864,7 +971,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id == "heatmap_group_comparison":
+    if template_id in {"heatmap_group_comparison", "clustered_heatmap"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -903,7 +1010,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id == "forest_effect_main":
+    if template_id in {"forest_effect_main", "subgroup_forest"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1212,6 +1319,10 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "F15",
         "F16",
         "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F21",
     ]
     assert result["tables_materialized"] == ["T1", "T2", "T3"]
     assert (paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.png").exists()
@@ -1223,6 +1334,10 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert (paper_root / "figures" / "generated" / "F15_time_to_event_risk_group_summary.png").exists()
     assert (paper_root / "figures" / "generated" / "F16_time_to_event_decision_curve.pdf").exists()
     assert (paper_root / "figures" / "generated" / "F17_multicenter_generalizability_overview.png").exists()
+    assert (paper_root / "figures" / "generated" / "F18_time_dependent_roc_horizon.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F19_tsne_scatter_grouped.png").exists()
+    assert (paper_root / "figures" / "generated" / "F20_subgroup_forest.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F21_clustered_heatmap.png").exists()
     assert (paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").exists()
     assert (paper_root / "tables" / "generated" / "T3_clinical_interpretation_summary.md").exists()
     assert {template_id for template_id, _ in render_calls} == {
@@ -1230,13 +1345,17 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "pr_curve_binary",
         "calibration_curve_binary",
         "decision_curve_binary",
+        "time_dependent_roc_horizon",
         "kaplan_meier_grouped",
         "cumulative_incidence_grouped",
         "umap_scatter_grouped",
         "pca_scatter_grouped",
+        "tsne_scatter_grouped",
         "heatmap_group_comparison",
         "correlation_heatmap",
+        "clustered_heatmap",
         "forest_effect_main",
+        "subgroup_forest",
         "shap_summary_beeswarm",
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
@@ -1256,6 +1375,15 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F15"]["qc_profile"] == "publication_survival_curve"
     assert figures_by_id["F16"]["qc_profile"] == "publication_decision_curve"
     assert figures_by_id["F17"]["qc_profile"] == "publication_multicenter_overview"
+    assert figures_by_id["F18"]["template_id"] == "time_dependent_roc_horizon"
+    assert figures_by_id["F18"]["input_schema_id"] == "binary_prediction_curve_inputs_v1"
+    assert figures_by_id["F19"]["template_id"] == "tsne_scatter_grouped"
+    assert figures_by_id["F19"]["qc_profile"] == "publication_embedding_scatter"
+    assert figures_by_id["F20"]["template_id"] == "subgroup_forest"
+    assert figures_by_id["F20"]["qc_profile"] == "publication_forest_plot"
+    assert figures_by_id["F21"]["template_id"] == "clustered_heatmap"
+    assert figures_by_id["F21"]["input_schema_id"] == "clustered_heatmap_inputs_v1"
+    assert figures_by_id["F21"]["qc_profile"] == "publication_heatmap"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
@@ -1382,3 +1510,21 @@ def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_pa
         assert "cohort_flow.json" in str(exc)
     else:
         raise AssertionError("expected incomplete cohort flow input to fail")
+
+
+def test_load_evidence_display_payload_rejects_incomplete_clustered_heatmap_grid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    clustered_payload_path = paper_root / "clustered_heatmap_inputs.json"
+    clustered_payload = json.loads(clustered_payload_path.read_text(encoding="utf-8"))
+    clustered_payload["displays"][0]["cells"].pop()
+    dump_json(clustered_payload_path, clustered_payload)
+
+    spec = module.display_registry.get_evidence_figure_spec("clustered_heatmap")
+
+    with pytest.raises(ValueError, match="must cover every declared row/column coordinate exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure21",
+        )

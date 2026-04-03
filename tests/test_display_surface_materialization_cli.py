@@ -218,5 +218,9 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
         "F15",
         "F16",
         "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F21",
     ]
     assert payload["tables_materialized"] == ["T1", "T2", "T3"]
