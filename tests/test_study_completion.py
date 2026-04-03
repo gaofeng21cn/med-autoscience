@@ -45,6 +45,7 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
     assert state.status is module.StudyCompletionStateStatus.RESOLVED
     assert state.ready is True
     assert state.contract is not None
+    assert state.contract.status is module.StudyCompletionContractStatus.COMPLETED
     assert state.to_dict() == {
         "ready": True,
         "status": "resolved",
@@ -85,6 +86,7 @@ def test_resolve_study_completion_contract_reports_missing_evidence(tmp_path: Pa
     contract = module.resolve_study_completion_contract(study_root=study_root)
 
     assert contract is not None
+    assert contract.status is module.StudyCompletionContractStatus.COMPLETED
     assert contract.ready is False
     assert contract.missing_evidence_paths == ("notes/revision_status.md",)
 
@@ -141,6 +143,25 @@ def test_study_completion_state_rejects_unknown_status() -> None:
         assert "unknown study completion state status" in str(exc)
     else:
         raise AssertionError("expected ValueError for unsupported StudyCompletionState.status")
+
+
+def test_study_completion_contract_rejects_unknown_status() -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+
+    try:
+        module.StudyCompletionContract(
+            study_root=Path("/tmp/study"),
+            status="unexpected",
+            summary="done",
+            user_approval_text="同意",
+            completed_at=None,
+            evidence_paths=("notes/revision_status.md",),
+            missing_evidence_paths=(),
+        )
+    except ValueError as exc:
+        assert "unknown study completion contract status" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for unsupported StudyCompletionContract.status")
 
 
 def test_resolve_study_completion_contract_rejects_unsupported_status(tmp_path: Path) -> None:
