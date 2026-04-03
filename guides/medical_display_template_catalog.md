@@ -2,6 +2,8 @@
 
 Generated from `med_autoscience.display_registry` and `med_autoscience.display_schema_contract`.
 
+For the stable human-auditable overview, completion counts, and change protocol, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
+
 ## Template Classes
 
 ### Prediction Performance

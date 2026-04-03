@@ -131,3 +131,30 @@ def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
     guide_path = Path(__file__).resolve().parents[1] / "guides" / "medical_display_template_catalog.md"
 
     assert guide_path.read_text(encoding="utf-8") == module.render_display_template_catalog_markdown()
+
+
+def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() -> None:
+    schema_module = importlib.import_module("med_autoscience.display_schema_contract")
+    registry_module = importlib.import_module("med_autoscience.display_registry")
+    guide_path = Path(__file__).resolve().parents[1] / "guides" / "medical_display_audit_guide.md"
+
+    guide_text = guide_path.read_text(encoding="utf-8")
+    evidence_classes = [
+        display_class
+        for display_class in schema_module.list_display_schema_classes()
+        if display_class.class_id != "publication_shells_and_tables"
+    ]
+
+    assert f"- Evidence figure classes: `{len(evidence_classes)}`" in guide_text
+    assert f"- Implemented evidence figure templates: `{len(registry_module.list_evidence_figure_specs())}`" in guide_text
+    assert f"- Illustration shells: `{len(registry_module.list_illustration_shell_specs())}`" in guide_text
+    assert f"- Table shells: `{len(registry_module.list_table_shell_specs())}`" in guide_text
+    total_templates = (
+        len(registry_module.list_evidence_figure_specs())
+        + len(registry_module.list_illustration_shell_specs())
+        + len(registry_module.list_table_shell_specs())
+    )
+    assert f"- Total implemented display templates: `{total_templates}`" in guide_text
+
+    for display_class in evidence_classes:
+        assert display_class.display_name in guide_text
