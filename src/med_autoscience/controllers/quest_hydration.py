@@ -46,6 +46,16 @@ def _optional_record_list(payload: dict[str, object], key: str) -> list[dict[str
     return records
 
 
+def _is_legacy_display_id(*, display_id: str, display_kind: str) -> bool:
+    item = str(display_id).strip()
+    kind = str(display_kind).strip()
+    if kind == "figure":
+        return bool(item) and item.lower().startswith("figure") and item[6:].isdigit()
+    if kind == "table":
+        return bool(item) and item.lower().startswith("table") and item[5:].isdigit()
+    return False
+
+
 def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list[dict[str, str]]:
     plan = reporting_contract.get("display_shell_plan")
     normalized: list[dict[str, str]] = []
@@ -56,17 +66,23 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
             display_id = str(item.get("display_id") or "").strip()
             display_kind = str(item.get("display_kind") or "").strip()
             requirement_key = str(item.get("requirement_key") or "").strip()
+            catalog_id = str(item.get("catalog_id") or "").strip()
             if not display_id or not display_kind or not requirement_key:
                 raise ValueError(
                     "medical_reporting_contract.display_shell_plan items must include display_id, display_kind, requirement_key"
                 )
-            normalized.append(
-                {
-                    "display_id": display_id,
-                    "display_kind": display_kind,
-                    "requirement_key": requirement_key,
-                }
-            )
+            if not catalog_id and not _is_legacy_display_id(display_id=display_id, display_kind=display_kind):
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan semantic display_id items must include catalog_id"
+                )
+            normalized_item = {
+                "display_id": display_id,
+                "display_kind": display_kind,
+                "requirement_key": requirement_key,
+            }
+            if catalog_id:
+                normalized_item["catalog_id"] = catalog_id
+            normalized.append(normalized_item)
         return normalized
 
     legacy_plan: list[dict[str, str]] = []
@@ -90,17 +106,19 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
     if cohort_flow_enabled:
         legacy_plan.append(
             {
-                "display_id": "Figure1",
+                "display_id": "cohort_flow",
                 "display_kind": "figure",
                 "requirement_key": "cohort_flow_figure",
+                "catalog_id": "F1",
             }
         )
     if baseline_enabled:
         legacy_plan.append(
             {
-                "display_id": "Table1",
+                "display_id": "baseline_characteristics",
                 "display_kind": "table",
                 "requirement_key": "table1_baseline_characteristics",
+                "catalog_id": "T1",
             }
         )
     return legacy_plan
@@ -155,6 +173,8 @@ def _write_display_surface_stubs(
             "display_kind": item["display_kind"],
             "requirement_key": item["requirement_key"],
         }
+        if item.get("catalog_id"):
+            shell_payload["catalog_id"] = item["catalog_id"]
         if _write_json_if_missing(shell_path, shell_payload):
             written_files.append(str(shell_path))
 
@@ -168,6 +188,8 @@ def _write_display_surface_stubs(
                 "status": "required_pending_population_accounting",
                 "population_accounting": [],
             }
+            if item.get("catalog_id"):
+                cohort_flow_payload["catalog_id"] = item["catalog_id"]
             if _write_json_if_missing(cohort_flow_path, cohort_flow_payload):
                 written_files.append(str(cohort_flow_path))
         if item["requirement_key"] == "table1_baseline_characteristics":
@@ -181,6 +203,8 @@ def _write_display_surface_stubs(
                 "group_columns": [],
                 "variables": [],
             }
+            if item.get("catalog_id"):
+                baseline_schema_payload["catalog_id"] = item["catalog_id"]
             if _write_json_if_missing(baseline_schema_path, baseline_schema_payload):
                 written_files.append(str(baseline_schema_path))
 

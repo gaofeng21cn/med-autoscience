@@ -8,6 +8,7 @@ class DisplayShellPlanItem:
     display_id: str
     display_kind: str
     requirement_key: str
+    catalog_id: str
 
 
 @dataclass(frozen=True)
@@ -32,13 +33,13 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
 SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier",)
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
-_DISPLAY_SLOT_MAP: dict[str, tuple[str, str]] = {
-    "cohort_flow_figure": ("Figure1", "figure"),
-    "table1_baseline_characteristics": ("Table1", "table"),
-    "table2_primary_performance_by_horizon": ("Table2", "table"),
-    "discrimination_calibration_figure": ("Figure2", "figure"),
-    "km_risk_stratification_figure": ("Figure3", "figure"),
-    "decision_curve_figure": ("Figure4", "figure"),
+_DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
+    "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
+    "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
+    "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
+    "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
+    "kaplan_meier_grouped": ("km_risk_stratification", "figure", "F3"),
+    "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
 }
 
 
@@ -49,15 +50,16 @@ def _build_display_shell_plan(
 ) -> tuple[DisplayShellPlanItem, ...]:
     items: list[DisplayShellPlanItem] = []
     for requirement_key in figure_shell_requirements + table_shell_requirements:
-        display_slot = _DISPLAY_SLOT_MAP.get(requirement_key)
-        if display_slot is None:
+        display_instance = _DISPLAY_INSTANCE_MAP.get(requirement_key)
+        if display_instance is None:
             continue
-        display_id, display_kind = display_slot
+        display_id, display_kind, catalog_id = display_instance
         items.append(
             DisplayShellPlanItem(
                 display_id=display_id,
                 display_kind=display_kind,
                 requirement_key=requirement_key,
+                catalog_id=catalog_id,
             )
         )
     return tuple(items)
@@ -103,13 +105,13 @@ def resolve_medical_reporting_contract(
     ):
         table_shell_requirements = (
             "table1_baseline_characteristics",
-            "table2_primary_performance_by_horizon",
+            "table2_time_to_event_performance_summary",
         )
         figure_shell_requirements = (
             "cohort_flow_figure",
-            "discrimination_calibration_figure",
-            "km_risk_stratification_figure",
-            "decision_curve_figure",
+            "time_to_event_discrimination_calibration_panel",
+            "kaplan_meier_grouped",
+            "time_to_event_decision_curve",
         )
 
     return MedicalReportingContract(

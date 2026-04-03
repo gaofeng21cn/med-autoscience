@@ -77,17 +77,55 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
     assert contract.reporting_guideline_family == "TRIPOD"
     assert contract.table_shell_requirements == (
         "table1_baseline_characteristics",
-        "table2_primary_performance_by_horizon",
+        "table2_time_to_event_performance_summary",
     )
     assert contract.figure_shell_requirements == (
         "cohort_flow_figure",
-        "discrimination_calibration_figure",
-        "km_risk_stratification_figure",
-        "decision_curve_figure",
+        "time_to_event_discrimination_calibration_panel",
+        "kaplan_meier_grouped",
+        "time_to_event_decision_curve",
     )
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
     assert contract.required_table_shells == (
         "table1_baseline_characteristics",
-        "table2_primary_performance_by_horizon",
+        "table2_time_to_event_performance_summary",
     )
     assert contract.required_evidence_templates == ()
+    assert contract.display_shell_plan == (
+        module.DisplayShellPlanItem(
+            display_id="cohort_flow",
+            display_kind="figure",
+            requirement_key="cohort_flow_figure",
+            catalog_id="F1",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="discrimination_calibration",
+            display_kind="figure",
+            requirement_key="time_to_event_discrimination_calibration_panel",
+            catalog_id="F2",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="km_risk_stratification",
+            display_kind="figure",
+            requirement_key="kaplan_meier_grouped",
+            catalog_id="F3",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="decision_curve",
+            display_kind="figure",
+            requirement_key="time_to_event_decision_curve",
+            catalog_id="F4",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="baseline_characteristics",
+            display_kind="table",
+            requirement_key="table1_baseline_characteristics",
+            catalog_id="T1",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="time_to_event_performance_summary",
+            display_kind="table",
+            requirement_key="table2_time_to_event_performance_summary",
+            catalog_id="T2",
+        ),
+    )
