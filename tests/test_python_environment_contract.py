@@ -233,3 +233,31 @@ def test_resolve_repo_root_uses_git_common_dir(monkeypatch, tmp_path: Path) -> N
     resolved = contract._resolve_repo_root(module_file=module_file)
 
     assert resolved == repo_root
+
+
+def test_resolve_checkout_root_uses_show_toplevel(monkeypatch, tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    worktree_root = repo_root / ".worktree" / "feature"
+    module_file = worktree_root / "src" / "med_autoscience" / "python_environment_contract.py"
+
+    def fake_run(*args, **kwargs) -> SimpleNamespace:
+        return SimpleNamespace(returncode=0, stdout=str(worktree_root) + "\n")
+
+    monkeypatch.setattr(contract.subprocess, "run", fake_run)
+
+    resolved = contract._resolve_checkout_root(module_file=module_file)
+
+    assert resolved == worktree_root
+
+
+def test_worktree_runtime_is_treated_as_managed(monkeypatch, tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    worktree_root = repo_root / ".worktree" / "feature"
+    repo_runtime = repo_root / ".venv"
+    worktree_runtime = worktree_root / ".venv"
+
+    monkeypatch.setattr(contract, "MANAGED_RUNTIME_PREFIX", repo_runtime)
+    monkeypatch.setattr(contract, "CHECKOUT_MANAGED_RUNTIME_PREFIX", worktree_runtime)
+    monkeypatch.setattr(contract.sys, "prefix", str(worktree_runtime))
+
+    assert contract._is_managed_runtime() is True
