@@ -115,9 +115,17 @@ class StartupHydrationReport:
     def from_payload(cls, payload: dict[str, Any]) -> "StartupHydrationReport":
         if not isinstance(payload, dict):
             raise TypeError("startup hydration payload must be a mapping")
+        if "recorded_at" not in payload or not str(payload.get("recorded_at") or "").strip():
+            raise ValueError("startup hydration payload missing recorded_at")
+        if "quest_root" not in payload or not str(payload.get("quest_root") or "").strip():
+            raise ValueError("startup hydration payload missing quest_root")
+        if "entry_state_summary" not in payload or not str(payload.get("entry_state_summary") or "").strip():
+            raise ValueError("startup hydration payload missing entry_state_summary")
         written_files = payload.get("written_files") or []
         if not isinstance(written_files, list):
             raise ValueError("startup hydration payload written_files must be a list")
+        if "literature_report" not in payload:
+            raise ValueError("startup hydration payload missing literature_report")
         literature_report = payload.get("literature_report") or {}
         if not isinstance(literature_report, dict):
             raise ValueError("startup hydration payload literature_report must be a mapping")
@@ -188,12 +196,20 @@ class StartupHydrationValidationReport:
     def from_payload(cls, payload: dict[str, Any]) -> "StartupHydrationValidationReport":
         if not isinstance(payload, dict):
             raise TypeError("startup hydration validation payload must be a mapping")
+        if "recorded_at" not in payload or not str(payload.get("recorded_at") or "").strip():
+            raise ValueError("startup hydration validation payload missing recorded_at")
+        if "quest_root" not in payload or not str(payload.get("quest_root") or "").strip():
+            raise ValueError("startup hydration validation payload missing quest_root")
         blockers = payload.get("blockers") or []
         if not isinstance(blockers, list):
             raise ValueError("startup hydration validation blockers must be a list")
+        if "contract_statuses" not in payload:
+            raise ValueError("startup hydration validation payload missing contract_statuses")
         contract_statuses = payload.get("contract_statuses") or {}
         if not isinstance(contract_statuses, dict):
             raise ValueError("startup hydration validation contract_statuses must be a mapping")
+        if "checked_paths" not in payload:
+            raise ValueError("startup hydration validation payload missing checked_paths")
         checked_paths = payload.get("checked_paths") or {}
         if not isinstance(checked_paths, dict):
             raise ValueError("startup hydration validation checked_paths must be a mapping")
