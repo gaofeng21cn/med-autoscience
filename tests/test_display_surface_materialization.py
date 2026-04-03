@@ -10,8 +10,14 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def build_display_surface_workspace(tmp_path: Path, *, include_evidence: bool = False) -> Path:
+def build_display_surface_workspace(
+    tmp_path: Path,
+    *,
+    include_evidence: bool = False,
+    include_extended_evidence: bool = False,
+) -> Path:
     paper_root = tmp_path / "paper"
+    include_evidence = include_evidence or include_extended_evidence
     displays = [
         {
             "display_id": "Figure1",
@@ -61,6 +67,53 @@ def build_display_surface_workspace(tmp_path: Path, *, include_evidence: bool = 
                 },
             ]
         )
+    if include_extended_evidence:
+        displays.extend(
+            [
+                {
+                    "display_id": "Figure7",
+                    "display_kind": "figure",
+                    "requirement_key": "cumulative_incidence_grouped",
+                    "shell_path": "paper/figures/Figure7.shell.json",
+                },
+                {
+                    "display_id": "Figure8",
+                    "display_kind": "figure",
+                    "requirement_key": "umap_scatter_grouped",
+                    "shell_path": "paper/figures/Figure8.shell.json",
+                },
+                {
+                    "display_id": "Figure9",
+                    "display_kind": "figure",
+                    "requirement_key": "pca_scatter_grouped",
+                    "shell_path": "paper/figures/Figure9.shell.json",
+                },
+                {
+                    "display_id": "Figure10",
+                    "display_kind": "figure",
+                    "requirement_key": "heatmap_group_comparison",
+                    "shell_path": "paper/figures/Figure10.shell.json",
+                },
+                {
+                    "display_id": "Figure11",
+                    "display_kind": "figure",
+                    "requirement_key": "correlation_heatmap",
+                    "shell_path": "paper/figures/Figure11.shell.json",
+                },
+                {
+                    "display_id": "Figure12",
+                    "display_kind": "figure",
+                    "requirement_key": "forest_effect_main",
+                    "shell_path": "paper/figures/Figure12.shell.json",
+                },
+                {
+                    "display_id": "Figure13",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_summary_beeswarm",
+                    "shell_path": "paper/figures/Figure13.shell.json",
+                },
+            ]
+        )
     dump_json(
         paper_root / "display_registry.json",
         {
@@ -88,13 +141,26 @@ def build_display_surface_workspace(tmp_path: Path, *, include_evidence: bool = 
         },
     )
     if include_evidence:
-        for figure_index, template_id in (
+        template_bindings = [
             (2, "roc_curve_binary"),
             (3, "pr_curve_binary"),
             (4, "calibration_curve_binary"),
             (5, "decision_curve_binary"),
             (6, "kaplan_meier_grouped"),
-        ):
+        ]
+        if include_extended_evidence:
+            template_bindings.extend(
+                [
+                    (7, "cumulative_incidence_grouped"),
+                    (8, "umap_scatter_grouped"),
+                    (9, "pca_scatter_grouped"),
+                    (10, "heatmap_group_comparison"),
+                    (11, "correlation_heatmap"),
+                    (12, "forest_effect_main"),
+                    (13, "shap_summary_beeswarm"),
+                ]
+            )
+        for figure_index, template_id in template_bindings:
             dump_json(
                 paper_root / "figures" / f"Figure{figure_index}.shell.json",
                 {
@@ -243,10 +309,168 @@ def build_display_surface_workspace(tmp_path: Path, *, include_evidence: bool = 
                             },
                         ],
                         "annotation": "Log-rank P < .001",
+                    },
+                    {
+                        "display_id": "Figure7",
+                        "template_id": "cumulative_incidence_grouped",
+                        "title": "Cumulative incidence by risk group",
+                        "caption": "Event accumulation across prespecified risk strata.",
+                        "x_label": "Months from surgery",
+                        "y_label": "Cumulative incidence",
+                        "groups": [
+                            {
+                                "label": "Low risk",
+                                "times": [0, 6, 12, 18, 24],
+                                "values": [0.00, 0.04, 0.07, 0.09, 0.12],
+                            },
+                            {
+                                "label": "High risk",
+                                "times": [0, 6, 12, 18, 24],
+                                "values": [0.00, 0.12, 0.23, 0.31, 0.38],
+                            },
+                        ],
+                        "annotation": "Gray test P = .002",
                     }
                 ],
             },
         )
+        if include_extended_evidence:
+            dump_json(
+                paper_root / "embedding_grouped_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "embedding_grouped_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure8",
+                            "template_id": "umap_scatter_grouped",
+                            "title": "UMAP embedding by subtype",
+                            "caption": "Two-dimensional manifold embedding with subtype labels.",
+                            "x_label": "UMAP 1",
+                            "y_label": "UMAP 2",
+                            "points": [
+                                {"x": -2.1, "y": 1.2, "group": "Subtype A"},
+                                {"x": -1.7, "y": 1.0, "group": "Subtype A"},
+                                {"x": 1.4, "y": -0.8, "group": "Subtype B"},
+                                {"x": 1.8, "y": -1.1, "group": "Subtype B"},
+                            ],
+                        },
+                        {
+                            "display_id": "Figure9",
+                            "template_id": "pca_scatter_grouped",
+                            "title": "PCA embedding by subtype",
+                            "caption": "Principal component separation across latent subgroups.",
+                            "x_label": "PC1",
+                            "y_label": "PC2",
+                            "points": [
+                                {"x": -1.2, "y": 0.6, "group": "Subtype A"},
+                                {"x": -0.9, "y": 0.4, "group": "Subtype A"},
+                                {"x": 0.8, "y": -0.5, "group": "Subtype B"},
+                                {"x": 1.1, "y": -0.7, "group": "Subtype B"},
+                            ],
+                        },
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "heatmap_group_comparison_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "heatmap_group_comparison_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure10",
+                            "template_id": "heatmap_group_comparison",
+                            "title": "Group comparison heatmap",
+                            "caption": "Standardized feature contrast across prespecified groups.",
+                            "x_label": "Group",
+                            "y_label": "Feature",
+                            "cells": [
+                                {"x": "Low risk", "y": "Age", "value": -0.6},
+                                {"x": "High risk", "y": "Age", "value": 0.7},
+                                {"x": "Low risk", "y": "Tumor size", "value": -0.4},
+                                {"x": "High risk", "y": "Tumor size", "value": 0.8},
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "correlation_heatmap_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "correlation_heatmap_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure11",
+                            "template_id": "correlation_heatmap",
+                            "title": "Correlation heatmap",
+                            "caption": "Pairwise correlation structure across core predictors.",
+                            "x_label": "Variable",
+                            "y_label": "Variable",
+                            "cells": [
+                                {"x": "Age", "y": "Age", "value": 1.0},
+                                {"x": "Age", "y": "Tumor size", "value": 0.34},
+                                {"x": "Tumor size", "y": "Age", "value": 0.34},
+                                {"x": "Tumor size", "y": "Tumor size", "value": 1.0},
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "forest_effect_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "forest_effect_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure12",
+                            "template_id": "forest_effect_main",
+                            "title": "Main-effect forest plot",
+                            "caption": "Adjusted effect estimates for prespecified predictors.",
+                            "x_label": "Odds ratio",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Age > 60 years", "estimate": 1.42, "lower": 1.11, "upper": 1.83},
+                                {"label": "Tumor size > 30 mm", "estimate": 1.89, "lower": 1.35, "upper": 2.62},
+                            ],
+                        }
+                    ],
+                },
+            )
+            dump_json(
+                paper_root / "shap_summary_inputs.json",
+                {
+                    "schema_version": 1,
+                    "input_schema_id": "shap_summary_inputs_v1",
+                    "displays": [
+                        {
+                            "display_id": "Figure13",
+                            "template_id": "shap_summary_beeswarm",
+                            "title": "SHAP summary beeswarm",
+                            "caption": "Feature-level SHAP distribution ranked by mean absolute contribution.",
+                            "x_label": "SHAP value",
+                            "rows": [
+                                {
+                                    "feature": "Tumor size",
+                                    "points": [
+                                        {"shap_value": -0.42, "feature_value": 0.15},
+                                        {"shap_value": 0.31, "feature_value": 0.83},
+                                    ],
+                                },
+                                {
+                                    "feature": "Age",
+                                    "points": [
+                                        {"shap_value": -0.18, "feature_value": 0.28},
+                                        {"shap_value": 0.22, "feature_value": 0.74},
+                                    ],
+                                },
+                            ],
+                        }
+                    ],
+                },
+            )
     dump_json(
         paper_root / "baseline_characteristics_schema.json",
         {
@@ -350,6 +574,87 @@ def test_materialize_display_surface_generates_registered_evidence_figures(tmp_p
     assert figures_by_id["F5"]["qc_profile"] == "publication_evidence_curve"
     assert figures_by_id["F6"]["template_id"] == "kaplan_meier_grouped"
     assert figures_by_id["F6"]["input_schema_id"] == "time_to_event_grouped_inputs_v1"
+
+
+def test_materialize_display_surface_generates_full_registered_template_set(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    render_calls: list[tuple[str, str]] = []
+
+    def fake_render_r_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        render_calls.append((template_id, str(display_payload.get("display_id") or "")))
+
+    def fake_render_python_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        render_calls.append((template_id, str(display_payload.get("display_id") or "")))
+
+    monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
+    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == [
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+    ]
+    assert result["tables_materialized"] == ["T1"]
+    assert (paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.png").exists()
+    assert (paper_root / "figures" / "generated" / "F8_umap_scatter_grouped.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F10_heatmap_group_comparison.png").exists()
+    assert (paper_root / "figures" / "generated" / "F12_forest_effect_main.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F13_shap_summary_beeswarm.png").exists()
+    assert {template_id for template_id, _ in render_calls} == {
+        "roc_curve_binary",
+        "pr_curve_binary",
+        "calibration_curve_binary",
+        "decision_curve_binary",
+        "kaplan_meier_grouped",
+        "cumulative_incidence_grouped",
+        "umap_scatter_grouped",
+        "pca_scatter_grouped",
+        "heatmap_group_comparison",
+        "correlation_heatmap",
+        "forest_effect_main",
+        "shap_summary_beeswarm",
+    }
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["F7"]["template_id"] == "cumulative_incidence_grouped"
+    assert figures_by_id["F8"]["input_schema_id"] == "embedding_grouped_inputs_v1"
+    assert figures_by_id["F10"]["qc_profile"] == "publication_heatmap"
+    assert figures_by_id["F12"]["qc_profile"] == "publication_forest_plot"
+    assert figures_by_id["F13"]["renderer_family"] == "python"
+    assert figures_by_id["F13"]["input_schema_id"] == "shap_summary_inputs_v1"
 
 
 def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_path: Path) -> None:
