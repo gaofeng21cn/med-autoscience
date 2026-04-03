@@ -8,7 +8,8 @@ from typing import Any
 import yaml
 
 
-SUPPORTED_STUDY_COMPLETION_STATUSES = ("completed",)
+class StudyCompletionContractStatus(StrEnum):
+    COMPLETED = "completed"
 
 
 class StudyCompletionStateStatus(StrEnum):
@@ -21,16 +22,30 @@ class StudyCompletionStateStatus(StrEnum):
 @dataclass(frozen=True)
 class StudyCompletionContract:
     study_root: Path
-    status: str
+    status: StudyCompletionContractStatus
     summary: str
     user_approval_text: str
     completed_at: str | None
     evidence_paths: tuple[str, ...]
     missing_evidence_paths: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+
     @property
     def ready(self) -> bool:
         return bool(self.evidence_paths) and not self.missing_evidence_paths
+
+    @staticmethod
+    def _normalize_status(value: StudyCompletionContractStatus | str) -> StudyCompletionContractStatus:
+        if isinstance(value, StudyCompletionContractStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StudyCompletionContractStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown study completion contract status: {value}") from exc
 
 
 @dataclass(frozen=True)
@@ -51,7 +66,7 @@ class StudyCompletionState:
         return {
             "ready": self.ready,
             "status": self.status.value,
-            "completion_status": contract.status if contract is not None else None,
+            "completion_status": contract.status.value if contract is not None else None,
             "summary": contract.summary if contract is not None else "",
             "user_approval_text": contract.user_approval_text if contract is not None else "",
             "completed_at": contract.completed_at if contract is not None else None,
@@ -114,8 +129,8 @@ def resolve_study_completion_contract(*, study_root: Path | None) -> StudyComple
         raise ValueError("study_completion must be a mapping")
 
     status = _non_empty_string(raw_completion.get("status"), field_name="study_completion.status")
-    if status not in SUPPORTED_STUDY_COMPLETION_STATUSES:
-        supported = ", ".join(SUPPORTED_STUDY_COMPLETION_STATUSES)
+    if status not in {item.value for item in StudyCompletionContractStatus}:
+        supported = ", ".join(item.value for item in StudyCompletionContractStatus)
         raise ValueError(f"study_completion.status must be one of: {supported}")
     evidence_paths = _string_list(raw_completion.get("evidence_paths"), field_name="study_completion.evidence_paths")
     missing_evidence_paths = tuple(
@@ -125,7 +140,7 @@ def resolve_study_completion_contract(*, study_root: Path | None) -> StudyComple
     )
     return StudyCompletionContract(
         study_root=resolved_study_root,
-        status=status,
+        status=StudyCompletionContractStatus(status),
         summary=_non_empty_string(raw_completion.get("summary"), field_name="study_completion.summary"),
         user_approval_text=_non_empty_string(
             raw_completion.get("user_approval_text"),

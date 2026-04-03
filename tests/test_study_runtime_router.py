@@ -1164,7 +1164,7 @@ def test_build_study_completion_request_message_accepts_typed_completion_state(t
         status=completion_module.StudyCompletionStateStatus.RESOLVED,
         contract=completion_module.StudyCompletionContract(
             study_root=study_root,
-            status="completed",
+            status=completion_module.StudyCompletionContractStatus.COMPLETED,
             summary="Study-level finalized delivery is complete.",
             user_approval_text="同意",
             completed_at="2026-04-03T00:00:00+00:00",
