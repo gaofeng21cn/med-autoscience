@@ -16,6 +16,7 @@ def make_quest(
     include_submission_minimal: bool,
     include_main_result: bool = True,
     runtime_status: str = "running",
+    include_unmanaged_submission_surface: bool = False,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -86,6 +87,12 @@ def make_quest(
         )
         (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
         (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
+    if include_unmanaged_submission_surface:
+        (worktree_root / "paper" / "submission_pituitary").mkdir(parents=True, exist_ok=True)
+        (worktree_root / "paper" / "submission_pituitary" / "submission_manifest.json").write_text(
+            "{}",
+            encoding="utf-8",
+        )
 
     return quest_root
 
@@ -170,6 +177,24 @@ def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metri
     assert result["intervention_enqueued"] is True
     assert len(queue["pending"]) == 1
     assert "missing_submission_minimal" in queue["pending"][0]["content"]
+
+
+def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_unmanaged_submission_surface=True,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "unmanaged_submission_surface_present" in report["blockers"]
+    assert report["unmanaged_submission_surface_roots"] == [
+        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+    ]
 
 
 def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:

@@ -5,8 +5,10 @@ import time
 from pathlib import Path
 
 from med_autoscience.runtime_protocol.paper_artifacts import (
+    find_unmanaged_submission_surface_roots,
     resolve_artifact_manifest_from_main_result,
     resolve_latest_paper_root,
+    resolve_managed_submission_surface_roots,
     resolve_paper_bundle_manifest,
     resolve_submission_minimal_manifest,
     resolve_submission_minimal_output_paths,
@@ -81,3 +83,23 @@ def test_resolve_submission_minimal_output_paths_from_manifest(tmp_path: Path) -
 
     assert docx_path == docx
     assert pdf_path == pdf
+
+
+def test_submission_surface_resolution_distinguishes_managed_and_unmanaged_roots(tmp_path: Path) -> None:
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    (paper_root / "submission_minimal").mkdir(parents=True, exist_ok=True)
+    (paper_root / "journal_submissions" / "frontiers_family_harvard").mkdir(parents=True, exist_ok=True)
+    (paper_root / "submission_pituitary").mkdir(parents=True, exist_ok=True)
+    (paper_root / "journal_submissions" / "pituitary").mkdir(parents=True, exist_ok=True)
+
+    managed = resolve_managed_submission_surface_roots(paper_root)
+    unmanaged = find_unmanaged_submission_surface_roots(paper_root)
+
+    assert managed == (
+        (paper_root / "submission_minimal").resolve(),
+        (paper_root / "journal_submissions" / "frontiers_family_harvard").resolve(),
+    )
+    assert unmanaged == (
+        (paper_root / "submission_pituitary").resolve(),
+        (paper_root / "journal_submissions" / "pituitary").resolve(),
+    )

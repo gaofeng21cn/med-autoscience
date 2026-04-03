@@ -190,6 +190,24 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     assert (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
 
 
+def test_sync_study_delivery_rejects_unsupported_publication_profile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, _ = make_delivery_workspace(tmp_path)
+
+    try:
+        module.sync_study_delivery(
+            paper_root=paper_root,
+            stage="submission_minimal",
+            publication_profile="pituitary",
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected sync_study_delivery to reject unsupported publication profiles")
+
+    assert "unsupported publication profile" in message
+
+
 def test_can_sync_study_delivery_accepts_quest_yaml_with_nested_startup_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, _ = make_delivery_workspace(tmp_path)
