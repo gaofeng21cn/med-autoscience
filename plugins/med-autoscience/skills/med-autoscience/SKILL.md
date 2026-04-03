@@ -1,3 +1,8 @@
+---
+name: med-autoscience
+description: Use when Codex should operate MedAutoScience through its stable runtime, controller, overlay, and workspace contracts instead of ad-hoc scripts.
+---
+
 # MedAutoScience Plugin
 
 当 Codex 需要通过稳定运行面操作 `MedAutoScience`，而不是把仓库当成临时脚本集合来直接拼装时，使用这个 plugin。
