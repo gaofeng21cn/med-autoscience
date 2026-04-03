@@ -414,14 +414,22 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
 
     def record_startup_hydration(
         self,
-        hydration_result: dict[str, Any],
-        validation_result: dict[str, Any],
+        hydration_result: dict[str, Any] | study_runtime_protocol.StartupHydrationReport,
+        validation_result: dict[str, Any] | study_runtime_protocol.StartupHydrationValidationReport,
     ) -> None:
-        hydration_report = study_runtime_protocol.StartupHydrationReport.from_payload(
-            self._require_dict_field("startup_hydration", hydration_result)
+        hydration_report = (
+            hydration_result
+            if isinstance(hydration_result, study_runtime_protocol.StartupHydrationReport)
+            else study_runtime_protocol.StartupHydrationReport.from_payload(
+                self._require_dict_field("startup_hydration", hydration_result)
+            )
         )
-        validation_report = study_runtime_protocol.StartupHydrationValidationReport.from_payload(
-            self._require_dict_field("startup_hydration_validation", validation_result)
+        validation_report = (
+            validation_result
+            if isinstance(validation_result, study_runtime_protocol.StartupHydrationValidationReport)
+            else study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+                self._require_dict_field("startup_hydration_validation", validation_result)
+            )
         )
         self._record_dict_extra("startup_hydration", hydration_report.to_dict())
         self._record_dict_extra("startup_hydration_validation", validation_report.to_dict())
@@ -935,14 +943,24 @@ def _run_startup_hydration(
     *,
     quest_root: Path,
     create_payload: dict[str, Any],
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[
+    study_runtime_protocol.StartupHydrationReport,
+    study_runtime_protocol.StartupHydrationValidationReport,
+]:
     hydration_payload = study_runtime_protocol.build_hydration_payload(create_payload=create_payload)
     hydration_result = quest_hydration_controller.run_hydration(
         quest_root=quest_root,
         hydration_payload=hydration_payload,
     )
     validation_result = startup_hydration_validation_controller.run_validation(quest_root=quest_root)
-    return hydration_result, validation_result
+    return (
+        study_runtime_protocol.StartupHydrationReport.from_payload(
+            StudyRuntimeStatus._require_dict_field("startup_hydration", hydration_result)
+        ),
+        study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+            StudyRuntimeStatus._require_dict_field("startup_hydration_validation", validation_result)
+        ),
+    )
 
 
 def _sync_existing_quest_startup_context(
@@ -1467,7 +1485,7 @@ def _execute_create_runtime_decision(
         create_payload=create_payload,
     )
     status.record_startup_hydration(hydration_result, validation_result)
-    if str(validation_result.get("status")) != "clear":
+    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
@@ -1508,7 +1526,7 @@ def _execute_resume_runtime_decision(
         create_payload=create_payload,
     )
     status.record_startup_hydration(hydration_result, validation_result)
-    if str(validation_result.get("status")) != "clear":
+    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
@@ -1556,7 +1574,7 @@ def _execute_blocked_refresh_runtime_decision(
         create_payload=create_payload,
     )
     status.record_startup_hydration(hydration_result, validation_result)
-    if str(validation_result.get("status")) != "clear":
+    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
