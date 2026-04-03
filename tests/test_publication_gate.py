@@ -10,7 +10,14 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def make_quest(tmp_path: Path, *, include_submission_minimal: bool) -> Path:
+def make_quest(
+    tmp_path: Path,
+    *,
+    include_submission_minimal: bool,
+    include_main_result: bool = True,
+    runtime_status: str = "running",
+    include_unmanaged_submission_surface: bool = False,
+) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
 
@@ -18,38 +25,52 @@ def make_quest(tmp_path: Path, *, include_submission_minimal: bool) -> Path:
         quest_root / ".ds" / "runtime_state.json",
         {
             "quest_id": "002-early-residual-risk",
-            "status": "running",
-            "active_run_id": "run-1",
+            "status": runtime_status,
+            "active_run_id": "run-1" if include_main_result else None,
         },
     )
-    dump_json(
-        worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
-        {
-            "quest_id": "002-early-residual-risk",
-            "run_id": "run-1",
-            "worktree_root": str(worktree_root),
-            "metric_contract": {
-                "required_non_scalar_deliverables": [],
+    if include_main_result:
+        dump_json(
+            worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
+            {
+                "quest_id": "002-early-residual-risk",
+                "run_id": "run-1",
+                "worktree_root": str(worktree_root),
+                "metric_contract": {
+                    "required_non_scalar_deliverables": [],
+                },
+                "metrics_summary": {
+                    "roc_auc": 0.81,
+                    "average_precision": 0.45,
+                    "brier_score": 0.11,
+                    "calibration_intercept": 0.02,
+                    "calibration_slope": 1.01,
+                },
+                "baseline_comparisons": {"items": []},
+                "results_summary": "summary",
+                "conclusion": "conclusion",
             },
-            "metrics_summary": {
-                "roc_auc": 0.81,
-                "average_precision": 0.45,
-                "brier_score": 0.11,
-                "calibration_intercept": 0.02,
-                "calibration_slope": 1.01,
-            },
-            "baseline_comparisons": {"items": []},
-            "results_summary": "summary",
-            "conclusion": "conclusion",
-        },
-    )
+        )
     dump_json(
         worktree_root / "paper" / "paper_bundle_manifest.json",
         {
             "schema_version": 1,
+            "summary": "paper bundle summary",
+            "paper_branch": "paper/main",
+            "compile_report_path": "paper/build/compile_report.json",
             "bundle_inputs": {
                 "compiled_markdown_path": "paper/build/review_manuscript.md",
             },
+        },
+    )
+    dump_json(
+        worktree_root / "paper" / "build" / "compile_report.json",
+        {
+            "schema_version": 1,
+            "status": "compiled_with_open_submission_items",
+            "summary": "compile report summary",
+            "bibliography_entry_count": 21,
+            "author_metadata_status": "placeholder_external_input_required",
         },
     )
     if include_submission_minimal:
@@ -66,6 +87,12 @@ def make_quest(tmp_path: Path, *, include_submission_minimal: bool) -> Path:
         )
         (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
         (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
+    if include_unmanaged_submission_surface:
+        (worktree_root / "paper" / "submission_pituitary").mkdir(parents=True, exist_ok=True)
+        (worktree_root / "paper" / "submission_pituitary" / "submission_manifest.json").write_text(
+            "{}",
+            encoding="utf-8",
+        )
 
     return quest_root
 
@@ -106,6 +133,24 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_present"] is False
     assert report["submission_minimal_docx_present"] is False
     assert report["submission_minimal_pdf_present"] is False
+
+
+def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_unmanaged_submission_surface=True,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "unmanaged_submission_surface_present" in report["blockers"]
+    assert report["unmanaged_submission_surface_roots"] == [
+        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+    ]
 
 
 def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
