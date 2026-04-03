@@ -450,24 +450,26 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
 
     monkeypatch.setattr(
         module,
-        "_status_payload",
-        lambda **kwargs: {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": str(study_root),
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "001-risk", "auto_resume": True},
-            "quest_id": "001-risk",
-            "quest_root": str(tmp_path / "wrong-status-quest-root"),
-            "quest_exists": True,
-            "quest_status": "paused",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
-            "runtime_reentry_gate": {},
-            "study_completion_contract": {},
-            "decision": "resume",
-            "reason": "quest_paused",
-        },
+        "_status_state",
+        lambda **kwargs: module.StudyRuntimeStatus.from_payload(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "study_root": str(study_root),
+                "entry_mode": "full_research",
+                "execution": {"quest_id": "001-risk", "auto_resume": True},
+                "quest_id": "001-risk",
+                "quest_root": str(tmp_path / "wrong-status-quest-root"),
+                "quest_exists": True,
+                "quest_status": "paused",
+                "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+                "runtime_binding_exists": True,
+                "runtime_reentry_gate": {},
+                "study_completion_contract": {},
+                "decision": "resume",
+                "reason": "quest_paused",
+            }
+        ),
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
@@ -514,6 +516,43 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     assert result["decision"] == "resume"
     assert seen["overlay_quest_root"] == protocol_quest_root
     assert seen["hydration_quest_root"] == protocol_quest_root
+
+
+def test_study_runtime_status_round_trips_through_typed_state() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+        "decision": "resume",
+        "reason": "quest_paused",
+        "runtime_overlay": {"audit": {"all_roots_ready": True}},
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    assert status.decision == "resume"
+    assert status.reason == "quest_paused"
+    assert status.quest_id == "quest-001"
+    assert status.quest_root == "/tmp/runtime/quests/quest-001"
+    assert status.quest_exists is True
+    assert status.quest_status == "paused"
+    assert status.to_dict() == payload
 
 
 def test_ensure_study_runtime_uses_study_runtime_protocol_persistence_helpers(

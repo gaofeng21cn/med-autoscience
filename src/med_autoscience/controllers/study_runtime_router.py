@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from collections.abc import Iterator, MutableMapping
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,136 @@ from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
 
 SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
+
+
+@dataclass
+class StudyRuntimeStatus(MutableMapping[str, Any]):
+    schema_version: int
+    study_id: str
+    study_root: str
+    entry_mode: str
+    execution: dict[str, Any]
+    quest_id: str
+    quest_root: str
+    quest_exists: bool
+    quest_status: str | None
+    runtime_binding_path: str
+    runtime_binding_exists: bool
+    workspace_contracts: dict[str, Any] = field(default_factory=dict)
+    startup_data_readiness: dict[str, Any] = field(default_factory=dict)
+    startup_boundary_gate: dict[str, Any] = field(default_factory=dict)
+    runtime_reentry_gate: dict[str, Any] = field(default_factory=dict)
+    study_completion_contract: dict[str, Any] = field(default_factory=dict)
+    controller_first_policy_summary: str = ""
+    automation_ready_summary: str = ""
+    decision: str = ""
+    reason: str = ""
+    extras: dict[str, Any] = field(default_factory=dict)
+
+    _CORE_KEYS = {
+        "schema_version",
+        "study_id",
+        "study_root",
+        "entry_mode",
+        "execution",
+        "quest_id",
+        "quest_root",
+        "quest_exists",
+        "quest_status",
+        "runtime_binding_path",
+        "runtime_binding_exists",
+        "workspace_contracts",
+        "startup_data_readiness",
+        "startup_boundary_gate",
+        "runtime_reentry_gate",
+        "study_completion_contract",
+        "controller_first_policy_summary",
+        "automation_ready_summary",
+        "decision",
+        "reason",
+    }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeStatus":
+        resolved_payload = dict(payload)
+        extras = {key: value for key, value in resolved_payload.items() if key not in cls._CORE_KEYS}
+        return cls(
+            schema_version=int(resolved_payload.get("schema_version") or 1),
+            study_id=str(resolved_payload.get("study_id") or ""),
+            study_root=str(resolved_payload.get("study_root") or ""),
+            entry_mode=str(resolved_payload.get("entry_mode") or ""),
+            execution=dict(resolved_payload.get("execution") or {}),
+            quest_id=str(resolved_payload.get("quest_id") or ""),
+            quest_root=str(resolved_payload.get("quest_root") or ""),
+            quest_exists=bool(resolved_payload.get("quest_exists")),
+            quest_status=(
+                str(resolved_payload["quest_status"])
+                if resolved_payload.get("quest_status") is not None
+                else None
+            ),
+            runtime_binding_path=str(resolved_payload.get("runtime_binding_path") or ""),
+            runtime_binding_exists=bool(resolved_payload.get("runtime_binding_exists")),
+            workspace_contracts=dict(resolved_payload.get("workspace_contracts") or {}),
+            startup_data_readiness=dict(resolved_payload.get("startup_data_readiness") or {}),
+            startup_boundary_gate=dict(resolved_payload.get("startup_boundary_gate") or {}),
+            runtime_reentry_gate=dict(resolved_payload.get("runtime_reentry_gate") or {}),
+            study_completion_contract=dict(resolved_payload.get("study_completion_contract") or {}),
+            controller_first_policy_summary=str(resolved_payload.get("controller_first_policy_summary") or ""),
+            automation_ready_summary=str(resolved_payload.get("automation_ready_summary") or ""),
+            decision=str(resolved_payload.get("decision") or ""),
+            reason=str(resolved_payload.get("reason") or ""),
+            extras=extras,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "schema_version": self.schema_version,
+            "study_id": self.study_id,
+            "study_root": self.study_root,
+            "entry_mode": self.entry_mode,
+            "execution": self.execution,
+            "quest_id": self.quest_id,
+            "quest_root": self.quest_root,
+            "quest_exists": self.quest_exists,
+            "quest_status": self.quest_status,
+            "runtime_binding_path": self.runtime_binding_path,
+            "runtime_binding_exists": self.runtime_binding_exists,
+            "workspace_contracts": self.workspace_contracts,
+            "startup_data_readiness": self.startup_data_readiness,
+            "startup_boundary_gate": self.startup_boundary_gate,
+            "runtime_reentry_gate": self.runtime_reentry_gate,
+            "study_completion_contract": self.study_completion_contract,
+            "controller_first_policy_summary": self.controller_first_policy_summary,
+            "automation_ready_summary": self.automation_ready_summary,
+        }
+        if self.decision:
+            payload["decision"] = self.decision
+        if self.reason:
+            payload["reason"] = self.reason
+        payload.update(self.extras)
+        return payload
+
+    def __getitem__(self, key: str) -> Any:
+        if key in self._CORE_KEYS:
+            return getattr(self, key)
+        return self.extras[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if key in self._CORE_KEYS:
+            setattr(self, key, value)
+            return
+        self.extras[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        if key in self._CORE_KEYS:
+            raise KeyError(f"cannot delete core study runtime status key: {key}")
+        del self.extras[key]
+
+    def __iter__(self) -> Iterator[str]:
+        yield from self.to_dict()
+
+    def __len__(self) -> int:
+        return len(self.to_dict())
 
 
 def _utc_now() -> str:
@@ -398,14 +529,14 @@ def _sync_study_completion(
     )
 
 
-def _status_payload(
+def _status_state(
     *,
     profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
     study_payload: dict[str, Any],
     entry_mode: str | None,
-) -> dict[str, Any]:
+) -> StudyRuntimeStatus:
     execution = _execution_payload(study_payload)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
@@ -445,26 +576,26 @@ def _status_payload(
     )
     completion_state = _study_completion_state(study_root=study_root)
 
-    result: dict[str, Any] = {
-        "schema_version": 1,
-        "study_id": study_id,
-        "study_root": str(study_root),
-        "entry_mode": selected_entry_mode,
-        "execution": execution,
-        "quest_id": quest_id,
-        "quest_root": str(quest_root),
-        "quest_exists": quest_exists,
-        "quest_status": quest_status_value or None,
-        "runtime_binding_path": str(runtime_binding_path),
-        "runtime_binding_exists": runtime_binding_path.exists(),
-        "workspace_contracts": contracts,
-        "startup_data_readiness": readiness,
-        "startup_boundary_gate": startup_boundary_gate,
-        "runtime_reentry_gate": runtime_reentry_gate,
-        "study_completion_contract": completion_state.to_dict(),
-        "controller_first_policy_summary": render_controller_first_summary(),
-        "automation_ready_summary": render_automation_ready_summary(),
-    }
+    result = StudyRuntimeStatus(
+        schema_version=1,
+        study_id=study_id,
+        study_root=str(study_root),
+        entry_mode=selected_entry_mode,
+        execution=execution,
+        quest_id=quest_id,
+        quest_root=str(quest_root),
+        quest_exists=quest_exists,
+        quest_status=quest_status_value or None,
+        runtime_binding_path=str(runtime_binding_path),
+        runtime_binding_exists=runtime_binding_path.exists(),
+        workspace_contracts=contracts,
+        startup_data_readiness=readiness,
+        startup_boundary_gate=startup_boundary_gate,
+        runtime_reentry_gate=runtime_reentry_gate,
+        study_completion_contract=completion_state.to_dict(),
+        controller_first_policy_summary=render_controller_first_summary(),
+        automation_ready_summary=render_automation_ready_summary(),
+    )
 
     if str(execution.get("engine") or "").strip() != "med-deepscientist":
         result["decision"] = "lightweight"
@@ -608,6 +739,23 @@ def _status_payload(
     return result
 
 
+def _status_payload(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    study_payload: dict[str, Any],
+    entry_mode: str | None,
+) -> dict[str, Any]:
+    return _status_state(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        study_payload=study_payload,
+        entry_mode=entry_mode,
+    ).to_dict()
+
+
 def study_runtime_status(
     *,
     profile: WorkspaceProfile,
@@ -643,7 +791,7 @@ def ensure_study_runtime(
         study_id=study_id,
         study_root=study_root,
     )
-    status = _status_payload(
+    status = _status_state(
         profile=profile,
         study_id=resolved_study_id,
         study_root=resolved_study_root,
@@ -808,7 +956,7 @@ def ensure_study_runtime(
             )
             status["quest_status"] = str(daemon_result.get("status") or "running")
             binding_last_action = "resume"
-    elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(status):
+    elif study_runtime_protocol.should_refresh_startup_hydration_while_blocked(dict(status)):
         create_payload = _build_create_payload(
             profile=profile,
             study_id=resolved_study_id,
@@ -895,7 +1043,7 @@ def ensure_study_runtime(
         study_root=resolved_study_root,
         quest_id=str(status.get("quest_id") or "").strip() or None,
         last_action=binding_last_action,
-        status=status,
+        status=dict(status),
         source=source,
         force=force,
         startup_payload_path=startup_payload_path,
