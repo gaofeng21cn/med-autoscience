@@ -615,6 +615,18 @@ class StudyRuntimeExecutionOutcome:
         status = str(snapshot.get("status") or "").strip()
         return status or fallback
 
+    def serialized_daemon_result(self) -> dict[str, Any] | None:
+        daemon_result = self.daemon_result
+        if daemon_result is None:
+            return None
+        if not isinstance(daemon_result, dict):
+            raise TypeError("daemon_result must be dict or None")
+        if self.binding_last_action == StudyRuntimeBindingAction.RESUME:
+            return self.daemon_step(StudyRuntimeDaemonStep.RESUME)
+        if self.binding_last_action == StudyRuntimeBindingAction.PAUSE:
+            return self.daemon_step(StudyRuntimeDaemonStep.PAUSE)
+        return dict(daemon_result)
+
     @staticmethod
     def _normalize_binding_last_action(
         value: StudyRuntimeBindingAction | str | None,
@@ -1469,7 +1481,9 @@ def _execute_create_runtime_decision(
             source=context.source,
         )
         outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
-        status.update_quest_runtime(quest_status=str(resume_result.get("status") or "running"))
+        status.update_quest_runtime(
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+        )
         outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_AND_START
     else:
         outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_ONLY
@@ -1501,12 +1515,15 @@ def _execute_resume_runtime_decision(
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
-    outcome.daemon_result = med_deepscientist_transport.resume_quest(
+    resume_result = med_deepscientist_transport.resume_quest(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         source=context.source,
     )
-    status.update_quest_runtime(quest_status=str(outcome.daemon_result.get("status") or "running"))
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
+    status.update_quest_runtime(
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+    )
     outcome.binding_last_action = StudyRuntimeBindingAction.RESUME
     return outcome
 
@@ -1552,16 +1569,17 @@ def _execute_pause_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    daemon_result = med_deepscientist_transport.pause_quest(
+    pause_result = med_deepscientist_transport.pause_quest(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         source=context.source,
     )
-    status.update_quest_runtime(quest_status=str(daemon_result.get("status") or "paused"))
-    return StudyRuntimeExecutionOutcome(
-        binding_last_action=StudyRuntimeBindingAction.PAUSE,
-        daemon_result=daemon_result,
+    outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.PAUSE)
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
+    status.update_quest_runtime(
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
     )
+    return outcome
 
 
 def _execute_completion_runtime_decision(
@@ -1577,7 +1595,9 @@ def _execute_completion_runtime_decision(
             source=context.source,
         )
         outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
-        status.update_quest_runtime(quest_status=str(pause_result.get("status") or "paused"))
+        status.update_quest_runtime(
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+        )
     completion_sync = _sync_study_completion(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
@@ -1693,7 +1713,7 @@ def ensure_study_runtime(
         source=source,
         force=force,
         startup_payload_path=outcome.startup_payload_path,
-        daemon_result=outcome.daemon_result,
+        daemon_result=outcome.serialized_daemon_result(),
         recorded_at=_utc_now(),
     )
     status.record_runtime_artifacts(
