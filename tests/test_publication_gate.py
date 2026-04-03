@@ -14,6 +14,9 @@ def make_quest(
     tmp_path: Path,
     *,
     include_submission_minimal: bool,
+    include_main_result: bool = True,
+    runtime_status: str = "running",
+    include_unmanaged_submission_surface: bool = False,
     manuscript_files: dict[str, str] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
@@ -23,38 +26,52 @@ def make_quest(
         quest_root / ".ds" / "runtime_state.json",
         {
             "quest_id": "002-early-residual-risk",
-            "status": "running",
-            "active_run_id": "run-1",
+            "status": runtime_status,
+            "active_run_id": "run-1" if include_main_result else None,
         },
     )
-    dump_json(
-        worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
-        {
-            "quest_id": "002-early-residual-risk",
-            "run_id": "run-1",
-            "worktree_root": str(worktree_root),
-            "metric_contract": {
-                "required_non_scalar_deliverables": [],
+    if include_main_result:
+        dump_json(
+            worktree_root / "experiments" / "main" / "run-1" / "RESULT.json",
+            {
+                "quest_id": "002-early-residual-risk",
+                "run_id": "run-1",
+                "worktree_root": str(worktree_root),
+                "metric_contract": {
+                    "required_non_scalar_deliverables": [],
+                },
+                "metrics_summary": {
+                    "roc_auc": 0.81,
+                    "average_precision": 0.45,
+                    "brier_score": 0.11,
+                    "calibration_intercept": 0.02,
+                    "calibration_slope": 1.01,
+                },
+                "baseline_comparisons": {"items": []},
+                "results_summary": "summary",
+                "conclusion": "conclusion",
             },
-            "metrics_summary": {
-                "roc_auc": 0.81,
-                "average_precision": 0.45,
-                "brier_score": 0.11,
-                "calibration_intercept": 0.02,
-                "calibration_slope": 1.01,
-            },
-            "baseline_comparisons": {"items": []},
-            "results_summary": "summary",
-            "conclusion": "conclusion",
-        },
-    )
+        )
     dump_json(
         worktree_root / "paper" / "paper_bundle_manifest.json",
         {
             "schema_version": 1,
+            "summary": "paper bundle summary",
+            "paper_branch": "paper/main",
+            "compile_report_path": "paper/build/compile_report.json",
             "bundle_inputs": {
                 "compiled_markdown_path": "paper/build/review_manuscript.md",
             },
+        },
+    )
+    dump_json(
+        worktree_root / "paper" / "build" / "compile_report.json",
+        {
+            "schema_version": 1,
+            "status": "compiled_with_open_submission_items",
+            "summary": "compile report summary",
+            "bibliography_entry_count": 21,
+            "author_metadata_status": "placeholder_external_input_required",
         },
     )
     if include_submission_minimal:
@@ -71,6 +88,12 @@ def make_quest(
         )
         (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
         (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
+    if include_unmanaged_submission_surface:
+        (worktree_root / "paper" / "submission_pituitary").mkdir(parents=True, exist_ok=True)
+        (worktree_root / "paper" / "submission_pituitary" / "submission_manifest.json").write_text(
+            "{}",
+            encoding="utf-8",
+        )
     if manuscript_files:
         for relpath, body in manuscript_files.items():
             target = worktree_root / "paper" / relpath
@@ -81,12 +104,7 @@ def make_quest(
 
 
 def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
 
     state = module.build_gate_state(quest_root)
@@ -100,12 +118,7 @@ def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_pa
 
 
 def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
 
     state = module.build_gate_state(quest_root)
@@ -118,14 +131,35 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_pdf_present"] is False
 
 
-def test_build_gate_report_blocks_for_forbidden_manuscript_terminology(tmp_path: Path) -> None:
+def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_unmanaged_submission_surface=True,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "unmanaged_submission_surface_present" in report["blockers"]
+    assert report["unmanaged_submission_surface_roots"] == [
+        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+    ]
+
+
+def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
         manuscript_files={
             "build/review_manuscript.md": "Methods: we analyzed the locked v2026-03-31 dataset.\n",
-            "submission_minimal/tables/Table1.md": "The paper-facing mainline remained unchanged.\n",
+            "submission_minimal/tables/Table1.md": (
+                "Note: the paper-facing mainline analysis used the workspace cohort and "
+                "the 2024-06-30 follow-up freeze.\n"
+            ),
         },
     )
 
@@ -135,20 +169,60 @@ def test_build_gate_report_blocks_for_forbidden_manuscript_terminology(tmp_path:
     assert report["status"] == "blocked"
     assert "forbidden_manuscript_terminology" in report["blockers"]
     violations = report["manuscript_terminology_violations"]
-    assert len(violations) >= 2
-    assert any(item["path"].endswith("build/review_manuscript.md") for item in violations)
-    assert any(item["path"].endswith("submission_minimal/tables/Table1.md") for item in violations)
-    assert any("locked v2026-03-31" in item["match"] for item in violations)
-    assert any("paper-facing" in item["match"] for item in violations)
+    assert any(
+        item["path"].endswith("build/review_manuscript.md")
+        and item["label"] == "locked_dataset_version_label"
+        and item["match"] == "locked v2026-03-31"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("submission_minimal/tables/Table1.md")
+        and item["label"] == "internal_editorial_label"
+        and item["match"] == "paper-facing"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("submission_minimal/tables/Table1.md")
+        and item["label"] == "internal_editorial_label"
+        and item["match"] == "mainline"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("submission_minimal/tables/Table1.md")
+        and item["label"] == "workspace_cohort_label"
+        and item["match"] == "workspace cohort"
+        for item in violations
+    )
+    assert any(
+        item["path"].endswith("submission_minimal/tables/Table1.md")
+        and item["label"] == "followup_freeze_label"
+        and item["match"] == "follow-up freeze"
+        for item in violations
+    )
+
+
+def test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        manuscript_files={
+            "draft.md": (
+                "We analyzed the institutional first-surgery NF-PitNET cohort and "
+                "ascertained outcomes through June 30, 2024.\n"
+            )
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert "forbidden_manuscript_terminology" not in report["blockers"]
+    assert report["manuscript_terminology_violations"] == []
 
 
 def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
 
     result = module.run_controller(
@@ -164,12 +238,7 @@ def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
 
 
 def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch(tmp_path: Path, monkeypatch) -> None:
-    try:
-        module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    except ModuleNotFoundError:
-        module = None
-
-    assert module is not None
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
 
     monkeypatch.setattr(

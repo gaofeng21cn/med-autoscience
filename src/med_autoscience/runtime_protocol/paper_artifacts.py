@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
+
 from .quest_state import find_latest
 
 
@@ -64,3 +66,48 @@ def resolve_submission_minimal_output_paths(
     docx_path = workspace_root / docx_relpath if docx_relpath else None
     pdf_path = workspace_root / pdf_relpath if pdf_relpath else None
     return docx_path, pdf_path
+
+
+def resolve_managed_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:
+    resolved_paper_root = _resolve_path(paper_root)
+    if not resolved_paper_root.exists():
+        return tuple()
+
+    roots: list[Path] = []
+    submission_minimal_root = resolved_paper_root / "submission_minimal"
+    if submission_minimal_root.is_dir():
+        roots.append(submission_minimal_root)
+
+    journal_submissions_root = resolved_paper_root / "journal_submissions"
+    if journal_submissions_root.is_dir():
+        for candidate in sorted(journal_submissions_root.iterdir()):
+            if not candidate.is_dir():
+                continue
+            if is_supported_publication_profile(candidate.name):
+                roots.append(candidate.resolve())
+
+    return tuple(root.resolve() for root in roots)
+
+
+def find_unmanaged_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:
+    resolved_paper_root = _resolve_path(paper_root)
+    if not resolved_paper_root.exists():
+        return tuple()
+
+    roots: list[Path] = []
+    for candidate in sorted(resolved_paper_root.iterdir()):
+        if not candidate.is_dir():
+            continue
+        if candidate.name.startswith("submission_") and candidate.name != "submission_minimal":
+            roots.append(candidate.resolve())
+
+    journal_submissions_root = resolved_paper_root / "journal_submissions"
+    if journal_submissions_root.is_dir():
+        for candidate in sorted(journal_submissions_root.iterdir()):
+            if not candidate.is_dir():
+                continue
+            normalized_profile = normalize_publication_profile(candidate.name)
+            if not is_supported_publication_profile(normalized_profile):
+                roots.append(candidate.resolve())
+
+    return tuple(roots)

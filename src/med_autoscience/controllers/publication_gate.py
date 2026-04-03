@@ -27,13 +27,14 @@ class GateState:
     write_drift_detected: bool
     missing_deliverables: list[str]
     present_deliverables: list[str]
-    manuscript_terminology_violations: list[dict[str, Any]]
     paper_bundle_manifest_path: Path | None
     paper_bundle_manifest: dict[str, Any] | None
     submission_minimal_manifest_path: Path | None
     submission_minimal_manifest: dict[str, Any] | None
     submission_minimal_docx_present: bool
     submission_minimal_pdf_present: bool
+    unmanaged_submission_surface_roots: list[str]
+    manuscript_terminology_violations: list[dict[str, str]]
 
 
 def utc_now() -> str:
@@ -43,12 +44,12 @@ def utc_now() -> str:
 def load_json(path: Path, default: Any = None) -> Any:
     if not path.exists():
         return default
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def find_latest(paths: list[Path]) -> Path | None:
@@ -64,6 +65,13 @@ def find_latest_gate_report(quest_root: Path) -> Path | None:
 def detect_write_drift(lines: list[str]) -> bool:
     merged = "\n".join(lines)
     return any(re.search(pattern, merged, flags=re.IGNORECASE) for pattern in publication_gate_policy.WRITE_DRIFT_PATTERNS)
+
+
+def _dedupe_resolved_paths(paths: list[Path]) -> list[Path]:
+    resolved: dict[str, Path] = {}
+    for path in paths:
+        resolved[str(path.resolve())] = path.resolve()
+    return [resolved[key] for key in sorted(resolved)]
 
 
 def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -83,7 +91,7 @@ def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -
 
 def resolve_paper_root(*, main_result: dict[str, Any], paper_bundle_manifest_path: Path | None) -> Path | None:
     if paper_bundle_manifest_path is not None:
-        return paper_bundle_manifest_path.parent
+        return paper_bundle_manifest_path.parent.resolve()
     worktree_root_value = str(main_result.get("worktree_root") or "").strip()
     if not worktree_root_value:
         return None
@@ -95,46 +103,37 @@ def collect_manuscript_surface_paths(paper_root: Path | None) -> list[Path]:
     if paper_root is None or not paper_root.exists():
         return []
     candidates: list[Path] = []
-    fixed_paths = (
-        paper_root / "draft.md",
-        paper_root / "supplementary_tables.md",
-        paper_root / "build" / "review_manuscript.md",
-        paper_root / "figures" / "figure_catalog.json",
-        paper_root / "tables" / "table_catalog.json",
-    )
-    candidates.extend(path for path in fixed_paths if path.exists())
-
-    scan_roots = [paper_root / "tables"]
-    scan_roots.extend(
-        child for child in paper_root.iterdir() if child.is_dir() and child.name.startswith("submission_")
-    )
-    seen: set[Path] = set(candidates)
-    for root in scan_roots:
-        if not root.exists():
-            continue
-        for pattern in ("*.md", "*.txt", "*.tex", "*.json"):
-            for path in root.rglob(pattern):
-                if path not in seen:
-                    candidates.append(path)
-                    seen.add(path)
-    return sorted(candidates)
+    for pattern in publication_gate_policy.MANUSCRIPT_SURFACE_GLOBS:
+        candidates.extend(path for path in paper_root.glob(pattern) if path.is_file())
+    for managed_root in paper_artifacts.resolve_managed_submission_surface_roots(paper_root):
+        for pattern in publication_gate_policy.MANAGED_SUBMISSION_SURFACE_GLOBS:
+            candidates.extend(path for path in managed_root.glob(pattern) if path.is_file())
+    return _dedupe_resolved_paths(candidates)
 
 
-def scan_manuscript_terminology(paper_root: Path | None) -> list[dict[str, Any]]:
-    violations: list[dict[str, Any]] = []
+def detect_manuscript_terminology_violations(paper_root: Path | None) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
     for path in collect_manuscript_surface_paths(paper_root):
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-            for spec in publication_gate_policy.FORBIDDEN_MANUSCRIPT_TERMINOLOGY_PATTERNS:
-                for match in re.finditer(str(spec["pattern"]), line, flags=re.IGNORECASE):
-                    violations.append(
-                        {
-                            "path": str(path),
-                            "line": line_number,
-                            "rule_id": spec["rule_id"],
-                            "description": spec["description"],
-                            "match": match.group(0),
-                        }
-                    )
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for rule in publication_gate_policy.MANUSCRIPT_TERMINOLOGY_REDLINE_PATTERNS:
+            label = str(rule["label"])
+            pattern = str(rule["pattern"])
+            for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                key = (str(path.resolve()), label, match.group(0))
+                if key in seen:
+                    continue
+                seen.add(key)
+                violations.append(
+                    {
+                        "path": key[0],
+                        "label": key[1],
+                        "match": key[2],
+                    }
+                )
     return violations
 
 
@@ -158,7 +157,6 @@ def build_gate_state(quest_root: Path) -> GateState:
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
     paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
     paper_root = resolve_paper_root(main_result=main_result, paper_bundle_manifest_path=paper_bundle_manifest_path)
-    manuscript_terminology_violations = scan_manuscript_terminology(paper_root)
     submission_minimal_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
     submission_minimal_manifest = (
         load_json(submission_minimal_manifest_path) if submission_minimal_manifest_path else None
@@ -167,6 +165,12 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
     )
+    unmanaged_submission_surface_roots = (
+        [str(path) for path in paper_artifacts.find_unmanaged_submission_surface_roots(paper_root)]
+        if paper_root is not None
+        else []
+    )
+    manuscript_terminology_violations = detect_manuscript_terminology_violations(paper_root)
     return GateState(
         quest_root=quest_root,
         runtime_state=runtime_state,
@@ -180,13 +184,14 @@ def build_gate_state(quest_root: Path) -> GateState:
         write_drift_detected=detect_write_drift(recent_lines),
         missing_deliverables=missing_deliverables,
         present_deliverables=present_deliverables,
-        manuscript_terminology_violations=manuscript_terminology_violations,
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
         submission_minimal_manifest_path=submission_minimal_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
         submission_minimal_docx_present=bool(submission_minimal_docx_path and submission_minimal_docx_path.exists()),
         submission_minimal_pdf_present=bool(submission_minimal_pdf_path and submission_minimal_pdf_path.exists()),
+        unmanaged_submission_surface_roots=unmanaged_submission_surface_roots,
+        manuscript_terminology_violations=manuscript_terminology_violations,
     )
 
 
@@ -207,10 +212,12 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         blockers.append("missing_post_main_publishability_gate")
     if state.missing_deliverables:
         blockers.append("missing_required_non_scalar_deliverables")
-    if state.manuscript_terminology_violations:
-        blockers.append("forbidden_manuscript_terminology")
     if state.write_drift_detected and not allow_write:
         blockers.append("active_run_drifting_into_write_without_gate_approval")
+    if state.unmanaged_submission_surface_roots:
+        blockers.append("unmanaged_submission_surface_present")
+    if state.manuscript_terminology_violations:
+        blockers.append("forbidden_manuscript_terminology")
 
     return {
         "schema_version": 1,
@@ -235,7 +242,6 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "present_non_scalar_deliverables": state.present_deliverables,
         "missing_non_scalar_deliverables": state.missing_deliverables,
         "paper_root": str(state.paper_root) if state.paper_root else None,
-        "manuscript_terminology_violations": state.manuscript_terminology_violations,
         "paper_bundle_manifest_path": str(state.paper_bundle_manifest_path) if state.paper_bundle_manifest_path else None,
         "submission_minimal_manifest_path": (
             str(state.submission_minimal_manifest_path) if state.submission_minimal_manifest_path else None
@@ -243,6 +249,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
+        "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
+        "manuscript_terminology_violations": list(state.manuscript_terminology_violations),
         "headline_metrics": state.main_result.get("metrics_summary") or {},
         "primary_metric_delta_vs_baseline": primary_delta,
         "results_summary": state.main_result.get("results_summary"),
@@ -254,8 +262,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
 def render_gate_markdown(report: dict[str, Any]) -> str:
     blockers = report.get("blockers") or []
     missing = report.get("missing_non_scalar_deliverables") or []
-    terminology_violations = report.get("manuscript_terminology_violations") or []
     metrics = report.get("headline_metrics") or {}
+    terminology_violations = report.get("manuscript_terminology_violations") or []
     lines = [
         "# Publishability Gate Control Report",
         "",
@@ -295,20 +303,6 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "## Manuscript Terminology Violations",
-            "",
-        ]
-    )
-    if terminology_violations:
-        lines.extend(
-            f"- `{item['rule_id']}` at `{item['path']}:{item['line']}` matched `{item['match']}`"
-            for item in terminology_violations
-        )
-    else:
-        lines.append("- None")
-    lines.extend(
-        [
-            "",
             "## Paper Package Status",
             "",
             f"- `paper_root`: `{report.get('paper_root')}`",
@@ -317,6 +311,40 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
+        ]
+    )
+    unmanaged_roots = report.get("unmanaged_submission_surface_roots") or []
+    if unmanaged_roots:
+        lines.extend(
+            [
+                "",
+                "## Unmanaged Submission Surfaces",
+                "",
+                *[f"- `{item}`" for item in unmanaged_roots],
+            ]
+        )
+    if terminology_violations:
+        lines.extend(
+            [
+                "",
+                "## Forbidden Manuscript Terminology",
+                "",
+            ]
+        )
+        lines.extend(
+            f"- `{item['label']}` matched `{item['match']}` in `{item['path']}`" for item in terminology_violations
+        )
+    else:
+        lines.extend(
+            [
+                "",
+                "## Forbidden Manuscript Terminology",
+                "",
+                "- None",
+            ]
+        )
+    lines.extend(
+        [
             "",
             "## Result Context",
             "",

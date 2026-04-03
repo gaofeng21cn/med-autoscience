@@ -248,7 +248,6 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
         publication_profile="general_medical_journal",
     )
 
-<<<<<<< HEAD
     figures_by_id = {item["figure_id"]: item for item in manifest["figures"]}
     tables_by_id = {item["table_id"]: item for item in manifest["tables"]}
 
