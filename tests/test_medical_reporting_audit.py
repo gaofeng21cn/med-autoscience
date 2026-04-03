@@ -17,4 +17,5 @@ def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: 
 
     assert report["status"] == "blocked"
     assert "missing_cohort_flow" in report["blockers"]
+    assert "missing_baseline_characteristics_schema" in report["blockers"]
     assert "missing_reporting_guideline_checklist" in report["blockers"]

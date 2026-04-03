@@ -41,6 +41,8 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
 
     assert (quest_root / "paper" / "medical_analysis_contract.json").exists()
     assert (quest_root / "paper" / "medical_reporting_contract.json").exists()
+    assert (quest_root / "paper" / "cohort_flow.json").exists()
+    assert (quest_root / "paper" / "baseline_characteristics_schema.json").exists()
     assert (quest_root / "paper" / "references.bib").exists()
     assert (quest_root / "paper" / "reference_coverage_report.json").exists()
     assert (quest_root / "literature" / "pubmed" / "records.jsonl").exists()

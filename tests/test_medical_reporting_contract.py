@@ -19,6 +19,9 @@ def test_resolve_medical_reporting_contract_for_prediction_manuscript() -> None:
     assert contract.baseline_characteristics_required is True
     assert contract.table_shell_requirements == ("table1_baseline_characteristics",)
     assert contract.figure_shell_requirements == ("cohort_flow_figure",)
+    assert contract.required_illustration_shells == ("cohort_flow_figure",)
+    assert contract.required_table_shells == ("table1_baseline_characteristics",)
+    assert contract.required_evidence_templates == ()
 
 
 def test_resolve_medical_reporting_contract_for_randomized_trial_publication() -> None:
@@ -82,3 +85,9 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         "km_risk_stratification_figure",
         "decision_curve_figure",
     )
+    assert contract.required_illustration_shells == ("cohort_flow_figure",)
+    assert contract.required_table_shells == (
+        "table1_baseline_characteristics",
+        "table2_primary_performance_by_horizon",
+    )
+    assert contract.required_evidence_templates == ()

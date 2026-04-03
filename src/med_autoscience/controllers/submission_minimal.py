@@ -135,6 +135,54 @@ def resolve_bundle_input_path(
     raise KeyError(f"missing bundle input `{key}` in paper bundle manifest")
 
 
+def _first_nonempty_string(*values: object) -> str | None:
+    for value in values:
+        if isinstance(value, str):
+            normalized = value.strip()
+            if normalized:
+                return normalized
+    return None
+
+
+def resolve_compiled_markdown_path(
+    *,
+    workspace_root: Path,
+    bundle_manifest: dict[str, Any],
+    compile_report: dict[str, Any],
+) -> Path:
+    bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
+    candidate = _first_nonempty_string(
+        bundle_inputs.get("compiled_markdown_path"),
+        bundle_manifest.get("draft_path"),
+        compile_report.get("source_markdown"),
+    )
+    if candidate is None:
+        raise KeyError(
+            "submission export could not resolve compiled markdown from bundle_manifest.bundle_inputs.compiled_markdown_path, "
+            "bundle_manifest.draft_path, or compile_report.source_markdown"
+        )
+    return resolve_relpath(workspace_root, candidate)
+
+
+def resolve_compiled_pdf_path(
+    *,
+    workspace_root: Path,
+    bundle_manifest: dict[str, Any],
+    compile_report: dict[str, Any],
+) -> Path:
+    candidate = _first_nonempty_string(
+        compile_report.get("output_pdf"),
+        compile_report.get("pdf_path"),
+        bundle_manifest.get("pdf_path"),
+    )
+    if candidate is None:
+        raise KeyError(
+            "submission export could not resolve compiled pdf from compile_report.output_pdf, "
+            "compile_report.pdf_path, or bundle_manifest.pdf_path"
+        )
+    return resolve_relpath(workspace_root, candidate)
+
+
 def copy_with_renamed_targets(
     *,
     workspace_root: Path,
@@ -153,6 +201,46 @@ def copy_with_renamed_targets(
         shutil.copy2(source_path, target_path)
         output_relpaths.append(relpath_from_workspace(target_path, workspace_root))
     return output_relpaths
+
+
+def find_missing_source_paths(*, workspace_root: Path, source_paths: list[str]) -> list[Path]:
+    missing: list[Path] = []
+    for source_rel in source_paths:
+        source_path = resolve_relpath(workspace_root, source_rel)
+        if not source_path.exists():
+            missing.append(source_path)
+    return missing
+
+
+def resolve_figure_source_paths(entry: dict[str, Any]) -> list[str]:
+    export_paths = entry.get("export_paths")
+    if isinstance(export_paths, list):
+        normalized = [str(item).strip() for item in export_paths if str(item).strip()]
+        if normalized:
+            return normalized
+    planned_exports = entry.get("planned_exports")
+    if isinstance(planned_exports, list):
+        normalized = [str(item).strip() for item in planned_exports if str(item).strip()]
+        if normalized:
+            return normalized
+    return []
+
+
+def resolve_table_source_paths(entry: dict[str, Any]) -> list[str]:
+    asset_paths = entry.get("asset_paths")
+    if isinstance(asset_paths, list):
+        normalized = [str(item).strip() for item in asset_paths if str(item).strip()]
+        if normalized:
+            return normalized
+    path_value = entry.get("path")
+    if isinstance(path_value, str) and path_value.strip():
+        return [path_value.strip()]
+    return []
+
+
+def is_planned_catalog_entry(entry: dict[str, Any]) -> bool:
+    status = str(entry.get("status") or "").strip().lower()
+    return status.startswith("planned")
 
 
 def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
@@ -641,8 +729,16 @@ def create_submission_minimal_package(
     figure_catalog = load_json(figure_catalog_path)
     table_catalog = load_json(table_catalog_path)
 
-    compiled_markdown_path = resolve_relpath(workspace_root, compile_report["source_markdown"])
-    compiled_pdf_path = resolve_relpath(workspace_root, compile_report["output_pdf"])
+    compiled_markdown_path = resolve_compiled_markdown_path(
+        workspace_root=workspace_root,
+        bundle_manifest=bundle_manifest,
+        compile_report=compile_report,
+    )
+    compiled_pdf_path = resolve_compiled_pdf_path(
+        workspace_root=workspace_root,
+        bundle_manifest=bundle_manifest,
+        compile_report=compile_report,
+    )
 
     if not compiled_markdown_path.exists():
         raise FileNotFoundError(f"missing compiled markdown: {compiled_markdown_path}")
@@ -688,9 +784,15 @@ def create_submission_minimal_package(
     figure_entries: list[dict[str, Any]] = []
     figure_naming_map: dict[str, str] = {}
     for entry in figure_catalog.get("figures", []):
-        export_paths = list(entry.get("export_paths") or [])
+        export_paths = resolve_figure_source_paths(entry)
         if not export_paths:
             continue
+        missing_paths = find_missing_source_paths(workspace_root=workspace_root, source_paths=export_paths)
+        if missing_paths:
+            if is_planned_catalog_entry(entry):
+                continue
+            missing_paths_text = ", ".join(str(path) for path in missing_paths)
+            raise FileNotFoundError(f"missing submission asset(s) for figure `{entry.get('figure_id')}`: {missing_paths_text}")
         basename = build_figure_basename(str(entry["figure_id"]))
         output_paths = copy_with_renamed_targets(
             workspace_root=workspace_root,
@@ -702,7 +804,12 @@ def create_submission_minimal_package(
         figure_entries.append(
             {
                 "figure_id": entry["figure_id"],
+                "template_id": entry.get("template_id"),
+                "renderer_family": entry.get("renderer_family"),
                 "paper_role": entry.get("paper_role"),
+                "input_schema_id": entry.get("input_schema_id"),
+                "qc_profile": entry.get("qc_profile"),
+                "qc_result": entry.get("qc_result"),
                 "source_paths": export_paths,
                 "output_paths": output_paths,
             }
@@ -711,9 +818,15 @@ def create_submission_minimal_package(
     table_entries: list[dict[str, Any]] = []
     table_naming_map: dict[str, str] = {}
     for entry in table_catalog.get("tables", []):
-        asset_paths = list(entry.get("asset_paths") or [])
+        asset_paths = resolve_table_source_paths(entry)
         if not asset_paths:
             continue
+        missing_paths = find_missing_source_paths(workspace_root=workspace_root, source_paths=asset_paths)
+        if missing_paths:
+            if is_planned_catalog_entry(entry):
+                continue
+            missing_paths_text = ", ".join(str(path) for path in missing_paths)
+            raise FileNotFoundError(f"missing submission asset(s) for table `{entry.get('table_id')}`: {missing_paths_text}")
         basename = build_table_basename(str(entry["table_id"]))
         output_paths = copy_with_renamed_targets(
             workspace_root=workspace_root,
@@ -725,7 +838,11 @@ def create_submission_minimal_package(
         table_entries.append(
             {
                 "table_id": entry["table_id"],
+                "table_shell_id": entry.get("table_shell_id"),
                 "paper_role": entry.get("paper_role"),
+                "input_schema_id": entry.get("input_schema_id"),
+                "qc_profile": entry.get("qc_profile"),
+                "qc_result": entry.get("qc_result"),
                 "source_paths": asset_paths,
                 "output_paths": output_paths,
             }

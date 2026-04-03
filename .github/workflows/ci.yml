@@ -24,7 +24,7 @@ jobs:
           python-version: '3.12'
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
 
       - name: Install pandoc
         run: brew install pandoc
@@ -39,7 +39,7 @@ jobs:
         run: uv run python -m build --sdist --wheel
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-dist
           path: dist

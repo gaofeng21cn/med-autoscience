@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience import display_registry
+
 
 FIGURE_SEMANTICS_EVIDENCE = "evidence"
 FIGURE_SEMANTICS_ILLUSTRATION = "illustration"
@@ -70,6 +72,23 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
     if not selection_rationale:
         errors.append("selection_rationale must be non-empty")
 
+    template_id = str(payload.get("template_id") or "").strip()
+    if not template_id:
+        errors.append("template_id must be non-empty")
+
+    layout_qc_profile = str(payload.get("layout_qc_profile") or "").strip()
+    if not layout_qc_profile:
+        errors.append("layout_qc_profile must be non-empty")
+
+    required_exports_raw = payload.get("required_exports")
+    required_exports: tuple[str, ...] = ()
+    if isinstance(required_exports_raw, list):
+        normalized_exports = tuple(_normalize_string(item) for item in required_exports_raw if _normalize_string(item))
+        if normalized_exports:
+            required_exports = normalized_exports
+    if not required_exports:
+        errors.append("required_exports must contain at least one export format")
+
     fallback_on_failure = payload.get("fallback_on_failure")
     if not isinstance(fallback_on_failure, bool):
         errors.append("fallback_on_failure must be a boolean")
@@ -82,6 +101,51 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
     elif failure_action != FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT:
         errors.append(f"failure_action must be `{FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT}`")
 
+    if figure_semantics == FIGURE_SEMANTICS_EVIDENCE and template_id:
+        if not display_registry.is_evidence_figure_template(template_id):
+            errors.append(f"template_id `{template_id}` is not a registered evidence figure template")
+        else:
+            spec = display_registry.get_evidence_figure_spec(template_id)
+            if renderer_family and renderer_family != spec.renderer_family:
+                errors.append(
+                    f"renderer_family `{renderer_family}` does not match registered renderer_family `{spec.renderer_family}` "
+                    f"for template_id `{template_id}`"
+                )
+            if layout_qc_profile and layout_qc_profile != spec.layout_qc_profile:
+                errors.append(
+                    f"layout_qc_profile `{layout_qc_profile}` does not match registered layout_qc_profile "
+                    f"`{spec.layout_qc_profile}` for template_id `{template_id}`"
+                )
+            if required_exports:
+                missing_exports = [item for item in spec.required_exports if item not in required_exports]
+                if missing_exports:
+                    errors.append(
+                        f"required_exports missing registered export formats for template_id `{template_id}`: "
+                        f"{', '.join(missing_exports)}"
+                    )
+    if figure_semantics == FIGURE_SEMANTICS_ILLUSTRATION and template_id:
+        if not display_registry.is_illustration_shell(template_id):
+            errors.append(f"template_id `{template_id}` is not a registered illustration shell")
+        else:
+            spec = display_registry.get_illustration_shell_spec(template_id)
+            if renderer_family and renderer_family != spec.renderer_family:
+                errors.append(
+                    f"renderer_family `{renderer_family}` does not match registered renderer_family `{spec.renderer_family}` "
+                    f"for template_id `{template_id}`"
+                )
+            if layout_qc_profile and layout_qc_profile != spec.shell_qc_profile:
+                errors.append(
+                    f"layout_qc_profile `{layout_qc_profile}` does not match registered shell_qc_profile "
+                    f"`{spec.shell_qc_profile}` for template_id `{template_id}`"
+                )
+            if required_exports:
+                missing_exports = [item for item in spec.required_exports if item not in required_exports]
+                if missing_exports:
+                    errors.append(
+                        f"required_exports missing registered export formats for template_id `{template_id}`: "
+                        f"{', '.join(missing_exports)}"
+                    )
+
     return errors
 
 
@@ -93,7 +157,14 @@ def normalize_renderer_contract(payload: object) -> dict[str, object]:
     return {
         "figure_semantics": _normalize_string(payload.get("figure_semantics")),
         "renderer_family": _normalize_string(payload.get("renderer_family")),
+        "template_id": str(payload.get("template_id") or "").strip(),
         "selection_rationale": str(payload.get("selection_rationale") or "").strip(),
+        "layout_qc_profile": str(payload.get("layout_qc_profile") or "").strip(),
+        "required_exports": [
+            _normalize_string(item)
+            for item in list(payload.get("required_exports") or [])
+            if _normalize_string(item)
+        ],
         "fallback_on_failure": False,
         "failure_action": FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT,
     }
