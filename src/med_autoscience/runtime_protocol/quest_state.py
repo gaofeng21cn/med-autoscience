@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 import json
 from pathlib import Path
 from typing import Any
+
+
+class QuestRuntimeLivenessStatus(StrEnum):
+    LIVE = "live"
+    NONE = "none"
+    UNKNOWN = "unknown"
+    OTHER = "other"
 
 
 @dataclass(frozen=True)
@@ -12,6 +20,20 @@ class QuestRuntimeSnapshot:
     quest_status: str | None
     bash_session_audit: dict[str, Any] | None = None
     runtime_liveness_audit: dict[str, Any] | None = None
+
+    @property
+    def runtime_liveness_status(self) -> QuestRuntimeLivenessStatus:
+        payload = self.runtime_liveness_audit
+        if not isinstance(payload, dict):
+            return QuestRuntimeLivenessStatus.NONE
+        status = str(payload.get("status") or "").strip().lower()
+        if status == QuestRuntimeLivenessStatus.LIVE.value:
+            return QuestRuntimeLivenessStatus.LIVE
+        if status == QuestRuntimeLivenessStatus.NONE.value:
+            return QuestRuntimeLivenessStatus.NONE
+        if status == QuestRuntimeLivenessStatus.UNKNOWN.value:
+            return QuestRuntimeLivenessStatus.UNKNOWN
+        return QuestRuntimeLivenessStatus.OTHER
 
     def with_bash_session_audit(self, bash_session_audit: dict[str, Any]) -> "QuestRuntimeSnapshot":
         return QuestRuntimeSnapshot(
