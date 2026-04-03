@@ -29,6 +29,10 @@ from .runtime_watch import (
 from .study_runtime import (
     StartupContractValidation,
     StartupContractValidationStatus,
+    StartupHydrationReport,
+    StartupHydrationStatus,
+    StartupHydrationValidationReport,
+    StartupHydrationValidationStatus,
     StudyRuntimeArtifacts,
     StudyRuntimeContext,
     archive_invalid_partial_quest_root,
@@ -40,6 +44,8 @@ from .study_runtime import (
     validate_startup_contract_resolution,
     write_launch_report,
     write_runtime_binding,
+    write_startup_hydration_report,
+    write_startup_hydration_validation_report,
     write_startup_payload,
 )
 from .quest_state import (
@@ -60,6 +66,10 @@ __all__ = [
     "PaperRootContext",
     "StartupContractValidation",
     "StartupContractValidationStatus",
+    "StartupHydrationReport",
+    "StartupHydrationStatus",
+    "StartupHydrationValidationReport",
+    "StartupHydrationValidationStatus",
     "StudyRuntimeArtifacts",
     "StudyRuntimeContext",
     "WorkspaceRuntimeLayout",
@@ -101,5 +111,7 @@ __all__ = [
     "resolve_study_runtime_paths",
     "write_launch_report",
     "write_runtime_binding",
+    "write_startup_hydration_report",
+    "write_startup_hydration_validation_report",
     "write_startup_payload",
 ]

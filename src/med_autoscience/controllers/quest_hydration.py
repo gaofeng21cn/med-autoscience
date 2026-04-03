@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
+from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 def _utc_now() -> str:
@@ -195,7 +196,6 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
 
     analysis_path = resolved_quest_root / "paper" / "medical_analysis_contract.json"
     reporting_path = resolved_quest_root / "paper" / "medical_reporting_contract.json"
-    report_path = resolved_quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"
 
     _write_json(analysis_path, medical_analysis_contract)
     _write_json(reporting_path, medical_reporting_contract)
@@ -218,14 +218,16 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
     imported_records_path = literature_report.get("imported_records_path")
     if isinstance(imported_records_path, str) and imported_records_path:
         written_files.append(imported_records_path)
-    report = {
-        "status": "hydrated",
-        "recorded_at": _utc_now(),
-        "quest_root": str(resolved_quest_root),
-        "entry_state_summary": entry_state_summary,
-        "literature_report": literature_report,
-        "written_files": written_files,
-    }
-    _write_json(report_path, report)
-    report["report_path"] = str(report_path)
-    return report
+    report = study_runtime_protocol.write_startup_hydration_report(
+        quest_root=resolved_quest_root,
+        report=study_runtime_protocol.StartupHydrationReport(
+            status=study_runtime_protocol.StartupHydrationStatus.HYDRATED,
+            recorded_at=_utc_now(),
+            quest_root=str(resolved_quest_root),
+            entry_state_summary=entry_state_summary,
+            literature_report=literature_report,
+            written_files=tuple(written_files),
+            report_path=None,
+        ),
+    )
+    return report.to_dict()
