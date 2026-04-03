@@ -77,6 +77,29 @@ def make_startup_hydration_validation_report(
     }
 
 
+def make_startup_contract_validation_payload(
+    *,
+    status: str = "clear",
+    blockers: list[str] | None = None,
+    medical_analysis_contract_status: str | None = "resolved",
+    medical_reporting_contract_status: str | None = "resolved",
+    medical_analysis_reason_code: str | None = None,
+    medical_reporting_reason_code: str | None = None,
+) -> dict[str, object]:
+    return {
+        "status": status,
+        "blockers": list(blockers or []),
+        "contract_statuses": {
+            "medical_analysis_contract": medical_analysis_contract_status,
+            "medical_reporting_contract": medical_reporting_contract_status,
+        },
+        "reason_codes": {
+            "medical_analysis_contract": medical_analysis_reason_code,
+            "medical_reporting_contract": medical_reporting_reason_code,
+        },
+    }
+
+
 def write_study(
     workspace_root: Path,
     study_id: str,
@@ -866,7 +889,9 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
 
     status.record_analysis_bundle({"ready": True})
     status.record_runtime_overlay({"audit": {"all_roots_ready": True}})
-    status.record_startup_contract_validation({"status": "clear"})
+    with pytest.raises(ValueError, match="startup contract validation payload"):
+        status.record_startup_contract_validation({"status": "clear"})
+    status.record_startup_contract_validation(make_startup_contract_validation_payload())
     status.record_startup_context_sync({"ok": True})
     with pytest.raises(ValueError, match="startup hydration payload"):
         status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
@@ -886,7 +911,7 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
 
     assert payload["analysis_bundle"] == {"ready": True}
     assert payload["runtime_overlay"] == {"audit": {"all_roots_ready": True}}
-    assert payload["startup_contract_validation"] == {"status": "clear"}
+    assert payload["startup_contract_validation"] == make_startup_contract_validation_payload()
     assert payload["startup_context_sync"] == {"ok": True}
     assert payload["startup_hydration"]["status"] == "hydrated"
     assert payload["startup_hydration"]["report_path"] == (

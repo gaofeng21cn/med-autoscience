@@ -369,6 +369,50 @@ def test_validate_startup_contract_resolution_returns_clear_for_resolved_contrac
     )
 
 
+def test_startup_contract_validation_from_payload_reconstructs_protocol_surface() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    result = module.StartupContractValidation.from_payload(
+        {
+            "status": "blocked",
+            "blockers": ["missing_medical_reporting_contract"],
+            "contract_statuses": {
+                "medical_analysis_contract": "resolved",
+                "medical_reporting_contract": None,
+            },
+            "reason_codes": {
+                "medical_analysis_contract": "analysis_ok",
+                "medical_reporting_contract": None,
+            },
+        }
+    )
+
+    assert result == module.StartupContractValidation(
+        status=module.StartupContractValidationStatus.BLOCKED,
+        blockers=("missing_medical_reporting_contract",),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status=None,
+        medical_analysis_reason_code="analysis_ok",
+        medical_reporting_reason_code=None,
+    )
+
+
+def test_startup_contract_validation_from_payload_rejects_missing_protocol_fields() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup contract validation payload missing contract_statuses"):
+        module.StartupContractValidation.from_payload(
+            {
+                "status": "clear",
+                "blockers": [],
+                "reason_codes": {
+                    "medical_analysis_contract": None,
+                    "medical_reporting_contract": None,
+                },
+            }
+        )
+
+
 def test_validate_startup_contract_resolution_classifies_missing_invalid_and_unsupported() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
@@ -415,6 +459,42 @@ def test_validate_startup_contract_resolution_classifies_unresolved_contracts() 
         medical_analysis_reason_code="needs_mapping",
         medical_reporting_reason_code=None,
     )
+
+
+def test_startup_contract_validation_from_payload_round_trips_protocol_surface() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    payload = {
+        "status": "clear",
+        "blockers": [],
+        "contract_statuses": {
+            "medical_analysis_contract": "resolved",
+            "medical_reporting_contract": "resolved",
+        },
+        "reason_codes": {
+            "medical_analysis_contract": "analysis_ok",
+            "medical_reporting_contract": "reporting_ok",
+        },
+    }
+
+    result = module.StartupContractValidation.from_payload(payload)
+
+    assert result == module.StartupContractValidation(
+        status=module.StartupContractValidationStatus.CLEAR,
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_reason_code="analysis_ok",
+        medical_reporting_reason_code="reporting_ok",
+    )
+    assert result.to_dict() == payload
+
+
+def test_startup_contract_validation_from_payload_rejects_missing_contract_statuses() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="startup contract validation payload missing contract_statuses"):
+        module.StartupContractValidation.from_payload({"status": "clear", "blockers": []})
 
 
 def test_startup_contract_validation_rejects_unknown_status() -> None:
