@@ -289,8 +289,9 @@ def test_validate_startup_contract_resolution_returns_clear_for_resolved_contrac
         }
     )
 
+    assert result.status is module.StartupContractValidationStatus.CLEAR
     assert result == module.StartupContractValidation(
-        status="clear",
+        status=module.StartupContractValidationStatus.CLEAR,
         blockers=(),
         medical_analysis_contract_status="resolved",
         medical_reporting_contract_status="resolved",
@@ -309,8 +310,9 @@ def test_validate_startup_contract_resolution_classifies_missing_invalid_and_uns
         }
     )
 
+    assert result.status is module.StartupContractValidationStatus.BLOCKED
     assert result == module.StartupContractValidation(
-        status="blocked",
+        status=module.StartupContractValidationStatus.BLOCKED,
         blockers=(
             "unsupported_medical_analysis_contract",
             "invalid_medical_reporting_contract",
@@ -332,8 +334,9 @@ def test_validate_startup_contract_resolution_classifies_unresolved_contracts() 
         }
     )
 
+    assert result.status is module.StartupContractValidationStatus.BLOCKED
     assert result == module.StartupContractValidation(
-        status="blocked",
+        status=module.StartupContractValidationStatus.BLOCKED,
         blockers=(
             "unresolved_medical_analysis_contract",
             "missing_medical_reporting_contract",
@@ -343,6 +346,20 @@ def test_validate_startup_contract_resolution_classifies_unresolved_contracts() 
         medical_analysis_reason_code="needs_mapping",
         medical_reporting_reason_code=None,
     )
+
+
+def test_startup_contract_validation_rejects_unknown_status() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="unknown startup contract validation status"):
+        module.StartupContractValidation(
+            status="unexpected",
+            blockers=(),
+            medical_analysis_contract_status=None,
+            medical_reporting_contract_status=None,
+            medical_analysis_reason_code=None,
+            medical_reporting_reason_code=None,
+        )
 
 
 def test_should_refresh_startup_hydration_while_blocked_accepts_allowed_blocked_states() -> None:
