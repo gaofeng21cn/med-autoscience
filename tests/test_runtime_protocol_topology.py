@@ -98,3 +98,44 @@ startup_contract:
 
     assert context.study_id == "001-risk"
     assert context.study_root == study_root
+
+
+def test_resolve_paper_root_context_uses_runtime_binding_for_managed_quest_ids(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    paper_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "003-endocrine-burden-followup-managed-20260402"
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "paper"
+    )
+    paper_root.mkdir(parents=True)
+    (paper_root.parent / "quest.yaml").write_text(
+        "quest_id: 003-endocrine-burden-followup-managed-20260402\n",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "003-endocrine-burden-followup"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-endocrine-burden-followup\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text(
+        "\n".join(
+            [
+                "schema_version: 1",
+                "engine: med-deepscientist",
+                "study_id: 003-endocrine-burden-followup",
+                "quest_id: 003-endocrine-burden-followup-managed-20260402",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    context = resolve_paper_root_context(paper_root)
+
+    assert context.study_id == "003-endocrine-burden-followup"
+    assert context.study_root == study_root

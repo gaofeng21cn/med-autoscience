@@ -293,6 +293,9 @@ def test_load_overlay_skill_text_renders_policy_and_archetypes_for_front_stages(
     assert "resolve-journal-shortlist" in scout_text
     assert "resolve-submission-targets" in write_text
     assert "## Preferred study archetypes" not in write_text
+    assert "locked vYYYY-MM-DD" in write_text
+    assert "follow-up freeze" in write_text
+    assert "paper-facing" in write_text
 
 
 def test_overlay_includes_medical_runtime_contract_blocks() -> None:

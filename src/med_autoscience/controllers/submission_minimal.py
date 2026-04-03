@@ -103,6 +103,10 @@ def default_frontiers_supplementary_template_docx_path() -> Path:
 
 
 def build_figure_basename(figure_id: str) -> str:
+    if figure_id.startswith("SupplementaryFigure"):
+        return figure_id
+    if figure_id.startswith("Figure"):
+        return figure_id
     if figure_id.startswith("FS"):
         return f"SupplementaryFigureS{figure_id[2:]}"
     if figure_id.startswith("F"):
@@ -111,6 +115,10 @@ def build_figure_basename(figure_id: str) -> str:
 
 
 def build_table_basename(table_id: str) -> str:
+    if table_id.startswith("AppendixTable"):
+        return table_id
+    if table_id.startswith("Table"):
+        return table_id
     if table_id.startswith("TA"):
         return f"AppendixTable{table_id[2:]}"
     if table_id.startswith("T"):
@@ -218,6 +226,13 @@ def resolve_figure_source_paths(entry: dict[str, Any]) -> list[str]:
         normalized = [str(item).strip() for item in export_paths if str(item).strip()]
         if normalized:
             return normalized
+    canonical_paths = []
+    for key in ("pdf_path", "png_path"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            canonical_paths.append(value.strip())
+    if canonical_paths:
+        return canonical_paths
     planned_exports = entry.get("planned_exports")
     if isinstance(planned_exports, list):
         normalized = [str(item).strip() for item in planned_exports if str(item).strip()]
@@ -232,6 +247,13 @@ def resolve_table_source_paths(entry: dict[str, Any]) -> list[str]:
         normalized = [str(item).strip() for item in asset_paths if str(item).strip()]
         if normalized:
             return normalized
+    canonical_paths = []
+    for key in ("csv_path", "markdown_path"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            canonical_paths.append(value.strip())
+    if canonical_paths:
+        return canonical_paths
     path_value = entry.get("path")
     if isinstance(path_value, str) and path_value.strip():
         return [path_value.strip()]
@@ -896,6 +918,8 @@ def create_submission_minimal_package(
     if not compiled_pdf_path.exists():
         raise FileNotFoundError(f"missing compiled pdf: {compiled_pdf_path}")
 
+    if submission_root.exists():
+        shutil.rmtree(submission_root)
     submission_root.mkdir(parents=True, exist_ok=True)
     output_docx_path = submission_root / "manuscript.docx"
     output_pdf_path = submission_root / "paper.pdf"

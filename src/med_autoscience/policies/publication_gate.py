@@ -17,6 +17,36 @@ CONTROLLER_NOTE = (
     "is missing or the contract-level clinical-utility deliverables are absent."
 )
 
+FORBIDDEN_MANUSCRIPT_TERMINOLOGY_PATTERNS = (
+    {
+        "rule_id": "dataset_version_label",
+        "description": "dataset version labels do not belong in manuscript-facing text",
+        "pattern": r"\blocked\s+v\d{4}-\d{2}-\d{2}\b",
+    },
+    {
+        "rule_id": "freeze_label",
+        "description": "freeze labels do not belong in manuscript-facing text",
+        "pattern": r"\b(?:follow-up|data|dataset)\s+freeze\b",
+    },
+    {
+        "rule_id": "workspace_cohort_label",
+        "description": "workspace cohort labels do not belong in manuscript-facing text",
+        "pattern": r"\bworkspace cohort\b",
+    },
+    {
+        "rule_id": "internal_editorial_term",
+        "description": "internal editorial labels do not belong in manuscript-facing text",
+        "pattern": (
+            r"\bpaper-facing\b|"
+            r"\bmainline\b|"
+            r"\bsidecar\b|"
+            r"\banalysis surface\b|"
+            r"\bstudy surface\b|"
+            r"\bbounded complexity audit\b"
+        ),
+    },
+)
+
 
 def build_intervention_message(report: dict[str, object]) -> str:
     missing = ", ".join(report.get("missing_non_scalar_deliverables") or []) or "none"
