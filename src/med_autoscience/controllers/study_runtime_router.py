@@ -28,6 +28,7 @@ from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import (
+    StudyCompletionContractStatus,
     StudyCompletionState,
     StudyCompletionStateStatus,
     resolve_study_completion_state,
@@ -39,6 +40,14 @@ from med_autoscience.workspace_contracts import inspect_workspace_contracts
 
 SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
 _UNSET = object()
+
+
+def _absent_study_completion_state() -> StudyCompletionState:
+    return StudyCompletionState(
+        status=StudyCompletionStateStatus.ABSENT,
+        contract=None,
+        errors=(),
+    )
 
 
 class StudyRuntimeDecision(StrEnum):
@@ -141,7 +150,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     startup_data_readiness: dict[str, Any] = field(default_factory=dict)
     startup_boundary_gate: dict[str, Any] = field(default_factory=dict)
     runtime_reentry_gate: dict[str, Any] = field(default_factory=dict)
-    study_completion_contract: dict[str, Any] = field(default_factory=dict)
+    study_completion_state: StudyCompletionState = field(default_factory=_absent_study_completion_state)
     controller_first_policy_summary: str = ""
     automation_ready_summary: str = ""
     decision: StudyRuntimeDecision | None = None
@@ -175,6 +184,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
     def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeStatus":
         resolved_payload = dict(payload)
         extras = {key: value for key, value in resolved_payload.items() if key not in cls._CORE_KEYS}
+        study_root = resolved_payload.get("study_root")
         return cls(
             schema_version=int(resolved_payload.get("schema_version") or 1),
             study_id=str(resolved_payload.get("study_id") or ""),
@@ -191,7 +201,10 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             startup_data_readiness=dict(resolved_payload.get("startup_data_readiness") or {}),
             startup_boundary_gate=dict(resolved_payload.get("startup_boundary_gate") or {}),
             runtime_reentry_gate=dict(resolved_payload.get("runtime_reentry_gate") or {}),
-            study_completion_contract=dict(resolved_payload.get("study_completion_contract") or {}),
+            study_completion_state=cls._normalize_study_completion_state_field(
+                resolved_payload.get("study_completion_contract") or {},
+                study_root=study_root,
+            ),
             controller_first_policy_summary=str(resolved_payload.get("controller_first_policy_summary") or ""),
             automation_ready_summary=str(resolved_payload.get("automation_ready_summary") or ""),
             decision=cls._normalize_decision_field(resolved_payload.get("decision")),
@@ -216,7 +229,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             "startup_data_readiness": self.startup_data_readiness,
             "startup_boundary_gate": self.startup_boundary_gate,
             "runtime_reentry_gate": self.runtime_reentry_gate,
-            "study_completion_contract": self.study_completion_contract,
+            "study_completion_contract": self.study_completion_state.to_dict(),
             "controller_first_policy_summary": self.controller_first_policy_summary,
             "automation_ready_summary": self.automation_ready_summary,
         }
@@ -293,6 +306,52 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         if not isinstance(value, dict):
             raise TypeError(f"{field_name} must be dict")
         return dict(value)
+
+    @staticmethod
+    def _normalize_study_completion_state_field(
+        value: Any,
+        *,
+        study_root: str | PathLike[str] | None,
+    ) -> StudyCompletionState:
+        if isinstance(value, StudyCompletionState):
+            return value
+        if not isinstance(value, dict):
+            raise TypeError("study_completion_contract must be dict or StudyCompletionState")
+        if not value:
+            return _absent_study_completion_state()
+        resolved_study_root = (
+            Path(StudyRuntimeStatus._normalize_path_field("study_root", study_root))
+            if study_root is not None and str(study_root).strip()
+            else None
+        )
+        return StudyCompletionState.from_payload(value, study_root=resolved_study_root)
+
+    @property
+    def study_completion_contract(self) -> dict[str, Any]:
+        return self.study_completion_state.to_dict()
+
+    @property
+    def workspace_overall_ready(self) -> bool:
+        return bool(self.workspace_contracts.get("overall_ready"))
+
+    @property
+    def startup_boundary_allows_compute_stage(self) -> bool:
+        return bool(self.startup_boundary_gate.get("allow_compute_stage"))
+
+    @property
+    def runtime_reentry_allows_runtime_entry(self) -> bool:
+        return bool(self.runtime_reentry_gate.get("allow_runtime_entry"))
+
+    @property
+    def runtime_reentry_requires_managed_skill_audit(self) -> bool:
+        return _runtime_reentry_requires_managed_skill_audit(self.runtime_reentry_gate)
+
+    def has_unresolved_contract_for(self, study_id: str) -> bool:
+        study_summary = self.startup_data_readiness.get("study_summary")
+        if not isinstance(study_summary, dict):
+            return False
+        unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
+        return isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids
 
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
@@ -421,6 +480,12 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             return
         if key == "runtime_binding_exists":
             self.runtime_binding_exists = self._require_bool_field("runtime_binding_exists", value)
+            return
+        if key == "study_completion_contract":
+            self.study_completion_state = self._normalize_study_completion_state_field(
+                value,
+                study_root=self.study_root,
+            )
             return
         if key in self._CORE_KEYS:
             setattr(self, key, value)
@@ -931,7 +996,7 @@ def _status_state(
         startup_data_readiness=readiness,
         startup_boundary_gate=startup_boundary_gate,
         runtime_reentry_gate=runtime_reentry_gate,
-        study_completion_contract=completion_state.to_dict(),
+        study_completion_state=completion_state,
         controller_first_policy_summary=render_controller_first_summary(),
         automation_ready_summary=render_automation_ready_summary(),
     )
@@ -1009,16 +1074,14 @@ def _status_state(
         )
         return result
 
-    if not bool(contracts.get("overall_ready")):
+    if not result.workspace_overall_ready:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.WORKSPACE_CONTRACT_NOT_READY,
         )
         return result
 
-    study_summary = readiness.get("study_summary") if isinstance(readiness.get("study_summary"), dict) else {}
-    unresolved_contract_study_ids = study_summary.get("unresolved_contract_study_ids")
-    if isinstance(unresolved_contract_study_ids, list) and study_id in unresolved_contract_study_ids:
+    if result.has_unresolved_contract_for(study_id):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STUDY_DATA_READINESS_BLOCKED,
@@ -1043,8 +1106,8 @@ def _status_state(
         return result
 
     if not quest_exists:
-        if startup_boundary_gate["allow_compute_stage"]:
-            if runtime_reentry_gate["allow_runtime_entry"]:
+        if result.startup_boundary_allows_compute_stage:
+            if result.runtime_reentry_allows_runtime_entry:
                 result.set_decision(
                     StudyRuntimeDecision.CREATE_AND_START,
                     StudyRuntimeReason.QUEST_MISSING,
@@ -1073,12 +1136,12 @@ def _status_state(
                 StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
             )
         elif audit_status == "live":
-            if not startup_boundary_gate["allow_compute_stage"]:
+            if not result.startup_boundary_allows_compute_stage:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST,
                 )
-            elif not runtime_reentry_gate["allow_runtime_entry"]:
+            elif not result.runtime_reentry_allows_runtime_entry:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RUNNING_QUEST,
@@ -1088,12 +1151,12 @@ def _status_state(
                     StudyRuntimeDecision.NOOP,
                     StudyRuntimeReason.QUEST_ALREADY_RUNNING,
                 )
-        elif not startup_boundary_gate["allow_compute_stage"]:
+        elif not result.startup_boundary_allows_compute_stage:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
             )
-        elif not runtime_reentry_gate["allow_runtime_entry"]:
+        elif not result.runtime_reentry_allows_runtime_entry:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
@@ -1111,13 +1174,13 @@ def _status_state(
         return result
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if not startup_boundary_gate["allow_compute_stage"]:
+        if not result.startup_boundary_allows_compute_stage:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
             )
             return result
-        if not runtime_reentry_gate["allow_runtime_entry"]:
+        if not result.runtime_reentry_allows_runtime_entry:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
@@ -1217,11 +1280,6 @@ def _run_runtime_preflight(
         StudyRuntimeDecision.CREATE_ONLY,
         StudyRuntimeDecision.RESUME,
     }:
-        runtime_reentry_gate = (
-            dict(status.runtime_reentry_gate)
-            if isinstance(status.runtime_reentry_gate, dict)
-            else {}
-        )
         analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         status.record_analysis_bundle(analysis_bundle_result)
         if not bool(analysis_bundle_result.get("ready")):
@@ -1229,7 +1287,7 @@ def _run_runtime_preflight(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STUDY_RUNTIME_ANALYSIS_BUNDLE_NOT_READY,
             )
-        elif _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate) and not context.profile.enable_medical_overlay:
+        elif status.runtime_reentry_requires_managed_skill_audit and not context.profile.enable_medical_overlay:
             status.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.MANAGED_SKILL_AUDIT_NOT_AVAILABLE,

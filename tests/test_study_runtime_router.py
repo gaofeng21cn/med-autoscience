@@ -633,6 +633,18 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     }
 
     status = module.StudyRuntimeStatus.from_payload(payload)
+    expected_payload = dict(payload)
+    expected_payload["study_completion_contract"] = {
+        "ready": False,
+        "status": "absent",
+        "completion_status": None,
+        "summary": "",
+        "user_approval_text": "",
+        "completed_at": None,
+        "evidence_paths": [],
+        "missing_evidence_paths": [],
+        "errors": [],
+    }
 
     assert status.decision is module.StudyRuntimeDecision.RESUME
     assert status.reason is module.StudyRuntimeReason.QUEST_PAUSED
@@ -640,7 +652,7 @@ def test_study_runtime_status_round_trips_through_typed_state() -> None:
     assert status.quest_id == "quest-001"
     assert status.quest_root == "/tmp/runtime/quests/quest-001"
     assert status.quest_exists is True
-    assert status.to_dict() == payload
+    assert status.to_dict() == expected_payload
 
     status.set_decision("blocked", "startup_contract_resolution_failed")
     status.update_quest_runtime(
@@ -727,8 +739,20 @@ def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> N
     }
 
     status = module.StudyRuntimeStatus.from_payload(payload)
+    expected_payload = dict(payload)
+    expected_payload["study_completion_contract"] = {
+        "ready": False,
+        "status": "absent",
+        "completion_status": None,
+        "summary": "",
+        "user_approval_text": "",
+        "completed_at": None,
+        "evidence_paths": [],
+        "missing_evidence_paths": [],
+        "errors": [],
+    }
 
-    assert dict(status) == payload
+    assert dict(status) == expected_payload
     assert "decision" not in status
     assert status.get("decision", "fallback") == "fallback"
 
@@ -773,6 +797,60 @@ def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> 
 
     with pytest.raises(TypeError, match="quest_exists"):
         status["quest_exists"] = "false"
+
+
+def test_study_runtime_status_normalizes_study_completion_contract_to_typed_state(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": str(tmp_path / "studies" / "001-risk"),
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": str(tmp_path / "runtime" / "quests" / "quest-001"),
+        "quest_exists": True,
+        "quest_status": "paused",
+        "runtime_binding_path": str(tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"),
+        "runtime_binding_exists": True,
+        "workspace_contracts": {"overall_ready": True},
+        "startup_data_readiness": {"status": "clear"},
+        "startup_boundary_gate": {"allow_compute_stage": True},
+        "runtime_reentry_gate": {"allow_runtime_entry": True},
+        "study_completion_contract": {"status": "absent", "ready": False, "errors": []},
+        "controller_first_policy_summary": "summary",
+        "automation_ready_summary": "ready",
+    }
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+    status["study_completion_contract"] = {
+        "ready": True,
+        "status": "resolved",
+        "completion_status": "completed",
+        "summary": "Study is done.",
+        "user_approval_text": "同意",
+        "completed_at": "2026-04-03T00:00:00+00:00",
+        "evidence_paths": ["manuscript/final/submission_manifest.json"],
+        "missing_evidence_paths": [],
+        "errors": [],
+    }
+
+    assert status.study_completion_state.status is module.StudyCompletionStateStatus.RESOLVED
+    assert status.study_completion_state.ready is True
+    assert status.to_dict()["study_completion_contract"] == {
+        "ready": True,
+        "status": "resolved",
+        "completion_status": "completed",
+        "summary": "Study is done.",
+        "user_approval_text": "同意",
+        "completed_at": "2026-04-03T00:00:00+00:00",
+        "evidence_paths": ["manuscript/final/submission_manifest.json"],
+        "missing_evidence_paths": [],
+        "errors": [],
+    }
+
+    with pytest.raises(TypeError, match="study_completion_contract must be dict"):
+        status["study_completion_contract"] = []
 
 
 def test_study_runtime_status_rejects_unknown_decision_value() -> None:
@@ -926,6 +1004,62 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
     assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
+
+
+def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {
+                "study_summary": {
+                    "unresolved_contract_study_ids": ["001-risk"],
+                }
+            },
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {
+                "allow_runtime_entry": False,
+                "require_managed_skill_audit": True,
+            },
+            "study_completion_contract": {
+                "ready": True,
+                "status": "resolved",
+                "completion_status": "completed",
+                "summary": "Study is done.",
+                "user_approval_text": "同意",
+                "completed_at": "2026-04-03T00:00:00+00:00",
+                "evidence_paths": [
+                    "manuscript/final/submission_manifest.json",
+                ],
+                "missing_evidence_paths": [],
+                "errors": [],
+            },
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+
+    assert status.workspace_overall_ready is True
+    assert status.startup_boundary_allows_compute_stage is True
+    assert status.runtime_reentry_allows_runtime_entry is False
+    assert status.runtime_reentry_requires_managed_skill_audit is True
+    assert status.has_unresolved_contract_for("001-risk") is True
+    assert status.has_unresolved_contract_for("002-risk") is False
+    assert status.study_completion_state.status is module.StudyCompletionStateStatus.RESOLVED
+    assert status.study_completion_state.ready is True
+    assert status.study_completion_state.contract is not None
+    assert status.study_completion_state.contract.status.value == "completed"
 
 
 def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:

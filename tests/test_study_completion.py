@@ -60,8 +60,6 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
         "missing_evidence_paths": [],
         "errors": [],
     }
-
-
 def test_resolve_study_completion_contract_reports_missing_evidence(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.study_completion")
     study_root = tmp_path / "study"
@@ -162,6 +160,59 @@ def test_study_completion_contract_rejects_unknown_status() -> None:
         assert "unknown study completion contract status" in str(exc)
     else:
         raise AssertionError("expected ValueError for unsupported StudyCompletionContract.status")
+
+
+def test_study_completion_state_from_payload_round_trips_resolved_contract() -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+    payload = {
+        "ready": True,
+        "status": "resolved",
+        "completion_status": "completed",
+        "summary": "Study is done.",
+        "user_approval_text": "同意",
+        "completed_at": "2026-04-03T00:00:00+00:00",
+        "evidence_paths": [
+            "manuscript/final/submission_manifest.json",
+            "notes/revision_status.md",
+        ],
+        "missing_evidence_paths": [],
+        "errors": [],
+    }
+
+    state = module.StudyCompletionState.from_payload(
+        study_root=Path("/tmp/study"),
+        payload=payload,
+    )
+
+    assert state.status is module.StudyCompletionStateStatus.RESOLVED
+    assert state.ready is True
+    assert state.contract is not None
+    assert state.contract.status is module.StudyCompletionContractStatus.COMPLETED
+    assert state.contract.study_root == Path("/tmp/study")
+    assert state.to_dict() == payload
+
+
+def test_study_completion_state_from_payload_rejects_resolved_payload_without_completion_status() -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+
+    try:
+        module.StudyCompletionState.from_payload(
+            study_root=Path("/tmp/study"),
+            payload={
+                "ready": True,
+                "status": "resolved",
+                "summary": "Study is done.",
+                "user_approval_text": "同意",
+                "completed_at": "2026-04-03T00:00:00+00:00",
+                "evidence_paths": ["manuscript/final/submission_manifest.json"],
+                "missing_evidence_paths": [],
+                "errors": [],
+            },
+        )
+    except ValueError as exc:
+        assert "completion_status" in str(exc)
+    else:
+        raise AssertionError("expected ValueError when resolved payload omits completion_status")
 
 
 def test_resolve_study_completion_contract_rejects_unsupported_status(tmp_path: Path) -> None:
