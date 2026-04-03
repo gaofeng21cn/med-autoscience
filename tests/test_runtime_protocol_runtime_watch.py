@@ -126,3 +126,66 @@ def test_plan_controller_intervention_suppresses_duplicate_fingerprint() -> None
             last_suppression_reason="duplicate_fingerprint",
         ),
     )
+
+
+def test_runtime_watch_uses_shared_report_store_helpers(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.runtime_watch")
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    seen: dict[str, object] = {}
+
+    def fake_load_watch_state(path: Path) -> dict[str, object]:
+        seen["loaded"] = str(path)
+        return {"schema_version": 1, "updated_at": "2026-04-02T12:00:00+00:00", "controllers": {}}
+
+    def fake_save_watch_state(path: Path, payload: dict[str, object]) -> None:
+        seen["saved"] = (str(path), payload)
+
+    def fake_write_timestamped_report(
+        *,
+        quest_root: Path,
+        report_group: str,
+        timestamp: str,
+        report: dict[str, object],
+        markdown: str,
+    ) -> tuple[Path, Path]:
+        seen["reported"] = (str(quest_root), report_group, timestamp, report, markdown)
+        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
+
+    monkeypatch.setattr(module.report_store, "load_watch_state", fake_load_watch_state)
+    monkeypatch.setattr(module.report_store, "save_watch_state", fake_save_watch_state)
+    monkeypatch.setattr(module.report_store, "write_timestamped_report", fake_write_timestamped_report)
+
+    loaded = module.load_watch_state(quest_root)
+    module.save_watch_state(
+        quest_root,
+        module.RuntimeWatchState(
+            schema_version=1,
+            updated_at="2026-04-02T12:00:00+00:00",
+            controllers={},
+        ),
+    )
+    json_path, md_path = module.write_watch_report(
+        quest_root=quest_root,
+        report={"scanned_at": "2026-04-02T12:00:00+00:00", "quest_status": "running"},
+        markdown="# Runtime Watch Report\n",
+    )
+
+    assert loaded == module.RuntimeWatchState(
+        schema_version=1,
+        updated_at="2026-04-02T12:00:00+00:00",
+        controllers={},
+    )
+    assert seen["loaded"] == str(quest_root)
+    assert seen["saved"] == (
+        str(quest_root),
+        {"schema_version": 1, "updated_at": "2026-04-02T12:00:00+00:00", "controllers": {}},
+    )
+    assert seen["reported"] == (
+        str(quest_root),
+        "runtime_watch",
+        "2026-04-02T12:00:00+00:00",
+        {"scanned_at": "2026-04-02T12:00:00+00:00", "quest_status": "running"},
+        "# Runtime Watch Report\n",
+    )
+    assert json_path.name == "latest.json"
+    assert md_path.name == "latest.md"
