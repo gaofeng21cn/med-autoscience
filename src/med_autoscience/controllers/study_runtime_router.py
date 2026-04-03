@@ -376,14 +376,20 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         launch_report_path: str | PathLike[str],
         startup_payload_path: str | PathLike[str] | None,
     ) -> None:
-        self.runtime_binding_path = self._normalize_path_field("runtime_binding_path", runtime_binding_path)
-        self.runtime_binding_exists = True
-        self.extras["launch_report_path"] = self._normalize_path_field("launch_report_path", launch_report_path)
-        if startup_payload_path is not None:
-            self.extras["startup_payload_path"] = self._normalize_path_field(
-                "startup_payload_path",
-                startup_payload_path,
-            )
+        artifacts = study_runtime_protocol.StudyRuntimeArtifacts(
+            runtime_binding_path=Path(self._normalize_path_field("runtime_binding_path", runtime_binding_path)),
+            launch_report_path=Path(self._normalize_path_field("launch_report_path", launch_report_path)),
+            startup_payload_path=(
+                Path(self._normalize_path_field("startup_payload_path", startup_payload_path))
+                if startup_payload_path is not None
+                else None
+            ),
+        )
+        artifact_payload = artifacts.to_dict()
+        self.runtime_binding_path = str(artifacts.runtime_binding_path)
+        self.runtime_binding_exists = artifacts.runtime_binding_path.exists()
+        self.extras["launch_report_path"] = str(artifacts.launch_report_path)
+        self.extras["startup_payload_path"] = artifact_payload["startup_payload_path"]
 
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()

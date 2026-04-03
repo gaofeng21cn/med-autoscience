@@ -208,6 +208,30 @@ def test_persist_runtime_artifacts_skips_binding_when_last_action_is_absent(tmp_
     )
 
 
+def test_study_runtime_artifacts_from_payload_round_trips_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    payload = {
+        "runtime_binding_path": str(tmp_path / "workspace" / "studies" / "001-risk" / "runtime_binding.yaml"),
+        "launch_report_path": str(
+            tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+        ),
+        "startup_payload_path": str(
+            tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk" / "payload.json"
+        ),
+    }
+
+    result = module.StudyRuntimeArtifacts.from_payload(payload)
+
+    assert result.to_dict() == payload
+
+
+def test_study_runtime_artifacts_from_payload_rejects_missing_launch_report_path() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    with pytest.raises(ValueError, match="study runtime artifacts payload missing launch_report_path"):
+        module.StudyRuntimeArtifacts.from_payload({"runtime_binding_path": "/tmp/runtime_binding.yaml"})
+
+
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
