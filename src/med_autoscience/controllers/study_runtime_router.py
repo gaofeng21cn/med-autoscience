@@ -335,7 +335,10 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         self._record_dict_extra("runtime_overlay", value)
 
     def record_startup_contract_validation(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("startup_contract_validation", value)
+        startup_contract_validation = study_runtime_protocol.StartupContractValidation.from_payload(
+            self._require_dict_field("startup_contract_validation", value)
+        )
+        self._record_dict_extra("startup_contract_validation", startup_contract_validation.to_dict())
 
     def record_partial_quest_recovery(self, value: dict[str, Any]) -> None:
         self._record_dict_extra("partial_quest_recovery", value)
