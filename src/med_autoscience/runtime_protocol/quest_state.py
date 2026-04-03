@@ -11,12 +11,22 @@ class QuestRuntimeSnapshot:
     quest_exists: bool
     quest_status: str | None
     bash_session_audit: dict[str, Any] | None = None
+    runtime_liveness_audit: dict[str, Any] | None = None
 
     def with_bash_session_audit(self, bash_session_audit: dict[str, Any]) -> "QuestRuntimeSnapshot":
         return QuestRuntimeSnapshot(
             quest_exists=self.quest_exists,
             quest_status=self.quest_status,
             bash_session_audit=dict(bash_session_audit),
+            runtime_liveness_audit=dict(self.runtime_liveness_audit) if self.runtime_liveness_audit is not None else None,
+        )
+
+    def with_runtime_liveness_audit(self, runtime_liveness_audit: dict[str, Any]) -> "QuestRuntimeSnapshot":
+        return QuestRuntimeSnapshot(
+            quest_exists=self.quest_exists,
+            quest_status=self.quest_status,
+            bash_session_audit=dict(self.bash_session_audit) if self.bash_session_audit is not None else None,
+            runtime_liveness_audit=dict(runtime_liveness_audit),
         )
 
 

@@ -85,6 +85,7 @@ def test_inspect_quest_runtime_reads_local_status_from_protocol_surface(tmp_path
         quest_exists=True,
         quest_status="running",
         bash_session_audit=None,
+        runtime_liveness_audit=None,
     )
 
 
@@ -98,4 +99,39 @@ def test_inspect_quest_runtime_reports_missing_quest_when_quest_yaml_is_absent(t
         quest_exists=False,
         quest_status=None,
         bash_session_audit=None,
+        runtime_liveness_audit=None,
+    )
+
+
+def test_quest_runtime_snapshot_tracks_runtime_and_bash_audits_independently() -> None:
+    snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+        runtime_liveness_audit=None,
+    )
+
+    updated = snapshot.with_runtime_liveness_audit(
+        {
+            "status": "live",
+            "active_run_id": "run-1",
+        }
+    ).with_bash_session_audit(
+        {
+            "status": "live",
+            "live_session_ids": ["sess-1"],
+        }
+    )
+
+    assert updated == QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit={
+            "status": "live",
+            "live_session_ids": ["sess-1"],
+        },
+        runtime_liveness_audit={
+            "status": "live",
+            "active_run_id": "run-1",
+        },
     )
