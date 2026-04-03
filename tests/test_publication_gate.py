@@ -10,7 +10,12 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def make_quest(tmp_path: Path, *, include_submission_minimal: bool) -> Path:
+def make_quest(
+    tmp_path: Path,
+    *,
+    include_submission_minimal: bool,
+    manuscript_files: dict[str, str] | None = None,
+) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
 
@@ -66,6 +71,11 @@ def make_quest(tmp_path: Path, *, include_submission_minimal: bool) -> Path:
         )
         (worktree_root / "paper" / "submission_minimal" / "manuscript.docx").write_text("docx", encoding="utf-8")
         (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
+    if manuscript_files:
+        for relpath, body in manuscript_files.items():
+            target = worktree_root / "paper" / relpath
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(body, encoding="utf-8")
 
     return quest_root
 
@@ -106,6 +116,30 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_present"] is False
     assert report["submission_minimal_docx_present"] is False
     assert report["submission_minimal_pdf_present"] is False
+
+
+def test_build_gate_report_blocks_for_forbidden_manuscript_terminology(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        manuscript_files={
+            "build/review_manuscript.md": "Methods: we analyzed the locked v2026-03-31 dataset.\n",
+            "submission_minimal/tables/Table1.md": "The paper-facing mainline remained unchanged.\n",
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "forbidden_manuscript_terminology" in report["blockers"]
+    violations = report["manuscript_terminology_violations"]
+    assert len(violations) >= 2
+    assert any(item["path"].endswith("build/review_manuscript.md") for item in violations)
+    assert any(item["path"].endswith("submission_minimal/tables/Table1.md") for item in violations)
+    assert any("locked v2026-03-31" in item["match"] for item in violations)
+    assert any("paper-facing" in item["match"] for item in violations)
 
 
 def test_run_controller_enqueues_message_when_blocked(tmp_path: Path) -> None:
