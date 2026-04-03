@@ -69,15 +69,45 @@ def _resolve_workspace_root_from_quest_root(quest_root: Path) -> Path:
     return layout.workspace_root
 
 
+def _resolve_study_binding_from_runtime_binding(
+    *,
+    workspace_root: Path,
+    quest_id: str,
+) -> tuple[str, Path] | None:
+    studies_root = workspace_root / "studies"
+    if not studies_root.exists():
+        return None
+    for runtime_binding_path in sorted(studies_root.glob("*/runtime_binding.yaml")):
+        payload = _load_yaml_mapping(runtime_binding_path)
+        bound_quest_id = payload.get("quest_id")
+        if not isinstance(bound_quest_id, str) or bound_quest_id.strip() != quest_id:
+            continue
+        study_root = runtime_binding_path.parent
+        study_id = payload.get("study_id")
+        if not isinstance(study_id, str) or not study_id.strip():
+            study_id = study_root.name
+        return study_id.strip(), study_root
+    return None
+
+
 def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Path]:
     resolved_paper_root = _resolve_path(paper_root)
     worktree_root = resolve_worktree_root_from_paper_root(resolved_paper_root)
     quest_root = resolve_quest_root_from_worktree_root(worktree_root)
-    study_id = resolve_study_id_from_worktree_root(worktree_root)
+    quest_id = resolve_study_id_from_worktree_root(worktree_root)
     workspace_root = _resolve_workspace_root_from_quest_root(quest_root)
+    study_id = quest_id
     study_root = workspace_root / "studies" / study_id
     if not (study_root / "study.yaml").exists():
-        raise FileNotFoundError(f"unable to resolve studies root for `{study_id}` from {paper_root}")
+        binding = _resolve_study_binding_from_runtime_binding(
+            workspace_root=workspace_root,
+            quest_id=quest_id,
+        )
+        if binding is None:
+            raise FileNotFoundError(f"unable to resolve studies root for `{study_id}` from {paper_root}")
+        study_id, study_root = binding
+        if not (study_root / "study.yaml").exists():
+            raise FileNotFoundError(f"runtime binding resolved `{study_id}` but study.yaml is missing at {study_root}")
     return resolved_paper_root, worktree_root, quest_root, study_id, study_root
 
 
