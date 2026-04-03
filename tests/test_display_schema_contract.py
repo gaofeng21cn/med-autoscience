@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 
 def test_schema_contract_exposes_eight_top_level_display_classes() -> None:
@@ -71,3 +72,23 @@ def test_schema_contract_covers_all_registered_display_surface_items() -> None:
     }
 
     assert covered_templates >= expected
+
+
+def test_render_display_template_catalog_covers_all_registered_templates() -> None:
+    module = importlib.import_module("med_autoscience.display_template_catalog")
+
+    markdown = module.render_display_template_catalog_markdown()
+
+    assert "roc_curve_binary" in markdown
+    assert "shap_summary_inputs_v1" in markdown
+    assert "cohort_flow_figure" in markdown
+    assert "table1_baseline_characteristics" in markdown
+
+
+def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
+    module = importlib.import_module("med_autoscience.display_template_catalog")
+    guide_path = Path(
+        "/Users/gaofeng/workspace/med-autoscience/.worktree/display-surface-evidence-materialization/guides/medical_display_template_catalog.md"
+    )
+
+    assert guide_path.read_text(encoding="utf-8") == module.render_display_template_catalog_markdown()
