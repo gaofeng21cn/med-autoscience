@@ -109,6 +109,7 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
     paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_evidence=True)
+    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
 
     def fake_render_r_evidence_figure(
         *,
@@ -116,10 +117,15 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
         display_payload: dict[str, object],
         output_png_path,
         output_pdf_path,
+        layout_sidecar_path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
 
     monkeypatch.setattr(
         controller_module,
@@ -142,6 +148,7 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
     controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
     paper_root = test_helpers["build_display_surface_workspace"](tmp_path, include_extended_evidence=True)
+    minimal_layout_sidecar_for_template = test_helpers["_minimal_layout_sidecar_for_template"]
 
     def fake_render_r_evidence_figure(
         *,
@@ -149,10 +156,15 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
         display_payload: dict[str, object],
         output_png_path,
         output_pdf_path,
+        layout_sidecar_path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
 
     def fake_render_python_evidence_figure(
         *,
@@ -160,10 +172,15 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
         display_payload: dict[str, object],
         output_png_path,
         output_pdf_path,
+        layout_sidecar_path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}:{display_payload['display_id']}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
 
     monkeypatch.setattr(
         controller_module,

@@ -502,6 +502,152 @@ def build_display_surface_workspace(
     return paper_root
 
 
+def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
+    if template_id in {"roc_curve_binary", "pr_curve_binary", "calibration_curve_binary", "decision_curve_binary"}:
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
+            ],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
+            ],
+            "metrics": {
+                "series": [{"label": "Model", "x": [0.0, 0.5, 1.0], "y": [0.0, 0.7, 1.0]}],
+                "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+            },
+        }
+    if template_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
+            ],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
+            ],
+            "metrics": {
+                "groups": [{"label": "Low risk", "times": [0.0, 12.0], "values": [1.0, 0.78]}],
+            },
+        }
+    if template_id in {"umap_scatter_grouped", "pca_scatter_grouped"}:
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.60, "y1": 0.97},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86},
+            ],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44},
+            ],
+            "metrics": {
+                "points": [
+                    {"x": 0.22, "y": 0.32, "group": "A"},
+                    {"x": 0.44, "y": 0.54, "group": "B"},
+                ]
+            },
+        }
+    if template_id == "heatmap_group_comparison":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.28, "y0": 0.92, "x1": 0.60, "y1": 0.97},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "heatmap_tile_region", "x0": 0.12, "y0": 0.16, "x1": 0.72, "y1": 0.84},
+            ],
+            "guide_boxes": [
+                {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
+            ],
+            "metrics": {},
+        }
+    if template_id == "correlation_heatmap":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.28, "y0": 0.92, "x1": 0.60, "y1": 0.97},
+                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "heatmap_tile_region", "x0": 0.12, "y0": 0.16, "x1": 0.72, "y1": 0.84},
+            ],
+            "guide_boxes": [
+                {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
+            ],
+            "metrics": {
+                "matrix_cells": [
+                    {"x": "A", "y": "A", "value": 1.0},
+                    {"x": "A", "y": "B", "value": 0.42},
+                    {"x": "B", "y": "A", "value": 0.42},
+                    {"x": "B", "y": "B", "value": 1.0},
+                ]
+            },
+        }
+    if template_id == "forest_effect_main":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "reference_line", "box_type": "reference_line", "x0": 0.52, "y0": 0.18, "x1": 0.52, "y1": 0.86},
+                {"box_id": "row_label_1", "box_type": "row_label", "x0": 0.02, "y0": 0.24, "x1": 0.20, "y1": 0.30},
+                {"box_id": "estimate_marker_1", "box_type": "estimate_marker", "x0": 0.62, "y0": 0.25, "x1": 0.64, "y1": 0.29},
+                {"box_id": "ci_segment_1", "box_type": "ci_segment", "x0": 0.56, "y0": 0.27, "x1": 0.74, "y1": 0.27},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "panel", "x0": 0.28, "y0": 0.16, "x1": 0.80, "y1": 0.88},
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "rows": [{"row_id": "1", "label": "Age >= 60", "lower": 0.90, "estimate": 1.05, "upper": 1.20}],
+            },
+        }
+    if template_id == "shap_summary_beeswarm":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
+                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.62, "y1": 0.97},
+                {"box_id": "feature_row_Age", "box_type": "feature_row", "x0": 0.14, "y0": 0.24, "x1": 0.76, "y1": 0.36},
+                {"box_id": "feature_row_Ki-67", "box_type": "feature_row", "x0": 0.14, "y0": 0.40, "x1": 0.76, "y1": 0.52},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel", "box_type": "panel", "x0": 0.14, "y0": 0.18, "x1": 0.76, "y1": 0.84},
+            ],
+            "guide_boxes": [
+                {"box_id": "zero_line", "box_type": "zero_line", "x0": 0.48, "y0": 0.18, "x1": 0.48, "y1": 0.84},
+                {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.82, "y0": 0.22, "x1": 0.90, "y1": 0.80},
+            ],
+            "metrics": {
+                "points": [
+                    {"row_box_id": "feature_row_Age", "x": 0.42, "y": 0.28},
+                    {"row_box_id": "feature_row_Ki-67", "x": 0.58, "y": 0.46},
+                ]
+            },
+        }
+    raise ValueError(f"unsupported template_id `{template_id}` in test layout sidecar helper")
+
+
 def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -537,10 +683,15 @@ def test_materialize_display_surface_generates_registered_evidence_figures(tmp_p
         display_payload: dict[str, object],
         output_png_path: Path,
         output_pdf_path: Path,
+        layout_sidecar_path: Path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text("PNG", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
         render_calls.append(
             {
                 "template_id": template_id,
@@ -587,10 +738,15 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         display_payload: dict[str, object],
         output_png_path: Path,
         output_pdf_path: Path,
+        layout_sidecar_path: Path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
         render_calls.append((template_id, str(display_payload.get("display_id") or "")))
 
     def fake_render_python_evidence_figure(
@@ -599,10 +755,15 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         display_payload: dict[str, object],
         output_png_path: Path,
         output_pdf_path: Path,
+        layout_sidecar_path: Path,
     ) -> None:
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
         render_calls.append((template_id, str(display_payload.get("display_id") or "")))
 
     monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
@@ -655,6 +816,59 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F12"]["qc_profile"] == "publication_forest_plot"
     assert figures_by_id["F13"]["renderer_family"] == "python"
     assert figures_by_id["F13"]["input_schema_id"] == "shap_summary_inputs_v1"
+
+
+def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+
+    def fake_render_r_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    def fake_render_python_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
+    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F8_umap_scatter_grouped.layout.json"
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    qc_result = {item["figure_id"]: item["qc_result"] for item in figure_catalog["figures"]}["F8"]
+
+    assert layout_sidecar_path.exists()
+    assert qc_result["status"] == "pass"
+    assert qc_result["engine_id"] == "display_layout_qc_v1"
+    assert qc_result["qc_profile"] == "publication_embedding_scatter"
+    assert qc_result["layout_sidecar_path"].endswith(".layout.json")
+    assert qc_result["issues"] == []
 
 
 def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_path: Path) -> None:

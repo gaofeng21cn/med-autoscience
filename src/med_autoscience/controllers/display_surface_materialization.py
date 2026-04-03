@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from med_autoscience import display_registry
+from med_autoscience import display_layout_qc, display_registry
 
 
 _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
@@ -34,17 +34,19 @@ suppressPackageStartupMessages({
   library(jsonlite)
   library(ggplot2)
   library(ggsci)
+  library(grid)
 })
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 4) {
-  stop("expected args: <template_id> <payload_json> <output_png> <output_pdf>")
+if (length(args) != 5) {
+  stop("expected args: <template_id> <payload_json> <output_png> <output_pdf> <output_layout>")
 }
 
 template_id <- args[[1]]
 payload_path <- args[[2]]
 output_png <- args[[3]]
 output_pdf <- args[[4]]
+output_layout <- args[[5]]
 
 payload <- fromJSON(payload_path, simplifyVector = FALSE)
 
@@ -286,6 +288,219 @@ plot_forest <- function(display_payload) {
   if (is.null(left)) right else left
 }
 
+box_record <- function(box_id, box_type, x0, y0, x1, y1) {
+  list(
+    box_id = box_id,
+    box_type = box_type,
+    x0 = as.numeric(x0),
+    y0 = as.numeric(y0),
+    x1 = as.numeric(x1),
+    y1 = as.numeric(y1)
+  )
+}
+
+layout_box_from_indices <- function(widths, heights, left, right, top, bottom, box_id, box_type) {
+  x0 <- if (left <= 1) 0 else sum(widths[seq_len(left - 1)])
+  x1 <- sum(widths[seq_len(right)])
+  y1 <- 1 - if (top <= 1) 0 else sum(heights[seq_len(top - 1)])
+  y0 <- 1 - sum(heights[seq_len(bottom)])
+  box_record(box_id, box_type, x0, y0, x1, y1)
+}
+
+find_layout_box <- function(gt, widths, heights, prefixes, box_id, box_type) {
+  layout_names <- gt$layout$name
+  layout_index <- integer(0)
+  for (prefix in prefixes) {
+    matches <- which(startsWith(layout_names, prefix))
+    if (length(matches) > 0) {
+      layout_index <- matches
+      break
+    }
+  }
+  if (length(layout_index) < 1) {
+    return(NULL)
+  }
+  row <- gt$layout[layout_index[1], , drop = FALSE]
+  layout_box_from_indices(widths, heights, row$l[[1]], row$r[[1]], row$t[[1]], row$b[[1]], box_id, box_type)
+}
+
+map_value_to_panel_x <- function(value, panel_box, x_min, x_max) {
+  if (!is.finite(x_min) || !is.finite(x_max) || identical(x_min, x_max)) {
+    return((panel_box$x0 + panel_box$x1) / 2)
+  }
+  span <- panel_box$x1 - panel_box$x0
+  panel_box$x0 + ((value - x_min) / (x_max - x_min)) * span
+}
+
+map_row_to_panel_y <- function(row_index, row_count, panel_box) {
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1)
+  panel_box$y1 - ((row_index - 0.5) * row_height)
+}
+
+build_forest_layout <- function(display_payload, panel_box, axis_left_box) {
+  rows <- display_payload$rows
+  if (!is.list(rows) || length(rows) < 1) {
+    return(list(layout_boxes = list(), guide_boxes = list(), metrics = list(rows = list())))
+  }
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  lower_values <- vapply(rows, function(item) as.numeric(item$lower), numeric(1))
+  estimate_values <- vapply(rows, function(item) as.numeric(item$estimate), numeric(1))
+  upper_values <- vapply(rows, function(item) as.numeric(item$upper), numeric(1))
+  x_min <- min(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  x_max <- max(c(lower_values, estimate_values, upper_values, reference_value), na.rm = TRUE)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  row_count <- length(rows)
+  label_box <- axis_left_box %||% box_record("axis_left", "axis_left", 0.02, panel_box$y0, max(0.03, panel_box$x0 - 0.04), panel_box$y1)
+  row_height <- (panel_box$y1 - panel_box$y0) / max(row_count, 1) * 0.55
+  layout_boxes <- list()
+  metric_rows <- list()
+  for (index in seq_along(rows)) {
+    row <- rows[[index]]
+    row_center <- map_row_to_panel_y(index, row_count, panel_box)
+    lower_x <- map_value_to_panel_x(as.numeric(row$lower), panel_box, x_min, x_max)
+    estimate_x <- map_value_to_panel_x(as.numeric(row$estimate), panel_box, x_min, x_max)
+    upper_x <- map_value_to_panel_x(as.numeric(row$upper), panel_box, x_min, x_max)
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("row_label_%d", index),
+      "row_label",
+      label_box$x0,
+      row_center - row_height / 2,
+      label_box$x1,
+      row_center + row_height / 2
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("estimate_marker_%d", index),
+      "estimate_marker",
+      estimate_x - 0.01,
+      row_center - row_height / 4,
+      estimate_x + 0.01,
+      row_center + row_height / 4
+    )
+    layout_boxes[[length(layout_boxes) + 1]] <- box_record(
+      sprintf("ci_segment_%d", index),
+      "ci_segment",
+      lower_x,
+      row_center,
+      upper_x,
+      row_center
+    )
+    metric_rows[[length(metric_rows) + 1]] <- list(
+      row_id = trimws(as.character(row$label %||% sprintf("row_%d", index))),
+      label = trimws(as.character(row$label %||% "")),
+      lower = as.numeric(row$lower),
+      estimate = as.numeric(row$estimate),
+      upper = as.numeric(row$upper)
+    )
+  }
+  reference_x <- map_value_to_panel_x(reference_value, panel_box, x_min, x_max)
+  guide_boxes <- list(
+    box_record("reference_line", "reference_line", reference_x, panel_box$y0, reference_x, panel_box$y1)
+  )
+  list(layout_boxes = layout_boxes, guide_boxes = guide_boxes, metrics = list(rows = metric_rows))
+}
+
+build_embedding_metrics <- function(display_payload, panel_box) {
+  points <- display_payload$points
+  if (!is.list(points) || length(points) < 1) {
+    return(list(points = list()))
+  }
+  x_values <- vapply(points, function(item) as.numeric(item$x), numeric(1))
+  y_values <- vapply(points, function(item) as.numeric(item$y), numeric(1))
+  x_min <- min(x_values)
+  x_max <- max(x_values)
+  y_min <- min(y_values)
+  y_max <- max(y_values)
+  if (identical(x_min, x_max)) {
+    x_min <- x_min - 0.5
+    x_max <- x_max + 0.5
+  }
+  if (identical(y_min, y_max)) {
+    y_min <- y_min - 0.5
+    y_max <- y_max + 0.5
+  }
+  point_metrics <- lapply(points, function(item) {
+    list(
+      x = map_value_to_panel_x(as.numeric(item$x), panel_box, x_min, x_max),
+      y = panel_box$y0 + ((as.numeric(item$y) - y_min) / (y_max - y_min)) * (panel_box$y1 - panel_box$y0),
+      group = trimws(as.character(item$group %||% ""))
+    )
+  })
+  list(points = point_metrics)
+}
+
+build_metrics <- function(template_id, display_payload, panel_box) {
+  switch(
+    template_id,
+    roc_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    kaplan_meier_grouped = list(groups = display_payload$groups),
+    cumulative_incidence_grouped = list(groups = display_payload$groups),
+    umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    heatmap_group_comparison = list(),
+    correlation_heatmap = list(matrix_cells = display_payload$cells),
+    forest_effect_main = list(rows = display_payload$rows),
+    list()
+  )
+}
+
+build_layout_sidecar <- function(plot, template_id, display_payload) {
+  tmp_pdf <- tempfile(fileext = ".pdf")
+  grDevices::pdf(tmp_pdf, width = 7.2, height = 5.0)
+  on.exit({
+    grDevices::dev.off()
+    unlink(tmp_pdf)
+  }, add = TRUE)
+  gt <- ggplotGrob(plot)
+  grid::grid.newpage()
+  grid::grid.draw(gt)
+  grid::grid.force()
+  widths <- grid::convertWidth(gt$widths, "npc", valueOnly = TRUE)
+  heights <- grid::convertHeight(gt$heights, "npc", valueOnly = TRUE)
+  title_box <- find_layout_box(gt, widths, heights, c("title"), "title", "title")
+  x_axis_title_box <- find_layout_box(gt, widths, heights, c("xlab-b"), "x_axis_title", "x_axis_title")
+  y_axis_title_box <- find_layout_box(gt, widths, heights, c("ylab-l"), "y_axis_title", "y_axis_title")
+  panel_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("panel"),
+    "panel",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "heatmap_tile_region" else "panel"
+  )
+  guide_box <- find_layout_box(
+    gt,
+    widths,
+    heights,
+    c("guide-box"),
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap")) "colorbar" else "legend"
+  )
+  axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
+  layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
+  guide_boxes <- Filter(Negate(is.null), list(guide_box))
+  metrics <- build_metrics(template_id, display_payload, panel_box)
+  if (identical(template_id, "forest_effect_main") && !is.null(panel_box)) {
+    forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
+    layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
+    guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
+    metrics <- forest_layout$metrics
+  }
+  list(
+    template_id = template_id,
+    device = list(x0 = 0.0, y0 = 0.0, x1 = 1.0, y1 = 1.0),
+    layout_boxes = layout_boxes,
+    panel_boxes = Filter(Negate(is.null), list(panel_box)),
+    guide_boxes = guide_boxes,
+    metrics = metrics
+  )
+}
+
 plot <- switch(
   template_id,
   roc_curve_binary = plot_binary_curve(payload),
@@ -301,6 +516,9 @@ plot <- switch(
   forest_effect_main = plot_forest(payload),
   stop(sprintf("unsupported evidence template `%s`", template_id))
 )
+
+layout_sidecar <- build_layout_sidecar(plot, template_id, payload)
+write_json(layout_sidecar, output_layout, auto_unbox = TRUE, pretty = TRUE, null = "null")
 
 ggsave(output_png, plot = plot, width = 7.2, height = 5.0, dpi = 320, units = "in", bg = "white")
 ggsave(output_pdf, plot = plot, width = 7.2, height = 5.0, units = "in", bg = "white")
@@ -920,12 +1138,152 @@ def _write_table_outputs(
     output_md_path.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
 
 
+def _bbox_to_layout_box(
+    *,
+    figure: plt.Figure,
+    bbox,
+    box_id: str,
+    box_type: str,
+) -> dict[str, Any]:
+    x0, y0 = figure.transFigure.inverted().transform((bbox.x0, bbox.y0))
+    x1, y1 = figure.transFigure.inverted().transform((bbox.x1, bbox.y1))
+    return {
+        "box_id": box_id,
+        "box_type": box_type,
+        "x0": float(min(x0, x1)),
+        "y0": float(min(y0, y1)),
+        "x1": float(max(x0, x1)),
+        "y1": float(max(y0, y1)),
+    }
+
+
+def _data_box_to_layout_box(
+    *,
+    axes,
+    figure: plt.Figure,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    box_id: str,
+    box_type: str,
+) -> dict[str, Any]:
+    left_bottom = axes.transData.transform((x0, y0))
+    right_top = axes.transData.transform((x1, y1))
+    bbox = matplotlib.transforms.Bbox.from_extents(left_bottom[0], left_bottom[1], right_top[0], right_top[1])
+    return _bbox_to_layout_box(figure=figure, bbox=bbox, box_id=box_id, box_type=box_type)
+
+
+def _data_point_to_figure_xy(*, axes, figure: plt.Figure, x: float, y: float) -> tuple[float, float]:
+    display_x, display_y = axes.transData.transform((x, y))
+    figure_x, figure_y = figure.transFigure.inverted().transform((display_x, display_y))
+    return float(figure_x), float(figure_y)
+
+
+def _build_python_shap_layout_sidecar(
+    *,
+    figure: plt.Figure,
+    axes,
+    colorbar,
+    rows: list[dict[str, Any]],
+    point_rows: list[dict[str, Any]],
+    template_id: str,
+) -> dict[str, Any]:
+    renderer = figure.canvas.get_renderer()
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.title.get_window_extent(renderer=renderer),
+            box_id="title",
+            box_type="title",
+        ),
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+    ]
+    panel_box = _bbox_to_layout_box(
+        figure=figure,
+        bbox=axes.get_window_extent(renderer=renderer),
+        box_id="panel",
+        box_type="panel",
+    )
+    x_min, x_max = axes.get_xlim()
+    for row_index, row in enumerate(rows):
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=axes,
+                figure=figure,
+                x0=x_min,
+                y0=row_index - 0.42,
+                x1=x_max,
+                y1=row_index + 0.42,
+                box_id=f"feature_row_{row['feature']}",
+                box_type="feature_row",
+            )
+        )
+    guide_boxes = [
+        _bbox_to_layout_box(
+            figure=figure,
+            bbox=colorbar.ax.get_window_extent(renderer=renderer),
+            box_id="colorbar",
+            box_type="colorbar",
+        ),
+        _data_box_to_layout_box(
+            axes=axes,
+            figure=figure,
+            x0=0.0,
+            y0=-0.5,
+            x1=0.0,
+            y1=float(len(rows)) - 0.5,
+            box_id="zero_line",
+            box_type="zero_line",
+        ),
+    ]
+    row_box_id_by_feature = {f"{row['feature']}": f"feature_row_{row['feature']}" for row in rows}
+    point_metrics: list[dict[str, Any]] = []
+    for item in point_rows:
+        _, figure_y = _data_point_to_figure_xy(
+            axes=axes,
+            figure=figure,
+            x=float(item["shap_value"]),
+            y=float(item["row_position"]),
+        )
+        point_metrics.append(
+            {
+                "feature": str(item["feature"]),
+                "row_box_id": row_box_id_by_feature[str(item["feature"])],
+                "x": float(item["shap_value"]),
+                "y": figure_y,
+            }
+        )
+    return {
+        "template_id": template_id,
+        "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+        "layout_boxes": layout_boxes,
+        "panel_boxes": [panel_box],
+        "guide_boxes": guide_boxes,
+        "metrics": {
+            "points": point_metrics,
+        },
+    }
+
+
+def _load_layout_sidecar_or_raise(*, path: Path, template_id: str) -> dict[str, Any]:
+    if not path.exists():
+        raise RuntimeError(f"renderer did not produce layout sidecar for `{template_id}`: {path}")
+    return load_json(path)
+
+
 def _render_r_evidence_figure(
     *,
     template_id: str,
     display_payload: dict[str, Any],
     output_png_path: Path,
     output_pdf_path: Path,
+    layout_sidecar_path: Path,
 ) -> None:
     rscript = shutil.which("Rscript")
     if rscript is None:
@@ -933,6 +1291,7 @@ def _render_r_evidence_figure(
 
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="medautosci-evidence-") as tmpdir:
         tmpdir_path = Path(tmpdir)
@@ -941,7 +1300,15 @@ def _render_r_evidence_figure(
         payload_path.write_text(json.dumps(display_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         script_path.write_text(_R_EVIDENCE_RENDERER_SOURCE, encoding="utf-8")
         completed = subprocess.run(
-            [rscript, str(script_path), template_id, str(payload_path), str(output_png_path), str(output_pdf_path)],
+            [
+                rscript,
+                str(script_path),
+                template_id,
+                str(payload_path),
+                str(output_png_path),
+                str(output_pdf_path),
+                str(layout_sidecar_path),
+            ],
             capture_output=True,
             text=True,
             check=False,
@@ -949,7 +1316,7 @@ def _render_r_evidence_figure(
     if completed.returncode != 0:
         stderr = completed.stderr.strip() or completed.stdout.strip()
         raise RuntimeError(f"R evidence renderer failed for `{template_id}`: {stderr or 'unknown R error'}")
-    missing_outputs = [str(path) for path in (output_png_path, output_pdf_path) if not path.exists()]
+    missing_outputs = [str(path) for path in (output_png_path, output_pdf_path, layout_sidecar_path) if not path.exists()]
     if missing_outputs:
         raise RuntimeError(
             f"R evidence renderer did not produce required exports for `{template_id}`: {', '.join(missing_outputs)}"
@@ -969,6 +1336,7 @@ def _render_python_evidence_figure(
     display_payload: dict[str, Any],
     output_png_path: Path,
     output_pdf_path: Path,
+    layout_sidecar_path: Path,
 ) -> None:
     if template_id != "shap_summary_beeswarm":
         raise RuntimeError(f"unsupported python evidence template `{template_id}`")
@@ -979,6 +1347,7 @@ def _render_python_evidence_figure(
 
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     figure_height = max(4.8, 0.85 * len(rows) + 1.4)
     fig, ax = plt.subplots(figsize=(7.2, figure_height))
@@ -991,19 +1360,28 @@ def _render_python_evidence_figure(
         max_value = min_value + 1.0
     norm = matplotlib.colors.Normalize(vmin=min_value, vmax=max_value)
     cmap = plt.get_cmap("coolwarm")
+    point_rows: list[dict[str, Any]] = []
 
     for row_index, row in enumerate(rows):
         ordered_points = sorted(row["points"], key=lambda item: float(item["shap_value"]))
         offsets = _centered_offsets(len(ordered_points))
         for point_index, point in enumerate(ordered_points):
+            row_position = row_index + offsets[point_index]
             ax.scatter(
                 point["shap_value"],
-                row_index + offsets[point_index],
+                row_position,
                 s=42,
                 c=[cmap(norm(point["feature_value"]))],
                 edgecolors="white",
                 linewidths=0.35,
                 alpha=0.95,
+            )
+            point_rows.append(
+                {
+                    "feature": str(row["feature"]),
+                    "row_position": row_position,
+                    "shap_value": float(point["shap_value"]),
+                }
             )
 
     ax.axvline(0.0, color="#6b7280", linewidth=0.8, linestyle="--")
@@ -1024,8 +1402,20 @@ def _render_python_evidence_figure(
     colorbar.set_label("Feature value", fontsize=10, color="#13293d")
 
     fig.tight_layout()
-    fig.savefig(output_png_path, format="png", dpi=320, bbox_inches="tight")
-    fig.savefig(output_pdf_path, format="pdf", bbox_inches="tight")
+    fig.canvas.draw()
+    dump_json(
+        layout_sidecar_path,
+        _build_python_shap_layout_sidecar(
+            figure=fig,
+            axes=ax,
+            colorbar=colorbar,
+            rows=rows,
+            point_rows=point_rows,
+            template_id=template_id,
+        ),
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
 
 
@@ -1156,12 +1546,14 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.png"
             output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.pdf"
+            layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.layout.json"
             if spec.renderer_family == "r_ggplot2":
                 _render_r_evidence_figure(
                     template_id=spec.template_id,
                     display_payload=display_payload,
                     output_png_path=output_png_path,
                     output_pdf_path=output_pdf_path,
+                    layout_sidecar_path=layout_sidecar_path,
                 )
             elif spec.renderer_family == "python":
                 _render_python_evidence_figure(
@@ -1169,12 +1561,19 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     display_payload=display_payload,
                     output_png_path=output_png_path,
                     output_pdf_path=output_pdf_path,
+                    layout_sidecar_path=layout_sidecar_path,
                 )
             else:
                 raise RuntimeError(
                     f"unsupported renderer_family `{spec.renderer_family}` for evidence template `{spec.template_id}`"
                 )
-            written_files.extend([str(output_png_path), str(output_pdf_path)])
+            layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
+            qc_result = display_layout_qc.run_display_layout_qc(
+                qc_profile=spec.layout_qc_profile,
+                layout_sidecar=layout_sidecar,
+            )
+            qc_result["layout_sidecar_path"] = _paper_relative_path(layout_sidecar_path, paper_root=resolved_paper_root)
+            written_files.extend([str(output_png_path), str(output_pdf_path), str(layout_sidecar_path)])
             paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
             if paper_role not in spec.allowed_paper_roles:
                 allowed_roles = ", ".join(spec.allowed_paper_roles)
@@ -1189,11 +1588,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "paper_role": paper_role,
                 "input_schema_id": spec.input_schema_id,
                 "qc_profile": spec.layout_qc_profile,
-                "qc_result": {
-                    "status": "pass",
-                    "issues": [],
-                    "checked_at": utc_now(),
-                },
+                "qc_result": qc_result,
                 "title": str(display_payload.get("title") or "").strip(),
                 "caption": str(display_payload.get("caption") or "").strip(),
                 "export_paths": [
