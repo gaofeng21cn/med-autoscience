@@ -22,6 +22,11 @@ from med_autoscience import display_registry
 _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "binary_prediction_curve_inputs_v1": "binary_prediction_curve_inputs.json",
     "time_to_event_grouped_inputs_v1": "time_to_event_grouped_inputs.json",
+    "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
+    "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
+    "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
+    "forest_effect_inputs_v1": "forest_effect_inputs.json",
+    "shap_summary_inputs_v1": "shap_summary_inputs.json",
 }
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -96,6 +101,51 @@ build_reference_dataframe <- function(reference_line) {
     stop("reference_line.x and reference_line.y must have the same length")
   }
   data.frame(x = x, y = y)
+}
+
+build_point_dataframe <- function(points_payload, x_field = "x", y_field = "y") {
+  frames <- lapply(seq_along(points_payload), function(index) {
+    item <- points_payload[[index]]
+    data.frame(
+      x = as.numeric(item[[x_field]]),
+      y = as.numeric(item[[y_field]]),
+      group = trimws(as.character(item$group %||% "")),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, frames)
+}
+
+build_heatmap_dataframe <- function(cells_payload) {
+  frames <- lapply(seq_along(cells_payload), function(index) {
+    item <- cells_payload[[index]]
+    data.frame(
+      x = trimws(as.character(item$x %||% "")),
+      y = trimws(as.character(item$y %||% "")),
+      value = as.numeric(item$value),
+      stringsAsFactors = FALSE
+    )
+  })
+  heat_df <- do.call(rbind, frames)
+  heat_df$x <- factor(heat_df$x, levels = unique(heat_df$x))
+  heat_df$y <- factor(heat_df$y, levels = rev(unique(heat_df$y)))
+  heat_df
+}
+
+build_forest_dataframe <- function(rows_payload) {
+  frames <- lapply(seq_along(rows_payload), function(index) {
+    item <- rows_payload[[index]]
+    data.frame(
+      label = trimws(as.character(item$label %||% "")),
+      estimate = as.numeric(item$estimate),
+      lower = as.numeric(item$lower),
+      upper = as.numeric(item$upper),
+      stringsAsFactors = FALSE
+    )
+  })
+  forest_df <- do.call(rbind, frames)
+  forest_df$label <- factor(forest_df$label, levels = rev(forest_df$label))
+  forest_df
 }
 
 plot_binary_curve <- function(display_payload) {
@@ -174,6 +224,64 @@ plot_kaplan_meier <- function(display_payload) {
   plot
 }
 
+plot_embedding_scatter <- function(display_payload) {
+  points_payload <- display_payload$points
+  if (!is.list(points_payload) || length(points_payload) < 1) {
+    stop("points must contain at least one observation")
+  }
+  point_df <- build_point_dataframe(points_payload)
+  plot <- ggplot(point_df, aes(x = x, y = y, colour = group)) +
+    geom_point(size = 2.8, alpha = 0.9) +
+    scale_color_lancet() +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication()
+  plot
+}
+
+plot_heatmap <- function(display_payload) {
+  cells_payload <- display_payload$cells
+  if (!is.list(cells_payload) || length(cells_payload) < 1) {
+    stop("cells must contain at least one matrix entry")
+  }
+  heat_df <- build_heatmap_dataframe(cells_payload)
+  plot <- ggplot(heat_df, aes(x = x, y = y, fill = value)) +
+    geom_tile(colour = "white", linewidth = 0.5) +
+    geom_text(aes(label = sprintf("%.2f", value)), size = 3.1, colour = "#13293d") +
+    scale_fill_gradient2(low = "#2166ac", mid = "white", high = "#b2182b", midpoint = 0) +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = trimws(as.character(display_payload$y_label %||% ""))
+    ) +
+    theme_publication() +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+  plot
+}
+
+plot_forest <- function(display_payload) {
+  rows_payload <- display_payload$rows
+  if (!is.list(rows_payload) || length(rows_payload) < 1) {
+    stop("rows must contain at least one effect estimate")
+  }
+  forest_df <- build_forest_dataframe(rows_payload)
+  reference_value <- as.numeric(display_payload$reference_value %||% 1.0)
+  plot <- ggplot(forest_df, aes(y = label, x = estimate)) +
+    geom_vline(xintercept = reference_value, colour = "#6b7280", linewidth = 0.6, linetype = "dashed") +
+    geom_segment(aes(x = lower, xend = upper, y = label, yend = label), linewidth = 0.9, colour = "#1f4e79") +
+    geom_point(size = 2.8, colour = "#1f4e79") +
+    labs(
+      title = trimws(as.character(display_payload$title %||% "")),
+      x = trimws(as.character(display_payload$x_label %||% "")),
+      y = ""
+    ) +
+    theme_publication()
+  plot
+}
+
 `%||%` <- function(left, right) {
   if (is.null(left)) right else left
 }
@@ -185,6 +293,12 @@ plot <- switch(
   calibration_curve_binary = plot_binary_curve(payload),
   decision_curve_binary = plot_binary_curve(payload),
   kaplan_meier_grouped = plot_kaplan_meier(payload),
+  cumulative_incidence_grouped = plot_kaplan_meier(payload),
+  umap_scatter_grouped = plot_embedding_scatter(payload),
+  pca_scatter_grouped = plot_embedding_scatter(payload),
+  heatmap_group_comparison = plot_heatmap(payload),
+  correlation_heatmap = plot_heatmap(payload),
+  forest_effect_main = plot_forest(payload),
   stop(sprintf("unsupported evidence template `%s`", template_id))
 )
 
@@ -249,6 +363,12 @@ def _require_numeric_list(value: object, *, label: str, min_length: int = 2) -> 
             raise ValueError(f"{label}[{index}] must be numeric")
         normalized.append(float(item))
     return normalized
+
+
+def _require_numeric_value(value: object, *, label: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{label} must be numeric")
+    return float(value)
 
 
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -426,6 +546,215 @@ def _validate_time_to_event_display_payload(
     }
 
 
+def _validate_embedding_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    points = payload.get("points")
+    if not isinstance(points, list) or not points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty points list")
+    normalized_points: list[dict[str, Any]] = []
+    for index, item in enumerate(points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}] must be an object")
+        normalized_points.append(
+            {
+                "x": _require_numeric_value(item.get("x"), label=f"{path.name} display `{expected_display_id}` points[{index}].x"),
+                "y": _require_numeric_value(item.get("y"), label=f"{path.name} display `{expected_display_id}` points[{index}].y"),
+                "group": _require_non_empty_string(
+                    item.get("group"),
+                    label=f"{path.name} display `{expected_display_id}` points[{index}].group",
+                ),
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "points": normalized_points,
+    }
+
+
+def _validate_heatmap_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    cells = payload.get("cells")
+    if not isinstance(cells, list) or not cells:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty cells list")
+    normalized_cells: list[dict[str, Any]] = []
+    for index, item in enumerate(cells):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` cells[{index}] must be an object")
+        normalized_cells.append(
+            {
+                "x": _require_non_empty_string(item.get("x"), label=f"{path.name} display `{expected_display_id}` cells[{index}].x"),
+                "y": _require_non_empty_string(item.get("y"), label=f"{path.name} display `{expected_display_id}` cells[{index}].y"),
+                "value": _require_numeric_value(
+                    item.get("value"),
+                    label=f"{path.name} display `{expected_display_id}` cells[{index}].value",
+                ),
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "cells": normalized_cells,
+    }
+
+
+def _validate_forest_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    for index, item in enumerate(rows):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` rows[{index}] must be an object")
+        estimate = _require_numeric_value(
+            item.get("estimate"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].estimate",
+        )
+        lower = _require_numeric_value(
+            item.get("lower"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].lower",
+        )
+        upper = _require_numeric_value(
+            item.get("upper"),
+            label=f"{path.name} display `{expected_display_id}` rows[{index}].upper",
+        )
+        if not (lower <= estimate <= upper):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` rows[{index}] must satisfy lower <= estimate <= upper"
+            )
+        normalized_rows.append(
+            {
+                "label": _require_non_empty_string(
+                    item.get("label"),
+                    label=f"{path.name} display `{expected_display_id}` rows[{index}].label",
+                ),
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "reference_value": _require_numeric_value(
+            payload.get("reference_value", 1.0),
+            label=f"{path.name} display `{expected_display_id}` reference_value",
+        ),
+        "rows": normalized_rows,
+    }
+
+
+def _validate_shap_summary_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    for row_index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` rows[{row_index}] must be an object")
+        points = row.get("points")
+        if not isinstance(points, list) or not points:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` rows[{row_index}] must contain a non-empty points list"
+            )
+        normalized_points: list[dict[str, Any]] = []
+        for point_index, point in enumerate(points):
+            if not isinstance(point, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}] must be an object"
+                )
+            normalized_points.append(
+                {
+                    "shap_value": _require_numeric_value(
+                        point.get("shap_value"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}]."
+                            "shap_value"
+                        ),
+                    ),
+                    "feature_value": _require_numeric_value(
+                        point.get("feature_value"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` rows[{row_index}].points[{point_index}]."
+                            "feature_value"
+                        ),
+                    ),
+                }
+            )
+        normalized_rows.append(
+            {
+                "feature": _require_non_empty_string(
+                    row.get("feature"),
+                    label=f"{path.name} display `{expected_display_id}` rows[{row_index}].feature",
+                ),
+                "points": normalized_points,
+            }
+        )
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "rows": normalized_rows,
+    }
+
+
 def _load_evidence_display_payload(
     *,
     paper_root: Path,
@@ -458,6 +787,34 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "time_to_event_grouped_inputs_v1":
         return payload_path, _validate_time_to_event_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "embedding_grouped_inputs_v1":
+        return payload_path, _validate_embedding_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id in {"heatmap_group_comparison_inputs_v1", "correlation_heatmap_inputs_v1"}:
+        return payload_path, _validate_heatmap_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "forest_effect_inputs_v1":
+        return payload_path, _validate_forest_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_summary_inputs_v1":
+        return payload_path, _validate_shap_summary_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,
@@ -599,6 +956,79 @@ def _render_r_evidence_figure(
         )
 
 
+def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
+    if count <= 1:
+        return [0.0]
+    step = (half_span * 2.0) / float(count - 1)
+    return [(-half_span + step * float(index)) for index in range(count)]
+
+
+def _render_python_evidence_figure(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+) -> None:
+    if template_id != "shap_summary_beeswarm":
+        raise RuntimeError(f"unsupported python evidence template `{template_id}`")
+
+    rows = list(display_payload.get("rows") or [])
+    if not rows:
+        raise RuntimeError("shap_summary_beeswarm requires non-empty rows")
+
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+
+    figure_height = max(4.8, 0.85 * len(rows) + 1.4)
+    fig, ax = plt.subplots(figsize=(7.2, figure_height))
+    fig.patch.set_facecolor("white")
+
+    feature_values = [point["feature_value"] for row in rows for point in row["points"]]
+    min_value = min(feature_values)
+    max_value = max(feature_values)
+    if max_value == min_value:
+        max_value = min_value + 1.0
+    norm = matplotlib.colors.Normalize(vmin=min_value, vmax=max_value)
+    cmap = plt.get_cmap("coolwarm")
+
+    for row_index, row in enumerate(rows):
+        ordered_points = sorted(row["points"], key=lambda item: float(item["shap_value"]))
+        offsets = _centered_offsets(len(ordered_points))
+        for point_index, point in enumerate(ordered_points):
+            ax.scatter(
+                point["shap_value"],
+                row_index + offsets[point_index],
+                s=42,
+                c=[cmap(norm(point["feature_value"]))],
+                edgecolors="white",
+                linewidths=0.35,
+                alpha=0.95,
+            )
+
+    ax.axvline(0.0, color="#6b7280", linewidth=0.8, linestyle="--")
+    ax.set_yticks(list(range(len(rows))))
+    ax.set_yticklabels([str(row["feature"]) for row in rows], fontsize=10)
+    ax.invert_yaxis()
+    ax.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    ax.set_ylabel("")
+    ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
+    ax.grid(axis="x", color="#e6edf2", linewidth=0.4)
+    ax.grid(axis="y", visible=False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    scalar_mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    scalar_mappable.set_array([])
+    colorbar = fig.colorbar(scalar_mappable, ax=ax, pad=0.02)
+    colorbar.set_label("Feature value", fontsize=10, color="#13293d")
+
+    fig.tight_layout()
+    fig.savefig(output_png_path, format="png", dpi=320, bbox_inches="tight")
+    fig.savefig(output_pdf_path, format="pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     display_registry_payload = load_json(resolved_paper_root / "display_registry.json")
@@ -726,12 +1156,24 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.png"
             output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.pdf"
-            _render_r_evidence_figure(
-                template_id=spec.template_id,
-                display_payload=display_payload,
-                output_png_path=output_png_path,
-                output_pdf_path=output_pdf_path,
-            )
+            if spec.renderer_family == "r_ggplot2":
+                _render_r_evidence_figure(
+                    template_id=spec.template_id,
+                    display_payload=display_payload,
+                    output_png_path=output_png_path,
+                    output_pdf_path=output_pdf_path,
+                )
+            elif spec.renderer_family == "python":
+                _render_python_evidence_figure(
+                    template_id=spec.template_id,
+                    display_payload=display_payload,
+                    output_png_path=output_png_path,
+                    output_pdf_path=output_pdf_path,
+                )
+            else:
+                raise RuntimeError(
+                    f"unsupported renderer_family `{spec.renderer_family}` for evidence template `{spec.template_id}`"
+                )
             written_files.extend([str(output_png_path), str(output_pdf_path)])
             paper_role = str(display_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
             if paper_role not in spec.allowed_paper_roles:
