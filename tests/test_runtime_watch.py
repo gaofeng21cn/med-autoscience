@@ -216,6 +216,75 @@ def test_suppresses_duplicate_figure_loop_guard_blocker(tmp_path: Path) -> None:
     assert calls == [False, True, False]
 
 
+def test_suppresses_duplicate_medical_literature_audit_blocker_even_when_report_paths_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+    state = {"run": 0}
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        state["run"] += 1
+        suffix = f"scan-{state['run']}"
+        return {
+            "status": "blocked",
+            "blockers": ["reference_gaps_present"],
+            "action": "clear",
+            "missing_pmids": ["12345"],
+            "report_json": str(quest_root / "artifacts" / "reports" / "medical_literature_audit" / f"{suffix}.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "medical_literature_audit" / f"{suffix}.md"),
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"medical_literature_audit": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"medical_literature_audit": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["medical_literature_audit"]["action"] == "applied"
+    assert second["controllers"]["medical_literature_audit"]["action"] == "suppressed"
+    assert calls == [False, True, False]
+
+
+def test_suppresses_duplicate_medical_reporting_audit_blocker_even_when_report_paths_change(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+    state = {"run": 0}
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        state["run"] += 1
+        suffix = f"scan-{state['run']}"
+        return {
+            "status": "blocked",
+            "blockers": ["missing_reporting_guideline_checklist"],
+            "action": "clear",
+            "report_json": str(quest_root / "artifacts" / "reports" / "medical_reporting_audit" / f"{suffix}.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "medical_reporting_audit" / f"{suffix}.md"),
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"medical_reporting_audit": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"medical_reporting_audit": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["medical_reporting_audit"]["action"] == "applied"
+    assert second["controllers"]["medical_reporting_audit"]["action"] == "suppressed"
+    assert calls == [False, True, False]
+
+
 def test_blocked_with_apply_disabled_records_suppression_without_second_apply(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")

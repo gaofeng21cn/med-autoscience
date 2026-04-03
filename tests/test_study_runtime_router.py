@@ -40,6 +40,66 @@ def make_profile(tmp_path: Path):
     )
 
 
+def make_startup_hydration_report(quest_root: Path) -> dict[str, object]:
+    return {
+        "status": "hydrated",
+        "recorded_at": "2026-04-03T09:00:00+00:00",
+        "quest_root": str(quest_root),
+        "entry_state_summary": f"Study root: {quest_root}",
+        "literature_report": {"record_count": 0},
+        "written_files": [str(quest_root / "paper" / "medical_analysis_contract.json")],
+        "report_path": str(quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"),
+    }
+
+
+def make_startup_hydration_validation_report(
+    quest_root: Path,
+    *,
+    status: str = "clear",
+    blockers: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "status": status,
+        "recorded_at": "2026-04-03T09:05:00+00:00",
+        "quest_root": str(quest_root),
+        "blockers": blockers or [],
+        "contract_statuses": {
+            "medical_analysis_contract": "resolved",
+            "medical_reporting_contract": "resolved",
+        },
+        "checked_paths": {
+            "medical_analysis_contract_path": str(quest_root / "paper" / "medical_analysis_contract.json"),
+            "medical_reporting_contract_path": str(quest_root / "paper" / "medical_reporting_contract.json"),
+        },
+        "report_path": str(
+            quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
+        ),
+    }
+
+
+def make_startup_contract_validation_payload(
+    *,
+    status: str = "clear",
+    blockers: list[str] | None = None,
+    medical_analysis_contract_status: str | None = "resolved",
+    medical_reporting_contract_status: str | None = "resolved",
+    medical_analysis_reason_code: str | None = None,
+    medical_reporting_reason_code: str | None = None,
+) -> dict[str, object]:
+    return {
+        "status": status,
+        "blockers": list(blockers or []),
+        "contract_statuses": {
+            "medical_analysis_contract": medical_analysis_contract_status,
+            "medical_reporting_contract": medical_reporting_contract_status,
+        },
+        "reason_codes": {
+            "medical_analysis_contract": medical_analysis_reason_code,
+            "medical_reporting_contract": medical_reporting_reason_code,
+        },
+    }
+
+
 def write_study(
     workspace_root: Path,
     study_id: str,
@@ -522,7 +582,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
         "quest_hydration_controller",
         SimpleNamespace(
             run_hydration=lambda *, quest_root, hydration_payload: (
-                seen.__setitem__("hydration_quest_root", quest_root) or {"status": "hydrated"}
+                seen.__setitem__("hydration_quest_root", quest_root) or make_startup_hydration_report(quest_root)
             )
         ),
         raising=False,
@@ -530,7 +590,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     monkeypatch.setattr(
         module,
         "startup_hydration_validation_controller",
-        SimpleNamespace(run_validation=lambda *, quest_root: {"status": "clear", "blockers": []}),
+        SimpleNamespace(run_validation=lambda *, quest_root: make_startup_hydration_validation_report(quest_root)),
         raising=False,
     )
     monkeypatch.setattr(
@@ -829,9 +889,16 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
 
     status.record_analysis_bundle({"ready": True})
     status.record_runtime_overlay({"audit": {"all_roots_ready": True}})
-    status.record_startup_contract_validation({"status": "clear"})
+    with pytest.raises(ValueError, match="startup contract validation payload"):
+        status.record_startup_contract_validation({"status": "clear"})
+    status.record_startup_contract_validation(make_startup_contract_validation_payload())
     status.record_startup_context_sync({"ok": True})
-    status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
+    with pytest.raises(ValueError, match="startup hydration payload"):
+        status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
+    status.record_startup_hydration(
+        make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001")),
+        make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001")),
+    )
     status.record_completion_sync({"ok": True})
     status.record_bash_session_audit({"status": "live"})
     status.record_runtime_artifacts(
@@ -844,15 +911,62 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
 
     assert payload["analysis_bundle"] == {"ready": True}
     assert payload["runtime_overlay"] == {"audit": {"all_roots_ready": True}}
-    assert payload["startup_contract_validation"] == {"status": "clear"}
+    assert payload["startup_contract_validation"] == make_startup_contract_validation_payload()
     assert payload["startup_context_sync"] == {"ok": True}
-    assert payload["startup_hydration"] == {"status": "hydrated"}
-    assert payload["startup_hydration_validation"] == {"status": "clear"}
+    assert payload["startup_hydration"]["status"] == "hydrated"
+    assert payload["startup_hydration"]["report_path"] == (
+        "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_report.json"
+    )
+    assert payload["startup_hydration_validation"]["status"] == "clear"
+    assert payload["startup_hydration_validation"]["report_path"] == (
+        "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json"
+    )
     assert payload["completion_sync"] == {"ok": True}
     assert payload["bash_session_audit"] == {"status": "live"}
     assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
     assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
     assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
+
+
+def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    binding_path = tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"
+    launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+    startup_payload_path = tmp_path / "runtime" / "startup_payloads" / "001-risk.json"
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(tmp_path / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": str(tmp_path / "runtime" / "quests" / "quest-001"),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(binding_path),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+
+    status.record_runtime_artifacts(
+        runtime_binding_path=binding_path,
+        launch_report_path=launch_report_path,
+        startup_payload_path=startup_payload_path,
+    )
+
+    payload = status.to_dict()
+
+    assert payload["runtime_binding_exists"] is False
+    assert payload["launch_report_path"] == str(launch_report_path)
+    assert payload["startup_payload_path"] == str(startup_payload_path)
 
 
 def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
@@ -1503,7 +1617,10 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -1511,7 +1628,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -1571,7 +1688,10 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -1579,7 +1699,11 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "blocked", "blockers": ["missing_medical_reporting_contract"]}
+            or make_startup_hydration_validation_report(
+                kwargs["quest_root"],
+                status="blocked",
+                blockers=["missing_medical_reporting_contract"],
+            )
         ),
         raising=False,
     )
@@ -1700,13 +1824,13 @@ def test_ensure_study_runtime_archives_invalid_partial_quest_root_before_create(
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: {"status": "hydrated"}),
+        SimpleNamespace(run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])),
         raising=False,
     )
     monkeypatch.setattr(
         module,
         "startup_hydration_validation_controller",
-        SimpleNamespace(run_validation=lambda **kwargs: {"status": "clear", "blockers": []}),
+        SimpleNamespace(run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])),
         raising=False,
     )
 
@@ -1760,7 +1884,10 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -1768,7 +1895,7 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -1835,13 +1962,19 @@ def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_qu
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append("hydrate") or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append("hydrate")
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
         module,
         "startup_hydration_validation_controller",
-        SimpleNamespace(run_validation=lambda **kwargs: calls.append("validate") or {"status": "clear", "blockers": []}),
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append("validate")
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
 
@@ -1890,7 +2023,10 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -1898,7 +2034,7 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -1962,7 +2098,10 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -1970,7 +2109,7 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -2034,7 +2173,10 @@ def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_valid
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -2042,7 +2184,11 @@ def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_valid
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "blocked", "blockers": ["unsupported_medical_analysis_contract"]}
+            or make_startup_hydration_validation_report(
+                kwargs["quest_root"],
+                status="blocked",
+                blockers=["unsupported_medical_analysis_contract"],
+            )
         ),
         raising=False,
     )
@@ -2302,7 +2448,10 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -2310,7 +2459,7 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -2842,15 +2991,16 @@ def test_ensure_study_runtime_uses_protocol_hydration_payload_builder(monkeypatc
         module,
         "quest_hydration_controller",
         SimpleNamespace(
-            run_hydration=lambda *, quest_root, hydration_payload: seen.setdefault("run_hydration", hydration_payload)
-            or {"status": "hydrated"}
+            run_hydration=lambda *, quest_root, hydration_payload: (
+                seen.__setitem__("run_hydration", hydration_payload) or make_startup_hydration_report(quest_root)
+            )
         ),
         raising=False,
     )
     monkeypatch.setattr(
         module,
         "startup_hydration_validation_controller",
-        SimpleNamespace(run_validation=lambda *, quest_root: {"status": "clear", "blockers": []}),
+        SimpleNamespace(run_validation=lambda *, quest_root: make_startup_hydration_validation_report(quest_root)),
         raising=False,
     )
     monkeypatch.setattr(
@@ -2960,7 +3110,10 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -2968,7 +3121,7 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
@@ -3040,7 +3193,10 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
-        SimpleNamespace(run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"])) or {"status": "hydrated"}),
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
         raising=False,
     )
     monkeypatch.setattr(
@@ -3048,7 +3204,7 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
         "startup_hydration_validation_controller",
         SimpleNamespace(
             run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
-            or {"status": "clear", "blockers": []}
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
         ),
         raising=False,
     )
