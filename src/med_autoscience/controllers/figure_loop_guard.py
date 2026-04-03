@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.adapters import report_store
 from med_autoscience.figure_routes import (
     FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
     FIGURE_ROUTE_SCRIPT_FIX,
@@ -18,6 +17,7 @@ from med_autoscience.figure_routes import (
     supported_required_route_help,
 )
 from med_autoscience.runtime_protocol import quest_state, user_message
+from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 
@@ -334,7 +334,7 @@ def build_intervention_message(report: dict[str, Any]) -> str:
 
 
 def write_guard_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return report_store.write_timestamped_report(
+    return runtime_protocol_report_store.write_timestamped_report(
         quest_root=quest_root,
         report_group="figure_loop_guard",
         timestamp=report["generated_at"],

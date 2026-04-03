@@ -215,3 +215,50 @@ def test_build_guard_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_pa
     assert seen["quest_root"] == quest_root
     assert seen["candidate_count"] >= 1
     assert state.runtime_state["status"] == "patched"
+
+
+def test_write_guard_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, _ = make_quest(tmp_path)
+    seen: dict[str, object] = {}
+
+    def fake_write_timestamped_report(
+        *,
+        quest_root: Path,
+        report_group: str,
+        timestamp: str,
+        report: dict[str, object],
+        markdown: str,
+    ) -> tuple[Path, Path]:
+        seen["quest_root"] = quest_root
+        seen["report_group"] = report_group
+        seen["timestamp"] = timestamp
+        seen["report"] = report
+        seen["markdown"] = markdown
+        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
+
+    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
+
+    report = {
+        "generated_at": "2026-03-29T03:50:50+00:00",
+        "quest_id": quest_root.name,
+        "status": "blocked",
+        "recommended_action": "stop_current_run_and_route_mainline",
+        "dominant_figure_id": "F4B",
+        "dominant_figure_mentions": 4,
+        "reopen_detected": True,
+        "reference_count": 7,
+        "reference_floor": 12,
+        "accepted_figures": {},
+        "figure_tickets": {},
+        "required_routes": [],
+        "controller_note": "note",
+    }
+
+    json_path, md_path = module.write_guard_files(quest_root, report)
+
+    assert seen["quest_root"] == quest_root
+    assert seen["report_group"] == "figure_loop_guard"
+    assert seen["timestamp"] == "2026-03-29T03:50:50+00:00"
+    assert json_path.name == "latest.json"
+    assert md_path.name == "latest.md"
