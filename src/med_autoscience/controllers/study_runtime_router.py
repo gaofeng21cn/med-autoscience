@@ -1006,6 +1006,18 @@ def _study_completion_state(*, study_root: Path) -> StudyCompletionState:
     return resolve_study_completion_state(study_root=study_root)
 
 
+def _record_quest_runtime_audits(
+    *,
+    status: StudyRuntimeStatus,
+    quest_runtime: quest_state.QuestRuntimeSnapshot,
+) -> quest_state.QuestRuntimeLivenessStatus:
+    runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
+    bash_session_audit = dict(quest_runtime.bash_session_audit or {})
+    status.record_runtime_liveness_audit(runtime_liveness_audit)
+    status.record_bash_session_audit(bash_session_audit)
+    return quest_runtime.runtime_liveness_status
+
+
 def _build_study_completion_request_message(
     *,
     study_id: str,
@@ -1177,17 +1189,13 @@ def _status_state(
             )
             return result
         if quest_status in _LIVE_QUEST_STATUSES:
-            runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
-            bash_session_audit = dict(quest_runtime.bash_session_audit or {})
-            result.record_runtime_liveness_audit(runtime_liveness_audit)
-            result.record_bash_session_audit(bash_session_audit)
-            audit_status = str(runtime_liveness_audit.get("status") or "").strip()
-            if audit_status == "unknown":
+            audit_status = _record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
+            if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED,
                 )
-            elif audit_status == "live":
+            elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE_AND_COMPLETE,
                     StudyRuntimeReason.STUDY_COMPLETION_READY,
@@ -1255,17 +1263,13 @@ def _status_state(
         return result
 
     if quest_status in _LIVE_QUEST_STATUSES:
-        runtime_liveness_audit = dict(quest_runtime.runtime_liveness_audit or {})
-        bash_session_audit = dict(quest_runtime.bash_session_audit or {})
-        result.record_runtime_liveness_audit(runtime_liveness_audit)
-        result.record_bash_session_audit(bash_session_audit)
-        audit_status = str(runtime_liveness_audit.get("status") or "").strip()
-        if audit_status == "unknown":
+        audit_status = _record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
+        if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
             )
-        elif audit_status == "live":
+        elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
             if not result.startup_boundary_allows_compute_stage:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,

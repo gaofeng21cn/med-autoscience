@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.runtime_protocol.quest_state import (
+    QuestRuntimeLivenessStatus,
     QuestRuntimeSnapshot,
     find_latest_main_result_path,
     inspect_quest_runtime,
@@ -135,3 +136,36 @@ def test_quest_runtime_snapshot_tracks_runtime_and_bash_audits_independently() -
             "active_run_id": "run-1",
         },
     )
+    assert updated.runtime_liveness_status is QuestRuntimeLivenessStatus.LIVE
+
+
+def test_quest_runtime_snapshot_normalizes_runtime_liveness_status_values() -> None:
+    live_snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+        runtime_liveness_audit={"status": "live"},
+    )
+    none_snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+        runtime_liveness_audit={"status": "none"},
+    )
+    unknown_snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+        runtime_liveness_audit={"status": "unknown"},
+    )
+    other_snapshot = QuestRuntimeSnapshot(
+        quest_exists=True,
+        quest_status="running",
+        bash_session_audit=None,
+        runtime_liveness_audit={"status": "paused"},
+    )
+
+    assert live_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.LIVE
+    assert none_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.NONE
+    assert unknown_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.UNKNOWN
+    assert other_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.OTHER
