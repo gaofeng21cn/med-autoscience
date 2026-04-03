@@ -184,6 +184,148 @@ class StudyRuntimeAuditRecord:
 
 
 @dataclass(frozen=True)
+class StudyRuntimeAnalysisBundleResult:
+    ready: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.ready, bool):
+            raise TypeError("study runtime analysis bundle ready must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeAnalysisBundleResult":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime analysis bundle payload must be a mapping")
+        if "ready" not in payload:
+            raise ValueError("study runtime analysis bundle payload missing ready")
+        ready = payload.get("ready")
+        if not isinstance(ready, bool):
+            raise TypeError("study runtime analysis bundle ready must be bool")
+        return cls(ready=ready, payload=dict(payload))
+
+
+@dataclass(frozen=True)
+class StudyRuntimeOverlayAudit:
+    all_roots_ready: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.all_roots_ready, bool):
+            raise TypeError("study runtime overlay audit all_roots_ready must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeOverlayAudit":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime overlay audit payload must be a mapping")
+        if "all_roots_ready" not in payload:
+            raise ValueError("study runtime overlay audit payload missing all_roots_ready")
+        all_roots_ready = payload.get("all_roots_ready")
+        if not isinstance(all_roots_ready, bool):
+            raise TypeError("study runtime overlay audit all_roots_ready must be bool")
+        return cls(all_roots_ready=all_roots_ready, payload=dict(payload))
+
+
+@dataclass(frozen=True)
+class StudyRuntimeOverlayResult:
+    audit: StudyRuntimeOverlayAudit
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeOverlayResult":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime overlay payload must be a mapping")
+        audit = payload.get("audit")
+        if not isinstance(audit, dict):
+            raise ValueError("study runtime overlay payload missing audit")
+        return cls(
+            audit=StudyRuntimeOverlayAudit.from_payload(audit),
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeStartupContextSyncResult:
+    ok: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.ok, bool):
+            raise TypeError("study runtime startup context sync ok must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeStartupContextSyncResult":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime startup context sync payload must be a mapping")
+        if "ok" not in payload:
+            raise ValueError("study runtime startup context sync payload missing ok")
+        ok = payload.get("ok")
+        if not isinstance(ok, bool):
+            raise TypeError("study runtime startup context sync ok must be bool")
+        snapshot = payload.get("snapshot")
+        if snapshot is not None and not isinstance(snapshot, dict):
+            raise ValueError("study runtime startup context sync snapshot must be a mapping")
+        return cls(ok=ok, payload=dict(payload))
+
+
+@dataclass(frozen=True)
+class StudyRuntimePartialQuestRecoveryResult:
+    status: str
+    quest_root: str
+    archived_root: str
+    missing_required_files: tuple[str, ...]
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", dict(self.payload))
+        object.__setattr__(self, "missing_required_files", tuple(str(item) for item in self.missing_required_files))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimePartialQuestRecoveryResult":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime partial quest recovery payload must be a mapping")
+        status = str(payload.get("status") or "").strip()
+        if not status:
+            raise ValueError("study runtime partial quest recovery payload missing status")
+        quest_root = str(payload.get("quest_root") or "").strip()
+        if not quest_root:
+            raise ValueError("study runtime partial quest recovery payload missing quest_root")
+        archived_root = str(payload.get("archived_root") or "").strip()
+        if not archived_root:
+            raise ValueError("study runtime partial quest recovery payload missing archived_root")
+        missing_required_files = payload.get("missing_required_files")
+        if not isinstance(missing_required_files, list):
+            raise ValueError("study runtime partial quest recovery payload missing missing_required_files")
+        return cls(
+            status=status,
+            quest_root=quest_root,
+            archived_root=archived_root,
+            missing_required_files=tuple(str(item) for item in missing_required_files),
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
 class StudyCompletionSyncResult:
     payload: dict[str, Any]
     completion_snapshot_status: str | None
@@ -495,11 +637,25 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         if quest_status is not _UNSET:
             self.quest_status = self._normalize_quest_status_field(quest_status)
 
-    def record_analysis_bundle(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("analysis_bundle", value)
+    def record_analysis_bundle(
+        self,
+        value: dict[str, Any] | StudyRuntimeAnalysisBundleResult,
+    ) -> None:
+        analysis_bundle = (
+            value
+            if isinstance(value, StudyRuntimeAnalysisBundleResult)
+            else StudyRuntimeAnalysisBundleResult.from_payload(value)
+        )
+        self._record_dict_extra("analysis_bundle", analysis_bundle.to_dict())
 
-    def record_runtime_overlay(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("runtime_overlay", value)
+    def record_runtime_overlay(
+        self,
+        value: dict[str, Any] | StudyRuntimeOverlayResult,
+    ) -> None:
+        runtime_overlay = (
+            value if isinstance(value, StudyRuntimeOverlayResult) else StudyRuntimeOverlayResult.from_payload(value)
+        )
+        self._record_dict_extra("runtime_overlay", runtime_overlay.to_dict())
 
     def record_startup_contract_validation(
         self,
@@ -514,11 +670,55 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         )
         self._record_dict_extra("startup_contract_validation", startup_contract_validation.to_dict())
 
-    def record_partial_quest_recovery(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("partial_quest_recovery", value)
+    @property
+    def analysis_bundle_result(self) -> StudyRuntimeAnalysisBundleResult:
+        payload = self.extras.get("analysis_bundle")
+        if not isinstance(payload, dict):
+            raise KeyError("analysis_bundle")
+        return StudyRuntimeAnalysisBundleResult.from_payload(payload)
 
-    def record_startup_context_sync(self, value: dict[str, Any]) -> None:
-        self._record_dict_extra("startup_context_sync", value)
+    @property
+    def runtime_overlay_result(self) -> StudyRuntimeOverlayResult:
+        payload = self.extras.get("runtime_overlay")
+        if not isinstance(payload, dict):
+            raise KeyError("runtime_overlay")
+        return StudyRuntimeOverlayResult.from_payload(payload)
+
+    @property
+    def partial_quest_recovery_result(self) -> StudyRuntimePartialQuestRecoveryResult:
+        payload = self.extras.get("partial_quest_recovery")
+        if not isinstance(payload, dict):
+            raise KeyError("partial_quest_recovery")
+        return StudyRuntimePartialQuestRecoveryResult.from_payload(payload)
+
+    @property
+    def startup_context_sync_result(self) -> StudyRuntimeStartupContextSyncResult:
+        payload = self.extras.get("startup_context_sync")
+        if not isinstance(payload, dict):
+            raise KeyError("startup_context_sync")
+        return StudyRuntimeStartupContextSyncResult.from_payload(payload)
+
+    def record_partial_quest_recovery(
+        self,
+        value: dict[str, Any] | StudyRuntimePartialQuestRecoveryResult,
+    ) -> None:
+        partial_quest_recovery = (
+            value
+            if isinstance(value, StudyRuntimePartialQuestRecoveryResult)
+            else StudyRuntimePartialQuestRecoveryResult.from_payload(value)
+        )
+        self._record_dict_extra("partial_quest_recovery", partial_quest_recovery.to_dict())
+
+    def record_startup_context_sync(
+        self,
+        value: dict[str, Any] | StudyRuntimeStartupContextSyncResult,
+    ) -> None:
+        startup_context_sync = (
+            value
+            if isinstance(value, StudyRuntimeStartupContextSyncResult)
+            else StudyRuntimeStartupContextSyncResult.from_payload(value)
+        )
+        self._record_dict_extra("startup_context_sync", startup_context_sync.to_dict())
 
     def record_startup_hydration(
         self,
@@ -1534,9 +1734,11 @@ def _run_runtime_preflight(
         StudyRuntimeDecision.CREATE_ONLY,
         StudyRuntimeDecision.RESUME,
     }:
-        analysis_bundle_result = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
+        analysis_bundle_result = StudyRuntimeAnalysisBundleResult.from_payload(
+            analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
+        )
         status.record_analysis_bundle(analysis_bundle_result)
-        if not bool(analysis_bundle_result.get("ready")):
+        if not analysis_bundle_result.ready:
             status.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STUDY_RUNTIME_ANALYSIS_BUNDLE_NOT_READY,
@@ -1547,22 +1749,24 @@ def _run_runtime_preflight(
                 StudyRuntimeReason.MANAGED_SKILL_AUDIT_NOT_AVAILABLE,
             )
         elif context.profile.enable_medical_overlay and status.decision == StudyRuntimeDecision.RESUME:
-            runtime_overlay_result = _prepare_runtime_overlay(
-                profile=context.profile,
-                quest_root=context.quest_root,
+            runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
+                _prepare_runtime_overlay(
+                    profile=context.profile,
+                    quest_root=context.quest_root,
+                )
             )
             status.record_runtime_overlay(runtime_overlay_result)
-            audit = runtime_overlay_result["audit"]
-            if not bool(audit.get("all_roots_ready")):
+            if not runtime_overlay_result.audit.all_roots_ready:
                 status.set_decision(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
                 )
     elif context.profile.enable_medical_overlay and status.quest_exists:
-        runtime_overlay_result = {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
+        runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
+            {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
+        )
         status.record_runtime_overlay(runtime_overlay_result)
-        audit = runtime_overlay_result["audit"]
-        if status.quest_status in _LIVE_QUEST_STATUSES and not bool(audit.get("all_roots_ready")):
+        if status.quest_status in _LIVE_QUEST_STATUSES and not runtime_overlay_result.audit.all_roots_ready:
             status.set_decision(
                 StudyRuntimeDecision.PAUSE,
                 StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
@@ -1592,7 +1796,7 @@ def _execute_create_runtime_decision(
         slug=_timestamp_slug(),
     )
     if partial_quest_recovery is not None:
-        status.record_partial_quest_recovery(partial_quest_recovery)
+        status.record_partial_quest_recovery(StudyRuntimePartialQuestRecoveryResult.from_payload(partial_quest_recovery))
     create_payload["auto_start"] = False
     if status.decision not in {StudyRuntimeDecision.CREATE_AND_START, StudyRuntimeDecision.CREATE_ONLY}:
         return outcome
@@ -1613,13 +1817,14 @@ def _execute_create_runtime_decision(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created"),
     )
     if context.profile.enable_medical_overlay:
-        runtime_overlay_result = _prepare_runtime_overlay(
-            profile=context.profile,
-            quest_root=context.quest_root,
+        runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
+            _prepare_runtime_overlay(
+                profile=context.profile,
+                quest_root=context.quest_root,
+            )
         )
         status.record_runtime_overlay(runtime_overlay_result)
-        audit = runtime_overlay_result["audit"]
-        if not bool(audit.get("all_roots_ready")):
+        if not runtime_overlay_result.audit.all_roots_ready:
             status.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
@@ -1667,7 +1872,7 @@ def _execute_resume_runtime_decision(
         quest_id=status.quest_id,
         create_payload=create_payload,
     )
-    status.record_startup_context_sync(startup_context_sync)
+    status.record_startup_context_sync(StudyRuntimeStartupContextSyncResult.from_payload(startup_context_sync))
     hydration_result, validation_result = _run_startup_hydration(
         quest_root=context.quest_root,
         create_payload=create_payload,
@@ -1715,7 +1920,7 @@ def _execute_blocked_refresh_runtime_decision(
         quest_id=status.quest_id,
         create_payload=create_payload,
     )
-    status.record_startup_context_sync(startup_context_sync)
+    status.record_startup_context_sync(StudyRuntimeStartupContextSyncResult.from_payload(startup_context_sync))
     hydration_result, validation_result = _run_startup_hydration(
         quest_root=context.quest_root,
         create_payload=create_payload,

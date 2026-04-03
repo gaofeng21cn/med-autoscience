@@ -129,6 +129,52 @@ def make_completion_sync_payload(
     }
 
 
+def make_analysis_bundle_result(*, ready: bool = True) -> dict[str, object]:
+    before = {
+        "ready": ready,
+        "python": {"ready": ready},
+        "r": {"ready": ready},
+    }
+    return {
+        "action": "already_ready" if ready else "ensure_bundle",
+        "before": before,
+        "after": before,
+        "ready": ready,
+    }
+
+
+def make_runtime_overlay_result(*, all_roots_ready: bool = True) -> dict[str, object]:
+    return {
+        "authority": {"selected_action": "noop", "post_status": {"all_targets_ready": True}},
+        "materialization": {"materialized_surface_count": 1, "surfaces": []},
+        "audit": {
+            "all_roots_ready": all_roots_ready,
+            "surface_count": 1,
+            "surfaces": [],
+        },
+    }
+
+
+def make_startup_context_sync_payload(*, quest_id: str = "quest-001") -> dict[str, object]:
+    return {
+        "ok": True,
+        "snapshot": {
+            "quest_id": quest_id,
+            "startup_contract": {"schema_version": 4},
+            "requested_baseline_ref": None,
+        },
+    }
+
+
+def make_partial_quest_recovery_payload(*, quest_id: str = "quest-001") -> dict[str, object]:
+    return {
+        "status": "archived_invalid_partial_quest_root",
+        "quest_root": f"/tmp/runtime/quests/{quest_id}",
+        "archived_root": f"/tmp/runtime/recovery/invalid_partial_quest_roots/{quest_id}-20260403T000000Z",
+        "missing_required_files": ["quest.yaml"],
+    }
+
+
 def write_study(
     workspace_root: Path,
     study_id: str,
@@ -1087,6 +1133,56 @@ def test_study_runtime_status_records_typed_completion_sync_and_audits() -> None
     assert status.completion_sync_result.completion_snapshot_status == "completed"
     assert status.runtime_liveness_audit_record.status is module.StudyRuntimeAuditStatus.LIVE
     assert status.bash_session_audit_record.status is module.StudyRuntimeAuditStatus.NONE
+
+
+def test_study_runtime_status_records_typed_preflight_and_recovery_extras() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": "/tmp/studies/001-risk",
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001"},
+            "quest_id": "quest-001",
+            "quest_root": "/tmp/runtime/quests/quest-001",
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+            "runtime_binding_exists": True,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+        }
+    )
+    analysis_bundle = module.StudyRuntimeAnalysisBundleResult.from_payload(make_analysis_bundle_result())
+    runtime_overlay = module.StudyRuntimeOverlayResult.from_payload(make_runtime_overlay_result())
+    startup_context_sync = module.StudyRuntimeStartupContextSyncResult.from_payload(
+        make_startup_context_sync_payload()
+    )
+    partial_quest_recovery = module.StudyRuntimePartialQuestRecoveryResult.from_payload(
+        make_partial_quest_recovery_payload()
+    )
+
+    status.record_analysis_bundle(analysis_bundle)
+    status.record_runtime_overlay(runtime_overlay)
+    status.record_startup_context_sync(startup_context_sync)
+    status.record_partial_quest_recovery(partial_quest_recovery)
+
+    payload = status.to_dict()
+
+    assert payload["analysis_bundle"] == make_analysis_bundle_result()
+    assert payload["runtime_overlay"] == make_runtime_overlay_result()
+    assert payload["startup_context_sync"] == make_startup_context_sync_payload()
+    assert payload["partial_quest_recovery"] == make_partial_quest_recovery_payload()
+    assert status.analysis_bundle_result.ready is True
+    assert status.runtime_overlay_result.audit.all_roots_ready is True
+    assert status.startup_context_sync_result.ok is True
+    assert status.partial_quest_recovery_result.archived_root.endswith("20260403T000000Z")
 
 
 def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
