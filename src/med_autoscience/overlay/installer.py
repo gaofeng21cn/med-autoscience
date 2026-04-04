@@ -292,6 +292,7 @@ def load_overlay_skill_text(
 def _describe_target(
     target: OverlayTarget,
     *,
+    quest_root: Path | None,
     policy_id: str,
     archetype_ids: tuple[str, ...],
     default_submission_targets: tuple[dict[str, object], ...],
@@ -320,10 +321,22 @@ def _describe_target(
     current_fingerprint = None
     source_fingerprint_before_overlay = manifest.get("source_fingerprint_before_overlay")
     manifest_present = bool(manifest)
+    manifest_target_root = manifest.get("target_root")
+    manifest_skill_path = manifest.get("skill_path")
+    manifest_quest_root = manifest.get("quest_root")
+    resolved_quest_root = str(quest_root) if quest_root is not None else None
+    manifest_path_drift = manifest_present and (
+        isinstance(manifest_target_root, str) and manifest_target_root != str(target.target_root)
+        or isinstance(manifest_skill_path, str) and manifest_skill_path != str(target.skill_path)
+        or (resolved_quest_root is not None and isinstance(manifest_quest_root, str) and manifest_quest_root != resolved_quest_root)
+    )
 
     if target.skill_path.exists():
         current_fingerprint = _fingerprint(current_text or "")
-        if manifest_present:
+        if manifest_path_drift:
+            status = "drifted"
+            needs_reapply = True
+        elif manifest_present:
             if overlay_fingerprint and current_fingerprint == overlay_fingerprint:
                 status = "overlay_applied"
                 needs_reapply = False
@@ -382,6 +395,7 @@ def describe_medical_overlay(
     described_targets = [
         _describe_target(
             target,
+            quest_root=resolved_quest_root,
             policy_id=normalized_policy_id,
             archetype_ids=normalized_archetype_ids,
             default_submission_targets=normalized_default_submission_targets,

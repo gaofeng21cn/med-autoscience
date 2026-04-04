@@ -1356,6 +1356,11 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     )
     monkeypatch.setattr(
         module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append(("prepare_overlay", quest_root)) or make_runtime_overlay_result(),
+    )
+    monkeypatch.setattr(
+        module,
         "quest_hydration_controller",
         SimpleNamespace(
             run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
@@ -1387,11 +1392,83 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     assert result["decision"] == "blocked"
     assert result["reason"] == "startup_boundary_not_ready_for_resume"
     assert result["startup_hydration_validation"]["status"] == "clear"
+    assert result["runtime_overlay"]["audit"]["all_roots_ready"] is True
     assert calls == [
+        ("prepare_overlay", quest_root),
         ("sync_startup_context", "001-risk", "full_research"),
         ("hydrate", quest_root),
         ("validate", quest_root),
     ]
+
+
+def test_ensure_study_runtime_blocks_when_existing_created_quest_overlay_refresh_still_fails(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"created"}\n')
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append("prepare_overlay")
+        or make_runtime_overlay_result(all_roots_ready=False),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda **kwargs: pytest.fail("update_quest_startup_context should not run when overlay refresh stays broken"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: pytest.fail("hydration should not run when overlay refresh stays broken")
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: pytest.fail("validation should not run when overlay refresh stays broken")
+        ),
+        raising=False,
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "runtime_overlay_not_ready"
+    assert result["runtime_overlay"]["audit"]["all_roots_ready"] is False
+    assert calls == ["prepare_overlay"]
 
 
 def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_quest(
@@ -1450,11 +1527,71 @@ def test_ensure_study_runtime_uses_protocol_refresh_gate_for_blocked_existing_qu
         ),
         raising=False,
     )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
 
     assert result["decision"] == "blocked"
-    assert calls == []
+    assert result["reason"] == "startup_boundary_not_ready_for_resume"
+    assert result["runtime_overlay"]["audit"]["all_roots_ready"] is True
+    assert calls == ["prepare_overlay"]
+
+
+def test_ensure_study_runtime_materializes_overlay_for_non_resumable_existing_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"completed"}\n')
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda **kwargs: pytest.fail("startup context sync should not run for non-resumable completed quest"),
+        raising=False,
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_exists_with_non_resumable_state"
+    assert result["runtime_overlay"]["audit"]["all_roots_ready"] is True
+    assert calls == ["prepare_overlay"]
 
 
 def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:

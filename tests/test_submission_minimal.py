@@ -291,7 +291,7 @@ def test_create_submission_minimal_package_creates_output_directory_and_copies_p
     submission_root = paper_root / "submission_minimal"
     assert submission_root.exists()
     assert (submission_root / "paper.pdf").exists()
-    assert manifest["output_root"] == str(submission_root)
+    assert manifest["output_root"] == "paper/submission_minimal"
 
 
 def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_path: Path) -> None:
@@ -318,6 +318,7 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest_payload["publication_profile"] == "general_medical_journal"
     assert manifest_payload["citation_style"] == "AMA"
+    assert manifest_payload["output_root"] == "paper/submission_minimal"
     assert manifest_payload["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
     assert manifest_payload["manuscript"]["docx_path"] == "paper/submission_minimal/manuscript.docx"
     assert manifest_payload["naming_map"]["figures"] == {
@@ -327,6 +328,14 @@ def test_create_submission_minimal_package_writes_manifest_and_docx_path(tmp_pat
     assert manifest_payload["naming_map"]["tables"] == {
         "T1": "Table1",
     }
+    assert manifest_payload["figures"][0]["source_paths"] == [
+        "paper/figures/F1_main.pdf",
+        "paper/figures/F1_main.png",
+    ]
+    assert manifest_payload["tables"][0]["source_paths"] == [
+        "paper/tables/T1_summary.csv",
+        "paper/tables/T1_summary.md",
+    ]
     assert manifest_payload == manifest
 
 

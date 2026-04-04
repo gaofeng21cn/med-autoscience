@@ -882,10 +882,22 @@ def _run_runtime_preflight(
                     StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
                 )
     elif context.profile.enable_medical_overlay and status.quest_exists:
-        runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
-            {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
+        should_prepare_existing_overlay = status.quest_status not in _LIVE_QUEST_STATUSES
+        runtime_overlay_payload = (
+            _prepare_runtime_overlay(
+                profile=context.profile,
+                quest_root=context.quest_root,
+            )
+            if should_prepare_existing_overlay
+            else {"audit": _audit_runtime_overlay(profile=context.profile, quest_root=context.quest_root)}
         )
+        runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(runtime_overlay_payload)
         status.record_runtime_overlay(runtime_overlay_result)
+        if should_prepare_existing_overlay and not runtime_overlay_result.audit.all_roots_ready:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
+            )
         if (
             status.quest_status in _LIVE_QUEST_STATUSES
             and status.decision

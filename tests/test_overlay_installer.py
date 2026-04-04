@@ -420,6 +420,30 @@ def test_ensure_medical_overlay_reapplies_when_targets_are_drifted(tmp_path: Pat
     assert result["post_status"]["all_targets_ready"] is True
 
 
+def test_ensure_medical_overlay_reapplies_when_manifest_paths_drift(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    home = tmp_path / "home"
+    skills_root = home / ".codex" / "skills"
+    for skill_id in SKILL_IDS:
+        write_skill(skills_root, skill_id, f"upstream {skill_id}\n")
+
+    module.install_medical_overlay(home=home)
+    target_root = skills_root / "med-deepscientist-write"
+    manifest = read_manifest(target_root)
+    manifest["target_root"] = str(target_root.parent / "med-deepscientist-write-old")
+    manifest["skill_path"] = str((target_root.parent / "med-deepscientist-write-old") / "SKILL.md")
+    (target_root / ".med_autoscience_overlay.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = module.ensure_medical_overlay(home=home, mode="ensure_ready")
+
+    assert result["selected_action"] == "reapply"
+    assert result["action_result"]["installed_count"] == len(SKILL_IDS)
+    assert result["post_status"]["all_targets_ready"] is True
+    reloaded = read_manifest(target_root)
+    assert reloaded["target_root"] == str(target_root)
+    assert reloaded["skill_path"] == str(target_root / "SKILL.md")
+
+
 def test_load_overlay_skill_text_for_finalize_includes_study_delivery_sync_contract() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
