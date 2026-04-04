@@ -218,6 +218,90 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
     assert performance_inputs["catalog_id"] == "T2"
 
 
+def test_run_hydration_writes_publication_display_contract_files(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    quest_root.mkdir(parents=True, exist_ok=True)
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"status": "resolved"},
+            "medical_reporting_contract": {
+                "status": "resolved",
+                "display_registry_required": True,
+                "display_shell_plan": [
+                    {
+                        "display_id": "discrimination_calibration",
+                        "display_kind": "figure",
+                        "requirement_key": "time_to_event_discrimination_calibration_panel",
+                        "catalog_id": "F2",
+                    }
+                ],
+            },
+            "entry_state_summary": "summary",
+        },
+    )
+
+    paper_root = quest_root / "paper"
+    assert (paper_root / "publication_style_profile.json").exists()
+    assert (paper_root / "display_overrides.json").exists()
+
+
+def test_run_quest_hydration_rejects_unknown_requirement_key(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(ValueError, match="requirement_key"):
+        module.run_hydration(
+            quest_root=quest_root,
+            hydration_payload={
+                "medical_analysis_contract": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract": {
+                    "reporting_guideline_family": "TRIPOD",
+                    "display_shell_plan": [
+                        {
+                            "display_id": "cohort_flow",
+                            "display_kind": "figure",
+                            "requirement_key": "unknown_requirement_key",
+                            "catalog_id": "F1",
+                        }
+                    ],
+                },
+                "entry_state_summary": "Study root: /tmp/studies/001-risk",
+                "literature_records": [],
+            },
+        )
+
+
+def test_run_quest_hydration_rejects_non_string_display_shell_plan_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    with pytest.raises(ValueError, match="display_shell_plan"):
+        module.run_hydration(
+            quest_root=quest_root,
+            hydration_payload={
+                "medical_analysis_contract": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract": {
+                    "reporting_guideline_family": "TRIPOD",
+                    "display_shell_plan": [
+                        {
+                            "display_id": True,
+                            "display_kind": "figure",
+                            "requirement_key": "cohort_flow_figure",
+                            "catalog_id": 123,
+                        }
+                    ],
+                },
+                "entry_state_summary": "Study root: /tmp/studies/001-risk",
+                "literature_records": [],
+            },
+        )
+
+
 def test_run_quest_hydration_rejects_semantic_display_plan_without_catalog_id(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quest_hydration")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"

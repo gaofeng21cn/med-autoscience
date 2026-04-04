@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import publication_display_contract
 from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -42,24 +43,72 @@ def _validate_contract_status(
     return status or None, unresolved_blocker
 
 
+def _is_legacy_display_id(*, display_id: str, display_kind: str) -> bool:
+    item = display_id.strip()
+    kind = display_kind.strip()
+    if kind == "figure":
+        return bool(item) and item.lower().startswith("figure") and item[6:].isdigit()
+    if kind == "table":
+        return bool(item) and item.lower().startswith("table") and item[5:].isdigit()
+    return False
+
+
 def _normalize_display_shell_plan(reporting_contract: dict[str, Any]) -> list[dict[str, str]]:
     plan = reporting_contract.get("display_shell_plan")
     normalized: list[dict[str, str]] = []
     if isinstance(plan, list):
         for item in plan:
             if not isinstance(item, dict):
-                continue
-            display_id = str(item.get("display_id") or "").strip()
-            display_kind = str(item.get("display_kind") or "").strip()
-            requirement_key = str(item.get("requirement_key") or "").strip()
-            if display_id and display_kind and requirement_key:
-                normalized.append(
-                    {
-                        "display_id": display_id,
-                        "display_kind": display_kind,
-                        "requirement_key": requirement_key,
-                    }
+                raise ValueError("medical_reporting_contract.display_shell_plan must contain mappings")
+            display_id_value = item.get("display_id")
+            display_kind_value = item.get("display_kind")
+            requirement_key_value = item.get("requirement_key")
+            if not isinstance(display_id_value, str) or not display_id_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string display_id"
                 )
+            if not isinstance(display_kind_value, str) or not display_kind_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string display_kind"
+                )
+            if not isinstance(requirement_key_value, str) or not requirement_key_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string requirement_key"
+                )
+            if "catalog_id" in item:
+                catalog_id_value = item.get("catalog_id")
+                if catalog_id_value is not None and not isinstance(catalog_id_value, str):
+                    raise ValueError(
+                        "medical_reporting_contract.display_shell_plan items must include string catalog_id when provided"
+                    )
+                if isinstance(catalog_id_value, str):
+                    catalog_id = catalog_id_value.strip()
+                else:
+                    catalog_id = ""
+            else:
+                catalog_id = ""
+            display_id = display_id_value.strip()
+            display_kind = display_kind_value.strip()
+            requirement_key = requirement_key_value.strip()
+            if resolve_required_display_surface_stub(requirement_key) is None:
+                raise ValueError(
+                    f"medical_reporting_contract.display_shell_plan contains unsupported requirement_key: {requirement_key}"
+                )
+            if not catalog_id and not _is_legacy_display_id(display_id=display_id, display_kind=display_kind):
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan semantic display_id items must include catalog_id"
+                )
+            if not display_id or not display_kind or not requirement_key:
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include display_id, display_kind, requirement_key"
+                )
+            normalized.append(
+                {
+                    "display_id": display_id,
+                    "display_kind": display_kind,
+                    "requirement_key": requirement_key,
+                }
+            )
     return normalized
 
 
@@ -89,8 +138,33 @@ def run_validation(*, quest_root: Path) -> dict[str, object]:
 
     if reporting_blocker is None:
         reporting_payload = _read_json_dict(reporting_path)
-        display_shell_plan = _normalize_display_shell_plan(reporting_payload)
-        if bool(reporting_payload.get("display_registry_required", bool(display_shell_plan))):
+        raw_display_shell_plan = reporting_payload.get("display_shell_plan")
+        try:
+            display_shell_plan = _normalize_display_shell_plan(reporting_payload)
+        except ValueError:
+            blockers.append("invalid_display_shell_plan")
+            display_shell_plan = []
+        display_surface_default = bool(raw_display_shell_plan) if isinstance(raw_display_shell_plan, list) else bool(
+            display_shell_plan
+        )
+        display_surface_enabled = bool(reporting_payload.get("display_registry_required", display_surface_default))
+        if display_surface_enabled:
+            publication_style_profile_path = resolved_quest_root / "paper" / "publication_style_profile.json"
+            display_overrides_path = resolved_quest_root / "paper" / "display_overrides.json"
+            if not publication_style_profile_path.exists():
+                blockers.append("missing_publication_style_profile")
+            else:
+                try:
+                    publication_display_contract.load_publication_style_profile(publication_style_profile_path)
+                except (OSError, ValueError, json.JSONDecodeError):
+                    blockers.append("invalid_publication_style_profile")
+            if not display_overrides_path.exists():
+                blockers.append("missing_display_overrides")
+            else:
+                try:
+                    publication_display_contract.load_display_overrides(display_overrides_path)
+                except (OSError, ValueError, json.JSONDecodeError):
+                    blockers.append("invalid_display_overrides")
             display_registry_path = resolved_quest_root / "paper" / "display_registry.json"
             if not display_registry_path.exists():
                 blockers.append("missing_display_registry")
