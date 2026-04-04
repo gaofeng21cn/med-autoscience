@@ -36,6 +36,7 @@ __all__ = [
     "_execute_pause_runtime_decision",
     "_execute_resume_runtime_decision",
     "_execute_runtime_decision",
+    "_persist_runtime_artifacts",
     "_run_runtime_preflight",
 ]
 
@@ -526,3 +527,34 @@ def _execute_runtime_decision(
     if status.decision == StudyRuntimeDecision.LIGHTWEIGHT:
         return StudyRuntimeExecutionOutcome()
     raise ValueError(f"unsupported study runtime decision: {status.decision}")
+
+
+def _persist_runtime_artifacts(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+    outcome: StudyRuntimeExecutionOutcome,
+    force: bool,
+    source: str,
+) -> None:
+    router = _router_module()
+    artifact_paths = router.study_runtime_protocol.persist_runtime_artifacts(
+        runtime_binding_path=context.runtime_binding_path,
+        launch_report_path=context.launch_report_path,
+        runtime_root=context.runtime_root,
+        study_id=context.study_id,
+        study_root=context.study_root,
+        quest_id=status.quest_id.strip() or None,
+        last_action=outcome.binding_last_action.value if outcome.binding_last_action is not None else None,
+        status=status.to_dict(),
+        source=source,
+        force=force,
+        startup_payload_path=outcome.startup_payload_path,
+        daemon_result=outcome.serialized_daemon_result(),
+        recorded_at=router._utc_now(),
+    )
+    status.record_runtime_artifacts(
+        runtime_binding_path=artifact_paths.runtime_binding_path,
+        launch_report_path=artifact_paths.launch_report_path,
+        startup_payload_path=artifact_paths.startup_payload_path,
+    )
