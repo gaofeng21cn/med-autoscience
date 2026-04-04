@@ -33,6 +33,15 @@
 `study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
+当前 controller 侧对 `MedDeepScientist` 的最小稳定 transport 依赖，应收敛在显式 contract 上：
+
+- quest create success 至少返回 `ok + snapshot.quest_id`
+- quest control success 至少返回 `ok + quest_id + action + status + snapshot`
+- startup-context patch success 至少返回 `ok + quest_id + snapshot`
+- quest session 至少返回 `ok + quest_id + snapshot + runtime_audit`
+- artifact completion success 至少返回 `ok + status + snapshot + summary_refresh`
+- bash session 列表项至少包含 `bash_id + status`
+
 ## 正式入口
 
 当前正式入口只有两个：
