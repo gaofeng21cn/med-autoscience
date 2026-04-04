@@ -99,8 +99,8 @@
 
 如果你想了解当前已经支持的具体模板、适用场景和扩展方向，可以继续查看：
 
-- [医学展示面审计指南](guides/medical_display_audit_guide.md)
-- [医学展示面模板目录](guides/medical_display_template_catalog.md)
+- [医学展示面审计指南](docs/medical_display_audit_guide.md)
+- [医学展示面模板目录](docs/medical_display_template_catalog.md)
 
 ## 典型交付结果
 
@@ -230,17 +230,17 @@ uv run python -m build --sdist --wheel
 
 研究真正运行前，仍需单独准备受控 runtime `MedDeepScientist`（仓库名 `med-deepscientist`），并把 profile 里的 `med_deepscientist_repo_root` 指向该 checkout。
 
-- Agent 接入与运行接口：[guides/agent_runtime_interface.md](guides/agent_runtime_interface.md)
-- 第三方 Agent 入口模式契约：[guides/agent_entry_modes.md](guides/agent_entry_modes.md)
-- Codex plugin 接入：[guides/codex_plugin.md](guides/codex_plugin.md)
-- Codex plugin 发布说明：[guides/codex_plugin_release.md](guides/codex_plugin_release.md)
-- 新病种 workspace 快速起步：[guides/disease_workspace_quickstart.md](guides/disease_workspace_quickstart.md)
-- Workspace 架构与迁移：[guides/workspace_architecture.md](guides/workspace_architecture.md)
+- Agent 接入与运行接口：[docs/agent_runtime_interface.md](docs/agent_runtime_interface.md)
+- 第三方 Agent 入口模式契约：[docs/agent_entry_modes.md](docs/agent_entry_modes.md)
+- Codex plugin 接入：[docs/codex_plugin.md](docs/codex_plugin.md)
+- Codex plugin 发布说明：[docs/codex_plugin_release.md](docs/codex_plugin_release.md)
+- 新病种 workspace 快速起步：[docs/disease_workspace_quickstart.md](docs/disease_workspace_quickstart.md)
+- Workspace 架构与迁移：[docs/workspace_architecture.md](docs/workspace_architecture.md)
 - 工作区接入与部署：[bootstrap/README.md](bootstrap/README.md)
 - 控制器与内部能力：[controllers/README.md](controllers/README.md)
-- 数据资产策略：[policies/data_asset_management.md](policies/data_asset_management.md)
-- 默认研究场景：[policies/study_archetypes.md](policies/study_archetypes.md)
-- 研究路线偏置：[policies/research_route_bias_policy.md](policies/research_route_bias_policy.md)
+- 数据资产策略：[docs/policies/data_asset_management.md](docs/policies/data_asset_management.md)
+- 默认研究场景：[docs/policies/study_archetypes.md](docs/policies/study_archetypes.md)
+- 研究路线偏置：[docs/policies/research_route_bias_policy.md](docs/policies/research_route_bias_policy.md)
 
 如果你要给 `Codex`、`Claude Code`、`OpenClaw` 这类外部 Agent 提供可直接消费的入口资产，可直接使用：
 
@@ -249,7 +249,7 @@ uv run python -m build --sdist --wheel
 - `OpenClaw` 入口模板：[`templates/openclaw/medautoscience-entry.prompt.md`](templates/openclaw/medautoscience-entry.prompt.md)
 
 首页优先保留面向公开读者的能力概览与接入导览；更完整的运行接口、部署方式和技术细节，请以以上文档为准。
-其中，`guides/` 主要承载随仓库发布的稳定技术指南；`docs/` 主要用于内部设计与过程性记录，不作为公开主入口。
+其中，`docs/` 承载随仓库发布的公开文档，`docs/policies/` 承载稳定规则；`docs/superpowers/` 只保留本地 AI / Superpowers 过程文档，不进入公开仓库。
 
 ### macOS 预发布 CLI 入口
 

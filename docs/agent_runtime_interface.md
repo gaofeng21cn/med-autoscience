@@ -2,8 +2,8 @@
 
 这份文档写给 `Codex` 等 Agent 以及需要审阅 Agent 行为的技术合作者。
 
-它属于仓库的稳定技术指南层，因此放在 `guides/` 下。
-与之相对，`docs/` 更偏内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
+它属于仓库的稳定公开文档层，因此放在 `docs/` 下。
+与之相对，`docs/superpowers/` 更偏本地内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
 
 `MedAutoScience` 对外可以继续称为医学自动科研平台，但它的本质是一个 `Agent-first, human-auditable` 的医学自动科研运行层：
 
@@ -24,9 +24,9 @@
 - managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
-- 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
-- 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
-- 研究路线偏置：[`policies/research_route_bias_policy.md`](../policies/research_route_bias_policy.md)
+- 数据资产策略：[`policies/data_asset_management.md`](./policies/data_asset_management.md)
+- 默认研究场景：[`policies/study_archetypes.md`](./policies/study_archetypes.md)
+- 研究路线偏置：[`policies/research_route_bias_policy.md`](./policies/research_route_bias_policy.md)
 - sidecar provider 与 figure routes 指南：[`sidecar_figure_routes.md`](./sidecar_figure_routes.md)
 - 第三方 Agent 入口模式：[`agent_entry_modes.md`](./agent_entry_modes.md)
 
@@ -314,7 +314,7 @@ Phase 3 开始，transport 面也开始显式收口：
 
 这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前正式主链已经不再保留 `adapters/deepscientist/*` 作为运行时依赖，production code 只允许依赖 `runtime_protocol` / `runtime_transport`。
 
-对于单个 study 的 runtime 编排，`study_runtime_router` 的稳定入口、typed surface 归属、decision 执行边界与 side-effect 约束，另见 [`guides/study_runtime_orchestration.md`](./study_runtime_orchestration.md)。
+对于单个 study 的 runtime 编排，`study_runtime_router` 的稳定入口、typed surface 归属、decision 执行边界与 side-effect 约束，另见 [`study_runtime_orchestration.md`](./study_runtime_orchestration.md)。
 
 ## Target Layering
 

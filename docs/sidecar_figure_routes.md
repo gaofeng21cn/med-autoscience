@@ -40,4 +40,4 @@ Sidecar 产出的 figures 与说明文案必须至少能追溯这几层内容：
 
 ## 参考链接
 
-- [`guides/agent_runtime_interface.md`](./agent_runtime_interface.md)：Agent Runtime Interface 提供整个运行层的入口路径。
+- [`docs/agent_runtime_interface.md`](./agent_runtime_interface.md)：Agent Runtime Interface 提供整个运行层的入口路径。

@@ -11,8 +11,8 @@
 
 当前完成态仍以：
 
-- `guides/medical_display_audit_guide.md`
-- `guides/medical_display_template_catalog.md`
+- `docs/medical_display_audit_guide.md`
+- `docs/medical_display_template_catalog.md`
 
 为准。
 

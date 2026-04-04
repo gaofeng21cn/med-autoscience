@@ -20,7 +20,7 @@ from med_autoscience.agent_entry.renderers import (
 def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
     result = sync_agent_entry_assets(repo_root=tmp_path)
     expected_assets = {
-        "guides/agent_entry_modes.md": render_entry_modes_guide(),
+        "docs/agent_entry_modes.md": render_entry_modes_guide(),
         "templates/agent_entry_modes.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
@@ -37,7 +37,7 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
 def test_repo_public_agent_entry_assets_match_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     expected_assets = {
-        repo_root / "guides" / "agent_entry_modes.md": render_entry_modes_guide(),
+        repo_root / "docs" / "agent_entry_modes.md": render_entry_modes_guide(),
         repo_root / "templates" / "agent_entry_modes.yaml": render_public_yaml(),
         repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),

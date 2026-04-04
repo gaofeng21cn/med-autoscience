@@ -10,8 +10,8 @@ PLUGIN_ROOT = REPO_ROOT / "plugins" / "med-autoscience"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "med-autoscience" / "SKILL.md"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
-GUIDE_PATH = REPO_ROOT / "guides" / "codex_plugin.md"
-RELEASE_GUIDE_PATH = REPO_ROOT / "guides" / "codex_plugin_release.md"
+GUIDE_PATH = REPO_ROOT / "docs" / "codex_plugin.md"
+RELEASE_GUIDE_PATH = REPO_ROOT / "docs" / "codex_plugin_release.md"
 README_PATH = REPO_ROOT / "README.md"
 
 
@@ -58,7 +58,7 @@ def test_readme_links_codex_plugin_guide() -> None:
     readme = README_PATH.read_text(encoding="utf-8")
 
     assert "Codex plugin 接入" in readme
-    assert "guides/codex_plugin.md" in readme
+    assert "docs/codex_plugin.md" in readme
     assert "如果你主要通过 Codex 驱动 `MedAutoScience`" in readme
 
 
@@ -68,7 +68,7 @@ def test_codex_plugin_release_guide_is_linked_from_readme_and_install_guide() ->
     release_guide = RELEASE_GUIDE_PATH.read_text(encoding="utf-8")
 
     assert "Codex plugin 发布说明" in readme
-    assert "guides/codex_plugin_release.md" in readme
+    assert "docs/codex_plugin_release.md" in readme
     assert "codex_plugin_release.md" in install_guide
     assert "用途" in release_guide
     assert "安装方式" in release_guide
