@@ -424,6 +424,51 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
     assert '"decision": "create_and_start"' in captured.out
 
 
+def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "study_root": "/tmp/studies/001-risk",
+                "entry_mode": "full_research",
+                "execution": {"quest_id": "001-risk", "auto_resume": True},
+                "quest_id": "001-risk",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "quest_exists": True,
+                "quest_status": "created",
+                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+                "runtime_binding_exists": True,
+                "study_completion_contract": {},
+                "decision": "create_and_start",
+                "reason": "quest_missing",
+            }
+        ),
+    )
+
+    exit_code = cli.main(
+        [
+            "ensure-study-runtime",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"decision": "create_and_start"' in captured.out
+    assert '"study_id": "001-risk"' in captured.out
+
+
 def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -456,6 +501,51 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["study_root"] is None
     assert called["entry_mode"] is None
     assert '"quest_status": "running"' in captured.out
+
+
+def test_study_runtime_status_command_serializes_typed_controller_result(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: typed_surface.StudyRuntimeStatus.from_payload(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "study_root": "/tmp/studies/001-risk",
+                "entry_mode": "full_research",
+                "execution": {"quest_id": "001-risk", "auto_resume": True},
+                "quest_id": "001-risk",
+                "quest_root": "/tmp/runtime/quests/001-risk",
+                "quest_exists": True,
+                "quest_status": "created",
+                "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
+                "runtime_binding_exists": True,
+                "study_completion_contract": {},
+                "decision": "noop",
+                "reason": "quest_missing",
+            }
+        ),
+    )
+
+    exit_code = cli.main(
+        [
+            "study-runtime-status",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"decision": "noop"' in captured.out
+    assert '"study_id": "001-risk"' in captured.out
 
 
 def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

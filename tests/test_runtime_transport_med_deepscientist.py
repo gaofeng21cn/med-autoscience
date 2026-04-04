@@ -188,7 +188,6 @@ def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> No
     assert seen["timeout"] == 10
     assert seen["payload"] == {"goal": "Launch study 001", "quest_id": "001-risk", "auto_start": True}
 
-
 def test_create_quest_ensures_managed_daemon_before_posting(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -260,6 +259,30 @@ def test_ensure_managed_daemon_wraps_launcher_contract_errors(monkeypatch, tmp_p
         module.ensure_managed_daemon(runtime_root=runtime_root)
 
 
+def test_create_quest_rejects_missing_stable_snapshot_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    monkeypatch.setattr(module, "ensure_managed_daemon", lambda *, runtime_root: {"url": "http://127.0.0.1:20999"})
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true}'
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    with pytest.raises(RuntimeError, match="missing stable quest create contract"):
+        module.create_quest(
+            runtime_root=runtime_root,
+            payload={"goal": "Launch study 001", "quest_id": "001-risk"},
+        )
+
+
 def test_chat_quest_posts_text_and_reply_target(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -302,6 +325,52 @@ def test_chat_quest_posts_text_and_reply_target(monkeypatch, tmp_path: Path) -> 
         "text": "同意",
         "source": "medautosci-test",
         "reply_to_interaction_id": "decision-001",
+    }
+
+
+def test_chat_quest_posts_typed_decision_response_when_provided(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "message": {"id": "msg-typed"}}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.chat_quest(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        text="structured approval",
+        source="medautosci-test",
+        reply_to_interaction_id="decision-001",
+        decision_response={"decision_type": "quest_completion_approval", "approved": True},
+    )
+
+    assert result == {"ok": True, "message": {"id": "msg-typed"}}
+    assert seen["payload"] == {
+        "text": "structured approval",
+        "source": "medautosci-test",
+        "reply_to_interaction_id": "decision-001",
+        "decision_response": {
+            "decision_type": "quest_completion_approval",
+            "approved": True,
+        },
     }
 
 
@@ -364,7 +433,7 @@ def test_artifact_complete_quest_posts_summary(monkeypatch, tmp_path: Path) -> N
             return None
 
         def read(self) -> bytes:
-            return b'{"ok": true, "status": "completed"}'
+            return b'{"ok": true, "status": "completed", "snapshot": {"quest_id": "001-risk", "status": "completed"}, "summary_refresh": {"ok": true}}'
 
     def fake_urlopen(http_request, timeout: int):
         seen["url"] = http_request.full_url
@@ -380,7 +449,12 @@ def test_artifact_complete_quest_posts_summary(monkeypatch, tmp_path: Path) -> N
         summary="Study completed.",
     )
 
-    assert result == {"ok": True, "status": "completed"}
+    assert result == {
+        "ok": True,
+        "status": "completed",
+        "snapshot": {"quest_id": "001-risk", "status": "completed"},
+        "summary_refresh": {"ok": True},
+    }
     assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/artifact/complete"
     assert seen["timeout"] == 10
     assert seen["payload"] == {"summary": "Study completed."}
@@ -403,13 +477,14 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
     monkeypatch.setattr(
         module,
         "chat_quest",
-        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None: calls.append(
+        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None, decision_response=None: calls.append(
             (
                 "approve",
                 {
                     "text": text,
                     "source": source,
                     "reply_to_interaction_id": reply_to_interaction_id,
+                    "decision_response": decision_response,
                 },
             )
         )
@@ -423,6 +498,7 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
             "ok": True,
             "status": "completed",
             "snapshot": {"quest_id": quest_id, "status": "completed"},
+            "summary_refresh": {"ok": True},
         },
     )
 
@@ -448,6 +524,7 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
             "ok": True,
             "status": "completed",
             "snapshot": {"quest_id": "001-risk", "status": "completed"},
+            "summary_refresh": {"ok": True},
         },
     }
     assert calls == [
@@ -458,6 +535,10 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
                 "text": "同意",
                 "source": "medautosci-test",
                 "reply_to_interaction_id": "decision-001",
+                "decision_response": {
+                    "decision_type": "quest_completion_approval",
+                    "approved": True,
+                },
             },
         ),
         ("complete", "Study completed."),
@@ -497,7 +578,7 @@ def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
             return None
 
         def read(self) -> bytes:
-            return b'{"ok": true, "status": "stopped"}'
+            return b'{"ok": true, "quest_id": "q001", "action": "stop", "status": "stopped", "snapshot": {"status": "stopped"}}'
 
     def fake_urlopen(http_request, timeout: int):
         seen["url"] = http_request.full_url
@@ -516,7 +597,13 @@ def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
         source="codex-test",
     )
 
-    assert result == {"ok": True, "status": "stopped"}
+    assert result == {
+        "ok": True,
+        "quest_id": "q001",
+        "action": "stop",
+        "status": "stopped",
+        "snapshot": {"status": "stopped"},
+    }
     assert seen["url"] == "http://127.0.0.1:20999/api/quests/q001/control"
     assert seen["method"] == "POST"
     assert seen["timeout"] == 10
@@ -556,7 +643,13 @@ def test_post_quest_control_ensures_managed_daemon_before_resume(monkeypatch, tm
         module,
         "_post_json",
         lambda *, url, payload, timeout=10: seen.update({"url": url, "payload": payload, "timeout": timeout})
-        or {"ok": True, "status": "running"},
+        or {
+            "ok": True,
+            "quest_id": "001-risk",
+            "action": "resume",
+            "status": "running",
+            "snapshot": {"status": "running"},
+        },
     )
     monkeypatch.setattr(
         module,
@@ -571,7 +664,13 @@ def test_post_quest_control_ensures_managed_daemon_before_resume(monkeypatch, tm
         source="medautosci-test",
     )
 
-    assert result == {"ok": True, "status": "running"}
+    assert result == {
+        "ok": True,
+        "quest_id": "001-risk",
+        "action": "resume",
+        "status": "running",
+        "snapshot": {"status": "running"},
+    }
     assert seen == {
         "url": "http://127.0.0.1:21999/api/quests/001-risk/control",
         "payload": {"action": "resume", "source": "medautosci-test"},
@@ -604,6 +703,143 @@ def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Pat
     assert seen == {
         "url": "http://127.0.0.1:20999/api/quests/001-risk/startup-context",
         "payload": {"startup_contract": {"scope": "full_research"}},
+    }
+
+def test_update_quest_startup_context_rejects_missing_stable_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+
+    monkeypatch.setattr(
+        module.request,
+        "urlopen",
+        lambda http_request, timeout: type(
+            "FakeResponse",
+            (),
+            {
+                "__enter__": lambda self: self,
+                "__exit__": lambda self, exc_type, exc, tb: None,
+                "read": lambda self: b'{"ok": true, "snapshot": {}}',
+            },
+        )(),
+    )
+
+    with pytest.raises(RuntimeError, match="missing stable startup-context contract"):
+        handler(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            startup_contract={"scope": "full_research"},
+        )
+
+
+def test_update_quest_startup_context_requires_echoed_startup_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+
+    monkeypatch.setattr(
+        module.request,
+        "urlopen",
+        lambda http_request, timeout: type(
+            "FakeResponse",
+            (),
+            {
+                "__enter__": lambda self: self,
+                "__exit__": lambda self, exc_type, exc, tb: None,
+                "read": lambda self: b'{"ok": true, "quest_id": "001-risk", "snapshot": {"quest_id": "001-risk"}}',
+            },
+        )(),
+    )
+
+    with pytest.raises(RuntimeError, match="missing stable startup-context contract"):
+        handler(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            startup_contract={"scope": "full_research"},
+        )
+
+
+def test_update_quest_startup_context_requires_requested_baseline_ref_roundtrip(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+
+    monkeypatch.setattr(
+        module.request,
+        "urlopen",
+        lambda http_request, timeout: type(
+            "FakeResponse",
+            (),
+            {
+                "__enter__": lambda self: self,
+                "__exit__": lambda self, exc_type, exc, tb: None,
+                "read": lambda self: b'{"ok": true, "quest_id": "001-risk", "snapshot": {"quest_id": "001-risk", "startup_contract": {"schema_version": 4}}}',
+            },
+        )(),
+    )
+
+    with pytest.raises(RuntimeError, match="requested_baseline_ref roundtrip"):
+        handler(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            requested_baseline_ref={"baseline_id": "demo-baseline"},
+        )
+
+
+def test_update_quest_startup_context_patches_requested_baseline_ref_without_create_side_effects(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(
+        module,
+        "_patch_json",
+        lambda **kwargs: seen.update(kwargs)
+        or {
+            "ok": True,
+            "quest_id": "001-risk",
+            "snapshot": {
+                "quest_id": "001-risk",
+                "startup_contract": {"schema_version": 4},
+                "requested_baseline_ref": {"baseline_id": "demo-baseline"},
+            },
+        },
+    )
+
+    result = handler(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        requested_baseline_ref={"baseline_id": "demo-baseline"},
+    )
+
+    assert result["snapshot"]["requested_baseline_ref"] == {"baseline_id": "demo-baseline"}
+    assert seen == {
+        "url": "http://127.0.0.1:20999/api/quests/001-risk/startup-context",
+        "payload": {"requested_baseline_ref": {"baseline_id": "demo-baseline"}},
     }
 
 
@@ -661,7 +897,6 @@ def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
         "action": "pause",
         "source": "medautosci-test",
     }
-
 
 def test_pause_quest_writes_locally_when_daemon_is_unreachable_and_no_active_run_id(
     monkeypatch,
@@ -742,6 +977,30 @@ def test_pause_quest_refuses_local_fallback_when_active_run_id_is_present(
         module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
 
+def test_post_quest_control_rejects_missing_stable_control_contract(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "quest_id": "q001"}'
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    with pytest.raises(RuntimeError, match="missing stable quest control contract"):
+        module.post_quest_control(
+            daemon_url="http://127.0.0.1:20999",
+            quest_id="q001",
+            action="stop",
+            source="codex-test",
+        )
+
+
 def test_stop_quest_posts_stop_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -807,6 +1066,30 @@ def test_list_quest_bash_sessions_reads_daemon_sessions(monkeypatch, tmp_path: P
     assert seen["method"] == "GET"
     assert seen["timeout"] == 10
     assert seen["accept"] == "application/json"
+
+
+def test_list_quest_bash_sessions_rejects_entries_missing_stable_fields(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps([{"status": "running"}]).encode("utf-8")
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    with pytest.raises(RuntimeError, match="stable bash session contract"):
+        module.list_quest_bash_sessions(runtime_root=runtime_root, quest_id="001-risk")
 
 
 def test_inspect_quest_live_bash_sessions_reports_live_and_none(monkeypatch) -> None:
@@ -890,7 +1173,22 @@ def test_get_quest_session_reads_session_payload(monkeypatch) -> None:
             return None
 
         def read(self) -> bytes:
-            return json.dumps({"ok": True, "snapshot": {"active_run_id": "run-1"}}).encode("utf-8")
+            return json.dumps(
+                {
+                    "ok": True,
+                    "quest_id": "001-risk",
+                    "snapshot": {"quest_id": "001-risk", "active_run_id": "run-1"},
+                    "runtime_audit": {
+                        "ok": True,
+                        "status": "none",
+                        "source": "daemon_turn_worker",
+                        "active_run_id": "run-1",
+                        "worker_running": False,
+                        "worker_pending": False,
+                        "stop_requested": False,
+                    },
+                }
+            ).encode("utf-8")
 
     def fake_urlopen(http_request, timeout: int):
         seen["url"] = http_request.full_url
@@ -902,10 +1200,42 @@ def test_get_quest_session_reads_session_payload(monkeypatch) -> None:
 
     result = module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
 
-    assert result == {"ok": True, "snapshot": {"active_run_id": "run-1"}}
+    assert result == {
+        "ok": True,
+        "quest_id": "001-risk",
+        "snapshot": {"quest_id": "001-risk", "active_run_id": "run-1"},
+        "runtime_audit": {
+            "ok": True,
+            "status": "none",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-1",
+            "worker_running": False,
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+    }
     assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/session"
     assert seen["method"] == "GET"
     assert seen["timeout"] == 10
+
+
+def test_get_quest_session_rejects_missing_runtime_audit_contract(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps({"ok": True, "quest_id": "001-risk", "snapshot": {}}).encode("utf-8")
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    with pytest.raises(RuntimeError, match="missing stable quest session contract"):
+        module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
 
 
 def test_inspect_quest_live_runtime_reports_live_and_none(monkeypatch) -> None:

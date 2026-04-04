@@ -21,6 +21,7 @@ from med_autoscience.controllers import (
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile, render_doctor_report, render_profile
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
+from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 
 
 PROTOCOL_VERSION = "2025-03-26"
@@ -44,6 +45,14 @@ def _tool_text_result(text: str, *, structured: dict[str, Any] | None = None, is
 
 def _json_text(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _serialize_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
+    if isinstance(result, StudyRuntimeStatus):
+        return result.to_dict()
+    if isinstance(result, dict):
+        return dict(result)
+    raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
 
 
 def _require_string(arguments: dict[str, Any], key: str) -> str:
@@ -395,7 +404,8 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
     )
-    return _tool_text_result(_json_text(result), structured=result)
+    serialized = _serialize_study_runtime_result(result)
+    return _tool_text_result(_json_text(serialized), structured=serialized)
 
 
 def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -408,7 +418,8 @@ def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
         force=_optional_bool(arguments, "force"),
         source="mcp",
     )
-    return _tool_text_result(_json_text(result), structured=result)
+    serialized = _serialize_study_runtime_result(result)
+    return _tool_text_result(_json_text(serialized), structured=serialized)
 
 
 def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:
