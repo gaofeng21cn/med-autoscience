@@ -1,0 +1,47 @@
+{
+  "baseline_name": "agent-contract-baseline",
+  "baseline_version": "0.1.0",
+  "mode": "project-native",
+  "scope": "project",
+  "display_name": "Med Autoscience",
+  "project_contract_path": "contracts/med-autoscience-repository/AGENTS.md",
+  "managed_files": [
+    "AGENTS.md",
+    "README.md",
+    ".gitignore",
+    "contracts/dev-hosts/README.md",
+    "contracts/dev-hosts/omx-cli.md",
+    "contracts/dev-hosts/codex-app.md",
+    "contracts/med-autoscience-repository/AGENTS.md"
+  ],
+  "updated_at": "2026-04-04T09:36:30.477122+00:00",
+  "preserved_existing_root": {
+    "backed_up": true,
+    "backup_path": "/Users/gaofeng/workspace/med-autoscience/.omx/backups/agent-contract-baseline/20260404T093628Z-AGENTS.md",
+    "adopted_to_contract": false
+  },
+  "gitignore_updated": true,
+  "readme_updated": true,
+  "config_reconcile": {
+    "applied": true,
+    "user_config_present": true,
+    "project_config_present": true,
+    "keys_synced": [
+      "model_reasoning_effort"
+    ],
+    "tables_synced": [
+      "model_providers"
+    ]
+  },
+  "legacy_alias_repair": {
+    "repaired": [
+      "analyze",
+      "build-fix",
+      "tdd",
+      "ecomode",
+      "ultraqa",
+      "swarm"
+    ],
+    "skipped": []
+  }
+}

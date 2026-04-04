@@ -33,9 +33,10 @@
 
 ## 文档分层
 
-- `guides/` 放可随仓库发布的稳定技术指南，面向 Agent 与技术协作者。
-- `docs/` 放内部设计稿、spec、plan 和 agent 工作过程产物，默认不作为公开发布面的一部分。
-- 不要把需要公开引用的稳定指南继续放回 `docs/`；优先放到 `guides/`。
+- `docs/` 放可随仓库发布的公开文档，面向医学用户、Agent 与技术协作者。
+- `docs/policies/` 放稳定、长期公开保留的规则文档。
+- `docs/superpowers/` 只放本地 AI / Superpowers 的设计稿、spec、plan 和工作过程产物，并保持未跟踪。
+- 不要再引入独立的 `guides/` 或仓库根级 `policies/` 作为公开入口；统一收敛到 `docs/`。
 
 ## 数据与状态变更
 

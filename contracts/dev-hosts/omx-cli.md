@@ -20,4 +20,5 @@ Typical signals include:
 ## Boundary
 
 This adapter controls host behavior only.
-It must not override the project-native MedAutoScience truth source in `contracts/med-autoscience-repository/AGENTS.md`.
+It must not override the project truth source in `contracts/med-autoscience-repository/AGENTS.md`.
+
