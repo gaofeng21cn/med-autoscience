@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+import importlib
+from pathlib import Path
+
+
+def test_study_runtime_transport_create_quest_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
+    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        router.med_deepscientist_transport,
+        "create_quest",
+        lambda **kwargs: (seen.__setitem__("create_kwargs", kwargs) or {"ok": True}),
+    )
+
+    payload = {"quest_id": "quest-001"}
+    result = transport._create_quest(runtime_root=tmp_path / "runtime", payload=payload)
+
+    assert seen["create_kwargs"]["payload"] == payload
+    assert result == {"ok": True}
+
+
+def test_study_runtime_transport_update_startup_context_uses_router_transport_binding(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        router.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda **kwargs: (seen.__setitem__("update_kwargs", kwargs) or {"ok": True}),
+    )
+
+    startup_contract = {"schema_version": 4}
+    result = transport._update_quest_startup_context(
+        runtime_root=tmp_path / "runtime",
+        quest_id="quest-001",
+        startup_contract=startup_contract,
+    )
+
+    assert seen["update_kwargs"]["startup_contract"] == startup_contract
+    assert result == {"ok": True}
+
+
+def test_study_runtime_transport_sync_completion_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
+    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        router.med_deepscientist_transport,
+        "sync_completion_with_approval",
+        lambda **kwargs: (seen.__setitem__("sync_kwargs", kwargs) or {"ok": True}),
+    )
+
+    decision_request_payload = {"kind": "decision_request"}
+    result = transport._sync_completion_with_approval(
+        runtime_root=tmp_path / "runtime",
+        quest_id="quest-001",
+        decision_request_payload=decision_request_payload,
+        approval_text="approved",
+        summary="done",
+        source="test",
+    )
+
+    assert seen["sync_kwargs"]["decision_request_payload"] == decision_request_payload
+    assert result == {"ok": True}

@@ -335,6 +335,7 @@ wrapper 不应继续硬编码：
   - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数
 - `med_autoscience.runtime_transport.med_deepscientist`
   - 管理 daemon URL 解析与 quest create / pause / resume / control 这类 engine-specific transport
+  - 对 controller 而言它仍是稳定 transport 调用面；若内部继续拆出更薄的 seam，也只是实现层组织方式，不改变对外 contract
 - `adapters.deepscientist.*`
   - 现在只保留兼容导出与 shim 角色
   - 不再是 runtime 布局、quest state、paper artifact、user message 或 transport 的真相源

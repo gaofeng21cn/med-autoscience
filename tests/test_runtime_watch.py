@@ -23,6 +23,30 @@ def make_quest(tmp_path: Path, name: str, status: str = "running") -> Path:
     return quest_root
 
 
+def make_study_runtime_status_payload(
+    *,
+    study_id: str = "001-risk",
+    decision: str = "create_and_start",
+    reason: str = "quest_missing",
+) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": f"/tmp/studies/{study_id}",
+        "entry_mode": "full_research",
+        "execution": {"quest_id": study_id, "auto_resume": True},
+        "quest_id": study_id,
+        "quest_root": f"/tmp/runtime/quests/{study_id}",
+        "quest_exists": True,
+        "quest_status": "created",
+        "runtime_binding_path": f"/tmp/studies/{study_id}/runtime_binding.yaml",
+        "runtime_binding_exists": True,
+        "study_completion_contract": {},
+        "decision": decision,
+        "reason": reason,
+    }
+
+
 def test_applies_new_blocker_once(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
@@ -437,7 +461,11 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda *, profile, study_root, source: {"study_id": Path(study_root).name, "decision": "create_and_start", "reason": "quest_missing"},
+        lambda *, profile, study_root, source: make_study_runtime_status_payload(
+            study_id=Path(study_root).name,
+            decision="create_and_start",
+            reason="quest_missing",
+        ),
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
@@ -451,6 +479,119 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
 
     assert result["managed_study_actions"] == [
         {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
+    ]
+
+
+def test_watch_runtime_uses_typed_surface_attributes_for_managed_study_actions(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="diabetes",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    class AttributeOnlyStudyRuntimeStatus(typed_surface.StudyRuntimeStatus):
+        def __getitem__(self, key: str) -> object:
+            raise AssertionError("runtime_watch should not use mapping access for typed study runtime status")
+
+        def get(self, key: str, default: object | None = None) -> object | None:
+            raise AssertionError("runtime_watch should not use mapping access for typed study runtime status")
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda *, profile, study_root, source: AttributeOnlyStudyRuntimeStatus.from_payload(
+            make_study_runtime_status_payload()
+        ),
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert result["managed_study_actions"] == [
+        {"study_id": "001-risk", "decision": "create_and_start", "reason": "quest_missing"}
+    ]
+
+
+def test_watch_runtime_uses_typed_surface_attributes_for_read_only_managed_study_actions(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="diabetes",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+
+    class AttributeOnlyStudyRuntimeStatus(typed_surface.StudyRuntimeStatus):
+        def __getitem__(self, key: str) -> object:
+            raise AssertionError("runtime_watch should not use mapping access for typed study runtime status")
+
+        def get(self, key: str, default: object | None = None) -> object | None:
+            raise AssertionError("runtime_watch should not use mapping access for typed study runtime status")
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda *, profile, study_root: AttributeOnlyStudyRuntimeStatus.from_payload(
+            make_study_runtime_status_payload(decision="noop")
+        ),
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert result["managed_study_actions"] == [
+        {"study_id": "001-risk", "decision": "noop", "reason": "quest_missing"}
     ]
 
 

@@ -16,6 +16,7 @@ from med_autoscience.controllers import (
     publication_gate,
     study_runtime_router,
 )
+from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
@@ -116,6 +117,21 @@ def _invoke_controller_runner(
             "report_markdown": None,
             "suppression_reason": "precondition_missing",
         }
+
+
+def _serialize_managed_study_action(
+    action_payload: dict[str, Any] | StudyRuntimeStatus,
+) -> dict[str, Any]:
+    action = (
+        action_payload
+        if isinstance(action_payload, StudyRuntimeStatus)
+        else StudyRuntimeStatus.from_payload(action_payload)
+    )
+    return {
+        "study_id": action.study_id,
+        "decision": action.decision.value if action.decision is not None else None,
+        "reason": action.reason.value if action.reason is not None else None,
+    }
 
 
 def render_watch_markdown(report: dict[str, Any]) -> str:
@@ -236,23 +252,17 @@ def run_watch_for_runtime(
             if not (study_root / "study.yaml").exists():
                 continue
             if apply:
-                action = study_runtime_router.ensure_study_runtime(
+                action_payload = study_runtime_router.ensure_study_runtime(
                     profile=profile,
                     study_root=study_root,
                     source="runtime_watch",
                 )
             else:
-                action = study_runtime_router.study_runtime_status(
+                action_payload = study_runtime_router.study_runtime_status(
                     profile=profile,
                     study_root=study_root,
                 )
-            managed_study_actions.append(
-                {
-                    "study_id": action.get("study_id"),
-                    "decision": action.get("decision"),
-                    "reason": action.get("reason"),
-                }
-            )
+            managed_study_actions.append(_serialize_managed_study_action(action_payload))
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
     for quest_root in quest_state.iter_active_quests(runtime_root):

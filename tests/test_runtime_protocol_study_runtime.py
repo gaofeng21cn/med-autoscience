@@ -232,6 +232,23 @@ def test_study_runtime_artifacts_from_payload_rejects_missing_launch_report_path
         module.StudyRuntimeArtifacts.from_payload({"runtime_binding_path": "/tmp/runtime_binding.yaml"})
 
 
+def test_study_runtime_protocol_reexports_models_from_study_runtime_models() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    models = importlib.import_module("med_autoscience.runtime_protocol.study_runtime_models")
+
+    assert protocol.StudyRuntimeContext is models.StudyRuntimeContext
+    assert protocol.StudyRuntimeArtifacts is models.StudyRuntimeArtifacts
+    assert protocol.StartupContractValidationStatus is models.StartupContractValidationStatus
+    assert protocol.StartupHydrationStatus is models.StartupHydrationStatus
+    assert protocol.StartupHydrationValidationStatus is models.StartupHydrationValidationStatus
+    assert protocol.StartupContractValidation is models.StartupContractValidation
+    assert protocol.StartupHydrationReport is models.StartupHydrationReport
+    assert protocol.StartupHydrationValidationReport is models.StartupHydrationValidationReport
+    assert protocol.StartupContractValidation.__module__ == models.__name__
+    assert protocol.StartupHydrationReport.__module__ == models.__name__
+    assert protocol.StartupHydrationValidationReport.__module__ == models.__name__
+
+
 def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"

@@ -287,6 +287,92 @@ def _patch_json(*, url: str, payload: dict[str, Any], timeout: int = DEFAULT_DAE
     return _request_json(url=url, payload=payload, method="PATCH", timeout=timeout)
 
 
+def _normalize_stable_bash_session_entry(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    bash_id = str(payload.get("bash_id") or "").strip()
+    status = str(payload.get("status") or "").strip()
+    if not bash_id or not status:
+        raise RuntimeError("stable bash session contract requires `bash_id` and `status`")
+    return dict(payload)
+
+
+def _normalize_stable_quest_session(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    quest_id = str(payload.get("quest_id") or "").strip()
+    snapshot = payload.get("snapshot")
+    runtime_audit = payload.get("runtime_audit")
+    if not quest_id or not isinstance(snapshot, dict) or not isinstance(runtime_audit, dict):
+        raise RuntimeError("missing stable quest session contract")
+    required_runtime_audit_keys = {
+        "ok",
+        "status",
+        "source",
+        "active_run_id",
+        "worker_running",
+        "worker_pending",
+        "stop_requested",
+    }
+    if not required_runtime_audit_keys.issubset(runtime_audit):
+        raise RuntimeError("missing stable quest session contract")
+    return dict(payload)
+
+
+def _normalize_stable_quest_create_result(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    snapshot = payload.get("snapshot")
+    if payload.get("ok") is not True or not isinstance(snapshot, dict) or not str(snapshot.get("quest_id") or "").strip():
+        raise RuntimeError("missing stable quest create contract")
+    return dict(payload)
+
+
+def _normalize_stable_startup_context_result(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    snapshot = payload.get("snapshot")
+    quest_id = str(payload.get("quest_id") or "").strip()
+    if payload.get("ok") is not True or not isinstance(snapshot, dict):
+        raise RuntimeError("missing stable startup-context contract")
+    if not quest_id:
+        quest_id = str(snapshot.get("quest_id") or "").strip()
+    if not quest_id:
+        raise RuntimeError("missing stable startup-context contract")
+    if not isinstance(snapshot.get("startup_contract"), dict):
+        raise RuntimeError("missing stable startup-context contract")
+    return dict(payload)
+
+
+def _normalize_stable_quest_control_result(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    quest_id = str(payload.get("quest_id") or "").strip()
+    action = str(payload.get("action") or "").strip()
+    snapshot = payload.get("snapshot")
+    status = str(payload.get("status") or (snapshot.get("status") if isinstance(snapshot, dict) else "") or "").strip()
+    if payload.get("ok") is not True or not quest_id or not action or not isinstance(snapshot, dict) or not status:
+        raise RuntimeError("missing stable quest control contract")
+    return dict(payload)
+
+
+def _normalize_stable_artifact_completion_result(
+    *,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    snapshot = payload.get("snapshot")
+    summary_refresh = payload.get("summary_refresh")
+    status = str(payload.get("status") or "").strip()
+    if payload.get("ok") is not True or not isinstance(snapshot, dict) or not isinstance(summary_refresh, dict) or not status:
+        raise RuntimeError("missing stable artifact completion contract")
+    return dict(payload)
+
+
 def list_quest_bash_sessions(
     *,
     quest_id: str,
@@ -317,7 +403,7 @@ def list_quest_bash_sessions(
     for item in payload:
         if not isinstance(item, dict):
             raise RuntimeError(f"Bash session probe returned non-object entry: {url}")
-        sessions.append(item)
+        sessions.append(_normalize_stable_bash_session_entry(payload=item))
     return sessions
 
 
@@ -347,7 +433,7 @@ def get_quest_session(
         return {}
     if not isinstance(payload, dict):
         raise RuntimeError(f"Quest session probe returned non-object payload: {url}")
-    return dict(payload)
+    return _normalize_stable_quest_session(payload=dict(payload))
 
 
 def inspect_quest_live_bash_sessions(
@@ -545,7 +631,9 @@ def _infer_local_runtime_liveness(*, runtime_root: Path, quest_id: str) -> dict[
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     base_url = _ensure_managed_daemon_url(runtime_root=runtime_root)
     try:
-        return _post_json(url=f"{base_url}/api/quests", payload=payload)
+        return _normalize_stable_quest_create_result(
+            payload=_post_json(url=f"{base_url}/api/quests", payload=payload)
+        )
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Quest create request failed with HTTP {exc.code}: {body}") from exc
@@ -562,11 +650,14 @@ def chat_quest(
     text: str,
     source: str,
     reply_to_interaction_id: str | None = None,
+    decision_response: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     base_url = resolve_daemon_url(runtime_root=runtime_root)
     payload: dict[str, Any] = {"text": text, "source": source}
     if reply_to_interaction_id:
         payload["reply_to_interaction_id"] = reply_to_interaction_id
+    if isinstance(decision_response, dict):
+        payload["decision_response"] = decision_response
     return _post_json(url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/chat", payload=payload)
 
 
@@ -619,6 +710,10 @@ def sync_completion_with_approval(
         text=approval_text,
         source=source,
         reply_to_interaction_id=interaction_id,
+        decision_response={
+            "decision_type": "quest_completion_approval",
+            "approved": True,
+        },
     )
     if approval_message.get("ok") is not True:
         raise RuntimeError("failed to bind study-level approval into managed quest")
@@ -627,6 +722,7 @@ def sync_completion_with_approval(
         quest_id=quest_id,
         summary=summary,
     )
+    completion_result = _normalize_stable_artifact_completion_result(payload=completion_result)
     if str(completion_result.get("status") or "").strip() not in {"completed", "already_completed"}:
         raise RuntimeError("managed quest completion did not reach completed state")
     return {
@@ -654,7 +750,9 @@ def post_quest_control(
             base_url = resolve_daemon_url(runtime_root=runtime_root)
     url = f"{base_url}/api/quests/{quote(quest_id, safe='')}/control"
     try:
-        return _post_json(url=url, payload={"action": action, "source": source})
+        return _normalize_stable_quest_control_result(
+            payload=_post_json(url=url, payload={"action": action, "source": source})
+        )
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Quest control request failed with HTTP {exc.code}: {body}") from exc
@@ -694,10 +792,16 @@ def update_quest_startup_context(
         raise ValueError("at least one startup-context field is required")
     base_url = resolve_daemon_url(runtime_root=runtime_root)
     try:
-        return _patch_json(
-            url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/startup-context",
-            payload=payload,
+        result = _normalize_stable_startup_context_result(
+            payload=_patch_json(
+                url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/startup-context",
+                payload=payload,
+            )
         )
+        snapshot = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
+        if requested_baseline_ref is not _UNSET and snapshot.get("requested_baseline_ref") != requested_baseline_ref:
+            raise RuntimeError("missing stable startup-context requested_baseline_ref roundtrip")
+        return result
     except error.URLError:
         return _update_quest_startup_context_locally(
             runtime_root=runtime_root,

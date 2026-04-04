@@ -11,14 +11,94 @@
 
 ## 作用域
 
-当前实现分成两层：
+当前实现分成八个清晰层次：
 
 - [`src/med_autoscience/controllers/study_runtime_router.py`](../src/med_autoscience/controllers/study_runtime_router.py)
-  - 负责 orchestration、决策推进、transport 调用和 runtime artifact 落盘
+  - 作为 facade，保留正式入口 `study_runtime_status(...)` / `ensure_study_runtime(...)`
+  - 负责把 read-model、execution orchestration 与少量入口 glue 收束成正式 controller 入口
 - [`src/med_autoscience/controllers/study_runtime_types.py`](../src/med_autoscience/controllers/study_runtime_types.py)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
+- [`src/med_autoscience/controllers/study_runtime_decision.py`](../src/med_autoscience/controllers/study_runtime_decision.py)
+  - 负责 status read-model、decision state machine、quest runtime audit 收口
+- [`src/med_autoscience/controllers/study_runtime_startup.py`](../src/med_autoscience/controllers/study_runtime_startup.py)
+  - 负责 startup contract、create payload、overlay helper、startup hydration / context sync
+- [`src/med_autoscience/controllers/study_runtime_completion.py`](../src/med_autoscience/controllers/study_runtime_completion.py)
+  - 负责 study-level completion state 读取、completion request message 构造、completion sync
+- [`src/med_autoscience/controllers/study_runtime_execution.py`](../src/med_autoscience/controllers/study_runtime_execution.py)
+  - 负责 execution context、preflight、decision dispatch、create / resume / pause / completion orchestration，以及 runtime artifact persistence helper
+- [`src/med_autoscience/controllers/study_runtime_resolution.py`](../src/med_autoscience/controllers/study_runtime_resolution.py)
+  - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
+- [`src/med_autoscience/controllers/study_runtime_transport.py`](../src/med_autoscience/controllers/study_runtime_transport.py)
+  - 负责 `med_deepscientist_transport` 相关的 transport I/O seam，把 daemon 调用绑定收口为独立内部层
+`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
+因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
-`study_runtime_router.py` 继续对外 re-export 这些 typed symbols，因此既有调用面不需要因为模块化拆分而改导入。
+当前 controller 侧对 `MedDeepScientist` 的最小稳定 transport 依赖，应收敛在显式 contract 上：
+
+- quest create success 至少返回 `ok + snapshot.quest_id`
+- quest control success 至少返回 `ok + quest_id + action + status + snapshot`
+- startup-context patch success 至少返回 `ok + quest_id + snapshot`
+- quest session 至少返回 `ok + quest_id + snapshot + runtime_audit`
+- artifact completion success 至少返回 `ok + status + snapshot + summary_refresh`
+- bash session 列表项至少包含 `bash_id + status`
+
+对 `startup_contract` 的 authoritative ownership 也已明确：
+
+- `MedDeepScientist` runtime-owned subset：
+  - `schema_version`
+  - `user_language`
+  - `need_research_paper`
+  - `decision_policy`
+  - `launch_mode`
+  - `standard_profile`
+  - `custom_profile`
+  - `baseline_execution_policy`
+  - `review_followup_policy`
+  - `manuscript_edit_mode`
+- `MedAutoScience` controller-owned extensions：
+  - `research_intensity`
+  - `scope`
+  - `baseline_mode`
+  - `resource_policy`
+  - `time_budget_hours`
+  - `git_strategy`
+  - `runtime_constraints`
+  - `objectives`
+  - `baseline_urls`
+  - `paper_urls`
+  - `entry_state_summary`
+  - `review_summary`
+  - `controller_first_policy_summary`
+  - `automation_ready_summary`
+  - `custom_brief`
+  - `required_first_anchor`
+  - `legacy_code_execution_allowed`
+  - `startup_boundary_gate`
+  - `runtime_reentry_gate`
+  - `journal_shortlist`
+  - `medical_analysis_contract_summary`
+  - `medical_reporting_contract_summary`
+  - `reporting_guideline_family`
+  - `submission_targets`
+
+这些 controller-owned extension 仍保持 flat `startup_contract` 形态；runtime 需要保证 durable persistence / stable echo / snapshot roundtrip，但不把它们升级成 runtime core authoritative schema。
+
+对 `requested_baseline_ref` 的跨 repo 语义也应按两阶段理解：
+
+- create-time (`POST /api/quests`)
+  - 如果显式传入 `requested_baseline_ref`，成功返回表示 runtime 已经完成请求 baseline 的 materialization / confirmation，不能再把它当作“仅写 metadata”
+- patch-time (`PATCH /api/quests/{id}/startup-context`)
+  - 这里只允许更新 durable metadata 与 snapshot echo
+  - 不能把 patch success 解释成 baseline 已 attach / confirm
+- consumer 应显式检查 `snapshot.requested_baseline_ref` roundtrip，而不是假定 `baseline_gate` 已提升
+
+对 quest completion approval，当前推荐 contract 也已升级为：
+
+- 先通过 `artifact.interact(... reply_schema={decision_type: "quest_completion_approval"})` 创建 blocking approval request
+- 再通过 `chat` 发送：
+  - `reply_to_interaction_id`
+  - `decision_response = {decision_type: "quest_completion_approval", approved: true}`
+- runtime 现在要求 typed decision semantics；controller 不应再依赖纯文本批准词表完成 quest closure
 
 ## 正式入口
 
@@ -181,6 +261,7 @@
 ## Preflight contract
 
 `ensure_study_runtime(...)` 在真正执行 transport 前，会先跑 `_run_runtime_preflight(...)`。
+这条 preflight 链当前由 `study_runtime_execution.py` 承担，router 只保留正式入口 glue。
 
 当前最小稳定 preflight 规则：
 
@@ -215,9 +296,11 @@
   - `PAUSE_AND_COMPLETE` 会先 pause
   - 随后统一走 completion sync，并把 decision 最终收敛到 `COMPLETED`
 
+这条执行链当前由 `study_runtime_execution.py` 承担；具体 daemon transport 调用已经下沉到 `study_runtime_transport.py`，router 上同名私有 helper 只是 facade re-export / monkeypatch seam，不应被误认为独立 contract 层。
+
 ## Artifact persistence contract
 
-`ensure_study_runtime(...)` 在执行结束后，始终会调用 `persist_runtime_artifacts(...)`。
+`ensure_study_runtime(...)` 在执行结束后，始终会通过 execution helper 调用 `persist_runtime_artifacts(...)`。
 
 这一步属于稳定 contract，因为上层依赖这些 artifact 作为可审计真相，包括：
 
@@ -230,12 +313,17 @@
 
 也就是说，即使最终 decision 是 `BLOCKED` 或 `NOOP`，只要进入了受控 orchestration，artifact 落盘仍是正式行为的一部分。
 
+当前实现上，这条 persistence 链仍由 `study_runtime_execution.py` 决定时机；具体 transport I/O 已经下沉到 `study_runtime_transport.py`，router 上对应的 helper 只是 facade seam，用来保持现有 monkeypatch / topology 兼容语义。
+
 ## 当前明确不属于稳定面的内容
 
 以下内容当前仍视为实现细节，不应被其他模块直接绑定：
 
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
-- startup contract 内部更细的构造细节
+- `_load_yaml_dict(...)`、`_resolve_study(...)`、`_execution_payload(...)` 等 resolution 细节
+- `_build_execution_context(...)`、`_build_context_create_payload(...)`、`_persist_runtime_artifacts(...)` 等 execution/orchestration 细节
+- `_create_quest(...)`、`_resume_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 transport seam 细节
+- `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` / `study_runtime_transport.py` 内部尚未升级成 spec 的组装细节
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构
 - runtime audit payload 中未被 typed wrapper 明确收口的自由字段
@@ -248,12 +336,14 @@
 当前这份 spec 主要由以下测试约束：
 
 - [`tests/test_study_runtime_router.py`](../tests/test_study_runtime_router.py)
+- [`tests/test_study_runtime_router_topology.py`](../tests/test_study_runtime_router_topology.py)
 - [`tests/test_runtime_protocol_topology.py`](../tests/test_runtime_protocol_topology.py)
 - [`tests/test_workspace_contracts.py`](../tests/test_workspace_contracts.py)
 
 其中：
 
 - router tests 约束 decision、typed surface、preflight 和 execution behavior
+- router topology tests 约束 router facade 继续 re-export 已拆分的 resolution / decision / startup / completion / execution / transport helper（包括 persistence seam），并守住 patch-through 兼容语义
 - runtime protocol topology tests 约束 runtime layout / path contract
 - workspace contract tests 约束 orchestration 依赖的 workspace readiness 前提
 

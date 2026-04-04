@@ -364,7 +364,203 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     assert seen["overlay_quest_root"] == protocol_quest_root
     assert seen["hydration_quest_root"] == protocol_quest_root
 
+def test_study_runtime_status_treats_stopped_quest_as_resumable(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
 
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_stopped"
+    assert result["quest_status"] == "stopped"
+
+
+def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+
+    resolved_study_id, resolved_study_root, study_payload = module._resolve_study(
+        profile=profile,
+        study_id="001-risk",
+        study_root=None,
+    )
+    status = module._status_state(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        entry_mode=None,
+    )
+    status.set_decision("completed", "quest_already_completed")
+    context = module._build_execution_context(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        study_payload=study_payload,
+        source="test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.COMPLETED
+    assert outcome.daemon_result is None
+    assert outcome.startup_payload_path is None
+
+
+def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Prediction framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "resume",
+            "reason": "quest_paused",
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_sync_existing_quest_startup_context",
+        lambda **kwargs: {"ok": True},
+    )
+    monkeypatch.setattr(
+        module,
+        "_run_startup_hydration",
+        lambda **kwargs: (
+            module.study_runtime_protocol.StartupHydrationReport.from_payload(
+                make_startup_hydration_report(kwargs["quest_root"])
+            ),
+            module.study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+                make_startup_hydration_validation_report(kwargs["quest_root"])
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    outcome = module._execute_resume_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.RESUME
+    assert outcome.daemon_result == {"resume": {"ok": True, "status": "running"}}
+    assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
+    assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
+
+
+def test_execute_pause_runtime_decision_records_nested_pause_daemon_step(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "pause",
+            "reason": "runtime_reentry_not_ready_for_running_quest",
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "pause_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "paused"},
+    )
+
+    outcome = module._execute_pause_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.PAUSE
+    assert outcome.daemon_result == {"pause": {"ok": True, "status": "paused"}}
+    assert outcome.daemon_step("pause") == {"ok": True, "status": "paused"}
+    assert status.quest_status is module.StudyRuntimeQuestStatus.PAUSED
 
 def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
     monkeypatch,
@@ -1592,40 +1788,6 @@ def test_ensure_study_runtime_materializes_overlay_for_non_resumable_existing_qu
     assert result["reason"] == "quest_exists_with_non_resumable_state"
     assert result["runtime_overlay"]["audit"]["all_roots_ready"] is True
     assert calls == ["prepare_overlay"]
-
-
-def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    status = module.StudyRuntimeStatus.from_payload(
-        {
-            "schema_version": 1,
-            "study_id": "001-risk",
-            "study_root": "/tmp/studies/001-risk",
-            "entry_mode": "full_research",
-            "execution": {"quest_id": "quest-001", "auto_resume": False},
-            "quest_id": "quest-001",
-            "quest_root": "/tmp/runtime/quests/quest-001",
-            "quest_exists": True,
-            "quest_status": "created",
-            "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
-            "runtime_binding_exists": True,
-            "workspace_contracts": {"overall_ready": True},
-            "startup_data_readiness": {"status": "clear"},
-            "startup_boundary_gate": {"allow_compute_stage": False},
-            "runtime_reentry_gate": {"allow_runtime_entry": True},
-            "study_completion_contract": {"status": "absent", "ready": False},
-            "controller_first_policy_summary": "summary",
-            "automation_ready_summary": "ready",
-            "decision": "blocked",
-            "reason": "startup_boundary_not_ready_for_resume",
-        }
-    )
-
-    assert status.should_refresh_startup_hydration_while_blocked() is True
-
-    status.set_decision("blocked", "workspace_contract_not_ready")
-
-    assert status.should_refresh_startup_hydration_while_blocked() is False
 
 
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:
@@ -3174,6 +3336,64 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
+
+
+def test_build_startup_contract_separates_runtime_owned_subset_from_controller_extensions(tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    ownership = importlib.import_module("med_autoscience.startup_contract")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    study_payload = yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8"))
+    execution = router._execution_payload(study_payload)
+
+    startup_contract = router._build_startup_contract(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
+
+    runtime_owned = ownership.runtime_owned_startup_contract(startup_contract)
+    controller_extensions = ownership.controller_owned_startup_contract_extensions(startup_contract)
+
+    assert runtime_owned == {
+        "schema_version": 4,
+        "user_language": "zh",
+        "need_research_paper": True,
+        "decision_policy": "autonomous",
+        "launch_mode": "custom",
+        "custom_profile": startup_contract["custom_profile"],
+        "baseline_execution_policy": startup_contract["baseline_execution_policy"],
+    }
+    assert controller_extensions["scope"] == startup_contract["scope"]
+    assert controller_extensions["entry_state_summary"] == startup_contract["entry_state_summary"]
+    assert controller_extensions["startup_boundary_gate"] == startup_contract["startup_boundary_gate"]
+    assert controller_extensions["runtime_reentry_gate"] == startup_contract["runtime_reentry_gate"]
+    assert controller_extensions["medical_analysis_contract_summary"] == startup_contract["medical_analysis_contract_summary"]
+    assert controller_extensions["medical_reporting_contract_summary"] == startup_contract["medical_reporting_contract_summary"]
+    assert controller_extensions["submission_targets"] == startup_contract["submission_targets"]
+    assert "custom_brief" in controller_extensions
+
+
+def test_compose_startup_contract_rejects_runtime_owned_and_extension_overlap() -> None:
+    ownership = importlib.import_module("med_autoscience.startup_contract")
+
+    with pytest.raises(ValueError, match="startup contract ownership overlap"):
+        ownership.compose_startup_contract(
+            runtime_owned={"launch_mode": "custom"},
+            controller_extensions={"launch_mode": "should-not-overlap"},
+        )
 
 
 def test_ensure_study_runtime_keeps_live_audit_blocked_even_if_overlay_audit_fails(
