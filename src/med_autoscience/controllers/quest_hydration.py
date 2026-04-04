@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers._medical_display_surface_support import build_required_display_surface_stub_payload
+from med_autoscience.controllers._medical_display_surface_support import (
+    build_required_display_surface_stub_payload,
+    resolve_required_display_surface_stub,
+)
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -64,13 +67,42 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
         for item in plan:
             if not isinstance(item, dict):
                 raise ValueError("medical_reporting_contract.display_shell_plan must contain mappings")
-            display_id = str(item.get("display_id") or "").strip()
-            display_kind = str(item.get("display_kind") or "").strip()
-            requirement_key = str(item.get("requirement_key") or "").strip()
-            catalog_id = str(item.get("catalog_id") or "").strip()
+            display_id_value = item.get("display_id")
+            display_kind_value = item.get("display_kind")
+            requirement_key_value = item.get("requirement_key")
+            if not isinstance(display_id_value, str) or not display_id_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string display_id"
+                )
+            if not isinstance(display_kind_value, str) or not display_kind_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string display_kind"
+                )
+            if not isinstance(requirement_key_value, str) or not requirement_key_value.strip():
+                raise ValueError(
+                    "medical_reporting_contract.display_shell_plan items must include non-empty string requirement_key"
+                )
+            display_id = display_id_value.strip()
+            display_kind = display_kind_value.strip()
+            requirement_key = requirement_key_value.strip()
+            catalog_id = ""
+            if "catalog_id" in item:
+                catalog_id_value = item.get("catalog_id")
+                if catalog_id_value is None:
+                    catalog_id = ""
+                elif not isinstance(catalog_id_value, str):
+                    raise ValueError(
+                        "medical_reporting_contract.display_shell_plan items must include string catalog_id when provided"
+                    )
+                else:
+                    catalog_id = catalog_id_value.strip()
             if not display_id or not display_kind or not requirement_key:
                 raise ValueError(
                     "medical_reporting_contract.display_shell_plan items must include display_id, display_kind, requirement_key"
+                )
+            if resolve_required_display_surface_stub(requirement_key) is None:
+                raise ValueError(
+                    f"medical_reporting_contract.display_shell_plan contains unsupported requirement_key: {requirement_key}"
                 )
             if not catalog_id and not _is_legacy_display_id(display_id=display_id, display_kind=display_kind):
                 raise ValueError(
@@ -193,6 +225,48 @@ def _write_display_surface_stubs(
     return written_files
 
 
+def _seed_publication_display_contracts(*, paper_root: Path) -> list[str]:
+    style_profile_payload = {
+        "schema_version": 1,
+        "style_profile_id": "paper_neutral_clinical_v1",
+        "palette": {
+            "primary": "#5F766B",
+            "secondary": "#B9AD9C",
+            "contrast": "#2F5D8A",
+            "neutral": "#7B8794",
+            "light": "#E7E1D8",
+        },
+        "semantic_roles": {
+            "model_curve": "primary",
+            "comparator_curve": "secondary",
+            "reference_line": "neutral",
+            "highlight_band": "light",
+        },
+        "typography": {
+            "title_size": 12.5,
+            "axis_title_size": 11.0,
+            "tick_size": 10.0,
+            "panel_label_size": 11.0,
+        },
+        "stroke": {
+            "primary_linewidth": 2.2,
+            "secondary_linewidth": 1.8,
+            "reference_linewidth": 1.0,
+            "marker_size": 4.5,
+        },
+    }
+    overrides_payload = {"schema_version": 1, "displays": []}
+
+    written_files: list[str] = []
+    style_profile_path = paper_root / "publication_style_profile.json"
+    if _write_json_if_missing(style_profile_path, style_profile_payload):
+        written_files.append(str(style_profile_path))
+    display_overrides_path = paper_root / "display_overrides.json"
+    if _write_json_if_missing(display_overrides_path, overrides_payload):
+        written_files.append(str(display_overrides_path))
+    return written_files
+
+
 def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> dict[str, object]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     medical_analysis_contract = _require_dict(hydration_payload, "medical_analysis_contract")
@@ -209,6 +283,9 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
         quest_root=resolved_quest_root,
         reporting_contract=medical_reporting_contract,
     )
+    publication_display_files = _seed_publication_display_contracts(
+        paper_root=resolved_quest_root / "paper",
+    )
     literature_report = literature_hydration_controller.run_literature_hydration(
         quest_root=resolved_quest_root,
         records=literature_records,
@@ -217,6 +294,7 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
         str(analysis_path),
         str(reporting_path),
         *display_surface_files,
+        *publication_display_files,
         literature_report["records_path"],
         literature_report["references_bib_path"],
         literature_report["coverage_report_path"],

@@ -139,6 +139,21 @@ def test_startup_hydration_validation_clears_when_display_registry_and_shells_ex
         },
     )
     write_json(
+        quest_root / "paper" / "publication_style_profile.json",
+        {
+            "schema_version": 1,
+            "style_profile_id": "paper_neutral_clinical_v1",
+            "palette": {"primary": "#5F766B", "secondary": "#B9AD9C", "neutral": "#7B8794"},
+            "semantic_roles": {"model_curve": "primary", "comparator_curve": "secondary", "reference_line": "neutral"},
+            "typography": {},
+            "stroke": {},
+        },
+    )
+    write_json(
+        quest_root / "paper" / "display_overrides.json",
+        {"schema_version": 1, "displays": []},
+    )
+    write_json(
         quest_root / "paper" / "figures" / "Figure1.shell.json",
         {"schema_version": 1},
     )
@@ -312,3 +327,171 @@ def test_startup_hydration_validation_blocks_missing_direct_migration_stub(tmp_p
 
     assert report["status"] == "blocked"
     assert "missing_multicenter_generalizability_inputs" in report["blockers"]
+
+
+def test_startup_hydration_validation_blocks_missing_publication_display_contracts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_analysis_contract.json").write_text(json.dumps({"status": "resolved"}), encoding="utf-8")
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "status": "resolved",
+                "display_registry_required": True,
+                "display_shell_plan": [
+                    {
+                        "display_id": "discrimination_calibration",
+                        "display_kind": "figure",
+                        "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "display_registry.json").write_text(json.dumps({"schema_version": 1, "displays": []}), encoding="utf-8")
+    (paper_root / "figures").mkdir(exist_ok=True)
+    (paper_root / "figures" / "discrimination_calibration.shell.json").write_text("{}", encoding="utf-8")
+    (paper_root / "time_to_event_discrimination_calibration_inputs.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+                "displays": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "missing_publication_style_profile" in report["blockers"]
+    assert "missing_display_overrides" in report["blockers"]
+
+
+def test_startup_hydration_validation_blocks_invalid_publication_display_contract_content(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    write_json(paper_root / "medical_analysis_contract.json", {"status": "resolved"})
+    write_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_registry_required": True,
+            "display_shell_plan": [
+                {
+                    "display_id": "discrimination_calibration",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                }
+            ],
+        },
+    )
+    write_json(paper_root / "display_registry.json", {"schema_version": 1, "displays": []})
+    write_json(
+        paper_root / "publication_style_profile.json",
+        {
+            "schema_version": 1,
+            "style_profile_id": "paper_neutral_clinical_v1",
+            "palette": {"primary": "#5F766B", "secondary": "#B9AD9C", "neutral": "#7B8794"},
+            "semantic_roles": {"model_curve": 1},
+        },
+    )
+    write_json(paper_root / "display_overrides.json", {"schema_version": True, "displays": []})
+    (paper_root / "figures").mkdir(exist_ok=True)
+    (paper_root / "figures" / "discrimination_calibration.shell.json").write_text("{}", encoding="utf-8")
+    write_json(
+        paper_root / "time_to_event_discrimination_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+            "displays": [],
+        },
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "invalid_publication_style_profile" in report["blockers"]
+    assert "invalid_display_overrides" in report["blockers"]
+
+
+def test_startup_hydration_validation_blocks_invalid_display_shell_plan_item(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    write_json(paper_root / "medical_analysis_contract.json", {"status": "resolved"})
+    write_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_registry_required": True,
+            "display_shell_plan": [
+                {
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                }
+            ],
+        },
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "invalid_display_shell_plan" in report["blockers"]
+
+
+def test_startup_hydration_validation_blocks_unknown_requirement_key(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    write_json(paper_root / "medical_analysis_contract.json", {"status": "resolved"})
+    write_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_registry_required": True,
+            "display_shell_plan": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "unknown_requirement_key",
+                    "catalog_id": "F1",
+                }
+            ],
+        },
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "invalid_display_shell_plan" in report["blockers"]
+
+
+def test_startup_hydration_validation_blocks_semantic_display_without_catalog_id(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    write_json(paper_root / "medical_analysis_contract.json", {"status": "resolved"})
+    write_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_registry_required": True,
+            "display_shell_plan": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                }
+            ],
+        },
+    )
+
+    report = module.run_validation(quest_root=quest_root)
+
+    assert "invalid_display_shell_plan" in report["blockers"]
