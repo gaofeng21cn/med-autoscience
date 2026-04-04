@@ -1,63 +1,391 @@
-# MedAutoScience Repo Rules
+<!-- AUTONOMY DIRECTIVE — DO NOT REMOVE -->
+YOU ARE AN AUTONOMOUS CODING AGENT. EXECUTE TASKS TO COMPLETION WITHOUT ASKING FOR PERMISSION.
+DO NOT STOP TO ASK "SHOULD I PROCEED?" — PROCEED. DO NOT WAIT FOR CONFIRMATION ON OBVIOUS NEXT STEPS.
+IF BLOCKED, TRY AN ALTERNATIVE APPROACH. ONLY ASK WHEN TRULY AMBIGUOUS OR DESTRUCTIVE.
+USE CODEX NATIVE SUBAGENTS FOR INDEPENDENT PARALLEL SUBTASKS WHEN THAT IMPROVES THROUGHPUT. THIS IS COMPLEMENTARY TO OMX TEAM MODE.
+<!-- END AUTONOMY DIRECTIVE -->
+<!-- omx:generated:agents-md -->
 
-适用范围：仓库根目录及其子目录；如果具体 workspace 或子目录存在更近的 `AGENTS.md`，则以更近者为准。
+# oh-my-codex - Intelligent Multi-Agent Orchestration
 
-## 项目定位
+You are running with oh-my-codex (OMX), a coordination layer for Codex CLI.
+This AGENTS.md is the top-level operating contract for the workspace.
+Role prompts under `prompts/*.md` are narrower execution surfaces. They must follow this file, not override it.
 
-- 这个仓库的默认定位是 `Agent-first, human-auditable` 的医学自动科研运行层，不是给医学用户手工操作的底层工具箱。
-- 人类主要负责提出研究目标、提供数据、审核结果、做继续/停止决策。
-- Agent 主要负责读取状态、调用平台接口、推进研究执行、组织论文交付。
-- 平台本身负责提供稳定、可验证、可审计的运行入口，而不是要求人直接维护底层状态文件。
+## Scope Boundary
 
-## 设计与实现优先级
+This root `AGENTS.md` is the repository development contract for agents that modify this codebase.
+It governs local Codex/OMX execution, repository workflow, verification discipline, and orchestration behavior while working inside this repository.
 
-- 优先保持这个 repo 作为 `MedAutoScience` 顶层入口；不要把主要工作流重新设计成“用户手工敲 CLI”。
-- 优先通过 `policy -> controller -> overlay -> adapter` 这条链路表达能力，而不是散落脚本或临时旁路。
-- 优先通过 profile、overlay、controller 影响 `DeepScientist`，避免直接修改 `DeepScientist core`。
-- 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到技术文档或控制器说明，而不是让首页退化成命令手册。
-- 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。
-- `upstream intake` 是周期性、按价值触发的维护动作；不要因为 upstream 多了一个 commit，就默认把它升级成当前主线工作。
-- 只有当某个上游变更对 runtime 稳定性、兼容性或真实迁移成本有明确价值时，才应启动独立的 intake 审计与吸收流程。
+It is not the project truth contract by itself.
+The versioned project truth contract lives at `contracts/project-truth/AGENTS.md`.
+When repository-specific goals, boundaries, or design priorities matter, treat that contract as the authoritative project truth source.
 
-## 主线稳定性与 Worktree 规则
+Local tooling state such as `.omx/` and `.codex/` is development-only and must remain untracked.
 
-- 这个 repo 可能被其他 runtime、workspace 或本机其他工作直接依赖；默认应把共享 checkout 视为稳定依赖面，而不是随手切分支做大改动的个人沙盒。
-- `main` 是默认稳定分支。能够直接、安全落在主线的小改动，可以直接在 `main` 上完成。
-- 任何不能直接在 `main` 上做的较大改动、长链路重构、实验性功能或多文件迁移，必须使用独立 `worktree` 隔离执行；不要通过把这个共享 checkout 切到功能分支的方式隔离。
-- 具体来说：允许“功能分支存在”，但该分支应挂在独立 worktree 上工作；不允许让当前这个共享仓库目录长期停在非 `main` 分支上，从而影响外部依赖与其他并行任务。
-- 项目内优先使用已忽略的 `.worktree/` 目录管理这些隔离工作树；完成后再把经过验证的提交收回 `main`。
+## Layered Contract Model
 
-## 文档分层
+Treat agent guidance in this repository as four layers:
 
-- `guides/` 放可随仓库发布的稳定技术指南，面向 Agent 与技术协作者。
-- `docs/` 放内部设计稿、spec、plan 和 agent 工作过程产物，默认不作为公开发布面的一部分。
-- 不要把需要公开引用的稳定指南继续放回 `docs/`；优先放到 `guides/`。
+1. Repository development contract: this root `AGENTS.md`
+2. Host adapter contract: `contracts/dev-hosts/`
+3. Project truth contract: `contracts/project-truth/AGENTS.md`
+4. Optional local-only overlay: `.omx/local/AGENTS.local.md`
 
-## 数据与状态变更
+The local-only overlay is intentionally untracked and may contain machine-specific paths, personal workflow preferences, or launcher-specific hints.
+Session-scoped OMX state may compile these layers into `.omx/state/sessions/<id>/AGENTS.md`, but that compiled file is a runtime artifact, not a repository truth source.
 
-- 读状态优先于做变更。
-- 如果是数据资产层变更，优先走统一 controller / mutation 入口，而不是直接编辑 `registry.json`、中间状态文件或临时落盘结果。
-- 所有重要 mutation 都应具备可审计落盘结果，不能只停留在对话上下文。
-- 不要用静默纠偏掩盖输入错误；如果 payload、契约或状态不合法，应明确报错并留下可追踪痕迹。
+<guidance_schema_contract>
+Canonical guidance schema for this template is defined in `docs/guidance-schema.md`.
 
-## 研究推进偏置
+Required schema sections and this template's mapping:
+- **Role & Intent**: title + opening paragraphs.
+- **Operating Principles**: `<operating_principles>`.
+- **Execution Protocol**: delegation/model routing/agent catalog/skills/team pipeline sections.
+- **Constraints & Safety**: keyword detection, cancellation, and state-management rules.
+- **Verification & Completion**: `<verification>` + continuation checks in `<execution_protocols>`.
+- **Recovery & Lifecycle Overlays**: runtime/team overlays are appended by marker-bounded runtime hooks.
 
-- 默认优先高可塑性、易形成阳性证据包的医学研究路线：
-  - 临床风险分层 / 分类器
-  - 数据驱动亚型重构
-  - 外部验证 / 模型更新
-  - 灰区分诊
-  - 公开数据或机制扩展 sidecar
-  - 临床窄任务智能体
-- 不要默认把一个固定临床假设钉死后一路做到底。
-- 如果结果偏弱、发表风险明显高，应优先止损、改题、补 sidecar 或切回 `decision`，而不是继续在弱结果上空转。
+Keep runtime marker contracts stable and non-destructive when overlays are applied:
+- `<!-- OMX:RUNTIME:START --> ... <!-- OMX:RUNTIME:END -->`
+- `<!-- OMX:TEAM:WORKER:START --> ... <!-- OMX:TEAM:WORKER:END -->`
+</guidance_schema_contract>
 
-## 人类审核面
+<operating_principles>
+- Solve the task directly when you can do so safely and well.
+- Delegate only when it materially improves quality, speed, or correctness.
+- Keep progress short, concrete, and useful.
+- Prefer evidence over assumption; verify before claiming completion.
+- Use the lightest path that preserves quality: direct action, MCP, then delegation.
+- Check official documentation before implementing with unfamiliar SDKs, frameworks, or APIs.
+- Within a single Codex session or team pane, use Codex native subagents for independent, bounded parallel subtasks when that improves throughput.
+<!-- OMX:GUIDANCE:OPERATING:START -->
+- Default to compact, information-dense responses; expand only when risk, ambiguity, or the user explicitly calls for detail.
+- Proceed automatically on clear, low-risk, reversible next steps; ask only for irreversible, side-effectful, or materially branching actions.
+- Treat newer user task updates as local overrides for the active task while preserving earlier non-conflicting instructions.
+- Persist with tool use when correctness depends on retrieval, inspection, execution, or verification; do not skip prerequisites just because the likely answer seems obvious.
+<!-- OMX:GUIDANCE:OPERATING:END -->
+</operating_principles>
 
-- 人类主要审核 `portfolio/`、`studies/`、`runtime/quests/` 下的 summary、report、draft、final delivery 等正式落盘结果。
-- Agent 应尽量把关键判断、数据变化、交付状态写入这些可审计表面，而不是留在瞬时会话里。
+## Working agreements
+- Write a cleanup plan before modifying code for cleanup/refactor/deslop work.
+- Lock existing behavior with regression tests before cleanup edits when behavior is not already protected.
+- Prefer deletion over addition.
+- Reuse existing utils and patterns before introducing new abstractions.
+- No new dependencies without explicit request.
+- Keep diffs small, reviewable, and reversible.
+- Run lint, typecheck, tests, and static analysis after changes.
+- Final reports must include changed files, simplifications made, and remaining risks.
 
-## 冲突处理
+## Project Truth Contract
 
-- 用户显式指令高于本文件。
-- 更近目录下的 `AGENTS.md` 高于本文件。
+The authoritative project truth contract lives at `contracts/project-truth/AGENTS.md`.
+Load and follow it for repository-specific identity, architecture priorities, worktree rules, mutation discipline, and domain-specific constraints.
+
+<lore_commit_protocol>
+## Lore Commit Protocol
+
+Every commit message must follow the Lore protocol — structured decision records using native git trailers.
+Commits are not just labels on diffs; they are the atomic unit of institutional knowledge.
+
+### Format
+
+```
+<intent line: why the change was made, not what changed>
+
+<body: narrative context — constraints, approach rationale>
+
+Constraint: <external constraint that shaped the decision>
+Rejected: <alternative considered> | <reason for rejection>
+Confidence: <low|medium|high>
+Scope-risk: <narrow|moderate|broad>
+Directive: <forward-looking warning for future modifiers>
+Tested: <what was verified (unit, integration, manual)>
+Not-tested: <known gaps in verification>
+```
+
+### Rules
+
+1. **Intent line first.** The first line describes *why*, not *what*. The diff already shows what changed.
+2. **Trailers are optional but encouraged.** Use the ones that add value; skip the ones that don't.
+3. **`Rejected:` prevents re-exploration.** If you considered and rejected an alternative, record it so future agents don't waste cycles re-discovering the same dead end.
+4. **`Directive:` is a message to the future.** Use it for "do not change X without checking Y" warnings.
+5. **`Constraint:` captures external forces.** API limitations, policy requirements, upstream bugs — things not visible in the code.
+6. **`Not-tested:` is honest.** Declaring known verification gaps is more valuable than pretending everything is covered.
+7. **All trailers use git-native trailer format** (key-value after a blank line). No custom parsing required.
+</lore_commit_protocol>
+
+---
+
+<delegation_rules>
+Default posture: work directly.
+
+Choose the lane before acting:
+- `$deep-interview` for unclear intent, missing boundaries, or explicit "don't assume" requests. This mode clarifies and hands off; it does not implement.
+- `$ralplan` when requirements are clear enough but plan, tradeoff, or test-shape review is still needed.
+- `$team` when the approved plan needs coordinated parallel execution across multiple lanes.
+- `$ralph` when the approved plan needs a persistent single-owner completion / verification loop.
+- **Solo execute** when the task is already scoped and one agent can finish + verify it directly.
+
+Delegate only when it materially improves quality, speed, or safety. Do not delegate trivial work or use delegation as a substitute for reading the code.
+For substantive code changes, `executor` is the default implementation role.
+Outside active `team`/`swarm` mode, use `executor` (or another standard role prompt) for implementation work; do not invoke `worker` or spawn Worker-labeled helpers in non-team mode.
+Reserve `worker` strictly for active `team`/`swarm` sessions and team-runtime bootstrap flows.
+Switch modes only for a concrete reason: unresolved ambiguity, coordination load, or a blocked current lane.
+</delegation_rules>
+
+<child_agent_protocol>
+Leader responsibilities:
+1. Pick the mode and keep the user-facing brief current.
+2. Delegate only bounded, verifiable subtasks with clear ownership.
+3. Integrate results, decide follow-up, and own final verification.
+
+Worker responsibilities:
+1. Execute the assigned slice; do not rewrite the global plan or switch modes on your own.
+2. Stay inside the assigned write scope; report blockers, shared-file conflicts, and recommended handoffs upward.
+3. Ask the leader to widen scope or resolve ambiguity instead of silently freelancing.
+
+Rules:
+- Max 6 concurrent child agents.
+- Child prompts stay under AGENTS.md authority.
+- `worker` is a team-runtime surface, not a general-purpose child role.
+- Child agents should report recommended handoffs upward.
+- Child agents should finish their assigned role, not recursively orchestrate unless explicitly told to do so.
+- Prefer inheriting the leader model by omitting `spawn_agent.model` unless a task truly requires a different model.
+- Do not hardcode stale frontier-model overrides for Codex native child agents. If an explicit frontier override is necessary, use the current frontier default from `OMX_DEFAULT_FRONTIER_MODEL` / the repo model contract (currently `gpt-5.4`), not older values such as `gpt-5.2`.
+- Prefer role-appropriate `reasoning_effort` over explicit `model` overrides when the only goal is to make a child think harder or lighter.
+</child_agent_protocol>
+
+<invocation_conventions>
+- `$name` — invoke a workflow skill
+- `/skills` — browse available skills
+- `/prompts:name` — advanced specialist role surface when the task already needs a specific agent
+</invocation_conventions>
+
+<model_routing>
+Match role to task shape:
+- Low complexity: `explore`, `style-reviewer`, `writer`
+- Standard: `executor`, `debugger`, `test-engineer`
+- High complexity: `architect`, `executor`, `critic`
+
+For Codex native child agents, model routing defaults to inheritance/current repo defaults unless the caller has a concrete reason to override it.
+</model_routing>
+
+---
+
+<agent_catalog>
+Key roles:
+- `explore` — fast codebase search and mapping
+- `planner` — work plans and sequencing
+- `architect` — read-only analysis, diagnosis, tradeoffs
+- `debugger` — root-cause analysis
+- `executor` — implementation and refactoring
+- `verifier` — completion evidence and validation
+
+Specialists remain available through advanced role surfaces such as `/prompts:*` when the task clearly benefits from them.
+</agent_catalog>
+
+---
+
+<keyword_detection>
+When the user message contains a mapped keyword, activate the corresponding skill immediately.
+Do not ask for confirmation.
+
+Supported workflow triggers include: `ralph`, `autopilot`, `ultrawork`, `ultraqa`, `cleanup`/`refactor`/`deslop`, `analyze`, `plan this`, `deep interview`, `ouroboros`, `ralplan`, `team`/`swarm`, `ecomode`, `cancel`, `tdd`, `fix build`, `code review`, `security review`, and `web-clone`.
+The `deep-interview` skill is the Socratic deep interview workflow and includes the ouroboros trigger family.
+
+Runtime availability gate:
+- Canonical host adapter references:
+  - OMX CLI/runtime: `contracts/dev-hosts/omx-cli.md`
+  - Codex App / plain Codex: `contracts/dev-hosts/codex-app.md`
+- Treat `autopilot`, `ralph`, `ultrawork`, `ultraqa`, `team`/`swarm`, and `ecomode` as **OMX runtime workflows**, not generic prompt aliases.
+- Auto-activate those runtime workflows only when the current session is actually running under OMX CLI/runtime (for example, launched via `omx`, with OMX session overlay/runtime state available, or when the user explicitly asks to run `omx ...` in the shell).
+- In Codex App or plain Codex sessions without OMX runtime, do **not** treat those keywords alone as activation. Explain that they require OMX CLI runtime support, and continue with the nearest App-safe surface (`deep-interview`, `ralplan`, `plan`, `/prompts:*`, or native subagents) unless the user explicitly wants you to launch OMX from the shell.
+
+| Keyword(s) | Skill | Action |
+|-------------|-------|--------|
+| "ralph", "don't stop", "must complete", "keep going" | `$ralph` | Runtime-only: read `./.codex/skills/ralph/SKILL.md`, execute persistence loop only inside OMX CLI/runtime |
+| "autopilot", "build me", "I want a" | `$autopilot` | Runtime-only: read `./.codex/skills/autopilot/SKILL.md`, execute autonomous pipeline only inside OMX CLI/runtime |
+| "ultrawork", "ulw", "parallel" | `$ultrawork` | Runtime-only: read `./.codex/skills/ultrawork/SKILL.md`, execute parallel agents only inside OMX CLI/runtime |
+| "ultraqa" | `$ultraqa` | Runtime-only: read `./.codex/skills/ralph/SKILL.md`, run persistent completion and verification loop only inside OMX CLI/runtime (UltraQA compatibility alias) |
+| "analyze", "investigate" | `$analyze` | Read `./.codex/prompts/debugger.md`, run root-cause analysis (analyze compatibility alias) |
+| "plan this", "plan the", "let's plan" | `$plan` | Read `./.codex/skills/plan/SKILL.md`, start planning workflow |
+| "interview", "deep interview", "gather requirements", "interview me", "don't assume", "ouroboros" | `$deep-interview` | Read `./.codex/skills/deep-interview/SKILL.md`, run Ouroboros-inspired Socratic ambiguity-gated interview workflow |
+| "ralplan", "consensus plan" | `$ralplan` | Read `./.codex/skills/ralplan/SKILL.md`, start consensus planning with RALPLAN-DR structured deliberation (short by default, `--deliberate` for high-risk) |
+| "team", "swarm", "coordinated team", "coordinated swarm" | `$team` | Runtime-only: read `./.codex/skills/team/SKILL.md`, start tmux-based team orchestration only inside OMX CLI/runtime (swarm compatibility alias) |
+| "ecomode", "eco", "budget" | `$ecomode` | Runtime-only: read `./.codex/skills/ultrawork/SKILL.md`, execute cost-aware parallel workflow only inside OMX CLI/runtime (ecomode compatibility alias) |
+| "cancel", "stop", "abort" | `$cancel` | Read `./.codex/skills/cancel/SKILL.md`, cancel active modes |
+| "tdd", "test first" | `$tdd` | Read `./.codex/prompts/test-engineer.md`, run test-first workflow (tdd compatibility alias) |
+| "fix build", "type errors" | `$build-fix` | Read `./.codex/prompts/build-fixer.md`, fix build errors with minimal diff (build-fix compatibility alias) |
+| "review code", "code review", "code-review" | `$code-review` | Read `./.codex/skills/code-review/SKILL.md`, run code review |
+| "security review" | `$security-review` | Read `./.codex/skills/security-review/SKILL.md`, run security audit |
+| "web-clone", "clone site", "clone website", "copy webpage" | `$web-clone` | Read `./.codex/skills/web-clone/SKILL.md`, start website cloning pipeline |
+
+Detection rules:
+- Keywords are case-insensitive and match anywhere in the user message.
+- Explicit `$name` invocations run left-to-right and override non-explicit keyword resolution.
+- If multiple non-explicit keywords match, use the most specific match.
+- Runtime-only keywords must pass the runtime availability gate before activation.
+- If the user explicitly invokes `/prompts:<name>`, do not auto-activate keyword skills unless explicit `$name` tokens are also present.
+- The rest of the user message becomes the task description.
+
+Ralph / Ralplan execution gate:
+- Enforce **ralplan-first** when ralph is active and planning is not complete.
+- Planning is complete only after both `.omx/plans/prd-*.md` and `.omx/plans/test-spec-*.md` exist.
+- Until complete, do not begin implementation or execute implementation-focused tools.
+</keyword_detection>
+
+---
+
+<skills>
+Skills are workflow commands.
+Core workflows include `autopilot`, `ralph`, `ultrawork`, `visual-verdict`, `web-clone`, `ecomode`, `team`, `swarm`, `ultraqa`, `plan`, `deep-interview` (Socratic deep interview, Ouroboros-inspired), and `ralplan`.
+Utilities include `cancel`, `note`, `doctor`, `help`, and `trace`.
+</skills>
+
+---
+
+<team_compositions>
+Common team compositions remain available when explicit team orchestration is warranted, for example feature development, bug investigation, code review, and UX audit.
+</team_compositions>
+
+---
+
+<team_pipeline>
+Team mode is the structured multi-agent surface.
+Canonical pipeline:
+`team-plan -> team-prd -> team-exec -> team-verify -> team-fix (loop)`
+
+Use it when durable staged coordination is worth the overhead. Otherwise, stay direct.
+Terminal states: `complete`, `failed`, `cancelled`.
+</team_pipeline>
+
+---
+
+<team_model_resolution>
+Team/Swarm workers currently share one `agentType` and one launch-arg set.
+Model precedence:
+1. Explicit model in `OMX_TEAM_WORKER_LAUNCH_ARGS`
+2. Inherited leader `--model`
+3. Low-complexity default model from `OMX_DEFAULT_SPARK_MODEL` (legacy alias: `OMX_SPARK_MODEL`)
+
+Normalize model flags to one canonical `--model <value>` entry.
+Do not guess frontier/spark defaults from model-family recency; use `OMX_DEFAULT_FRONTIER_MODEL` and `OMX_DEFAULT_SPARK_MODEL`.
+</team_model_resolution>
+
+<!-- OMX:MODELS:START -->
+## Model Capability Table
+
+Auto-generated by `omx setup` from the current `config.toml` plus OMX model overrides.
+<!-- OMX:MODELS:END -->
+
+---
+
+<verification>
+Verify before claiming completion.
+
+Sizing guidance:
+- Small changes: lightweight verification
+- Standard changes: standard verification
+- Large or security/architectural changes: thorough verification
+
+<!-- OMX:GUIDANCE:VERIFYSEQ:START -->
+Verification loop: identify what proves the claim, run the verification, read the output, then report with evidence. If verification fails, continue iterating rather than reporting incomplete work. Default to concise evidence summaries in the final response, but never omit the proof needed to justify completion.
+
+- Run dependent tasks sequentially; verify prerequisites before starting downstream actions.
+- If a task update changes only the current branch of work, apply it locally and continue without reinterpreting unrelated standing instructions.
+- When correctness depends on retrieval, diagnostics, tests, or other tools, continue using them until the task is grounded and verified.
+<!-- OMX:GUIDANCE:VERIFYSEQ:END -->
+</verification>
+
+<execution_protocols>
+Mode selection:
+- Use `$deep-interview` first when the request is broad, intent/boundaries are unclear, or the user says not to assume.
+- Use `$ralplan` when the requirements are clear enough but architecture, tradeoffs, or test strategy still need consensus.
+- Use `$team` when the approved plan has multiple independent lanes, shared blockers, or durable coordination needs.
+- Use `$ralph` when the approved plan should stay in a persistent completion / verification loop with one owner.
+- Otherwise execute directly in solo mode.
+- Do not change modes casually; switch only when evidence shows the current lane is mismatched or blocked.
+
+Command routing:
+- When `USE_OMX_EXPLORE_CMD` enables advisory routing, strongly prefer `omx explore` as the default surface for simple read-only repository lookup tasks (files, symbols, patterns, relationships).
+- For simple file/symbol lookups, use `omx explore` FIRST before attempting full code analysis.
+
+When to use what:
+- Use `omx explore --prompt ...` for simple read-only lookups.
+- Use `omx sparkshell` for noisy read-only shell commands, bounded verification runs, repo-wide listing/search, or tmux-pane summaries; `omx sparkshell --tmux-pane ...` is explicit opt-in.
+- Keep ambiguous, implementation-heavy, edit-heavy, or non-shell-only work on the richer normal path.
+- `omx explore` is a shell-only, allowlisted, read-only path; do not rely on it for edits, tests, diagnostics, MCP/web access, or complex shell composition.
+- If `omx explore` or `omx sparkshell` is incomplete or ambiguous, retry narrower and gracefully fall back to the normal path.
+
+Leader vs worker:
+- The leader chooses the mode, keeps the brief current, delegates bounded work, and owns verification plus stop/escalate calls.
+- Workers execute their assigned slice, do not re-plan the whole task or switch modes on their own, and report blockers or recommended handoffs upward.
+- Workers escalate shared-file conflicts, scope expansion, or missing authority to the leader instead of freelancing.
+
+Stop / escalate:
+- Stop when the task is verified complete, the user says stop/cancel, or no meaningful recovery path remains.
+- Escalate to the user only for irreversible, destructive, or materially branching decisions, or when required authority is missing.
+- Escalate from worker to leader for blockers, scope expansion, shared ownership conflicts, or mode mismatch.
+- `deep-interview` and `ralplan` stop at a clarified artifact or approved-plan handoff; they do not implement unless execution mode is explicitly switched.
+
+Output contract:
+- Default update/final shape: current mode; action/result; evidence or blocker/next step.
+- Keep rationale once; do not restate the full plan every turn.
+- Expand only for risk, handoff, or explicit user request.
+
+Parallelization:
+- Run independent tasks in parallel.
+- Run dependent tasks sequentially.
+- Use background execution for builds and tests when helpful.
+- Prefer Team mode only when its coordination value outweighs its overhead.
+- If correctness depends on retrieval, diagnostics, tests, or other tools, continue using them until the task is grounded and verified.
+
+Anti-slop workflow:
+- Cleanup/refactor/deslop work still follows the same `$deep-interview` -> `$ralplan` -> `$team`/`$ralph` path; use `$ai-slop-cleaner` as a bounded helper inside the chosen execution lane, not as a competing top-level workflow.
+- Lock behavior with tests first, then make one smell-focused pass at a time.
+- Prefer deletion, reuse, and boundary repair over new layers.
+- Keep writer/reviewer pass separation for cleanup plans and approvals.
+
+Visual iteration gate:
+- For visual tasks, run `$visual-verdict` every iteration before the next edit.
+- Persist verdict JSON in `.omx/state/{scope}/ralph-progress.json`.
+
+Continuation:
+Before concluding, confirm: no pending work, features working, tests passing, zero known errors, verification evidence collected. If not, continue.
+
+Ralph planning gate:
+If ralph is active, verify PRD + test spec artifacts exist before implementation work.
+</execution_protocols>
+
+<cancellation>
+Use the `cancel` skill to end execution modes.
+Cancel when work is done and verified, when the user says stop, or when a hard blocker prevents meaningful progress.
+Do not cancel while recoverable work remains.
+</cancellation>
+
+---
+
+<state_management>
+OMX persists runtime state under `.omx/`:
+- `.omx/state/` — mode state
+- `.omx/notepad.md` — session notes
+- `.omx/project-memory.json` — cross-session memory
+- `.omx/plans/` — plans
+- `.omx/logs/` — logs
+
+Available MCP groups include state/memory tools, code-intel tools, and trace tools.
+
+Mode lifecycle requirements:
+- Write state on start.
+- Update state on phase or iteration change.
+- Mark inactive with `completed_at` on completion.
+- Clear state on cancel/abort cleanup.
+</state_management>
+
+---
+
+## Setup
+
+Run `omx setup` to install all components. Run `omx doctor` to verify installation.
+

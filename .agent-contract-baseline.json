@@ -1,0 +1,49 @@
+{
+  "baseline_name": "agent-contract-baseline",
+  "baseline_version": "0.2.0",
+  "contract_layout": "single-project-truth",
+  "scope": "project",
+  "display_name": "Med Autoscience",
+  "project_truth_path": "contracts/project-truth/AGENTS.md",
+  "managed_files": [
+    "AGENTS.md",
+    "README.md",
+    ".gitignore",
+    "contracts/dev-hosts/README.md",
+    "contracts/dev-hosts/omx-cli.md",
+    "contracts/dev-hosts/codex-app.md",
+    "contracts/project-truth/AGENTS.md"
+  ],
+  "updated_at": "2026-04-04T10:22:44.585291+00:00",
+  "legacy_project_contract_path": "contracts/med-autoscience-repository/AGENTS.md",
+  "preserved_existing_root": {
+    "backed_up": false,
+    "backup_path": "",
+    "adopted_to_contract": false
+  },
+  "project_truth_migration": {
+    "migrated": true,
+    "source_path": "/Users/gaofeng/workspace/med-autoscience/contracts/med-autoscience-repository/AGENTS.md",
+    "removed_legacy_source": true
+  },
+  "gitignore_updated": false,
+  "readme_updated": true,
+  "config_reconcile": {
+    "applied": false,
+    "user_config_present": true,
+    "project_config_present": true,
+    "keys_synced": [],
+    "tables_synced": []
+  },
+  "legacy_alias_repair": {
+    "repaired": [
+      "analyze",
+      "build-fix",
+      "tdd",
+      "ecomode",
+      "ultraqa",
+      "swarm"
+    ],
+    "skipped": []
+  }
+}
