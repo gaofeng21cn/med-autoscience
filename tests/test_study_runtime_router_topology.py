@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def test_study_runtime_router_build_create_payload_uses_router_startup_contract_binding(monkeypatch) -> None:
@@ -74,15 +75,97 @@ def test_study_runtime_router_sync_completion_uses_router_message_builder_bindin
     assert seen["decision_request_payload"]["message"] == "patched completion message"
 
 
+def test_study_runtime_router_build_execution_context_uses_router_completion_binding(monkeypatch) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+
+    monkeypatch.setattr(
+        router.study_runtime_protocol,
+        "resolve_study_runtime_context",
+        lambda **kwargs: SimpleNamespace(
+            runtime_root=Path("/tmp/runtime"),
+            quest_root=Path("/tmp/runtime/quests/study-001"),
+            runtime_binding_path=Path("/tmp/study/runtime_binding.yaml"),
+            startup_payload_root=Path("/tmp/runtime/startup-payloads/study-001"),
+            launch_report_path=Path("/tmp/study/artifacts/runtime/last_launch_report.json"),
+        ),
+    )
+    monkeypatch.setattr(
+        router,
+        "_study_completion_state",
+        lambda *, study_root: {"patched_root": str(study_root)},
+    )
+
+    context = router._build_execution_context(
+        profile=SimpleNamespace(),
+        study_id="study-001",
+        study_root=Path("/tmp/study"),
+        study_payload={"execution": {"quest_id": "quest-001"}},
+        source="test",
+    )
+
+    assert context.completion_state == {"patched_root": "/tmp/study"}
+
+
+def test_study_runtime_router_build_context_create_payload_uses_router_binding(monkeypatch) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    context = SimpleNamespace(
+        profile=SimpleNamespace(),
+        study_id="study-001",
+        study_root=Path("/tmp/study"),
+        study_payload={},
+        execution={},
+    )
+
+    monkeypatch.setattr(
+        router,
+        "_build_create_payload",
+        lambda **kwargs: {"marker": "patched-create-payload"},
+    )
+
+    payload = router._build_context_create_payload(context)
+
+    assert payload["marker"] == "patched-create-payload"
+
+
+def test_study_runtime_router_execute_runtime_decision_uses_router_dispatch_binding(monkeypatch) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    expected = router.StudyRuntimeExecutionOutcome(binding_last_action="resume")
+    status = SimpleNamespace(
+        decision=router.StudyRuntimeDecision.RESUME,
+        should_refresh_startup_hydration_while_blocked=lambda: False,
+        quest_exists=True,
+    )
+
+    monkeypatch.setattr(
+        router,
+        "_execute_resume_runtime_decision",
+        lambda **kwargs: expected,
+    )
+
+    outcome = router._execute_runtime_decision(status=status, context=SimpleNamespace())
+
+    assert outcome is expected
+
+
 def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     startup = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
     completion = importlib.import_module("med_autoscience.controllers.study_runtime_completion")
+    execution = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
 
     assert router._record_quest_runtime_audits is decision._record_quest_runtime_audits
     assert router._status_state is decision._status_state
     assert router._status_payload is decision._status_payload
+    assert router._build_execution_context is execution._build_execution_context
+    assert router._build_context_create_payload is execution._build_context_create_payload
+    assert router._run_runtime_preflight is execution._run_runtime_preflight
+    assert router._execute_create_runtime_decision is execution._execute_create_runtime_decision
+    assert router._execute_resume_runtime_decision is execution._execute_resume_runtime_decision
+    assert router._execute_blocked_refresh_runtime_decision is execution._execute_blocked_refresh_runtime_decision
+    assert router._execute_pause_runtime_decision is execution._execute_pause_runtime_decision
+    assert router._execute_completion_runtime_decision is execution._execute_completion_runtime_decision
+    assert router._execute_runtime_decision is execution._execute_runtime_decision
     assert router._prepare_runtime_overlay is startup._prepare_runtime_overlay
     assert router._audit_runtime_overlay is startup._audit_runtime_overlay
     assert router._build_startup_contract is startup._build_startup_contract
