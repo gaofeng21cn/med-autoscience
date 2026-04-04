@@ -398,3 +398,177 @@ def test_run_quest_hydration_rejects_semantic_table_display_plan_without_catalog
                 "literature_records": [],
             },
         )
+
+
+def test_run_quest_hydration_syncs_contract_and_display_stubs_to_active_worktree_paper_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk-reentry"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+    active_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    active_paper_root.mkdir(parents=True, exist_ok=True)
+    (active_paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
+    (active_paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps({"status": "resolved", "study_root": "/legacy/study"}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"study_archetype": "clinical_classifier", "endpoint_type": "time_to_event"},
+            "medical_reporting_contract": _time_to_event_reporting_contract(),
+            "entry_state_summary": "Study root: /tmp/studies/001-risk",
+            "literature_records": [],
+        },
+    )
+
+    active_reporting_contract = json.loads(
+        (active_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8")
+    )
+    assert active_reporting_contract["display_registry_required"] is True
+    assert active_reporting_contract["display_shell_plan"][0]["display_id"] == "cohort_flow"
+    assert (active_paper_root / "medical_analysis_contract.json").exists()
+    assert (active_paper_root / "display_registry.json").exists()
+    assert (active_paper_root / "figures" / "cohort_flow.shell.json").exists()
+    assert (active_paper_root / "tables" / "baseline_characteristics.shell.json").exists()
+    assert (active_paper_root / "cohort_flow.json").exists()
+    assert (active_paper_root / "baseline_characteristics_schema.json").exists()
+
+
+def test_run_quest_hydration_rewrites_stale_generated_display_registry_and_preserves_populated_surface_inputs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    (paper_root / "figures").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
+
+    (paper_root / "display_registry.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_contract_path": "paper/medical_reporting_contract.json",
+                "displays": [
+                    {
+                        "display_id": "Figure1",
+                        "display_kind": "figure",
+                        "requirement_key": "cohort_flow_figure",
+                        "shell_path": "paper/figures/Figure1.shell.json",
+                    },
+                    {
+                        "display_id": "Table1",
+                        "display_kind": "table",
+                        "requirement_key": "table1_baseline_characteristics",
+                        "shell_path": "paper/tables/Table1.shell.json",
+                    },
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figures" / "Figure1.shell.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "display_id": "Figure1",
+                "display_kind": "figure",
+                "requirement_key": "cohort_flow_figure",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "tables" / "Table1.shell.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "display_id": "Table1",
+                "display_kind": "table",
+                "requirement_key": "table1_baseline_characteristics",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "cohort_flow.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "shell_id": "cohort_flow_figure",
+                "display_id": "Figure1",
+                "title": "Existing cohort flow",
+                "steps": [
+                    {
+                        "step_id": "screened",
+                        "label": "Screened",
+                        "detail": "Raw records",
+                        "n": 128,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "baseline_characteristics_schema.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "table_shell_id": "table1_baseline_characteristics",
+                "display_id": "Table1",
+                "title": "Existing baseline table",
+                "groups": [{"label": "Overall (n=128)"}],
+                "variables": [{"label": "Age", "values": ["52 (44-61)"]}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"study_archetype": "clinical_classifier", "endpoint_type": "time_to_event"},
+            "medical_reporting_contract": _time_to_event_reporting_contract(),
+            "entry_state_summary": "Study root: /tmp/studies/001-risk",
+            "literature_records": [],
+        },
+    )
+
+    display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+    assert [item["display_id"] for item in display_registry["displays"]] == [
+        "cohort_flow",
+        "discrimination_calibration",
+        "km_risk_stratification",
+        "decision_curve",
+        "multicenter_generalizability",
+        "baseline_characteristics",
+        "time_to_event_performance_summary",
+    ]
+    assert display_registry["displays"][0]["catalog_id"] == "F1"
+    assert display_registry["displays"][-1]["catalog_id"] == "T2"
+
+    figure_shell = json.loads((paper_root / "figures" / "cohort_flow.shell.json").read_text(encoding="utf-8"))
+    table_shell = json.loads((paper_root / "tables" / "baseline_characteristics.shell.json").read_text(encoding="utf-8"))
+    assert figure_shell["display_id"] == "cohort_flow"
+    assert figure_shell["catalog_id"] == "F1"
+    assert table_shell["display_id"] == "baseline_characteristics"
+    assert table_shell["catalog_id"] == "T1"
+
+    cohort_flow_payload = json.loads((paper_root / "cohort_flow.json").read_text(encoding="utf-8"))
+    baseline_payload = json.loads((paper_root / "baseline_characteristics_schema.json").read_text(encoding="utf-8"))
+    assert cohort_flow_payload["display_id"] == "cohort_flow"
+    assert cohort_flow_payload["catalog_id"] == "F1"
+    assert cohort_flow_payload["title"] == "Existing cohort flow"
+    assert cohort_flow_payload["steps"][0]["label"] == "Screened"
+    assert baseline_payload["display_id"] == "baseline_characteristics"
+    assert baseline_payload["catalog_id"] == "T1"
+    assert baseline_payload["title"] == "Existing baseline table"
+    assert baseline_payload["variables"][0]["label"] == "Age"
