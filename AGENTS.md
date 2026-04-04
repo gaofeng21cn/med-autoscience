@@ -18,7 +18,7 @@ This root `AGENTS.md` is the repository development contract for agents that mod
 It governs local Codex/OMX execution, repository workflow, verification discipline, and orchestration behavior while working inside this repository.
 
 It is not the project truth contract by itself.
-The versioned project truth contract lives at `contracts/med-autoscience-repository/AGENTS.md`.
+The versioned project truth contract lives at `contracts/project-truth/AGENTS.md`.
 When repository-specific goals, boundaries, or design priorities matter, treat that contract as the authoritative project truth source.
 
 Local tooling state such as `.omx/` and `.codex/` is development-only and must remain untracked.
@@ -29,7 +29,7 @@ Treat agent guidance in this repository as four layers:
 
 1. Repository development contract: this root `AGENTS.md`
 2. Host adapter contract: `contracts/dev-hosts/`
-3. Project truth contract: `contracts/med-autoscience-repository/AGENTS.md`
+3. Project truth contract: `contracts/project-truth/AGENTS.md`
 4. Optional local-only overlay: `.omx/local/AGENTS.local.md`
 
 The local-only overlay is intentionally untracked and may contain machine-specific paths, personal workflow preferences, or launcher-specific hints.
@@ -79,7 +79,7 @@ Keep runtime marker contracts stable and non-destructive when overlays are appli
 
 ## Project Truth Contract
 
-The authoritative project truth contract lives at `contracts/med-autoscience-repository/AGENTS.md`.
+The authoritative project truth contract lives at `contracts/project-truth/AGENTS.md`.
 Load and follow it for repository-specific identity, architecture priorities, worktree rules, mutation discipline, and domain-specific constraints.
 
 <lore_commit_protocol>
