@@ -11,5 +11,10 @@ build/
 profiles/*.local.toml
 !profiles/*.template.toml
 RTK.md
-# Internal agent working notes, specs, and plans are kept under docs/ and are not part of the published repo surface.
-docs/
+AGENTS.md.bak
+# Public docs live under docs/; only docs/superpowers/ is reserved for local AI working material.
+docs/superpowers/
+.omx/
+/.codex/
+
+.codex/
