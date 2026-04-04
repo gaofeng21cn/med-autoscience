@@ -11,11 +11,11 @@
 
 ## 作用域
 
-当前实现分成五个清晰层次：
+当前实现分成六个清晰层次：
 
 - [`src/med_autoscience/controllers/study_runtime_router.py`](../src/med_autoscience/controllers/study_runtime_router.py)
   - 作为 facade，保留正式入口 `study_runtime_status(...)` / `ensure_study_runtime(...)`
-  - 持有 preflight、transport orchestration 与 runtime artifact 落盘主干
+  - 负责把 read-model、execution orchestration 与 runtime artifact 落盘 glue 收束成正式 controller 入口
 - [`src/med_autoscience/controllers/study_runtime_types.py`](../src/med_autoscience/controllers/study_runtime_types.py)
   - 负责 typed surface：decision / reason / quest status enums，status object，以及 execution outcome wrappers
 - [`src/med_autoscience/controllers/study_runtime_decision.py`](../src/med_autoscience/controllers/study_runtime_decision.py)
@@ -24,7 +24,9 @@
   - 负责 startup contract、create payload、overlay helper、startup hydration / context sync
 - [`src/med_autoscience/controllers/study_runtime_completion.py`](../src/med_autoscience/controllers/study_runtime_completion.py)
   - 负责 study-level completion state 读取、completion request message 构造、completion sync
-`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 decision / startup / completion helper。
+- [`src/med_autoscience/controllers/study_runtime_execution.py`](../src/med_autoscience/controllers/study_runtime_execution.py)
+  - 负责 execution context、preflight、decision dispatch、create / resume / pause / completion orchestration
+`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 decision / startup / completion / execution helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
 ## 正式入口
@@ -188,6 +190,7 @@
 ## Preflight contract
 
 `ensure_study_runtime(...)` 在真正执行 transport 前，会先跑 `_run_runtime_preflight(...)`。
+这条 preflight 链当前由 `study_runtime_execution.py` 承担，router 只保留正式入口 glue。
 
 当前最小稳定 preflight 规则：
 
@@ -222,6 +225,8 @@
   - `PAUSE_AND_COMPLETE` 会先 pause
   - 随后统一走 completion sync，并把 decision 最终收敛到 `COMPLETED`
 
+这条执行链当前由 `study_runtime_execution.py` 承担；router 上同名私有 helper 只是 facade re-export / monkeypatch seam，不应被误认为独立 contract 层。
+
 ## Artifact persistence contract
 
 `ensure_study_runtime(...)` 在执行结束后，始终会调用 `persist_runtime_artifacts(...)`。
@@ -242,7 +247,8 @@
 以下内容当前仍视为实现细节，不应被其他模块直接绑定：
 
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
-- `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` 内部尚未升级成 spec 的组装细节
+- `_build_execution_context(...)`、`_build_context_create_payload(...)`、artifact persistence glue 等 execution/orchestration 细节
+- `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` 内部尚未升级成 spec 的组装细节
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构
 - runtime audit payload 中未被 typed wrapper 明确收口的自由字段
@@ -262,7 +268,7 @@
 其中：
 
 - router tests 约束 decision、typed surface、preflight 和 execution behavior
-- router topology tests 约束 router facade 继续 re-export 已拆分的 decision / startup / completion helper
+- router topology tests 约束 router facade 继续 re-export 已拆分的 decision / startup / completion / execution helper，并守住 patch-through 兼容语义
 - runtime protocol topology tests 约束 runtime layout / path contract
 - workspace contract tests 约束 orchestration 依赖的 workspace readiness 前提
 
