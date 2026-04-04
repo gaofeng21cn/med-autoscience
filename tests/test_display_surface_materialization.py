@@ -12,6 +12,48 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_default_publication_display_contracts(paper_root: Path) -> None:
+    dump_json(
+        paper_root / "publication_style_profile.json",
+        {
+            "schema_version": 1,
+            "style_profile_id": "paper_neutral_clinical_v1",
+            "palette": {
+                "primary": "#245A6B",
+                "secondary": "#B89A6D",
+                "contrast": "#8B3A3A",
+                "neutral": "#6B7280",
+                "light": "#E7E1D8",
+            },
+            "semantic_roles": {
+                "model_curve": "primary",
+                "comparator_curve": "secondary",
+                "reference_line": "neutral",
+                "highlight_band": "light",
+            },
+            "typography": {
+                "title_size": 12.5,
+                "axis_title_size": 11.0,
+                "tick_size": 10.0,
+                "panel_label_size": 11.0,
+            },
+            "stroke": {
+                "primary_linewidth": 2.4,
+                "secondary_linewidth": 1.9,
+                "reference_linewidth": 1.0,
+                "marker_size": 4.2,
+            },
+        },
+    )
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [],
+        },
+    )
+
+
 def build_display_surface_workspace(
     tmp_path: Path,
     *,
@@ -875,6 +917,7 @@ def build_display_surface_workspace(
         )
     dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
     return paper_root
 
 
@@ -1444,6 +1487,10 @@ def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tm
     assert qc_result["qc_profile"] == "publication_multicenter_overview"
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
     assert qc_result["issues"] == []
+    assert qc_result["audit_classes"] == []
+    assert qc_result["failure_reason"] == ""
+    assert qc_result["readability_findings"] == []
+    assert qc_result["revision_note"] == ""
 
 
 @pytest.mark.parametrize(
@@ -1470,6 +1517,21 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
         spec=spec,
         display_id=display_id,
     )
+    if template_id == "time_to_event_decision_curve":
+        display_payload = {
+            **display_payload,
+            "render_context": {
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "style_roles": {
+                    "model_curve": "#245A6B",
+                    "comparator_curve": "#B89A6D",
+                    "reference_line": "#6B7280",
+                    "highlight_band": "#E7E1D8",
+                },
+                "layout_override": {},
+                "readability_override": {},
+            },
+        }
     output_png_path = tmp_path / f"{display_id}_{template_id}.png"
     output_pdf_path = tmp_path / f"{display_id}_{template_id}.pdf"
     layout_sidecar_path = tmp_path / f"{display_id}_{template_id}.layout.json"
@@ -1489,6 +1551,114 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
 
     assert qc_result["status"] == "pass", qc_result
     assert qc_result["issues"] == []
+
+
+def test_materialize_display_surface_applies_publication_style_and_display_override(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "decision_curve",
+                    "template_id": "time_to_event_decision_curve",
+                    "layout_override": {
+                        "highlight_band": {"xmin": 0.5, "xmax": 3.0, "unit": "percent"},
+                        "legend_position": "lower_center",
+                    },
+                    "readability_override": {
+                        "focus_window": {"panel_id": "A", "y_min": -0.002, "y_max": 0.006},
+                    },
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "decision_curve",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_decision_curve",
+                    "catalog_id": "F4",
+                    "shell_path": "paper/figures/decision_curve.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "time_to_event_decision_curve_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_decision_curve_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "decision_curve",
+                    "template_id": "time_to_event_decision_curve",
+                    "title": "Five-year decision curve",
+                    "caption": "Net benefit for the locked survival model across the prespecified threshold range.",
+                    "x_label": "Threshold risk (%)",
+                    "y_label": "Net benefit",
+                    "reference_line": {"x": [0.5, 4.0], "y": [0.0, 0.0], "label": "Treat none"},
+                    "series": [
+                        {"label": "Model", "x": [0.5, 1.0, 2.0, 4.0], "y": [0.004, 0.003, 0.001, 0.0]},
+                        {"label": "Treat all", "x": [0.5, 1.0, 2.0, 4.0], "y": [0.002, -0.003, -0.014, -0.035]},
+                    ],
+                }
+            ],
+        },
+    )
+
+    render_contexts: list[dict[str, object]] = []
+
+    def fake_render_python_evidence_figure(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        output_png_path.parent.mkdir(parents=True, exist_ok=True)
+        output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_contexts.append(dict(display_payload.get("render_context") or {}))
+
+    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+
+    report = module.materialize_display_surface(paper_root=paper_root)
+    catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    f4 = next(item for item in catalog["figures"] if item["figure_id"] == "F4")
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert report["status"] == "materialized"
+    assert len(render_contexts) == 1
+    assert render_contexts[0]["style_profile_id"] == "paper_neutral_clinical_v1"
+    assert render_contexts[0]["style_roles"]["model_curve"] == "#245A6B"
+    assert render_contexts[0]["layout_override"]["highlight_band"]["xmax"] == 3.0
+    assert f4["render_context"]["style_profile_id"] == "paper_neutral_clinical_v1"
+    assert f4["render_context"]["style_roles"]["model_curve"] == "#245A6B"
+    assert f4["render_context"]["layout_override"]["highlight_band"]["xmax"] == 3.0
+    assert layout_sidecar["render_context"]["style_profile_id"] == "paper_neutral_clinical_v1"
+    assert layout_sidecar["render_context"]["style_roles"]["model_curve"] == "#245A6B"
+    assert layout_sidecar["render_context"]["layout_override"]["highlight_band"]["xmax"] == 3.0
+    assert layout_sidecar["render_context"]["readability_override"]["focus_window"]["panel_id"] == "A"
 
 
 def test_materialize_display_surface_rejects_incomplete_cohort_flow_input(tmp_path: Path) -> None:

@@ -1383,6 +1383,52 @@ def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     assert "engine_id" in errors[0]
 
 
+def test_validate_figure_catalog_blocks_readability_failures() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_figure_catalog(
+        {
+            "figures": [
+                {
+                    "figure_id": "F3",
+                    "template_id": "time_to_event_risk_group_summary",
+                    "renderer_family": "python",
+                    "paper_role": "main_text",
+                    "input_schema_id": "time_to_event_grouped_inputs_v1",
+                    "qc_profile": "publication_survival_curve",
+                    "qc_result": {
+                        "status": "fail",
+                        "checked_at": "2026-04-04T00:00:00+00:00",
+                        "engine_id": "display_layout_qc_v1",
+                        "qc_profile": "publication_survival_curve",
+                        "layout_sidecar_path": "paper/figures/generated/F3.layout.json",
+                        "audit_classes": ["readability"],
+                        "issues": [
+                            {
+                                "audit_class": "readability",
+                                "rule_id": "risk_separation_not_readable",
+                                "message": "survival groups are too compressed to convey the intended separation",
+                            }
+                        ],
+                        "failure_reason": "risk_separation_not_readable",
+                        "readability_findings": [
+                            {
+                                "audit_class": "readability",
+                                "rule_id": "risk_separation_not_readable",
+                                "message": "survival groups are too compressed to convey the intended separation",
+                            }
+                        ],
+                        "revision_note": "",
+                    },
+                    "export_paths": ["paper/figures/F3.png", "paper/figures/F3.pdf"],
+                }
+            ]
+        }
+    )
+
+    assert any("readability" in error for error in errors)
+
+
 def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 

@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any
 
 
+_REQUIRED_STYLE_ROLES_BY_TEMPLATE: dict[str, tuple[str, ...]] = {
+    "time_to_event_decision_curve": ("model_curve", "comparator_curve", "reference_line"),
+}
+
+
 @dataclass(frozen=True)
 class PublicationStyleProfile:
     schema_version: int
@@ -153,3 +158,23 @@ def load_display_overrides(path: Path) -> dict[tuple[str, str], DisplayOverride]
         )
 
     return overrides
+
+
+def resolve_style_roles(
+    *,
+    style_profile: PublicationStyleProfile,
+    template_id: str,
+) -> dict[str, str]:
+    resolved: dict[str, str] = {}
+    for role, palette_key in style_profile.semantic_roles.items():
+        if palette_key not in style_profile.palette:
+            raise ValueError(
+                f"publication_style_profile.semantic_roles[{role}] references undefined palette key `{palette_key}`"
+            )
+        resolved[role] = style_profile.palette[palette_key]
+    required_roles = _REQUIRED_STYLE_ROLES_BY_TEMPLATE.get(template_id, ())
+    missing_roles = [role for role in required_roles if role not in resolved]
+    if missing_roles:
+        missing = ", ".join(missing_roles)
+        raise ValueError(f"{template_id} requires publication style roles: {missing}")
+    return resolved

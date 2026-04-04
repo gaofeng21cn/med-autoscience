@@ -121,6 +121,8 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
 
     assert time_to_event_decision.template_ids == ("time_to_event_decision_curve",)
     assert time_to_event_decision.collection_required_fields["series"] == ("label", "x", "y")
+    assert "publication_style_profile_required_at_materialization" in time_to_event_decision.additional_constraints
+    assert "display_override_contract_may_adjust_layout_without_changing_data" in time_to_event_decision.additional_constraints
     assert generalizability.template_ids == ("multicenter_generalizability_overview",)
     assert generalizability.collection_required_fields["centers"] == (
         "center_label",

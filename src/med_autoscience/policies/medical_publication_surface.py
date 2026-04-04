@@ -342,8 +342,12 @@ def validate_figure_catalog(payload: object) -> list[str]:
             qc_status = str(qc_result.get("status") or "").strip()
             if qc_status not in {"pass", "fail"}:
                 return [f"figures[{index}].qc_result.status `{qc_status}` must be `pass` or `fail`"]
+            raw_audit_classes = qc_result.get("audit_classes", [])
+            if not isinstance(raw_audit_classes, list):
+                return [f"figures[{index}].qc_result.audit_classes must be a list"]
+            audit_classes = _normalize_string_list(raw_audit_classes)
             if qc_status == "fail":
-                return [f"figures[{index}].qc_result.status `fail` blocks publication"]
+                return [f"figures[{index}].qc_result.status `fail` blocks publication with audit classes {audit_classes}"]
             qc_result_profile = str(qc_result.get("qc_profile") or "").strip()
             if qc_result_profile != expected_qc_profile:
                 return [

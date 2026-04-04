@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from med_autoscience import display_layout_qc, display_registry
+from med_autoscience import display_layout_qc, display_registry, publication_display_contract
 
 
 _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
@@ -580,6 +580,25 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
 
 def _paper_relative_path(path: Path, *, paper_root: Path) -> str:
     return path.resolve().relative_to(paper_root.parent.resolve()).as_posix()
+
+
+def _build_render_context(
+    *,
+    style_profile: publication_display_contract.PublicationStyleProfile,
+    display_overrides: dict[tuple[str, str], publication_display_contract.DisplayOverride],
+    display_id: str,
+    template_id: str,
+) -> dict[str, Any]:
+    override = display_overrides.get((display_id, template_id))
+    return {
+        "style_profile_id": style_profile.style_profile_id,
+        "style_roles": publication_display_contract.resolve_style_roles(
+            style_profile=style_profile,
+            template_id=template_id,
+        ),
+        "layout_override": dict(override.layout_override) if override is not None else {},
+        "readability_override": dict(override.readability_override) if override is not None else {},
+    }
 
 
 def _normalize_figure_catalog_id(raw_id: str) -> str:
@@ -2019,6 +2038,21 @@ def _render_python_time_to_event_decision_curve(
     series = list(display_payload.get("series") or [])
     if not series:
         raise RuntimeError(f"{template_id} requires non-empty series")
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+    model_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    comparator_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    reference_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
 
     _prepare_python_render_output_paths(
         output_png_path=output_png_path,
@@ -2028,20 +2062,39 @@ def _render_python_time_to_event_decision_curve(
 
     fig, ax = plt.subplots(figsize=(7.4, 5.0))
     fig.patch.set_facecolor("white")
-    palette = ("#1f4e79", "#c94f3d", "#2a9d8f", "#8c6d31")
     x_values = [float(value) for item in series for value in item["x"]]
     y_values = [float(value) for item in series for value in item["y"]]
     reference_line = display_payload.get("reference_line")
     if isinstance(reference_line, dict):
         x_values.extend(float(value) for value in reference_line.get("x", []))
         y_values.extend(float(value) for value in reference_line.get("y", []))
+    highlight_band = layout_override.get("highlight_band")
+    if isinstance(highlight_band, dict):
+        xmin = highlight_band.get("xmin")
+        xmax = highlight_band.get("xmax")
+        if (
+            isinstance(xmin, (int, float))
+            and not isinstance(xmin, bool)
+            and isinstance(xmax, (int, float))
+            and not isinstance(xmax, bool)
+            and float(xmin) < float(xmax)
+        ):
+            ax.axvspan(float(xmin), float(xmax), color=style_roles.get("highlight_band", "#E7E1D8"), alpha=0.22, zorder=0)
     for index, item in enumerate(series):
+        label = str(item["label"])
+        normalized_label = label.casefold()
+        if "treat all" in normalized_label:
+            line_color = comparator_color
+        elif index == 0:
+            line_color = model_color
+        else:
+            line_color = comparator_color
         ax.plot(
             item["x"],
             item["y"],
             linewidth=2.0,
-            color=palette[index % len(palette)],
-            label=str(item["label"]),
+            color=line_color,
+            label=label,
         )
     if isinstance(reference_line, dict):
         ax.plot(
@@ -2049,7 +2102,7 @@ def _render_python_time_to_event_decision_curve(
             reference_line["y"],
             linewidth=1.0,
             linestyle="--",
-            color="#6b7280",
+            color=reference_color,
             label=str(reference_line.get("label") or ""),
         )
     x_min = min(x_values)
@@ -2065,8 +2118,13 @@ def _render_python_time_to_event_decision_curve(
     ax.set_title(str(display_payload.get("title") or "").strip(), fontsize=12.5, fontweight="bold", color="#13293d")
     _apply_publication_axes_style(ax)
     handles, labels = ax.get_legend_handles_labels()
-    legend = fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.69, 0.84), frameon=False)
-    fig.subplots_adjust(left=0.12, right=0.66, bottom=0.15, top=0.88)
+    legend_position = str(layout_override.get("legend_position") or "upper_left").strip().lower()
+    if legend_position == "lower_center":
+        legend = fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.02), ncol=max(1, len(labels)), frameon=False)
+        fig.subplots_adjust(left=0.12, right=0.94, bottom=0.22, top=0.88)
+    else:
+        legend = fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.69, 0.84), frameon=False)
+        fig.subplots_adjust(left=0.12, right=0.66, bottom=0.15, top=0.88)
     fig.canvas.draw()
     dump_json(
         layout_sidecar_path,
@@ -2526,6 +2584,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     display_registry_payload = load_json(resolved_paper_root / "display_registry.json")
     figure_catalog = load_json(resolved_paper_root / "figures" / "figure_catalog.json")
     table_catalog = load_json(resolved_paper_root / "tables" / "table_catalog.json")
+    style_profile: publication_display_contract.PublicationStyleProfile | None = None
+    display_overrides: dict[tuple[str, str], publication_display_contract.DisplayOverride] | None = None
 
     figures_materialized: list[str] = []
     tables_materialized: list[str] = []
@@ -2704,19 +2764,35 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
 
         if display_kind == "figure" and display_registry.is_evidence_figure_template(requirement_key):
             spec = display_registry.get_evidence_figure_spec(requirement_key)
+            if style_profile is None:
+                style_profile = publication_display_contract.load_publication_style_profile(
+                    resolved_paper_root / "publication_style_profile.json"
+                )
+            if display_overrides is None:
+                display_overrides = publication_display_contract.load_display_overrides(
+                    resolved_paper_root / "display_overrides.json"
+                )
             figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
             payload_path, display_payload = _load_evidence_display_payload(
                 paper_root=resolved_paper_root,
                 spec=spec,
                 display_id=display_id,
             )
+            render_context = _build_render_context(
+                style_profile=style_profile,
+                display_overrides=display_overrides,
+                display_id=display_id,
+                template_id=spec.template_id,
+            )
+            render_payload = dict(display_payload)
+            render_payload["render_context"] = render_context
             output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.png"
             output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.pdf"
             layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.layout.json"
             if spec.renderer_family == "r_ggplot2":
                 _render_r_evidence_figure(
                     template_id=spec.template_id,
-                    display_payload=display_payload,
+                    display_payload=render_payload,
                     output_png_path=output_png_path,
                     output_pdf_path=output_pdf_path,
                     layout_sidecar_path=layout_sidecar_path,
@@ -2724,7 +2800,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             elif spec.renderer_family == "python":
                 _render_python_evidence_figure(
                     template_id=spec.template_id,
-                    display_payload=display_payload,
+                    display_payload=render_payload,
                     output_png_path=output_png_path,
                     output_pdf_path=output_pdf_path,
                     layout_sidecar_path=layout_sidecar_path,
@@ -2734,6 +2810,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     f"unsupported renderer_family `{spec.renderer_family}` for evidence template `{spec.template_id}`"
                 )
             layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
+            layout_sidecar["render_context"] = render_context
+            dump_json(layout_sidecar_path, layout_sidecar)
             qc_result = display_layout_qc.run_display_layout_qc(
                 qc_profile=spec.layout_qc_profile,
                 layout_sidecar=layout_sidecar,
@@ -2765,6 +2843,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],
                 "claim_ids": [],
+                "render_context": render_context,
             }
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),
