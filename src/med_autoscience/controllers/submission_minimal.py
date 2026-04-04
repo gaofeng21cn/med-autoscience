@@ -1102,12 +1102,13 @@ def create_submission_minimal_package(
             }
         )
 
+    submission_root_rel = relpath_from_workspace(submission_root, workspace_root)
     manifest: dict[str, Any] = {
         "schema_version": 1,
         "generated_at": utc_now(),
         "publication_profile": resolved_publication_profile,
         "citation_style": profile_config.citation_style,
-        "output_root": str(submission_root),
+        "output_root": submission_root_rel,
         "manuscript": {
             "source_markdown_path": relpath_from_workspace(source_markdown_path, workspace_root),
             "pdf_path": relpath_from_workspace(output_pdf_path, workspace_root),
