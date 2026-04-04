@@ -277,6 +277,8 @@ class StudyRuntimeStartupContextSyncResult:
         snapshot = payload.get("snapshot")
         if snapshot is not None and not isinstance(snapshot, dict):
             raise ValueError("study runtime startup context sync snapshot must be a mapping")
+        if isinstance(snapshot, dict) and not isinstance(snapshot.get("startup_contract"), dict):
+            raise ValueError("study runtime startup context sync snapshot missing startup_contract")
         return cls(ok=ok, payload=dict(payload))
 
 

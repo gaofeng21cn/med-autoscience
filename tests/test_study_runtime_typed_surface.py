@@ -528,6 +528,20 @@ def test_study_runtime_status_records_typed_preflight_and_recovery_extras() -> N
     assert status.partial_quest_recovery_result.archived_root.endswith("20260403T000000Z")
 
 
+def test_startup_context_sync_result_requires_echoed_startup_contract() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+
+    with pytest.raises(ValueError, match="startup_contract"):
+        module.StudyRuntimeStartupContextSyncResult.from_payload(
+            {
+                "ok": True,
+                "snapshot": {
+                    "quest_id": "quest-001",
+                },
+            }
+        )
+
+
 def test_study_runtime_status_records_typed_startup_hydration_reports() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))

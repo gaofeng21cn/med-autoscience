@@ -195,6 +195,8 @@ def _normalize_stable_startup_context_result(
         quest_id = str(snapshot.get("quest_id") or "").strip()
     if not quest_id:
         raise RuntimeError("missing stable startup-context contract")
+    if not isinstance(snapshot.get("startup_contract"), dict):
+        raise RuntimeError("missing stable startup-context contract")
     return dict(payload)
 
 
