@@ -20,7 +20,6 @@ from med_autoscience.controllers.study_runtime_types import (
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import StudyCompletionStateStatus
 
 
@@ -65,7 +64,7 @@ def _status_state(
     quest_exists = quest_runtime.quest_exists
     quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
     if quest_status in _LIVE_QUEST_STATUSES:
-        runtime_liveness_audit = med_deepscientist_transport.inspect_quest_live_execution(
+        runtime_liveness_audit = router._inspect_quest_live_execution(
             runtime_root=runtime_root,
             quest_id=quest_id,
         )

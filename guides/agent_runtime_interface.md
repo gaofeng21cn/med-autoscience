@@ -311,6 +311,7 @@ Phase 3 开始，transport 面也开始显式收口：
   - 负责 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
   - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
+  - 对 study runtime controller 来说，它仍是稳定 transport 调用面；内部若存在更薄的 controller-local seam，只属于实现层，不额外提升为公开 contract
 
 这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前正式主链已经不再保留 `adapters/deepscientist/*` 作为运行时依赖，production code 只允许依赖 `runtime_protocol` / `runtime_transport`。
 

@@ -32,6 +32,14 @@ from med_autoscience.controllers.study_runtime_resolution import (
     _load_yaml_dict,
     _resolve_study,
 )
+from med_autoscience.controllers.study_runtime_transport import (
+    _create_quest,
+    _inspect_quest_live_execution,
+    _pause_quest,
+    _resume_quest,
+    _sync_completion_with_approval,
+    _update_quest_startup_context,
+)
 from med_autoscience.controllers.study_runtime_execution import (
     _build_context_create_payload,
     _build_execution_context,

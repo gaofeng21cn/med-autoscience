@@ -11,7 +11,7 @@
 
 ## 作用域
 
-当前实现分成七个清晰层次：
+当前实现分成八个清晰层次：
 
 - [`src/med_autoscience/controllers/study_runtime_router.py`](../src/med_autoscience/controllers/study_runtime_router.py)
   - 作为 facade，保留正式入口 `study_runtime_status(...)` / `ensure_study_runtime(...)`
@@ -28,7 +28,9 @@
   - 负责 execution context、preflight、decision dispatch、create / resume / pause / completion orchestration，以及 runtime artifact persistence helper
 - [`src/med_autoscience/controllers/study_runtime_resolution.py`](../src/med_autoscience/controllers/study_runtime_resolution.py)
   - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
-`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution helper。
+- [`src/med_autoscience/controllers/study_runtime_transport.py`](../src/med_autoscience/controllers/study_runtime_transport.py)
+  - 负责 `med_deepscientist_transport` 相关的 transport I/O seam，把 daemon 调用绑定收口为独立内部层
+`study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
 ## 正式入口
@@ -227,7 +229,7 @@
   - `PAUSE_AND_COMPLETE` 会先 pause
   - 随后统一走 completion sync，并把 decision 最终收敛到 `COMPLETED`
 
-这条执行链当前由 `study_runtime_execution.py` 承担；router 上同名私有 helper 只是 facade re-export / monkeypatch seam，不应被误认为独立 contract 层。
+这条执行链当前由 `study_runtime_execution.py` 承担；具体 daemon transport 调用已经下沉到 `study_runtime_transport.py`，router 上同名私有 helper 只是 facade re-export / monkeypatch seam，不应被误认为独立 contract 层。
 
 ## Artifact persistence contract
 
@@ -244,7 +246,7 @@
 
 也就是说，即使最终 decision 是 `BLOCKED` 或 `NOOP`，只要进入了受控 orchestration，artifact 落盘仍是正式行为的一部分。
 
-当前实现上，这条 persistence 链由 `study_runtime_execution.py` 承担；router 上对应的 helper 只是 facade seam，用来保持现有 monkeypatch / topology 兼容语义。
+当前实现上，这条 persistence 链仍由 `study_runtime_execution.py` 决定时机；具体 transport I/O 已经下沉到 `study_runtime_transport.py`，router 上对应的 helper 只是 facade seam，用来保持现有 monkeypatch / topology 兼容语义。
 
 ## 当前明确不属于稳定面的内容
 
@@ -253,7 +255,8 @@
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
 - `_load_yaml_dict(...)`、`_resolve_study(...)`、`_execution_payload(...)` 等 resolution 细节
 - `_build_execution_context(...)`、`_build_context_create_payload(...)`、`_persist_runtime_artifacts(...)` 等 execution/orchestration 细节
-- `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` 内部尚未升级成 spec 的组装细节
+- `_create_quest(...)`、`_resume_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 transport seam 细节
+- `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` / `study_runtime_transport.py` 内部尚未升级成 spec 的组装细节
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构
 - runtime audit payload 中未被 typed wrapper 明确收口的自由字段
@@ -273,7 +276,7 @@
 其中：
 
 - router tests 约束 decision、typed surface、preflight 和 execution behavior
-- router topology tests 约束 router facade 继续 re-export 已拆分的 resolution / decision / startup / completion / execution helper（包括 persistence seam），并守住 patch-through 兼容语义
+- router topology tests 约束 router facade 继续 re-export 已拆分的 resolution / decision / startup / completion / execution / transport helper（包括 persistence seam），并守住 patch-through 兼容语义
 - runtime protocol topology tests 约束 runtime layout / path contract
 - workspace contract tests 约束 orchestration 依赖的 workspace readiness 前提
 
