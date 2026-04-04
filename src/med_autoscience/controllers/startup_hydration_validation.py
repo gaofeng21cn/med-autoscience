@@ -7,7 +7,7 @@ from typing import Any
 
 from med_autoscience import publication_display_contract
 from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.runtime_protocol import paper_artifacts, study_runtime as study_runtime_protocol
 
 
 def _utc_now() -> str:
@@ -109,13 +109,61 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, Any]) -> list[di
                     "requirement_key": requirement_key,
                 }
             )
+        return normalized
+
+    legacy_keys = (
+        "cohort_flow_required",
+        "baseline_characteristics_required",
+        "figure_shell_requirements",
+        "table_shell_requirements",
+    )
+    if not any(key in reporting_contract for key in legacy_keys):
+        return normalized
+
+    figure_shell_requirements = list(reporting_contract.get("figure_shell_requirements") or [])
+    table_shell_requirements = list(reporting_contract.get("table_shell_requirements") or [])
+    cohort_flow_required = reporting_contract.get("cohort_flow_required")
+    baseline_required = reporting_contract.get("baseline_characteristics_required")
+    if cohort_flow_required is False:
+        cohort_flow_enabled = False
+    elif figure_shell_requirements:
+        cohort_flow_enabled = "cohort_flow_figure" in figure_shell_requirements
+    else:
+        cohort_flow_enabled = True
+    if baseline_required is False:
+        baseline_enabled = False
+    elif table_shell_requirements:
+        baseline_enabled = "table1_baseline_characteristics" in table_shell_requirements
+    else:
+        baseline_enabled = True
+
+    if cohort_flow_enabled:
+        normalized.append(
+            {
+                "display_id": "cohort_flow",
+                "display_kind": "figure",
+                "requirement_key": "cohort_flow_figure",
+            }
+        )
+    if baseline_enabled:
+        normalized.append(
+            {
+                "display_id": "baseline_characteristics",
+                "display_kind": "table",
+                "requirement_key": "table1_baseline_characteristics",
+            }
+        )
     return normalized
 
 
 def run_validation(*, quest_root: Path) -> dict[str, object]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    analysis_path = resolved_quest_root / "paper" / "medical_analysis_contract.json"
-    reporting_path = resolved_quest_root / "paper" / "medical_reporting_contract.json"
+    try:
+        paper_root = paper_artifacts.resolve_latest_paper_root(resolved_quest_root)
+    except FileNotFoundError:
+        paper_root = resolved_quest_root / "paper"
+    analysis_path = paper_root / "medical_analysis_contract.json"
+    reporting_path = paper_root / "medical_reporting_contract.json"
     blockers: list[str] = []
     analysis_status, analysis_blocker = _validate_contract_status(
         contract_path=analysis_path,
@@ -149,8 +197,8 @@ def run_validation(*, quest_root: Path) -> dict[str, object]:
         )
         display_surface_enabled = bool(reporting_payload.get("display_registry_required", display_surface_default))
         if display_surface_enabled:
-            publication_style_profile_path = resolved_quest_root / "paper" / "publication_style_profile.json"
-            display_overrides_path = resolved_quest_root / "paper" / "display_overrides.json"
+            publication_style_profile_path = paper_root / "publication_style_profile.json"
+            display_overrides_path = paper_root / "display_overrides.json"
             if not publication_style_profile_path.exists():
                 blockers.append("missing_publication_style_profile")
             else:
@@ -165,18 +213,18 @@ def run_validation(*, quest_root: Path) -> dict[str, object]:
                     publication_display_contract.load_display_overrides(display_overrides_path)
                 except (OSError, ValueError, json.JSONDecodeError):
                     blockers.append("invalid_display_overrides")
-            display_registry_path = resolved_quest_root / "paper" / "display_registry.json"
+            display_registry_path = paper_root / "display_registry.json"
             if not display_registry_path.exists():
                 blockers.append("missing_display_registry")
             for item in display_shell_plan:
                 if item["display_kind"] == "figure":
-                    shell_path = resolved_quest_root / "paper" / "figures" / f"{item['display_id']}.shell.json"
+                    shell_path = paper_root / "figures" / f"{item['display_id']}.shell.json"
                 else:
-                    shell_path = resolved_quest_root / "paper" / "tables" / f"{item['display_id']}.shell.json"
+                    shell_path = paper_root / "tables" / f"{item['display_id']}.shell.json"
                 if not shell_path.exists():
                     blockers.append(f"missing_{item['display_id'].lower()}_shell")
                 stub = resolve_required_display_surface_stub(item["requirement_key"])
-                if stub is not None and not (resolved_quest_root / "paper" / stub.filename).exists():
+                if stub is not None and not (paper_root / stub.filename).exists():
                     blockers.append(stub.blocker_key)
 
     report = study_runtime_protocol.write_startup_hydration_validation_report(
