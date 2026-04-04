@@ -70,6 +70,7 @@
   - `review_summary`
   - `controller_first_policy_summary`
   - `automation_ready_summary`
+  - `custom_brief`
   - `required_first_anchor`
   - `legacy_code_execution_allowed`
   - `startup_boundary_gate`
