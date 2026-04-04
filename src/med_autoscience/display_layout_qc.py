@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import math
 from typing import Any
 
+from med_autoscience import display_readability_qc
+
 
 ENGINE_ID = "display_layout_qc_v1"
 
@@ -50,8 +52,10 @@ def _issue(
     expected: object | None = None,
     box_refs: tuple[str, ...] = (),
     severity: str = "error",
+    audit_class: str = "layout",
 ) -> dict[str, Any]:
     issue: dict[str, Any] = {
+        "audit_class": audit_class,
         "rule_id": rule_id,
         "severity": severity,
         "message": message,
@@ -894,23 +898,37 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
     normalized_sidecar = _normalize_layout_sidecar(layout_sidecar)
     normalized_profile = str(qc_profile or "").strip()
     if normalized_profile == "publication_evidence_curve":
-        issues = _check_publication_evidence_curve(normalized_sidecar)
+        layout_issues = _check_publication_evidence_curve(normalized_sidecar)
     elif normalized_profile == "publication_decision_curve":
-        issues = _check_publication_evidence_curve(normalized_sidecar)
+        layout_issues = _check_publication_evidence_curve(normalized_sidecar)
     elif normalized_profile == "publication_survival_curve":
-        issues = _check_publication_survival_curve(normalized_sidecar)
+        layout_issues = _check_publication_survival_curve(normalized_sidecar)
     elif normalized_profile == "publication_embedding_scatter":
-        issues = _check_publication_embedding_scatter(normalized_sidecar)
+        layout_issues = _check_publication_embedding_scatter(normalized_sidecar)
     elif normalized_profile == "publication_heatmap":
-        issues = _check_publication_heatmap(normalized_sidecar)
+        layout_issues = _check_publication_heatmap(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":
-        issues = _check_publication_forest_plot(normalized_sidecar)
+        layout_issues = _check_publication_forest_plot(normalized_sidecar)
     elif normalized_profile == "publication_multicenter_overview":
-        issues = _check_publication_multicenter_overview(normalized_sidecar)
+        layout_issues = _check_publication_multicenter_overview(normalized_sidecar)
     elif normalized_profile == "publication_shap_summary":
-        issues = _check_publication_shap_summary(normalized_sidecar)
+        layout_issues = _check_publication_shap_summary(normalized_sidecar)
     else:
         raise ValueError(f"unsupported qc_profile `{qc_profile}`")
+    readability_issues = display_readability_qc.run_readability_qc(
+        qc_profile=normalized_profile,
+        layout_sidecar=layout_sidecar,
+    )
+    issues = layout_issues + readability_issues
+    audit_classes = sorted(
+        {
+            str(issue.get("audit_class") or "layout").strip()
+            for issue in issues
+            if str(issue.get("audit_class") or "layout").strip()
+        }
+    )
+    readability_findings = [issue for issue in issues if str(issue.get("audit_class") or "").strip() == "readability"]
+    failure_reason = str(issues[0].get("rule_id") or "").strip() if issues else ""
 
     return {
         "status": "fail" if issues else "pass",
@@ -918,5 +936,9 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         "engine_id": ENGINE_ID,
         "qc_profile": normalized_profile,
         "issues": issues,
+        "audit_classes": audit_classes,
+        "failure_reason": failure_reason,
+        "readability_findings": readability_findings,
+        "revision_note": "",
         "metrics": normalized_sidecar.metrics,
     }

@@ -231,6 +231,8 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "series_x_y_lengths_must_match",
             "series_values_must_be_finite",
             "reference_line_x_y_lengths_must_match_when_present",
+            "publication_style_profile_required_at_materialization",
+            "display_override_contract_may_adjust_layout_without_changing_data",
         ),
     ),
     InputSchemaContract(

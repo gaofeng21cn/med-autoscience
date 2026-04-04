@@ -121,6 +121,39 @@ def test_run_display_layout_qc_fails_when_curve_text_leaves_device() -> None:
     assert any(issue["rule_id"] == "box_out_of_device" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_flags_unreadable_risk_separation() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "kaplan_meier_grouped",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
+                make_box("x_axis_title", "x_axis_title", x0=0.30, y0=0.92, x1=0.62, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.01, y0=0.24, x1=0.06, y1=0.70),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.10, y0=0.16, x1=0.74, y1=0.88),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.78, y0=0.28, x1=0.96, y1=0.46),
+            ],
+            "metrics": {
+                "groups": [
+                    {"label": "Low risk", "times": [0.0, 5.0], "values": [1.0, 0.9980]},
+                    {"label": "High risk", "times": [0.0, 5.0], "values": [1.0, 0.9975]},
+                ]
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "risk_separation_not_readable" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_decision_curve_series_lengths_mismatch() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

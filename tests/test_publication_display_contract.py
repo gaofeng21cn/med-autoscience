@@ -220,3 +220,38 @@ def test_load_display_overrides_rejects_non_string_identity_fields(tmp_path: Pat
         assert "display_id" in str(exc) or "template_id" in str(exc)
     else:
         raise AssertionError("expected non-string display override identity fields to be rejected")
+
+
+def test_resolve_style_roles_rejects_missing_required_decision_curve_roles(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "palette": {
+                    "primary": "#5F766B",
+                    "secondary": "#B9AD9C",
+                    "neutral": "#7B8794",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "reference_line": "neutral",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    style_profile = module.load_publication_style_profile(path)
+
+    try:
+        module.resolve_style_roles(
+            style_profile=style_profile,
+            template_id="time_to_event_decision_curve",
+        )
+    except ValueError as exc:
+        assert "comparator_curve" in str(exc)
+    else:
+        raise AssertionError("expected missing decision-curve style role to be rejected")
