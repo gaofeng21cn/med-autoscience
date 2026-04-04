@@ -90,7 +90,15 @@
 - patch-time (`PATCH /api/quests/{id}/startup-context`)
   - 这里只允许更新 durable metadata 与 snapshot echo
   - 不能把 patch success 解释成 baseline 已 attach / confirm
-  - consumer 应显式检查 `snapshot.requested_baseline_ref` roundtrip，而不是假定 `baseline_gate` 已提升
+- consumer 应显式检查 `snapshot.requested_baseline_ref` roundtrip，而不是假定 `baseline_gate` 已提升
+
+对 quest completion approval，当前推荐 contract 也已升级为：
+
+- 先通过 `artifact.interact(... reply_schema={decision_type: "quest_completion_approval"})` 创建 blocking approval request
+- 再通过 `chat` 发送：
+  - `reply_to_interaction_id`
+  - `decision_response = {decision_type: "quest_completion_approval", approved: true}`
+- runtime 允许兼容旧的显式批准文本路径，但 controller 默认应优先走 typed decision semantics，减少词表脆弱性
 
 ## 正式入口
 
