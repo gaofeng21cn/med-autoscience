@@ -115,6 +115,12 @@ def render_display_template_catalog_markdown() -> str:
         "",
         "For the stable human-auditable overview, completion counts, and change protocol, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).",
         "",
+        "## Publication Style and Override Governance",
+        "",
+        "- `paper/publication_style_profile.json` is the article-level visual truth source for publication-facing figures.",
+        "- `paper/display_overrides.json` is the figure-level structured adjustment surface for manuscript-specific layout and readability decisions.",
+        "- Templates preserve a stable lower bound; article-level style and figure-level overrides may refine expression without bypassing the audited renderer path.",
+        "",
     ]
     lines.extend(_render_template_class_section())
     lines.extend(_render_input_schema_section())
