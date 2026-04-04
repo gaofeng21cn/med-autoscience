@@ -453,11 +453,14 @@ def chat_quest(
     text: str,
     source: str,
     reply_to_interaction_id: str | None = None,
+    decision_response: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     base_url = resolve_daemon_url(runtime_root=runtime_root)
     payload: dict[str, Any] = {"text": text, "source": source}
     if reply_to_interaction_id:
         payload["reply_to_interaction_id"] = reply_to_interaction_id
+    if isinstance(decision_response, dict):
+        payload["decision_response"] = decision_response
     return _post_json(url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/chat", payload=payload)
 
 
@@ -510,6 +513,10 @@ def sync_completion_with_approval(
         text=approval_text,
         source=source,
         reply_to_interaction_id=interaction_id,
+        decision_response={
+            "decision_type": "quest_completion_approval",
+            "approved": True,
+        },
     )
     if approval_message.get("ok") is not True:
         raise RuntimeError("failed to bind study-level approval into managed quest")

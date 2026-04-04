@@ -210,6 +210,52 @@ def test_chat_quest_posts_text_and_reply_target(monkeypatch, tmp_path: Path) -> 
     }
 
 
+def test_chat_quest_posts_typed_decision_response_when_provided(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+    seen: dict[str, object] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"ok": true, "message": {"id": "msg-typed"}}'
+
+    def fake_urlopen(http_request, timeout: int):
+        seen["payload"] = json.loads(http_request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.chat_quest(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        text="structured approval",
+        source="medautosci-test",
+        reply_to_interaction_id="decision-001",
+        decision_response={"decision_type": "quest_completion_approval", "approved": True},
+    )
+
+    assert result == {"ok": True, "message": {"id": "msg-typed"}}
+    assert seen["payload"] == {
+        "text": "structured approval",
+        "source": "medautosci-test",
+        "reply_to_interaction_id": "decision-001",
+        "decision_response": {
+            "decision_type": "quest_completion_approval",
+            "approved": True,
+        },
+    }
+
+
 def test_artifact_interact_posts_payload(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -313,13 +359,14 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
     monkeypatch.setattr(
         module,
         "chat_quest",
-        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None: calls.append(
+        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None, decision_response=None: calls.append(
             (
                 "approve",
                 {
                     "text": text,
                     "source": source,
                     "reply_to_interaction_id": reply_to_interaction_id,
+                    "decision_response": decision_response,
                 },
             )
         )
@@ -370,6 +417,10 @@ def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_p
                 "text": "同意",
                 "source": "medautosci-test",
                 "reply_to_interaction_id": "decision-001",
+                "decision_response": {
+                    "decision_type": "quest_completion_approval",
+                    "approved": True,
+                },
             },
         ),
         ("complete", "Study completed."),
