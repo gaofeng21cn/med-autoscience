@@ -150,7 +150,7 @@ def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
 def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     expected_assets = {
-        "guides/agent_entry_modes.md": render_entry_modes_guide(),
+        "docs/agent_entry_modes.md": render_entry_modes_guide(),
         "templates/agent_entry_modes.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),

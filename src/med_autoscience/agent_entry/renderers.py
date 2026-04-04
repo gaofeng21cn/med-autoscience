@@ -90,7 +90,7 @@ def render_openclaw_entry_prompt() -> str:
 def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
     root = repo_root.expanduser().resolve()
     assets: tuple[tuple[Path, str], ...] = (
-        (Path("guides/agent_entry_modes.md"), render_entry_modes_guide()),
+        (Path("docs/agent_entry_modes.md"), render_entry_modes_guide()),
         (Path("templates/agent_entry_modes.yaml"), render_public_yaml()),
         (Path("templates/codex/medautoscience-entry.SKILL.md"), render_codex_entry_skill()),
         (Path("templates/openclaw/medautoscience-entry.prompt.md"), render_openclaw_entry_prompt()),

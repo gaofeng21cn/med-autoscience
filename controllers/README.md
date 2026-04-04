@@ -75,7 +75,7 @@
 
 对应稳定技术说明见：
 
-- `guides/study_runtime_orchestration.md`
+- `docs/study_runtime_orchestration.md`
 
 后续优先顺序：
 

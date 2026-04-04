@@ -46,7 +46,7 @@ uv run python -m med_autoscience.cli doctor --profile <profile>
 
 - `bootstrap/README.md`
 - `controllers/README.md`
-- `guides/codex_plugin.md`
+- `docs/codex_plugin.md`
 
 ## 典型任务
 
