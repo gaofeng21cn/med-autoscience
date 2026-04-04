@@ -147,6 +147,51 @@ def test_study_runtime_router_execute_runtime_decision_uses_router_dispatch_bind
     assert outcome is expected
 
 
+def test_study_runtime_router_ensure_runtime_uses_router_persistence_binding(monkeypatch, tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    study_root = tmp_path / "studies" / "study-001"
+    study_payload = {"study_id": "study-001"}
+    context = SimpleNamespace(
+        study_id="study-001",
+        study_root=study_root,
+        runtime_binding_path=study_root / "runtime_binding.yaml",
+        launch_report_path=study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        runtime_root=tmp_path / "runtime",
+        startup_payload_root=tmp_path / "runtime" / "startup-payloads" / "study-001",
+    )
+    outcome = router.StudyRuntimeExecutionOutcome(binding_last_action="noop")
+    seen: dict[str, object] = {}
+    status = SimpleNamespace(
+        quest_id="quest-001",
+        to_dict=lambda: {"decision": "noop"},
+        record_runtime_artifacts=lambda **kwargs: seen.setdefault("recorded_artifacts", kwargs),
+    )
+
+    monkeypatch.setattr(
+        router,
+        "_resolve_study",
+        lambda **kwargs: ("study-001", study_root, study_payload),
+    )
+    monkeypatch.setattr(router, "_build_execution_context", lambda **kwargs: context)
+    monkeypatch.setattr(router, "_status_state", lambda **kwargs: status)
+    monkeypatch.setattr(router, "_run_runtime_preflight", lambda **kwargs: None)
+    monkeypatch.setattr(router, "_execute_runtime_decision", lambda **kwargs: outcome)
+    monkeypatch.setattr(
+        router,
+        "_persist_runtime_artifacts",
+        lambda **kwargs: seen.setdefault("persist_kwargs", kwargs),
+    )
+
+    result = router.ensure_study_runtime(profile=SimpleNamespace(), study_id="study-001", source="test-source")
+
+    assert seen["persist_kwargs"]["status"] is status
+    assert seen["persist_kwargs"]["context"] is context
+    assert seen["persist_kwargs"]["outcome"] is outcome
+    assert seen["persist_kwargs"]["force"] is False
+    assert seen["persist_kwargs"]["source"] == "test-source"
+    assert result == {"decision": "noop"}
+
+
 def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     decision = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
@@ -166,6 +211,7 @@ def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -
     assert router._execute_pause_runtime_decision is execution._execute_pause_runtime_decision
     assert router._execute_completion_runtime_decision is execution._execute_completion_runtime_decision
     assert router._execute_runtime_decision is execution._execute_runtime_decision
+    assert router._persist_runtime_artifacts is execution._persist_runtime_artifacts
     assert router._prepare_runtime_overlay is startup._prepare_runtime_overlay
     assert router._audit_runtime_overlay is startup._audit_runtime_overlay
     assert router._build_startup_contract is startup._build_startup_contract
