@@ -10,7 +10,7 @@ Use the following layering model:
 
 1. Root repository development contract: `AGENTS.md`
 2. Host adapter contract from this directory
-3. Project truth contract: `contracts/med-autoscience-repository/AGENTS.md`
+3. Project truth contract: `contracts/project-truth/AGENTS.md`
 4. Optional local-only overlay: `.omx/local/AGENTS.local.md`
 
 ## Files
