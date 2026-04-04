@@ -41,6 +41,27 @@ def test_study_runtime_router_completion_state_uses_router_resolver_binding(monk
     assert router._study_completion_state(study_root=tmp_path) == {"patched_root": str(tmp_path)}
 
 
+def test_study_runtime_router_resolve_study_uses_router_yaml_loader_binding(monkeypatch, tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    study_root = tmp_path / "studies" / "study-001"
+
+    monkeypatch.setattr(
+        router,
+        "_load_yaml_dict",
+        lambda path: {"study_id": "study-001", "title": "patched"},
+    )
+
+    resolved_study_id, resolved_study_root, study_payload = router._resolve_study(
+        profile=SimpleNamespace(studies_root=tmp_path / "studies"),
+        study_id="study-001",
+        study_root=study_root,
+    )
+
+    assert resolved_study_id == "study-001"
+    assert resolved_study_root == study_root.resolve()
+    assert study_payload["title"] == "patched"
+
+
 def test_study_runtime_router_sync_completion_uses_router_message_builder_binding(monkeypatch, tmp_path: Path) -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     seen: dict[str, object] = {}
@@ -194,11 +215,15 @@ def test_study_runtime_router_ensure_runtime_uses_router_persistence_binding(mon
 
 def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    resolution = importlib.import_module("med_autoscience.controllers.study_runtime_resolution")
     decision = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     startup = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
     completion = importlib.import_module("med_autoscience.controllers.study_runtime_completion")
     execution = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
 
+    assert router._load_yaml_dict is resolution._load_yaml_dict
+    assert router._resolve_study is resolution._resolve_study
+    assert router._execution_payload is resolution._execution_payload
     assert router._record_quest_runtime_audits is decision._record_quest_runtime_audits
     assert router._status_state is decision._status_state
     assert router._status_payload is decision._status_payload
