@@ -34,6 +34,7 @@ from med_autoscience.controllers import (
     study_delivery_sync,
     submission_minimal,
     submission_targets as submission_targets_controller,
+    time_to_event_direct_migration,
     workspace_init as workspace_init_controller,
 )
 from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
@@ -174,6 +175,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     display_surface_parser = subparsers.add_parser("materialize-display-surface")
     display_surface_parser.add_argument("--paper-root", required=True)
+
+    time_to_event_direct_migration_parser = subparsers.add_parser("time-to-event-direct-migration")
+    time_to_event_direct_migration_parser.add_argument("--study-root", required=True)
+    time_to_event_direct_migration_parser.add_argument("--paper-root", required=True)
 
     resolve_submission_targets_parser = subparsers.add_parser("resolve-submission-targets")
     resolve_submission_targets_parser.add_argument("--profile", type=str)
@@ -486,6 +491,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "materialize-display-surface":
         result = display_surface_materialization.materialize_display_surface(
+            paper_root=Path(args.paper_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "time-to-event-direct-migration":
+        result = time_to_event_direct_migration.run_time_to_event_direct_migration(
+            study_root=Path(args.study_root),
             paper_root=Path(args.paper_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
