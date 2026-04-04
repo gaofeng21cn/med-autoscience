@@ -98,7 +98,7 @@
 - 再通过 `chat` 发送：
   - `reply_to_interaction_id`
   - `decision_response = {decision_type: "quest_completion_approval", approved: true}`
-- runtime 允许兼容旧的显式批准文本路径，但 controller 默认应优先走 typed decision semantics，减少词表脆弱性
+- runtime 现在要求 typed decision semantics；controller 不应再依赖纯文本批准词表完成 quest closure
 
 ## 正式入口
 
