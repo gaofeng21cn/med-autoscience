@@ -83,6 +83,15 @@
 
 这些 controller-owned extension 仍保持 flat `startup_contract` 形态；runtime 需要保证 durable persistence / stable echo / snapshot roundtrip，但不把它们升级成 runtime core authoritative schema。
 
+对 `requested_baseline_ref` 的跨 repo 语义也应按两阶段理解：
+
+- create-time (`POST /api/quests`)
+  - 如果显式传入 `requested_baseline_ref`，成功返回表示 runtime 已经完成请求 baseline 的 materialization / confirmation，不能再把它当作“仅写 metadata”
+- patch-time (`PATCH /api/quests/{id}/startup-context`)
+  - 这里只允许更新 durable metadata 与 snapshot echo
+  - 不能把 patch success 解释成 baseline 已 attach / confirm
+  - consumer 应显式检查 `snapshot.requested_baseline_ref` roundtrip，而不是假定 `baseline_gate` 已提升
+
 ## 正式入口
 
 当前正式入口只有两个：

@@ -577,12 +577,16 @@ def update_quest_startup_context(
     if not payload:
         raise ValueError("at least one startup-context field is required")
     base_url = resolve_daemon_url(runtime_root=runtime_root)
-    return _normalize_stable_startup_context_result(
+    result = _normalize_stable_startup_context_result(
         payload=_patch_json(
             url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/startup-context",
             payload=payload,
         )
     )
+    snapshot = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
+    if requested_baseline_ref is not _UNSET and snapshot.get("requested_baseline_ref") != requested_baseline_ref:
+        raise RuntimeError("missing stable startup-context requested_baseline_ref roundtrip")
+    return result
 
 
 def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
