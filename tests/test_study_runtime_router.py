@@ -3326,3 +3326,61 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
+
+
+def test_build_startup_contract_separates_runtime_owned_subset_from_controller_extensions(tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    ownership = importlib.import_module("med_autoscience.startup_contract")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    study_payload = yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8"))
+    execution = router._execution_payload(study_payload)
+
+    startup_contract = router._build_startup_contract(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        study_payload=study_payload,
+        execution=execution,
+    )
+
+    runtime_owned = ownership.runtime_owned_startup_contract(startup_contract)
+    controller_extensions = ownership.controller_owned_startup_contract_extensions(startup_contract)
+
+    assert runtime_owned == {
+        "schema_version": 4,
+        "user_language": "zh",
+        "need_research_paper": True,
+        "decision_policy": "autonomous",
+        "launch_mode": "custom",
+        "custom_profile": startup_contract["custom_profile"],
+        "baseline_execution_policy": startup_contract["baseline_execution_policy"],
+    }
+    assert controller_extensions["scope"] == startup_contract["scope"]
+    assert controller_extensions["entry_state_summary"] == startup_contract["entry_state_summary"]
+    assert controller_extensions["startup_boundary_gate"] == startup_contract["startup_boundary_gate"]
+    assert controller_extensions["runtime_reentry_gate"] == startup_contract["runtime_reentry_gate"]
+    assert controller_extensions["medical_analysis_contract_summary"] == startup_contract["medical_analysis_contract_summary"]
+    assert controller_extensions["medical_reporting_contract_summary"] == startup_contract["medical_reporting_contract_summary"]
+    assert controller_extensions["submission_targets"] == startup_contract["submission_targets"]
+    assert "custom_brief" in controller_extensions
+
+
+def test_compose_startup_contract_rejects_runtime_owned_and_extension_overlap() -> None:
+    ownership = importlib.import_module("med_autoscience.startup_contract")
+
+    with pytest.raises(ValueError, match="startup contract ownership overlap"):
+        ownership.compose_startup_contract(
+            runtime_owned={"launch_mode": "custom"},
+            controller_extensions={"launch_mode": "should-not-overlap"},
+        )

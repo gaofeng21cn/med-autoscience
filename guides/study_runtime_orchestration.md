@@ -42,6 +42,46 @@
 - artifact completion success 至少返回 `ok + status + snapshot + summary_refresh`
 - bash session 列表项至少包含 `bash_id + status`
 
+对 `startup_contract` 的 authoritative ownership 也已明确：
+
+- `MedDeepScientist` runtime-owned subset：
+  - `schema_version`
+  - `user_language`
+  - `need_research_paper`
+  - `decision_policy`
+  - `launch_mode`
+  - `standard_profile`
+  - `custom_profile`
+  - `baseline_execution_policy`
+  - `review_followup_policy`
+  - `manuscript_edit_mode`
+- `MedAutoScience` controller-owned extensions：
+  - `research_intensity`
+  - `scope`
+  - `baseline_mode`
+  - `resource_policy`
+  - `time_budget_hours`
+  - `git_strategy`
+  - `runtime_constraints`
+  - `objectives`
+  - `baseline_urls`
+  - `paper_urls`
+  - `entry_state_summary`
+  - `review_summary`
+  - `controller_first_policy_summary`
+  - `automation_ready_summary`
+  - `required_first_anchor`
+  - `legacy_code_execution_allowed`
+  - `startup_boundary_gate`
+  - `runtime_reentry_gate`
+  - `journal_shortlist`
+  - `medical_analysis_contract_summary`
+  - `medical_reporting_contract_summary`
+  - `reporting_guideline_family`
+  - `submission_targets`
+
+这些 controller-owned extension 仍保持 flat `startup_contract` 形态；runtime 需要保证 durable persistence / stable echo / snapshot roundtrip，但不把它们升级成 runtime core authoritative schema。
+
 ## 正式入口
 
 当前正式入口只有两个：

@@ -22,6 +22,7 @@ from med_autoscience.policies.automation_ready import render_automation_ready_su
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.startup_contract import compose_startup_contract
 from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
@@ -176,46 +177,50 @@ def _build_startup_contract(
         time_budget_hours = 24
         runtime_constraints = "Honor workspace data contracts and prepare a submission-ready study."
 
-    return {
-        "schema_version": 4,
-        "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
-        "need_research_paper": True,
-        "research_intensity": research_intensity,
-        "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
-        "launch_mode": "custom",
-        "custom_profile": startup_boundary_gate.effective_custom_profile,
-        "scope": scope,
-        "baseline_mode": baseline_mode,
-        "baseline_execution_policy": baseline_execution_policy,
-        "resource_policy": resource_policy,
-        "time_budget_hours": time_budget_hours,
-        "git_strategy": "semantic_head_plus_controlled_integration",
-        "runtime_constraints": runtime_constraints,
-        "objectives": objectives,
-        "baseline_urls": [],
-        "paper_urls": list(study_payload.get("paper_urls") or []),
-        "entry_state_summary": f"Study root: {study_root}",
-        "review_summary": "",
-        "controller_first_policy_summary": render_controller_first_summary(),
-        "automation_ready_summary": render_automation_ready_summary(),
-        "custom_brief": startup_boundary_gate_controller.render_boundary_custom_brief(
-            existing_brief=existing_brief,
-            boundary_gate=boundary_gate,
-        ),
-        "required_first_anchor": startup_boundary_gate.required_first_anchor,
-        "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
-        "startup_boundary_gate": startup_boundary_gate.to_dict(),
-        "runtime_reentry_gate": runtime_reentry_gate_result.to_dict(),
-        "journal_shortlist": journal_shortlist,
-        "medical_analysis_contract_summary": medical_analysis_contract_summary,
-        "medical_reporting_contract_summary": medical_reporting_contract_summary,
-        "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
-        if medical_reporting_contract_summary.get("status") == "resolved"
-        else None,
-        "submission_targets": _serialize_submission_targets(profile, study_root)
-        if _has_explicit_submission_targets(study_payload)
-        else [],
-    }
+    return compose_startup_contract(
+        runtime_owned={
+            "schema_version": 4,
+            "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
+            "need_research_paper": True,
+            "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
+            "launch_mode": "custom",
+            "custom_profile": startup_boundary_gate.effective_custom_profile,
+            "baseline_execution_policy": baseline_execution_policy,
+        },
+        controller_extensions={
+            "research_intensity": research_intensity,
+            "scope": scope,
+            "baseline_mode": baseline_mode,
+            "resource_policy": resource_policy,
+            "time_budget_hours": time_budget_hours,
+            "git_strategy": "semantic_head_plus_controlled_integration",
+            "runtime_constraints": runtime_constraints,
+            "objectives": objectives,
+            "baseline_urls": [],
+            "paper_urls": list(study_payload.get("paper_urls") or []),
+            "entry_state_summary": f"Study root: {study_root}",
+            "review_summary": "",
+            "controller_first_policy_summary": render_controller_first_summary(),
+            "automation_ready_summary": render_automation_ready_summary(),
+            "custom_brief": startup_boundary_gate_controller.render_boundary_custom_brief(
+                existing_brief=existing_brief,
+                boundary_gate=boundary_gate,
+            ),
+            "required_first_anchor": startup_boundary_gate.required_first_anchor,
+            "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
+            "startup_boundary_gate": startup_boundary_gate.to_dict(),
+            "runtime_reentry_gate": runtime_reentry_gate_result.to_dict(),
+            "journal_shortlist": journal_shortlist,
+            "medical_analysis_contract_summary": medical_analysis_contract_summary,
+            "medical_reporting_contract_summary": medical_reporting_contract_summary,
+            "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
+            if medical_reporting_contract_summary.get("status") == "resolved"
+            else None,
+            "submission_targets": _serialize_submission_targets(profile, study_root)
+            if _has_explicit_submission_targets(study_payload)
+            else [],
+        },
+    )
 
 
 def _build_create_payload(
