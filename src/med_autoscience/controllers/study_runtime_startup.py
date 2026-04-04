@@ -22,7 +22,6 @@ from med_autoscience.policies.automation_ready import render_automation_ready_su
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
@@ -300,7 +299,7 @@ def _sync_existing_quest_startup_context(
     startup_contract = create_payload.get("startup_contract")
     if not isinstance(startup_contract, dict):
         raise ValueError("create payload missing startup_contract")
-    return med_deepscientist_transport.update_quest_startup_context(
+    return _router_module()._update_quest_startup_context(
         runtime_root=runtime_root,
         quest_id=quest_id,
         startup_contract=dict(startup_contract),

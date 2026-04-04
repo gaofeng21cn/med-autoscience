@@ -3,7 +3,6 @@ from __future__ import annotations
 from importlib import import_module
 from pathlib import Path
 
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import StudyCompletionState, resolve_study_completion_state
 
 
@@ -51,7 +50,7 @@ def _sync_study_completion(
     approval_text = contract.user_approval_text.strip() if contract is not None else ""
     if not summary or not approval_text:
         raise ValueError("study completion sync requires summary and user approval text")
-    return med_deepscientist_transport.sync_completion_with_approval(
+    return router._sync_completion_with_approval(
         runtime_root=runtime_root,
         quest_id=quest_id,
         decision_request_payload={

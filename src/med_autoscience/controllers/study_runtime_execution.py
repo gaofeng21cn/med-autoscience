@@ -8,7 +8,6 @@ from typing import Any
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import StudyCompletionState
 
 from .study_runtime_status import (
@@ -311,7 +310,7 @@ def _execute_create_runtime_decision(
         create_payload=create_payload,
         slug=router._timestamp_slug(),
     )
-    create_result = med_deepscientist_transport.create_quest(
+    create_result = router._create_quest(
         runtime_root=context.runtime_root,
         payload=create_payload,
     )
@@ -351,7 +350,7 @@ def _execute_create_runtime_decision(
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
     if planned_decision == StudyRuntimeDecision.CREATE_AND_START:
-        resume_result = med_deepscientist_transport.resume_quest(
+        resume_result = router._resume_quest(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
             source=context.source,
@@ -392,7 +391,7 @@ def _execute_resume_runtime_decision(
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
         return outcome
-    resume_result = med_deepscientist_transport.resume_quest(
+    resume_result = router._resume_quest(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         source=context.source,
@@ -447,7 +446,8 @@ def _execute_pause_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    pause_result = med_deepscientist_transport.pause_quest(
+    router = _router_module()
+    pause_result = router._pause_quest(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         source=context.source,
@@ -468,7 +468,7 @@ def _execute_completion_runtime_decision(
     router = _router_module()
     outcome = StudyRuntimeExecutionOutcome()
     if status.decision == StudyRuntimeDecision.PAUSE_AND_COMPLETE:
-        pause_result = med_deepscientist_transport.pause_quest(
+        pause_result = router._pause_quest(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
             source=context.source,

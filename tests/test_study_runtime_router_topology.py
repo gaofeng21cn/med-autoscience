@@ -96,6 +96,23 @@ def test_study_runtime_router_sync_completion_uses_router_message_builder_bindin
     assert seen["decision_request_payload"]["message"] == "patched completion message"
 
 
+def test_study_runtime_router_create_quest_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        router.med_deepscientist_transport,
+        "create_quest",
+        lambda **kwargs: (seen.__setitem__("create_kwargs", kwargs) or {"ok": True}),
+    )
+
+    payload = {"quest_id": "quest-001"}
+    result = router._create_quest(runtime_root=tmp_path / "runtime", payload=payload)
+
+    assert seen["create_kwargs"]["payload"] == payload
+    assert result == {"ok": True}
+
+
 def test_study_runtime_router_build_execution_context_uses_router_completion_binding(monkeypatch) -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
 
@@ -215,12 +232,19 @@ def test_study_runtime_router_ensure_runtime_uses_router_persistence_binding(mon
 
 def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
     resolution = importlib.import_module("med_autoscience.controllers.study_runtime_resolution")
     decision = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     startup = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
     completion = importlib.import_module("med_autoscience.controllers.study_runtime_completion")
     execution = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
 
+    assert router._inspect_quest_live_execution is transport._inspect_quest_live_execution
+    assert router._create_quest is transport._create_quest
+    assert router._resume_quest is transport._resume_quest
+    assert router._pause_quest is transport._pause_quest
+    assert router._update_quest_startup_context is transport._update_quest_startup_context
+    assert router._sync_completion_with_approval is transport._sync_completion_with_approval
     assert router._load_yaml_dict is resolution._load_yaml_dict
     assert router._resolve_study is resolution._resolve_study
     assert router._execution_payload is resolution._execution_payload
