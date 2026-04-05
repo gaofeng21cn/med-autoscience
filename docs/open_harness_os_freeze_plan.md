@@ -12,17 +12,20 @@
 
 ## 为什么要分层冻结
 
-当前仓库同时存在两条活跃主线：
+当前仓库的唯一顶层主线已经固定为：
+
+- `research-foundry-medical-mainline`
+  - 当前 phase：`harness authority convergence`
+  - 当前唯一活跃子线：`publication eval minimal schema`
+
+与此同时，以下子线继续作为 inherited truth surface 提供 L2/L3 冻结所需输入：
 
 - `medical-display-template-mainline`
-  - 仍在推进 `001 submission companion / graphical abstract contract tighten`
-  - 之后还要把 `002` 推进到 `Phase C / Phase D` 真课题落地
+  - 继续提供 medical delivery / publication pack 的收口事实
 - `monorepo-transition-program`
-  - `runtime escalation record` 的最小实现验证已完成
-  - 但后续仍要做 `contract / integration 收口`
-  - 再往后还排着：
-    - `publication eval minimal schema`
-    - `charter-parameterized input contract`
+  - 已完成 `study charter artifact carrier`
+  - 已完成 `runtime escalation record` 的最小 clean-worktree 验证与 integration handoff
+  - 当前向本主线提供 publication-eval 之前置 authority truth
 
 因此，“冻结”必须分三层理解：
 
@@ -112,7 +115,7 @@
 
 `L2` 现在不能整体冻结。
 
-原因不是方向不清楚，而是对象级 vocabulary 还在被两条主线继续收紧。
+原因不是方向不清楚，而是对象级 vocabulary 仍同时受 inherited display truth 与当前 authority-convergence 子线收敛影响。
 
 ### 当前仍在活跃变化的区域
 
@@ -129,10 +132,10 @@
 - 哪些显示/交付对象只是 paper-local shell
 - 哪些对象将来可能上升成通用 delivery substrate
 
-#### 来自 monorepo 主线
+#### 来自 monorepo inherited truth
 
-- `runtime escalation record` 尚未完成 clean integration 收口
-- `publication eval minimal schema` 尚未定型
+- `runtime escalation record` 已完成最小 clean-worktree 验证与 integration handoff
+- `publication eval minimal schema` 已形成首轮最小实现准入 contract，但尚未完成 L2 定型
 - `charter-parameterized input contract` 尚未定型
 
 这些变化会直接影响：
@@ -226,7 +229,7 @@
 - 继续允许 `L2`、`L3` 演化
 - 不把日常 contract 改动误说成“架构不稳定”
 
-### 当前两条 OMX 主线的职责
+### 当前 inherited truth surfaces 的职责
 
 #### `medical-display-template-mainline`
 
@@ -252,7 +255,7 @@
 今后对外或对内讨论“冻结”时，推荐统一使用下面这条口径：
 
 - `L1` 已冻结
-- `L2` 待当前两条 OMX 主线收口后冻结
+- `L2` 待当前 inherited truth surfaces 与 active authority-convergence 子线收口后冻结
 - `L3` 需在 `L2` 完成且出现第二个 domain 验证后再考虑冻结
 
 这样做的好处是：

@@ -195,7 +195,10 @@ Human / Agent
 目标：
 
 - 固定 `controller / runtime / eval / delivery` 的 authority boundary
-- 先把 publication-eval、startup projection、charter parameterization 收紧到可实现状态
+- 先固定当前唯一活跃子线 `publication eval minimal schema`
+- 在它之后按顺序继续：
+  - `charter-parameterized input contract`
+  - `delivery plane contract map`
 
 ### Phase 2. Delivery Plane Convergence
 
@@ -222,9 +225,8 @@ Human / Agent
 
 当前最自然的 immediate next step 不是重新讨论大而空的架构，而是：
 
-1. 用新的 mainline program 替换过时的 `.omx` 执行面
-2. 把 `publication eval minimal schema` 定为当前唯一活跃收敛子线
-3. 在它之后继续：
+1. 继续把 `publication eval minimal schema` 收紧成稳定 handoff surface
+2. 在它之后继续：
    - `charter-parameterized input contract`
    - `delivery plane contract map`
    - `real-study relaunch`
