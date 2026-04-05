@@ -450,12 +450,20 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
                     "template_id": "time_to_event_decision_curve",
                     "title": "Time-to-event decision curve",
                     "caption": "Net benefit for the survival model at the 24-month horizon.",
+                    "panel_a_title": "Decision-curve net benefit",
+                    "panel_b_title": "Model-treated fraction",
                     "x_label": "Threshold probability",
                     "y_label": "Net benefit",
+                    "treated_fraction_y_label": "Patients classified above threshold (%)",
                     "reference_line": {"x": [0.05, 0.45], "y": [0.0, 0.0], "label": "Treat none"},
                     "series": [
                         {"label": "Locked survival model", "x": [0.05, 0.10, 0.20, 0.40], "y": [0.18, 0.17, 0.15, 0.08]}
                     ],
+                    "treated_fraction_series": {
+                        "label": "Locked survival model",
+                        "x": [0.05, 0.10, 0.20, 0.40],
+                        "y": [62.0, 49.0, 31.0, 12.0],
+                    },
                 }
             ],
         },
@@ -470,25 +478,42 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
                     "display_id": "multicenter_generalizability",
                     "template_id": "multicenter_generalizability_overview",
                     "title": "Internal multicenter generalizability overview",
-                    "caption": "Center-level interval overview and event support boundary.",
-                    "x_label": "C-index",
-                    "centers": [
+                    "caption": "Center-level event support and coverage context under the frozen split.",
+                    "overview_mode": "center_support_counts",
+                    "center_event_y_label": "5-year events",
+                    "coverage_y_label": "Patient count",
+                    "center_event_counts": [
                         {
                             "center_label": "Center A",
-                            "sample_size": 420,
-                            "estimate": 0.81,
-                            "lower": 0.73,
-                            "upper": 0.88,
+                            "split_bucket": "train",
+                            "event_count": 7,
                         },
                         {
                             "center_label": "Center B",
-                            "sample_size": 395,
-                            "estimate": 0.77,
-                            "lower": 0.68,
-                            "upper": 0.85,
+                            "split_bucket": "validation",
+                            "event_count": 5,
                         },
                     ],
-                    "reference_line": {"x": [0.75, 0.75], "y": [0.0, 1.0], "label": "Overall"},
+                    "coverage_panels": [
+                        {
+                            "panel_id": "region",
+                            "title": "Region coverage",
+                            "layout_role": "wide_left",
+                            "bars": [{"label": "Central", "count": 420}, {"label": "East", "count": 395}],
+                        },
+                        {
+                            "panel_id": "north_south",
+                            "title": "North vs South",
+                            "layout_role": "top_right",
+                            "bars": [{"label": "North", "count": 380}, {"label": "South", "count": 435}],
+                        },
+                        {
+                            "panel_id": "urban_rural",
+                            "title": "Urban/rural",
+                            "layout_role": "bottom_right",
+                            "bars": [{"label": "Urban", "count": 520}, {"label": "Missing", "count": 295}],
+                        },
+                    ],
                 }
             ],
         },

@@ -37,6 +37,8 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
     "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
     "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
+    "performance_summary_table_generic": ("performance_summary_generic", "table", "T4"),
+    "grouped_risk_event_summary_table": ("grouped_risk_event_summary", "table", "T5"),
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
     "kaplan_meier_grouped": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),

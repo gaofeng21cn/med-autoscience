@@ -29,11 +29,62 @@ class DisplayOverride:
     readability_override: dict[str, Any]
 
 
+_DEFAULT_STYLE_PROFILE_PAYLOAD: dict[str, Any] = {
+    "schema_version": 1,
+    "style_profile_id": "paper_neutral_clinical_v1",
+    "palette": {
+        "primary": "#5F766B",
+        "secondary": "#B9AD9C",
+        "contrast": "#2F5D8A",
+        "neutral": "#7B8794",
+        "light": "#E7E1D8",
+    },
+    "semantic_roles": {
+        "model_curve": "primary",
+        "comparator_curve": "secondary",
+        "reference_line": "neutral",
+        "highlight_band": "light",
+    },
+    "typography": {
+        "title_size": 12.5,
+        "axis_title_size": 11.0,
+        "tick_size": 10.0,
+        "panel_label_size": 11.0,
+    },
+    "stroke": {
+        "primary_linewidth": 2.2,
+        "secondary_linewidth": 1.8,
+        "reference_linewidth": 1.0,
+        "marker_size": 4.5,
+    },
+}
+_DEFAULT_DISPLAY_OVERRIDES_PAYLOAD: dict[str, Any] = {"schema_version": 1, "displays": []}
+
+
 def _read_json_object(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must be a JSON object")
     return payload
+
+
+def _write_json_if_missing(path: Path, payload: dict[str, Any]) -> bool:
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return True
+
+
+def seed_publication_display_contracts_if_missing(*, paper_root: Path) -> list[str]:
+    written_files: list[str] = []
+    style_profile_path = paper_root / "publication_style_profile.json"
+    if _write_json_if_missing(style_profile_path, _DEFAULT_STYLE_PROFILE_PAYLOAD):
+        written_files.append(str(style_profile_path))
+    display_overrides_path = paper_root / "display_overrides.json"
+    if _write_json_if_missing(display_overrides_path, _DEFAULT_DISPLAY_OVERRIDES_PAYLOAD):
+        written_files.append(str(display_overrides_path))
+    return written_files
 
 
 def _require_schema_version(payload: dict[str, Any], *, contract_name: str) -> int:

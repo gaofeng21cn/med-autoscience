@@ -74,6 +74,24 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
+        template_id="risk_layering_monotonic_bars",
+        display_name="Risk Layering Monotonic Bars",
+        evidence_class="prediction_performance",
+        renderer_family="python",
+        input_schema_id="risk_layering_monotonic_inputs_v1",
+        layout_qc_profile="publication_risk_layering_bars",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
+        template_id="binary_calibration_decision_curve_panel",
+        display_name="Binary Calibration and Decision-Curve Panel",
+        evidence_class="clinical_utility",
+        renderer_family="python",
+        input_schema_id="binary_calibration_decision_curve_panel_inputs_v1",
+        layout_qc_profile="publication_binary_calibration_decision_curve",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
         template_id="time_dependent_roc_horizon",
         display_name="Time-Dependent ROC (Horizon)",
         evidence_class="time_to_event",
@@ -182,6 +200,15 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
+        template_id="model_complexity_audit_panel",
+        display_name="Model Complexity Audit Panel",
+        evidence_class="model_audit",
+        renderer_family="python",
+        input_schema_id="model_complexity_audit_panel_inputs_v1",
+        layout_qc_profile="publication_model_complexity_audit",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
         template_id="time_to_event_discrimination_calibration_panel",
         display_name="Validation Discrimination and Grouped Calibration (Time-to-Event)",
         evidence_class="time_to_event",
@@ -251,6 +278,20 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         input_schema_id="clinical_interpretation_summary_v1",
         table_qc_profile="publication_table_interpretation",
         required_exports=("md",),
+    ),
+    TableShellSpec(
+        shell_id="performance_summary_table_generic",
+        display_name="Performance Summary Table (Generic)",
+        input_schema_id="performance_summary_table_generic_v1",
+        table_qc_profile="publication_table_performance",
+        required_exports=("csv", "md"),
+    ),
+    TableShellSpec(
+        shell_id="grouped_risk_event_summary_table",
+        display_name="Grouped Risk-Event Summary Table",
+        input_schema_id="grouped_risk_event_summary_table_v1",
+        table_qc_profile="publication_table_interpretation",
+        required_exports=("csv", "md"),
     ),
 )
 

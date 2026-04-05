@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: Path) -> None:
+def test_medical_reporting_audit_blocks_missing_cohort_flow_surface(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
     (quest_root / "paper").mkdir(parents=True, exist_ok=True)
@@ -194,8 +194,11 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
                 "display_id": "cohort_flow",
                 "catalog_id": "F1",
                 "source_contract_path": "paper/medical_reporting_contract.json",
-                "status": "required_pending_population_accounting",
-                "population_accounting": [],
+                "status": "required_pending_cohort_flow_materialization",
+                "steps": [],
+                "exclusions": [],
+                "endpoint_inventory": [],
+                "design_panels": [],
             },
             ensure_ascii=False,
         ),
