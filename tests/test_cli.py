@@ -1295,10 +1295,17 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
 
-    def fake_sync(*, paper_root: Path, stage: str, publication_profile: str = "general_medical_journal") -> dict:
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+        promote_to_final: bool = False,
+    ) -> dict:
         called["paper_root"] = paper_root
         called["stage"] = stage
         called["publication_profile"] = publication_profile
+        called["promote_to_final"] = promote_to_final
         return {
             "stage": stage,
             "publication_profile": publication_profile,
@@ -1322,6 +1329,7 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
     assert called["paper_root"] == tmp_path / "paper"
     assert called["stage"] == "finalize"
     assert called["publication_profile"] == "general_medical_journal"
+    assert called["promote_to_final"] is False
     assert '"stage": "finalize"' in captured.out
 
 

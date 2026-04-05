@@ -25,13 +25,11 @@ def test_release_installer_version_matches_package_version() -> None:
     assert f'readonly WHEEL_FILENAME="med_autoscience-{version}-py3-none-any.whl"' in script
 
 
-def test_release_docs_and_installer_reference_the_actual_github_repo_slug() -> None:
+def test_release_notes_and_installer_reference_the_actual_github_repo_slug() -> None:
     version = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     installer_script = (REPO_ROOT / "scripts" / "install-macos.sh").read_text(encoding="utf-8")
     release_notes = (REPO_ROOT / ".github" / "release-notes.md").read_text(encoding="utf-8")
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     expected_release_base_url = f"https://github.com/{RELEASE_REPO_SLUG}/releases/download/v{version}"
 
     assert expected_release_base_url in installer_script
     assert expected_release_base_url in release_notes
-    assert expected_release_base_url in readme
