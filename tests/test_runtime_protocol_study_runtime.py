@@ -297,29 +297,56 @@ def test_runtime_escalation_record_path_resolves_to_stable_quest_local_artifact(
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
 
     assert module._runtime_escalation_record_path(quest_root) == (
-        quest_root / "artifacts" / "reports" / "runtime" / "escalation_record.json"
+        quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
     )
 
 
-def test_write_runtime_escalation_record_persists_typed_protocol_surface(tmp_path: Path) -> None:
+def test_write_runtime_escalation_record_persists_full_artifact_and_read_runtime_escalation_record_ref_returns_summary_echo(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    launch_report_path = tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
     record = module.RuntimeEscalationRecord(
-        recorded_at="2026-04-05T06:00:00+00:00",
-        quest_root=str(quest_root),
+        schema_version=1,
+        record_id="runtime-escalation::001-risk::001-risk::startup_boundary_not_ready_for_resume::2026-04-05T06:00:00+00:00",
+        study_id="001-risk",
+        quest_id="001-risk",
+        emitted_at="2026-04-05T06:00:00+00:00",
+        trigger=module.RuntimeEscalationTrigger(
+            trigger_id="startup_boundary_not_ready_for_resume",
+            source="startup_boundary_gate",
+        ),
+        scope="quest",
+        severity="quest",
         reason="startup_boundary_not_ready_for_resume",
-        summary_ref="paper/review/runtime_escalation_summary.md",
-        record_path=None,
+        recommended_actions=("refresh_startup_hydration", "controller_review_required"),
+        evidence_refs=(
+            str(quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"),
+            str(quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"),
+        ),
+        runtime_context_refs={"launch_report_path": str(launch_report_path)},
+        summary_ref=str(launch_report_path),
+        artifact_path=None,
     )
 
     written = module.write_runtime_escalation_record(quest_root=quest_root, record=record)
 
-    expected_path = quest_root / "artifacts" / "reports" / "runtime" / "escalation_record.json"
-    assert written.record_path == str(expected_path)
+    expected_path = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
     payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert written.artifact_path == str(expected_path)
     assert payload == written.to_dict()
-    assert payload["summary_ref"] == "paper/review/runtime_escalation_summary.md"
-    assert "summary" not in payload
+    assert payload["trigger"] == {
+        "trigger_id": "startup_boundary_not_ready_for_resume",
+        "source": "startup_boundary_gate",
+    }
+    assert payload["recommended_actions"] == ["refresh_startup_hydration", "controller_review_required"]
+    assert payload["summary_ref"] == str(launch_report_path)
+    assert module.read_runtime_escalation_record_ref(quest_root=quest_root) == module.RuntimeEscalationRecordRef(
+        record_id=written.record_id,
+        artifact_path=str(expected_path),
+        summary_ref=str(launch_report_path),
+    )
 
 
 def test_write_startup_hydration_report_persists_typed_protocol_surface(tmp_path: Path) -> None:

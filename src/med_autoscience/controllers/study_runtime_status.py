@@ -37,36 +37,6 @@ __all__ = [
 _UNSET = object()
 
 
-def _redact_runtime_escalation_record(value: Any) -> dict[str, str] | None:
-    if not isinstance(value, dict):
-        return None
-    payload: dict[str, str] = {}
-    for field_name in ("record_id", "artifact_path", "summary_ref"):
-        field_value = str(value.get(field_name) or "").strip()
-        if field_value:
-            payload[field_name] = field_value
-    return payload or None
-
-
-def _sanitize_startup_context_sync_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    sanitized = dict(payload)
-    snapshot = sanitized.get("snapshot")
-    if not isinstance(snapshot, dict):
-        return sanitized
-    startup_contract = snapshot.get("startup_contract")
-    if not isinstance(startup_contract, dict):
-        return sanitized
-    runtime_escalation_record = _redact_runtime_escalation_record(startup_contract.get("runtime_escalation_record"))
-    if runtime_escalation_record is None:
-        return sanitized
-    sanitized_snapshot = dict(snapshot)
-    sanitized_snapshot["startup_contract"] = dict(startup_contract) | {
-        "runtime_escalation_record": runtime_escalation_record
-    }
-    sanitized["snapshot"] = sanitized_snapshot
-    return sanitized
-
-
 def _absent_study_completion_state() -> StudyCompletionState:
     return StudyCompletionState(
         status=StudyCompletionStateStatus.ABSENT,
@@ -916,17 +886,7 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             if isinstance(value, StudyRuntimeStartupContextSyncResult)
             else StudyRuntimeStartupContextSyncResult.from_payload(value)
         )
-        sanitized_payload = _sanitize_startup_context_sync_payload(startup_context_sync.to_dict())
-        self._record_dict_extra("startup_context_sync", sanitized_payload)
-        snapshot = sanitized_payload.get("snapshot")
-        startup_contract = snapshot.get("startup_contract") if isinstance(snapshot, dict) else None
-        runtime_escalation_record = (
-            _redact_runtime_escalation_record(startup_contract.get("runtime_escalation_record"))
-            if isinstance(startup_contract, dict)
-            else None
-        )
-        if runtime_escalation_record is not None:
-            self._record_dict_extra("runtime_escalation_record", runtime_escalation_record)
+        self._record_dict_extra("startup_context_sync", startup_context_sync.to_dict())
 
     def record_startup_hydration(
         self,
@@ -1019,6 +979,19 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         self.runtime_binding_exists = artifacts.runtime_binding_path.exists()
         self.extras["launch_report_path"] = str(artifacts.launch_report_path)
         self.extras["startup_payload_path"] = artifact_payload["startup_payload_path"]
+
+    def record_runtime_escalation_ref(
+        self,
+        value: dict[str, Any] | study_runtime_protocol.RuntimeEscalationRecordRef,
+    ) -> None:
+        runtime_escalation_ref = (
+            value
+            if isinstance(value, study_runtime_protocol.RuntimeEscalationRecordRef)
+            else study_runtime_protocol.RuntimeEscalationRecordRef.from_payload(
+                self._require_dict_field("runtime_escalation_ref", value)
+            )
+        )
+        self._record_dict_extra("runtime_escalation_ref", runtime_escalation_ref.to_dict())
 
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()
