@@ -2,6 +2,12 @@
 
 这里是 `MedAutoScience` 面向 GitHub 与外部读者的公开文档入口。
 
+公开口径统一按下面这条理解：
+
+- 对外：`MedAutoScience` 是 `Research Ops Gateway`
+- 对内：它由医学自动科研 `Harness OS` 驱动
+- 在 `OPL` 顶层语义里：它是 `Research Ops` 的 domain gateway，而不是 `OPL` 本体
+
 ## 面向医学用户
 
 - [README](../README.md)
@@ -16,6 +22,7 @@
 - [Runtime Boundary](runtime_boundary.md)
 - [Workspace Architecture](workspace_architecture.md)
 - [Upstream Intake Guide](upstream_intake.md)
+- [Repository CI Preflight](repository_ci_preflight.md)
 - [Codex plugin 接入](codex_plugin.md)
 - [Codex plugin 发布说明](codex_plugin_release.md)
 

@@ -6,16 +6,18 @@
 
 ## 项目定位
 
-- 这个仓库的默认定位是 `Agent-first, human-auditable` 的医学自动科研运行层，不是给医学用户手工操作的底层工具箱。
+- 这个仓库的默认定位是 `Agent-first, human-auditable` 的 `Research Ops` domain gateway 与医学自动科研 harness，不是给医学用户手工操作的底层工具箱。
 - 人类主要负责提出研究目标、提供数据、审核结果、做继续/停止决策。
 - Agent 主要负责读取状态、调用平台接口、推进研究执行、组织论文交付。
-- 平台本身负责提供稳定、可验证、可审计的运行入口，而不是要求人直接维护底层状态文件。
+- 平台本身负责提供稳定、可验证、可审计的 gateway 入口，而不是要求人直接维护底层状态文件。
 - 在这个仓库中工作时，优先通过稳定的 `workspace / profile / controller / overlay / adapter` 契约推进任务，不要把仓库重新退化成临时脚本集合。
+- 在 `OPL` 顶层语义里，这个仓库仍然必须保留独立的 `Research Ops` domain gateway 角色，而不是被顶层 gateway 取代。
 
 ## 设计与实现优先级
 
-- 优先保持这个 repo 作为 `MedAutoScience` 顶层入口；不要把主要工作流重新设计成“用户手工敲 CLI”。
+- 优先保持这个 repo 作为 `MedAutoScience` 顶层 `Research Ops Gateway`；不要把主要工作流重新设计成“用户手工敲 CLI”。
 - 优先通过 `policy -> controller -> overlay -> adapter` 这条链路表达能力，而不是散落脚本或临时旁路。
+- 不要把 `OPL` 顶层 gateway 写成对本仓库 gateway 的替代物；两层应是上下层关系，而不是替换关系。
 - 优先通过 profile、overlay、controller 影响 `MedDeepScientist` / `DeepScientist` runtime，避免直接修改 runtime core。
 - 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到技术文档或控制器说明，而不是让首页退化成命令手册。
 - 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。

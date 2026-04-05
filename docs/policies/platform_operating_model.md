@@ -2,11 +2,14 @@
 
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
+对外，它是 `Research Ops Gateway`。
+对内，它由医学自动科研 `Harness OS` 驱动。
+
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
 - `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 `MedDeepScientist` 与外挂工具、组织论文交付
-- `MedAutoScience` 自身负责提供稳定、可验证、可审计的运行接口，而不是要求人手工维护底层状态文件
+- `MedAutoScience` 自身负责提供稳定、可验证、可审计的 gateway 接口，而不是要求人手工维护底层状态文件
 
 ## 角色分工
 
@@ -26,7 +29,7 @@
 ### MedDeepScientist
 
 - 作为底层自动科研执行引擎，负责 scout、idea、experiment、write、finalize 等任务推进
-- 由 `MedAutoScience` 注入医学特化 overlay、研究偏置和论文门控
+- 由 `MedAutoScience` 这个顶层 gateway / harness 控制面注入医学特化 overlay、研究偏置和论文门控
 
 ### ToolUniverse 与公开数据侧挂
 
@@ -35,7 +38,7 @@
 
 ## 稳定操作面
 
-平台默认希望 Agent 使用稳定的机器接口，而不是直接编辑状态文件。
+平台默认希望 Agent 使用稳定的 gateway / controller 接口，而不是直接编辑状态文件。
 
 当前正式操作面包括：
 

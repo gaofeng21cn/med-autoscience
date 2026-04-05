@@ -5,11 +5,11 @@
 它属于仓库的稳定公开文档层，因此放在 `docs/` 下。
 与之相对，`docs/superpowers/` 更偏本地内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
 
-`MedAutoScience` 对外可以继续称为医学自动科研平台，但它的本质是一个 `Agent-first, human-auditable` 的医学自动科研运行层：
+`MedAutoScience` 对外可以继续称为医学自动科研平台，但更准确的理解是：它对外是 `Research Ops Gateway`，对内由一个 `Agent-first, human-auditable` 的医学自动科研 harness 驱动：
 
 - 人类负责提出研究任务、提供数据、审阅结果和做关键决策
 - Agent 负责调用稳定接口，推进数据治理、研究执行和论文交付组织
-- 平台负责提供可验证、可审计、可重复调用的运行入口，而不是要求医学用户手工维护底层状态
+- 平台负责提供可验证、可审计、可重复调用的 gateway 入口，而不是要求医学用户手工维护底层状态
 
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。
 
@@ -58,7 +58,7 @@
 
 ## 唯一研究入口
 
-在当前架构里，`MedAutoScience` 是唯一研究入口，`MedDeepScientist`（仓库名 `med-deepscientist`）是默认受控 runtime；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
+在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`MedDeepScientist`（仓库名 `med-deepscientist`）是默认受控 runtime；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
 
 因此：
 

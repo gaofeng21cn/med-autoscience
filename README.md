@@ -14,12 +14,12 @@
       从专病数据起步的医学研究
     </td>
     <td width="33%" valign="top">
-      <strong>控制什么</strong><br/>
-      研究质量、证据链和最终收口
+      <strong>对外角色</strong><br/>
+      面向 Agent 与医学团队的 Research Ops Gateway
     </td>
     <td width="33%" valign="top">
-      <strong>最终产出</strong><br/>
-      研究路线、证据组织与投稿交付材料
+      <strong>在 OPL 中的位置</strong><br/>
+      `Research Ops` 的 domain gateway；负责把研究从数据推进到论文与投稿交付
     </td>
   </tr>
 </table>
@@ -28,14 +28,30 @@
   <img src="assets/branding/medautoscience-hero.png" alt="MedAutoScience 主示意图" width="100%" />
 </p>
 
-> 对外，它是医学研究平台；对内，它是一个 `Agent-first, human-auditable` 的自动科研运行层。
+> 对外，它是面向 Agent 与医学团队的 `Research Ops Gateway`；对内，它由一个 `Agent-first, human-auditable` 的医学自动科研 `Harness OS` 驱动。
+
+## 对外一句话理解
+
+如果你希望把专病数据持续推进成正式研究与投稿交付，`MedAutoScience` 提供的不是零散工具，而是一条可治理、可审计、可持续推进的研究主线。
+
+## 在 OPL 联邦中的位置
+
+如果放在 `One Person Lab (OPL)` 顶层语义里，更准确的定位是：
+
+- `MedAutoScience` 是 `Research Ops` 的正式 domain gateway
+- 它下面承载的是 research harness，而不是一堆零散脚本
+- 它可以通过 `OPL Gateway` 被路由到，也必须保留独立可用的 domain gateway 角色
+
+理想链路是：
+
+`User / Agent -> OPL Gateway（可选顶层）-> MedAutoScience Gateway -> Research Harness OS -> MedDeepScientist`
 
 ## Agent 合同分层
 
 <!-- AGENT-CONTRACT-BASELINE:START -->
 - 根目录 `AGENTS.md` 仅用于本仓库开发环境中的 Codex/OMX 协作，不单独承载项目真相合同
-- 宿主适配层位于 `contracts/dev-hosts/`，用于区分 OMX CLI 与 Codex App / plain Codex 的开发宿主行为
 - 项目真相合同位于 `contracts/project-truth/AGENTS.md`
+- OMX project-scope 编排层位于 `.codex/AGENTS.md`，只供 OMX / CODEX_HOME 会话加载
 - 可选本机私有覆盖层约定为 `.omx/local/AGENTS.local.md`，保持未跟踪
 - 本地工具运行态目录 `.omx/` 与 `.codex/` 必须保持未跟踪，不进入版本库
 <!-- AGENT-CONTRACT-BASELINE:END -->
@@ -127,12 +143,12 @@
 通常只需要三步：
 
 1. 如果你还没有病种级 workspace，先让 Agent 用 `MedAutoScience` 创建一个；如果已经有了，就把原始数据、数据说明文档、变量定义、终点定义、纳排标准、分组规则，以及你已有的参考文章或研究设想放进去。
-2. 再对你的 Agent（例如 Codex、Claude Code、OpenClaw 等）明确说明两件事：先把这些数据清洗、整理成适合机读和可审计的研究资产；再使用 [MedAutoScience](https://github.com/gaofeng21cn/med-autoscience) 作为自动科研运行框架，围绕你的目标展开自动科研。
+2. 再对你的 Agent（例如 Codex、Claude Code、OpenClaw 等）明确说明两件事：先把这些数据清洗、整理成适合机读和可审计的研究资产；再使用 [MedAutoScience](https://github.com/gaofeng21cn/med-autoscience) 作为 `Research Ops Gateway / harness` 框架，围绕你的目标展开自动科研。
 3. 最后把你的具体要求直接说清楚，例如目标是发表二区以上的 SCI、希望仿照哪篇文章、已有怎样的科研思路、哪些终点或亚组必须重点分析，这些都可以直接告诉 Agent，由它继续传达给 `MedAutoScience` 的运行过程。
 
 你可以直接把下面这段话发给 Agent：
 
-> 请先读取我放在这个研究目录中的数据和数据说明文档。第一步，把这些数据清洗、整理成适合机读、可审计、可继续研究推进的形式，并明确每份数据的含义、变量定义、终点定义和可用范围。第二步，使用 MedAutoScience（`https://github.com/gaofeng21cn/med-autoscience`）作为自动科研运行框架，目标是围绕这些数据展开自动科研，尽可能形成一篇二区以上 SCI 论文所需的研究路线、分析结果、验证结果、证据组织和投稿交付材料。如果我提供了参考文章、明确的科研思路、目标期刊偏好、纳排标准、重点终点、亚组要求或其他约束，请一并纳入，并把这些要求传递给 MedAutoScience 的运行过程。请优先判断课题是否值得继续投入；如果方向偏弱，请及时止损、改题或补充 sidecar，而不是机械地把一条弱路线做到底。
+> 请先读取我放在这个研究目录中的数据和数据说明文档。第一步，把这些数据清洗、整理成适合机读、可审计、可继续研究推进的形式，并明确每份数据的含义、变量定义、终点定义和可用范围。第二步，使用 MedAutoScience（`https://github.com/gaofeng21cn/med-autoscience`）作为 `Research Ops Gateway / harness` 框架，目标是围绕这些数据展开自动科研，尽可能形成一篇二区以上 SCI 论文所需的研究路线、分析结果、验证结果、证据组织和投稿交付材料。如果我提供了参考文章、明确的科研思路、目标期刊偏好、纳排标准、重点终点、亚组要求或其他约束，请一并纳入，并把这些要求传递给 MedAutoScience 的运行过程。请优先判断课题是否值得继续投入；如果方向偏弱，请及时止损、改题或补充 sidecar，而不是机械地把一条弱路线做到底。
 
 通过这三步，你自己的 Agent 就可以带着 `MedAutoScience` 进入自主研究推进；你主要负责补充医学判断、审核关键结果，并决定继续还是停止。
 
@@ -149,7 +165,7 @@
 
 ## 平台如何工作
 
-如果你已经确认这类平台适合你的课题，再往下看它的运行方式即可。这个平台的工作逻辑，不是“人来操作一堆工具”，而是“人类定义研究目标，Agent 调用运行层接口推进，平台保留可审计状态”。
+如果你已经确认这类平台适合你的课题，再往下看它的运行方式即可。这个平台的工作逻辑，不是“人来操作一堆工具”，而是“人类定义研究目标，Agent 调用 `Research Ops Gateway` 推进，平台保留可审计状态”。
 
 通常按下面的顺序推进：
 
@@ -166,8 +182,8 @@
 
 如果只看高层角色，可以把内部组成理解为：
 
-- 医学研究主控与门控：`MedAutoScience`
-- 主运行层与长期研究执行：`MedDeepScientist`（仓库：`med-deepscientist`，上游来源：`DeepScientist`）
+- 医学研究主控与顶层 gateway：`MedAutoScience`
+- 底层 research harness 与长期研究执行：`MedDeepScientist`（仓库：`med-deepscientist`，上游来源：`DeepScientist`）
 - 算法创新侧翼执行层：`ARIS`
 - 协调推进智能体：`Codex`
 - 外部知识、工具与专项分析扩展层：`ToolUniverse`

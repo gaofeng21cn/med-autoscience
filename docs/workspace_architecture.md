@@ -2,6 +2,12 @@
 
 这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到由 `MedDeepScientist` 支撑的标准形态的约束。
 
+在顶层定位上，应始终按下面这条理解：
+
+- `MedAutoScience` = `Research Ops Gateway`
+- `MedDeepScientist` = 受 `MedAutoScience` 控制的底层研究执行 runtime / harness 组成部分
+- 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
+
 它面向两类对象：
 
 - 未来要新建疾病项目 workspace 的 Agent / 技术同事
@@ -15,9 +21,9 @@
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为顶层医学治理层，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为底层执行 runtime
+- `MedAutoScience` 继续作为 `Research Ops` 顶层 gateway 与医学治理层，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为底层执行 runtime
 
-这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist` 或 `DeepScientist upstream`。
+这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 
 ## 默认心智模型
 
