@@ -4,9 +4,11 @@
 
 在顶层定位上，应始终按下面这条理解：
 
-- `MedAutoScience` = `Research Ops Gateway`
-- `MedDeepScientist` = 受 `MedAutoScience` 控制的底层研究执行 runtime / harness 组成部分
+- `MedAutoScience` = `Research Ops` 的 `domain gateway + domain harness OS`
+- `MedDeepScientist` = 当前由 `MedAutoScience` harness OS 控制的底层研究执行 runtime substrate
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
+
+也就是说，当前 monorepo / runtime / controller 的任何后续演化，都应被理解为在收紧 `MedAutoScience` 内部 harness OS，而不是削弱它作为独立 domain gateway 的角色。
 
 它面向两类对象：
 
@@ -21,7 +23,7 @@
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为 `Research Ops` 顶层 gateway 与医学治理层，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为底层执行 runtime
+- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前底层执行 runtime substrate
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 

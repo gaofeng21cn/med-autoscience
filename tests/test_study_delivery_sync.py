@@ -263,6 +263,86 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     assert (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
 
 
+def test_sync_study_delivery_can_promote_primary_journal_package_into_study_final(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "manuscript.docx",
+        "frontiers manuscript",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "Supplementary_Material.docx",
+        "frontiers supplementary",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "paper.pdf",
+        "%PDF-1.4\n",
+    )
+    dump_json(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "frontiers_family_harvard",
+            "citation_style": "FrontiersHarvard",
+        },
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "figures" / "Figure1.svg",
+        "<svg><text>flow</text></svg>\n",
+    )
+    write_png(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "figures" / "Figure1.png"
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "tables" / "Table1.csv",
+        "a,b\n1,2\n",
+    )
+    write_text(
+        paper_root / "journal_submissions" / "frontiers_family_harvard" / "tables" / "Table1.md",
+        "| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    )
+    write_text(
+        study_root
+        / "manuscript"
+        / "final"
+        / "journal_packages"
+        / "frontiers_family_harvard"
+        / "stale.txt",
+        "legacy stale package\n",
+    )
+    write_text(
+        study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip",
+        "legacy stale zip\n",
+    )
+
+    result = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+        publication_profile="frontiers_family_harvard",
+        promote_to_final=True,
+    )
+
+    assert result["stage"] == "frontiers_family_harvard_submission"
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").read_text(encoding="utf-8") == (
+        "frontiers manuscript"
+    )
+    assert (study_root / "manuscript" / "final" / "submission_package" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
+    assert (study_root / "artifacts" / "final" / "figures" / "Figure1.svg").exists()
+    assert (study_root / "artifacts" / "final" / "tables" / "Table1.csv").exists()
+    assert (
+        study_root
+        / "manuscript"
+        / "final"
+        / "journal_package_mirrors"
+        / "frontiers_family_harvard"
+        / "submission_manifest.json"
+    ).exists()
+    assert not (study_root / "manuscript" / "final" / "journal_packages").exists()
+    assert not (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
+
+
 def test_sync_study_delivery_rejects_unsupported_publication_profile(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, _ = make_delivery_workspace(tmp_path)

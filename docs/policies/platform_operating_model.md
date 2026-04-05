@@ -2,14 +2,42 @@
 
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
-对外，它是 `Research Ops Gateway`。
-对内，它由医学自动科研 `Harness OS` 驱动。
+对外，它是 `Research Ops` 的 `domain gateway`。
+对内，它是承载 controller、runtime、eval、delivery 的医学自动科研 `domain harness OS`。
 
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
 - `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 `MedDeepScientist` 与外挂工具、组织论文交付
 - `MedAutoScience` 自身负责提供稳定、可验证、可审计的 gateway 接口，而不是要求人手工维护底层状态文件
+
+在 `OPL` 联邦链路里，推荐始终按下面这条理解：
+
+`Human / Agent -> OPL Gateway -> MedAutoScience domain gateway -> MedAutoScience domain harness OS -> runtime / eval / delivery surfaces`
+
+这意味着：
+
+- `OPL Gateway` 不替代 `MedAutoScience`
+- `MedDeepScientist` 当前是 harness OS 中最重要的 runtime executor 之一，但不等于整个 harness OS
+- future monorepo 的 `controller_charter / runtime / eval_hygiene` 应被理解为 harness OS 内部主模块，而不是对外 gateway 的替代品
+
+更系统的定位说明见：[Domain Gateway And Harness OS](../domain_gateway_harness_os.md)
+
+## Gateway 与 Harness OS 的分工
+
+### Domain gateway 负责
+
+- 暴露面向人类与 Agent 的正式 domain 入口
+- 固定 workspace / profile / controller / overlay / adapter 的稳定接口
+- 保持公开定位、entry contract、project-truth 与审计边界清晰
+- 防止调用方绕过正式入口直接碰内部 runtime
+
+### Domain harness OS 负责
+
+- 持续执行、记录、治理和交付 domain work
+- 承载 controller、runtime、eval、delivery 的长期运行链
+- 持久化 authority artifact、评估结论、交付结果与回溯线索
+- 让研究推进不是一次性脚本，而是可恢复、可审计、可持续的运行底座
 
 ## 角色分工
 
@@ -29,7 +57,7 @@
 ### MedDeepScientist
 
 - 作为底层自动科研执行引擎，负责 scout、idea、experiment、write、finalize 等任务推进
-- 由 `MedAutoScience` 这个顶层 gateway / harness 控制面注入医学特化 overlay、研究偏置和论文门控
+- 由 `MedAutoScience` 这个 domain gateway / harness OS 控制面注入医学特化 overlay、研究偏置和论文门控
 
 ### ToolUniverse 与公开数据侧挂
 
@@ -50,6 +78,8 @@
   - 把医学前验约束前移到 `MedDeepScientist` 的关键 stage
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
+
+这些操作面属于 `MedAutoScience` 的 domain gateway 对外控制表面；它们驱动的 controller、runtime、eval、delivery 链条，则属于内部 harness OS 的运行表面。
 
 对 workspace 的状态 mutation，默认遵循以下原则：
 

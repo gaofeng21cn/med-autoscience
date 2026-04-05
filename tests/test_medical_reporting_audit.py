@@ -5,46 +5,7 @@ import json
 from pathlib import Path
 
 
-def _write_minimal_reporting_surface(paper_root: Path, *, include_checklist: bool) -> None:
-    (paper_root / "figures").mkdir(parents=True, exist_ok=True)
-    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
-    (paper_root / "medical_reporting_contract.json").write_text(
-        json.dumps({"reporting_guideline_family": "TRIPOD"}, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    (paper_root / "display_registry.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "source_contract_path": "paper/medical_reporting_contract.json",
-                "displays": [
-                    {
-                        "display_id": "Figure1",
-                        "display_kind": "figure",
-                        "requirement_key": "cohort_flow_figure",
-                        "shell_path": "paper/figures/Figure1.shell.json",
-                    },
-                    {
-                        "display_id": "Table1",
-                        "display_kind": "table",
-                        "requirement_key": "table1_baseline_characteristics",
-                        "shell_path": "paper/tables/Table1.shell.json",
-                    },
-                ],
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-    (paper_root / "figures" / "Figure1.shell.json").write_text("{}", encoding="utf-8")
-    (paper_root / "tables" / "Table1.shell.json").write_text("{}", encoding="utf-8")
-    (paper_root / "cohort_flow.json").write_text("{}", encoding="utf-8")
-    (paper_root / "baseline_characteristics_schema.json").write_text("{}", encoding="utf-8")
-    if include_checklist:
-        (paper_root / "reporting_guideline_checklist.json").write_text("{}", encoding="utf-8")
-
-
-def test_medical_reporting_audit_blocks_missing_cohort_flow_surface(tmp_path: Path) -> None:
+def test_medical_reporting_audit_blocks_missing_population_accounting(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
     (quest_root / "paper").mkdir(parents=True, exist_ok=True)
@@ -59,30 +20,6 @@ def test_medical_reporting_audit_blocks_missing_cohort_flow_surface(tmp_path: Pa
     assert "missing_cohort_flow" in report["blockers"]
     assert "missing_baseline_characteristics_schema" in report["blockers"]
     assert "missing_reporting_guideline_checklist" in report["blockers"]
-
-
-def test_medical_reporting_audit_reduces_to_checklist_blocker_once_default_surface_is_complete(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
-    quest_root = tmp_path / "runtime" / "quests" / "003-followup"
-    paper_root = quest_root / "paper"
-    _write_minimal_reporting_surface(paper_root, include_checklist=False)
-
-    report = module.run_controller(quest_root=quest_root, apply=False)
-
-    assert report["status"] == "blocked"
-    assert report["blockers"] == ["missing_reporting_guideline_checklist"]
-
-
-def test_medical_reporting_audit_clears_when_default_surface_and_checklist_exist(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
-    quest_root = tmp_path / "runtime" / "quests" / "003-followup"
-    paper_root = quest_root / "paper"
-    _write_minimal_reporting_surface(paper_root, include_checklist=True)
-
-    report = module.run_controller(quest_root=quest_root, apply=False)
-
-    assert report["status"] == "clear"
-    assert report["blockers"] == []
 
 
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
@@ -257,11 +194,8 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
                 "display_id": "cohort_flow",
                 "catalog_id": "F1",
                 "source_contract_path": "paper/medical_reporting_contract.json",
-                "status": "required_pending_cohort_flow_materialization",
-                "steps": [],
-                "exclusions": [],
-                "endpoint_inventory": [],
-                "design_panels": [],
+                "status": "required_pending_population_accounting",
+                "population_accounting": [],
             },
             ensure_ascii=False,
         ),

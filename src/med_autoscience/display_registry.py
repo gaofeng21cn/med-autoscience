@@ -75,8 +75,8 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
     ),
     EvidenceFigureSpec(
         template_id="risk_layering_monotonic_bars",
-        display_name="Risk Layering Monotonic Bars",
-        evidence_class="prediction_performance",
+        display_name="Monotonic Risk Layering Bars",
+        evidence_class="time_to_event",
         renderer_family="python",
         input_schema_id="risk_layering_monotonic_inputs_v1",
         layout_qc_profile="publication_risk_layering_bars",
@@ -84,11 +84,20 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
     ),
     EvidenceFigureSpec(
         template_id="binary_calibration_decision_curve_panel",
-        display_name="Binary Calibration and Decision-Curve Panel",
+        display_name="Binary Calibration and Decision Curve Panel",
         evidence_class="clinical_utility",
         renderer_family="python",
         input_schema_id="binary_calibration_decision_curve_panel_inputs_v1",
         layout_qc_profile="publication_binary_calibration_decision_curve",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
+        template_id="model_complexity_audit_panel",
+        display_name="Model Complexity Audit Panel",
+        evidence_class="model_audit",
+        renderer_family="python",
+        input_schema_id="model_complexity_audit_panel_inputs_v1",
+        layout_qc_profile="publication_model_complexity_audit",
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
@@ -200,15 +209,6 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="model_complexity_audit_panel",
-        display_name="Model Complexity Audit Panel",
-        evidence_class="model_audit",
-        renderer_family="python",
-        input_schema_id="model_complexity_audit_panel_inputs_v1",
-        layout_qc_profile="publication_model_complexity_audit",
-        required_exports=("png", "pdf"),
-    ),
-    EvidenceFigureSpec(
         template_id="time_to_event_discrimination_calibration_panel",
         display_name="Validation Discrimination and Grouped Calibration (Time-to-Event)",
         evidence_class="time_to_event",
@@ -255,15 +255,6 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
         shell_qc_profile="publication_illustration_flow",
         required_exports=("png", "svg"),
     ),
-    IllustrationShellSpec(
-        shell_id="submission_graphical_abstract",
-        display_name="Submission Graphical Abstract",
-        renderer_family="python",
-        input_schema_id="submission_graphical_abstract_inputs_v1",
-        shell_qc_profile="submission_graphical_abstract",
-        required_exports=("png", "svg"),
-        allowed_paper_roles=("submission_companion",),
-    ),
 )
 
 _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
@@ -287,20 +278,6 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         input_schema_id="clinical_interpretation_summary_v1",
         table_qc_profile="publication_table_interpretation",
         required_exports=("md",),
-    ),
-    TableShellSpec(
-        shell_id="performance_summary_table_generic",
-        display_name="Performance Summary Table (Generic)",
-        input_schema_id="performance_summary_table_generic_v1",
-        table_qc_profile="publication_table_performance",
-        required_exports=("csv", "md"),
-    ),
-    TableShellSpec(
-        shell_id="grouped_risk_event_summary_table",
-        display_name="Grouped Risk-Event Summary Table",
-        input_schema_id="grouped_risk_event_summary_table_v1",
-        table_qc_profile="publication_table_interpretation",
-        required_exports=("csv", "md"),
     ),
 )
 
@@ -351,10 +328,6 @@ def is_evidence_figure_template(template_id: str) -> bool:
 
 def is_illustration_shell(shell_id: str) -> bool:
     return str(shell_id or "").strip() in _ILLUSTRATION_BY_SHELL
-
-
-def is_submission_companion_shell(shell_id: str) -> bool:
-    return str(shell_id or "").strip() == "submission_graphical_abstract"
 
 
 def is_table_shell(shell_id: str) -> bool:

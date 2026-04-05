@@ -108,66 +108,55 @@
 - `Table 2` / `Table 3` 仍是真实有效资产，但当前 journal-facing 角色已经下沉为 `Supplementary Table S1` / `Supplementary Table S2`。
 - `003` 的主文面并不是“渲染质量差”，而是大部分资产本身就还没有进入当前 audited template vocabulary。
 - `003` 的价值在于把临床医学论文里一批真实高频、但目前 catalog 缺失的图表类型具体化，而不是强行把现有模板套上去。
-- `003` 驱动的 `Phase C / Phase D` 缺口现已进入正式主线；当前 blocker 已从模板缺口转移到 reporting / publication 合同面。
-- `003` 现阶段最重要的价值不再是继续催生新模板，而是验证正式 gate 能否清掉真实 paper root 的 reporting / manuscript blocker。
+- `003` 最适合作为下一批缺失模板的需求真相源。
 
 ## Cross-Paper Priority Reset
 
-### Completed Mainline Intake
+### Phase A: First Migration Pack From Existing Audited Surface
 
-以下工作已不再是“下一轮提案”，而是当前主线已完成的前置事实：
+优先从 `001` 开始，把以下资产接入 audited display surface：
 
-- `003` 驱动的 3 个 evidence figure template 已进入正式主线：
-  - `risk_layering_monotonic_bars`
-  - `binary_calibration_decision_curve_panel`
-  - `model_complexity_audit_panel`
-- `003` 驱动的 2 个 table shell 已进入正式主线：
-  - `performance_summary_table_generic`
-  - `grouped_risk_event_summary_table`
-- `001` / `002` / `003` 的当前 live paper root 已完成相应 display surface 重物化与 QC 复核。
+1. `Table 1` -> `table1_baseline_characteristics`
+2. `Table 2` -> `table2_time_to_event_performance_summary`
+3. `Figure 2` -> `time_to_event_discrimination_calibration_panel`
+4. `Figure 3` -> `kaplan_meier_grouped`
+5. `Figure 4` -> `time_to_event_decision_curve`
+6. `Figure 5` -> `multicenter_generalizability_overview`
 
-### Current Priority A: `003` Reporting / Publication Gate Tighten
+理由：
 
-`003` 当前优先清关项应切换为：
+- 这些都是 `direct` 映射。
+- 它们能最快把现有 audited catalog 从“模板存在”推进到“真实论文已复用”。
+- 完成后可以立刻验证 catalog、materialization、QC、publication surface 是否真能承接真实论文主文。
+- `Table 3` 作为后续增强项保留，不纳入这一轮首批迁移完成判据。
 
-- reporting audit：
-  - `reporting_guideline_checklist.json`
-- publication surface：
-  - `methods_implementation_manifest.json`
-  - `results_narrative_map.json`
-  - `figure_semantics_manifest.json`
-  - `derived_analysis_manifest.json`
-  - `manuscript_safe_reproducibility_supplement.json`
-  - `endpoint_provenance_note.md`
-  - forbidden manuscript terms
+### Phase B: Unified Figure 1 Shell Upgrade
 
-这一阶段的判断标准不再是“模板有没有”，而是“正式 contract / controller / manuscript-facing truth 是否闭合”。
+`001 Figure 1` 与 `003 Figure 1` 应共用一条 Figure 1 shell 升级线：
 
-### Current Priority B: `001` Submission Companion Contract Tighten
+- 保留 cohort flow 的严格数字约束。
+- 正式纳入 endpoint inventory。
+- 正式纳入 split schema 或 score-construction sidecar。
+- 不允许依赖 renderer 临时避让或排版后修补。
 
-`001` 当前 publication surface 仍被两类 contract 缺口阻塞：
+### Phase C: Template Additions Driven By Study 003
 
-- `submission_graphical_abstract` 尚未正式注册
-- `figure_semantics_manifest.json` 中 `GA1` 使用 `submission_companion` renderer semantics，但正式 validator 仍只接受当前主线 renderer family
+`003` 应优先驱动下面 5 类新增模板：
 
-这说明 `001` 的下一步重点不是 display template 扩容，而是 submission companion / graphical abstract 正式合同化。
+1. `risk_layering_monotonic_bars`
+2. `binary_calibration_decision_curve_panel`
+3. `model_complexity_audit_panel`
+4. `performance_summary_table_generic`
+5. `grouped_risk_event_summary_table`
 
-### Current Priority C: `002` Real-Study `Phase C / Phase D` Promotion
-
-`002` 当前仍只有 Figure 1 主线化。要把 `Phase C / Phase D` 真正推进到真实课题，需要补齐：
-
-- `medical_analysis_contract.json`
-- `medical_reporting_contract.json`
-- `publication_style_profile.json`
-- `display_overrides.json`
-- 真实 `study_design_cohort_flow.json` / `notes/clinical_metadata_packet.md` 的 controller consumer 路径
+前 3 项直接决定 `003` 当前主文能否稳定迁移；后 2 项主要服务当前 supplementary table 与 study-owned transport package。
 
 ## Immediate Recommendation
 
-当前建议固定顺序为：
+下一轮实现顺序建议固定为：
 
-1. 先把 `003` 的 reporting / publication gate blocker 分成“可正式自动化吸收”与“必须依赖真实 paper truth”两类，并优先收紧正式 controller 能直接承接的部分。
-2. 再把 `001` 的 `submission_graphical_abstract` / `submission_companion` 缺口定义为下一条 publication-facing contract tighten。
-3. 最后回到 `002`，把 `Phase C / Phase D` 升级进真实课题 controller 主线。
+1. 完成 `001` 的 direct migration pack。
+2. 升级统一 Figure 1 shell，使其同时服务 `001` 与 `003`。
+3. 以 `003` 为锚点补齐 risk layering、composite curve panel、complexity audit、generic performance table、risk event table。
 
-只有在这三步完成之后，继续扩模板才真正对应真实论文交付，而不是 catalog 层的名义扩容。
+只有在这三步完成之后，“40 个模板”的扩展数字才真正开始对应到真实论文交付，而不是 catalog 层的名义扩容。

@@ -2,18 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import platform
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from html import unescape
-from importlib import metadata as importlib_metadata
 from pathlib import Path
-import shutil
 from typing import Any
 
-from med_autoscience import display_registry
-from med_autoscience import figure_renderer_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, report_store as runtime_protocol_report_store, user_message
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
@@ -83,60 +77,6 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
     )
 
 
-def normalize_endpoint_manuscript_statement(text: str) -> str:
-    normalized = str(text or "").strip()
-    normalized = re.sub(r"^\s*-\s*", "", normalized)
-    normalized = normalized.replace("`", "")
-    normalized = re.sub(r"\s+", " ", normalized).strip()
-    if normalized and normalized[-1] not in ".!?":
-        normalized += "."
-    if normalized:
-        normalized = normalized[0].upper() + normalized[1:]
-    return normalized
-
-
-def load_registered_display_catalog_ids(path: Path) -> tuple[set[str], set[str]]:
-    payload = load_json(path, default={}) or {}
-    if not isinstance(payload, dict):
-        return set(), set()
-    figure_ids: set[str] = set()
-    table_ids: set[str] = set()
-    for item in payload.get("displays", []) or []:
-        if not isinstance(item, dict):
-            continue
-        catalog_id = str(item.get("catalog_id") or "").strip()
-        display_kind = str(item.get("display_kind") or "").strip()
-        if not catalog_id:
-            continue
-        if display_kind == "figure":
-            figure_ids.add(catalog_id)
-        elif display_kind == "table":
-            table_ids.add(catalog_id)
-    return figure_ids, table_ids
-
-
-def filter_catalog_items_by_id(
-    items: list[dict[str, Any]],
-    *,
-    id_key: str,
-    allowed_ids: set[str],
-    contract_key: str,
-    publication_roles: set[str],
-) -> list[dict[str, Any]]:
-    filtered: list[dict[str, Any]] = []
-    for item in items:
-        item_id = str(item.get(id_key) or "").strip()
-        if item_id and item_id in allowed_ids:
-            filtered.append(item)
-            continue
-        if str(item.get(contract_key) or "").strip():
-            filtered.append(item)
-            continue
-        if str(item.get("paper_role") or "").strip() in publication_roles:
-            filtered.append(item)
-    return filtered
-
-
 def excerpt_around(text: str, start: int, end: int, *, width: int = 96) -> str:
     left = max(0, start - width // 2)
     right = min(len(text), end + width // 2)
@@ -164,11 +104,9 @@ def scan_text_file(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
-TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml"}
+TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml", ".json"}
 MARKDOWN_TABLE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
 MARKDOWN_TABLE_DELIMITER_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
-SVG_VISIBLE_TEXT_RE = re.compile(r"<(?:text|tspan)\b[^>]*>(.*?)</(?:text|tspan)>", re.IGNORECASE | re.DOTALL)
-SVG_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
@@ -199,9 +137,7 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
     for item in payload.get("figures", []) or []:
         if not isinstance(item, dict):
             continue
-        template_id = str(item.get("template_id") or "").strip()
-        paper_role = str(item.get("paper_role") or "").strip()
-        if paper_role != "main_text" and not display_registry.is_submission_companion_shell(template_id):
+        if str(item.get("paper_role") or "").strip() != "main_text":
             continue
         for key in ("export_paths", "asset_paths"):
             values = item.get(key)
@@ -277,21 +213,35 @@ def scan_markdown_table_body(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
-def scan_catalog_strings(
-    path: Path,
-    *,
-    collection_key: str,
-    items: list[dict[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
+def scan_catalog_strings(path: Path, *, collection_key: str) -> list[dict[str, Any]]:
     payload = load_json(path, default={}) or {}
     hits: list[dict[str, Any]] = []
-    collection = items if items is not None else [item for item in payload.get(collection_key, []) or [] if isinstance(item, dict)]
-    for index, item in enumerate(collection):
-        for field in ("title", "caption", "manuscript_purpose", "note"):
+    for index, item in enumerate(payload.get(collection_key, []) or []):
+        for field in ("title", "caption", "manuscript_purpose", "note", "next_action"):
             value = str(item.get(field) or "")
             if not value:
                 continue
             hits.extend(scan_string_value(path, f"{collection_key}[{index}].{field}", value))
+        if collection_key == "figures":
+            for panel_index, panel in enumerate(item.get("panel_plan", []) or []):
+                for field in ("title", "focus"):
+                    value = str(panel.get(field) or "")
+                    if not value:
+                        continue
+                    hits.extend(
+                        scan_string_value(
+                            path,
+                            f"{collection_key}[{index}].panel_plan[{panel_index}].{field}",
+                            value,
+                        )
+                    )
+        summary = item.get("summary")
+        if isinstance(summary, dict):
+            for field in ("purpose", "must_highlight", "scope_rule"):
+                value = str(summary.get(field) or "")
+                if not value:
+                    continue
+                hits.extend(scan_string_value(path, f"{collection_key}[{index}].summary.{field}", value))
     return hits
 
 
@@ -309,28 +259,6 @@ def scan_string_value(path: Path, location: str, value: str) -> list[dict[str, A
                 }
             )
     return hits
-
-
-def scan_svg_visible_text_file(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    text = path.read_text(encoding="utf-8")
-    hits: list[dict[str, Any]] = []
-    fragment_index = 0
-    for match in SVG_VISIBLE_TEXT_RE.finditer(text):
-        visible_text = unescape(SVG_TAG_RE.sub(" ", match.group(1)))
-        visible_text = re.sub(r"\s+", " ", visible_text).strip()
-        if not visible_text:
-            continue
-        fragment_index += 1
-        hits.extend(scan_string_value(path, f"svg_text[{fragment_index}]", visible_text))
-    return hits
-
-
-def scan_manuscript_facing_text_asset(path: Path) -> list[dict[str, Any]]:
-    if path.suffix.lower() == ".svg":
-        return scan_svg_visible_text_file(path)
-    return scan_text_file(path)
 
 
 def scan_results_narration_text_file(path: Path) -> list[dict[str, Any]]:
@@ -392,38 +320,6 @@ def inspect_required_json_contract(
         ]
 
     payload = load_json(path, default=None)
-    errors = validator(payload)
-    if errors:
-        return False, [
-            {
-                "path": str(path),
-                "location": "file",
-                "pattern_id": pattern_id,
-                "phrase": path.name,
-                "excerpt": "; ".join(errors),
-            }
-        ]
-    return True, []
-
-
-def inspect_json_payload_contract(
-    *,
-    path: Path,
-    payload: object,
-    validator,
-    pattern_id: str,
-    label: str,
-) -> tuple[bool, list[dict[str, Any]]]:
-    if not path.exists():
-        return False, [
-            {
-                "path": str(path),
-                "location": "file",
-                "pattern_id": pattern_id,
-                "phrase": path.name,
-                "excerpt": f"Required {label} is missing.",
-            }
-        ]
     errors = validator(payload)
     if errors:
         return False, [
@@ -801,701 +697,26 @@ def unique_hits(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return unique
 
 
-def read_text_if_exists(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return path.read_text(encoding="utf-8")
-
-
-def split_sentences(text: str) -> list[str]:
-    normalized = re.sub(r"\s+", " ", text).strip()
-    if not normalized:
-        return []
-    return [part.strip() for part in re.split(r"(?<=[.!?])\s+", normalized) if part.strip()]
-
-
-def first_sentence_matching(texts: list[str], patterns: list[str]) -> str:
-    compiled = [re.compile(pattern, flags=re.IGNORECASE) for pattern in patterns]
-    for text in texts:
-        for sentence in split_sentences(text):
-            if any(pattern.search(sentence) for pattern in compiled):
-                return sentence
-    return ""
-
-
-def first_non_empty(values: list[str], *, default: str) -> str:
-    for value in values:
-        normalized = str(value or "").strip()
-        if normalized:
-            return normalized
-    return default
-
-
-def manuscript_texts(state: SurfaceState) -> list[str]:
-    return [text for text in [read_text_if_exists(state.draft_path), read_text_if_exists(state.review_manuscript_path)] if text]
-
-
-def extract_document_title(state: SurfaceState) -> str:
-    for path in (state.draft_path, state.review_manuscript_path):
-        for line in read_text_if_exists(path).splitlines():
-            normalized = line.strip()
-            if normalized.startswith("# "):
-                return normalized[2:].strip()
-            title_match = re.match(r'^title:\s*"(.+)"\s*$', normalized)
-            if title_match:
-                return title_match.group(1).strip()
-    return "Current medical manuscript"
-
-
-def load_figure_catalog_items(state: SurfaceState) -> list[dict[str, Any]]:
-    payload = load_json(state.figure_catalog_path, default={}) or {}
-    return [item for item in payload.get("figures", []) or [] if isinstance(item, dict)]
-
-
-def load_main_text_figure_items(state: SurfaceState) -> list[dict[str, Any]]:
-    return [item for item in load_figure_catalog_items(state) if str(item.get("paper_role") or "").strip() == "main_text"]
-
-
-def load_table_catalog_items(state: SurfaceState) -> list[dict[str, Any]]:
-    payload = load_json(state.table_catalog_path, default={}) or {}
-    return [item for item in payload.get("tables", []) or [] if isinstance(item, dict)]
-
-
-def infer_required_exports(item: dict[str, Any]) -> list[str]:
-    paths: list[str] = []
-    for key in ("export_paths", "asset_paths"):
-        raw_value = item.get(key)
-        if isinstance(raw_value, list):
-            paths.extend(str(path).strip() for path in raw_value if str(path).strip())
-    seen: set[str] = set()
-    exports: list[str] = []
-    for raw_path in paths:
-        suffix = Path(raw_path).suffix.lower().lstrip(".")
-        if not suffix or suffix in seen:
-            continue
-        seen.add(suffix)
-        exports.append(suffix)
-    return exports or ["png"]
-
-
-def infer_story_role(template_id: str, title: str) -> str:
-    normalized_template = template_id.strip().lower()
-    normalized_title = title.strip().lower()
-    if normalized_template == "cohort_flow_figure":
-        return "cohort_accounting"
-    if normalized_template == "submission_graphical_abstract":
-        return "submission_companion"
-    if "risk_layering" in normalized_template or "risk layering" in normalized_title:
-        return "risk_stratification"
-    if "decision_curve" in normalized_template:
-        return "clinical_utility"
-    if "calibration" in normalized_template:
-        return "performance_validation"
-    if "complexity" in normalized_template or "audit" in normalized_template:
-        return "comparative_model_assessment"
-    if "generalizability" in normalized_template:
-        return "generalizability"
-    return "manuscript_evidence"
-
-
-def infer_threshold_semantics(template_id: str) -> str:
-    normalized = template_id.strip().lower()
-    if normalized == "cohort_flow_figure":
-        return "No decision threshold is encoded in this illustration."
-    if normalized == "submission_graphical_abstract":
-        return "No decision threshold is encoded in the submission companion."
-    if "decision_curve" in normalized or "calibration" in normalized:
-        return "Thresholds are illustrative operating points used to compare manuscript-facing clinical trade-offs."
-    if "risk_layering" in normalized:
-        return "Displayed score bands and grouped strata summarize risk layers rather than prescribe intervention cut-offs."
-    if "complexity" in normalized or "audit" in normalized:
-        return "Comparative complexity panels do not define a clinical action threshold."
-    return "Threshold interpretation is bounded by the current manuscript-facing study design."
-
-
-def infer_stratification_basis(template_id: str) -> str:
-    normalized = template_id.strip().lower()
-    if normalized == "cohort_flow_figure":
-        return "No risk stratification is implied by the cohort derivation shell."
-    if normalized == "submission_graphical_abstract":
-        return "No new stratification basis is introduced by the submission companion."
-    if "risk_layering" in normalized:
-        return "Risk groups follow the manuscript-facing score bands and grouped strata."
-    if "decision_curve" in normalized or "calibration" in normalized:
-        return "The display is organized around manuscript-facing operating ranges rather than a new post hoc grouping rule."
-    if "complexity" in normalized or "audit" in normalized:
-        return "Models are compared within the prespecified manuscript-facing evaluation frame."
-    return "Stratification stays inside the current manuscript-facing evidence package."
-
-
-def infer_recommendation_boundary(template_id: str) -> str:
-    normalized = template_id.strip().lower()
-    if normalized == "cohort_flow_figure":
-        return "No clinical recommendation is proposed from cohort accounting."
-    if normalized == "submission_graphical_abstract":
-        return "The submission companion must not widen the manuscript claim or recommendation boundary."
-    if "decision_curve" in normalized:
-        return "No single universal treatment threshold is recommended from this figure."
-    if "risk_layering" in normalized:
-        return "Risk layering supports follow-up interpretation, not a standalone treatment rule."
-    if "complexity" in normalized or "audit" in normalized:
-        return "Comparative model review does not by itself change the primary manuscript recommendation."
-    return "Interpret within the current manuscript-facing claim boundary only."
-
-
-def infer_renderer_contract(item: dict[str, Any]) -> dict[str, Any]:
-    template_id = str(item.get("template_id") or "").strip()
-    renderer_family = str(item.get("renderer_family") or "").strip()
-    qc_profile = str(item.get("qc_profile") or "").strip()
-    if display_registry.is_illustration_shell(template_id):
-        if template_id == "submission_graphical_abstract":
-            figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_SUBMISSION_COMPANION
-        else:
-            figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_ILLUSTRATION
-        shell_spec = display_registry.get_illustration_shell_spec(template_id)
-        renderer_family = shell_spec.renderer_family
-        qc_profile = shell_spec.shell_qc_profile
-        required_exports = list(shell_spec.required_exports)
-    else:
-        figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_EVIDENCE
-        evidence_spec = display_registry.get_evidence_figure_spec(template_id)
-        renderer_family = evidence_spec.renderer_family
-        qc_profile = evidence_spec.layout_qc_profile
-        required_exports = list(evidence_spec.required_exports)
-    title = str(item.get("title") or template_id).strip()
-    return {
-        "figure_semantics": figure_semantics,
-        "renderer_family": renderer_family,
-        "template_id": template_id,
-        "selection_rationale": (
-            f"`{title}` remains locked to the registered `{template_id}` manuscript-facing renderer contract."
-        ),
-        "layout_qc_profile": qc_profile,
-        "required_exports": required_exports or infer_required_exports(item),
-        "fallback_on_failure": False,
-        "failure_action": figure_renderer_contract.FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT,
-    }
-
-
-def build_default_methods_manifest(state: SurfaceState) -> dict[str, Any]:
-    texts = manuscript_texts(state)
-    title = extract_document_title(state)
-    main_figures = load_main_text_figure_items(state)
-    manuscript_title_lower = title.lower()
-    manuscript_name = "Primary manuscript model"
-    if "simple score" in manuscript_title_lower:
-        manuscript_name = "Simple score"
-    elif "risk" in manuscript_title_lower:
-        manuscript_name = "Primary risk model"
-    target_sentence = first_sentence_matching(texts, [r"\bprimary endpoint\b", r"\bendpoint\b"])
-    fit_sentence = first_sentence_matching(texts, [r"\brepeated nested\b", r"\bcross-validation\b", r"\bvalidation\b"])
-    cohort_sentence = first_sentence_matching(texts, [r"\bcohort\b", r"\bsingle-center\b", r"\bretrospective\b"])
-    endpoint_definition = first_non_empty(
-        [target_sentence],
-        default="The endpoint definition follows the current manuscript-facing endpoint statement.",
-    )
-    fit_procedure = first_non_empty(
-        [fit_sentence],
-        default="The analysis follows the manuscript-facing evaluation framework documented in Methods.",
-    )
-    cohort_definition = first_non_empty(
-        [cohort_sentence],
-        default="The cohort definition follows the current manuscript-facing study design section.",
-    )
-    figure_titles = [str(item.get("title") or "").strip() for item in main_figures if str(item.get("title") or "").strip()]
-    primary_metrics: list[str] = []
-    if any("calibration" in title.lower() for title in figure_titles):
-        primary_metrics.append("calibration")
-    if any("decision" in title.lower() for title in figure_titles):
-        primary_metrics.append("decision-curve utility")
-    if any("risk" in title.lower() for title in figure_titles):
-        primary_metrics.append("risk stratification")
-    if any("complexity" in title.lower() or "comparison" in title.lower() for title in figure_titles):
-        primary_metrics.append("comparative model assessment")
-    if not primary_metrics:
-        primary_metrics.append("manuscript-facing performance summary")
-    missing_data_policy_id = f"{state.quest_root.name.replace('-', '_')}_missing_data_policy_v1"
-    return {
-        "schema_version": 1,
-        "study_design": {
-            "center": first_non_empty(
-                [first_sentence_matching(texts, [r"\bsingle-center\b", r"\btertiary\b", r"\binstitutional\b"])],
-                default="Center definition follows the current manuscript-facing Methods section.",
-            ),
-            "time_window": first_non_empty(
-                [first_sentence_matching(texts, [r"\bJanuary\b", r"\bJune\b", r"\b20\d{2}\b"])],
-                default="Time window is recorded in the current manuscript-facing Methods section.",
-            ),
-            "study_design": first_non_empty(
-                [first_sentence_matching(texts, [r"\bretrospective\b", r"\bcohort\b", r"\bstudy\b"])],
-                default="Medical study design follows the current manuscript-facing protocol and Methods section.",
-            ),
-            "ethics": first_non_empty(
-                [first_sentence_matching(texts, [r"\bethic", r"\binstitutional review board\b", r"\bwaiver\b"])],
-                default="Ethics and approvals follow the current manuscript-facing study governance record.",
-            ),
-            "inclusion_criteria": cohort_definition,
-            "exclusion_criteria": "Exclusions follow the current manuscript-facing cohort flow and reporting contract.",
-            "cohort_definition": cohort_definition,
-            "endpoint_definition": endpoint_definition,
-            "variable_definitions": "Predictors and manuscript-facing displays follow the currently registered evidence and table catalog.",
-            "split_strategy": fit_procedure,
-            "missing_data_strategy": "Missing-data handling follows the current manuscript-facing analysis package and reporting contract.",
-            "missing_data_policy_id": missing_data_policy_id,
-            "case_mix_summary": "Case mix follows the current manuscript-facing cohort and baseline description.",
-            "applicability_boundary": "Interpret within the current manuscript-facing cohort, endpoint framing, and study design boundary.",
-        },
-        "model_registry": [
-            {
-                "model_id": "M1",
-                "manuscript_name": manuscript_name,
-                "role": "primary",
-                "family": "Manuscript-defined medical prediction model",
-                "origin": "Derived from the current manuscript-facing study design and evidence package.",
-                "inputs": ["manuscript-defined clinical predictors"],
-                "input_scope": "Restricted to variables explicitly carried by the current manuscript-facing analysis route.",
-                "feature_construction": "Feature construction follows the current manuscript-facing model description and registered displays.",
-                "predictor_selection_strategy": "Predictors remain locked to the manuscript-facing study question and evidence package.",
-                "target": endpoint_definition,
-                "fit_procedure": fit_procedure,
-                "selection_rationale": "Primary manuscript model retained on the current publication-facing route.",
-                "comparison_rationale": "Compared only against manuscript-declared supporting displays and secondary summaries.",
-                "claim_boundary": "Associational manuscript-facing risk interpretation only; no causal claim.",
-            }
-        ],
-        "software_stack": discover_software_versions(),
-        "statistical_analysis": {
-            "primary_metrics": primary_metrics,
-            "subgroup_strategy": "Subgroup or threshold interpretations must remain bounded by the current manuscript-facing results narrative.",
-        },
-        "causal_boundary": {
-            "claim_level": "associational",
-            "allowed_language": "manuscript-facing risk stratification and descriptive comparison",
-            "not_allowed": "causal effect or mechanism claims",
-        },
-        "method_labels": build_default_method_labels(state),
-    }
-
-
-def discover_software_versions() -> list[dict[str, str]]:
-    packages: list[tuple[str, str, str]] = []
-    packages.append(("python", platform.python_version(), "runtime"))
-    for package_name, role in (("med_autoscience", "controller"), ("scikit-learn", "modeling"), ("pandas", "data")):
-        try:
-            version = importlib_metadata.version(package_name)
-        except importlib_metadata.PackageNotFoundError:
-            continue
-        packages.append((package_name, version, role))
-    return [{"package": package, "version": version, "role": role} for package, version, role in packages]
-
-
-def build_default_method_labels(state: SurfaceState) -> list[dict[str, str]]:
-    label_defaults = {
-        "calibration-first": {
-            "operational_definition": (
-                "Model ranking prioritizes calibration fidelity and clinical utility before small discrimination gains."
-            ),
-            "implementation_anchor": "Current manuscript-facing validation and decision-curve comparison package.",
-        },
-        "knowledge-guided": {
-            "operational_definition": (
-                "The analysis route is constrained by explicitly stated domain knowledge rather than unconstrained feature search."
-            ),
-            "implementation_anchor": "Current manuscript-facing study design and registered evidence package.",
-        },
-        "causal": {
-            "operational_definition": (
-                "Any causal wording must remain bounded by the manuscript-facing causal boundary and may not be used as proof of effect."
-            ),
-            "implementation_anchor": "Current manuscript-facing causal boundary section.",
-        },
-        "mechanistic": {
-            "operational_definition": (
-                "Mechanistic language is limited to explicitly bounded biological interpretation and not treated as causal proof."
-            ),
-            "implementation_anchor": "Current manuscript-facing interpretation boundary and discussion limitations.",
-        },
-    }
-    seen: set[str] = set()
-    entries: list[dict[str, str]] = []
-    for path in (state.draft_path, state.review_manuscript_path):
-        for hit in scan_methodology_labels_text_file(path):
-            label = str(hit.get("phrase") or "").strip().lower()
-            if not label or label in seen or label not in label_defaults:
-                continue
-            seen.add(label)
-            defaults = label_defaults[label]
-            entries.append(
-                {
-                    "label": label,
-                    "operational_definition": defaults["operational_definition"],
-                    "implementation_anchor": defaults["implementation_anchor"],
-                }
-            )
-    return entries
-
-
-def build_default_results_narrative_map(state: SurfaceState) -> dict[str, Any]:
-    figures = load_main_text_figure_items(state)
-    tables = load_table_catalog_items(state)
-    sections: list[dict[str, Any]] = []
-    main_table_id = str(tables[0].get("table_id") or "").strip() if tables else ""
-    for index, figure in enumerate(figures, start=1):
-        figure_id = str(figure.get("figure_id") or "").strip()
-        title = str(figure.get("title") or figure_id).strip()
-        caption = str(figure.get("caption") or "").strip()
-        supporting_items = [figure_id]
-        if index == 1 and main_table_id:
-            supporting_items.append(main_table_id)
-        sections.append(
-            {
-                "section_id": f"R{index}",
-                "section_title": title,
-                "research_question": f"What manuscript-facing question is addressed by `{title}`?",
-                "direct_answer": first_non_empty(
-                    [caption, title],
-                    default="This section summarizes the current manuscript-facing evidence package.",
-                ),
-                "supporting_display_items": supporting_items,
-                "key_quantitative_findings": [first_non_empty([caption, title], default="See the current figure and table package.")],
-                "clinical_meaning": "Supports the current manuscript-facing clinical interpretation without widening the claim boundary.",
-                "boundary": infer_recommendation_boundary(str(figure.get("template_id") or "").strip()),
-            }
-        )
-    if not sections:
-        sections.append(
-            {
-                "section_id": "R1",
-                "section_title": "Primary manuscript findings",
-                "research_question": "What does the current manuscript-facing results package show?",
-                "direct_answer": "The manuscript-facing results package remains aligned with the current evidence route.",
-                "supporting_display_items": [main_table_id] if main_table_id else [],
-                "key_quantitative_findings": ["See the current manuscript-facing table and figure package."],
-                "clinical_meaning": "Summarizes the current clinical reporting route.",
-                "boundary": "Interpret within the current manuscript-facing study design and endpoint framing.",
-            }
-        )
-    return {"schema_version": 1, "sections": sections}
-
-
-def build_default_figure_semantics_manifest(state: SurfaceState) -> dict[str, Any]:
-    figures = load_main_text_figure_items(state)
-    entries: list[dict[str, Any]] = []
-    for figure in figures:
-        figure_id = str(figure.get("figure_id") or "").strip()
-        title = str(figure.get("title") or figure_id).strip()
-        caption = str(figure.get("caption") or "").strip()
-        template_id = str(figure.get("template_id") or "").strip()
-        story_role = infer_story_role(template_id, title)
-        entries.append(
-            {
-                "figure_id": figure_id,
-                "story_role": story_role,
-                "research_question": f"What manuscript-facing question is answered by `{title}`?",
-                "direct_message": first_non_empty(
-                    [caption, title],
-                    default="This figure carries the current manuscript-facing evidence message.",
-                ),
-                "clinical_implication": "Supports the current manuscript-facing clinical interpretation and not a broader engineering claim.",
-                "interpretation_boundary": infer_recommendation_boundary(template_id),
-                "panel_messages": [
-                    {
-                        "panel_id": "A",
-                        "message": first_non_empty(
-                            [caption, title],
-                            default="Current manuscript-facing panel message.",
-                        ),
-                    }
-                ],
-                "legend_glossary": [
-                    {
-                        "term": title,
-                        "explanation": "Current manuscript-facing figure term carried directly from the registered catalog entry.",
-                    }
-                ],
-                "threshold_semantics": infer_threshold_semantics(template_id),
-                "stratification_basis": infer_stratification_basis(template_id),
-                "recommendation_boundary": infer_recommendation_boundary(template_id),
-                "renderer_contract": infer_renderer_contract(figure),
-            }
-        )
-    return {"schema_version": 1, "figures": entries}
-
-
-def build_default_derived_analysis_manifest(state: SurfaceState, *, missing_data_policy_id: str) -> dict[str, Any]:
-    figures = load_main_text_figure_items(state)
-    tables = load_table_catalog_items(state)
-    linked_display_items = [
-        str(item.get("figure_id") or "").strip()
-        for item in figures
-        if str(item.get("figure_id") or "").strip()
-    ]
-    linked_display_items.extend(
-        str(item.get("table_id") or "").strip()
-        for item in tables
-        if str(item.get("table_id") or "").strip()
-    )
-    if not linked_display_items:
-        linked_display_items = ["T1"]
-    return {
-        "schema_version": 1,
-        "analyses": [
-            {
-                "analysis_id": "A1",
-                "linked_display_items": linked_display_items,
-                "purpose": "Document the manuscript-facing derived comparison layer carried by the current evidence package.",
-                "data_source": "Current manuscript-facing figure and table catalog plus the registered reporting contract.",
-                "derivation_procedure": "Derived summaries are projected directly from the current manuscript-facing analysis route.",
-                "resampling_design": "Follows the current manuscript-facing validation or comparison frame documented in the paper bundle.",
-                "refit_policy": "Refit or pooled summaries follow the current manuscript-facing analysis package without widening scope.",
-                "missing_data_handling": "Uses the same missing-data handling stated in the methods implementation manifest.",
-                "missing_data_policy_id": missing_data_policy_id,
-                "correlation_or_collinearity_assessment": "Any comparative correlation or complexity assessment remains bounded by the current manuscript-facing analysis package.",
-                "interpretation_boundary": "Supports the manuscript-facing evidence package only; no new transport or causal claim is introduced.",
-            }
-        ],
-    }
-
-
-def build_default_reproducibility_supplement(
-    *,
-    methods_manifest: dict[str, Any],
-    metrics: list[str],
-) -> dict[str, Any]:
-    study_design = methods_manifest.get("study_design") if isinstance(methods_manifest, dict) else {}
-    missing_data_strategy = str((study_design or {}).get("missing_data_strategy") or "").strip()
-    missing_data_policy_id = str((study_design or {}).get("missing_data_policy_id") or "").strip()
-    return {
-        "schema_version": 1,
-        "software_versions": discover_software_versions(),
-        "random_seed_policy": "Execution seeds and deterministic settings follow the current manuscript-facing analysis environment.",
-        "key_hyperparameters": [
-            {
-                "model_id": "M1",
-                "parameters": {"source": "current manuscript-facing analysis package"},
-            }
-        ],
-        "missing_data_strategy": first_non_empty(
-            [missing_data_strategy],
-            default="Missing-data handling follows the current manuscript-facing methods implementation manifest.",
-        ),
-        "missing_data_policy_id": first_non_empty(
-            [missing_data_policy_id],
-            default="manuscript_missing_data_policy_v1",
-        ),
-        "metric_definitions": [
-            {
-                "metric": metric,
-                "definition": f"`{metric}` as defined by the current manuscript-facing analysis package.",
-            }
-            for metric in metrics
-        ]
-        or [
-            {
-                "metric": "manuscript-facing summary metric",
-                "definition": "Current publication-facing summary metric carried by the registered evidence package.",
-            }
-        ],
-    }
-
-
-def build_default_endpoint_provenance_note(state: SurfaceState) -> str | None:
-    sources = discover_endpoint_provenance_caveat_sources(state.quest_root)
-    if not sources:
-        return None
-    source = sources[0]
-    texts = manuscript_texts(state)
-    manuscript_statement = normalize_endpoint_manuscript_statement(
-        first_non_empty(
-        [first_sentence_matching(texts, [r"\b3-month MRI\b", r"\bMRI provenance\b", rf"\b{re.escape(source['endpoint_name'])}\b"])],
-        default=source["excerpt"],
-        )
-    )
-    provenance_caveat = normalize_endpoint_manuscript_statement(source["excerpt"])
-    return (
-        "# Endpoint Provenance Note\n\n"
-        f"- endpoint_name: {source['endpoint_name']}\n"
-        f"- provenance_caveat: {provenance_caveat}\n"
-        f"- manuscript_required_statement: {manuscript_statement}\n"
-    )
-
-
-def ensure_statement_in_markdown(path: Path, statement: str) -> None:
-    if not path.exists() or not statement:
-        return
-    text = path.read_text(encoding="utf-8")
-    if statement in text:
-        return
-    methods_heading = re.search(r"^##\s+Methods\s*$", text, flags=re.MULTILINE)
-    if methods_heading:
-        insert_at = methods_heading.end()
-        updated = f"{text[:insert_at]}\n\n{statement}\n{text[insert_at:].lstrip(chr(10))}"
-    else:
-        trimmed = text.rstrip()
-        separator = "\n\n" if trimmed else ""
-        updated = f"{trimmed}{separator}## Methods\n\n{statement}\n"
-    path.write_text(updated, encoding="utf-8")
-
-
-def rewrite_markdown_publication_surface(path: Path) -> None:
-    if not path.exists():
-        return
-    text = path.read_text(encoding="utf-8")
-    rewritten = medical_surface_policy.rewrite_publication_safe_text(text)
-    if rewritten != text:
-        path.write_text(rewritten, encoding="utf-8")
-
-
-def rewrite_catalog_publication_surface(path: Path, *, collection_key: str) -> None:
-    payload = load_json(path, default=None)
-    if not isinstance(payload, dict):
-        return
-    changed = False
-    for item in payload.get(collection_key, []) or []:
-        if not isinstance(item, dict):
-            continue
-        for field in ("title", "caption", "manuscript_purpose", "note"):
-            value = item.get(field)
-            if not isinstance(value, str) or not value.strip():
-                continue
-            rewritten = medical_surface_policy.rewrite_publication_safe_text(value)
-            if rewritten != value:
-                item[field] = rewritten
-                changed = True
-    if changed:
-        dump_json(path, payload)
-
-
-def ensure_ama_defaults(state: SurfaceState) -> None:
-    state.review_defaults_path.parent.mkdir(parents=True, exist_ok=True)
-    bundled_csl_path = Path(__file__).resolve().parents[1] / "styles" / medical_surface_policy.AMA_CSL_BASENAME
-    if bundled_csl_path.exists() and not state.ama_csl_path.exists():
-        shutil.copyfile(bundled_csl_path, state.ama_csl_path)
-    review_defaults_text = read_text_if_exists(state.review_defaults_path)
-    if not review_defaults_text:
-        review_defaults_text = "from: markdown\nto: pdf\npdf-engine: xelatex\nciteproc: true\n"
-    if not medical_surface_policy.ama_defaults_regex().search(review_defaults_text):
-        if not review_defaults_text.endswith("\n"):
-            review_defaults_text += "\n"
-        review_defaults_text += f"csl: {medical_surface_policy.AMA_CSL_BASENAME}\n"
-        state.review_defaults_path.write_text(review_defaults_text, encoding="utf-8")
-
-
-def apply_publication_autofixes(state: SurfaceState, report: dict[str, Any]) -> None:
-    blockers = set(str(item) for item in report.get("blockers") or [])
-    if "ama_pdf_defaults_missing" in blockers:
-        ensure_ama_defaults(state)
-
-    if "forbidden_manuscript_terms_present" in blockers:
-        rewrite_markdown_publication_surface(state.draft_path)
-        rewrite_markdown_publication_surface(state.review_manuscript_path)
-        rewrite_catalog_publication_surface(state.figure_catalog_path, collection_key="figures")
-        rewrite_catalog_publication_surface(state.table_catalog_path, collection_key="tables")
-
-    methods_manifest = load_json(state.methods_implementation_manifest_path, default=None)
-    if "methods_implementation_manifest_missing_or_incomplete" in blockers:
-        methods_manifest = build_default_methods_manifest(state)
-        dump_json(state.methods_implementation_manifest_path, methods_manifest)
-    if not isinstance(methods_manifest, dict):
-        methods_manifest = build_default_methods_manifest(state)
-
-    if "results_narrative_map_missing_or_incomplete" in blockers:
-        dump_json(state.results_narrative_map_path, build_default_results_narrative_map(state))
-    if "figure_semantics_manifest_missing_or_incomplete" in blockers:
-        dump_json(state.figure_semantics_manifest_path, build_default_figure_semantics_manifest(state))
-
-    missing_data_policy_id = str(
-        ((methods_manifest.get("study_design") if isinstance(methods_manifest, dict) else {}) or {}).get(
-            "missing_data_policy_id"
-        )
-        or f"{state.quest_root.name.replace('-', '_')}_missing_data_policy_v1"
-    ).strip()
-    if "derived_analysis_manifest_missing_or_incomplete" in blockers:
-        dump_json(
-            state.derived_analysis_manifest_path,
-            build_default_derived_analysis_manifest(state, missing_data_policy_id=missing_data_policy_id),
-        )
-
-    if "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in blockers:
-        methods_manifest = load_json(state.methods_implementation_manifest_path, default=methods_manifest) or methods_manifest
-        metrics = list(
-            (
-                ((methods_manifest.get("statistical_analysis") if isinstance(methods_manifest, dict) else {}) or {}).get(
-                    "primary_metrics"
-                )
-                or []
-            )
-        )
-        dump_json(
-            state.reproducibility_supplement_path,
-            build_default_reproducibility_supplement(methods_manifest=methods_manifest, metrics=metrics),
-        )
-
-    if "endpoint_provenance_note_missing_or_unapplied" in blockers:
-        endpoint_note = build_default_endpoint_provenance_note(state)
-        if endpoint_note:
-            state.endpoint_provenance_note_path.write_text(endpoint_note, encoding="utf-8")
-            statement = medical_surface_policy.parse_endpoint_provenance_note(endpoint_note).get("manuscript_required_statement", "")
-            normalized_statement = normalize_endpoint_manuscript_statement(str(statement))
-            ensure_statement_in_markdown(state.draft_path, normalized_statement)
-            ensure_statement_in_markdown(state.review_manuscript_path, normalized_statement)
-
-
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
-    raw_figure_items = load_figure_catalog_items(state)
-    raw_table_items = load_table_catalog_items(state)
-    registered_figure_ids, registered_table_ids = load_registered_display_catalog_ids(state.paper_root / "display_registry.json")
-    required_figure_ids, required_table_ids = load_required_display_catalog_ids(state.paper_root / "medical_reporting_contract.json")
-    registered_figure_ids |= required_figure_ids
-    registered_table_ids |= required_table_ids
-    figure_contract_items = filter_catalog_items_by_id(
-        raw_figure_items,
-        id_key="figure_id",
-        allowed_ids=registered_figure_ids,
-        contract_key="template_id",
-        publication_roles={"main_text", "submission_companion"},
-    )
-    table_contract_items = filter_catalog_items_by_id(
-        raw_table_items,
-        id_key="table_id",
-        allowed_ids=registered_table_ids,
-        contract_key="table_shell_id",
-        publication_roles={"main_text"},
-    )
-
     forbidden_hits: list[dict[str, Any]] = []
     forbidden_hits.extend(scan_text_file(state.draft_path))
     forbidden_hits.extend(scan_text_file(state.review_manuscript_path))
-    forbidden_hits.extend(
-        scan_catalog_strings(
-            state.figure_catalog_path,
-            collection_key="figures",
-            items=figure_contract_items,
-        )
-    )
-    forbidden_hits.extend(
-        scan_catalog_strings(
-            state.table_catalog_path,
-            collection_key="tables",
-            items=table_contract_items,
-        )
-    )
-    figure_catalog_valid, figure_catalog_hits = inspect_json_payload_contract(
+    forbidden_hits.extend(scan_catalog_strings(state.figure_catalog_path, collection_key="figures"))
+    forbidden_hits.extend(scan_catalog_strings(state.table_catalog_path, collection_key="tables"))
+    figure_catalog_valid, figure_catalog_hits = inspect_required_json_contract(
         path=state.figure_catalog_path,
-        payload={"figures": figure_contract_items},
         validator=medical_surface_policy.validate_figure_catalog,
         pattern_id="figure_catalog",
         label="figure catalog",
     )
-    table_catalog_valid, table_catalog_hits = inspect_json_payload_contract(
+    table_catalog_valid, table_catalog_hits = inspect_required_json_contract(
         path=state.table_catalog_path,
-        payload={"tables": table_contract_items},
         validator=medical_surface_policy.validate_table_catalog,
         pattern_id="table_catalog",
         label="table catalog",
     )
     for path in discover_figure_text_assets(state.paper_root, state.figure_catalog_path):
-        forbidden_hits.extend(scan_manuscript_facing_text_asset(path))
+        forbidden_hits.extend(scan_text_file(path))
     for path in discover_table_text_assets(
         state.paper_root,
         state.table_catalog_path,
@@ -1796,23 +1017,11 @@ def run_controller(
     source: str = "codex-medical-publication-surface",
 ) -> dict[str, Any]:
     state = build_surface_state(quest_root)
-    initial_report = build_surface_report(state)
-    report = initial_report
-    if apply and report["blockers"]:
-        apply_publication_autofixes(state, report)
-        state = build_surface_state(quest_root)
-        report = build_surface_report(state)
+    report = build_surface_report(state)
     json_path, md_path = write_surface_files(quest_root, report)
     stop_result = None
     intervention = None
     if apply and report["blockers"]:
-        intervention_report = report
-        if initial_report["blockers"] != report["blockers"]:
-            intervention_report = {
-                **report,
-                "blockers": list(dict.fromkeys(list(initial_report.get("blockers") or []) + list(report.get("blockers") or []))),
-                "top_hits": unique_hits(list(initial_report.get("top_hits") or []) + list(report.get("top_hits") or []))[:40],
-            }
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
             stop_result = med_deepscientist_transport.stop_quest(
@@ -1823,7 +1032,7 @@ def run_controller(
         intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
-            message=medical_surface_policy.build_intervention_message(intervention_report),
+            message=medical_surface_policy.build_intervention_message(report),
             source=source,
         )
     return {

@@ -57,9 +57,9 @@ def test_codex_plugin_guide_states_plugin_is_additive_and_non_exclusive() -> Non
 def test_readme_links_codex_plugin_guide() -> None:
     readme = README_PATH.read_text(encoding="utf-8")
 
-    assert "Codex Plugin Integration" in readme
+    assert "Codex plugin 接入" in readme
     assert "docs/codex_plugin.md" in readme
-    assert "If you primarily run `MedAutoScience` through Codex" in readme
+    assert "如果你主要通过 Codex 驱动 `Med Auto Science`" in readme
 
 
 def test_codex_plugin_release_guide_is_linked_from_readme_and_install_guide() -> None:
@@ -67,7 +67,7 @@ def test_codex_plugin_release_guide_is_linked_from_readme_and_install_guide() ->
     install_guide = GUIDE_PATH.read_text(encoding="utf-8")
     release_guide = RELEASE_GUIDE_PATH.read_text(encoding="utf-8")
 
-    assert "Codex Plugin Release Guide" in readme
+    assert "Codex plugin 发布说明" in readme
     assert "docs/codex_plugin_release.md" in readme
     assert "codex_plugin_release.md" in install_guide
     assert "用途" in release_guide

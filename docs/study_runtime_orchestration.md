@@ -9,6 +9,29 @@
 - 哪些 typed surface 可以视为稳定机器接口
 - 哪些内容仍属于实现细节，不应被其他模块或 Agent 当成正式 contract
 
+在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` domain harness OS 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
+
+## 与 study charter / startup projection 的关系
+
+当前应按下面这条关系理解：
+
+- `study_charter`
+  - controller-owned authority artifact
+- `startup_contract`
+  - runtime-facing projection / transport object
+- `startup_contract.study_charter_ref`
+  - runtime 可稳定引用的最小 charter 投影
+- `study_runtime_startup`
+  - 负责从 controller truth 编译 startup projection
+- `study_runtime_execution`
+  - 在 create 路径 materialize durable charter，并校验 runtime-facing projection 一致性
+
+这意味着：
+
+- runtime orchestration 不拥有 `study_charter` authority
+- runtime 也不应把 `startup_contract` 重新抬升成 study authority root
+- 这层 controller 主要消费、传输、校验和回显 runtime-facing projection
+
 ## 作用域
 
 当前实现分成八个清晰层次：

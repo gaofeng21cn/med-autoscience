@@ -10,6 +10,7 @@ from med_autoscience.controllers._medical_display_surface_support import (
     resolve_required_display_surface_stub,
 )
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
+from med_autoscience import publication_display_contract
 from med_autoscience.runtime_protocol import paper_artifacts, study_runtime as study_runtime_protocol
 
 
@@ -351,102 +352,9 @@ def _write_display_surface_stubs(
     return written_files
 
 
-def _build_reporting_guideline_checklist(
-    *,
-    quest_root: Path,
-    reporting_contract: dict[str, object],
-) -> dict[str, Any]:
-    display_shell_plan = _normalize_display_shell_plan(reporting_contract)
-    study_root = str(reporting_contract.get("study_root") or "").strip()
-    study_id = Path(study_root).name if study_root else ""
-    required_display_items: list[dict[str, Any]] = []
-    for item in display_shell_plan:
-        shell_path = (
-            f"paper/figures/{item['display_id']}.shell.json"
-            if item["display_kind"] == "figure"
-            else f"paper/tables/{item['display_id']}.shell.json"
-        )
-        required_display_items.append(
-            {
-                "display_id": item["display_id"],
-                "display_kind": item["display_kind"],
-                "requirement_key": item["requirement_key"],
-                "catalog_id": item.get("catalog_id", ""),
-                "shell_path": shell_path,
-            }
-        )
-    return {
-        "schema_version": 1,
-        "reporting_guideline_family": str(reporting_contract.get("reporting_guideline_family") or "").strip(),
-        "manuscript_family": str(reporting_contract.get("manuscript_family") or "").strip(),
-        "study_id": study_id,
-        "quest_id": quest_root.name,
-        "analysis_scope": "Managed reporting contract hydration surface.",
-        "required_display_count": len(required_display_items),
-        "required_display_items": required_display_items,
-        "truth_sources": [
-            "paper/medical_reporting_contract.json",
-            "paper/display_registry.json",
-            "paper/selected_outline.json",
-            "paper/figures/figure_catalog.json",
-            "paper/tables/table_catalog.json",
-        ],
-        "status": "startup_hydrated_contract_surface",
-    }
-
-
-def _seed_publication_display_contracts(
-    *,
-    paper_root: Path,
-    quest_root: Path,
-    reporting_contract: dict[str, object],
-) -> list[str]:
-    style_profile_payload = {
-        "schema_version": 1,
-        "style_profile_id": "paper_neutral_clinical_v1",
-        "palette": {
-            "primary": "#5F766B",
-            "secondary": "#B9AD9C",
-            "contrast": "#2F5D8A",
-            "neutral": "#7B8794",
-            "light": "#E7E1D8",
-        },
-        "semantic_roles": {
-            "model_curve": "primary",
-            "comparator_curve": "secondary",
-            "reference_line": "neutral",
-            "highlight_band": "light",
-        },
-        "typography": {
-            "title_size": 12.5,
-            "axis_title_size": 11.0,
-            "tick_size": 10.0,
-            "panel_label_size": 11.0,
-        },
-        "stroke": {
-            "primary_linewidth": 2.2,
-            "secondary_linewidth": 1.8,
-            "reference_linewidth": 1.0,
-            "marker_size": 4.5,
-        },
-    }
-    overrides_payload = {"schema_version": 1, "displays": []}
-
-    written_files: list[str] = []
-    style_profile_path = paper_root / "publication_style_profile.json"
-    if _write_json_if_missing(style_profile_path, style_profile_payload):
-        written_files.append(str(style_profile_path))
-    display_overrides_path = paper_root / "display_overrides.json"
-    if _write_json_if_missing(display_overrides_path, overrides_payload):
-        written_files.append(str(display_overrides_path))
-    reporting_guideline_checklist_path = paper_root / "reporting_guideline_checklist.json"
-    reporting_guideline_checklist_payload = _build_reporting_guideline_checklist(
-        quest_root=quest_root,
-        reporting_contract=reporting_contract,
-    )
-    if _write_json_if_changed(reporting_guideline_checklist_path, reporting_guideline_checklist_payload):
-        written_files.append(str(reporting_guideline_checklist_path))
-    return written_files
+def _seed_publication_display_contracts(*, paper_root: Path) -> list[str]:
+    # Keep hydration seeding aligned with the authoritative publication-display defaults.
+    return publication_display_contract.seed_publication_display_contracts_if_missing(paper_root=paper_root)
 
 
 def _resolve_hydration_paper_roots(*, quest_root: Path) -> tuple[Path, ...]:
@@ -483,11 +391,7 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
                     paper_root=paper_root,
                     reporting_contract=medical_reporting_contract,
                 ),
-                *_seed_publication_display_contracts(
-                    paper_root=paper_root,
-                    quest_root=resolved_quest_root,
-                    reporting_contract=medical_reporting_contract,
-                ),
+                *_seed_publication_display_contracts(paper_root=paper_root),
             ]
         )
     literature_report = literature_hydration_controller.run_literature_hydration(

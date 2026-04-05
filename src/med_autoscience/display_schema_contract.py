@@ -72,10 +72,7 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         class_id="prediction_performance",
         display_name="Prediction Performance",
         template_ids=_template_ids_for_evidence_class("prediction_performance"),
-        input_schema_ids=(
-            "binary_prediction_curve_inputs_v1",
-            "risk_layering_monotonic_inputs_v1",
-        ),
+        input_schema_ids=("binary_prediction_curve_inputs_v1",),
     ),
     DisplaySchemaClass(
         class_id="clinical_utility",
@@ -83,8 +80,8 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         template_ids=_template_ids_for_evidence_class("clinical_utility"),
         input_schema_ids=(
             "binary_prediction_curve_inputs_v1",
-            "binary_calibration_decision_curve_panel_inputs_v1",
             "time_to_event_decision_curve_inputs_v1",
+            "binary_calibration_decision_curve_panel_inputs_v1",
         ),
     ),
     DisplaySchemaClass(
@@ -93,6 +90,7 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         template_ids=_template_ids_for_evidence_class("time_to_event"),
         input_schema_ids=(
             "binary_prediction_curve_inputs_v1",
+            "risk_layering_monotonic_inputs_v1",
             "time_to_event_grouped_inputs_v1",
             "time_to_event_discrimination_calibration_inputs_v1",
         ),
@@ -146,12 +144,9 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         ),
         input_schema_ids=(
             "cohort_flow_shell_inputs_v1",
-            "submission_graphical_abstract_inputs_v1",
             "baseline_characteristics_schema_v1",
             "time_to_event_performance_summary_v1",
             "clinical_interpretation_summary_v1",
-            "performance_summary_table_generic_v1",
-            "grouped_risk_event_summary_table_v1",
         ),
     ),
 )
@@ -179,8 +174,8 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
     InputSchemaContract(
         input_schema_id="risk_layering_monotonic_inputs_v1",
         display_kind="evidence_figure",
-        display_name="Risk Layering Monotonic Bars",
-        template_ids=("risk_layering_monotonic_bars",),
+        display_name="Monotonic Risk Layering Bars",
+        template_ids=_template_ids_for_input_schema("risk_layering_monotonic_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
             "display_id",
@@ -205,6 +200,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "right_bars_must_be_non_empty",
             "bar_cases_must_be_positive",
             "bar_events_must_not_exceed_cases",
+            "bar_risk_must_be_finite_probability",
             "bar_risk_must_match_events_over_cases",
             "left_bars_risk_must_be_monotonic_non_decreasing",
             "right_bars_risk_must_be_monotonic_non_decreasing",
@@ -213,7 +209,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
     InputSchemaContract(
         input_schema_id="binary_calibration_decision_curve_panel_inputs_v1",
         display_kind="evidence_figure",
-        display_name="Binary Calibration and Decision-Curve Panel",
+        display_name="Binary Calibration and Decision Curve Panel",
         template_ids=("binary_calibration_decision_curve_panel",),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
@@ -227,20 +223,56 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "decision_y_label",
             "calibration_series",
             "decision_series",
+            "decision_reference_lines",
+            "decision_focus_window",
         ),
-        display_optional_fields=("paper_role", "decision_focus_window", "calibration_reference_line"),
+        display_optional_fields=("paper_role", "calibration_reference_line", "calibration_axis_window"),
         collection_required_fields={
             "calibration_series": ("label", "x", "y"),
             "decision_series": ("label", "x", "y"),
             "decision_reference_lines": ("label", "x", "y"),
+        },
+        collection_optional_fields={"calibration_reference_line": ("label",)},
+        nested_collection_required_fields={
+            "calibration_reference_line": ("x", "y"),
+            "calibration_axis_window": ("xmin", "xmax", "ymin", "ymax"),
+            "decision_focus_window": ("xmin", "xmax"),
         },
         additional_constraints=(
             "calibration_series_must_be_non_empty",
             "calibration_series_x_y_lengths_must_match",
             "decision_series_must_be_non_empty",
             "decision_series_x_y_lengths_must_match",
+            "decision_reference_lines_must_be_non_empty",
             "decision_reference_lines_x_y_lengths_must_match",
-            "decision_focus_window_must_define_xmin_xmax_when_present",
+            "calibration_axis_window_must_be_strictly_increasing",
+            "decision_focus_window_must_be_strictly_increasing",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="model_complexity_audit_panel_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="Model Complexity Audit Panel",
+        template_ids=("model_complexity_audit_panel",),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "metric_panels", "audit_panels"),
+        display_optional_fields=("paper_role",),
+        collection_required_fields={
+            "metric_panels": ("panel_id", "panel_label", "title", "x_label", "rows"),
+            "audit_panels": ("panel_id", "panel_label", "title", "x_label", "rows"),
+        },
+        collection_optional_fields={
+            "metric_panels": ("reference_value",),
+            "audit_panels": ("reference_value",),
+        },
+        nested_collection_required_fields={
+            "metric_panels.rows": ("label", "value"),
+            "audit_panels.rows": ("label", "value"),
+        },
+        additional_constraints=(
+            "metric_panels_must_be_non_empty",
+            "audit_panels_must_be_non_empty",
+            "panel_row_values_must_be_finite",
         ),
     ),
     InputSchemaContract(
@@ -458,35 +490,6 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         ),
     ),
     InputSchemaContract(
-        input_schema_id="model_complexity_audit_panel_inputs_v1",
-        display_kind="evidence_figure",
-        display_name="Model Complexity Audit Panel",
-        template_ids=("model_complexity_audit_panel",),
-        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
-        display_required_fields=("display_id", "template_id", "title", "caption", "metric_panels", "audit_panels"),
-        display_optional_fields=("paper_role",),
-        collection_required_fields={
-            "metric_panels": ("panel_id", "panel_label", "title", "x_label", "rows"),
-            "audit_panels": ("panel_id", "panel_label", "title", "x_label", "rows"),
-        },
-        collection_optional_fields={
-            "metric_panels": ("reference_value",),
-            "audit_panels": ("reference_value",),
-        },
-        nested_collection_required_fields={
-            "metric_panels.rows": ("label", "value"),
-            "audit_panels.rows": ("label", "value"),
-        },
-        additional_constraints=(
-            "metric_panels_must_be_non_empty",
-            "audit_panels_must_be_non_empty",
-            "panel_ids_must_be_unique_across_metric_and_audit_panels",
-            "rows_must_be_non_empty",
-            "row_labels_must_be_non_empty",
-            "row_values_must_be_finite",
-        ),
-    ),
-    InputSchemaContract(
         input_schema_id="multicenter_generalizability_inputs_v1",
         display_kind="evidence_figure",
         display_name="Multicenter Generalizability Overview",
@@ -557,31 +560,6 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         ),
     ),
     InputSchemaContract(
-        input_schema_id="submission_graphical_abstract_inputs_v1",
-        display_kind="illustration_shell",
-        display_name="Submission Graphical Abstract",
-        template_ids=("submission_graphical_abstract",),
-        required_top_level_fields=("schema_version", "display_id", "title", "summary_cards", "panel_messages"),
-        optional_top_level_fields=("caption", "boundary_pills", "supporting_metrics", "source_data_paths"),
-        collection_required_fields={
-            "summary_cards": ("card_id", "label", "value"),
-            "panel_messages": ("panel_id", "title", "message"),
-            "boundary_pills": ("pill_id", "label"),
-        },
-        collection_optional_fields={
-            "summary_cards": ("emphasis",),
-            "panel_messages": ("detail",),
-            "supporting_metrics": ("label", "value"),
-        },
-        additional_constraints=(
-            "summary_cards_must_be_non_empty",
-            "summary_card_ids_must_be_unique",
-            "panel_messages_must_be_non_empty",
-            "panel_message_ids_must_be_unique",
-            "boundary_pill_ids_must_be_unique_when_present",
-        ),
-    ),
-    InputSchemaContract(
         input_schema_id="baseline_characteristics_schema_v1",
         display_kind="table_shell",
         display_name="Baseline Characteristics Table",
@@ -630,58 +608,6 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "columns_must_be_non_empty",
             "rows_must_be_non_empty",
             "row_values_length_must_match_columns",
-        ),
-    ),
-    InputSchemaContract(
-        input_schema_id="performance_summary_table_generic_v1",
-        display_kind="table_shell",
-        display_name="Performance Summary Table (Generic)",
-        template_ids=("performance_summary_table_generic",),
-        required_top_level_fields=(
-            "schema_version",
-            "table_shell_id",
-            "display_id",
-            "title",
-            "row_header_label",
-            "columns",
-            "rows",
-        ),
-        optional_top_level_fields=("caption",),
-        collection_required_fields={
-            "columns": ("column_id", "label"),
-            "rows": ("row_id", "label", "values"),
-        },
-        additional_constraints=(
-            "columns_must_be_non_empty",
-            "rows_must_be_non_empty",
-            "row_values_length_must_match_columns",
-        ),
-    ),
-    InputSchemaContract(
-        input_schema_id="grouped_risk_event_summary_table_v1",
-        display_kind="table_shell",
-        display_name="Grouped Risk-Event Summary Table",
-        template_ids=("grouped_risk_event_summary_table",),
-        required_top_level_fields=(
-            "schema_version",
-            "table_shell_id",
-            "display_id",
-            "title",
-            "risk_column_label",
-            "rows",
-        ),
-        optional_top_level_fields=(
-            "caption",
-            "surface_column_label",
-            "stratum_column_label",
-            "cases_column_label",
-            "events_column_label",
-        ),
-        collection_required_fields={"rows": ("row_id", "surface", "stratum", "cases", "events", "risk_display")},
-        additional_constraints=(
-            "rows_must_be_non_empty",
-            "row_cases_must_be_non_negative",
-            "row_events_must_not_exceed_cases",
         ),
     ),
 )

@@ -1,44 +1,46 @@
 # Docs
 
-**English** | [中文](./README.zh-CN.md)
+这里是 `Med Auto Science` 面向 GitHub 与外部读者的公开文档入口。
 
-This directory is the public documentation entry for `MedAutoScience`.
+公开口径统一按下面这条理解：
 
-Public interpretation:
+- 对外：`Med Auto Science` 是 `Research Foundry` 的医学实现
+- 对内：它由医学自动科研 `Harness OS` 驱动
+- 在 `OPL` 顶层语义里：`OPL -> Research Foundry -> Med Auto Science`
 
-- Externally, `MedAutoScience` is a `Research Ops Gateway`.
-- Internally, it is powered by a medical research `Harness OS`.
-- In `OPL` semantics, it is the `Research Ops` domain gateway, not the OPL top-level gateway itself.
+## 面向医学用户
 
-## For Medical Users
+- [README](../README.md)
+- [病种 workspace 快速起步](disease_workspace_quickstart.md)
+- [医学展示面审计指南](medical_display_audit_guide.md)
+- [医学展示面模板目录](medical_display_template_catalog.md)
 
-- [Repository Home](../README.md)
-- [Disease Workspace Quickstart](disease_workspace_quickstart.md)
-- [Medical Display Audit Guide](medical_display_audit_guide.md)
-- [Medical Display Template Catalog](medical_display_template_catalog.md)
-
-## For Technical Operators / AI Executors
+## 面向技术同事 / AI 执行者
 
 - [Agent Runtime Interface](agent_runtime_interface.md)
 - [Agent Entry Modes](agent_entry_modes.md)
+- [Open Harness OS 架构边界](open_harness_os_architecture.md)
+- [Open Harness OS 冻结计划](open_harness_os_freeze_plan.md)
+- [Research Foundry 定位](research_foundry_positioning.md)
+- [Research Foundry 与 Med Auto Science 的 repo 拆分边界](repo_split_between_research_foundry_and_med_autoscience.md)
 - [Runtime Boundary](runtime_boundary.md)
 - [Workspace Architecture](workspace_architecture.md)
 - [Upstream Intake Guide](upstream_intake.md)
 - [Repository CI Preflight](repository_ci_preflight.md)
-- [Codex Plugin Integration](codex_plugin.md)
-- [Codex Plugin Release Guide](codex_plugin_release.md)
+- [Codex plugin 接入](codex_plugin.md)
+- [Codex plugin 发布说明](codex_plugin_release.md)
 
-## Platform Policies
+## 平台规则
 
-- [Policies Index](policies/README.md)
-- [Platform Operating Model](policies/platform_operating_model.md)
-- [Data Asset Management](policies/data_asset_management.md)
-- [Study Archetypes](policies/study_archetypes.md)
-- [Research Route Bias Policy](policies/research_route_bias_policy.md)
+- [Policies 索引](policies/README.md)
+- [运行模型 Policy](policies/platform_operating_model.md)
+- [数据资产策略](policies/data_asset_management.md)
+- [默认研究场景](policies/study_archetypes.md)
+- [研究路线偏置](policies/research_route_bias_policy.md)
 - [Publication Gate Policy](policies/publication_gate_policy.md)
 
-## Documentation Boundary
+## 文档边界
 
-- `docs/`: public documents shipped with the repository.
-- `docs/policies/`: stable policy documents intended for long-term public retention.
-- `docs/superpowers/`: local AI/Superpowers drafts, plans, and process artifacts; keep untracked.
+- `docs/`：公开文档
+- `docs/policies/`：稳定、长期公开保留的规则文档
+- `docs/superpowers/`：本地 AI / Superpowers 文档、开发计划、设计草案与过程痕迹，不进入 Git 跟踪面

@@ -271,6 +271,7 @@ def build_parser() -> argparse.ArgumentParser:
     delivery_parser.add_argument("--paper-root", required=True)
     delivery_parser.add_argument("--stage", choices=("submission_minimal", "finalize"), required=True)
     delivery_parser.add_argument("--publication-profile", default="general_medical_journal")
+    delivery_parser.add_argument("--promote-to-final", action="store_true")
 
     overlay_status_parser = subparsers.add_parser("overlay-status")
     overlay_status_parser.add_argument("--quest-root", type=str)
@@ -675,6 +676,7 @@ def main(argv: list[str] | None = None) -> int:
             paper_root=Path(args.paper_root),
             stage=args.stage,
             publication_profile=args.publication_profile,
+            promote_to_final=args.promote_to_final,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

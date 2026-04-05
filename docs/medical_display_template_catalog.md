@@ -19,20 +19,20 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | `roc_curve_binary` | `evidence_figure` | ROC Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `pr_curve_binary` | `evidence_figure` | Precision-Recall Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `calibration_curve_binary` | `evidence_figure` | Calibration Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `risk_layering_monotonic_bars` | `evidence_figure` | Risk Layering Monotonic Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
 
 ### Clinical Utility
 
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
 | `decision_curve_binary` | `evidence_figure` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `binary_calibration_decision_curve_panel` | `evidence_figure` | Binary Calibration and Decision-Curve Panel | `python` | `binary_calibration_decision_curve_panel_inputs_v1` | `publication_binary_calibration_decision_curve` | `png`, `pdf` |
+| `binary_calibration_decision_curve_panel` | `evidence_figure` | Binary Calibration and Decision Curve Panel | `python` | `binary_calibration_decision_curve_panel_inputs_v1` | `publication_binary_calibration_decision_curve` | `png`, `pdf` |
 | `time_to_event_decision_curve` | `evidence_figure` | Decision Curve (Time-to-Event Horizon) | `python` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` |
 
 ### Time-to-Event
 
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
+| `risk_layering_monotonic_bars` | `evidence_figure` | Monotonic Risk Layering Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
 | `time_dependent_roc_horizon` | `evidence_figure` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `kaplan_meier_grouped` | `evidence_figure` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `cumulative_incidence_grouped` | `evidence_figure` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
@@ -85,12 +85,9 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
 | `cohort_flow_figure` | `illustration_shell` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
-| `submission_graphical_abstract` | `illustration_shell` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
 | `table1_baseline_characteristics` | `table_shell` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `table2_time_to_event_performance_summary` | `table_shell` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `table3_clinical_interpretation_summary` | `table_shell` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
-| `performance_summary_table_generic` | `table_shell` | Performance Summary Table (Generic) | `n/a` | `performance_summary_table_generic_v1` | `publication_table_performance` | `csv`, `md` |
-| `grouped_risk_event_summary_table` | `table_shell` | Grouped Risk-Event Summary Table | `n/a` | `grouped_risk_event_summary_table_v1` | `publication_table_interpretation` | `csv`, `md` |
 
 ## Input Schemas
 
@@ -112,7 +109,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 ### `risk_layering_monotonic_inputs_v1`
 
 - Display kind: `evidence_figure`
-- Display name: Risk Layering Monotonic Bars
+- Display name: Monotonic Risk Layering Bars
 - Templates: `risk_layering_monotonic_bars`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
@@ -122,22 +119,37 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Optional collection fields: None
 - Required nested collection fields: None
 - Optional nested collection fields: None
-- Additional constraints: `left_bars_must_be_non_empty`, `right_bars_must_be_non_empty`, `bar_cases_must_be_positive`, `bar_events_must_not_exceed_cases`, `bar_risk_must_match_events_over_cases`, `left_bars_risk_must_be_monotonic_non_decreasing`, `right_bars_risk_must_be_monotonic_non_decreasing`
+- Additional constraints: `left_bars_must_be_non_empty`, `right_bars_must_be_non_empty`, `bar_cases_must_be_positive`, `bar_events_must_not_exceed_cases`, `bar_risk_must_be_finite_probability`, `bar_risk_must_match_events_over_cases`, `left_bars_risk_must_be_monotonic_non_decreasing`, `right_bars_risk_must_be_monotonic_non_decreasing`
 
 ### `binary_calibration_decision_curve_panel_inputs_v1`
 
 - Display kind: `evidence_figure`
-- Display name: Binary Calibration and Decision-Curve Panel
+- Display name: Binary Calibration and Decision Curve Panel
 - Templates: `binary_calibration_decision_curve_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
-- Required display fields: `display_id`, `template_id`, `title`, `caption`, `calibration_x_label`, `calibration_y_label`, `decision_x_label`, `decision_y_label`, `calibration_series`, `decision_series`
-- Optional display fields: `paper_role`, `decision_focus_window`, `calibration_reference_line`
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `calibration_x_label`, `calibration_y_label`, `decision_x_label`, `decision_y_label`, `calibration_series`, `decision_series`, `decision_reference_lines`, `decision_focus_window`
+- Optional display fields: `paper_role`, `calibration_reference_line`, `calibration_axis_window`
 - Required collection fields: `calibration_series` -> `label`, `x`, `y`<br>`decision_series` -> `label`, `x`, `y`<br>`decision_reference_lines` -> `label`, `x`, `y`
-- Optional collection fields: None
-- Required nested collection fields: None
+- Optional collection fields: `calibration_reference_line` -> `label`
+- Required nested collection fields: `calibration_reference_line` -> `x`, `y`<br>`calibration_axis_window` -> `xmin`, `xmax`, `ymin`, `ymax`<br>`decision_focus_window` -> `xmin`, `xmax`
 - Optional nested collection fields: None
-- Additional constraints: `calibration_series_must_be_non_empty`, `calibration_series_x_y_lengths_must_match`, `decision_series_must_be_non_empty`, `decision_series_x_y_lengths_must_match`, `decision_reference_lines_x_y_lengths_must_match`, `decision_focus_window_must_define_xmin_xmax_when_present`
+- Additional constraints: `calibration_series_must_be_non_empty`, `calibration_series_x_y_lengths_must_match`, `decision_series_must_be_non_empty`, `decision_series_x_y_lengths_must_match`, `decision_reference_lines_must_be_non_empty`, `decision_reference_lines_x_y_lengths_must_match`, `calibration_axis_window_must_be_strictly_increasing`, `decision_focus_window_must_be_strictly_increasing`
+
+### `model_complexity_audit_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Model Complexity Audit Panel
+- Templates: `model_complexity_audit_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `metric_panels`, `audit_panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `metric_panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `rows`<br>`audit_panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `rows`
+- Optional collection fields: `metric_panels` -> `reference_value`<br>`audit_panels` -> `reference_value`
+- Required nested collection fields: `metric_panels.rows` -> `label`, `value`<br>`audit_panels.rows` -> `label`, `value`
+- Optional nested collection fields: None
+- Additional constraints: `metric_panels_must_be_non_empty`, `audit_panels_must_be_non_empty`, `panel_row_values_must_be_finite`
 
 ### `time_to_event_grouped_inputs_v1`
 
@@ -274,21 +286,6 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Optional nested collection fields: None
 - Additional constraints: `rows_must_be_non_empty`, `row_feature_must_be_non_empty`, `row_points_must_be_non_empty`, `shap_values_must_be_finite`, `feature_values_must_be_finite`
 
-### `model_complexity_audit_panel_inputs_v1`
-
-- Display kind: `evidence_figure`
-- Display name: Model Complexity Audit Panel
-- Templates: `model_complexity_audit_panel`
-- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
-- Optional top-level fields: None
-- Required display fields: `display_id`, `template_id`, `title`, `caption`, `metric_panels`, `audit_panels`
-- Optional display fields: `paper_role`
-- Required collection fields: `metric_panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `rows`<br>`audit_panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `rows`
-- Optional collection fields: `metric_panels` -> `reference_value`<br>`audit_panels` -> `reference_value`
-- Required nested collection fields: `metric_panels.rows` -> `label`, `value`<br>`audit_panels.rows` -> `label`, `value`
-- Optional nested collection fields: None
-- Additional constraints: `metric_panels_must_be_non_empty`, `audit_panels_must_be_non_empty`, `panel_ids_must_be_unique_across_metric_and_audit_panels`, `rows_must_be_non_empty`, `row_labels_must_be_non_empty`, `row_values_must_be_finite`
-
 ### `multicenter_generalizability_inputs_v1`
 
 - Display kind: `evidence_figure`
@@ -318,21 +315,6 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Required nested collection fields: `design_panels.lines` -> `label`
 - Optional nested collection fields: `design_panels.lines` -> `detail`
 - Additional constraints: `steps_must_be_non_empty`, `step_ids_must_be_unique`, `step_label_must_be_non_empty`, `step_n_must_be_integer`, `exclusions_from_step_ids_must_reference_steps`, `exclusion_ids_must_be_unique`, `exclusion_n_must_be_integer`, `endpoint_inventory_ids_must_be_unique`, `endpoint_inventory_event_n_must_be_integer`, `design_panel_ids_must_be_unique`, `design_panel_layout_roles_must_be_supported_and_unique`, `design_panel_lines_must_be_non_empty`
-
-### `submission_graphical_abstract_inputs_v1`
-
-- Display kind: `illustration_shell`
-- Display name: Submission Graphical Abstract
-- Templates: `submission_graphical_abstract`
-- Required top-level fields: `schema_version`, `display_id`, `title`, `summary_cards`, `panel_messages`
-- Optional top-level fields: `caption`, `boundary_pills`, `supporting_metrics`, `source_data_paths`
-- Required display fields: None
-- Optional display fields: None
-- Required collection fields: `summary_cards` -> `card_id`, `label`, `value`<br>`panel_messages` -> `panel_id`, `title`, `message`<br>`boundary_pills` -> `pill_id`, `label`
-- Optional collection fields: `summary_cards` -> `emphasis`<br>`panel_messages` -> `detail`<br>`supporting_metrics` -> `label`, `value`
-- Required nested collection fields: None
-- Optional nested collection fields: None
-- Additional constraints: `summary_cards_must_be_non_empty`, `summary_card_ids_must_be_unique`, `panel_messages_must_be_non_empty`, `panel_message_ids_must_be_unique`, `boundary_pill_ids_must_be_unique_when_present`
 
 ### `baseline_characteristics_schema_v1`
 
@@ -378,33 +360,3 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `columns_must_be_non_empty`, `rows_must_be_non_empty`, `row_values_length_must_match_columns`
-
-### `performance_summary_table_generic_v1`
-
-- Display kind: `table_shell`
-- Display name: Performance Summary Table (Generic)
-- Templates: `performance_summary_table_generic`
-- Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `row_header_label`, `columns`, `rows`
-- Optional top-level fields: `caption`
-- Required display fields: None
-- Optional display fields: None
-- Required collection fields: `columns` -> `column_id`, `label`<br>`rows` -> `row_id`, `label`, `values`
-- Optional collection fields: None
-- Required nested collection fields: None
-- Optional nested collection fields: None
-- Additional constraints: `columns_must_be_non_empty`, `rows_must_be_non_empty`, `row_values_length_must_match_columns`
-
-### `grouped_risk_event_summary_table_v1`
-
-- Display kind: `table_shell`
-- Display name: Grouped Risk-Event Summary Table
-- Templates: `grouped_risk_event_summary_table`
-- Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `risk_column_label`, `rows`
-- Optional top-level fields: `caption`, `surface_column_label`, `stratum_column_label`, `cases_column_label`, `events_column_label`
-- Required display fields: None
-- Optional display fields: None
-- Required collection fields: `rows` -> `row_id`, `surface`, `stratum`, `cases`, `events`, `risk_display`
-- Optional collection fields: None
-- Required nested collection fields: None
-- Optional nested collection fields: None
-- Additional constraints: `rows_must_be_non_empty`, `row_cases_must_be_non_negative`, `row_events_must_not_exceed_cases`

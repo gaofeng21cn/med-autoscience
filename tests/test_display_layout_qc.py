@@ -35,28 +35,147 @@ def test_run_display_layout_qc_passes_for_valid_illustration_flow() -> None:
             "template_id": "cohort_flow_figure",
             "device": make_device(),
             "layout_boxes": [
-                make_box("title", "title", x0=0.10, y0=0.02, x1=0.88, y1=0.08),
-                make_box("step_screened", "main_step", x0=0.08, y0=0.14, x1=0.46, y1=0.24),
-                make_box("step_included", "main_step", x0=0.08, y0=0.30, x1=0.46, y1=0.40),
-                make_box("exclusion_repeat", "exclusion_box", x0=0.56, y0=0.14, x1=0.92, y1=0.22),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.125, x1=0.11, y1=0.155),
+                make_box("panel_label_B", "panel_label", x0=0.52, y0=0.125, x1=0.55, y1=0.155),
+                make_box("step_screened", "main_step", x0=0.08, y0=0.40, x1=0.28, y1=0.50),
+                make_box("step_included", "main_step", x0=0.08, y0=0.24, x1=0.28, y1=0.34),
+                make_box("exclusion_repeat", "exclusion_box", x0=0.32, y0=0.30, x1=0.46, y1=0.38),
             ],
             "panel_boxes": [
-                make_box("flow_panel", "flow_panel", x0=0.08, y0=0.14, x1=0.92, y1=0.40),
-                make_box("secondary_panel_endpoint", "secondary_panel", x0=0.08, y0=0.48, x1=0.44, y1=0.66),
-                make_box("secondary_panel_sidecar", "secondary_panel", x0=0.48, y0=0.48, x1=0.92, y1=0.66),
+                make_box("subfigure_panel_A", "subfigure_panel", x0=0.06, y0=0.10, x1=0.48, y1=0.54),
+                make_box("subfigure_panel_B", "subfigure_panel", x0=0.52, y0=0.10, x1=0.94, y1=0.54),
+                make_box("flow_panel", "flow_panel", x0=0.08, y0=0.12, x1=0.46, y1=0.50),
+                make_box("secondary_panel_validation", "secondary_panel", x0=0.54, y0=0.42, x1=0.92, y1=0.52),
+                make_box("secondary_panel_core", "secondary_panel", x0=0.54, y0=0.28, x1=0.72, y1=0.38),
+                make_box("secondary_panel_primary", "secondary_panel", x0=0.74, y0=0.28, x1=0.92, y1=0.38),
+                make_box("secondary_panel_audit", "secondary_panel", x0=0.54, y0=0.14, x1=0.72, y1=0.24),
+                make_box("secondary_panel_context", "secondary_panel", x0=0.74, y0=0.14, x1=0.92, y1=0.24),
             ],
-            "guide_boxes": [],
+            "guide_boxes": [
+                make_box("flow_spine_screened_to_included", "flow_connector", x0=0.17, y0=0.34, x1=0.19, y1=0.40),
+                make_box("flow_branch_repeat", "flow_branch_connector", x0=0.19, y0=0.33, x1=0.32, y1=0.35),
+                make_box("hierarchy_root_trunk", "hierarchy_connector", x0=0.72, y0=0.38, x1=0.74, y1=0.42),
+                make_box("hierarchy_root_branch", "hierarchy_connector", x0=0.63, y0=0.36, x1=0.83, y1=0.38),
+                make_box("hierarchy_connector_left_middle_to_left_bottom", "hierarchy_connector", x0=0.63, y0=0.24, x1=0.65, y1=0.28),
+                make_box("hierarchy_connector_right_middle_to_right_bottom", "hierarchy_connector", x0=0.83, y0=0.24, x1=0.85, y1=0.28),
+            ],
             "metrics": {
-                "steps": [],
-                "exclusions": [],
+                "steps": [
+                    {"step_id": "screened"},
+                    {"step_id": "included"},
+                ],
+                "exclusions": [
+                    {"exclusion_id": "repeat", "from_step_id": "screened"},
+                ],
                 "endpoint_inventory": [],
-                "design_panels": [],
+                "design_panels": [
+                    {"panel_id": "validation", "layout_role": "wide_top"},
+                    {"panel_id": "core", "layout_role": "left_middle"},
+                    {"panel_id": "primary", "layout_role": "right_middle"},
+                    {"panel_id": "audit", "layout_role": "left_bottom"},
+                    {"panel_id": "context", "layout_role": "right_bottom"},
+                ],
             },
         },
     )
 
     assert result["status"] == "pass"
     assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_illustration_subfigure_semantics_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("step_screened", "main_step", x0=0.08, y0=0.14, x1=0.46, y1=0.24),
+            ],
+            "panel_boxes": [
+                make_box("flow_panel", "flow_panel", x0=0.08, y0=0.14, x1=0.46, y1=0.30),
+                make_box("secondary_panel_validation", "secondary_panel", x0=0.54, y0=0.14, x1=0.92, y1=0.24),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "steps": [
+                    {"step_id": "screened"},
+                    {"step_id": "included"},
+                    {"step_id": "analysis"},
+                ],
+                "exclusions": [
+                    {"exclusion_id": "repeat", "from_step_id": "screened"},
+                ],
+                "endpoint_inventory": [],
+                "design_panels": [
+                    {"panel_id": "validation", "layout_role": "wide_top"},
+                    {"panel_id": "core", "layout_role": "left_middle"},
+                    {"panel_id": "primary", "layout_role": "right_middle"},
+                    {"panel_id": "audit", "layout_role": "left_bottom"},
+                    {"panel_id": "context", "layout_role": "right_bottom"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "missing_subfigure_panel" for issue in result["issues"])
+    assert any(issue["rule_id"] == "missing_panel_label" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_structure_connectors_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_illustration_flow",
+        layout_sidecar={
+            "template_id": "cohort_flow_figure",
+            "device": make_device(),
+                "layout_boxes": [
+                    make_box("panel_label_A", "panel_label", x0=0.08, y0=0.125, x1=0.11, y1=0.155),
+                    make_box("panel_label_B", "panel_label", x0=0.52, y0=0.125, x1=0.55, y1=0.155),
+                    make_box("step_screened", "main_step", x0=0.08, y0=0.40, x1=0.28, y1=0.50),
+                    make_box("step_included", "main_step", x0=0.08, y0=0.24, x1=0.28, y1=0.34),
+                    make_box("step_analysis", "main_step", x0=0.08, y0=0.08, x1=0.28, y1=0.18),
+                    make_box("exclusion_repeat", "exclusion_box", x0=0.32, y0=0.30, x1=0.46, y1=0.38),
+                ],
+                "panel_boxes": [
+                    make_box("subfigure_panel_A", "subfigure_panel", x0=0.06, y0=0.06, x1=0.48, y1=0.54),
+                    make_box("subfigure_panel_B", "subfigure_panel", x0=0.52, y0=0.06, x1=0.94, y1=0.54),
+                    make_box("flow_panel", "flow_panel", x0=0.08, y0=0.08, x1=0.46, y1=0.50),
+                    make_box("secondary_panel_validation", "secondary_panel", x0=0.54, y0=0.42, x1=0.92, y1=0.52),
+                    make_box("secondary_panel_core", "secondary_panel", x0=0.54, y0=0.28, x1=0.72, y1=0.38),
+                    make_box("secondary_panel_primary", "secondary_panel", x0=0.74, y0=0.28, x1=0.92, y1=0.38),
+                    make_box("secondary_panel_audit", "secondary_panel", x0=0.54, y0=0.14, x1=0.72, y1=0.24),
+                    make_box("secondary_panel_context", "secondary_panel", x0=0.74, y0=0.14, x1=0.92, y1=0.24),
+                ],
+            "guide_boxes": [],
+            "metrics": {
+                "steps": [
+                    {"step_id": "screened"},
+                    {"step_id": "included"},
+                    {"step_id": "analysis"},
+                ],
+                "exclusions": [
+                    {"exclusion_id": "repeat", "from_step_id": "screened"},
+                ],
+                "endpoint_inventory": [],
+                "design_panels": [
+                    {"panel_id": "validation", "layout_role": "wide_top"},
+                    {"panel_id": "core", "layout_role": "left_middle"},
+                    {"panel_id": "primary", "layout_role": "right_middle"},
+                    {"panel_id": "audit", "layout_role": "left_bottom"},
+                    {"panel_id": "context", "layout_role": "right_bottom"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "missing_flow_connector" for issue in result["issues"])
+    assert any(issue["rule_id"] == "missing_hierarchy_connector" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_fails_when_illustration_exclusion_overlaps_step() -> None:
@@ -68,7 +187,6 @@ def test_run_display_layout_qc_fails_when_illustration_exclusion_overlaps_step()
             "template_id": "cohort_flow_figure",
             "device": make_device(),
             "layout_boxes": [
-                make_box("title", "title", x0=0.10, y0=0.02, x1=0.88, y1=0.08),
                 make_box("step_screened", "main_step", x0=0.08, y0=0.14, x1=0.46, y1=0.24),
                 make_box("exclusion_repeat", "exclusion_box", x0=0.30, y0=0.16, x1=0.70, y1=0.24),
             ],
@@ -278,108 +396,6 @@ def test_run_display_layout_qc_fails_when_decision_curve_treated_fraction_panel_
     assert any(issue["rule_id"] == "treated_fraction_panel_missing" for issue in result["issues"])
 
 
-def test_run_display_layout_qc_passes_for_valid_model_complexity_audit() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_model_complexity_audit",
-        layout_sidecar={
-            "template_id": "model_complexity_audit_panel",
-            "device": make_device(),
-            "layout_boxes": [
-                make_box("title", "title", x0=0.18, y0=0.94, x1=0.82, y1=0.98),
-                make_box("metric_marker_1", "metric_marker", x0=0.22, y0=0.76, x1=0.24, y1=0.80),
-                make_box("metric_marker_2", "metric_marker", x0=0.26, y0=0.58, x1=0.28, y1=0.62),
-                make_box("audit_bar_1", "audit_bar", x0=0.64, y0=0.74, x1=0.86, y1=0.80),
-            ],
-            "panel_boxes": [
-                make_box("metric_panel_1", "metric_panel", x0=0.12, y0=0.54, x1=0.46, y1=0.88),
-                make_box("audit_panel_1", "audit_panel", x0=0.58, y0=0.54, x1=0.92, y1=0.88),
-            ],
-            "guide_boxes": [
-                make_box("reference_line_1", "reference_line", x0=0.32, y0=0.541, x1=0.324, y1=0.879),
-            ],
-            "metrics": {
-                "metric_panels": [
-                    {
-                        "panel_id": "auc_panel",
-                        "panel_label": "A",
-                        "title": "Discrimination",
-                        "x_label": "AUROC",
-                        "rows": [
-                            {"label": "Locked model", "value": 0.84},
-                            {"label": "Clinical baseline", "value": 0.79},
-                        ],
-                    }
-                ],
-                "audit_panels": [
-                    {
-                        "panel_id": "importance_panel",
-                        "panel_label": "B",
-                        "title": "Feature importance",
-                        "x_label": "Importance",
-                        "rows": [
-                            {"label": "Tumor volume", "value": 0.31},
-                        ],
-                    }
-                ],
-            },
-        },
-    )
-
-    assert result["status"] == "pass"
-    assert result["issues"] == []
-
-
-def test_run_display_layout_qc_fails_when_model_complexity_marker_leaves_panel() -> None:
-    module = importlib.import_module("med_autoscience.display_layout_qc")
-
-    result = module.run_display_layout_qc(
-        qc_profile="publication_model_complexity_audit",
-        layout_sidecar={
-            "template_id": "model_complexity_audit_panel",
-            "device": make_device(),
-            "layout_boxes": [
-                make_box("title", "title", x0=0.18, y0=0.94, x1=0.82, y1=0.98),
-                make_box("metric_marker_1", "metric_marker", x0=0.22, y0=0.86, x1=0.24, y1=0.90),
-                make_box("audit_bar_1", "audit_bar", x0=0.64, y0=0.74, x1=0.86, y1=0.80),
-            ],
-            "panel_boxes": [
-                make_box("metric_panel_1", "metric_panel", x0=0.12, y0=0.54, x1=0.46, y1=0.88),
-                make_box("audit_panel_1", "audit_panel", x0=0.58, y0=0.54, x1=0.92, y1=0.88),
-            ],
-            "guide_boxes": [],
-            "metrics": {
-                "metric_panels": [
-                    {
-                        "panel_id": "auc_panel",
-                        "panel_label": "A",
-                        "title": "Discrimination",
-                        "x_label": "AUROC",
-                        "rows": [
-                            {"label": "Locked model", "value": 0.84},
-                        ],
-                    }
-                ],
-                "audit_panels": [
-                    {
-                        "panel_id": "importance_panel",
-                        "panel_label": "B",
-                        "title": "Feature importance",
-                        "x_label": "Importance",
-                        "rows": [
-                            {"label": "Tumor volume", "value": 0.31},
-                        ],
-                    }
-                ],
-            },
-        },
-    )
-
-    assert result["status"] == "fail"
-    assert any(issue["rule_id"] == "metric_marker_outside_panel" for issue in result["issues"])
-
-
 def test_run_display_layout_qc_fails_when_correlation_matrix_is_not_symmetric() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
@@ -587,3 +603,152 @@ def test_run_display_layout_qc_fails_when_shap_feature_rows_overlap() -> None:
 
     assert result["status"] == "fail"
     assert any(issue["rule_id"] == "feature_row_overlap" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_binary_calibration_focus_window_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_binary_calibration_decision_curve",
+        layout_sidecar={
+            "template_id": "binary_calibration_decision_curve_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.10, y0=0.94, x1=0.90, y1=0.98),
+                make_box("calibration_subplot_title", "subplot_title", x0=0.20, y0=0.86, x1=0.38, y1=0.89),
+                make_box("decision_subplot_title", "subplot_title", x0=0.62, y0=0.86, x1=0.82, y1=0.89),
+                make_box("calibration_x_axis_title", "subplot_x_axis_title", x0=0.18, y0=0.12, x1=0.42, y1=0.16),
+                make_box("calibration_y_axis_title", "subplot_y_axis_title", x0=0.04, y0=0.28, x1=0.07, y1=0.74),
+                make_box("decision_x_axis_title", "subplot_x_axis_title", x0=0.64, y0=0.12, x1=0.86, y1=0.16),
+                make_box("decision_y_axis_title", "subplot_y_axis_title", x0=0.54, y0=0.34, x1=0.57, y1=0.68),
+            ],
+            "panel_boxes": [
+                make_box("calibration_panel", "calibration_panel", x0=0.10, y0=0.22, x1=0.48, y1=0.84),
+                make_box("decision_panel", "decision_panel", x0=0.58, y0=0.22, x1=0.96, y1=0.84),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.18, y0=0.03, x1=0.82, y1=0.14),
+                make_box("decision_focus_window", "focus_window", x0=0.58, y0=0.22, x1=0.99, y1=0.84),
+            ],
+            "metrics": {
+                "calibration_series": [{"label": "Core", "x": [0.1, 0.2], "y": [0.05, 0.10]}],
+                "calibration_reference_line": {"label": "Ideal", "x": [0.0, 1.0], "y": [0.0, 1.0]},
+                "decision_series": [{"label": "Core", "x": [0.15, 0.20], "y": [0.01, 0.0]}],
+                "decision_reference_lines": [{"label": "Treat none", "x": [0.15, 0.20], "y": [0.0, 0.0]}],
+                "decision_focus_window": {"xmin": 0.15, "xmax": 0.35},
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "focus_window_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_model_complexity_audit_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_model_complexity_audit",
+        layout_sidecar={
+            "template_id": "model_complexity_audit_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.08, y0=0.95, x1=0.92, y1=0.985),
+                make_box("metric_panel_title_1", "subplot_title", x0=0.20, y0=0.89, x1=0.38, y1=0.92),
+                make_box("metric_panel_title_2", "subplot_title", x0=0.20, y0=0.59, x1=0.38, y1=0.62),
+                make_box("metric_panel_title_3", "subplot_title", x0=0.20, y0=0.29, x1=0.38, y1=0.32),
+                make_box("audit_panel_title_1", "subplot_title", x0=0.68, y0=0.89, x1=0.86, y1=0.92),
+                make_box("audit_panel_title_2", "subplot_title", x0=0.68, y0=0.44, x1=0.86, y1=0.47),
+                make_box("metric_marker_1", "metric_marker", x0=0.26, y0=0.83, x1=0.28, y1=0.85),
+                make_box("metric_marker_2", "metric_marker", x0=0.30, y0=0.77, x1=0.32, y1=0.79),
+                make_box("metric_marker_3", "metric_marker", x0=0.34, y0=0.71, x1=0.36, y1=0.73),
+                make_box("metric_marker_4", "metric_marker", x0=0.24, y0=0.53, x1=0.26, y1=0.55),
+                make_box("metric_marker_5", "metric_marker", x0=0.28, y0=0.47, x1=0.30, y1=0.49),
+                make_box("metric_marker_6", "metric_marker", x0=0.32, y0=0.41, x1=0.34, y1=0.43),
+                make_box("metric_marker_7", "metric_marker", x0=0.22, y0=0.23, x1=0.24, y1=0.25),
+                make_box("metric_marker_8", "metric_marker", x0=0.27, y0=0.17, x1=0.29, y1=0.19),
+                make_box("metric_marker_9", "metric_marker", x0=0.31, y0=0.11, x1=0.33, y1=0.13),
+                make_box("audit_bar_1", "audit_bar", x0=0.66, y0=0.82, x1=0.86, y1=0.85),
+                make_box("audit_bar_2", "audit_bar", x0=0.66, y0=0.76, x1=0.90, y1=0.79),
+                make_box("audit_bar_3", "audit_bar", x0=0.66, y0=0.70, x1=0.83, y1=0.73),
+                make_box("audit_bar_4", "audit_bar", x0=0.66, y0=0.30, x1=0.82, y1=0.33),
+                make_box("audit_bar_5", "audit_bar", x0=0.66, y0=0.24, x1=0.78, y1=0.27),
+            ],
+            "panel_boxes": [
+                make_box("metric_panel_1", "metric_panel", x0=0.12, y0=0.68, x1=0.54, y1=0.88),
+                make_box("metric_panel_2", "metric_panel", x0=0.12, y0=0.38, x1=0.54, y1=0.58),
+                make_box("metric_panel_3", "metric_panel", x0=0.12, y0=0.08, x1=0.54, y1=0.28),
+                make_box("audit_panel_1", "audit_panel", x0=0.66, y0=0.56, x1=0.96, y1=0.88),
+                make_box("audit_panel_2", "audit_panel", x0=0.66, y0=0.08, x1=0.96, y1=0.40),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_1", "reference_line", x0=0.29, y0=0.08, x1=0.30, y1=0.88),
+                make_box("reference_line_2", "reference_line", x0=0.80, y0=0.56, x1=0.81, y1=0.88),
+            ],
+            "metrics": {
+                "metric_panels": [
+                    {
+                        "panel_id": "auroc_panel",
+                        "panel_label": "A",
+                        "title": "Discrimination",
+                        "x_label": "AUROC",
+                        "rows": [
+                            {"label": "Core", "value": 0.80},
+                            {"label": "Clinical", "value": 0.82},
+                            {"label": "RF", "value": 0.84},
+                        ],
+                    },
+                    {
+                        "panel_id": "brier_panel",
+                        "panel_label": "B",
+                        "title": "Overall error",
+                        "x_label": "Brier score",
+                        "rows": [
+                            {"label": "Core", "value": 0.14},
+                            {"label": "Clinical", "value": 0.11},
+                            {"label": "RF", "value": 0.10},
+                        ],
+                    },
+                    {
+                        "panel_id": "slope_panel",
+                        "panel_label": "C",
+                        "title": "Calibration",
+                        "x_label": "Calibration slope",
+                        "reference_value": 1.0,
+                        "rows": [
+                            {"label": "Core", "value": 2.4},
+                            {"label": "Clinical", "value": 1.04},
+                            {"label": "RF", "value": 0.80},
+                        ],
+                    },
+                ],
+                "audit_panels": [
+                    {
+                        "panel_id": "coefficient_panel",
+                        "panel_label": "D",
+                        "title": "Coefficient stability",
+                        "x_label": "Mean odds ratio",
+                        "reference_value": 1.0,
+                        "rows": [
+                            {"label": "Age", "value": 0.91},
+                            {"label": "Tumor diameter", "value": 1.44},
+                            {"label": "Knosp grade", "value": 1.13},
+                        ],
+                    },
+                    {
+                        "panel_id": "domain_panel",
+                        "panel_label": "E",
+                        "title": "Domain stability",
+                        "x_label": "Mean absolute coefficient",
+                        "rows": [
+                            {"label": "Tumor burden", "value": 0.34},
+                            {"label": "Endocrine impairment", "value": 0.11},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
