@@ -469,7 +469,6 @@ def test_binary_reporting_contract_hydration_and_audit_require_phase_c_and_d_sur
     )
 
     paper_root = quest_root / "paper"
-    (paper_root / "reporting_guideline_checklist.json").write_text("{}", encoding="utf-8")
     (paper_root / "risk_layering_monotonic_inputs.json").unlink()
 
     report = audit_module.run_controller(quest_root=quest_root, apply=False)

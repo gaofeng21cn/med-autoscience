@@ -96,6 +96,7 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
     assert (quest_root / "paper" / "medical_reporting_contract.json").exists()
     assert (quest_root / "paper" / "cohort_flow.json").exists()
     assert (quest_root / "paper" / "baseline_characteristics_schema.json").exists()
+    assert (quest_root / "paper" / "reporting_guideline_checklist.json").exists()
     assert (quest_root / "paper" / "time_to_event_performance_summary.json").exists()
     assert (quest_root / "paper" / "time_to_event_discrimination_calibration_inputs.json").exists()
     assert (quest_root / "paper" / "time_to_event_grouped_inputs.json").exists()
@@ -111,7 +112,14 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
     report_payload = json.loads(
         (quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json").read_text(encoding="utf-8")
     )
+    checklist_payload = json.loads(
+        (quest_root / "paper" / "reporting_guideline_checklist.json").read_text(encoding="utf-8")
+    )
     assert report_payload["literature_report"]["record_count"] == 1
+    assert checklist_payload["reporting_guideline_family"] == "TRIPOD"
+    assert checklist_payload["required_display_count"] == 7
+    assert checklist_payload["required_display_items"][0]["display_id"] == "cohort_flow"
+    assert checklist_payload["required_display_items"][0]["shell_path"] == "paper/figures/cohort_flow.shell.json"
 
 
 def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_path: Path) -> None:
