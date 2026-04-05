@@ -2002,6 +2002,65 @@ def test_materialize_display_surface_generates_risk_layering_monotonic_bars(tmp_
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_wraps_long_risk_layering_title_within_device(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure22",
+                    "display_kind": "figure",
+                    "requirement_key": "risk_layering_monotonic_bars",
+                    "catalog_id": "F22",
+                    "shell_path": "paper/figures/Figure22.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "risk_layering_monotonic_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "risk_layering_monotonic_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure22",
+                    "template_id": "risk_layering_monotonic_bars",
+                    "title": "Clinical utility of the clinically informed preoperative model compared with the core preoperative comparator",
+                    "caption": "Observed risk rises monotonically across score bands and grouped follow-up strata.",
+                    "y_label": "Risk of later persistent global hypopituitarism (%)",
+                    "left_panel_title": "Core preoperative comparator",
+                    "left_x_label": "Predicted-risk tertile",
+                    "left_bars": [
+                        {"label": "Low", "cases": 118, "events": 5, "risk": 0.0424},
+                        {"label": "Intermediate", "cases": 118, "events": 8, "risk": 0.0678},
+                        {"label": "High", "cases": 118, "events": 44, "risk": 0.3729},
+                    ],
+                    "right_panel_title": "Clinically informed model",
+                    "right_x_label": "Predicted-risk tertile",
+                    "right_bars": [
+                        {"label": "Low", "cases": 118, "events": 5, "risk": 0.0424},
+                        {"label": "Intermediate", "cases": 118, "events": 10, "risk": 0.0847},
+                        {"label": "High", "cases": 118, "events": 42, "risk": 0.3559},
+                    ],
+                }
+            ],
+        },
+    )
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_generates_binary_calibration_decision_curve_panel(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -2075,6 +2134,78 @@ def test_materialize_display_surface_generates_binary_calibration_decision_curve
     assert figure_entry["input_schema_id"] == "binary_calibration_decision_curve_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_binary_calibration_decision_curve"
     assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_clips_decision_focus_window_within_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "display_kind": "figure",
+                    "requirement_key": "binary_calibration_decision_curve_panel",
+                    "catalog_id": "F23",
+                    "shell_path": "paper/figures/Figure23.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "binary_calibration_decision_curve_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "binary_calibration_decision_curve_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "template_id": "binary_calibration_decision_curve_panel",
+                    "title": "Clinical coherence and coefficient stability of the clinically informed preoperative model under the prespecified threshold range",
+                    "caption": "Binary calibration and clinical utility under the prespecified threshold range.",
+                    "calibration_x_label": "Mean predicted probability",
+                    "calibration_y_label": "Observed probability",
+                    "decision_x_label": "Threshold probability",
+                    "decision_y_label": "Net benefit",
+                    "calibration_reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0], "label": "Ideal"},
+                    "calibration_series": [
+                        {"label": "Locked model", "x": [0.08, 0.20, 0.42, 0.66], "y": [0.09, 0.22, 0.39, 0.63]},
+                        {"label": "Clinical baseline", "x": [0.08, 0.20, 0.42, 0.66], "y": [0.12, 0.25, 0.41, 0.58]},
+                    ],
+                    "decision_series": [
+                        {"label": "Locked model", "x": [0.15, 0.20, 0.30, 0.39], "y": [0.08, 0.07, 0.05, 0.03]},
+                        {"label": "Clinical baseline", "x": [0.15, 0.20, 0.30, 0.39], "y": [0.05, 0.04, 0.03, 0.01]},
+                    ],
+                    "decision_reference_lines": [
+                        {"label": "Treat none", "x": [0.15, 0.39], "y": [0.0, 0.0]},
+                        {"label": "Treat all", "x": [0.15, 0.39], "y": [0.07, -0.02]},
+                    ],
+                    "decision_focus_window": {"xmin": 0.20, "xmax": 0.40},
+                }
+            ],
+        },
+    )
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F23_binary_calibration_decision_curve_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    decision_panel = next(box for box in layout_sidecar["panel_boxes"] if box["box_id"] == "decision_panel")
+    decision_focus_window = next(box for box in layout_sidecar["guide_boxes"] if box["box_id"] == "decision_focus_window")
+    assert decision_panel["x0"] <= decision_focus_window["x0"] <= decision_panel["x1"]
+    assert decision_panel["x0"] <= decision_focus_window["x1"] <= decision_panel["x1"]
 
 
 def test_materialize_display_surface_generates_model_complexity_audit_panel(tmp_path: Path) -> None:
@@ -2215,6 +2346,111 @@ def test_materialize_display_surface_generates_model_complexity_audit_panel(tmp_
             and panel["y0"] <= marker["y1"] <= panel["y1"]
             for panel in metric_panels
         )
+
+
+def test_materialize_display_surface_wraps_long_model_complexity_title_within_device(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure24",
+                    "display_kind": "figure",
+                    "requirement_key": "model_complexity_audit_panel",
+                    "catalog_id": "F24",
+                    "shell_path": "paper/figures/Figure24.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "model_complexity_audit_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "model_complexity_audit_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure24",
+                    "template_id": "model_complexity_audit_panel",
+                    "title": "Threshold-based operating characteristics and risk-group profiles for the clinically informed preoperative model",
+                    "caption": "Discrimination, overall error, calibration, and bounded complexity audit across the candidate packages.",
+                    "metric_panels": [
+                        {
+                            "panel_id": "auroc_panel",
+                            "panel_label": "A",
+                            "title": "Discrimination",
+                            "x_label": "AUROC",
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 0.8022},
+                                {"label": "Clinically informed preoperative model", "value": 0.8004},
+                                {"label": "Pathology-augmented model", "value": 0.7999},
+                            ],
+                        },
+                        {
+                            "panel_id": "brier_panel",
+                            "panel_label": "B",
+                            "title": "Overall error",
+                            "x_label": "Brier score",
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 0.1433},
+                                {"label": "Clinically informed preoperative model", "value": 0.1099},
+                                {"label": "Pathology-augmented model", "value": 0.1090},
+                            ],
+                        },
+                        {
+                            "panel_id": "slope_panel",
+                            "panel_label": "C",
+                            "title": "Calibration",
+                            "x_label": "Calibration slope",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 2.4065},
+                                {"label": "Clinically informed preoperative model", "value": 1.0442},
+                                {"label": "Pathology-augmented model", "value": 1.0395},
+                            ],
+                        },
+                    ],
+                    "audit_panels": [
+                        {
+                            "panel_id": "coef_panel",
+                            "panel_label": "D",
+                            "title": "Coefficient stability",
+                            "x_label": "Mean odds ratio",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Age", "value": 0.9118},
+                                {"label": "Female sex", "value": 1.0309},
+                                {"label": "Tumor diameter", "value": 1.4440},
+                            ],
+                        },
+                        {
+                            "panel_id": "importance_panel",
+                            "panel_label": "E",
+                            "title": "Domain stability",
+                            "x_label": "Mean absolute coefficient",
+                            "rows": [
+                                {"label": "Demographics", "value": 0.0770},
+                                {"label": "Tumor burden", "value": 0.3444},
+                                {"label": "Visual compromise", "value": 0.1185},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
 def test_render_python_model_complexity_audit_panel_keeps_edge_metric_markers_inside_panels(tmp_path: Path) -> None:

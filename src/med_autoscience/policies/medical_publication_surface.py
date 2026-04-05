@@ -85,6 +85,48 @@ def get_methodology_label_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
     ]
 
 
+PUBLICATION_SAFE_REWRITE_SPECS: list[tuple[str, str, int]] = [
+    (r"\bA0-A1\b", "core-versus-clinically-informed model", 0),
+    (r"\bA1\b", "clinically informed model", 0),
+    (r"\bA0\b", "core model", 0),
+    (r"\bB0\b", "contextual benchmark", 0),
+    (r"\bM0_[A-Za-z0-9_]+\b", "contextual benchmark", 0),
+    (r"\bfrom the v\d{4}-\d{2}-\d{2} cohort\b", "from the refreshed study cohort", re.IGNORECASE),
+    (r"\bv\d{4}-\d{2}-\d{2}\b", "current study dataset", re.IGNORECASE),
+    (
+        r"\bexpanded information surface available in the database\b",
+        "expanded information available in the database",
+        re.IGNORECASE,
+    ),
+    (r"\bexpanded information surface\b", "expanded information set", re.IGNORECASE),
+    (r"\bsame feature surface\b", "same feature set", re.IGNORECASE),
+    (r"\bfeature surfaces\b", "feature sets", re.IGNORECASE),
+    (r"\bouter resampling surfaces\b", "outer resampling splits", re.IGNORECASE),
+    (r"\bthat same surface\b", "that same comparison frame", re.IGNORECASE),
+    (r"\bcontextual surface overview\b", "contextual overview", re.IGNORECASE),
+    (r"\bdeployment-facing\b", "clinically interpretable", re.IGNORECASE),
+    (r"\bcomparison framework\b", "comparison design", re.IGNORECASE),
+    (r"\bValidation contract\b", "Validation design", 0),
+    (r"\bScore-construction contract\b", "Score-construction design", 0),
+    (r"\bPreoperative Core Model\b", "Core preoperative model", 0),
+    (r"\bClinical Utility Model\b", "Clinically informed preoperative model", 0),
+    (r"\bPathology-Augmented Model\b", "Pathology-extended comparison", 0),
+    (r"\bElastic-Net Benchmark\b", "Elastic-net comparison", 0),
+    (r"\bRandom-Forest Benchmark\b", "Random-forest comparison", 0),
+    (r"\bcontract\b", "design", re.IGNORECASE),
+    (r"\bsidecars\b", "panels", re.IGNORECASE),
+]
+
+
+def rewrite_publication_safe_text(text: str) -> str:
+    rewritten = str(text)
+    if not rewritten:
+        return rewritten
+    for pattern, replacement, flags in PUBLICATION_SAFE_REWRITE_SPECS:
+        rewritten = re.sub(pattern, replacement, rewritten, flags=flags)
+    return rewritten
+
+
 def ama_defaults_regex() -> re.Pattern[str]:
     return re.compile(
         rf"^\s*csl:\s*(?:\.\./)?(?:latex/)?{re.escape(AMA_CSL_BASENAME)}\s*$",

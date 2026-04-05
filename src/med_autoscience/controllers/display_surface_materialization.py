@@ -3082,8 +3082,14 @@ def _render_python_risk_layering_monotonic_bars(
     fig, axes = plt.subplots(1, len(panels), figsize=(figure_width, 5.0), sharey=len(panels) > 1)
     fig.patch.set_facecolor("white")
     axes_list = list(axes.ravel()) if hasattr(axes, "ravel") else [axes]
-    title_artist = fig.suptitle(
+    wrapped_title = textwrap.fill(
         str(display_payload.get("title") or "").strip(),
+        width=max(44, int(figure_width * 6.2)),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    title_artist = fig.suptitle(
+        wrapped_title,
         fontsize=12.5,
         fontweight="bold",
         color="#13293d",
@@ -3144,7 +3150,9 @@ def _render_python_risk_layering_monotonic_bars(
         else:
             axes_item.tick_params(axis="y", labelleft=False)
 
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.84, bottom=0.18, wspace=0.24)
+    title_line_count = wrapped_title.count("\n") + 1 if wrapped_title else 1
+    top_margin = max(0.74, 0.84 - 0.05 * (title_line_count - 1))
+    fig.subplots_adjust(left=0.10, right=0.98, top=top_margin, bottom=0.18, wspace=0.24)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
 
@@ -3247,8 +3255,14 @@ def _render_python_binary_calibration_decision_curve_panel(
 
     fig, (calibration_axes, decision_axes) = plt.subplots(1, 2, figsize=(10.2, 5.0))
     fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
+    wrapped_title = textwrap.fill(
         str(display_payload.get("title") or "").strip(),
+        width=max(44, int(fig.get_figwidth() * 6.0)),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    title_artist = fig.suptitle(
+        wrapped_title,
         fontsize=12.5,
         fontweight="bold",
         color="#13293d",
@@ -3304,14 +3318,18 @@ def _render_python_binary_calibration_decision_curve_panel(
     for line in decision_reference_lines:
         decision_x_values.extend(float(value) for value in line["x"])
         decision_y_values.extend(float(value) for value in line["y"])
+    decision_x_min = min(decision_x_values)
+    decision_x_max = max(decision_x_values)
+    clipped_focus_window: dict[str, float] | None = None
     if isinstance(focus_window, dict):
-        decision_axes.axvspan(
-            float(focus_window["xmin"]),
-            float(focus_window["xmax"]),
-            color="#e7e1d8",
-            alpha=0.35,
-            zorder=0,
-        )
+        raw_x_min = float(focus_window["xmin"])
+        raw_x_max = float(focus_window["xmax"])
+        window_x_min = min(raw_x_min, raw_x_max)
+        window_x_max = max(raw_x_min, raw_x_max)
+        clipped_x_min = max(window_x_min, decision_x_min)
+        clipped_x_max = min(window_x_max, decision_x_max)
+        if clipped_x_min < clipped_x_max:
+            clipped_focus_window = {"xmin": clipped_x_min, "xmax": clipped_x_max}
     for index, series in enumerate(decision_series):
         decision_axes.plot(
             series["x"],
@@ -3329,8 +3347,16 @@ def _render_python_binary_calibration_decision_curve_panel(
             color="#8c97a5",
             label=str(line.get("label") or ""),
         )
-    decision_axes.set_xlim(min(decision_x_values), max(decision_x_values))
+    decision_axes.set_xlim(decision_x_min, decision_x_max)
     decision_axes.set_ylim(min(decision_y_values) * 1.08, max(decision_y_values) * 1.08)
+    if clipped_focus_window is not None:
+        decision_axes.axvspan(
+            clipped_focus_window["xmin"],
+            clipped_focus_window["xmax"],
+            color="#e7e1d8",
+            alpha=0.35,
+            zorder=0,
+        )
     decision_axes.set_xlabel(
         str(display_payload.get("decision_x_label") or "").strip(),
         fontsize=11,
@@ -3343,8 +3369,10 @@ def _render_python_binary_calibration_decision_curve_panel(
         fontweight="bold",
         color="#13293d",
     )
-    if isinstance(focus_window, dict):
-        decision_title = f"Decision curve (thresholds {focus_window['xmin']:.2f}-{focus_window['xmax']:.2f})"
+    if clipped_focus_window is not None:
+        decision_title = (
+            f"Decision curve (thresholds {clipped_focus_window['xmin']:.2f}-{clipped_focus_window['xmax']:.2f})"
+        )
     else:
         decision_title = "Decision curve"
     decision_axes.set_title(decision_title, fontsize=11, fontweight="bold", color="#334155")
@@ -3360,7 +3388,9 @@ def _render_python_binary_calibration_decision_curve_panel(
             handles.append(handle)
             labels.append(label)
     legend = fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.02), ncol=3, frameon=False)
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.84, bottom=0.22, wspace=0.22)
+    title_line_count = wrapped_title.count("\n") + 1 if wrapped_title else 1
+    top_margin = max(0.74, 0.84 - 0.05 * (title_line_count - 1))
+    fig.subplots_adjust(left=0.10, right=0.98, top=top_margin, bottom=0.22, wspace=0.22)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
 
@@ -3372,16 +3402,22 @@ def _render_python_binary_calibration_decision_curve_panel(
             box_type="legend",
         )
     ]
-    if isinstance(focus_window, dict):
+    if clipped_focus_window is not None:
         y_min, y_max = decision_axes.get_ylim()
+        x_padding = max((decision_x_max - decision_x_min) * 1e-6, 1e-9)
+        y_padding = max((y_max - y_min) * 1e-6, 1e-9)
+        focus_box_x0 = max(clipped_focus_window["xmin"], decision_x_min + x_padding)
+        focus_box_x1 = min(clipped_focus_window["xmax"], decision_x_max - x_padding)
+        focus_box_y0 = y_min + y_padding
+        focus_box_y1 = y_max - y_padding
         guide_boxes.append(
             _data_box_to_layout_box(
                 axes=decision_axes,
                 figure=fig,
-                x0=float(focus_window["xmin"]),
-                y0=float(y_min),
-                x1=float(focus_window["xmax"]),
-                y1=float(y_max),
+                x0=focus_box_x0,
+                y0=float(focus_box_y0),
+                x1=focus_box_x1,
+                y1=float(focus_box_y1),
                 box_id="decision_focus_window",
                 box_type="focus_window",
             )
@@ -3455,7 +3491,7 @@ def _render_python_binary_calibration_decision_curve_panel(
                 "calibration_reference_line": calibration_reference_line,
                 "decision_series": decision_series,
                 "decision_reference_lines": decision_reference_lines,
-                "decision_focus_window": focus_window,
+                "decision_focus_window": clipped_focus_window,
             },
         },
     )
@@ -3486,8 +3522,14 @@ def _render_python_model_complexity_audit_panel(
     figure_height = max(7.2, 2.2 * max(len(metric_panels), len(audit_panels)))
     fig = plt.figure(figsize=(10.8, figure_height))
     fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
+    wrapped_title = textwrap.fill(
         str(display_payload.get("title") or "").strip(),
+        width=max(44, int(fig.get_figwidth() * 6.0)),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    title_artist = fig.suptitle(
+        wrapped_title,
         fontsize=12.5,
         fontweight="bold",
         color="#13293d",
@@ -3621,7 +3663,9 @@ def _render_python_model_complexity_audit_panel(
         axes_item.set_xlim(0.0, max(values) * 1.18)
         _apply_publication_axes_style(axes_item)
 
-    fig.subplots_adjust(left=0.13, right=0.98, top=0.88, bottom=0.08)
+    title_line_count = wrapped_title.count("\n") + 1 if wrapped_title else 1
+    top_margin = max(0.78, 0.88 - 0.05 * (title_line_count - 1))
+    fig.subplots_adjust(left=0.13, right=0.98, top=top_margin, bottom=0.08)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
 

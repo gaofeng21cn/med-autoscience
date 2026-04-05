@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -78,6 +80,14 @@ def _load_json_if_exists(path: Path) -> dict[str, Any]:
     return _load_json(path)
 
 
+def _load_first_existing_json(*candidate_paths: Path) -> tuple[Path, dict[str, Any]]:
+    for path in candidate_paths:
+        if path.exists():
+            return path, _load_json(path)
+    joined_paths = ", ".join(str(path) for path in candidate_paths)
+    raise FileNotFoundError(f"missing required JSON source; checked: {joined_paths}")
+
+
 def _resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
     candidate = Path(str(raw_path).strip())
     if candidate.is_absolute():
@@ -144,7 +154,7 @@ def _maybe_load_catalog_entry(
 ) -> dict[str, Any] | None:
     try:
         return _load_catalog_entry(paper_root=paper_root, catalog_kind=catalog_kind, target_id=target_id)
-    except ValueError:
+    except (FileNotFoundError, ValueError):
         return None
 
 
@@ -188,6 +198,13 @@ def _require_source_path_by_name(*, paths: list[Path], filename: str) -> Path:
         if path.name == filename:
             return path
     raise ValueError(f"missing required source file `{filename}` in catalog source_paths")
+
+
+def _find_source_path_by_name(*, paths: list[Path], filename: str) -> Path | None:
+    for path in paths:
+        if path.name == filename:
+            return path
+    return None
 
 
 def _parse_float(raw_value: object, *, label: str) -> float:
@@ -328,6 +345,26 @@ def _validation_contract_line(source_payload: dict[str, Any]) -> dict[str, str] 
     }
 
 
+_PUBLICATION_SAFE_MODEL_HIERARCHY_LABELS: dict[str, str] = {
+    "Preoperative Core Model": "Core preoperative model",
+    "Clinical Utility Model": "Clinically informed preoperative model",
+    "Pathology-Augmented Model": "Pathology-extended comparison",
+    "Elastic-Net Benchmark": "Elastic-net comparison",
+    "Random-Forest Benchmark": "Random-forest comparison",
+}
+
+
+def _publication_safe_cohort_text(text: object) -> str:
+    return medical_surface_policy.rewrite_publication_safe_text(str(text or "").strip())
+
+
+def _publication_safe_model_hierarchy_label(label: object) -> str:
+    normalized = str(label or "").strip()
+    if not normalized:
+        return ""
+    return _PUBLICATION_SAFE_MODEL_HIERARCHY_LABELS.get(normalized, _publication_safe_cohort_text(normalized))
+
+
 def _sync_cohort_flow_payload(
     *,
     source_payload: dict[str, Any],
@@ -370,7 +407,7 @@ def _sync_cohort_flow_payload(
                 {
                     "panel_id": "validation_contract",
                     "layout_role": "wide_top",
-                    "title": "Validation contract",
+                    "title": "Validation design",
                     "lines": [validation_line],
                 }
             )
@@ -380,9 +417,9 @@ def _sync_cohort_flow_payload(
             for item in model_hierarchy:
                 if not isinstance(item, dict):
                     continue
-                label = str(item.get("label") or "").strip()
-                role = str(item.get("role") or "").strip()
-                surface = str(item.get("surface") or "").strip()
+                label = _publication_safe_model_hierarchy_label(item.get("label"))
+                role = _publication_safe_cohort_text(item.get("role"))
+                surface = _publication_safe_cohort_text(item.get("surface"))
                 detail = "; ".join(part for part in (role, surface) if part)
                 if label:
                     lines.append({"label": label, "detail": detail})
@@ -391,7 +428,7 @@ def _sync_cohort_flow_payload(
                     {
                         "panel_id": "model_hierarchy",
                         "layout_role": "right_bottom",
-                        "title": "Model hierarchy",
+                        "title": "Model comparison frame",
                         "lines": lines,
                     }
                 )
@@ -415,7 +452,7 @@ def _sync_cohort_flow_payload(
         title = "Cohort derivation, endpoint inventory, and score-construction design"
         caption = (
             "Unified Figure 1 shell covering cohort restriction, manuscript endpoint inventory, and study-design "
-            "sidecars required for manuscript-safe population accounting."
+            "panels required for manuscript-safe population accounting."
         )
         steps = [
             {
@@ -485,7 +522,7 @@ def _sync_cohort_flow_payload(
                     {
                         "panel_id": "score_definition",
                         "layout_role": "wide_top",
-                        "title": "Score-construction contract",
+                        "title": "Score-construction design",
                         "lines": lines,
                     }
                 )
@@ -495,10 +532,30 @@ def _sync_cohort_flow_payload(
                 {
                     "panel_id": "validation_contract",
                     "layout_role": "left_bottom",
-                    "title": "Validation contract",
+                    "title": "Validation design",
                     "lines": [validation_line],
                 }
             )
+
+    title = _publication_safe_cohort_text(title)
+    caption = _publication_safe_cohort_text(caption)
+    design_panels = [
+        {
+            **panel,
+            "title": _publication_safe_cohort_text(panel.get("title")),
+            "lines": [
+                {
+                    **line,
+                    "label": _publication_safe_cohort_text(line.get("label")),
+                    "detail": _publication_safe_cohort_text(line.get("detail")),
+                }
+                for line in panel.get("lines", [])
+                if isinstance(line, dict)
+            ],
+        }
+        for panel in design_panels
+        if isinstance(panel, dict)
+    ]
 
     return {
         "schema_version": 1,
@@ -576,6 +633,11 @@ _PHASE_C_MODEL_LABELS: dict[str, str] = {
     "treat_none": "Treat none",
 }
 
+_PHASE_C_MODEL_IDS_BY_LABEL: dict[str, str] = {
+    str(label).strip().lower(): model_id
+    for model_id, label in _PHASE_C_MODEL_LABELS.items()
+}
+
 _PHASE_C_FEATURE_LABELS: dict[str, str] = {
     "age": "Age",
     "diameter": "Tumor diameter",
@@ -596,6 +658,18 @@ def _model_label(model_id: str, fallback: str = "") -> str:
 def _feature_label(feature_id: str) -> str:
     normalized = str(feature_id).strip()
     return _PHASE_C_FEATURE_LABELS.get(normalized, normalized.replace("_", " ").strip().title())
+
+
+def _canonical_model_id(raw_value: object) -> str:
+    normalized = str(raw_value or "").strip()
+    if not normalized:
+        raise ValueError("model label must be non-empty")
+    if normalized in _PHASE_C_MODEL_ORDER:
+        return normalized
+    by_label = _PHASE_C_MODEL_IDS_BY_LABEL.get(normalized.lower())
+    if by_label:
+        return by_label
+    raise ValueError(f"unsupported phase-c model label `{normalized}`")
 
 
 def _ordered_model_ids(model_ids: set[str]) -> list[str]:
@@ -717,6 +791,78 @@ def _normalize_metrics_summary(metrics_summary: dict[str, Any]) -> dict[str, Any
             if isinstance(metric_payload, dict)
         ]
     }
+
+
+def _normalize_metric_column_name(raw_label: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(raw_label).strip().lower()).strip()
+    metric_aliases = {
+        "auroc": "roc_auc",
+        "area under the receiver operating characteristic curve": "roc_auc",
+        "auprc": "average_precision",
+        "area under the precision recall curve": "average_precision",
+        "average precision": "average_precision",
+        "brier score": "brier_score",
+        "calibration intercept": "calibration_intercept",
+        "calibration slope": "calibration_slope",
+    }
+    return metric_aliases.get(normalized, normalized.replace(" ", "_"))
+
+
+def _build_metrics_summary_from_performance_table(*, header: list[str], rows: list[list[str]]) -> dict[str, Any]:
+    if len(header) < 2:
+        raise ValueError("performance summary table must include a model column plus metrics")
+    column_index = {
+        _normalize_metric_column_name(label): index
+        for index, label in enumerate(header)
+        if index > 0
+    }
+    required_metric_keys = (
+        "roc_auc",
+        "average_precision",
+        "brier_score",
+        "calibration_intercept",
+        "calibration_slope",
+    )
+    missing_metric_keys = [key for key in required_metric_keys if key not in column_index]
+    if missing_metric_keys:
+        missing = ", ".join(missing_metric_keys)
+        raise ValueError(f"performance summary table missing required metric columns: {missing}")
+    model_metrics: list[dict[str, Any]] = []
+    for row in rows:
+        if not row:
+            continue
+        model_id = _canonical_model_id(row[0])
+        model_metrics.append(
+            {
+                "model_id": model_id,
+                "model_label": _model_label(model_id, fallback=row[0]),
+                **{metric_key: row[column_index[metric_key]] for metric_key in required_metric_keys},
+            }
+        )
+    if not model_metrics:
+        raise ValueError("performance summary table must include at least one model row")
+    return {"model_metrics": model_metrics}
+
+
+def _resolve_phase_c_performance_table_path(*, study_root: Path, paper_root: Path) -> Path:
+    study_table2_path = study_root / "artifacts" / "final" / "tables" / "Table2.csv"
+    if study_table2_path.exists():
+        return study_table2_path
+    table2_entry = _maybe_load_catalog_entry(paper_root=paper_root, catalog_kind="table", target_id="Table2")
+    if table2_entry is None:
+        raise ValueError("missing required table catalog entry: Table2")
+    resolved_paths = _resolved_catalog_source_paths(paper_root=paper_root, catalog_entry=table2_entry)
+    for filename in ("Table2.csv", "T2_main_metrics.csv"):
+        matched = _find_source_path_by_name(paths=resolved_paths, filename=filename)
+        if matched is not None:
+            return matched
+    csv_paths = [path for path in resolved_paths if path.suffix.lower() == ".csv"]
+    if len(csv_paths) == 1:
+        return csv_paths[0]
+    if len(csv_paths) > 1:
+        joined_paths = ", ".join(str(path) for path in csv_paths)
+        raise ValueError(f"ambiguous Table2 CSV sources: {joined_paths}")
+    raise ValueError("missing required Table2 CSV source")
 
 
 def _maybe_binding(*, registry_payload: dict[str, Any], requirement_key: str) -> dict[str, str] | None:
@@ -1174,7 +1320,12 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
         requirement_key="grouped_risk_event_summary_table",
     )
 
-    cohort_source = _load_json(resolved_study_root / "paper" / "derived" / "cohort_flow.json")
+    cohort_source_path, cohort_source = _load_first_existing_json(
+        resolved_study_root / "paper" / "derived" / "cohort_flow.json",
+        resolved_study_root / "paper" / "derived" / "study_design_cohort_flow.json",
+        resolved_paper_root / "derived" / "cohort_flow.json",
+        resolved_paper_root / "derived" / "study_design_cohort_flow.json",
+    )
     table_header, table_rows = _load_csv_rows(resolved_study_root / "artifacts" / "final" / "tables" / "Table1.csv")
     existing_cohort_payload = _load_json(resolved_paper_root / "cohort_flow.json")
     existing_table_payload = _load_json(resolved_paper_root / "baseline_characteristics_schema.json")
@@ -1200,7 +1351,7 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
 
     written_files = [str(cohort_path), str(table_path)]
     source_paths: dict[str, object] = {
-        "cohort_flow_source": str(resolved_study_root / "paper" / "derived" / "cohort_flow.json"),
+        "cohort_flow_source": str(cohort_source_path),
         "table1_source": str(resolved_study_root / "artifacts" / "final" / "tables" / "Table1.csv"),
     }
 
@@ -1208,117 +1359,197 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
         figure2_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure2")
         score_risk_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "score_risk_table.csv"
         grouped_risk_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "grouped_risk_table.csv"
+        existing_risk_layering_payload = _load_json_if_exists(resolved_paper_root / "risk_layering_monotonic_inputs.json")
+        risk_layering_sources: list[str]
         score_rows: list[dict[str, str]]
         grouped_rows: list[dict[str, str]]
         left_panel_title = "Score bands"
         left_x_label = "Simple score"
         right_panel_title = "Grouped follow-up strata"
         right_x_label = "Grouped risk"
+        risk_layering_payload: dict[str, Any] | None = None
         if score_risk_path.exists() and grouped_risk_path.exists():
             score_rows = _load_csv_records(score_risk_path)
             grouped_rows = _load_csv_records(grouped_risk_path)
+            risk_layering_sources = [str(score_risk_path), str(grouped_risk_path)]
         else:
-            resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure2_entry)
-            risk_stratification_path = _require_source_path_by_name(paths=resolved_paths, filename="risk_stratification.csv")
-            summary_path = _require_source_path_by_name(paths=resolved_paths, filename="summary.json")
-            risk_rows = _load_csv_records(risk_stratification_path)
-            summary_payload = _load_json(summary_path)
-            available_model_ids = {
-                str(row.get("model") or row.get("model_id") or "").strip()
-                for row in risk_rows
-                if str(row.get("model") or row.get("model_id") or "").strip()
-            }
-            primary_model_id, comparator_model_id = _select_story_models(
-                available_model_ids=available_model_ids,
-                summary_payload=summary_payload,
+            try:
+                resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure2_entry)
+                risk_stratification_path = _require_source_path_by_name(paths=resolved_paths, filename="risk_stratification.csv")
+                summary_path = _require_source_path_by_name(paths=resolved_paths, filename="summary.json")
+                risk_rows = _load_csv_records(risk_stratification_path)
+                summary_payload = _load_json(summary_path)
+                available_model_ids = {
+                    str(row.get("model") or row.get("model_id") or "").strip()
+                    for row in risk_rows
+                    if str(row.get("model") or row.get("model_id") or "").strip()
+                }
+                primary_model_id, comparator_model_id = _select_story_models(
+                    available_model_ids=available_model_ids,
+                    summary_payload=summary_payload,
+                )
+                if primary_model_id is None or comparator_model_id is None:
+                    raise ValueError("risk stratification source must include at least one model")
+                score_rows = _build_story_group_rows(risk_rows=risk_rows, model_id=comparator_model_id)
+                grouped_rows = _build_story_group_rows(risk_rows=risk_rows, model_id=primary_model_id)
+                left_panel_title = "Core preoperative comparator"
+                left_x_label = "Predicted-risk tertile"
+                right_panel_title = "Clinically informed model"
+                right_x_label = "Predicted-risk tertile"
+                risk_layering_sources = [str(risk_stratification_path), str(summary_path)]
+            except (FileNotFoundError, ValueError):
+                if not existing_risk_layering_payload:
+                    raise
+                risk_layering_payload = existing_risk_layering_payload
+                risk_layering_sources = [str(resolved_paper_root / "risk_layering_monotonic_inputs.json")]
+        if risk_layering_payload is None:
+            risk_layering_payload = _sync_risk_layering_payload(
+                score_rows=score_rows,
+                grouped_rows=grouped_rows,
+                existing_payload=existing_risk_layering_payload,
+                display_id=risk_layering_binding["display_id"],
+                catalog_id=risk_layering_binding["catalog_id"],
+                title=str((figure2_entry or {}).get("title") or "Monotonic risk layering of the 3-month endocrine burden score").strip(),
+                left_panel_title=left_panel_title,
+                left_x_label=left_x_label,
+                right_panel_title=right_panel_title,
+                right_x_label=right_x_label,
             )
-            if primary_model_id is None or comparator_model_id is None:
-                raise ValueError("risk stratification source must include at least one model")
-            score_rows = _build_story_group_rows(risk_rows=risk_rows, model_id=comparator_model_id)
-            grouped_rows = _build_story_group_rows(risk_rows=risk_rows, model_id=primary_model_id)
-            left_panel_title = "Core preoperative comparator"
-            left_x_label = "Predicted-risk tertile"
-            right_panel_title = "Clinically informed model"
-            right_x_label = "Predicted-risk tertile"
-        risk_layering_payload = _sync_risk_layering_payload(
-            score_rows=score_rows,
-            grouped_rows=grouped_rows,
-            existing_payload=_load_json_if_exists(resolved_paper_root / "risk_layering_monotonic_inputs.json"),
-            display_id=risk_layering_binding["display_id"],
-            catalog_id=risk_layering_binding["catalog_id"],
-            title=str((figure2_entry or {}).get("title") or "Monotonic risk layering of the 3-month endocrine burden score").strip(),
-            left_panel_title=left_panel_title,
-            left_x_label=left_x_label,
-            right_panel_title=right_panel_title,
-            right_x_label=right_x_label,
-        )
         risk_layering_path = resolved_paper_root / "risk_layering_monotonic_inputs.json"
         _write_json(risk_layering_path, risk_layering_payload)
         written_files.append(str(risk_layering_path))
-        source_paths["risk_layering_sources"] = [str(path) for path in {score_risk_path, grouped_risk_path} if path.exists()]
+        source_paths["risk_layering_sources"] = risk_layering_sources
 
     if binary_calibration_binding is not None:
+        figure2_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure2")
         figure3_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure3")
         calibration_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "calibration_curve.csv"
         decision_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "decision_curve.csv"
+        existing_binary_payload = _load_json_if_exists(resolved_paper_root / "binary_calibration_decision_curve_panel_inputs.json")
+        binary_calibration_sources: list[str]
         if not calibration_path.exists() or not decision_path.exists():
-            resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure2_entry)
-            calibration_path = _require_source_path_by_name(paths=resolved_paths, filename="calibration_curve.csv")
-            decision_path = _require_source_path_by_name(paths=resolved_paths, filename="decision_curve.csv")
-        binary_calibration_payload = _sync_binary_calibration_decision_curve_payload(
-            calibration_rows=_load_csv_records(calibration_path),
-            decision_rows=_load_csv_records(decision_path),
-            existing_payload=_load_json_if_exists(resolved_paper_root / "binary_calibration_decision_curve_panel_inputs.json"),
-            display_id=binary_calibration_binding["display_id"],
-            catalog_id=binary_calibration_binding["catalog_id"],
-            title=str((figure3_entry or {}).get("title") or "Calibration and decision-curve comparison of the candidate packages").strip(),
-        )
+            try:
+                resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure3_entry)
+                calibration_path = _require_source_path_by_name(paths=resolved_paths, filename="calibration_curve.csv")
+                decision_path = _require_source_path_by_name(paths=resolved_paths, filename="decision_curve.csv")
+            except (FileNotFoundError, ValueError):
+                try:
+                    fallback_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure2_entry)
+                    calibration_path = _require_source_path_by_name(paths=fallback_paths, filename="calibration_curve.csv")
+                    decision_path = _require_source_path_by_name(paths=fallback_paths, filename="decision_curve.csv")
+                except (FileNotFoundError, ValueError):
+                    if not existing_binary_payload:
+                        raise
+                    binary_calibration_payload = existing_binary_payload
+                    binary_calibration_sources = [str(resolved_paper_root / "binary_calibration_decision_curve_panel_inputs.json")]
+                else:
+                    binary_calibration_payload = _sync_binary_calibration_decision_curve_payload(
+                        calibration_rows=_load_csv_records(calibration_path),
+                        decision_rows=_load_csv_records(decision_path),
+                        existing_payload=existing_binary_payload,
+                        display_id=binary_calibration_binding["display_id"],
+                        catalog_id=binary_calibration_binding["catalog_id"],
+                        title=str(
+                            (figure3_entry or {}).get("title")
+                            or "Calibration and decision-curve comparison of the candidate packages"
+                        ).strip(),
+                    )
+                    binary_calibration_sources = [str(calibration_path), str(decision_path)]
+            else:
+                binary_calibration_payload = _sync_binary_calibration_decision_curve_payload(
+                    calibration_rows=_load_csv_records(calibration_path),
+                    decision_rows=_load_csv_records(decision_path),
+                    existing_payload=existing_binary_payload,
+                    display_id=binary_calibration_binding["display_id"],
+                    catalog_id=binary_calibration_binding["catalog_id"],
+                    title=str(
+                        (figure3_entry or {}).get("title") or "Calibration and decision-curve comparison of the candidate packages"
+                    ).strip(),
+                )
+                binary_calibration_sources = [str(calibration_path), str(decision_path)]
+        else:
+            binary_calibration_payload = _sync_binary_calibration_decision_curve_payload(
+                calibration_rows=_load_csv_records(calibration_path),
+                decision_rows=_load_csv_records(decision_path),
+                existing_payload=existing_binary_payload,
+                display_id=binary_calibration_binding["display_id"],
+                catalog_id=binary_calibration_binding["catalog_id"],
+                title=str((figure3_entry or {}).get("title") or "Calibration and decision-curve comparison of the candidate packages").strip(),
+            )
+            binary_calibration_sources = [str(calibration_path), str(decision_path)]
         binary_calibration_path = resolved_paper_root / "binary_calibration_decision_curve_panel_inputs.json"
         _write_json(binary_calibration_path, binary_calibration_payload)
         written_files.append(str(binary_calibration_path))
-        source_paths["binary_calibration_decision_curve_sources"] = [str(calibration_path), str(decision_path)]
+        source_paths["binary_calibration_decision_curve_sources"] = binary_calibration_sources
 
     if model_complexity_binding is not None:
+        figure3_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure3")
         figure4_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure4")
         metrics_summary_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "metrics_summary.json"
         coefficient_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "coefficient_summary.csv"
         feature_importance_path = resolved_study_root / "artifacts" / "run1_followup_stratifier" / "feature_importance_summary.csv"
-        if not metrics_summary_path.exists() or not coefficient_path.exists() or not feature_importance_path.exists():
-            resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure3_entry)
-            metrics_summary_path = _require_source_path_by_name(paths=resolved_paths, filename="metrics.json")
-            coefficient_path = _require_source_path_by_name(
-                paths=resolved_paths,
-                filename="clinical_utility_model_coefficient_stability.csv",
+        figure3_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure3_entry)
+        existing_model_complexity_payload = _load_json_if_exists(resolved_paper_root / "model_complexity_audit_panel_inputs.json")
+        model_complexity_sources: list[str]
+        try:
+            if metrics_summary_path.exists():
+                metrics_summary_payload = _load_json(metrics_summary_path)
+                metrics_source_path = metrics_summary_path
+            else:
+                legacy_metrics_path = _find_source_path_by_name(paths=figure3_paths, filename="metrics.json")
+                if legacy_metrics_path is not None:
+                    metrics_summary_payload = _load_json(legacy_metrics_path)
+                    metrics_source_path = legacy_metrics_path
+                else:
+                    metrics_source_path = _resolve_phase_c_performance_table_path(
+                        study_root=resolved_study_root,
+                        paper_root=resolved_paper_root,
+                    )
+                    metrics_header, metrics_rows = _load_csv_rows(metrics_source_path)
+                    metrics_summary_payload = _build_metrics_summary_from_performance_table(
+                        header=metrics_header,
+                        rows=metrics_rows,
+                    )
+            if not coefficient_path.exists():
+                coefficient_path = _require_source_path_by_name(
+                    paths=figure3_paths,
+                    filename="clinical_utility_model_coefficient_stability.csv",
+                )
+            if not feature_importance_path.exists():
+                feature_importance_path = _require_source_path_by_name(
+                    paths=figure3_paths,
+                    filename="clinical_utility_model_domain_summary.csv",
+                )
+            model_complexity_payload = _sync_model_complexity_audit_payload(
+                metrics_summary=metrics_summary_payload,
+                coefficient_rows=_load_csv_records(coefficient_path),
+                feature_importance_rows=_load_csv_records(feature_importance_path),
+                existing_payload=existing_model_complexity_payload,
+                display_id=model_complexity_binding["display_id"],
+                catalog_id=model_complexity_binding["catalog_id"],
+                title=str((figure4_entry or {}).get("title") or "Unified model comparison and comparative model assessment").strip(),
             )
-            feature_importance_path = _require_source_path_by_name(
-                paths=resolved_paths,
-                filename="clinical_utility_model_domain_summary.csv",
-            )
-        model_complexity_payload = _sync_model_complexity_audit_payload(
-            metrics_summary=_load_json(metrics_summary_path),
-            coefficient_rows=_load_csv_records(coefficient_path),
-            feature_importance_rows=_load_csv_records(feature_importance_path),
-            existing_payload=_load_json_if_exists(resolved_paper_root / "model_complexity_audit_panel_inputs.json"),
-            display_id=model_complexity_binding["display_id"],
-            catalog_id=model_complexity_binding["catalog_id"],
-            title=str((figure4_entry or {}).get("title") or "Unified model comparison and comparative model assessment").strip(),
-        )
+            model_complexity_sources = [
+                str(metrics_source_path),
+                str(coefficient_path),
+                str(feature_importance_path),
+            ]
+        except (FileNotFoundError, ValueError):
+            if not existing_model_complexity_payload:
+                raise
+            model_complexity_payload = existing_model_complexity_payload
+            model_complexity_sources = [str(resolved_paper_root / "model_complexity_audit_panel_inputs.json")]
         model_complexity_path = resolved_paper_root / "model_complexity_audit_panel_inputs.json"
         _write_json(model_complexity_path, model_complexity_payload)
         written_files.append(str(model_complexity_path))
-        source_paths["model_complexity_audit_sources"] = [
-            str(metrics_summary_path),
-            str(coefficient_path),
-            str(feature_importance_path),
-        ]
+        source_paths["model_complexity_audit_sources"] = model_complexity_sources
 
     if generic_performance_binding is not None:
         table2_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="table", target_id="Table2")
-        table2_csv_path = resolved_study_root / "artifacts" / "final" / "tables" / "Table2.csv"
-        if not table2_csv_path.exists():
-            if table2_entry is None:
-                raise ValueError("missing required table catalog entry: Table2")
-            table2_csv_path = _resolve_paper_relative_path(resolved_paper_root, str(table2_entry.get("csv_path") or ""))
+        table2_csv_path = _resolve_phase_c_performance_table_path(
+            study_root=resolved_study_root,
+            paper_root=resolved_paper_root,
+        )
         generic_header, generic_rows = _load_csv_rows(table2_csv_path)
         generic_performance_payload = _sync_generic_performance_table_payload(
             header=generic_header,
@@ -1334,9 +1565,13 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
         source_paths["performance_summary_table_source"] = str(table2_csv_path)
 
     if grouped_risk_event_binding is not None:
+        figure2_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure2")
+        figure4_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="figure", target_id="Figure4")
         table3_entry = _maybe_load_catalog_entry(paper_root=resolved_paper_root, catalog_kind="table", target_id="Table3")
         table3_csv_path = resolved_study_root / "artifacts" / "final" / "tables" / "Table3.csv"
-        grouped_risk_event_payload: dict[str, Any]
+        existing_grouped_risk_payload = _load_json_if_exists(resolved_paper_root / "grouped_risk_event_summary_table.json")
+        grouped_risk_event_payload: dict[str, Any] | None = None
+        grouped_risk_event_source = ""
         if not table3_csv_path.exists() and table3_entry is not None:
             fallback_table3_csv = str(table3_entry.get("csv_path") or "").strip()
             if fallback_table3_csv:
@@ -1347,67 +1582,74 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
                 grouped_risk_event_payload = _sync_grouped_risk_event_table_payload(
                     header=grouped_header,
                     rows=grouped_rows,
-                    existing_payload=_load_json_if_exists(resolved_paper_root / "grouped_risk_event_summary_table.json"),
+                    existing_payload=existing_grouped_risk_payload,
                     display_id=grouped_risk_event_binding["display_id"],
                     catalog_id=grouped_risk_event_binding["catalog_id"],
                     title=str((table3_entry or {}).get("title") or "Event rates across the simple-score and grouped-risk surfaces").strip(),
                 )
+                grouped_risk_event_source = str(table3_csv_path)
             else:
-                table3_csv_path = Path()
-        if not table3_csv_path.exists():
-            resolved_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure4_entry)
-            risk_stratification_path = _require_source_path_by_name(paths=resolved_paths, filename="risk_stratification.csv")
-            summary_path = _require_source_path_by_name(paths=resolved_paths, filename="summary.json")
-            risk_rows = _load_csv_records(risk_stratification_path)
-            summary_payload = _load_json(summary_path)
-            available_model_ids = {
-                str(row.get("model") or row.get("model_id") or "").strip()
-                for row in risk_rows
-                if str(row.get("model") or row.get("model_id") or "").strip()
-            }
-            primary_model_id, comparator_model_id = _select_story_models(
-                available_model_ids=available_model_ids,
-                summary_payload=summary_payload,
-            )
-            if primary_model_id is None or comparator_model_id is None:
-                raise ValueError("grouped risk source must include at least one model")
-            grouped_story_rows: list[list[str]] = []
-            for model_id in (comparator_model_id, primary_model_id):
-                for row in _build_story_group_rows(risk_rows=risk_rows, model_id=model_id):
-                    grouped_story_rows.append(
-                        [
-                            _model_label(model_id),
-                            _feature_label(str(row.get("risk_group") or "").strip()),
-                            str(row.get("n") or "").strip(),
-                            str(row.get("non_gtr_events") or row.get("events") or "").strip(),
-                            _format_percent(
-                                _parse_float(
-                                    row.get("observed_non_gtr_rate") or row.get("risk_rate"),
-                                    label="risk_stratification.observed_non_gtr_rate",
-                                )
-                            ),
-                        ]
-                    )
-            grouped_risk_event_payload = _sync_grouped_risk_event_table_payload(
-                header=["Surface", "Stratum", "Cases", "Events", "Risk of later persistent global hypopituitarism"],
-                rows=grouped_story_rows,
-                existing_payload=_load_json_if_exists(resolved_paper_root / "grouped_risk_event_summary_table.json"),
-                display_id=grouped_risk_event_binding["display_id"],
-                catalog_id=grouped_risk_event_binding["catalog_id"],
-                title=str((table3_entry or {}).get("title") or "Grouped risk-event summary").strip(),
-            )
+                table3_csv_path = None
+        if grouped_risk_event_payload is None:
+            try:
+                figure4_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure4_entry)
+                figure2_paths = _resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure2_entry)
+                risk_stratification_path = _find_source_path_by_name(paths=figure4_paths, filename="risk_stratification.csv")
+                if risk_stratification_path is None:
+                    risk_stratification_path = _require_source_path_by_name(paths=figure2_paths, filename="risk_stratification.csv")
+                summary_path = _find_source_path_by_name(paths=figure4_paths, filename="summary.json")
+                if summary_path is None:
+                    summary_path = _find_source_path_by_name(paths=figure2_paths, filename="summary.json")
+                if summary_path is None:
+                    raise ValueError("missing required source file `summary.json` in Figure2/Figure4 catalog source_paths")
+                risk_rows = _load_csv_records(risk_stratification_path)
+                summary_payload = _load_json(summary_path)
+                available_model_ids = {
+                    str(row.get("model") or row.get("model_id") or "").strip()
+                    for row in risk_rows
+                    if str(row.get("model") or row.get("model_id") or "").strip()
+                }
+                primary_model_id, comparator_model_id = _select_story_models(
+                    available_model_ids=available_model_ids,
+                    summary_payload=summary_payload,
+                )
+                if primary_model_id is None or comparator_model_id is None:
+                    raise ValueError("grouped risk source must include at least one model")
+                grouped_story_rows: list[list[str]] = []
+                for model_id in (comparator_model_id, primary_model_id):
+                    for row in _build_story_group_rows(risk_rows=risk_rows, model_id=model_id):
+                        grouped_story_rows.append(
+                            [
+                                _model_label(model_id),
+                                _feature_label(str(row.get("risk_group") or "").strip()),
+                                str(row.get("n") or "").strip(),
+                                str(row.get("non_gtr_events") or row.get("events") or "").strip(),
+                                _format_percent(
+                                    _parse_float(
+                                        row.get("observed_non_gtr_rate") or row.get("risk_rate"),
+                                        label="risk_stratification.observed_non_gtr_rate",
+                                    )
+                                ),
+                            ]
+                        )
+                grouped_risk_event_payload = _sync_grouped_risk_event_table_payload(
+                    header=["Surface", "Stratum", "Cases", "Events", "Risk of later persistent global hypopituitarism"],
+                    rows=grouped_story_rows,
+                    existing_payload=existing_grouped_risk_payload,
+                    display_id=grouped_risk_event_binding["display_id"],
+                    catalog_id=grouped_risk_event_binding["catalog_id"],
+                    title=str((table3_entry or {}).get("title") or "Grouped risk-event summary").strip(),
+                )
+                grouped_risk_event_source = str(risk_stratification_path)
+            except (FileNotFoundError, ValueError):
+                if not existing_grouped_risk_payload:
+                    raise
+                grouped_risk_event_payload = existing_grouped_risk_payload
+                grouped_risk_event_source = str(resolved_paper_root / "grouped_risk_event_summary_table.json")
         grouped_risk_event_path = resolved_paper_root / "grouped_risk_event_summary_table.json"
         _write_json(grouped_risk_event_path, grouped_risk_event_payload)
         written_files.append(str(grouped_risk_event_path))
-        if table3_csv_path.exists():
-            source_paths["grouped_risk_event_table_source"] = str(table3_csv_path)
-        else:
-            source_paths["grouped_risk_event_table_source"] = str(
-                _require_source_path_by_name(
-                    paths=_resolved_catalog_source_paths(paper_root=resolved_paper_root, catalog_entry=figure4_entry),
-                    filename="risk_stratification.csv",
-                )
-            )
+        source_paths["grouped_risk_event_table_source"] = grouped_risk_event_source or str(grouped_risk_event_path)
 
     report_path = resolved_paper_root / "direct_migration" / "publication_shell_sync_report.json"
     report = {
