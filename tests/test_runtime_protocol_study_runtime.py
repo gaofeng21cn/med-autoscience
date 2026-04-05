@@ -292,6 +292,36 @@ def test_build_hydration_payload_returns_protocol_surface() -> None:
     }
 
 
+def test_runtime_escalation_record_path_resolves_to_stable_quest_local_artifact(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+
+    assert module._runtime_escalation_record_path(quest_root) == (
+        quest_root / "artifacts" / "reports" / "runtime" / "escalation_record.json"
+    )
+
+
+def test_write_runtime_escalation_record_persists_typed_protocol_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
+    record = module.RuntimeEscalationRecord(
+        recorded_at="2026-04-05T06:00:00+00:00",
+        quest_root=str(quest_root),
+        reason="startup_boundary_not_ready_for_resume",
+        summary_ref="paper/review/runtime_escalation_summary.md",
+        record_path=None,
+    )
+
+    written = module.write_runtime_escalation_record(quest_root=quest_root, record=record)
+
+    expected_path = quest_root / "artifacts" / "reports" / "runtime" / "escalation_record.json"
+    assert written.record_path == str(expected_path)
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    assert payload == written.to_dict()
+    assert payload["summary_ref"] == "paper/review/runtime_escalation_summary.md"
+    assert "summary" not in payload
+
+
 def test_write_startup_hydration_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"
