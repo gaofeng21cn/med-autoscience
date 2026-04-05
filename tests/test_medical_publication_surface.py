@@ -1561,6 +1561,42 @@ def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: 
     assert len(queue["pending"]) == 1
 
 
+def test_run_controller_apply_autofixes_missing_publication_artifacts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=False,
+        include_methods_manifest=False,
+        include_results_narrative_map=False,
+        include_figure_semantics_manifest=False,
+        include_derived_analysis_manifest=False,
+        include_reproducibility_supplement=False,
+        include_endpoint_provenance_note=False,
+    )
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        daemon_url=None,
+    )
+
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+
+    assert result["status"] == "clear"
+    assert result["blockers"] == []
+    assert result["intervention_enqueued"] is False
+    assert queue["pending"] == []
+    assert (paper_root / "methods_implementation_manifest.json").exists()
+    assert (paper_root / "results_narrative_map.json").exists()
+    assert (paper_root / "figure_semantics_manifest.json").exists()
+    assert (paper_root / "derived_analysis_manifest.json").exists()
+    assert (paper_root / "manuscript_safe_reproducibility_supplement.json").exists()
+    assert (paper_root / "endpoint_provenance_note.md").exists()
+    assert "american-medical-association.csl" in (paper_root / "latex" / "review_defaults.yaml").read_text(encoding="utf-8")
+
+
 def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)

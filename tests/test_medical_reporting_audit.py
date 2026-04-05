@@ -22,6 +22,73 @@ def test_medical_reporting_audit_blocks_missing_cohort_flow_surface(tmp_path: Pa
     assert "missing_reporting_guideline_checklist" in report["blockers"]
 
 
+def test_medical_reporting_audit_apply_writes_reporting_guideline_checklist(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    paper_root = quest_root / "paper"
+    (paper_root / "figures").mkdir(parents=True, exist_ok=True)
+    (paper_root / "tables").mkdir(parents=True, exist_ok=True)
+
+    display_plan = [
+        {
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+        {
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+        },
+    ]
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "TRIPOD",
+                "display_registry_required": True,
+                "display_shell_plan": display_plan,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "display_registry.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_contract_path": "paper/medical_reporting_contract.json",
+                "displays": [
+                    {
+                        **item,
+                        "shell_path": (
+                            f"paper/figures/{item['display_id']}.shell.json"
+                            if item["display_kind"] == "figure"
+                            else f"paper/tables/{item['display_id']}.shell.json"
+                        ),
+                    }
+                    for item in display_plan
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "figures" / "cohort_flow.shell.json").write_text("{}", encoding="utf-8")
+    (paper_root / "tables" / "baseline_characteristics.shell.json").write_text("{}", encoding="utf-8")
+    (paper_root / "cohort_flow.json").write_text("{}", encoding="utf-8")
+    (paper_root / "baseline_characteristics_schema.json").write_text("{}", encoding="utf-8")
+
+    report = module.run_controller(quest_root=quest_root, apply=True)
+
+    checklist = json.loads((paper_root / "reporting_guideline_checklist.json").read_text(encoding="utf-8"))
+    assert report["status"] == "clear"
+    assert report["blockers"] == []
+    assert checklist["reporting_guideline_family"] == "TRIPOD"
+    assert checklist["required_display_count"] == 2
+
+
 def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
