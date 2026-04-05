@@ -1286,6 +1286,51 @@ def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_pa
     excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"] if hit["pattern_id"] == "figure_catalog")
     assert "template_id" in excerpts
 
+
+def test_build_report_ignores_legacy_appendix_entries_for_catalog_contract_validation(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_payload["figures"].insert(
+        0,
+        {
+            "figure_id": "FS1",
+            "paper_role": "supplementary",
+            "title": "Supplementary subgroup summary",
+            "caption": "Contextual subgroup summary for supplementary review.",
+            "export_paths": ["paper/figures/FS1.png"],
+        },
+    )
+    figure_catalog_path.write_text(json.dumps(figure_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table_payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    table_payload["tables"].insert(
+        0,
+        {
+            "table_id": "TA1",
+            "paper_role": "appendix",
+            "title": "Appendix benchmark summary",
+            "caption": "Appendix-only contextual benchmark summary.",
+            "asset_paths": ["paper/tables/TA1.md"],
+        },
+    )
+    table_catalog_path.write_text(json.dumps(table_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "figure_catalog_missing_or_incomplete" not in report["blockers"]
+    assert "table_catalog_missing_or_incomplete" not in report["blockers"]
+
+
 def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -1658,6 +1703,93 @@ def test_run_controller_apply_autofixes_missing_publication_artifacts(tmp_path: 
     assert (paper_root / "manuscript_safe_reproducibility_supplement.json").exists()
     assert (paper_root / "endpoint_provenance_note.md").exists()
     assert "american-medical-association.csl" in (paper_root / "latex" / "review_defaults.yaml").read_text(encoding="utf-8")
+
+
+def test_run_controller_apply_rewrites_publication_surface_and_projects_endpoint_statement(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_endpoint_provenance_note=False,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+
+    draft_text = (
+        "# Draft\n\n"
+        "## Results\n\n"
+        "The expanded information surface remained contextual, and the clinically informed model offered the clearest "
+        "deployment-facing balance of calibration and interpretability.\n"
+    )
+    review_text = (
+        "---\n"
+        'title: "Study title"\n'
+        "---\n\n"
+        "## Methods\n\n"
+        "Point estimates were refreshed from the v2026-03-31 cohort for the primary A0-A1 comparison.\n"
+    )
+    (paper_root / "draft.md").write_text(draft_text, encoding="utf-8")
+    (paper_root / "build" / "review_manuscript.md").write_text(review_text, encoding="utf-8")
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_payload["figures"][0]["caption"] = "Validation contract and contextual surface overview."
+    figure_payload["figures"].insert(
+        0,
+        {
+            "figure_id": "FS1",
+            "paper_role": "supplementary",
+            "title": "Supplementary subgroup summary",
+            "caption": "Contextual subgroup summary for supplementary review.",
+            "export_paths": ["paper/figures/FS1.png"],
+        },
+    )
+    figure_catalog_path.write_text(json.dumps(figure_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    table_catalog_path = paper_root / "tables" / "table_catalog.json"
+    table_payload = json.loads(table_catalog_path.read_text(encoding="utf-8"))
+    table_payload["tables"][0]["caption"] = "Summary from the v2026-03-31 cohort for the A1 comparator."
+    table_payload["tables"].insert(
+        0,
+        {
+            "table_id": "TA1",
+            "paper_role": "appendix",
+            "title": "Appendix benchmark summary",
+            "caption": "Appendix-only contextual benchmark summary.",
+            "asset_paths": ["paper/tables/TA1.md"],
+        },
+    )
+    table_catalog_path.write_text(json.dumps(table_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    initial_report = module.build_surface_report(module.build_surface_state(quest_root))
+    assert "forbidden_manuscript_terms_present" in initial_report["blockers"]
+    assert "endpoint_provenance_note_missing_or_unapplied" in initial_report["blockers"]
+    assert "figure_catalog_missing_or_incomplete" not in initial_report["blockers"]
+    assert "table_catalog_missing_or_incomplete" not in initial_report["blockers"]
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        daemon_url=None,
+    )
+
+    rewritten_draft = (paper_root / "draft.md").read_text(encoding="utf-8")
+    rewritten_review = (paper_root / "build" / "review_manuscript.md").read_text(encoding="utf-8")
+    rewritten_figure_catalog = (paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8")
+    rewritten_table_catalog = (paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8")
+    endpoint_note = (paper_root / "endpoint_provenance_note.md").read_text(encoding="utf-8")
+
+    assert result["status"] == "clear"
+    assert result["blockers"] == []
+    assert result["intervention_enqueued"] is False
+    assert "- manuscript_required_statement:" in endpoint_note
+    assert "3-month MRI provenance caveat" in rewritten_draft or "3-month MRI provenance caveat" in rewritten_review
+    for text in (rewritten_draft, rewritten_review, rewritten_figure_catalog, rewritten_table_catalog):
+        assert "deployment-facing" not in text
+        assert "surface" not in text
+        assert "contract" not in text
+        assert "v2026-03-31" not in text
+    assert "A1 comparison" not in rewritten_review
 
 
 def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:

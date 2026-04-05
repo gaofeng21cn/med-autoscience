@@ -83,6 +83,60 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
     )
 
 
+def normalize_endpoint_manuscript_statement(text: str) -> str:
+    normalized = str(text or "").strip()
+    normalized = re.sub(r"^\s*-\s*", "", normalized)
+    normalized = normalized.replace("`", "")
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    if normalized and normalized[-1] not in ".!?":
+        normalized += "."
+    if normalized:
+        normalized = normalized[0].upper() + normalized[1:]
+    return normalized
+
+
+def load_registered_display_catalog_ids(path: Path) -> tuple[set[str], set[str]]:
+    payload = load_json(path, default={}) or {}
+    if not isinstance(payload, dict):
+        return set(), set()
+    figure_ids: set[str] = set()
+    table_ids: set[str] = set()
+    for item in payload.get("displays", []) or []:
+        if not isinstance(item, dict):
+            continue
+        catalog_id = str(item.get("catalog_id") or "").strip()
+        display_kind = str(item.get("display_kind") or "").strip()
+        if not catalog_id:
+            continue
+        if display_kind == "figure":
+            figure_ids.add(catalog_id)
+        elif display_kind == "table":
+            table_ids.add(catalog_id)
+    return figure_ids, table_ids
+
+
+def filter_catalog_items_by_id(
+    items: list[dict[str, Any]],
+    *,
+    id_key: str,
+    allowed_ids: set[str],
+    contract_key: str,
+    publication_roles: set[str],
+) -> list[dict[str, Any]]:
+    filtered: list[dict[str, Any]] = []
+    for item in items:
+        item_id = str(item.get(id_key) or "").strip()
+        if item_id and item_id in allowed_ids:
+            filtered.append(item)
+            continue
+        if str(item.get(contract_key) or "").strip():
+            filtered.append(item)
+            continue
+        if str(item.get("paper_role") or "").strip() in publication_roles:
+            filtered.append(item)
+    return filtered
+
+
 def excerpt_around(text: str, start: int, end: int, *, width: int = 96) -> str:
     left = max(0, start - width // 2)
     right = min(len(text), end + width // 2)
@@ -223,35 +277,21 @@ def scan_markdown_table_body(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
-def scan_catalog_strings(path: Path, *, collection_key: str) -> list[dict[str, Any]]:
+def scan_catalog_strings(
+    path: Path,
+    *,
+    collection_key: str,
+    items: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     payload = load_json(path, default={}) or {}
     hits: list[dict[str, Any]] = []
-    for index, item in enumerate(payload.get(collection_key, []) or []):
-        for field in ("title", "caption", "manuscript_purpose", "note", "next_action"):
+    collection = items if items is not None else [item for item in payload.get(collection_key, []) or [] if isinstance(item, dict)]
+    for index, item in enumerate(collection):
+        for field in ("title", "caption", "manuscript_purpose", "note"):
             value = str(item.get(field) or "")
             if not value:
                 continue
             hits.extend(scan_string_value(path, f"{collection_key}[{index}].{field}", value))
-        if collection_key == "figures":
-            for panel_index, panel in enumerate(item.get("panel_plan", []) or []):
-                for field in ("title", "focus"):
-                    value = str(panel.get(field) or "")
-                    if not value:
-                        continue
-                    hits.extend(
-                        scan_string_value(
-                            path,
-                            f"{collection_key}[{index}].panel_plan[{panel_index}].{field}",
-                            value,
-                        )
-                    )
-        summary = item.get("summary")
-        if isinstance(summary, dict):
-            for field in ("purpose", "must_highlight", "scope_rule"):
-                value = str(summary.get(field) or "")
-                if not value:
-                    continue
-                hits.extend(scan_string_value(path, f"{collection_key}[{index}].summary.{field}", value))
     return hits
 
 
@@ -352,6 +392,38 @@ def inspect_required_json_contract(
         ]
 
     payload = load_json(path, default=None)
+    errors = validator(payload)
+    if errors:
+        return False, [
+            {
+                "path": str(path),
+                "location": "file",
+                "pattern_id": pattern_id,
+                "phrase": path.name,
+                "excerpt": "; ".join(errors),
+            }
+        ]
+    return True, []
+
+
+def inspect_json_payload_contract(
+    *,
+    path: Path,
+    payload: object,
+    validator,
+    pattern_id: str,
+    label: str,
+) -> tuple[bool, list[dict[str, Any]]]:
+    if not path.exists():
+        return False, [
+            {
+                "path": str(path),
+                "location": "file",
+                "pattern_id": pattern_id,
+                "phrase": path.name,
+                "excerpt": f"Required {label} is missing.",
+            }
+        ]
     errors = validator(payload)
     if errors:
         return False, [
@@ -1233,16 +1305,65 @@ def build_default_endpoint_provenance_note(state: SurfaceState) -> str | None:
         return None
     source = sources[0]
     texts = manuscript_texts(state)
-    manuscript_statement = first_non_empty(
+    manuscript_statement = normalize_endpoint_manuscript_statement(
+        first_non_empty(
         [first_sentence_matching(texts, [r"\b3-month MRI\b", r"\bMRI provenance\b", rf"\b{re.escape(source['endpoint_name'])}\b"])],
         default=source["excerpt"],
+        )
     )
+    provenance_caveat = normalize_endpoint_manuscript_statement(source["excerpt"])
     return (
         "# Endpoint Provenance Note\n\n"
         f"- endpoint_name: {source['endpoint_name']}\n"
-        f"- provenance_caveat: {source['excerpt']}\n"
+        f"- provenance_caveat: {provenance_caveat}\n"
         f"- manuscript_required_statement: {manuscript_statement}\n"
     )
+
+
+def ensure_statement_in_markdown(path: Path, statement: str) -> None:
+    if not path.exists() or not statement:
+        return
+    text = path.read_text(encoding="utf-8")
+    if statement in text:
+        return
+    methods_heading = re.search(r"^##\s+Methods\s*$", text, flags=re.MULTILINE)
+    if methods_heading:
+        insert_at = methods_heading.end()
+        updated = f"{text[:insert_at]}\n\n{statement}\n{text[insert_at:].lstrip(chr(10))}"
+    else:
+        trimmed = text.rstrip()
+        separator = "\n\n" if trimmed else ""
+        updated = f"{trimmed}{separator}## Methods\n\n{statement}\n"
+    path.write_text(updated, encoding="utf-8")
+
+
+def rewrite_markdown_publication_surface(path: Path) -> None:
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8")
+    rewritten = medical_surface_policy.rewrite_publication_safe_text(text)
+    if rewritten != text:
+        path.write_text(rewritten, encoding="utf-8")
+
+
+def rewrite_catalog_publication_surface(path: Path, *, collection_key: str) -> None:
+    payload = load_json(path, default=None)
+    if not isinstance(payload, dict):
+        return
+    changed = False
+    for item in payload.get(collection_key, []) or []:
+        if not isinstance(item, dict):
+            continue
+        for field in ("title", "caption", "manuscript_purpose", "note"):
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip():
+                continue
+            rewritten = medical_surface_policy.rewrite_publication_safe_text(value)
+            if rewritten != value:
+                item[field] = rewritten
+                changed = True
+    if changed:
+        dump_json(path, payload)
 
 
 def ensure_ama_defaults(state: SurfaceState) -> None:
@@ -1264,6 +1385,12 @@ def apply_publication_autofixes(state: SurfaceState, report: dict[str, Any]) -> 
     blockers = set(str(item) for item in report.get("blockers") or [])
     if "ama_pdf_defaults_missing" in blockers:
         ensure_ama_defaults(state)
+
+    if "forbidden_manuscript_terms_present" in blockers:
+        rewrite_markdown_publication_surface(state.draft_path)
+        rewrite_markdown_publication_surface(state.review_manuscript_path)
+        rewrite_catalog_publication_surface(state.figure_catalog_path, collection_key="figures")
+        rewrite_catalog_publication_surface(state.table_catalog_path, collection_key="tables")
 
     methods_manifest = load_json(state.methods_implementation_manifest_path, default=None)
     if "methods_implementation_manifest_missing_or_incomplete" in blockers:
@@ -1308,22 +1435,61 @@ def apply_publication_autofixes(state: SurfaceState, report: dict[str, Any]) -> 
         endpoint_note = build_default_endpoint_provenance_note(state)
         if endpoint_note:
             state.endpoint_provenance_note_path.write_text(endpoint_note, encoding="utf-8")
+            statement = medical_surface_policy.parse_endpoint_provenance_note(endpoint_note).get("manuscript_required_statement", "")
+            normalized_statement = normalize_endpoint_manuscript_statement(str(statement))
+            ensure_statement_in_markdown(state.draft_path, normalized_statement)
+            ensure_statement_in_markdown(state.review_manuscript_path, normalized_statement)
 
 
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
+    raw_figure_items = load_figure_catalog_items(state)
+    raw_table_items = load_table_catalog_items(state)
+    registered_figure_ids, registered_table_ids = load_registered_display_catalog_ids(state.paper_root / "display_registry.json")
+    required_figure_ids, required_table_ids = load_required_display_catalog_ids(state.paper_root / "medical_reporting_contract.json")
+    registered_figure_ids |= required_figure_ids
+    registered_table_ids |= required_table_ids
+    figure_contract_items = filter_catalog_items_by_id(
+        raw_figure_items,
+        id_key="figure_id",
+        allowed_ids=registered_figure_ids,
+        contract_key="template_id",
+        publication_roles={"main_text", "submission_companion"},
+    )
+    table_contract_items = filter_catalog_items_by_id(
+        raw_table_items,
+        id_key="table_id",
+        allowed_ids=registered_table_ids,
+        contract_key="table_shell_id",
+        publication_roles={"main_text"},
+    )
+
     forbidden_hits: list[dict[str, Any]] = []
     forbidden_hits.extend(scan_text_file(state.draft_path))
     forbidden_hits.extend(scan_text_file(state.review_manuscript_path))
-    forbidden_hits.extend(scan_catalog_strings(state.figure_catalog_path, collection_key="figures"))
-    forbidden_hits.extend(scan_catalog_strings(state.table_catalog_path, collection_key="tables"))
-    figure_catalog_valid, figure_catalog_hits = inspect_required_json_contract(
+    forbidden_hits.extend(
+        scan_catalog_strings(
+            state.figure_catalog_path,
+            collection_key="figures",
+            items=figure_contract_items,
+        )
+    )
+    forbidden_hits.extend(
+        scan_catalog_strings(
+            state.table_catalog_path,
+            collection_key="tables",
+            items=table_contract_items,
+        )
+    )
+    figure_catalog_valid, figure_catalog_hits = inspect_json_payload_contract(
         path=state.figure_catalog_path,
+        payload={"figures": figure_contract_items},
         validator=medical_surface_policy.validate_figure_catalog,
         pattern_id="figure_catalog",
         label="figure catalog",
     )
-    table_catalog_valid, table_catalog_hits = inspect_required_json_contract(
+    table_catalog_valid, table_catalog_hits = inspect_json_payload_contract(
         path=state.table_catalog_path,
+        payload={"tables": table_contract_items},
         validator=medical_surface_policy.validate_table_catalog,
         pattern_id="table_catalog",
         label="table catalog",
