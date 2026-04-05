@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord
+
 from .layout import build_workspace_runtime_layout_for_profile
 from .study_runtime_models import (
     StartupContractValidation,
@@ -31,6 +33,22 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
+
+
+def _runtime_escalation_record_path(quest_root: Path) -> Path:
+    return Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "runtime" / "escalation_record.json"
+
+
+def write_runtime_escalation_record(
+    *,
+    quest_root: Path,
+    record: RuntimeEscalationRecord,
+) -> RuntimeEscalationRecord:
+    path = _runtime_escalation_record_path(quest_root)
+    payload = record.to_dict()
+    payload["record_path"] = str(path)
+    _write_json(path, payload)
+    return RuntimeEscalationRecord.from_payload(payload)
 
 
 def _startup_hydration_report_path(quest_root: Path) -> Path:
