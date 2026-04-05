@@ -3122,6 +3122,228 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     ]
 
 
+def test_ensure_study_runtime_resume_read_path_redacts_runtime_escalation_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"idle"}\n')
+    raw_runtime_escalation_record = {
+        "record_id": "runtime-escalation-001",
+        "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+        "summary_ref": "artifacts/runtime/runtime_escalation_summary.md",
+        "detail": "raw-escalation-only-detail",
+        "decision_request_payload": {
+            "decision": "human_value_choice",
+            "detail": "raw-escalation-only-detail",
+        },
+    }
+    expected_runtime_escalation_record = {
+        "record_id": raw_runtime_escalation_record["record_id"],
+        "artifact_path": raw_runtime_escalation_record["artifact_path"],
+        "summary_ref": raw_runtime_escalation_record["summary_ref"],
+    }
+    build_context_create_payload = module._build_context_create_payload
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_context_create_payload",
+        lambda context: build_context_create_payload(context)
+        | {
+            "startup_contract": build_context_create_payload(context)["startup_contract"]
+            | {"runtime_escalation_record": raw_runtime_escalation_record}
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": quest_id,
+                "startup_contract": startup_contract,
+            },
+        },
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "active"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["runtime_escalation_record"] == expected_runtime_escalation_record
+    assert set(result["runtime_escalation_record"]) == {"record_id", "artifact_path", "summary_ref"}
+    synced_contract = result["startup_context_sync"]["snapshot"]["startup_contract"]
+    assert synced_contract["runtime_escalation_record"] == expected_runtime_escalation_record
+    assert set(synced_contract["runtime_escalation_record"]) == {"record_id", "artifact_path", "summary_ref"}
+    serialized_result = json.dumps(result, ensure_ascii=False)
+    assert "raw-escalation-only-detail" not in serialized_result
+    assert "decision_request_payload" not in serialized_result
+
+
+def test_ensure_study_runtime_launch_report_redacts_runtime_escalation_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"idle"}\n')
+    raw_runtime_escalation_record = {
+        "record_id": "runtime-escalation-001",
+        "artifact_path": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
+        "summary_ref": "artifacts/runtime/runtime_escalation_summary.md",
+        "detail": "raw-escalation-only-detail",
+        "decision_request_payload": {
+            "decision": "human_value_choice",
+            "detail": "raw-escalation-only-detail",
+        },
+    }
+    expected_runtime_escalation_record = {
+        "record_id": raw_runtime_escalation_record["record_id"],
+        "artifact_path": raw_runtime_escalation_record["artifact_path"],
+        "summary_ref": raw_runtime_escalation_record["summary_ref"],
+    }
+    build_context_create_payload = module._build_context_create_payload
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_context_create_payload",
+        lambda context: build_context_create_payload(context)
+        | {
+            "startup_contract": build_context_create_payload(context)["startup_contract"]
+            | {"runtime_escalation_record": raw_runtime_escalation_record}
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": quest_id,
+                "startup_contract": startup_contract,
+            },
+        },
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "active"},
+    )
+
+    module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    launch_report = json.loads(
+        (study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8")
+    )
+
+    assert launch_report["runtime_escalation_record"] == expected_runtime_escalation_record
+    assert set(launch_report["runtime_escalation_record"]) == {"record_id", "artifact_path", "summary_ref"}
+    synced_contract = launch_report["startup_context_sync"]["snapshot"]["startup_contract"]
+    assert synced_contract["runtime_escalation_record"] == expected_runtime_escalation_record
+    assert set(synced_contract["runtime_escalation_record"]) == {"record_id", "artifact_path", "summary_ref"}
+    serialized_report = json.dumps(launch_report, ensure_ascii=False)
+    assert "raw-escalation-only-detail" not in serialized_report
+    assert "decision_request_payload" not in serialized_report
+
+
 def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
