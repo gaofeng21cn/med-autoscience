@@ -37,6 +37,8 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
     "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
     "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
+    "performance_summary_table_generic": ("performance_summary_generic", "table", "T4"),
+    "grouped_risk_event_summary_table": ("grouped_risk_event_summary", "table", "T5"),
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
     "kaplan_meier_grouped": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
@@ -64,6 +66,53 @@ def _build_display_shell_plan(
             )
         )
     return tuple(items)
+
+
+def _build_binary_phase_cd_display_shell_plan() -> tuple[DisplayShellPlanItem, ...]:
+    return (
+        DisplayShellPlanItem(
+            display_id="cohort_flow",
+            display_kind="figure",
+            requirement_key="cohort_flow_figure",
+            catalog_id="F1",
+        ),
+        DisplayShellPlanItem(
+            display_id="risk_layering",
+            display_kind="figure",
+            requirement_key="risk_layering_monotonic_bars",
+            catalog_id="F2",
+        ),
+        DisplayShellPlanItem(
+            display_id="calibration_decision",
+            display_kind="figure",
+            requirement_key="binary_calibration_decision_curve_panel",
+            catalog_id="F3",
+        ),
+        DisplayShellPlanItem(
+            display_id="model_audit",
+            display_kind="figure",
+            requirement_key="model_complexity_audit_panel",
+            catalog_id="F4",
+        ),
+        DisplayShellPlanItem(
+            display_id="baseline_characteristics",
+            display_kind="table",
+            requirement_key="table1_baseline_characteristics",
+            catalog_id="T1",
+        ),
+        DisplayShellPlanItem(
+            display_id="performance_summary",
+            display_kind="table",
+            requirement_key="performance_summary_table_generic",
+            catalog_id="T2",
+        ),
+        DisplayShellPlanItem(
+            display_id="risk_event_summary",
+            display_kind="table",
+            requirement_key="grouped_risk_event_summary_table",
+            catalog_id="T3",
+        ),
+    )
 
 
 def resolve_medical_reporting_contract(
@@ -98,6 +147,23 @@ def resolve_medical_reporting_contract(
 
     table_shell_requirements = ("table1_baseline_characteristics",)
     figure_shell_requirements = ("cohort_flow_figure",)
+    display_shell_plan = _build_display_shell_plan(
+        figure_shell_requirements=figure_shell_requirements,
+        table_shell_requirements=table_shell_requirements,
+    )
+    if (
+        study_archetype == "clinical_classifier"
+        and manuscript_family == "prediction_model"
+        and endpoint_type == "binary"
+        and submission_target_family == "general_medical_journal"
+    ):
+        display_shell_plan = _build_binary_phase_cd_display_shell_plan()
+        figure_shell_requirements = tuple(
+            item.requirement_key for item in display_shell_plan if item.display_kind == "figure"
+        )
+        table_shell_requirements = tuple(
+            item.requirement_key for item in display_shell_plan if item.display_kind == "table"
+        )
     if (
         study_archetype == "clinical_classifier"
         and manuscript_family == "prediction_model"
@@ -115,6 +181,10 @@ def resolve_medical_reporting_contract(
             "time_to_event_decision_curve",
             "multicenter_generalizability_overview",
         )
+        display_shell_plan = _build_display_shell_plan(
+            figure_shell_requirements=figure_shell_requirements,
+            table_shell_requirements=table_shell_requirements,
+        )
 
     return MedicalReportingContract(
         reporting_guideline_family=guideline,
@@ -130,8 +200,5 @@ def resolve_medical_reporting_contract(
             item for item in figure_shell_requirements if item != "cohort_flow_figure"
         ),
         display_registry_required=True,
-        display_shell_plan=_build_display_shell_plan(
-            figure_shell_requirements=figure_shell_requirements,
-            table_shell_requirements=table_shell_requirements,
-        ),
+        display_shell_plan=display_shell_plan,
     )

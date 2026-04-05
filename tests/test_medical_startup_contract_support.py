@@ -302,6 +302,181 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
     ]
 
 
+def test_reporting_contract_summary_supports_binary_phase_c_and_d_display_plan(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "002-binary-reporting",
+        {
+            "study_id": "002-binary-reporting",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "clinical_classifier"
+    assert result["endpoint_type"] == "binary"
+    assert result["manuscript_family"] == "prediction_model"
+    assert result["required_illustration_shells"] == ["cohort_flow_figure"]
+    assert result["required_evidence_templates"] == [
+        "risk_layering_monotonic_bars",
+        "binary_calibration_decision_curve_panel",
+        "model_complexity_audit_panel",
+    ]
+    assert result["required_table_shells"] == [
+        "table1_baseline_characteristics",
+        "performance_summary_table_generic",
+        "grouped_risk_event_summary_table",
+    ]
+    assert result["display_shell_plan"] == [
+        {
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+        {
+            "display_id": "risk_layering",
+            "display_kind": "figure",
+            "requirement_key": "risk_layering_monotonic_bars",
+            "catalog_id": "F2",
+        },
+        {
+            "display_id": "calibration_decision",
+            "display_kind": "figure",
+            "requirement_key": "binary_calibration_decision_curve_panel",
+            "catalog_id": "F3",
+        },
+        {
+            "display_id": "model_audit",
+            "display_kind": "figure",
+            "requirement_key": "model_complexity_audit_panel",
+            "catalog_id": "F4",
+        },
+        {
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+        },
+        {
+            "display_id": "performance_summary",
+            "display_kind": "table",
+            "requirement_key": "performance_summary_table_generic",
+            "catalog_id": "T2",
+        },
+        {
+            "display_id": "risk_event_summary",
+            "display_kind": "table",
+            "requirement_key": "grouped_risk_event_summary_table",
+            "catalog_id": "T3",
+        },
+    ]
+
+
+def test_binary_reporting_contract_hydration_and_validation_require_phase_c_and_d_surface(
+    tmp_path: Path,
+) -> None:
+    reporting_module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    hydration_module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    validation_module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier",))
+    study_root = write_study(
+        profile.studies_root,
+        "002-binary-validation",
+        {
+            "study_id": "002-binary-validation",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    reporting_contract = reporting_module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+    quest_root = tmp_path / "runtime" / "quests" / "002-binary-validation"
+    hydration_module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {
+                "status": "resolved",
+                "study_archetype": "clinical_classifier",
+                "endpoint_type": "binary",
+            },
+            "medical_reporting_contract": reporting_contract,
+            "entry_state_summary": "Study root: /tmp/studies/002-binary-validation",
+            "literature_records": [],
+        },
+    )
+
+    paper_root = quest_root / "paper"
+    (paper_root / "risk_layering_monotonic_inputs.json").unlink()
+
+    report = validation_module.run_validation(quest_root=quest_root)
+
+    assert report["status"] == "blocked"
+    assert "missing_risk_layering_monotonic_inputs" in report["blockers"]
+
+
+def test_binary_reporting_contract_hydration_and_audit_require_phase_c_and_d_surface(
+    tmp_path: Path,
+) -> None:
+    reporting_module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    hydration_module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    audit_module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier",))
+    study_root = write_study(
+        profile.studies_root,
+        "002-binary-audit",
+        {
+            "study_id": "002-binary-audit",
+            "study_archetype": "clinical_classifier",
+            "endpoint_type": "binary",
+            "manuscript_family": "prediction_model",
+        },
+    )
+
+    reporting_contract = reporting_module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+    quest_root = tmp_path / "runtime" / "quests" / "002-binary-audit"
+    hydration_module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {
+                "status": "resolved",
+                "study_archetype": "clinical_classifier",
+                "endpoint_type": "binary",
+            },
+            "medical_reporting_contract": reporting_contract,
+            "entry_state_summary": "Study root: /tmp/studies/002-binary-audit",
+            "literature_records": [],
+        },
+    )
+
+    paper_root = quest_root / "paper"
+    (paper_root / "risk_layering_monotonic_inputs.json").unlink()
+
+    report = audit_module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "blocked"
+    assert report["blockers"] == ["missing_risk_layering_monotonic_inputs"]
+
+
 def test_survival_reporting_contract_hydration_and_materialization_use_semantic_display_ids(
     tmp_path: Path,
     monkeypatch,
@@ -450,12 +625,20 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
                     "template_id": "time_to_event_decision_curve",
                     "title": "Time-to-event decision curve",
                     "caption": "Net benefit for the survival model at the 24-month horizon.",
+                    "panel_a_title": "Decision-curve net benefit",
+                    "panel_b_title": "Model-treated fraction",
                     "x_label": "Threshold probability",
                     "y_label": "Net benefit",
+                    "treated_fraction_y_label": "Patients classified above threshold (%)",
                     "reference_line": {"x": [0.05, 0.45], "y": [0.0, 0.0], "label": "Treat none"},
                     "series": [
                         {"label": "Locked survival model", "x": [0.05, 0.10, 0.20, 0.40], "y": [0.18, 0.17, 0.15, 0.08]}
                     ],
+                    "treated_fraction_series": {
+                        "label": "Locked survival model",
+                        "x": [0.05, 0.10, 0.20, 0.40],
+                        "y": [62.0, 49.0, 31.0, 12.0],
+                    },
                 }
             ],
         },
@@ -470,25 +653,42 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
                     "display_id": "multicenter_generalizability",
                     "template_id": "multicenter_generalizability_overview",
                     "title": "Internal multicenter generalizability overview",
-                    "caption": "Center-level interval overview and event support boundary.",
-                    "x_label": "C-index",
-                    "centers": [
+                    "caption": "Center-level event support and coverage context under the frozen split.",
+                    "overview_mode": "center_support_counts",
+                    "center_event_y_label": "5-year events",
+                    "coverage_y_label": "Patient count",
+                    "center_event_counts": [
                         {
                             "center_label": "Center A",
-                            "sample_size": 420,
-                            "estimate": 0.81,
-                            "lower": 0.73,
-                            "upper": 0.88,
+                            "split_bucket": "train",
+                            "event_count": 7,
                         },
                         {
                             "center_label": "Center B",
-                            "sample_size": 395,
-                            "estimate": 0.77,
-                            "lower": 0.68,
-                            "upper": 0.85,
+                            "split_bucket": "validation",
+                            "event_count": 5,
                         },
                     ],
-                    "reference_line": {"x": [0.75, 0.75], "y": [0.0, 1.0], "label": "Overall"},
+                    "coverage_panels": [
+                        {
+                            "panel_id": "region",
+                            "title": "Region coverage",
+                            "layout_role": "wide_left",
+                            "bars": [{"label": "Central", "count": 420}, {"label": "East", "count": 395}],
+                        },
+                        {
+                            "panel_id": "north_south",
+                            "title": "North vs South",
+                            "layout_role": "top_right",
+                            "bars": [{"label": "North", "count": 380}, {"label": "South", "count": 435}],
+                        },
+                        {
+                            "panel_id": "urban_rural",
+                            "title": "Urban/rural",
+                            "layout_role": "bottom_right",
+                            "bars": [{"label": "Urban", "count": 520}, {"label": "Missing", "count": 295}],
+                        },
+                    ],
                 }
             ],
         },

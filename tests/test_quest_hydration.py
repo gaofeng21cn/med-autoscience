@@ -96,6 +96,7 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
     assert (quest_root / "paper" / "medical_reporting_contract.json").exists()
     assert (quest_root / "paper" / "cohort_flow.json").exists()
     assert (quest_root / "paper" / "baseline_characteristics_schema.json").exists()
+    assert (quest_root / "paper" / "reporting_guideline_checklist.json").exists()
     assert (quest_root / "paper" / "time_to_event_performance_summary.json").exists()
     assert (quest_root / "paper" / "time_to_event_discrimination_calibration_inputs.json").exists()
     assert (quest_root / "paper" / "time_to_event_grouped_inputs.json").exists()
@@ -111,7 +112,14 @@ def test_run_quest_hydration_writes_required_medical_runtime_files(tmp_path: Pat
     report_payload = json.loads(
         (quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json").read_text(encoding="utf-8")
     )
+    checklist_payload = json.loads(
+        (quest_root / "paper" / "reporting_guideline_checklist.json").read_text(encoding="utf-8")
+    )
     assert report_payload["literature_report"]["record_count"] == 1
+    assert checklist_payload["reporting_guideline_family"] == "TRIPOD"
+    assert checklist_payload["required_display_count"] == 7
+    assert checklist_payload["required_display_items"][0]["display_id"] == "cohort_flow"
+    assert checklist_payload["required_display_items"][0]["shell_path"] == "paper/figures/cohort_flow.shell.json"
 
 
 def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_path: Path) -> None:
@@ -246,6 +254,223 @@ def test_run_hydration_writes_publication_display_contract_files(tmp_path: Path)
     paper_root = quest_root / "paper"
     assert (paper_root / "publication_style_profile.json").exists()
     assert (paper_root / "display_overrides.json").exists()
+
+
+def test_run_quest_hydration_supports_phase_c_and_phase_d_display_plan(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "003-risk"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"status": "resolved"},
+            "medical_reporting_contract": {
+                "status": "resolved",
+                "display_registry_required": True,
+                "display_shell_plan": [
+                    {
+                        "display_id": "risk_layering",
+                        "display_kind": "figure",
+                        "requirement_key": "risk_layering_monotonic_bars",
+                        "catalog_id": "F2",
+                    },
+                    {
+                        "display_id": "calibration_decision",
+                        "display_kind": "figure",
+                        "requirement_key": "binary_calibration_decision_curve_panel",
+                        "catalog_id": "F3",
+                    },
+                    {
+                        "display_id": "model_audit",
+                        "display_kind": "figure",
+                        "requirement_key": "model_complexity_audit_panel",
+                        "catalog_id": "F4",
+                    },
+                    {
+                        "display_id": "performance_summary_generic",
+                        "display_kind": "table",
+                        "requirement_key": "performance_summary_table_generic",
+                        "catalog_id": "T2",
+                    },
+                    {
+                        "display_id": "grouped_risk_event_summary",
+                        "display_kind": "table",
+                        "requirement_key": "grouped_risk_event_summary_table",
+                        "catalog_id": "T3",
+                    },
+                ],
+            },
+            "entry_state_summary": "Study root: /tmp/studies/003-risk",
+        },
+    )
+
+    paper_root = quest_root / "paper"
+    display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+    assert display_registry["displays"] == [
+        {
+            "display_id": "risk_layering",
+            "display_kind": "figure",
+            "requirement_key": "risk_layering_monotonic_bars",
+            "catalog_id": "F2",
+            "shell_path": "paper/figures/risk_layering.shell.json",
+        },
+        {
+            "display_id": "calibration_decision",
+            "display_kind": "figure",
+            "requirement_key": "binary_calibration_decision_curve_panel",
+            "catalog_id": "F3",
+            "shell_path": "paper/figures/calibration_decision.shell.json",
+        },
+        {
+            "display_id": "model_audit",
+            "display_kind": "figure",
+            "requirement_key": "model_complexity_audit_panel",
+            "catalog_id": "F4",
+            "shell_path": "paper/figures/model_audit.shell.json",
+        },
+        {
+            "display_id": "performance_summary_generic",
+            "display_kind": "table",
+            "requirement_key": "performance_summary_table_generic",
+            "catalog_id": "T2",
+            "shell_path": "paper/tables/performance_summary_generic.shell.json",
+        },
+        {
+            "display_id": "grouped_risk_event_summary",
+            "display_kind": "table",
+            "requirement_key": "grouped_risk_event_summary_table",
+            "catalog_id": "T3",
+            "shell_path": "paper/tables/grouped_risk_event_summary.shell.json",
+        },
+    ]
+
+    risk_payload = json.loads((paper_root / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8"))
+    calibration_payload = json.loads(
+        (paper_root / "binary_calibration_decision_curve_panel_inputs.json").read_text(encoding="utf-8")
+    )
+    model_audit_payload = json.loads((paper_root / "model_complexity_audit_panel_inputs.json").read_text(encoding="utf-8"))
+    performance_payload = json.loads((paper_root / "performance_summary_table_generic.json").read_text(encoding="utf-8"))
+    grouped_payload = json.loads((paper_root / "grouped_risk_event_summary_table.json").read_text(encoding="utf-8"))
+    assert risk_payload["input_schema_id"] == "risk_layering_monotonic_inputs_v1"
+    assert risk_payload["displays"][0]["display_id"] == "risk_layering"
+    assert risk_payload["displays"][0]["catalog_id"] == "F2"
+    assert calibration_payload["input_schema_id"] == "binary_calibration_decision_curve_panel_inputs_v1"
+    assert calibration_payload["displays"][0]["display_id"] == "calibration_decision"
+    assert calibration_payload["displays"][0]["catalog_id"] == "F3"
+    assert model_audit_payload["input_schema_id"] == "model_complexity_audit_panel_inputs_v1"
+    assert model_audit_payload["displays"][0]["display_id"] == "model_audit"
+    assert model_audit_payload["displays"][0]["catalog_id"] == "F4"
+    assert performance_payload["table_shell_id"] == "performance_summary_table_generic"
+    assert performance_payload["display_id"] == "performance_summary_generic"
+    assert performance_payload["catalog_id"] == "T2"
+    assert performance_payload["row_header_label"] == ""
+    assert performance_payload["columns"] == []
+    assert performance_payload["rows"] == []
+    assert grouped_payload["table_shell_id"] == "grouped_risk_event_summary_table"
+    assert grouped_payload["display_id"] == "grouped_risk_event_summary"
+    assert grouped_payload["catalog_id"] == "T3"
+    assert grouped_payload["risk_column_label"] == ""
+    assert grouped_payload["rows"] == []
+
+
+def test_run_quest_hydration_supports_phase_c_evidence_templates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "003-phase-c"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"status": "resolved"},
+            "medical_reporting_contract": {
+                "status": "resolved",
+                "display_registry_required": True,
+                "display_shell_plan": [
+                    {
+                        "display_id": "risk_layering",
+                        "display_kind": "figure",
+                        "requirement_key": "risk_layering_monotonic_bars",
+                        "catalog_id": "F2",
+                    },
+                    {
+                        "display_id": "calibration_decision_curve",
+                        "display_kind": "figure",
+                        "requirement_key": "binary_calibration_decision_curve_panel",
+                        "catalog_id": "F3",
+                    },
+                    {
+                        "display_id": "model_complexity_audit",
+                        "display_kind": "figure",
+                        "requirement_key": "model_complexity_audit_panel",
+                        "catalog_id": "F4",
+                    },
+                ],
+            },
+            "entry_state_summary": "Study root: /tmp/studies/003-phase-c",
+            "literature_records": [],
+        },
+    )
+
+    paper_root = quest_root / "paper"
+    display_registry = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+    assert display_registry["displays"] == [
+        {
+            "display_id": "risk_layering",
+            "display_kind": "figure",
+            "requirement_key": "risk_layering_monotonic_bars",
+            "catalog_id": "F2",
+            "shell_path": "paper/figures/risk_layering.shell.json",
+        },
+        {
+            "display_id": "calibration_decision_curve",
+            "display_kind": "figure",
+            "requirement_key": "binary_calibration_decision_curve_panel",
+            "catalog_id": "F3",
+            "shell_path": "paper/figures/calibration_decision_curve.shell.json",
+        },
+        {
+            "display_id": "model_complexity_audit",
+            "display_kind": "figure",
+            "requirement_key": "model_complexity_audit_panel",
+            "catalog_id": "F4",
+            "shell_path": "paper/figures/model_complexity_audit.shell.json",
+        },
+    ]
+
+    risk_payload = json.loads((paper_root / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8"))
+    calibration_payload = json.loads(
+        (paper_root / "binary_calibration_decision_curve_panel_inputs.json").read_text(encoding="utf-8")
+    )
+    model_audit_payload = json.loads((paper_root / "model_complexity_audit_panel_inputs.json").read_text(encoding="utf-8"))
+
+    assert risk_payload["input_schema_id"] == "risk_layering_monotonic_inputs_v1"
+    assert risk_payload["status"] == "required_pending_materialization"
+    assert risk_payload["displays"] == [
+        {
+            "display_id": "risk_layering",
+            "template_id": "risk_layering_monotonic_bars",
+            "catalog_id": "F2",
+        }
+    ]
+    assert calibration_payload["input_schema_id"] == "binary_calibration_decision_curve_panel_inputs_v1"
+    assert calibration_payload["status"] == "required_pending_materialization"
+    assert calibration_payload["displays"] == [
+        {
+            "display_id": "calibration_decision_curve",
+            "template_id": "binary_calibration_decision_curve_panel",
+            "catalog_id": "F3",
+        }
+    ]
+    assert model_audit_payload["input_schema_id"] == "model_complexity_audit_panel_inputs_v1"
+    assert model_audit_payload["status"] == "required_pending_materialization"
+    assert model_audit_payload["displays"] == [
+        {
+            "display_id": "model_complexity_audit",
+            "template_id": "model_complexity_audit_panel",
+            "catalog_id": "F4",
+        }
+    ]
 
 
 def test_run_quest_hydration_rejects_unknown_requirement_key(tmp_path: Path) -> None:
