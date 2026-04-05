@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="./README.md"><strong>English</strong></a> | <a href="./README.zh-CN.md">中文</a>
+  <a href="./README.md"><strong>English</strong></a> | <a href="./README.zh-CN.md">Chinese</a>
 </p>
 
 <h1 align="center">MedAutoScience</h1>
@@ -49,11 +49,11 @@ In `One Person Lab (OPL)` semantics:
 ## Agent Contract Layers
 
 <!-- AGENT-CONTRACT-BASELINE:START -->
-- Root `AGENTS.md` is only for Codex/OMX collaboration in this repository's development environment; it is not the standalone project truth contract.
-- Project truth contract: `contracts/project-truth/AGENTS.md`.
-- OMX project-scope orchestration layer: `.codex/AGENTS.md` (loaded only by OMX / CODEX_HOME sessions).
-- Optional machine-private overlay: `.omx/local/AGENTS.local.md` (must stay untracked).
-- Local runtime state directories `.omx/` and `.codex/` must remain untracked and out of version control.
+- The root `AGENTS.md` is the repository-native contract for direct sessions that enter from the repository root, including Codex App and plain Codex sessions; the project truth contract lives separately.
+- The project truth contract lives at `contracts/project-truth/AGENTS.md`.
+- When the repository is launched through OMX project-scope installation, `.codex/AGENTS.md` augments the root contract rather than replacing it.
+- `.omx/local/AGENTS.local.md` is reserved for optional machine-specific private overlays and must stay untracked.
+- `.omx/` and `.codex/` are local tooling state and must stay untracked.
 <!-- AGENT-CONTRACT-BASELINE:END -->
 
 ## What The Platform Focuses On
