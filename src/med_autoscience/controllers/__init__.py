@@ -14,6 +14,7 @@ __all__ = [
     "medical_reporting_audit",
     "startup_data_readiness",
     "publication_gate",
+    "publication_shell_sync",
     "medical_publication_surface",
     "portfolio_memory",
     "reference_papers",

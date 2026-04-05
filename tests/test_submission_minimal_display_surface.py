@@ -271,6 +271,44 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
     assert (workspace_root / tables_by_id["T3"]["output_paths"][0]).exists()
 
 
+def test_create_submission_minimal_package_preserves_submission_graphical_abstract_entry(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+    workspace_root = paper_root.parent
+
+    write_png(paper_root / "figures" / "GA1.png")
+    write_text(paper_root / "figures" / "GA1.svg", "<svg><text>submission companion</text></svg>\n")
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"].append(
+        {
+            "figure_id": "GA1",
+            "template_id": "submission_graphical_abstract",
+            "renderer_family": "python",
+            "paper_role": "supplementary",
+            "input_schema_id": "submission_graphical_abstract_inputs_v1",
+            "qc_profile": "publication_illustration_flow",
+            "qc_result": {"status": "pass", "issues": []},
+            "title": "Graphical abstract",
+            "export_paths": ["paper/figures/GA1.png", "paper/figures/GA1.svg"],
+        }
+    )
+    dump_json(figure_catalog_path, figure_catalog)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    figures_by_id = {item["figure_id"]: item for item in manifest["figures"]}
+    assert figures_by_id["GA1"]["template_id"] == "submission_graphical_abstract"
+    assert figures_by_id["GA1"]["input_schema_id"] == "submission_graphical_abstract_inputs_v1"
+    assert figures_by_id["GA1"]["qc_profile"] == "publication_illustration_flow"
+    assert len(figures_by_id["GA1"]["output_paths"]) == 2
+    assert all((workspace_root / output_path).exists() for output_path in figures_by_id["GA1"]["output_paths"])
+
+
 def test_create_submission_minimal_package_preserves_001_direct_migration_display_entries(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)

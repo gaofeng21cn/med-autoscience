@@ -17,6 +17,7 @@ def test_schema_contract_exposes_phase2_top_level_display_classes() -> None:
         "matrix_pattern",
         "effect_estimate",
         "model_explanation",
+        "model_audit",
         "generalizability",
         "publication_shells_and_tables",
     }
@@ -31,11 +32,18 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
+    cohort_flow = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
+    submission_graphical_abstract = module.get_input_schema_contract("submission_graphical_abstract_inputs_v1")
     time_to_event_panel = module.get_input_schema_contract("time_to_event_discrimination_calibration_inputs_v1")
     time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
     generalizability = module.get_input_schema_contract("multicenter_generalizability_inputs_v1")
+    risk_layering = module.get_input_schema_contract("risk_layering_monotonic_inputs_v1")
+    binary_calibration = module.get_input_schema_contract("binary_calibration_decision_curve_panel_inputs_v1")
+    model_complexity = module.get_input_schema_contract("model_complexity_audit_panel_inputs_v1")
     performance_table = module.get_input_schema_contract("time_to_event_performance_summary_v1")
     interpretation_table = module.get_input_schema_contract("clinical_interpretation_summary_v1")
+    generic_performance_table = module.get_input_schema_contract("performance_summary_table_generic_v1")
+    grouped_risk_event_table = module.get_input_schema_contract("grouped_risk_event_summary_table_v1")
     time_to_event_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "time_to_event"
     )
@@ -100,6 +108,39 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert shap.template_ids == ("shap_summary_beeswarm",)
     assert shap.collection_required_fields["rows"] == ("feature", "points")
     assert shap.nested_collection_required_fields["rows.points"] == ("shap_value", "feature_value")
+    assert cohort_flow.template_ids == ("cohort_flow_figure",)
+    assert cohort_flow.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
+    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
+    assert submission_graphical_abstract.required_top_level_fields == (
+        "schema_version",
+        "display_id",
+        "title",
+        "summary_cards",
+        "panel_messages",
+    )
+    assert submission_graphical_abstract.optional_top_level_fields == (
+        "caption",
+        "boundary_pills",
+        "supporting_metrics",
+        "source_data_paths",
+    )
+    assert submission_graphical_abstract.collection_required_fields["summary_cards"] == ("card_id", "label", "value")
+    assert submission_graphical_abstract.collection_required_fields["panel_messages"] == (
+        "panel_id",
+        "title",
+        "message",
+    )
+    assert submission_graphical_abstract.collection_optional_fields["supporting_metrics"] == ("label", "value")
+    assert "summary_cards_must_be_non_empty" in submission_graphical_abstract.additional_constraints
+    assert "panel_messages_must_be_non_empty" in submission_graphical_abstract.additional_constraints
+    assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
+    assert cohort_flow.collection_required_fields["steps"] == ("step_id", "label", "n")
+    assert cohort_flow.collection_required_fields["exclusions"] == ("exclusion_id", "from_step_id", "label", "n")
+    assert cohort_flow.collection_required_fields["endpoint_inventory"] == ("endpoint_id", "label", "event_n")
+    assert cohort_flow.collection_required_fields["design_panels"] == ("panel_id", "title", "layout_role", "lines")
+    assert cohort_flow.nested_collection_required_fields["design_panels.lines"] == ("label",)
+    assert "exclusion_ids_must_be_unique" in cohort_flow.additional_constraints
+    assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
 
     assert "time_dependent_roc_horizon" in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids
@@ -120,21 +161,159 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert time_to_event_panel.collection_required_fields["calibration_groups"] == ("label", "times", "values")
 
     assert time_to_event_decision.template_ids == ("time_to_event_decision_curve",)
+    assert time_to_event_decision.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "panel_a_title",
+        "panel_b_title",
+        "x_label",
+        "y_label",
+        "treated_fraction_y_label",
+        "series",
+        "treated_fraction_series",
+    )
     assert time_to_event_decision.collection_required_fields["series"] == ("label", "x", "y")
+    assert time_to_event_decision.collection_required_fields["treated_fraction_series"] == ("label", "x", "y")
     assert "publication_style_profile_required_at_materialization" in time_to_event_decision.additional_constraints
     assert "display_override_contract_may_adjust_layout_without_changing_data" in time_to_event_decision.additional_constraints
+    assert "treated_fraction_series_x_y_lengths_must_match" in time_to_event_decision.additional_constraints
     assert generalizability.template_ids == ("multicenter_generalizability_overview",)
-    assert generalizability.collection_required_fields["centers"] == (
-        "center_label",
-        "sample_size",
-        "estimate",
-        "lower",
-        "upper",
+    assert generalizability.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "overview_mode",
+        "center_event_y_label",
+        "coverage_y_label",
+        "center_event_counts",
+        "coverage_panels",
     )
+    assert generalizability.collection_required_fields["center_event_counts"] == (
+        "center_label",
+        "split_bucket",
+        "event_count",
+    )
+    assert generalizability.collection_required_fields["coverage_panels"] == (
+        "panel_id",
+        "title",
+        "layout_role",
+        "bars",
+    )
+    assert generalizability.nested_collection_required_fields["coverage_panels.bars"] == ("label", "count")
+    assert "overview_mode_must_be_center_support_counts" in generalizability.additional_constraints
+    assert risk_layering.template_ids == ("risk_layering_monotonic_bars",)
+    assert risk_layering.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
+    assert risk_layering.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "left_panel_title",
+        "left_x_label",
+        "left_bars",
+        "right_panel_title",
+        "right_x_label",
+        "right_bars",
+    )
+    assert risk_layering.collection_required_fields["left_bars"] == ("label", "cases", "events", "risk")
+    assert risk_layering.collection_required_fields["right_bars"] == ("label", "cases", "events", "risk")
+    assert "bar_events_must_not_exceed_cases" in risk_layering.additional_constraints
+    assert "left_bars_risk_must_be_monotonic_non_decreasing" in risk_layering.additional_constraints
+    assert "right_bars_risk_must_be_monotonic_non_decreasing" in risk_layering.additional_constraints
+    assert binary_calibration.template_ids == ("binary_calibration_decision_curve_panel",)
+    assert binary_calibration.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "calibration_x_label",
+        "calibration_y_label",
+        "decision_x_label",
+        "decision_y_label",
+        "calibration_series",
+        "decision_series",
+    )
+    assert binary_calibration.collection_required_fields["calibration_series"] == ("label", "x", "y")
+    assert binary_calibration.collection_required_fields["decision_series"] == ("label", "x", "y")
+    assert binary_calibration.collection_required_fields["decision_reference_lines"] == ("label", "x", "y")
+    assert "decision_focus_window_must_define_xmin_xmax_when_present" in binary_calibration.additional_constraints
+    assert model_complexity.template_ids == ("model_complexity_audit_panel",)
+    assert model_complexity.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "metric_panels",
+        "audit_panels",
+    )
+    assert model_complexity.collection_required_fields["metric_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "rows",
+    )
+    assert model_complexity.collection_required_fields["audit_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "rows",
+    )
+    assert model_complexity.nested_collection_required_fields["metric_panels.rows"] == ("label", "value")
+    assert model_complexity.nested_collection_required_fields["audit_panels.rows"] == ("label", "value")
     assert performance_table.template_ids == ("table2_time_to_event_performance_summary",)
     assert performance_table.collection_required_fields["rows"] == ("row_id", "label", "values")
     assert interpretation_table.template_ids == ("table3_clinical_interpretation_summary",)
     assert interpretation_table.collection_required_fields["rows"] == ("row_id", "label", "values")
+    assert generic_performance_table.template_ids == ("performance_summary_table_generic",)
+    assert generic_performance_table.required_top_level_fields == (
+        "schema_version",
+        "table_shell_id",
+        "display_id",
+        "title",
+        "row_header_label",
+        "columns",
+        "rows",
+    )
+    assert generic_performance_table.collection_required_fields["columns"] == ("column_id", "label")
+    assert generic_performance_table.collection_required_fields["rows"] == ("row_id", "label", "values")
+    assert grouped_risk_event_table.template_ids == ("grouped_risk_event_summary_table",)
+    assert grouped_risk_event_table.required_top_level_fields == (
+        "schema_version",
+        "table_shell_id",
+        "display_id",
+        "title",
+        "risk_column_label",
+        "rows",
+    )
+    assert grouped_risk_event_table.collection_required_fields["rows"] == (
+        "row_id",
+        "surface",
+        "stratum",
+        "cases",
+        "events",
+        "risk_display",
+    )
+    cohort_flow_shell = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
+    assert cohort_flow_shell.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
+    assert cohort_flow_shell.optional_top_level_fields == (
+        "caption",
+        "exclusions",
+        "endpoint_inventory",
+        "design_panels",
+    )
+    assert cohort_flow_shell.collection_required_fields["steps"] == ("step_id", "label", "n")
+    assert cohort_flow_shell.collection_required_fields["exclusions"] == ("exclusion_id", "from_step_id", "label", "n")
+    assert cohort_flow_shell.collection_required_fields["endpoint_inventory"] == ("endpoint_id", "label", "event_n")
+    assert cohort_flow_shell.collection_required_fields["design_panels"] == ("panel_id", "title", "layout_role", "lines")
+    assert cohort_flow_shell.nested_collection_required_fields["design_panels.lines"] == ("label",)
+    assert "exclusion_ids_must_be_unique" in cohort_flow_shell.additional_constraints
+    assert "design_panel_lines_must_be_non_empty" in cohort_flow_shell.additional_constraints
 
 
 def test_schema_contract_covers_all_registered_display_surface_items() -> None:
@@ -169,6 +348,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "roc_curve_binary" in markdown
     assert "shap_summary_inputs_v1" in markdown
     assert "cohort_flow_figure" in markdown
+    assert "submission_graphical_abstract" in markdown
     assert "table1_baseline_characteristics" in markdown
     assert "time_dependent_roc_horizon" in markdown
     assert "tsne_scatter_grouped" in markdown
@@ -178,7 +358,10 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "time_to_event_discrimination_calibration_panel" in markdown
     assert "time_to_event_decision_curve_inputs_v1" in markdown
     assert "multicenter_generalizability_overview" in markdown
+    assert "risk_layering_monotonic_bars" in markdown
     assert "table2_time_to_event_performance_summary" in markdown
+    assert "performance_summary_table_generic" in markdown
+    assert "grouped_risk_event_summary_table" in markdown
 
 
 def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
@@ -188,28 +371,8 @@ def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
     assert guide_path.read_text(encoding="utf-8") == module.render_display_template_catalog_markdown()
 
 
-def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() -> None:
-    schema_module = importlib.import_module("med_autoscience.display_schema_contract")
-    registry_module = importlib.import_module("med_autoscience.display_registry")
+def test_checked_in_display_audit_guide_matches_renderer_output() -> None:
+    module = importlib.import_module("med_autoscience.display_template_catalog")
     guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_audit_guide.md"
 
-    guide_text = guide_path.read_text(encoding="utf-8")
-    evidence_classes = [
-        display_class
-        for display_class in schema_module.list_display_schema_classes()
-        if display_class.class_id != "publication_shells_and_tables"
-    ]
-
-    assert f"- Evidence figure classes: `{len(evidence_classes)}`" in guide_text
-    assert f"- Implemented evidence figure templates: `{len(registry_module.list_evidence_figure_specs())}`" in guide_text
-    assert f"- Illustration shells: `{len(registry_module.list_illustration_shell_specs())}`" in guide_text
-    assert f"- Table shells: `{len(registry_module.list_table_shell_specs())}`" in guide_text
-    total_templates = (
-        len(registry_module.list_evidence_figure_specs())
-        + len(registry_module.list_illustration_shell_specs())
-        + len(registry_module.list_table_shell_specs())
-    )
-    assert f"- Total implemented display templates: `{total_templates}`" in guide_text
-
-    for display_class in evidence_classes:
-        assert display_class.display_name in guide_text
+    assert guide_path.read_text(encoding="utf-8") == module.render_display_audit_guide_markdown()

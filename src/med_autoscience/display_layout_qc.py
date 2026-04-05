@@ -162,6 +162,20 @@ def _first_box_of_type(boxes: tuple[Box, ...], box_type: str) -> Box | None:
     return matches[0] if matches else None
 
 
+def _curve_x_axis_titles(sidecar: LayoutSidecar) -> tuple[Box, ...]:
+    return _boxes_of_type(sidecar.layout_boxes, "x_axis_title") + _boxes_of_type(
+        sidecar.layout_boxes,
+        "subplot_x_axis_title",
+    )
+
+
+def _curve_y_axis_titles(sidecar: LayoutSidecar) -> tuple[Box, ...]:
+    return _boxes_of_type(sidecar.layout_boxes, "y_axis_title") + _boxes_of_type(
+        sidecar.layout_boxes,
+        "subplot_y_axis_title",
+    )
+
+
 def _primary_panel(sidecar: LayoutSidecar) -> Box | None:
     preferred = ("panel", "heatmap_tile_region")
     for box_type in preferred:
@@ -249,37 +263,49 @@ def _check_pairwise_non_overlap(boxes: tuple[Box, ...], *, rule_id: str, target:
 
 
 def _check_legend_panel_overlap(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
-    panel = _primary_panel(sidecar)
     legend = _first_box_of_type(sidecar.guide_boxes, "legend")
-    if panel is None or legend is None:
+    panels = sidecar.panel_boxes
+    if not panels:
+        primary_panel = _primary_panel(sidecar)
+        panels = (primary_panel,) if primary_panel is not None else ()
+    if not panels or legend is None:
         return []
-    if not _boxes_overlap(legend, panel):
-        return []
-    return [
-        _issue(
-            rule_id="legend_panel_overlap",
-            message="legend box must not overlap the main panel",
-            target="legend",
-            box_refs=(legend.box_id, panel.box_id),
+    issues: list[dict[str, Any]] = []
+    for panel in panels:
+        if panel is None or not _boxes_overlap(legend, panel):
+            continue
+        issues.append(
+            _issue(
+                rule_id="legend_panel_overlap",
+                message="legend box must not overlap the main panel",
+                target="legend",
+                box_refs=(legend.box_id, panel.box_id),
+            )
         )
-    ]
+    return issues
 
 
 def _check_colorbar_panel_overlap(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
-    panel = _primary_panel(sidecar)
     colorbar = _first_box_of_type(sidecar.guide_boxes, "colorbar")
-    if panel is None or colorbar is None:
+    panels = sidecar.panel_boxes
+    if not panels:
+        primary_panel = _primary_panel(sidecar)
+        panels = (primary_panel,) if primary_panel is not None else ()
+    if not panels or colorbar is None:
         return []
-    if not _boxes_overlap(colorbar, panel):
-        return []
-    return [
-        _issue(
-            rule_id="colorbar_panel_overlap",
-            message="colorbar must not overlap the main panel",
-            target="colorbar",
-            box_refs=(colorbar.box_id, panel.box_id),
+    issues: list[dict[str, Any]] = []
+    for panel in panels:
+        if panel is None or not _boxes_overlap(colorbar, panel):
+            continue
+        issues.append(
+            _issue(
+                rule_id="colorbar_panel_overlap",
+                message="colorbar must not overlap the main panel",
+                target="colorbar",
+                box_refs=(colorbar.box_id, panel.box_id),
+            )
         )
-    ]
+    return issues
 
 
 def _check_curve_metrics(metrics: dict[str, Any]) -> list[dict[str, Any]]:
@@ -374,9 +400,34 @@ def _check_reference_line_within_device(sidecar: LayoutSidecar) -> list[dict[str
 
 def _check_curve_like_layout(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
-    all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
-    issues.extend(_check_required_box_types(all_boxes, required_box_types=("title", "x_axis_title", "y_axis_title")))
+    if not _boxes_of_type(_all_boxes(sidecar), "title"):
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="required box type `title` is missing",
+                target="title",
+                expected="present",
+            )
+        )
+    if not _curve_x_axis_titles(sidecar):
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="curve layout requires at least one x-axis title box",
+                target="x_axis_title",
+                expected="present",
+            )
+        )
+    if not _curve_y_axis_titles(sidecar):
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="curve layout requires at least one y-axis title box",
+                target="y_axis_title",
+                expected="present",
+            )
+        )
     if _primary_panel(sidecar) is None:
         issues.append(
             _issue(
@@ -389,7 +440,15 @@ def _check_curve_like_layout(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     text_boxes = tuple(
         box
         for box in sidecar.layout_boxes
-        if box.box_type in {"title", "x_axis_title", "y_axis_title", "caption"}
+        if box.box_type in {
+            "title",
+            "x_axis_title",
+            "y_axis_title",
+            "subplot_x_axis_title",
+            "subplot_y_axis_title",
+            "panel_title",
+            "caption",
+        }
     )
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
     return issues
@@ -403,22 +462,87 @@ def _check_publication_evidence_curve(sidecar: LayoutSidecar) -> list[dict[str, 
     return issues
 
 
+def _check_publication_decision_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues = _check_publication_evidence_curve(sidecar)
+    if sidecar.template_id != "time_to_event_decision_curve":
+        return issues
+
+    if len(sidecar.panel_boxes) < 2:
+        issues.append(
+            _issue(
+                rule_id="treated_fraction_panel_missing",
+                message="time-to-event decision curve requires a treated-fraction companion panel",
+                target="panel_boxes",
+                expected={"minimum_count": 2},
+                observed={"count": len(sidecar.panel_boxes)},
+            )
+        )
+
+    treated_fraction_series = sidecar.metrics.get("treated_fraction_series")
+    if not isinstance(treated_fraction_series, dict):
+        issues.append(
+            _issue(
+                rule_id="treated_fraction_series_missing",
+                message="time-to-event decision curve requires treated_fraction_series metrics",
+                target="metrics.treated_fraction_series",
+            )
+        )
+        return issues
+
+    x_values = treated_fraction_series.get("x")
+    y_values = treated_fraction_series.get("y")
+    if not isinstance(x_values, list) or not isinstance(y_values, list):
+        raise ValueError("layout_sidecar.metrics.treated_fraction_series must contain x and y lists")
+    if len(x_values) != len(y_values):
+        issues.append(
+            _issue(
+                rule_id="treated_fraction_length_mismatch",
+                message="treated fraction x/y lengths must match",
+                target="metrics.treated_fraction_series",
+                observed={"x": len(x_values), "y": len(y_values)},
+            )
+        )
+        return issues
+
+    for index, (x_value, y_value) in enumerate(zip(x_values, y_values, strict=True)):
+        x_numeric = _require_numeric(x_value, label=f"layout_sidecar.metrics.treated_fraction_series.x[{index}]")
+        y_numeric = _require_numeric(y_value, label=f"layout_sidecar.metrics.treated_fraction_series.y[{index}]")
+        if math.isfinite(x_numeric) and math.isfinite(y_numeric):
+            continue
+        issues.append(
+            _issue(
+                rule_id="treated_fraction_non_finite",
+                message="treated fraction coordinates must be finite",
+                target="metrics.treated_fraction_series",
+            )
+        )
+        break
+
+    return issues
+
+
 def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues = _check_curve_like_layout(sidecar)
     issues.extend(_check_legend_panel_overlap(sidecar))
 
     annotation = _first_box_of_type(sidecar.guide_boxes + sidecar.layout_boxes, "annotation_block")
-    panel = _primary_panel(sidecar)
     legend = _first_box_of_type(sidecar.guide_boxes, "legend")
-    if annotation is not None and panel is not None and _boxes_overlap(annotation, panel):
-        issues.append(
-            _issue(
-                rule_id="annotation_panel_overlap",
-                message="annotation block must not overlap the panel",
-                target="annotation_block",
-                box_refs=(annotation.box_id, panel.box_id),
+    panels = sidecar.panel_boxes
+    if not panels:
+        primary_panel = _primary_panel(sidecar)
+        panels = (primary_panel,) if primary_panel is not None else ()
+    if annotation is not None:
+        for panel in panels:
+            if panel is None or not _boxes_overlap(annotation, panel):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="annotation_panel_overlap",
+                    message="annotation block must not overlap the panel",
+                    target="annotation_block",
+                    box_refs=(annotation.box_id, panel.box_id),
+                )
             )
-        )
     if annotation is not None and legend is not None and _boxes_overlap(annotation, legend):
         issues.append(
             _issue(
@@ -428,6 +552,81 @@ def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, 
                 box_refs=(annotation.box_id, legend.box_id),
             )
         )
+
+    if sidecar.template_id == "time_to_event_risk_group_summary":
+        if len(sidecar.panel_boxes) < 2:
+            issues.append(
+                _issue(
+                    rule_id="composite_panels_missing",
+                    message="time-to-event risk-group summary requires two panel boxes",
+                    target="panel_boxes",
+                    expected={"minimum_count": 2},
+                    observed={"count": len(sidecar.panel_boxes)},
+                )
+            )
+        risk_group_summaries = sidecar.metrics.get("risk_group_summaries")
+        if not isinstance(risk_group_summaries, list) or not risk_group_summaries:
+            issues.append(
+                _issue(
+                    rule_id="risk_group_summaries_missing",
+                    message="risk-group summary qc requires non-empty risk_group_summaries metrics",
+                    target="metrics.risk_group_summaries",
+                )
+            )
+            return issues
+        for index, item in enumerate(risk_group_summaries):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.risk_group_summaries[{index}] must be an object")
+            group_label = str(item.get("label") or "").strip()
+            if not group_label:
+                issues.append(
+                    _issue(
+                        rule_id="risk_group_label_missing",
+                        message="risk-group summary labels must be non-empty",
+                        target=f"metrics.risk_group_summaries[{index}].label",
+                    )
+                )
+            sample_size = _require_numeric(
+                item.get("sample_size"),
+                label=f"layout_sidecar.metrics.risk_group_summaries[{index}].sample_size",
+            )
+            event_count = _require_numeric(
+                item.get("events_5y"),
+                label=f"layout_sidecar.metrics.risk_group_summaries[{index}].events_5y",
+            )
+            predicted_risk = _require_numeric(
+                item.get("mean_predicted_risk_5y"),
+                label=f"layout_sidecar.metrics.risk_group_summaries[{index}].mean_predicted_risk_5y",
+            )
+            observed_risk = _require_numeric(
+                item.get("observed_km_risk_5y"),
+                label=f"layout_sidecar.metrics.risk_group_summaries[{index}].observed_km_risk_5y",
+            )
+            if sample_size <= 0:
+                issues.append(
+                    _issue(
+                        rule_id="risk_group_sample_size_non_positive",
+                        message="risk-group sample_size must be positive",
+                        target=f"metrics.risk_group_summaries[{index}].sample_size",
+                    )
+                )
+            if event_count < 0:
+                issues.append(
+                    _issue(
+                        rule_id="risk_group_event_count_negative",
+                        message="risk-group events_5y must be non-negative",
+                        target=f"metrics.risk_group_summaries[{index}].events_5y",
+                    )
+                )
+            if not math.isfinite(predicted_risk) or not math.isfinite(observed_risk):
+                issues.append(
+                    _issue(
+                        rule_id="risk_group_risk_non_finite",
+                        message="risk-group summary risks must be finite",
+                        target=f"metrics.risk_group_summaries[{index}]",
+                    )
+                )
+        return issues
 
     groups = sidecar.metrics.get("groups")
     if not isinstance(groups, list) or not groups:
@@ -715,135 +914,538 @@ def _check_publication_forest_plot(sidecar: LayoutSidecar) -> list[dict[str, Any
 
 def _check_publication_multicenter_overview(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(_all_boxes(sidecar), required_box_types=("title", "y_axis_title", "coverage_bar")))
+    issues.extend(_check_legend_panel_overlap(sidecar))
+
+    center_event_panel = _first_box_of_type(sidecar.panel_boxes, "center_event_panel")
+    if center_event_panel is None:
+        issues.append(
+            _issue(
+                rule_id="center_event_panel_missing",
+                message="multicenter overview requires the center-event panel",
+                target="panel_boxes",
+                expected="center_event_panel",
+            )
+        )
+
+    coverage_panels_by_box_id = {box.box_id for box in _boxes_of_type(sidecar.panel_boxes, "coverage_panel")}
+    required_coverage_box_ids = {
+        "coverage_panel_wide_left",
+        "coverage_panel_top_right",
+        "coverage_panel_bottom_right",
+    }
+    for missing_box_id in sorted(required_coverage_box_ids - coverage_panels_by_box_id):
+        issues.append(
+            _issue(
+                rule_id="coverage_panel_missing",
+                message="multicenter overview requires all three coverage panel regions",
+                target="panel_boxes",
+                expected=missing_box_id,
+            )
+        )
+
+    center_event_counts = sidecar.metrics.get("center_event_counts")
+    if not isinstance(center_event_counts, list) or not center_event_counts:
+        issues.append(
+            _issue(
+                rule_id="center_event_counts_missing",
+                message="multicenter overview requires non-empty center_event_counts metrics",
+                target="metrics.center_event_counts",
+            )
+        )
+    else:
+        seen_labels: set[str] = set()
+        for index, item in enumerate(center_event_counts):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.center_event_counts[{index}] must be an object")
+            label = str(item.get("center_label") or "").strip()
+            if not label:
+                raise ValueError(f"layout_sidecar.metrics.center_event_counts[{index}].center_label must be non-empty")
+            if label in seen_labels:
+                issues.append(
+                    _issue(
+                        rule_id="center_event_label_not_unique",
+                        message="center-event labels must be unique",
+                        target=f"metrics.center_event_counts[{index}]",
+                        observed=label,
+                    )
+                )
+            seen_labels.add(label)
+            event_count = _require_numeric(
+                item.get("event_count"),
+                label=f"layout_sidecar.metrics.center_event_counts[{index}].event_count",
+            )
+            if event_count < 0:
+                issues.append(
+                    _issue(
+                        rule_id="center_event_count_negative",
+                        message="center-event counts must be non-negative",
+                        target=f"metrics.center_event_counts[{index}]",
+                        observed=event_count,
+                    )
+                )
+
+    coverage_panels = sidecar.metrics.get("coverage_panels")
+    if not isinstance(coverage_panels, list) or not coverage_panels:
+        issues.append(
+            _issue(
+                rule_id="coverage_panels_missing",
+                message="multicenter overview requires coverage_panels metrics",
+                target="metrics.coverage_panels",
+            )
+        )
+        return issues
+
+    seen_panel_ids: set[str] = set()
+    seen_layout_roles: set[str] = set()
+    for index, panel in enumerate(coverage_panels):
+        if not isinstance(panel, dict):
+            raise ValueError(f"layout_sidecar.metrics.coverage_panels[{index}] must be an object")
+        panel_id = str(panel.get("panel_id") or "").strip()
+        if not panel_id:
+            raise ValueError(f"layout_sidecar.metrics.coverage_panels[{index}].panel_id must be non-empty")
+        if panel_id in seen_panel_ids:
+            issues.append(
+                _issue(
+                    rule_id="coverage_panel_id_not_unique",
+                    message="coverage panel ids must be unique",
+                    target=f"metrics.coverage_panels[{index}]",
+                    observed=panel_id,
+                )
+            )
+        seen_panel_ids.add(panel_id)
+        layout_role = str(panel.get("layout_role") or "").strip()
+        if not layout_role:
+            raise ValueError(f"layout_sidecar.metrics.coverage_panels[{index}].layout_role must be non-empty")
+        seen_layout_roles.add(layout_role)
+        bars = panel.get("bars")
+        if not isinstance(bars, list) or not bars:
+            issues.append(
+                _issue(
+                    rule_id="coverage_panel_bars_missing",
+                    message="coverage panels must contain at least one bar",
+                    target=f"metrics.coverage_panels[{index}].bars",
+                )
+            )
+            continue
+        for bar_index, bar in enumerate(bars):
+            if not isinstance(bar, dict):
+                raise ValueError(f"layout_sidecar.metrics.coverage_panels[{index}].bars[{bar_index}] must be an object")
+            count = _require_numeric(
+                bar.get("count"),
+                label=f"layout_sidecar.metrics.coverage_panels[{index}].bars[{bar_index}].count",
+            )
+            if count < 0:
+                issues.append(
+                    _issue(
+                        rule_id="coverage_bar_count_negative",
+                        message="coverage bar counts must be non-negative",
+                        target=f"metrics.coverage_panels[{index}].bars[{bar_index}]",
+                        observed=count,
+                    )
+                )
+
+    required_layout_roles = {"wide_left", "top_right", "bottom_right"}
+    for missing_role in sorted(required_layout_roles - seen_layout_roles):
+        issues.append(
+            _issue(
+                rule_id="coverage_panel_layout_role_missing",
+                message="multicenter overview requires wide_left, top_right, and bottom_right coverage panels",
+                target="metrics.coverage_panels",
+                expected=missing_role,
+            )
+        )
+
+    return issues
+
+
+def _check_publication_risk_layering_bars(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
     issues.extend(
         _check_required_box_types(
             all_boxes,
-            required_box_types=("title", "x_axis_title", "row_label", "sample_bar", "estimate_marker", "ci_segment"),
+            required_box_types=("title", "y_axis_title", "subplot_title", "subplot_x_axis_title"),
         )
     )
 
-    sample_panel = _first_box_of_type(sidecar.panel_boxes, "sample_panel")
-    estimate_panel = _first_box_of_type(sidecar.panel_boxes, "estimate_panel")
-    if sample_panel is None:
+    panel_boxes = _boxes_of_type(sidecar.panel_boxes, "panel")
+    if not panel_boxes:
         issues.append(
             _issue(
                 rule_id="missing_box",
-                message="multicenter overview requires a sample-size panel",
-                target="sample_panel",
-                expected="present",
-            )
-        )
-    if estimate_panel is None:
-        issues.append(
-            _issue(
-                rule_id="missing_box",
-                message="multicenter overview requires an estimate panel",
-                target="estimate_panel",
+                message="risk layering bars require at least one panel box",
+                target="panel",
                 expected="present",
             )
         )
 
-    for row_label in _boxes_of_type(sidecar.layout_boxes, "row_label"):
-        if sample_panel is not None and _boxes_overlap(row_label, sample_panel):
-            issues.append(
-                _issue(
-                    rule_id="row_label_panel_overlap",
-                    message="row label must not overlap the sample-size panel",
-                    target="row_label",
-                    box_refs=(row_label.box_id, sample_panel.box_id),
-                )
-            )
-        if estimate_panel is not None and _boxes_overlap(row_label, estimate_panel):
-            issues.append(
-                _issue(
-                    rule_id="row_label_panel_overlap",
-                    message="row label must not overlap the estimate panel",
-                    target="row_label",
-                    box_refs=(row_label.box_id, estimate_panel.box_id),
-                )
-            )
-    if sample_panel is not None:
-        for sample_bar in _boxes_of_type(sidecar.layout_boxes, "sample_bar"):
-            if _box_within_box(sample_bar, sample_panel):
-                continue
-            issues.append(
-                _issue(
-                    rule_id="sample_bar_outside_panel",
-                    message="sample-size bar must stay within the sample-size panel",
-                    target="sample_bar",
-                    box_refs=(sample_bar.box_id, sample_panel.box_id),
-                )
-            )
-        reference_line = _first_box_of_type(sidecar.guide_boxes, "reference_line")
-        if reference_line is not None and estimate_panel is not None and not _box_within_box(reference_line, estimate_panel):
-            issues.append(
-                _issue(
-                    rule_id="reference_line_outside_panel",
-                    message="reference line must stay within the estimate panel",
-                    target="reference_line",
-                    box_refs=(reference_line.box_id, estimate_panel.box_id),
-                )
-            )
-    if estimate_panel is not None:
-        for estimate_marker in _boxes_of_type(sidecar.layout_boxes, "estimate_marker"):
-            if _box_within_box(estimate_marker, estimate_panel):
-                continue
-            issues.append(
-                _issue(
-                    rule_id="estimate_marker_outside_panel",
-                    message="estimate marker must stay within the estimate panel",
-                    target="estimate_marker",
-                    box_refs=(estimate_marker.box_id, estimate_panel.box_id),
-                )
-            )
-        for ci_segment in _boxes_of_type(sidecar.layout_boxes, "ci_segment"):
-            if _box_within_box(ci_segment, estimate_panel):
-                continue
-            issues.append(
-                _issue(
-                    rule_id="ci_segment_outside_panel",
-                    message="confidence-interval segment must stay within the estimate panel",
-                    target="ci_segment",
-                    box_refs=(ci_segment.box_id, estimate_panel.box_id),
-                )
-            )
-
-    centers = sidecar.metrics.get("centers")
-    if not isinstance(centers, list) or not centers:
-        issues.append(
-            _issue(
-                rule_id="centers_missing",
-                message="multicenter overview requires non-empty center metrics",
-                target="metrics.centers",
-            )
-        )
-        return issues
-    for index, center in enumerate(centers):
-        if not isinstance(center, dict):
-            raise ValueError(f"layout_sidecar.metrics.centers[{index}] must be an object")
-        sample_size = _require_numeric(center.get("sample_size"), label=f"layout_sidecar.metrics.centers[{index}].sample_size")
-        lower = _require_numeric(center.get("lower"), label=f"layout_sidecar.metrics.centers[{index}].lower")
-        estimate = _require_numeric(center.get("estimate"), label=f"layout_sidecar.metrics.centers[{index}].estimate")
-        upper = _require_numeric(center.get("upper"), label=f"layout_sidecar.metrics.centers[{index}].upper")
-        if sample_size <= 0:
-            issues.append(
-                _issue(
-                    rule_id="sample_size_non_positive",
-                    message="sample size must be positive",
-                    target=f"metrics.centers[{index}]",
-                    observed=sample_size,
-                )
-            )
-        if lower <= estimate <= upper:
+    for bar_box in _boxes_of_type(sidecar.layout_boxes + sidecar.panel_boxes, "bar"):
+        if any(_box_within_box(bar_box, panel_box) for panel_box in panel_boxes):
             continue
         issues.append(
             _issue(
-                rule_id="estimate_outside_interval",
-                message="estimate must lie within the confidence interval",
-                target=f"metrics.centers[{index}]",
-                observed={"lower": lower, "estimate": estimate, "upper": upper},
+                rule_id="bar_outside_panel",
+                message="bar box must stay within one declared panel",
+                target="bar",
+                box_refs=(bar_box.box_id,),
+            )
+        )
+
+    panel_metrics = sidecar.metrics.get("panels")
+    if not isinstance(panel_metrics, list) or not panel_metrics:
+        issues.append(
+            _issue(
+                rule_id="panels_missing",
+                message="risk layering qc requires non-empty panel metrics",
+                target="metrics.panels",
+            )
+        )
+        return issues
+
+    for panel_index, panel in enumerate(panel_metrics):
+        if not isinstance(panel, dict):
+            raise ValueError(f"layout_sidecar.metrics.panels[{panel_index}] must be an object")
+        bars = panel.get("bars")
+        if not isinstance(bars, list) or not bars:
+            issues.append(
+                _issue(
+                    rule_id="bars_missing",
+                    message="each risk-layering panel must declare non-empty bars",
+                    target=f"metrics.panels[{panel_index}].bars",
+                )
+            )
+            continue
+        previous_risk_rate: float | None = None
+        for bar_index, bar in enumerate(bars):
+            if not isinstance(bar, dict):
+                raise ValueError(f"layout_sidecar.metrics.panels[{panel_index}].bars[{bar_index}] must be an object")
+            n_value = _require_numeric(
+                bar.get("n"),
+                label=f"layout_sidecar.metrics.panels[{panel_index}].bars[{bar_index}].n",
+            )
+            events_value = _require_numeric(
+                bar.get("events"),
+                label=f"layout_sidecar.metrics.panels[{panel_index}].bars[{bar_index}].events",
+            )
+            risk_rate = _require_numeric(
+                bar.get("risk_rate"),
+                label=f"layout_sidecar.metrics.panels[{panel_index}].bars[{bar_index}].risk_rate",
+            )
+            if n_value <= 0:
+                issues.append(
+                    _issue(
+                        rule_id="bar_count_non_positive",
+                        message="bar denominator must be positive",
+                        target=f"metrics.panels[{panel_index}].bars[{bar_index}]",
+                        observed={"n": n_value},
+                    )
+                )
+            if events_value < 0 or events_value > n_value:
+                issues.append(
+                    _issue(
+                        rule_id="events_outside_count",
+                        message="bar events must satisfy 0 <= events <= n",
+                        target=f"metrics.panels[{panel_index}].bars[{bar_index}]",
+                        observed={"events": events_value, "n": n_value},
+                    )
+                )
+            expected_risk_rate = 0.0 if n_value == 0 else events_value / n_value
+            if not math.isclose(risk_rate, expected_risk_rate, rel_tol=0.0, abs_tol=5e-4):
+                issues.append(
+                    _issue(
+                        rule_id="risk_rate_mismatch",
+                        message="risk_rate must match events / n within the declared precision",
+                        target=f"metrics.panels[{panel_index}].bars[{bar_index}]",
+                        observed={"risk_rate": risk_rate},
+                        expected={"events_over_n": expected_risk_rate},
+                    )
+                )
+            if previous_risk_rate is not None and risk_rate + 1e-9 < previous_risk_rate:
+                issues.append(
+                    _issue(
+                        rule_id="risk_rate_not_monotonic",
+                        message="risk-layering bars must be monotonic in the declared order",
+                        target=f"metrics.panels[{panel_index}].bars",
+                        observed={"previous": previous_risk_rate, "current": risk_rate},
+                    )
+                )
+            previous_risk_rate = risk_rate
+    return issues
+
+
+def _check_publication_binary_calibration_decision_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(
+        _check_required_box_types(
+            all_boxes,
+            required_box_types=("title", "subplot_x_axis_title", "subplot_y_axis_title", "legend"),
+        )
+    )
+
+    calibration_panel = _first_box_of_type(sidecar.panel_boxes, "calibration_panel")
+    decision_panel = _first_box_of_type(sidecar.panel_boxes, "decision_panel")
+    if calibration_panel is None:
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="binary calibration/decision panel requires a calibration panel",
+                target="calibration_panel",
+                expected="present",
+            )
+        )
+    if decision_panel is None:
+        issues.append(
+            _issue(
+                rule_id="missing_box",
+                message="binary calibration/decision panel requires a decision panel",
+                target="decision_panel",
+                expected="present",
+            )
+        )
+
+    legend = _first_box_of_type(sidecar.guide_boxes, "legend")
+    if legend is not None:
+        for panel_box in (calibration_panel, decision_panel):
+            if panel_box is None or not _boxes_overlap(legend, panel_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="legend_panel_overlap",
+                    message="legend must not overlap the calibration or decision panel",
+                    target="legend",
+                    box_refs=(legend.box_id, panel_box.box_id),
+                )
+            )
+
+    focus_window = _first_box_of_type(sidecar.guide_boxes, "focus_window")
+    if focus_window is not None and decision_panel is not None and not _box_within_box(focus_window, decision_panel):
+        issues.append(
+            _issue(
+                rule_id="focus_window_outside_panel",
+                message="decision focus window must stay within the decision panel",
+                target="focus_window",
+                box_refs=(focus_window.box_id, decision_panel.box_id),
+            )
+        )
+
+    calibration_series = sidecar.metrics.get("calibration_series")
+    if not isinstance(calibration_series, list) or not calibration_series:
+        issues.append(
+            _issue(
+                rule_id="calibration_series_missing",
+                message="binary calibration/decision qc requires non-empty calibration_series",
+                target="metrics.calibration_series",
+            )
+        )
+    else:
+        for index, series in enumerate(calibration_series):
+            if not isinstance(series, dict):
+                raise ValueError(f"layout_sidecar.metrics.calibration_series[{index}] must be an object")
+            x_values = series.get("x")
+            y_values = series.get("y")
+            if not isinstance(x_values, list) or not isinstance(y_values, list):
+                raise ValueError(f"layout_sidecar.metrics.calibration_series[{index}] must contain x and y lists")
+            if len(x_values) != len(y_values):
+                issues.append(
+                    _issue(
+                        rule_id="calibration_length_mismatch",
+                        message="calibration series x/y lengths must match",
+                        target=f"metrics.calibration_series[{index}]",
+                        observed={"x": len(x_values), "y": len(y_values)},
+                    )
+                )
+                continue
+            for point_index, (x_value, y_value) in enumerate(zip(x_values, y_values, strict=True)):
+                _require_numeric(x_value, label=f"layout_sidecar.metrics.calibration_series[{index}].x[{point_index}]")
+                _require_numeric(y_value, label=f"layout_sidecar.metrics.calibration_series[{index}].y[{point_index}]")
+
+    decision_series = sidecar.metrics.get("decision_series")
+    if not isinstance(decision_series, list) or not decision_series:
+        issues.append(
+            _issue(
+                rule_id="decision_series_missing",
+                message="binary calibration/decision qc requires non-empty decision_series",
+                target="metrics.decision_series",
+            )
+        )
+    else:
+        for index, series in enumerate(decision_series):
+            if not isinstance(series, dict):
+                raise ValueError(f"layout_sidecar.metrics.decision_series[{index}] must be an object")
+            x_values = series.get("x")
+            y_values = series.get("y")
+            if not isinstance(x_values, list) or not isinstance(y_values, list):
+                raise ValueError(f"layout_sidecar.metrics.decision_series[{index}] must contain x and y lists")
+            if len(x_values) != len(y_values):
+                issues.append(
+                    _issue(
+                        rule_id="decision_length_mismatch",
+                        message="decision series x/y lengths must match",
+                        target=f"metrics.decision_series[{index}]",
+                        observed={"x": len(x_values), "y": len(y_values)},
+                    )
+                )
+                continue
+            for point_index, (x_value, y_value) in enumerate(zip(x_values, y_values, strict=True)):
+                _require_numeric(x_value, label=f"layout_sidecar.metrics.decision_series[{index}].x[{point_index}]")
+                _require_numeric(y_value, label=f"layout_sidecar.metrics.decision_series[{index}].y[{point_index}]")
+
+    decision_reference_lines = sidecar.metrics.get("decision_reference_lines")
+    if decision_reference_lines is not None:
+        if not isinstance(decision_reference_lines, list):
+            raise ValueError("layout_sidecar.metrics.decision_reference_lines must be a list when present")
+        for index, line in enumerate(decision_reference_lines):
+            if not isinstance(line, dict):
+                raise ValueError(f"layout_sidecar.metrics.decision_reference_lines[{index}] must be an object")
+            x_values = line.get("x")
+            y_values = line.get("y")
+            if not isinstance(x_values, list) or not isinstance(y_values, list):
+                raise ValueError(
+                    f"layout_sidecar.metrics.decision_reference_lines[{index}] must contain x and y lists"
+                )
+            if len(x_values) != len(y_values):
+                issues.append(
+                    _issue(
+                        rule_id="decision_reference_length_mismatch",
+                        message="decision reference line x/y lengths must match",
+                        target=f"metrics.decision_reference_lines[{index}]",
+                        observed={"x": len(x_values), "y": len(y_values)},
+                    )
+                )
+    return issues
+
+
+def _check_publication_model_complexity_audit(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("title",)))
+
+    metric_panel_boxes = _boxes_of_type(sidecar.panel_boxes, "metric_panel")
+    audit_panel_boxes = _boxes_of_type(sidecar.panel_boxes, "audit_panel")
+    if not metric_panel_boxes:
+        issues.append(
+            _issue(
+                rule_id="metric_panels_missing",
+                message="model complexity audit requires metric panels",
+                target="metric_panel",
+                expected="present",
+            )
+        )
+    if not audit_panel_boxes:
+        issues.append(
+            _issue(
+                rule_id="audit_panels_missing",
+                message="model complexity audit requires audit panels",
+                target="audit_panel",
+                expected="present",
+            )
+        )
+
+    metric_panels = sidecar.metrics.get("metric_panels")
+    audit_panels = sidecar.metrics.get("audit_panels")
+    if not isinstance(metric_panels, list) or not metric_panels:
+        issues.append(
+            _issue(
+                rule_id="metric_panels_missing",
+                message="model complexity audit requires non-empty metric_panels metrics",
+                target="metrics.metric_panels",
+            )
+        )
+    else:
+        for panel_index, panel in enumerate(metric_panels):
+            if not isinstance(panel, dict):
+                raise ValueError(f"layout_sidecar.metrics.metric_panels[{panel_index}] must be an object")
+            rows = panel.get("rows")
+            if not isinstance(rows, list) or not rows:
+                issues.append(
+                    _issue(
+                        rule_id="metric_rows_missing",
+                        message="each metric panel must contain non-empty rows",
+                        target=f"metrics.metric_panels[{panel_index}].rows",
+                    )
+                )
+                continue
+            for row_index, row in enumerate(rows):
+                if not isinstance(row, dict):
+                    raise ValueError(
+                        f"layout_sidecar.metrics.metric_panels[{panel_index}].rows[{row_index}] must be an object"
+                    )
+                _require_numeric(
+                    row.get("value"),
+                    label=f"layout_sidecar.metrics.metric_panels[{panel_index}].rows[{row_index}].value",
+                )
+
+    if not isinstance(audit_panels, list) or not audit_panels:
+        issues.append(
+            _issue(
+                rule_id="audit_panels_missing",
+                message="model complexity audit requires non-empty audit_panels metrics",
+                target="metrics.audit_panels",
+            )
+        )
+    else:
+        for panel_index, panel in enumerate(audit_panels):
+            if not isinstance(panel, dict):
+                raise ValueError(f"layout_sidecar.metrics.audit_panels[{panel_index}] must be an object")
+            rows = panel.get("rows")
+            if not isinstance(rows, list) or not rows:
+                issues.append(
+                    _issue(
+                        rule_id="audit_rows_missing",
+                        message="each audit panel must contain non-empty rows",
+                        target=f"metrics.audit_panels[{panel_index}].rows",
+                    )
+                )
+                continue
+            for row_index, row in enumerate(rows):
+                if not isinstance(row, dict):
+                    raise ValueError(
+                        f"layout_sidecar.metrics.audit_panels[{panel_index}].rows[{row_index}] must be an object"
+                    )
+                _require_numeric(
+                    row.get("value"),
+                    label=f"layout_sidecar.metrics.audit_panels[{panel_index}].rows[{row_index}].value",
+                )
+
+    for marker_box in _boxes_of_type(sidecar.layout_boxes, "metric_marker"):
+        if any(_box_within_box(marker_box, panel_box) for panel_box in metric_panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="metric_marker_outside_panel",
+                message="metric marker must stay within a metric panel",
+                target="metric_marker",
+                box_refs=(marker_box.box_id,),
+            )
+        )
+
+    for audit_bar in _boxes_of_type(sidecar.layout_boxes, "audit_bar"):
+        if any(_box_within_box(audit_bar, panel_box) for panel_box in audit_panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="audit_bar_outside_panel",
+                message="audit bar must stay within an audit panel",
+                target="audit_bar",
+                box_refs=(audit_bar.box_id,),
+            )
+        )
+
+    for reference_line in _boxes_of_type(sidecar.guide_boxes, "reference_line"):
+        if any(_box_within_box(reference_line, panel_box) for panel_box in metric_panel_boxes + audit_panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="reference_line_outside_panel",
+                message="reference line must stay within its panel",
+                target="reference_line",
+                box_refs=(reference_line.box_id,),
             )
         )
     return issues
@@ -894,13 +1496,56 @@ def _check_publication_shap_summary(sidecar: LayoutSidecar) -> list[dict[str, An
     return issues
 
 
+def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("title", "main_step")))
+
+    step_boxes = _boxes_of_type(sidecar.layout_boxes, "main_step")
+    issues.extend(_check_pairwise_non_overlap(step_boxes, rule_id="main_step_overlap", target="main_step"))
+
+    exclusion_boxes = _boxes_of_type(sidecar.layout_boxes, "exclusion_box")
+    issues.extend(_check_pairwise_non_overlap(exclusion_boxes, rule_id="exclusion_box_overlap", target="exclusion_box"))
+    for exclusion_box in exclusion_boxes:
+        for step_box in step_boxes:
+            if not _boxes_overlap(exclusion_box, step_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="exclusion_step_overlap",
+                    message="exclusion box must not overlap a main cohort step",
+                    target="exclusion_box",
+                    box_refs=(exclusion_box.box_id, step_box.box_id),
+                )
+            )
+
+    secondary_panels = _boxes_of_type(sidecar.panel_boxes, "secondary_panel")
+    for secondary_panel in secondary_panels:
+        for step_box in step_boxes:
+            if not _boxes_overlap(secondary_panel, step_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="secondary_panel_step_overlap",
+                    message="secondary panel must not overlap a main cohort step",
+                    target="secondary_panel",
+                    box_refs=(secondary_panel.box_id, step_box.box_id),
+                )
+            )
+
+    return issues
+
+
 def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object]) -> dict[str, object]:
     normalized_sidecar = _normalize_layout_sidecar(layout_sidecar)
     normalized_profile = str(qc_profile or "").strip()
-    if normalized_profile == "publication_evidence_curve":
+    if normalized_profile == "publication_illustration_flow":
+        layout_issues = _check_publication_illustration_flow(normalized_sidecar)
+    elif normalized_profile == "publication_evidence_curve":
         layout_issues = _check_publication_evidence_curve(normalized_sidecar)
     elif normalized_profile == "publication_decision_curve":
-        layout_issues = _check_publication_evidence_curve(normalized_sidecar)
+        layout_issues = _check_publication_decision_curve(normalized_sidecar)
     elif normalized_profile == "publication_survival_curve":
         layout_issues = _check_publication_survival_curve(normalized_sidecar)
     elif normalized_profile == "publication_embedding_scatter":
@@ -911,6 +1556,12 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_forest_plot(normalized_sidecar)
     elif normalized_profile == "publication_multicenter_overview":
         layout_issues = _check_publication_multicenter_overview(normalized_sidecar)
+    elif normalized_profile == "publication_risk_layering_bars":
+        layout_issues = _check_publication_risk_layering_bars(normalized_sidecar)
+    elif normalized_profile == "publication_binary_calibration_decision_curve":
+        layout_issues = _check_publication_binary_calibration_decision_curve(normalized_sidecar)
+    elif normalized_profile == "publication_model_complexity_audit":
+        layout_issues = _check_publication_model_complexity_audit(normalized_sidecar)
     elif normalized_profile == "publication_shap_summary":
         layout_issues = _check_publication_shap_summary(normalized_sidecar)
     else:

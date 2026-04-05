@@ -154,56 +154,62 @@ Planned additions:
 
 - `docs/medical_display_anchor_paper_audit.md`
 
-下一轮实现顺序固定为：
+当前固定执行顺序已经从“继续补模板”切到“真实课题 QC tighten”：
 
-1. `001` direct migration pack
-2. `Figure 1` unified shell upgrade
-3. `003` figure-gap templates
-4. `003` supplementary / transport table templates
+1. `003` reporting / publication gate tighten
+2. `001` submission companion / graphical abstract contract tighten
+3. `002` real-study `Phase C / Phase D` promotion
+4. 完成以上真实课题 tighten 之后，再回到通用扩模板队列
 
-### 1. `001` Direct Migration Pack
+已进入正式主线、因此不再属于当前未完成 backlog 的 `003` 驱动项：
 
-当前 `001` 的 final submission 包里，下面这些资产都已经能直接映射到现有 audited surface：
+- `risk_layering_monotonic_bars`
+- `binary_calibration_decision_curve_panel`
+- `model_complexity_audit_panel`
+- `performance_summary_table_generic`
+- `grouped_risk_event_summary_table`
 
-- `Table 1` -> `table1_baseline_characteristics`
-- `Table 2` -> `table2_time_to_event_performance_summary`
-- `Figure 2` -> `time_to_event_discrimination_calibration_panel`
-- `Figure 3` -> `kaplan_meier_grouped`
-- `Figure 4` -> `time_to_event_decision_curve`
-- `Figure 5` -> `multicenter_generalizability_overview`
+当前 backlog 重点已经不是“再补一轮 catalog 名义数量”，而是让真实课题沿正式 controller / contract 链路完成清关。
 
-这一步的重点不是新增模板，而是把真实论文资产接入正式 `schema -> materialization -> qc -> catalog -> submission_manifest` 链路。
+### 1. `003` Reporting / Publication Gate Tighten
 
-### 2. `Figure 1` Unified Shell Upgrade
+`003` 的正式 display surface 已经通过，当前 blocker 已转移到 reporting / publication 合同面。优先要清的不是 renderer，而是下面这些正式文件与语义检查：
 
-`001 Figure 1` 和 `003 Figure 1` 都说明现有 `cohort_flow_figure` 壳层太窄。
+- `reporting_guideline_checklist.json`
+- `methods_implementation_manifest.json`
+- `results_narrative_map.json`
+- `figure_semantics_manifest.json`
+- `derived_analysis_manifest.json`
+- `manuscript_safe_reproducibility_supplement.json`
+- `endpoint_provenance_note.md`
+- manuscript-facing forbidden terms 清理
 
-下一步应把 Figure 1 shell 升级为能稳定表达：
+这一步的重点是把“可自动化吸收的结构化 blocker”和“必须回到真实 paper truth 才能闭合的 manuscript blocker”分开，而不是再把问题误判成 display template 缺口。
 
-- cohort derivation / restriction
-- endpoint inventory
-- center split schema 或 score-construction sidecar
+### 2. `001` Submission Companion / Graphical Abstract Contract Tighten
 
-不允许在 renderer 内通过启发式避让临时补出这一层能力。
+`001` 当前 publication surface 的主要缺口不再是主文 Figure / Table template，而是：
 
-### 3. `003` Figure-Gap Templates
+- `submission_graphical_abstract` 未正式注册
+- `submission_companion` renderer semantics 尚未进入正式 contract
 
-`003` 当前 journal-facing 主文是 `Figure 1-4 + Table 1`。其中真正缺的模板优先是：
+这说明 submission companion 仍未完全进入当前 publication-facing renderer / validator 主线。该项应作为下一条 tightening 目标单独处理，而不是与 `003` gate 问题混在一起。
 
-1. `risk_layering_monotonic_bars`
-2. `binary_calibration_decision_curve_panel`
-3. `model_complexity_audit_panel`
+### 3. `002` Real-Study `Phase C / Phase D` Promotion
 
-这三项补齐后，`003` 的当前主文面才能进入 audited surface。
+`002` 目前仍停留在 Figure 1 主线化，尚未把 `Phase C / Phase D` 的 evidence figure 与 table shell 升级进真实课题 controller 主线。下一步应补齐：
 
-### 4. `003` Supplementary / Transport Table Templates
+- `medical_analysis_contract.json`
+- `medical_reporting_contract.json`
+- `publication_style_profile.json`
+- `display_overrides.json`
+- 对真实 `study_design_cohort_flow.json` / `clinical_metadata_packet.md` 的正式 consumer 路径
 
-`003` 当前 `Table 2` / `Table 3` 已下沉为 `Supplementary Table S1` / `Supplementary Table S2`，但它们仍是稳定真实资产，后续需要：
+目标不是继续做一次性 paper patch，而是让 `002` 真正沿正式 controller / hydration / publication gate 链路推进。
 
-1. `performance_summary_table_generic`
-2. `grouped_risk_event_summary_table`
+### 4. Return To General Expansion
 
-它们优先级低于 `003` 当前主文 figure gaps，但高于泛化 backlog 里与现有论文无关的扩容项。
+只有当 `003` / `001` / `002` 这三条真实课题 tighten 线都闭合后，才应重新把资源投入到更泛化的 catalog 扩容队列。
 
 ## General Expansion Queue
 
