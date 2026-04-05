@@ -183,7 +183,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
 
 def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
-    guide_path = Path(__file__).resolve().parents[1] / "guides" / "medical_display_template_catalog.md"
+    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_template_catalog.md"
 
     assert guide_path.read_text(encoding="utf-8") == module.render_display_template_catalog_markdown()
 
@@ -191,7 +191,7 @@ def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
 def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() -> None:
     schema_module = importlib.import_module("med_autoscience.display_schema_contract")
     registry_module = importlib.import_module("med_autoscience.display_registry")
-    guide_path = Path(__file__).resolve().parents[1] / "guides" / "medical_display_audit_guide.md"
+    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_audit_guide.md"
 
     guide_text = guide_path.read_text(encoding="utf-8")
     evidence_classes = [

@@ -4,6 +4,12 @@ Generated from `med_autoscience.display_registry` and `med_autoscience.display_s
 
 For the stable human-auditable overview, completion counts, and change protocol, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
+## Publication Style and Override Governance
+
+- `paper/publication_style_profile.json` is the article-level visual truth source for publication-facing figures.
+- `paper/display_overrides.json` is the figure-level structured adjustment surface for manuscript-specific layout and readability decisions.
+- Templates preserve a stable lower bound; article-level style and figure-level overrides may refine expression without bypassing the audited renderer path.
+
 ## Template Classes
 
 ### Prediction Performance
@@ -135,7 +141,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Optional collection fields: `series` -> `annotation`<br>`reference_line` -> `label`
 - Required nested collection fields: `reference_line` -> `x`, `y`
 - Optional nested collection fields: None
-- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`
+- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`, `publication_style_profile_required_at_materialization`, `display_override_contract_may_adjust_layout_without_changing_data`
 
 ### `embedding_grouped_inputs_v1`
 
