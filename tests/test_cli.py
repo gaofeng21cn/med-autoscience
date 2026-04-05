@@ -169,6 +169,41 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
         assert output_path.read_text(encoding="utf-8") == expected_content
 
 
+def test_preflight_changes_command_outputs_json(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    monkeypatch.setattr(cli.dev_preflight, "collect_changed_files", lambda **kwargs: ["README.md"])
+    monkeypatch.setattr(
+        cli.dev_preflight,
+        "run_preflight",
+        lambda **kwargs: cli.dev_preflight.PreflightResult(
+            input_mode="files",
+            changed_files=("README.md",),
+            matched_categories=("codex_plugin_docs_surface",),
+            unclassified_changes=(),
+            planned_commands=("uv run pytest tests/test_codex_plugin.py -q",),
+            results=(),
+            ok=True,
+        ),
+    )
+
+    exit_code = cli.main(["preflight-changes", "--files", "README.md", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["ok"] is True
+    assert payload["changed_files"] == ["README.md"]
+    assert payload["matched_categories"] == ["codex_plugin_docs_surface"]
+
+
+def test_preflight_changes_command_rejects_multiple_change_sources() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit):
+        cli.main(["preflight-changes", "--files", "README.md", "--staged"])
+
+
 def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

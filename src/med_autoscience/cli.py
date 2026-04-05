@@ -11,6 +11,7 @@ from med_autoscience.doctor import (
     render_doctor_report,
     render_profile,
 )
+from med_autoscience import dev_preflight
 from med_autoscience.controllers import (
     aris_sidecar as aris_sidecar_controller,
     data_asset_gate,
@@ -113,6 +114,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sync_agent_entry_assets_parser = subparsers.add_parser("sync-agent-entry-assets")
     sync_agent_entry_assets_parser.add_argument("--repo-root", default=".")
+
+    preflight_parser = subparsers.add_parser("preflight-changes")
+    preflight_sources = preflight_parser.add_mutually_exclusive_group(required=True)
+    preflight_sources.add_argument("--files", nargs="+")
+    preflight_sources.add_argument("--staged", action="store_true")
+    preflight_sources.add_argument("--base-ref", type=str)
+    preflight_parser.add_argument("--format", choices=("text", "json"), default="text")
 
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
@@ -333,6 +341,29 @@ def main(argv: list[str] | None = None) -> int:
         result = sync_agent_entry_assets(repo_root=Path(args.repo_root))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "preflight-changes":
+        input_mode = "files"
+        if args.staged:
+            input_mode = "staged"
+        elif args.base_ref:
+            input_mode = "base_ref"
+        changed_files = dev_preflight.collect_changed_files(
+            repo_root=Path.cwd(),
+            files=list(args.files or []),
+            staged=bool(args.staged),
+            base_ref=args.base_ref,
+        )
+        result = dev_preflight.run_preflight(
+            changed_files=changed_files,
+            repo_root=Path.cwd(),
+            input_mode=input_mode,
+        )
+        if args.format == "json":
+            print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        else:
+            print(dev_preflight.render_preflight_text(result), end="")
+        return 0 if result.ok else 1
 
     if args.command == "med-deepscientist-upgrade-check":
         profile = load_profile(args.profile)

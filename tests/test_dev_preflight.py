@@ -49,3 +49,31 @@ def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) ->
     )
     assert calls[0] == ["uv", "run", "pytest", "tests/test_codex_plugin.py", "-q"]
     assert result.results[0].stdout == "ok\n"
+
+
+def test_collect_changed_files_from_staged_diff(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+
+    monkeypatch.setattr(
+        module,
+        "_git_diff_name_only",
+        lambda **kwargs: ["README.md", "docs/codex_plugin.md"],
+    )
+
+    changed_files = module.collect_changed_files(repo_root=tmp_path, staged=True)
+
+    assert changed_files == ["README.md", "docs/codex_plugin.md"]
+
+
+def test_collect_changed_files_from_base_ref_diff(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+
+    monkeypatch.setattr(
+        module,
+        "_git_diff_name_only",
+        lambda **kwargs: ["src/med_autoscience/controllers/study_runtime_router.py"],
+    )
+
+    changed_files = module.collect_changed_files(repo_root=tmp_path, base_ref="origin/main")
+
+    assert changed_files == ["src/med_autoscience/controllers/study_runtime_router.py"]
