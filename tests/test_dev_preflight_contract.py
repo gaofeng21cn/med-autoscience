@@ -22,7 +22,7 @@ def test_classify_changed_files_matches_display_surface_exact_guide() -> None:
 
     result = module.classify_changed_files(
         [
-            "guides/medical_display_audit_guide.md",
+            "docs/medical_display_audit_guide.md",
         ]
     )
 

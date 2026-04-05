@@ -59,8 +59,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="display_publication_surface",
         exact_paths=(
-            "guides/medical_display_audit_guide.md",
-            "guides/medical_display_template_catalog.md",
+            "docs/medical_display_audit_guide.md",
+            "docs/medical_display_template_catalog.md",
             "src/med_autoscience/display_layout_qc.py",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
