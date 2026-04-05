@@ -22,6 +22,7 @@
 - [Agent Runtime Interface](agent_runtime_interface.md)
 - [Agent Entry Modes](agent_entry_modes.md)
 - [Open Harness OS 架构边界](open_harness_os_architecture.md)
+- [Outer-Loop 唤醒与决策循环](outer_loop_wakeup_and_decision_loop.md)
 - [Open Harness OS 冻结计划](open_harness_os_freeze_plan.md)
 - [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
 - [Research Foundry 定位](research_foundry_positioning.md)

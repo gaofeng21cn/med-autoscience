@@ -36,6 +36,10 @@
 
 这些路径即使技术上可达，在架构上也视为旁路。
 
+关于 “runtime 发出升级信号后，outer loop 如何被唤醒并继续推进” 的正式设计，见：
+
+- [Outer-Loop Wakeup And Decision Loop](./outer_loop_wakeup_and_decision_loop.md)
+
 ## `ops/med-deepscientist/` 的定位
 
 workspace 下的 `ops/med-deepscientist/` 只保留：

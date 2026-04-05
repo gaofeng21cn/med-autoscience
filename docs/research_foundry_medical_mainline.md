@@ -106,6 +106,15 @@ Human / Agent
 
 都应被理解为这个 harness OS 的内部主模块。
 
+与此同时，outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
+
+- `MedDeepScientist` 作为常驻 inner runtime
+- `Med Auto Science` 作为 tick-driven outer controller
+
+相关机制见：
+
+- [Outer-Loop Wakeup And Decision Loop](./outer_loop_wakeup_and_decision_loop.md)
+
 ## 为什么 publication / display 仍然是主价值
 
 这一点必须说清楚：
