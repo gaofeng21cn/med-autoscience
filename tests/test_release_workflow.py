@@ -82,3 +82,12 @@ def test_release_workflow_dev_group_matches_uv_sync_contract() -> None:
 
     dev_names = {Requirement(item).name for item in dev_group}
     assert {"pytest", "build", "python-docx"}.issubset(dev_names)
+
+
+def test_ci_workflow_only_triggers_on_push_main_and_development() -> None:
+    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "pull_request:" not in ci_workflow
+    assert "push:" in ci_workflow
+    assert "- main" in ci_workflow
+    assert "- development" in ci_workflow

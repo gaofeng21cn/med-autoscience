@@ -1,0 +1,82 @@
+# Repository CI Preflight
+
+这个仓库当前采用的是“主线可直接 push，CI 负责远端告警”的模式。
+
+这意味着：
+
+- `main` 和 `development` 的 `push` 仍会触发 GitHub Actions
+- 远端 CI 不再承担阻断式 gate 角色
+- 提交前如果想提前发现高频问题，应优先运行本地 preflight
+
+## 何时运行
+
+以下场景建议在本地先跑：
+
+- 改了 README、Codex plugin 文档、安装脚本
+- 改了 display contract、publication gate、display guide
+- 改了 runtime contract、router、runtime transport、runtime protocol
+- 改了 workflow、打包和 release 相关文件
+
+## 命令入口
+
+最显式的方式：
+
+```bash
+uv run medautosci preflight-changes --files README.md docs/codex_plugin.md
+```
+
+检查 staged 改动：
+
+```bash
+uv run medautosci preflight-changes --staged
+```
+
+和某个基线比较：
+
+```bash
+uv run medautosci preflight-changes --base-ref origin/main
+```
+
+如果要给 agent 或其他自动化消费结构化结果：
+
+```bash
+uv run medautosci preflight-changes --staged --format json
+```
+
+## 规则边界
+
+preflight 不是启发式脚本。
+
+它只按照仓库内的 checked-in contract 分类改动面，并展开对应命令：
+
+- `workflow_surface`
+- `codex_plugin_docs_surface`
+- `display_publication_surface`
+- `runtime_contract_surface`
+
+如果你的改动不在当前 contract 覆盖范围内，结果会显式返回 `unclassified_changes`。
+
+这不是 bug，也不是降级兜底，而是在提醒：
+
+- 当前改动面还没有正式纳入 preflight contract
+- 不能把“未检查”伪装成“已检查”
+
+## 遇到 `unclassified_changes` 时怎么做
+
+正确处理方式是：
+
+1. 确认这批改动是否属于一个新的高风险改动面
+2. 如果是，就把对应路径和命令补进 `src/med_autoscience/dev_preflight_contract.py`
+3. 同步补测试，再继续使用 preflight
+
+不要：
+
+- 静默跳过
+- 临时把它塞进不相关的类别
+- 直接把 preflight 改成“未分类就全量跑所有测试”
+
+## 维护原则
+
+- 本地 preflight 负责把高频、可预测失败前移
+- 远端 CI 负责主线回归告警
+- 两者都应保持可审计、可解释、边界明确
