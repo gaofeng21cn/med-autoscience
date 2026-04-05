@@ -130,6 +130,14 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
     if figure_semantics in {FIGURE_SEMANTICS_ILLUSTRATION, FIGURE_SEMANTICS_SUBMISSION_COMPANION} and template_id:
         if not display_registry.is_illustration_shell(template_id):
             errors.append(f"template_id `{template_id}` is not a registered illustration shell")
+        elif (
+            figure_semantics == FIGURE_SEMANTICS_SUBMISSION_COMPANION
+            and template_id != "submission_graphical_abstract"
+        ):
+            errors.append(
+                "template_id "
+                f"`{template_id}` is not the registered submission companion shell `submission_graphical_abstract`"
+            )
         else:
             spec = display_registry.get_illustration_shell_spec(template_id)
             if renderer_family and renderer_family != spec.renderer_family:

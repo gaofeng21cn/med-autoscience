@@ -113,29 +113,6 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
     assert submission_graphical_abstract.required_top_level_fields == (
         "schema_version",
-        "shell_id",
-        "display_id",
-        "title",
-        "summary_panels",
-    )
-    assert submission_graphical_abstract.optional_top_level_fields == ("caption", "key_message", "footer_note")
-    assert submission_graphical_abstract.collection_required_fields["summary_panels"] == (
-        "panel_id",
-        "headline",
-        "supporting_text",
-    )
-    assert "summary_panel_ids_must_be_unique" in submission_graphical_abstract.additional_constraints
-    assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
-    assert cohort_flow.collection_required_fields["steps"] == ("step_id", "label", "n")
-    assert cohort_flow.collection_required_fields["exclusions"] == ("exclusion_id", "from_step_id", "label", "n")
-    assert cohort_flow.collection_required_fields["endpoint_inventory"] == ("endpoint_id", "label", "event_n")
-    assert cohort_flow.collection_required_fields["design_panels"] == ("panel_id", "title", "layout_role", "lines")
-    assert cohort_flow.nested_collection_required_fields["design_panels.lines"] == ("label",)
-    assert "exclusion_ids_must_be_unique" in cohort_flow.additional_constraints
-    assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
-    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
-    assert submission_graphical_abstract.required_top_level_fields == (
-        "schema_version",
         "display_id",
         "title",
         "summary_cards",
@@ -156,6 +133,14 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert submission_graphical_abstract.collection_optional_fields["supporting_metrics"] == ("label", "value")
     assert "summary_cards_must_be_non_empty" in submission_graphical_abstract.additional_constraints
     assert "panel_messages_must_be_non_empty" in submission_graphical_abstract.additional_constraints
+    assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
+    assert cohort_flow.collection_required_fields["steps"] == ("step_id", "label", "n")
+    assert cohort_flow.collection_required_fields["exclusions"] == ("exclusion_id", "from_step_id", "label", "n")
+    assert cohort_flow.collection_required_fields["endpoint_inventory"] == ("endpoint_id", "label", "event_n")
+    assert cohort_flow.collection_required_fields["design_panels"] == ("panel_id", "title", "layout_role", "lines")
+    assert cohort_flow.nested_collection_required_fields["design_panels.lines"] == ("label",)
+    assert "exclusion_ids_must_be_unique" in cohort_flow.additional_constraints
+    assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
 
     assert "time_dependent_roc_horizon" in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids

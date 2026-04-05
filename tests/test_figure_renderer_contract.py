@@ -13,7 +13,7 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         renderer_family = "python"
     elif figure_semantics == "submission_companion":
         template_id = "submission_graphical_abstract"
-        layout_qc_profile = "publication_illustration_flow"
+        layout_qc_profile = "submission_graphical_abstract"
         required_exports = ["png", "svg"]
         renderer_family = "python"
     elif renderer_family == "python":
@@ -84,7 +84,7 @@ def test_validate_renderer_contract_rejects_non_submission_shell_for_submission_
     )
 
     assert errors
-    assert "registered submission companion shell" in errors[0]
+    assert "submission_graphical_abstract" in errors[0]
 
 
 def test_validate_renderer_contract_rejects_failure_driven_fallbacks() -> None:
