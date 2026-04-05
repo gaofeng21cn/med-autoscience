@@ -1202,6 +1202,72 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
     assert "fallback_on_failure" in excerpts
 
 
+def test_build_report_blocks_submission_graphical_abstract_until_contract_is_registered(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"].append(
+        {
+            "figure_id": "GA1",
+            "template_id": "submission_graphical_abstract",
+            "renderer_family": "python",
+            "input_schema_id": "submission_graphical_abstract_inputs_v1",
+            "qc_profile": "publication_illustration_flow",
+            "qc_result": {"status": "pass", "issues": []},
+            "title": "Graphical abstract",
+            "caption": "Submission companion overview for the manuscript package.",
+            "paper_role": "supplementary",
+            "export_paths": ["paper/figures/GA1.png", "paper/figures/GA1.svg"],
+        }
+    )
+    figure_catalog_path.write_text(json.dumps(figure_catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    semantics_path = paper_root / "figure_semantics_manifest.json"
+    semantics_payload = json.loads(semantics_path.read_text(encoding="utf-8"))
+    semantics_payload["figures"].append(
+        {
+            "figure_id": "GA1",
+            "story_role": "submission_companion",
+            "research_question": "How should the submission package summarize the study at a glance?",
+            "direct_message": "The graphical abstract should stay aligned with the audited manuscript surface.",
+            "clinical_implication": "Provides a submission-facing summary only.",
+            "interpretation_boundary": "Does not add new evidence beyond the main manuscript figures.",
+            "panel_messages": [{"panel_id": "A", "message": "Submission-facing overview only."}],
+            "legend_glossary": [{"term": "graphical abstract", "explanation": "Submission-facing summary surface."}],
+            "threshold_semantics": "No decision threshold is encoded in the submission companion.",
+            "stratification_basis": "No new stratification basis is introduced for the submission companion.",
+            "recommendation_boundary": "No new clinical recommendation is made by the graphical abstract.",
+            "renderer_contract": {
+                "figure_semantics": "submission_companion",
+                "renderer_family": "python",
+                "template_id": "submission_graphical_abstract",
+                "selection_rationale": "Submission companion export stays aligned with the manuscript package.",
+                "layout_qc_profile": "publication_illustration_flow",
+                "required_exports": ["png", "svg"],
+                "fallback_on_failure": False,
+                "failure_action": "block_and_fix_environment",
+            },
+        }
+    )
+    semantics_path.write_text(json.dumps(semantics_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_catalog_missing_or_incomplete" in report["blockers"]
+    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
+    assert "submission_graphical_abstract" in excerpts
+    assert "submission_companion" in excerpts
+
+
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

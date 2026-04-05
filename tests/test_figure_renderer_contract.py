@@ -64,6 +64,17 @@ def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
     assert "evidence" in errors[0]
 
 
+def test_validate_renderer_contract_rejects_unregistered_submission_companion_semantics() -> None:
+    module = importlib.import_module("med_autoscience.figure_renderer_contract")
+
+    errors = module.validate_renderer_contract(
+        valid_contract(figure_semantics="submission_companion", renderer_family="python")
+    )
+
+    assert errors
+    assert "Unsupported figure_semantics `submission_companion`" in errors[0]
+
+
 def test_validate_renderer_contract_rejects_failure_driven_fallbacks() -> None:
     module = importlib.import_module("med_autoscience.figure_renderer_contract")
 
