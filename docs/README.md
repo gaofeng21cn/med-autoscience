@@ -23,6 +23,7 @@ Public interpretation:
 - [Agent Entry Modes](agent_entry_modes.md)
 - [Open Harness OS Architecture Boundary](open_harness_os_architecture.md)
 - [Open Harness OS Freeze Plan](open_harness_os_freeze_plan.md)
+- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
 - [Research Foundry Positioning](research_foundry_positioning.md)
 - [Repo Split Between Research Foundry and Med Auto Science](repo_split_between_research_foundry_and_med_autoscience.md)
 - [Runtime Boundary](runtime_boundary.md)

@@ -23,6 +23,7 @@
 - [Agent Entry Modes](agent_entry_modes.md)
 - [Open Harness OS 架构边界](open_harness_os_architecture.md)
 - [Open Harness OS 冻结计划](open_harness_os_freeze_plan.md)
+- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
 - [Research Foundry 定位](research_foundry_positioning.md)
 - [Research Foundry 与 Med Auto Science 的 repo 拆分边界](repo_split_between_research_foundry_and_med_autoscience.md)
 - [Runtime Boundary](runtime_boundary.md)
