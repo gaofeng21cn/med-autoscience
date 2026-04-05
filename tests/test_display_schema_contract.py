@@ -33,6 +33,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
     cohort_flow = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
+    submission_graphical_abstract = module.get_input_schema_contract("submission_graphical_abstract_inputs_v1")
     time_to_event_panel = module.get_input_schema_contract("time_to_event_discrimination_calibration_inputs_v1")
     time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
     generalizability = module.get_input_schema_contract("multicenter_generalizability_inputs_v1")
@@ -117,6 +118,29 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert cohort_flow.nested_collection_required_fields["design_panels.lines"] == ("label",)
     assert "exclusion_ids_must_be_unique" in cohort_flow.additional_constraints
     assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
+    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
+    assert submission_graphical_abstract.required_top_level_fields == (
+        "schema_version",
+        "display_id",
+        "title",
+        "summary_cards",
+        "panel_messages",
+    )
+    assert submission_graphical_abstract.optional_top_level_fields == (
+        "caption",
+        "boundary_pills",
+        "supporting_metrics",
+        "source_data_paths",
+    )
+    assert submission_graphical_abstract.collection_required_fields["summary_cards"] == ("card_id", "label", "value")
+    assert submission_graphical_abstract.collection_required_fields["panel_messages"] == (
+        "panel_id",
+        "title",
+        "message",
+    )
+    assert submission_graphical_abstract.collection_optional_fields["supporting_metrics"] == ("label", "value")
+    assert "summary_cards_must_be_non_empty" in submission_graphical_abstract.additional_constraints
+    assert "panel_messages_must_be_non_empty" in submission_graphical_abstract.additional_constraints
 
     assert "time_dependent_roc_horizon" in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids
@@ -324,6 +348,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "roc_curve_binary" in markdown
     assert "shap_summary_inputs_v1" in markdown
     assert "cohort_flow_figure" in markdown
+    assert "submission_graphical_abstract" in markdown
     assert "table1_baseline_characteristics" in markdown
     assert "time_dependent_roc_horizon" in markdown
     assert "tsne_scatter_grouped" in markdown

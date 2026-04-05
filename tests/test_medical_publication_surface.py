@@ -1202,7 +1202,7 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
     assert "fallback_on_failure" in excerpts
 
 
-def test_build_report_blocks_submission_graphical_abstract_until_contract_is_registered(tmp_path: Path) -> None:
+def test_build_report_accepts_submission_graphical_abstract_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
@@ -1219,11 +1219,11 @@ def test_build_report_blocks_submission_graphical_abstract_until_contract_is_reg
             "template_id": "submission_graphical_abstract",
             "renderer_family": "python",
             "input_schema_id": "submission_graphical_abstract_inputs_v1",
-            "qc_profile": "publication_illustration_flow",
-            "qc_result": {"status": "pass", "issues": []},
+            "qc_profile": "submission_graphical_abstract",
+            "qc_result": {"status": "pass", "issues": [], "checked_at": "2026-04-05T00:00:00+00:00"},
             "title": "Graphical abstract",
             "caption": "Submission companion overview for the manuscript package.",
-            "paper_role": "supplementary",
+            "paper_role": "submission_companion",
             "export_paths": ["paper/figures/GA1.png", "paper/figures/GA1.svg"],
         }
     )
@@ -1260,12 +1260,12 @@ def test_build_report_blocks_submission_graphical_abstract_until_contract_is_reg
 
     report = module.build_surface_report(module.build_surface_state(quest_root))
 
-    assert report["status"] == "blocked"
-    assert "figure_catalog_missing_or_incomplete" in report["blockers"]
-    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    assert report["status"] == "clear"
+    assert "figure_catalog_missing_or_incomplete" not in report["blockers"]
+    assert "figure_semantics_manifest_missing_or_incomplete" not in report["blockers"]
     excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
-    assert "submission_graphical_abstract" in excerpts
-    assert "submission_companion" in excerpts
+    assert "submission_graphical_abstract" not in excerpts
+    assert "submission_companion" not in excerpts
 
 
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:
