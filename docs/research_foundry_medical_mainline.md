@@ -234,9 +234,8 @@ Human / Agent
 
 当前最自然的 immediate next step 不是重新讨论大而空的架构，而是：
 
-1. 继续把 `publication eval minimal schema` 收紧成稳定 handoff surface
+1. 继续把 `study_charter` 收紧成稳定的 `charter-parameterized input contract`
 2. 在它之后继续：
-   - `charter-parameterized input contract`
    - `delivery plane contract map`
    - `real-study relaunch`
 

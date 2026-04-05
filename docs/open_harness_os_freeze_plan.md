@@ -16,7 +16,7 @@
 
 - `research-foundry-medical-mainline`
   - 当前 phase：`harness authority convergence`
-  - 当前唯一活跃子线：`publication eval minimal schema`
+  - 当前唯一活跃子线：`charter-parameterized input contract`
 
 与此同时，以下子线继续作为 inherited truth surface 提供 L2/L3 冻结所需输入：
 
