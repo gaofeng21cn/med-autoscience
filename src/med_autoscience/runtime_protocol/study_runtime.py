@@ -6,6 +6,12 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from med_autoscience.runtime_escalation_record import (
+    RuntimeEscalationRecord,
+    RuntimeEscalationRecordRef,
+    RuntimeEscalationTrigger,
+)
+
 from .layout import build_workspace_runtime_layout_for_profile
 from .study_runtime_models import (
     StartupContractValidation,
@@ -31,6 +37,41 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
+
+
+def _runtime_escalation_record_path(quest_root: Path) -> Path:
+    return (
+        Path(quest_root).expanduser().resolve()
+        / "artifacts"
+        / "reports"
+        / "escalation"
+        / "runtime_escalation_record.json"
+    )
+
+
+def write_runtime_escalation_record(
+    *,
+    quest_root: Path,
+    record: RuntimeEscalationRecord,
+) -> RuntimeEscalationRecord:
+    path = _runtime_escalation_record_path(quest_root)
+    persisted_record = record.with_artifact_path(str(path))
+    payload = persisted_record.to_dict()
+    _write_json(path, payload)
+    return RuntimeEscalationRecord.from_payload(payload)
+
+
+def read_runtime_escalation_record_ref(
+    *,
+    quest_root: Path,
+) -> RuntimeEscalationRecordRef | None:
+    path = _runtime_escalation_record_path(quest_root)
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("runtime escalation record artifact must contain a mapping payload")
+    return RuntimeEscalationRecord.from_payload(payload).ref()
 
 
 def _startup_hydration_report_path(quest_root: Path) -> Path:

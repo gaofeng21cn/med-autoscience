@@ -980,6 +980,19 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         self.extras["launch_report_path"] = str(artifacts.launch_report_path)
         self.extras["startup_payload_path"] = artifact_payload["startup_payload_path"]
 
+    def record_runtime_escalation_ref(
+        self,
+        value: dict[str, Any] | study_runtime_protocol.RuntimeEscalationRecordRef,
+    ) -> None:
+        runtime_escalation_ref = (
+            value
+            if isinstance(value, study_runtime_protocol.RuntimeEscalationRecordRef)
+            else study_runtime_protocol.RuntimeEscalationRecordRef.from_payload(
+                self._require_dict_field("runtime_escalation_ref", value)
+            )
+        )
+        self._record_dict_extra("runtime_escalation_ref", runtime_escalation_ref.to_dict())
+
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()
         if key not in payload:

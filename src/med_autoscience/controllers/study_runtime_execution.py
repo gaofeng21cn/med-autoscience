@@ -598,6 +598,81 @@ def _execute_runtime_decision(
     raise ValueError(f"unsupported study runtime decision: {status.decision}")
 
 
+def _runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:
+    if reason in {
+        StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+        StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+        StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED,
+    }:
+        return "startup_boundary_gate"
+    if reason is StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME:
+        return "runtime_reentry_gate"
+    return "study_runtime_status"
+
+
+def _runtime_escalation_recommended_actions(reason: StudyRuntimeReason | None) -> tuple[str, ...]:
+    if reason is StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME:
+        return ("refresh_startup_hydration", "controller_review_required")
+    if reason in {
+        StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+        StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED,
+    }:
+        return ("refresh_startup_hydration", "controller_review_required")
+    return ("refresh_startup_hydration", "controller_review_required")
+
+
+def _runtime_escalation_evidence_refs(status: StudyRuntimeStatus) -> tuple[str, ...]:
+    evidence_refs: list[str] = []
+    for key in ("startup_hydration", "startup_hydration_validation"):
+        payload = status.extras.get(key)
+        if not isinstance(payload, dict):
+            continue
+        report_path = str(payload.get("report_path") or "").strip()
+        if report_path:
+            evidence_refs.append(report_path)
+    return tuple(evidence_refs)
+
+
+def _maybe_emit_runtime_escalation_record(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> None:
+    if not status.should_refresh_startup_hydration_while_blocked():
+        return
+    reason = status.reason
+    if reason is None:
+        return
+    emitted_at = _router_module()._utc_now()
+    launch_report_path = str(context.launch_report_path)
+    record = study_runtime_protocol.RuntimeEscalationRecord(
+        schema_version=1,
+        record_id=f"runtime-escalation::{context.study_id}::{status.quest_id}::{reason.value}::{emitted_at}",
+        study_id=context.study_id,
+        quest_id=status.quest_id,
+        emitted_at=emitted_at,
+        trigger=study_runtime_protocol.RuntimeEscalationTrigger(
+            trigger_id=reason.value,
+            source=_runtime_escalation_trigger_source(reason),
+        ),
+        scope="quest",
+        severity="quest",
+        reason=reason.value,
+        recommended_actions=_runtime_escalation_recommended_actions(reason),
+        evidence_refs=_runtime_escalation_evidence_refs(status),
+        runtime_context_refs={
+            "launch_report_path": launch_report_path,
+        },
+        summary_ref=launch_report_path,
+        artifact_path=None,
+    )
+    written_record = study_runtime_protocol.write_runtime_escalation_record(
+        quest_root=context.quest_root,
+        record=record,
+    )
+    status.record_runtime_escalation_ref(written_record.ref())
+
+
 def _persist_runtime_artifacts(
     *,
     status: StudyRuntimeStatus,
@@ -627,3 +702,14 @@ def _persist_runtime_artifacts(
         launch_report_path=artifact_paths.launch_report_path,
         startup_payload_path=artifact_paths.startup_payload_path,
     )
+    _maybe_emit_runtime_escalation_record(status=status, context=context)
+    if "runtime_escalation_ref" in status.extras:
+        router.study_runtime_protocol.write_launch_report(
+            launch_report_path=context.launch_report_path,
+            status=status.to_dict(),
+            source=source,
+            force=force,
+            startup_payload_path=outcome.startup_payload_path,
+            daemon_result=outcome.serialized_daemon_result(),
+            recorded_at=router._utc_now(),
+        )

@@ -161,12 +161,21 @@ def _status_state(
         automation_ready_summary=router.render_automation_ready_summary(),
     )
 
+    def _finalize_result() -> StudyRuntimeStatus:
+        if not result.should_refresh_startup_hydration_while_blocked():
+            result.extras.pop("runtime_escalation_ref", None)
+            return result
+        runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
+        if runtime_escalation_ref is not None:
+            result.record_runtime_escalation_ref(runtime_escalation_ref)
+        return result
+
     if str(execution.get("engine") or "").strip() != "med-deepscientist":
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST,
         )
-        return result
+        return _finalize_result()
 
     auto_entry = str(execution.get("auto_entry") or "").strip()
     default_entry_mode = str(execution.get("default_entry_mode") or "full_research").strip() or "full_research"
@@ -175,13 +184,13 @@ def _status_state(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.STUDY_EXECUTION_NOT_MANAGED,
         )
-        return result
+        return _finalize_result()
     if selected_entry_mode != default_entry_mode:
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
             StudyRuntimeReason.ENTRY_MODE_NOT_MANAGED,
         )
-        return result
+        return _finalize_result()
 
     completion_contract_status = completion_state.status
     if completion_contract_status in {
@@ -192,20 +201,20 @@ def _status_state(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STUDY_COMPLETION_CONTRACT_NOT_READY,
         )
-        return result
+        return _finalize_result()
     if completion_state.ready:
         if not quest_exists:
             result.set_decision(
                 StudyRuntimeDecision.COMPLETED,
                 StudyRuntimeReason.STUDY_COMPLETION_DECLARED_WITHOUT_MANAGED_QUEST,
             )
-            return result
+            return _finalize_result()
         if quest_status == StudyRuntimeQuestStatus.COMPLETED:
             result.set_decision(
                 StudyRuntimeDecision.COMPLETED,
                 StudyRuntimeReason.QUEST_ALREADY_COMPLETED,
             )
-            return result
+            return _finalize_result()
         if quest_status in _LIVE_QUEST_STATUSES:
             audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
             if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
@@ -223,26 +232,26 @@ def _status_state(
                     StudyRuntimeDecision.SYNC_COMPLETION,
                     StudyRuntimeReason.STUDY_COMPLETION_READY,
                 )
-            return result
+            return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.SYNC_COMPLETION,
             StudyRuntimeReason.STUDY_COMPLETION_READY,
         )
-        return result
+        return _finalize_result()
 
     if not result.workspace_overall_ready:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.WORKSPACE_CONTRACT_NOT_READY,
         )
-        return result
+        return _finalize_result()
 
     if result.has_unresolved_contract_for(study_id):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STUDY_DATA_READINESS_BLOCKED,
         )
-        return result
+        return _finalize_result()
 
     startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
         startup_contract=router._build_startup_contract(
@@ -259,7 +268,7 @@ def _status_state(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
         )
-        return result
+        return _finalize_result()
 
     if not quest_exists:
         if result.startup_boundary_allows_compute_stage:
@@ -278,7 +287,7 @@ def _status_state(
                 StudyRuntimeDecision.CREATE_ONLY,
                 StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_AUTO_START,
             )
-        return result
+        return _finalize_result()
 
     if quest_status in _LIVE_QUEST_STATUSES:
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
@@ -323,7 +332,7 @@ def _status_state(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
             )
-        return result
+        return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
         if not result.startup_boundary_allows_compute_stage:
@@ -331,13 +340,13 @@ def _status_state(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
             )
-            return result
+            return _finalize_result()
         if not result.runtime_reentry_allows_runtime_entry:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
             )
-            return result
+            return _finalize_result()
         if execution.get("auto_resume") is True:
             resumable_reason = {
                 StudyRuntimeQuestStatus.PAUSED: StudyRuntimeReason.QUEST_PAUSED,
@@ -356,7 +365,7 @@ def _status_state(
                 StudyRuntimeDecision.BLOCKED,
                 blocked_reason,
             )
-        return result
+        return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
         if _waiting_submission_metadata_only(quest_root):
@@ -370,18 +379,18 @@ def _status_state(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED,
                 )
-            return result
+            return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_WAITING_FOR_USER,
         )
-        return result
+        return _finalize_result()
 
     result.set_decision(
         StudyRuntimeDecision.BLOCKED,
         StudyRuntimeReason.QUEST_EXISTS_WITH_NON_RESUMABLE_STATE,
     )
-    return result
+    return _finalize_result()
 
 
 def _status_payload(
