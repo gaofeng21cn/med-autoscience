@@ -485,3 +485,511 @@ def test_run_publication_shell_sync_writes_phase_c_and_phase_d_inputs_when_bound
     assert grouped_table["catalog_id"] == "T3"
     assert grouped_table["risk_column_label"] == "Risk of later persistent global hypopituitarism"
     assert grouped_table["rows"][1]["risk_display"] == "56.1%"
+
+
+def test_run_publication_shell_sync_supports_phase_c_and_phase_d_inputs_from_legacy_bundle_artifacts(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_shell_sync")
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    bundle_root = tmp_path / "legacy-paper-bundle"
+    paper_root = bundle_root / "paper"
+
+    write_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                *_registry_payload()["displays"],
+                {
+                    "display_id": "risk_layering",
+                    "display_kind": "figure",
+                    "requirement_key": "risk_layering_monotonic_bars",
+                    "catalog_id": "F2",
+                    "shell_path": "paper/figures/risk_layering.shell.json",
+                },
+                {
+                    "display_id": "calibration_decision",
+                    "display_kind": "figure",
+                    "requirement_key": "binary_calibration_decision_curve_panel",
+                    "catalog_id": "F3",
+                    "shell_path": "paper/figures/calibration_decision.shell.json",
+                },
+                {
+                    "display_id": "model_audit",
+                    "display_kind": "figure",
+                    "requirement_key": "model_complexity_audit_panel",
+                    "catalog_id": "F4",
+                    "shell_path": "paper/figures/model_audit.shell.json",
+                },
+                {
+                    "display_id": "performance_summary",
+                    "display_kind": "table",
+                    "requirement_key": "performance_summary_table_generic",
+                    "catalog_id": "T2",
+                    "shell_path": "paper/tables/performance_summary.shell.json",
+                },
+                {
+                    "display_id": "risk_event_summary",
+                    "display_kind": "table",
+                    "requirement_key": "grouped_risk_event_summary_table",
+                    "catalog_id": "T3",
+                    "shell_path": "paper/tables/risk_event_summary.shell.json",
+                },
+            ],
+        },
+    )
+    write_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "display_id": "cohort_flow",
+            "catalog_id": "F1",
+            "steps": [],
+            "exclusions": [],
+            "endpoint_inventory": [],
+            "design_panels": [],
+        },
+    )
+    write_json(
+        paper_root / "baseline_characteristics_schema.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "table1_baseline_characteristics",
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "display_id": "baseline_characteristics",
+            "catalog_id": "T1",
+            "groups": [],
+            "variables": [],
+        },
+    )
+    write_json(
+        study_root / "paper" / "derived" / "cohort_flow.json",
+        {
+            "study_id": "002-early-residual-risk",
+            "dataset_version": "v2026-03-31",
+            "source_total_cases": 409,
+            "first_surgery_cases": 357,
+            "excluded_non_first_surgery": 52,
+            "complete_3_month_landmark_cases": 357,
+            "complete_later_endpoint_cases": 357,
+            "analysis_cases": 357,
+            "analysis_event_n": 57,
+            "validation_contract": {
+                "outer_splits": 5,
+                "repeats": 20,
+                "inner_splits": 4,
+                "tuning_metric": "roc_auc",
+            },
+            "score_definition": {
+                "simple_score": "clinically informed preoperative model",
+                "group_rule": "low / intermediate / high predicted-risk tertiles",
+            },
+        },
+    )
+    write_csv(
+        study_root / "artifacts" / "final" / "tables" / "Table1.csv",
+        ["Characteristic", "Overall (N=357)", "GTR (n=300)", "Non-GTR (n=57)"],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=357)": "51 [40-59]",
+                "GTR (n=300)": "50 [39-58]",
+                "Non-GTR (n=57)": "56 [44-62]",
+            }
+        ],
+    )
+    write_csv(
+        study_root / "artifacts" / "final" / "tables" / "Table2.csv",
+        ["Model", "AUROC", "AUPRC", "Brier score", "Calibration intercept", "Calibration slope"],
+        [
+            {
+                "Model": "Core preoperative model",
+                "AUROC": "0.8022",
+                "AUPRC": "0.4479",
+                "Brier score": "0.1433",
+                "Calibration intercept": "-0.3108",
+                "Calibration slope": "2.4065",
+            },
+            {
+                "Model": "Clinically informed preoperative model",
+                "AUROC": "0.8004",
+                "AUPRC": "0.4500",
+                "Brier score": "0.1099",
+                "Calibration intercept": "0.0619",
+                "Calibration slope": "1.0442",
+            },
+        ],
+    )
+    write_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F2",
+                    "title": "Clinical utility of the clinically informed preoperative model compared with the core preoperative comparator",
+                    "source_artifacts": [
+                        "artifacts/analysis/run-535a972f/clinical_utility/calibration_curve.csv",
+                        "artifacts/analysis/run-535a972f/clinical_utility/decision_curve.csv",
+                        "artifacts/analysis/run-535a972f/clinical_utility/risk_stratification.csv",
+                        "artifacts/analysis/run-535a972f/clinical_utility/summary.json",
+                    ],
+                },
+                {
+                    "figure_id": "F3",
+                    "title": "Clinical coherence and coefficient stability of the clinically informed preoperative model",
+                    "source_artifacts": [
+                        "artifacts/experiment/run-535a972f/main_lighttree/metrics.json",
+                    ],
+                    "derived_artifact_paths": [
+                        "paper/derived/clinical_utility_model_coefficient_stability.csv",
+                        "paper/derived/clinical_utility_model_domain_summary.csv",
+                    ],
+                },
+                {
+                    "figure_id": "F4",
+                    "title": "Threshold-based operating characteristics and risk-group profiles for the clinically informed preoperative model",
+                    "source_artifacts": [
+                        "artifacts/analysis/run-535a972f/clinical_utility/risk_stratification.csv",
+                        "artifacts/analysis/run-535a972f/clinical_utility/summary.json",
+                    ],
+                },
+            ],
+        },
+    )
+    write_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "title": "Comparative performance of the preoperative models and contextual comparison models",
+                    "csv_path": str(study_root / "artifacts" / "final" / "tables" / "Table2.csv"),
+                },
+                {
+                    "table_id": "T3",
+                    "title": "Grouped risk-event summary for the primary and comparator models",
+                },
+            ],
+        },
+    )
+    write_csv(
+        bundle_root / "artifacts" / "analysis" / "run-535a972f" / "clinical_utility" / "calibration_curve.csv",
+        ["model", "bin_id", "mean_predicted_probability", "observed_non_gtr_rate", "n"],
+        [
+            {
+                "model": "A0",
+                "bin_id": "0",
+                "mean_predicted_probability": "0.2131",
+                "observed_non_gtr_rate": "0.0278",
+                "n": "36",
+            },
+            {
+                "model": "A0",
+                "bin_id": "1",
+                "mean_predicted_probability": "0.2861",
+                "observed_non_gtr_rate": "0.1143",
+                "n": "36",
+            },
+            {
+                "model": "A1",
+                "bin_id": "0",
+                "mean_predicted_probability": "0.0432",
+                "observed_non_gtr_rate": "0.0336",
+                "n": "119",
+            },
+            {
+                "model": "A1",
+                "bin_id": "1",
+                "mean_predicted_probability": "0.3318",
+                "observed_non_gtr_rate": "0.3529",
+                "n": "119",
+            },
+        ],
+    )
+    write_csv(
+        bundle_root / "artifacts" / "analysis" / "run-535a972f" / "clinical_utility" / "decision_curve.csv",
+        ["model", "threshold", "net_benefit_model", "net_benefit_treat_all", "net_benefit_treat_none"],
+        [
+            {
+                "model": "A0",
+                "threshold": "0.15",
+                "net_benefit_model": "0.1671",
+                "net_benefit_treat_all": "0.1465",
+                "net_benefit_treat_none": "0.0",
+            },
+            {
+                "model": "A1",
+                "threshold": "0.15",
+                "net_benefit_model": "0.1715",
+                "net_benefit_treat_all": "0.1465",
+                "net_benefit_treat_none": "0.0",
+            },
+            {
+                "model": "A0",
+                "threshold": "0.30",
+                "net_benefit_model": "0.0912",
+                "net_benefit_treat_all": "-0.0364",
+                "net_benefit_treat_none": "0.0",
+            },
+            {
+                "model": "A1",
+                "threshold": "0.30",
+                "net_benefit_model": "0.0993",
+                "net_benefit_treat_all": "-0.0364",
+                "net_benefit_treat_none": "0.0",
+            },
+        ],
+    )
+    write_csv(
+        bundle_root / "artifacts" / "analysis" / "run-535a972f" / "clinical_utility" / "risk_stratification.csv",
+        [
+            "model",
+            "risk_group",
+            "n",
+            "non_gtr_events",
+            "observed_non_gtr_rate",
+            "mean_predicted_non_gtr_risk",
+            "min_predicted_non_gtr_risk",
+            "max_predicted_non_gtr_risk",
+        ],
+        [
+            {
+                "model": "A0",
+                "risk_group": "low",
+                "n": "118",
+                "non_gtr_events": "5",
+                "observed_non_gtr_rate": "0.0424",
+                "mean_predicted_non_gtr_risk": "0.2416",
+                "min_predicted_non_gtr_risk": "0.1759",
+                "max_predicted_non_gtr_risk": "0.2835",
+            },
+            {
+                "model": "A0",
+                "risk_group": "intermediate",
+                "n": "118",
+                "non_gtr_events": "8",
+                "observed_non_gtr_rate": "0.0678",
+                "mean_predicted_non_gtr_risk": "0.3286",
+                "min_predicted_non_gtr_risk": "0.2837",
+                "max_predicted_non_gtr_risk": "0.3807",
+            },
+            {
+                "model": "A0",
+                "risk_group": "high",
+                "n": "118",
+                "non_gtr_events": "44",
+                "observed_non_gtr_rate": "0.3729",
+                "mean_predicted_non_gtr_risk": "0.4667",
+                "min_predicted_non_gtr_risk": "0.3814",
+                "max_predicted_non_gtr_risk": "0.6750",
+            },
+            {
+                "model": "A1",
+                "risk_group": "low",
+                "n": "119",
+                "non_gtr_events": "4",
+                "observed_non_gtr_rate": "0.0336",
+                "mean_predicted_non_gtr_risk": "0.0432",
+                "min_predicted_non_gtr_risk": "0.0139",
+                "max_predicted_non_gtr_risk": "0.0662",
+            },
+            {
+                "model": "A1",
+                "risk_group": "intermediate",
+                "n": "119",
+                "non_gtr_events": "11",
+                "observed_non_gtr_rate": "0.0924",
+                "mean_predicted_non_gtr_risk": "0.1034",
+                "min_predicted_non_gtr_risk": "0.0662",
+                "max_predicted_non_gtr_risk": "0.1776",
+            },
+            {
+                "model": "A1",
+                "risk_group": "high",
+                "n": "119",
+                "non_gtr_events": "42",
+                "observed_non_gtr_rate": "0.3529",
+                "mean_predicted_non_gtr_risk": "0.3318",
+                "min_predicted_non_gtr_risk": "0.1777",
+                "max_predicted_non_gtr_risk": "0.6750",
+            },
+        ],
+    )
+    write_json(
+        bundle_root / "artifacts" / "analysis" / "run-535a972f" / "clinical_utility" / "summary.json",
+        {
+            "models": ["A0", "A1", "B0", "M0_elastic", "M0_hgb"],
+            "candidate_story_model": "A1",
+            "overall_metrics": {
+                "A0": {
+                    "roc_auc": 0.8022,
+                    "average_precision": 0.4479,
+                    "brier_score": 0.1433,
+                    "calibration_intercept": -0.3108,
+                    "calibration_slope": 2.4065,
+                },
+                "A1": {
+                    "roc_auc": 0.8004,
+                    "average_precision": 0.45,
+                    "brier_score": 0.1099,
+                    "calibration_intercept": 0.0619,
+                    "calibration_slope": 1.0442,
+                },
+            },
+        },
+    )
+    write_json(
+        bundle_root / "artifacts" / "experiment" / "run-535a972f" / "main_lighttree" / "metrics.json",
+        {
+            "A0": {
+                "roc_auc": 0.8022,
+                "average_precision": 0.4479,
+                "brier_score": 0.1433,
+                "calibration_intercept": -0.3108,
+                "calibration_slope": 2.4065,
+            },
+            "A1": {
+                "roc_auc": 0.8004,
+                "average_precision": 0.45,
+                "brier_score": 0.1099,
+                "calibration_intercept": 0.0619,
+                "calibration_slope": 1.0442,
+            },
+            "B0": {
+                "roc_auc": 0.7999,
+                "average_precision": 0.4606,
+                "brier_score": 0.1090,
+                "calibration_intercept": 0.0586,
+                "calibration_slope": 1.0395,
+            },
+            "M0_elastic": {
+                "roc_auc": 0.8006,
+                "average_precision": 0.4744,
+                "brier_score": 0.1086,
+                "calibration_intercept": 0.1581,
+                "calibration_slope": 1.1096,
+            },
+            "M0_hgb": {
+                "roc_auc": 0.8359,
+                "average_precision": 0.5174,
+                "brier_score": 0.1011,
+                "calibration_intercept": -0.2038,
+                "calibration_slope": 0.8017,
+            },
+        },
+    )
+    write_csv(
+        paper_root / "derived" / "clinical_utility_model_coefficient_stability.csv",
+        ["outer_fold", "feature_name", "domain", "coefficient", "odds_ratio", "selected_c", "intercept", "direction"],
+        [
+            {
+                "outer_fold": "1",
+                "feature_name": "age",
+                "domain": "Demographics",
+                "coefficient": "-0.1106",
+                "odds_ratio": "0.8953",
+                "selected_c": "0.1",
+                "intercept": "-2.1272",
+                "direction": "negative",
+            },
+            {
+                "outer_fold": "1",
+                "feature_name": "diameter",
+                "domain": "Tumor burden",
+                "coefficient": "0.5800",
+                "odds_ratio": "1.7860",
+                "selected_c": "0.1",
+                "intercept": "-2.1272",
+                "direction": "positive",
+            },
+            {
+                "outer_fold": "2",
+                "feature_name": "diameter",
+                "domain": "Tumor burden",
+                "coefficient": "0.6000",
+                "odds_ratio": "1.8221",
+                "selected_c": "0.1",
+                "intercept": "-2.1272",
+                "direction": "positive",
+            },
+        ],
+    )
+    write_csv(
+        paper_root / "derived" / "clinical_utility_model_domain_summary.csv",
+        ["domain", "feature_count", "mean_abs_coefficient", "median_abs_coefficient", "mean_sign_consistency"],
+        [
+            {
+                "domain": "Tumor burden",
+                "feature_count": "2",
+                "mean_abs_coefficient": "0.3444",
+                "median_abs_coefficient": "0.3444",
+                "mean_sign_consistency": "1.0",
+            },
+            {
+                "domain": "Invasion burden",
+                "feature_count": "5",
+                "mean_abs_coefficient": "0.1091",
+                "median_abs_coefficient": "0.0822",
+                "mean_sign_consistency": "0.8620",
+            },
+        ],
+    )
+
+    report = module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
+
+    assert report["status"] == "synced"
+    risk_layering = json.loads((paper_root / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8"))
+    binary_panel = json.loads((paper_root / "binary_calibration_decision_curve_panel_inputs.json").read_text(encoding="utf-8"))
+    model_audit = json.loads((paper_root / "model_complexity_audit_panel_inputs.json").read_text(encoding="utf-8"))
+    performance_table = json.loads((paper_root / "performance_summary_table_generic.json").read_text(encoding="utf-8"))
+    grouped_table = json.loads((paper_root / "grouped_risk_event_summary_table.json").read_text(encoding="utf-8"))
+
+    display = risk_layering["displays"][0]
+    assert display["catalog_id"] == "F2"
+    assert display["left_panel_title"] == "Core preoperative comparator"
+    assert display["right_panel_title"] == "Clinically informed model"
+    assert display["left_bars"][0] == {"label": "Low", "cases": 118, "events": 5, "risk": 0.0424}
+    assert display["right_bars"][-1] == {"label": "High", "cases": 119, "events": 42, "risk": 0.3529}
+
+    panel_display = binary_panel["displays"][0]
+    assert panel_display["catalog_id"] == "F3"
+    assert [item["label"] for item in panel_display["calibration_series"]] == [
+        "Core preoperative model",
+        "Clinically informed preoperative model",
+    ]
+    assert [item["label"] for item in panel_display["decision_reference_lines"]] == ["Treat none", "Treat all"]
+    assert panel_display["decision_series"][1]["label"] == "Clinically informed preoperative model"
+
+    audit_display = model_audit["displays"][0]
+    assert audit_display["catalog_id"] == "F4"
+    assert [item["label"] for item in audit_display["metric_panels"][0]["rows"]] == [
+        "Core preoperative model",
+        "Clinically informed preoperative model",
+        "Pathology-augmented model",
+        "Elastic-net comparison model",
+        "Random forest comparison model",
+    ]
+    assert audit_display["audit_panels"][0]["rows"][0]["label"] == "Age"
+    assert audit_display["audit_panels"][1]["rows"][0]["label"] == "Tumor burden"
+
+    assert performance_table["catalog_id"] == "T2"
+    assert performance_table["rows"][0]["label"] == "Core preoperative model"
+    assert performance_table["rows"][1]["label"] == "Clinically informed preoperative model"
+
+    assert grouped_table["catalog_id"] == "T3"
+    assert grouped_table["rows"][0]["surface"] == "Core preoperative model"
+    assert grouped_table["rows"][1]["surface"] == "Core preoperative model"
+    assert grouped_table["rows"][-1] == {
+        "row_id": "clinically_informed_preoperative_model_high",
+        "surface": "Clinically informed preoperative model",
+        "stratum": "High",
+        "cases": 119,
+        "events": 42,
+        "risk_display": "35.3%",
+    }
