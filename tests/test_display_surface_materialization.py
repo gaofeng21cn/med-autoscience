@@ -1552,6 +1552,54 @@ def test_materialize_display_surface_renders_exclusion_aware_cohort_flow_shell(t
     assert qc_result["layout_sidecar_path"].endswith(".layout.json")
 
 
+def test_materialize_display_surface_accepts_legacy_full_right_sidecar_role(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "cohort_flow.json",
+        {
+            "schema_version": 1,
+            "shell_id": "cohort_flow_figure",
+            "display_id": "Figure1",
+            "title": "Cohort derivation and split schema",
+            "steps": [
+                {"step_id": "source_total", "label": "Source study records", "n": 409, "detail": "Institutional cleaned cohort"},
+                {"step_id": "analysis", "label": "Analyzed cohort", "n": 357, "detail": "Observed resection status"},
+            ],
+            "endpoint_inventory": [
+                {
+                    "endpoint_id": "non_gtr",
+                    "label": "Early residual / non-GTR",
+                    "n": 57,
+                    "detail": "Primary endpoint",
+                }
+            ],
+            "sidecar_blocks": [
+                {
+                    "block_id": "split_schema",
+                    "block_type": "full_right",
+                    "title": "Center-based split schema",
+                    "items": [
+                        {"label": "Derivation centers", "detail": "n=200"},
+                        {"label": "Validation centers", "detail": "n=157"},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["figures_materialized"] == ["F1"]
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F1_cohort_flow.layout.json").read_text(encoding="utf-8")
+    )
+    panel_roles = {item["layout_role"] for item in layout_sidecar["metrics"]["design_panels"]}
+    assert "wide_top" in panel_roles
+    assert "full_right" not in panel_roles
+
+
 def test_materialize_display_surface_renders_cohort_flow_with_two_subfigure_panels_and_role_aware_grid(
     tmp_path: Path,
 ) -> None:
@@ -2285,6 +2333,114 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert tables_by_id["T2"]["qc_profile"] == "publication_table_performance"
     assert tables_by_id["T3"]["table_shell_id"] == "table3_clinical_interpretation_summary"
     assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
+
+
+def test_materialize_display_surface_supports_generic_anchor_table_shells(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    (paper_root / "figures").mkdir(parents=True)
+    (paper_root / "tables").mkdir(parents=True)
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "performance_summary",
+                    "display_kind": "table",
+                    "requirement_key": "performance_summary_table_generic",
+                    "catalog_id": "T2",
+                },
+                {
+                    "display_id": "grouped_risk_event_summary",
+                    "display_kind": "table",
+                    "requirement_key": "grouped_risk_event_summary_table",
+                    "catalog_id": "T3",
+                },
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "performance_summary_table_generic.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "performance_summary_table_generic",
+            "display_id": "performance_summary",
+            "catalog_id": "T2",
+            "title": "Unified repeated nested validation results across candidate packages",
+            "caption": "Pooled out-of-fold discrimination, error, and calibration summaries across candidate packages.",
+            "row_header_label": "Model",
+            "columns": [
+                {"column_id": "auroc", "label": "AUROC"},
+                {"column_id": "auprc", "label": "AUPRC"},
+            ],
+            "rows": [
+                {"row_id": "simple", "label": "Simple 3-month score", "values": ["0.7081", "0.4740"]},
+                {"row_id": "core", "label": "Core logistic confirmation", "values": ["0.6987", "0.4556"]},
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "grouped_risk_event_summary_table.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "grouped_risk_event_summary_table",
+            "display_id": "grouped_risk_event_summary",
+            "catalog_id": "T3",
+            "title": "Event rates across score bands and grouped-risk strata",
+            "caption": "Observed event counts and risks across score-band and grouped-risk strata.",
+            "surface_column_label": "Surface",
+            "stratum_column_label": "Stratum",
+            "cases_column_label": "Cases",
+            "events_column_label": "Events",
+            "risk_column_label": "Risk",
+            "rows": [
+                {
+                    "row_id": "score_band_0",
+                    "surface": "Score band",
+                    "stratum": "0",
+                    "cases": 95,
+                    "events": 8,
+                    "risk_display": "8.4%",
+                },
+                {
+                    "row_id": "grouped_risk_high",
+                    "surface": "Grouped risk",
+                    "stratum": "High",
+                    "cases": 66,
+                    "events": 37,
+                    "risk_display": "56.1%",
+                },
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["tables_materialized"] == ["T2", "T3"]
+    assert (paper_root / "tables" / "generated" / "T2_performance_summary_table_generic.csv").exists()
+    assert (paper_root / "tables" / "generated" / "T2_performance_summary_table_generic.md").exists()
+    assert (paper_root / "tables" / "generated" / "T3_grouped_risk_event_summary_table.csv").exists()
+    assert (paper_root / "tables" / "generated" / "T3_grouped_risk_event_summary_table.md").exists()
+
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
+    assert tables_by_id["T2"]["table_shell_id"] == "performance_summary_table_generic"
+    assert tables_by_id["T2"]["input_schema_id"] == "performance_summary_table_generic_v1"
+    assert tables_by_id["T2"]["asset_paths"] == [
+        "paper/tables/generated/T2_performance_summary_table_generic.csv",
+        "paper/tables/generated/T2_performance_summary_table_generic.md",
+    ]
+    assert tables_by_id["T3"]["table_shell_id"] == "grouped_risk_event_summary_table"
+    assert tables_by_id["T3"]["input_schema_id"] == "grouped_risk_event_summary_table_v1"
+    assert tables_by_id["T3"]["asset_paths"] == [
+        "paper/tables/generated/T3_grouped_risk_event_summary_table.csv",
+        "paper/tables/generated/T3_grouped_risk_event_summary_table.md",
+    ]
 
 
 def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tmp_path: Path, monkeypatch) -> None:

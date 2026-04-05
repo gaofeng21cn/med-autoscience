@@ -48,8 +48,8 @@ Current implemented display inventory:
 - Evidence figure classes: `9`
 - Implemented evidence figure templates: `23`
 - Illustration shells: `1`
-- Table shells: `3`
-- Total implemented display templates: `27`
+- Table shells: `5`
+- Total implemented display templates: `29`
 
 ### Evidence Classes
 
@@ -70,7 +70,7 @@ Current implemented display inventory:
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
 | Illustration Shell | 1 | `cohort_flow_shell_inputs_v1` | shell profile + catalog contract |
-| Table Shell | 3 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1` | table profile + catalog contract |
+| Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Nine-Class Audit Map
 
@@ -254,6 +254,12 @@ Authoritative contract:
   - Input schema: `clinical_interpretation_summary_v1`
   - Required exports: `md`
   - Additional publication-surface rule: the markdown table body is scanned for forbidden engineering or tooling language, because interpretation text must be manuscript-safe even when the catalog title/caption is clean.
+- `performance_summary_table_generic`
+  - Input schema: `performance_summary_table_generic_v1`
+  - Required exports: `csv`, `md`
+- `grouped_risk_event_summary_table`
+  - Input schema: `grouped_risk_event_summary_table_v1`
+  - Required exports: `csv`, `md`
 
 ## Input Schema Contract Rules
 

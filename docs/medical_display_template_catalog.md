@@ -88,6 +88,8 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | `table1_baseline_characteristics` | `table_shell` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `table2_time_to_event_performance_summary` | `table_shell` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `table3_clinical_interpretation_summary` | `table_shell` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
+| `performance_summary_table_generic` | `table_shell` | Performance Summary Table (Generic) | `n/a` | `performance_summary_table_generic_v1` | `publication_table_performance` | `csv`, `md` |
+| `grouped_risk_event_summary_table` | `table_shell` | Grouped Risk Event Summary Table | `n/a` | `grouped_risk_event_summary_table_v1` | `publication_table_interpretation` | `csv`, `md` |
 
 ## Input Schemas
 
@@ -360,3 +362,33 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `columns_must_be_non_empty`, `rows_must_be_non_empty`, `row_values_length_must_match_columns`
+
+### `performance_summary_table_generic_v1`
+
+- Display kind: `table_shell`
+- Display name: Performance Summary Table (Generic)
+- Templates: `performance_summary_table_generic`
+- Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `row_header_label`, `columns`, `rows`
+- Optional top-level fields: `caption`
+- Required display fields: None
+- Optional display fields: None
+- Required collection fields: `columns` -> `column_id`, `label`<br>`rows` -> `row_id`, `label`, `values`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `row_header_label_must_be_non_empty`, `columns_must_be_non_empty`, `rows_must_be_non_empty`, `row_values_length_must_match_columns`
+
+### `grouped_risk_event_summary_table_v1`
+
+- Display kind: `table_shell`
+- Display name: Grouped Risk Event Summary Table
+- Templates: `grouped_risk_event_summary_table`
+- Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `surface_column_label`, `stratum_column_label`, `cases_column_label`, `events_column_label`, `risk_column_label`, `rows`
+- Optional top-level fields: `caption`
+- Required display fields: None
+- Optional display fields: None
+- Required collection fields: `rows` -> `row_id`, `surface`, `stratum`, `cases`, `events`, `risk_display`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `surface_column_label_must_be_non_empty`, `stratum_column_label_must_be_non_empty`, `cases_column_label_must_be_non_empty`, `events_column_label_must_be_non_empty`, `risk_column_label_must_be_non_empty`, `rows_must_be_non_empty`, `row_surface_must_be_non_empty`, `row_stratum_must_be_non_empty`, `row_cases_must_be_positive_integer`, `row_events_must_be_integer_between_zero_and_cases`, `row_risk_display_must_match_events_over_cases_percent_1dp`

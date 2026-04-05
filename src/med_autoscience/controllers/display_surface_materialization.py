@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 import html
 import json
 import re
@@ -45,6 +46,8 @@ _TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "baseline_characteristics_schema_v1": "baseline_characteristics_schema.json",
     "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
     "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
+    "performance_summary_table_generic_v1": "performance_summary_table_generic.json",
+    "grouped_risk_event_summary_table_v1": "grouped_risk_event_summary_table.json",
 }
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -701,6 +704,11 @@ def _require_non_negative_int(value: object, *, label: str, allow_zero: bool = T
     return normalized
 
 
+_COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
+    "full_right": "wide_top",
+}
+
+
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
     steps = payload.get("steps")
     if not isinstance(steps, list) or not steps:
@@ -800,7 +808,8 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
         if not isinstance(block, dict):
             raise ValueError(f"{path.name} design_panels[{index}] must be an object")
         block_id = str(block.get("panel_id") or block.get("block_id") or "").strip()
-        block_type = str(block.get("layout_role") or block.get("block_type") or "").strip()
+        raw_block_type = str(block.get("layout_role") or block.get("block_type") or "").strip()
+        block_type = _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES.get(raw_block_type, raw_block_type)
         style_role = str(block.get("style_role") or "secondary").strip().lower()
         title = str(block.get("title") or "").strip()
         items = block.get("lines")
@@ -904,6 +913,60 @@ def _validate_column_table_payload(path: Path, payload: dict[str, Any]) -> tuple
             )
         normalized_rows.append({"label": label, "values": [str(item).strip() for item in values]})
     return column_labels, normalized_rows
+
+
+def _format_percent_1dp(*, numerator: int, denominator: int) -> str:
+    percent = (Decimal(numerator) * Decimal("100")) / Decimal(denominator)
+    return f"{percent.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)}%"
+
+
+def _validate_performance_summary_table_generic_payload(
+    path: Path,
+    payload: dict[str, Any],
+) -> tuple[str, list[str], list[dict[str, Any]]]:
+    row_header_label = _require_non_empty_string(
+        payload.get("row_header_label"),
+        label=f"{path.name} row_header_label",
+    )
+    column_labels, rows = _validate_column_table_payload(path, payload)
+    return row_header_label, column_labels, rows
+
+
+def _validate_grouped_risk_event_summary_table_payload(
+    path: Path,
+    payload: dict[str, Any],
+) -> tuple[list[str], list[list[str]]]:
+    headers = [
+        _require_non_empty_string(payload.get("surface_column_label"), label=f"{path.name} surface_column_label"),
+        _require_non_empty_string(payload.get("stratum_column_label"), label=f"{path.name} stratum_column_label"),
+        _require_non_empty_string(payload.get("cases_column_label"), label=f"{path.name} cases_column_label"),
+        _require_non_empty_string(payload.get("events_column_label"), label=f"{path.name} events_column_label"),
+        _require_non_empty_string(payload.get("risk_column_label"), label=f"{path.name} risk_column_label"),
+    ]
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} must contain a non-empty rows list")
+    normalized_rows: list[list[str]] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} rows[{index}] must be an object")
+        surface = _require_non_empty_string(row.get("surface"), label=f"{path.name} rows[{index}].surface")
+        stratum = _require_non_empty_string(row.get("stratum"), label=f"{path.name} rows[{index}].stratum")
+        cases = _require_non_negative_int(row.get("cases"), label=f"{path.name} rows[{index}].cases", allow_zero=False)
+        events = _require_non_negative_int(row.get("events"), label=f"{path.name} rows[{index}].events")
+        if events > cases:
+            raise ValueError(f"{path.name} rows[{index}].events must not exceed cases")
+        risk_display = _require_non_empty_string(
+            row.get("risk_display"),
+            label=f"{path.name} rows[{index}].risk_display",
+        )
+        expected_risk_display = _format_percent_1dp(numerator=events, denominator=cases)
+        if risk_display != expected_risk_display:
+            raise ValueError(
+                f"{path.name} rows[{index}].risk_display must equal {expected_risk_display} for {events}/{cases}"
+            )
+        normalized_rows.append([surface, stratum, str(cases), str(events), risk_display])
+    return headers, normalized_rows
 
 
 def _validate_reference_line_payload(
@@ -3481,18 +3544,14 @@ def _render_cohort_flow_figure(
     fig.savefig(output_png_path, format="png", dpi=220)
     plt.close(fig)
 
-def _write_table_outputs(
+def _write_rectangular_table_outputs(
     *,
     output_md_path: Path,
     title: str,
-    column_labels: list[str],
-    rows: list[dict[str, Any]],
-    stub_header: str,
+    headers: list[str],
+    table_rows: list[list[str]],
     output_csv_path: Path | None = None,
 ) -> None:
-    headers = [stub_header, *column_labels]
-    table_rows = [[row["label"], *row["values"]] for row in rows]
-
     if output_csv_path is not None:
         output_csv_path.parent.mkdir(parents=True, exist_ok=True)
         with output_csv_path.open("w", encoding="utf-8", newline="") as handle:
@@ -3505,6 +3564,26 @@ def _write_table_outputs(
     for row in table_rows:
         markdown_lines.append("| " + " | ".join(row) + " |")
     output_md_path.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
+
+
+def _write_table_outputs(
+    *,
+    output_md_path: Path,
+    title: str,
+    column_labels: list[str],
+    rows: list[dict[str, Any]],
+    stub_header: str,
+    output_csv_path: Path | None = None,
+) -> None:
+    headers = [stub_header, *column_labels]
+    table_rows = [[row["label"], *row["values"]] for row in rows]
+    _write_rectangular_table_outputs(
+        output_md_path=output_md_path,
+        title=title,
+        headers=headers,
+        table_rows=table_rows,
+        output_csv_path=output_csv_path,
+    )
 
 
 def _bbox_to_layout_box(
@@ -6072,15 +6151,18 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         if requirement_key in {
             "table2_time_to_event_performance_summary",
             "table3_clinical_interpretation_summary",
+            "performance_summary_table_generic",
+            "grouped_risk_event_summary_table",
         }:
             if display_kind != "table":
                 raise ValueError(f"{requirement_key} must be registered as a table display")
             spec = display_registry.get_table_shell_spec(requirement_key)
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
-            column_labels, rows = _validate_column_table_payload(payload_path, payload)
             table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
+            output_csv_path: Path | None = None
             if requirement_key == "table2_time_to_event_performance_summary":
+                column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = (
                     str(payload.get("title") or "Time-to-event model performance summary").strip()
                     or "Time-to-event model performance summary"
@@ -6088,19 +6170,67 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_time_to_event_performance_summary.md"
                 stub_header = "Metric"
                 default_caption = "Time-to-event discrimination and error metrics across analysis cohorts."
-            else:
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=stub_header,
+                )
+            elif requirement_key == "table3_clinical_interpretation_summary":
+                column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = str(payload.get("title") or "Clinical interpretation summary").strip() or "Clinical interpretation summary"
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_clinical_interpretation_summary.md"
                 stub_header = "Clinical Item"
                 default_caption = "Clinical interpretation anchors for prespecified risk groups and use cases."
-            _write_table_outputs(
-                output_md_path=output_md_path,
-                title=title,
-                column_labels=column_labels,
-                rows=rows,
-                stub_header=stub_header,
-            )
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=stub_header,
+                )
+            elif requirement_key == "performance_summary_table_generic":
+                row_header_label, column_labels, rows = _validate_performance_summary_table_generic_payload(
+                    payload_path,
+                    payload,
+                )
+                title = str(payload.get("title") or "Performance summary").strip() or "Performance summary"
+                output_md_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_performance_summary_table_generic.md"
+                )
+                output_csv_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_performance_summary_table_generic.csv"
+                )
+                default_caption = "Structured repeated-validation performance summaries across candidate packages."
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=row_header_label,
+                    output_csv_path=output_csv_path,
+                )
+            else:
+                headers, table_rows = _validate_grouped_risk_event_summary_table_payload(payload_path, payload)
+                title = str(payload.get("title") or "Grouped risk event summary").strip() or "Grouped risk event summary"
+                output_md_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_grouped_risk_event_summary_table.md"
+                )
+                output_csv_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_grouped_risk_event_summary_table.csv"
+                )
+                default_caption = "Observed case counts, event counts, and absolute risks across grouped-risk strata."
+                _write_rectangular_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    headers=headers,
+                    table_rows=table_rows,
+                    output_csv_path=output_csv_path,
+                )
             written_files.append(str(output_md_path))
+            if output_csv_path is not None:
+                written_files.append(str(output_csv_path))
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
@@ -6115,6 +6245,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "title": title,
                 "caption": str(payload.get("caption") or default_caption).strip(),
                 "asset_paths": [
+                    *(
+                        [_paper_relative_path(output_csv_path, paper_root=resolved_paper_root)]
+                        if output_csv_path is not None
+                        else []
+                    ),
                     _paper_relative_path(output_md_path, paper_root=resolved_paper_root),
                 ],
                 "source_paths": [

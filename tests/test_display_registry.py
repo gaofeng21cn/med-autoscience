@@ -44,6 +44,8 @@ def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() ->
         "table1_baseline_characteristics",
         "table2_time_to_event_performance_summary",
         "table3_clinical_interpretation_summary",
+        "performance_summary_table_generic",
+        "grouped_risk_event_summary_table",
     }
 
 
@@ -61,6 +63,8 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure4 = display_registry.get_evidence_figure_spec("model_complexity_audit_panel")
     table2 = display_registry.get_table_shell_spec("table2_time_to_event_performance_summary")
     table3 = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
+    generic_performance = display_registry.get_table_shell_spec("performance_summary_table_generic")
+    grouped_risk = display_registry.get_table_shell_spec("grouped_risk_event_summary_table")
 
     assert figure7.input_schema_id == "binary_prediction_curve_inputs_v1"
     assert figure7.evidence_class == "time_to_event"
@@ -87,6 +91,10 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure4.layout_qc_profile == "publication_model_complexity_audit"
     assert table2.required_exports == ("md",)
     assert table3.input_schema_id == "clinical_interpretation_summary_v1"
+    assert generic_performance.input_schema_id == "performance_summary_table_generic_v1"
+    assert generic_performance.required_exports == ("csv", "md")
+    assert grouped_risk.input_schema_id == "grouped_risk_event_summary_table_v1"
+    assert grouped_risk.table_qc_profile == "publication_table_interpretation"
 
 
 def test_resolve_display_registry_rejects_unknown_template() -> None:

@@ -1481,6 +1481,68 @@ def test_validate_table_catalog_rejects_missing_md_export_for_second_stage_table
 
     assert "missing required export formats" in errors[0]
     assert "md" in errors[0]
+
+
+def test_validate_table_catalog_accepts_csv_and_md_anchor_generic_tables() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "performance_summary_table_generic",
+                    "paper_role": "main_text",
+                    "input_schema_id": "performance_summary_table_generic_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": [
+                        "paper/tables/T2_performance_summary.csv",
+                        "paper/tables/T2_performance_summary.md",
+                    ],
+                },
+                {
+                    "table_id": "T3",
+                    "table_shell_id": "grouped_risk_event_summary_table",
+                    "paper_role": "main_text",
+                    "input_schema_id": "grouped_risk_event_summary_table_v1",
+                    "qc_profile": "publication_table_interpretation",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": [
+                        "paper/tables/T3_grouped_risk_summary.csv",
+                        "paper/tables/T3_grouped_risk_summary.md",
+                    ],
+                },
+            ]
+        }
+    )
+
+    assert errors == []
+
+
+def test_validate_table_catalog_rejects_missing_csv_for_anchor_generic_tables() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "performance_summary_table_generic",
+                    "paper_role": "main_text",
+                    "input_schema_id": "performance_summary_table_generic_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": ["paper/tables/T2_performance_summary.md"],
+                }
+            ]
+        }
+    )
+
+    assert "missing required export formats" in errors[0]
+    assert "csv" in errors[0]
+
+
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")

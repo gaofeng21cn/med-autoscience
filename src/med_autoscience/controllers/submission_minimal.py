@@ -518,6 +518,37 @@ def parse_top_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
+    pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^## |\Z)")
+    blocks: list[tuple[str, str]] = []
+    for match in pattern.finditer(text.strip()):
+        heading = match.group(1).strip()
+        body = match.group(2).strip()
+        blocks.append((heading, body))
+    return blocks
+
+
+def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str]]:
+    stripped = text.strip()
+    title_match = re.match(r"(?ms)^# ([^\n]+)\n+(.*)$", stripped)
+    if title_match is None:
+        return None, {}
+    title = title_match.group(1).strip()
+    if not title or title.lower() == "draft":
+        return None, {}
+    body = title_match.group(2).strip()
+    blocks = {heading: block_body for heading, block_body in parse_second_level_blocks(body)}
+    return title, blocks
+
+
+def first_nonempty_block(section_blocks: dict[str, str], *headings: str) -> str:
+    for heading in headings:
+        value = section_blocks.get(heading, "")
+        if value.strip():
+            return value.strip()
+    return ""
+
+
 def parse_figure_id_from_heading(heading: str) -> str | None:
     supplementary_match = re.match(r"^Supplementary Figure S(\d+)\b", heading.strip(), flags=re.IGNORECASE)
     if supplementary_match:
@@ -703,6 +734,7 @@ def build_general_medical_submission_markdown(
     main_tables = ""
     main_figures = ""
     figure_semantics_map: dict[str, dict[str, Any]] = {}
+    manuscript_title, manuscript_sections = parse_manuscript_shaped_draft(compiled_text)
 
     if compiled_text.lstrip().startswith("# Draft"):
         title = extract_block_between_markers(
@@ -747,6 +779,18 @@ def build_general_medical_submission_markdown(
             end_markers=[],
             label="Conclusion",
         )
+        bibliography_path = (paper_root / "references.bib").resolve()
+    elif compiled_markdown_path.name == "draft.md" and manuscript_title and manuscript_sections:
+        title = manuscript_title
+        abstract = first_nonempty_block(manuscript_sections, "Abstract")
+        introduction = first_nonempty_block(manuscript_sections, "Introduction")
+        methods = first_nonempty_block(manuscript_sections, "Methods", "Materials and Methods", "Materials & Methods")
+        results = first_nonempty_block(manuscript_sections, "Results")
+        discussion = first_nonempty_block(manuscript_sections, "Discussion")
+        conclusion = first_nonempty_block(manuscript_sections, "Conclusion", "Conclusions")
+        main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
+        main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figure Legends")
+        figure_semantics_map = load_figure_semantics_map(paper_root)
         bibliography_path = (paper_root / "references.bib").resolve()
     else:
         title = metadata.get("title", "Article Title")

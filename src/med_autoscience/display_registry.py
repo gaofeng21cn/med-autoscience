@@ -279,6 +279,20 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         table_qc_profile="publication_table_interpretation",
         required_exports=("md",),
     ),
+    TableShellSpec(
+        shell_id="performance_summary_table_generic",
+        display_name="Performance Summary Table (Generic)",
+        input_schema_id="performance_summary_table_generic_v1",
+        table_qc_profile="publication_table_performance",
+        required_exports=("csv", "md"),
+    ),
+    TableShellSpec(
+        shell_id="grouped_risk_event_summary_table",
+        display_name="Grouped Risk Event Summary Table",
+        input_schema_id="grouped_risk_event_summary_table_v1",
+        table_qc_profile="publication_table_interpretation",
+        required_exports=("csv", "md"),
+    ),
 )
 
 _EVIDENCE_BY_TEMPLATE = {item.template_id: item for item in _EVIDENCE_FIGURE_SPECS}
