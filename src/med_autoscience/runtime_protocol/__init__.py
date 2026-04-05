@@ -1,3 +1,4 @@
+from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord
 from .layout import (
     WorkspaceRuntimeLayout,
     build_workspace_runtime_layout,
@@ -42,6 +43,7 @@ from .study_runtime import (
     resolve_study_runtime_paths,
     should_refresh_startup_hydration_while_blocked,
     validate_startup_contract_resolution,
+    write_runtime_escalation_record,
     write_launch_report,
     write_runtime_binding,
     write_startup_hydration_report,
@@ -70,6 +72,7 @@ __all__ = [
     "StartupHydrationStatus",
     "StartupHydrationValidationReport",
     "StartupHydrationValidationStatus",
+    "RuntimeEscalationRecord",
     "StudyRuntimeArtifacts",
     "StudyRuntimeContext",
     "WorkspaceRuntimeLayout",
@@ -105,6 +108,7 @@ __all__ = [
     "should_refresh_startup_hydration_while_blocked",
     "validate_startup_contract_resolution",
     "write_watch_report",
+    "write_runtime_escalation_record",
     "plan_controller_intervention",
     "persist_runtime_artifacts",
     "resolve_study_runtime_context",
