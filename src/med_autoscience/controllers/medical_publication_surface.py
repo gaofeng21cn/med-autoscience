@@ -145,7 +145,9 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
     for item in payload.get("figures", []) or []:
         if not isinstance(item, dict):
             continue
-        if str(item.get("paper_role") or "").strip() != "main_text":
+        template_id = str(item.get("template_id") or "").strip()
+        paper_role = str(item.get("paper_role") or "").strip()
+        if paper_role != "main_text" and not display_registry.is_submission_companion_shell(template_id):
             continue
         for key in ("export_paths", "asset_paths"):
             values = item.get(key)
@@ -427,7 +429,9 @@ def figure_ids_from_catalog(path: Path) -> set[str]:
     for item in payload.get("figures", []) or []:
         if not isinstance(item, dict):
             continue
-        if str(item.get("paper_role") or "").strip() != "main_text":
+        template_id = str(item.get("template_id") or "").strip()
+        paper_role = str(item.get("paper_role") or "").strip()
+        if paper_role != "main_text" and not display_registry.is_submission_companion_shell(template_id):
             continue
         figure_id = str(item.get("figure_id") or "").strip()
         if figure_id:
@@ -809,6 +813,8 @@ def infer_story_role(template_id: str, title: str) -> str:
     normalized_title = title.strip().lower()
     if normalized_template == "cohort_flow_figure":
         return "cohort_accounting"
+    if normalized_template == "submission_graphical_abstract":
+        return "submission_companion"
     if "risk_layering" in normalized_template or "risk layering" in normalized_title:
         return "risk_stratification"
     if "decision_curve" in normalized_template:
@@ -826,6 +832,8 @@ def infer_threshold_semantics(template_id: str) -> str:
     normalized = template_id.strip().lower()
     if normalized == "cohort_flow_figure":
         return "No decision threshold is encoded in this illustration."
+    if normalized == "submission_graphical_abstract":
+        return "No decision threshold is encoded in the submission companion."
     if "decision_curve" in normalized or "calibration" in normalized:
         return "Thresholds are illustrative operating points used to compare manuscript-facing clinical trade-offs."
     if "risk_layering" in normalized:
@@ -839,6 +847,8 @@ def infer_stratification_basis(template_id: str) -> str:
     normalized = template_id.strip().lower()
     if normalized == "cohort_flow_figure":
         return "No risk stratification is implied by the cohort derivation shell."
+    if normalized == "submission_graphical_abstract":
+        return "No new stratification basis is introduced by the submission companion."
     if "risk_layering" in normalized:
         return "Risk groups follow the manuscript-facing score bands and grouped strata."
     if "decision_curve" in normalized or "calibration" in normalized:
@@ -852,6 +862,8 @@ def infer_recommendation_boundary(template_id: str) -> str:
     normalized = template_id.strip().lower()
     if normalized == "cohort_flow_figure":
         return "No clinical recommendation is proposed from cohort accounting."
+    if normalized == "submission_graphical_abstract":
+        return "The submission companion must not widen the manuscript claim or recommendation boundary."
     if "decision_curve" in normalized:
         return "No single universal treatment threshold is recommended from this figure."
     if "risk_layering" in normalized:
@@ -866,7 +878,11 @@ def infer_renderer_contract(item: dict[str, Any]) -> dict[str, Any]:
     renderer_family = str(item.get("renderer_family") or "").strip()
     qc_profile = str(item.get("qc_profile") or "").strip()
     if display_registry.is_illustration_shell(template_id):
-        figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_ILLUSTRATION
+        figure_semantics = (
+            figure_renderer_contract.FIGURE_SEMANTICS_SUBMISSION_COMPANION
+            if display_registry.is_submission_companion_shell(template_id)
+            else figure_renderer_contract.FIGURE_SEMANTICS_ILLUSTRATION
+        )
         shell_spec = display_registry.get_illustration_shell_spec(template_id)
         renderer_family = shell_spec.renderer_family
         qc_profile = shell_spec.shell_qc_profile

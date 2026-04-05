@@ -255,6 +255,15 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
         shell_qc_profile="publication_illustration_flow",
         required_exports=("png", "svg"),
     ),
+    IllustrationShellSpec(
+        shell_id="submission_graphical_abstract",
+        display_name="Submission Graphical Abstract",
+        renderer_family="python",
+        input_schema_id="submission_graphical_abstract_inputs_v1",
+        shell_qc_profile="publication_illustration_flow",
+        required_exports=("png", "svg"),
+        allowed_paper_roles=("supplementary",),
+    ),
 )
 
 _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
@@ -342,6 +351,10 @@ def is_evidence_figure_template(template_id: str) -> bool:
 
 def is_illustration_shell(shell_id: str) -> bool:
     return str(shell_id or "").strip() in _ILLUSTRATION_BY_SHELL
+
+
+def is_submission_companion_shell(shell_id: str) -> bool:
+    return str(shell_id or "").strip() == "submission_graphical_abstract"
 
 
 def is_table_shell(shell_id: str) -> bool:

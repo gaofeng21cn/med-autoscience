@@ -146,6 +146,7 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         ),
         input_schema_ids=(
             "cohort_flow_shell_inputs_v1",
+            "submission_graphical_abstract_inputs_v1",
             "baseline_characteristics_schema_v1",
             "time_to_event_performance_summary_v1",
             "clinical_interpretation_summary_v1",
@@ -553,6 +554,24 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "design_panel_ids_must_be_unique",
             "design_panel_layout_roles_must_be_supported_and_unique",
             "design_panel_lines_must_be_non_empty",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="submission_graphical_abstract_inputs_v1",
+        display_kind="illustration_shell",
+        display_name="Submission Graphical Abstract",
+        template_ids=("submission_graphical_abstract",),
+        required_top_level_fields=("schema_version", "shell_id", "display_id", "title", "summary_panels"),
+        optional_top_level_fields=("caption", "key_message", "footer_note"),
+        collection_required_fields={
+            "summary_panels": ("panel_id", "headline", "supporting_text"),
+        },
+        collection_optional_fields={
+            "summary_panels": ("icon_label",),
+        },
+        additional_constraints=(
+            "summary_panels_must_be_non_empty",
+            "summary_panel_ids_must_be_unique",
         ),
     ),
     InputSchemaContract(
