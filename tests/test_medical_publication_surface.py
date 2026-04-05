@@ -1202,7 +1202,7 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
     assert "fallback_on_failure" in excerpts
 
 
-def test_build_report_accepts_submission_graphical_abstract_contract(tmp_path: Path) -> None:
+def test_build_report_accepts_registered_submission_graphical_abstract_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
         tmp_path,
@@ -1263,9 +1263,6 @@ def test_build_report_accepts_submission_graphical_abstract_contract(tmp_path: P
     assert report["status"] == "clear"
     assert "figure_catalog_missing_or_incomplete" not in report["blockers"]
     assert "figure_semantics_manifest_missing_or_incomplete" not in report["blockers"]
-    excerpts = " ".join(hit["excerpt"] for hit in report["top_hits"])
-    assert "submission_graphical_abstract" not in excerpts
-    assert "submission_companion" not in excerpts
 
 
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:

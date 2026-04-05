@@ -85,7 +85,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
 | `cohort_flow_figure` | `illustration_shell` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
-| `submission_graphical_abstract` | `illustration_shell` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
+| `submission_graphical_abstract` | `illustration_shell` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
 | `table1_baseline_characteristics` | `table_shell` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `table2_time_to_event_performance_summary` | `table_shell` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `table3_clinical_interpretation_summary` | `table_shell` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
@@ -324,15 +324,15 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Display kind: `illustration_shell`
 - Display name: Submission Graphical Abstract
 - Templates: `submission_graphical_abstract`
-- Required top-level fields: `schema_version`, `display_id`, `title`, `summary_cards`, `panel_messages`
-- Optional top-level fields: `caption`, `boundary_pills`, `supporting_metrics`, `source_data_paths`
+- Required top-level fields: `schema_version`, `shell_id`, `display_id`, `title`, `summary_panels`
+- Optional top-level fields: `caption`, `key_message`, `footer_note`
 - Required display fields: None
 - Optional display fields: None
-- Required collection fields: `summary_cards` -> `card_id`, `label`, `value`<br>`panel_messages` -> `panel_id`, `title`, `message`<br>`boundary_pills` -> `pill_id`, `label`
-- Optional collection fields: `summary_cards` -> `emphasis`<br>`panel_messages` -> `detail`<br>`supporting_metrics` -> `label`, `value`
+- Required collection fields: `summary_panels` -> `panel_id`, `headline`, `supporting_text`
+- Optional collection fields: `summary_panels` -> `icon_label`
 - Required nested collection fields: None
 - Optional nested collection fields: None
-- Additional constraints: `summary_cards_must_be_non_empty`, `summary_card_ids_must_be_unique`, `panel_messages_must_be_non_empty`, `panel_message_ids_must_be_unique`, `boundary_pill_ids_must_be_unique_when_present`
+- Additional constraints: `summary_panels_must_be_non_empty`, `summary_panel_ids_must_be_unique`
 
 ### `baseline_characteristics_schema_v1`
 

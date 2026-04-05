@@ -429,9 +429,7 @@ def figure_ids_from_catalog(path: Path) -> set[str]:
     for item in payload.get("figures", []) or []:
         if not isinstance(item, dict):
             continue
-        template_id = str(item.get("template_id") or "").strip()
-        paper_role = str(item.get("paper_role") or "").strip()
-        if paper_role != "main_text" and not display_registry.is_submission_companion_shell(template_id):
+        if str(item.get("paper_role") or "").strip() != "main_text":
             continue
         figure_id = str(item.get("figure_id") or "").strip()
         if figure_id:

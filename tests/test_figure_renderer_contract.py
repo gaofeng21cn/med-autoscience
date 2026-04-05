@@ -13,7 +13,7 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         renderer_family = "python"
     elif figure_semantics == "submission_companion":
         template_id = "submission_graphical_abstract"
-        layout_qc_profile = "submission_graphical_abstract"
+        layout_qc_profile = "publication_illustration_flow"
         required_exports = ["png", "svg"]
         renderer_family = "python"
     elif renderer_family == "python":
@@ -57,6 +57,9 @@ def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
     assert module.validate_renderer_contract(
         valid_contract(figure_semantics="illustration", renderer_family="python")
     ) == []
+    assert module.validate_renderer_contract(
+        valid_contract(figure_semantics="submission_companion", renderer_family="python")
+    ) == []
 
 
 def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
@@ -70,12 +73,18 @@ def test_validate_renderer_contract_rejects_html_svg_for_evidence() -> None:
     assert "evidence" in errors[0]
 
 
-def test_validate_renderer_contract_accepts_submission_companion_semantics() -> None:
+def test_validate_renderer_contract_rejects_non_submission_shell_for_submission_companion_semantics() -> None:
     module = importlib.import_module("med_autoscience.figure_renderer_contract")
 
-    assert module.validate_renderer_contract(
-        valid_contract(figure_semantics="submission_companion", renderer_family="python")
-    ) == []
+    errors = module.validate_renderer_contract(
+        {
+            **valid_contract(figure_semantics="submission_companion", renderer_family="python"),
+            "template_id": "cohort_flow_figure",
+        }
+    )
+
+    assert errors
+    assert "registered submission companion shell" in errors[0]
 
 
 def test_validate_renderer_contract_rejects_failure_driven_fallbacks() -> None:

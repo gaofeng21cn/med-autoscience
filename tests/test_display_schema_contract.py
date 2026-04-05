@@ -110,6 +110,21 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert shap.nested_collection_required_fields["rows.points"] == ("shap_value", "feature_value")
     assert cohort_flow.template_ids == ("cohort_flow_figure",)
     assert cohort_flow.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
+    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
+    assert submission_graphical_abstract.required_top_level_fields == (
+        "schema_version",
+        "shell_id",
+        "display_id",
+        "title",
+        "summary_panels",
+    )
+    assert submission_graphical_abstract.optional_top_level_fields == ("caption", "key_message", "footer_note")
+    assert submission_graphical_abstract.collection_required_fields["summary_panels"] == (
+        "panel_id",
+        "headline",
+        "supporting_text",
+    )
+    assert "summary_panel_ids_must_be_unique" in submission_graphical_abstract.additional_constraints
     assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
     assert cohort_flow.collection_required_fields["steps"] == ("step_id", "label", "n")
     assert cohort_flow.collection_required_fields["exclusions"] == ("exclusion_id", "from_step_id", "label", "n")

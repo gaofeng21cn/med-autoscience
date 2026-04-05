@@ -39,7 +39,7 @@ def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() ->
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
     }
-    assert {item.shell_id for item in illustration_specs} == {"cohort_flow_figure"}
+    assert {item.shell_id for item in illustration_specs} == {"cohort_flow_figure", "submission_graphical_abstract"}
     assert {item.shell_id for item in table_specs} >= {
         "table1_baseline_characteristics",
         "table2_time_to_event_performance_summary",
@@ -61,6 +61,7 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure22 = display_registry.get_evidence_figure_spec("risk_layering_monotonic_bars")
     figure23 = display_registry.get_evidence_figure_spec("binary_calibration_decision_curve_panel")
     figure24 = display_registry.get_evidence_figure_spec("model_complexity_audit_panel")
+    submission_graphical_abstract = display_registry.get_illustration_shell_spec("submission_graphical_abstract")
     table2 = display_registry.get_table_shell_spec("table2_time_to_event_performance_summary")
     table3 = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
     table4 = display_registry.get_table_shell_spec("performance_summary_table_generic")
@@ -89,6 +90,9 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure24.evidence_class == "model_audit"
     assert figure24.input_schema_id == "model_complexity_audit_panel_inputs_v1"
     assert figure24.layout_qc_profile == "publication_model_complexity_audit"
+    assert submission_graphical_abstract.input_schema_id == "submission_graphical_abstract_inputs_v1"
+    assert submission_graphical_abstract.required_exports == ("png", "svg")
+    assert submission_graphical_abstract.allowed_paper_roles == ("supplementary",)
     assert table2.required_exports == ("md",)
     assert table3.input_schema_id == "clinical_interpretation_summary_v1"
     assert table4.input_schema_id == "performance_summary_table_generic_v1"
