@@ -11,6 +11,11 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         layout_qc_profile = "publication_illustration_flow"
         required_exports = ["png", "svg"]
         renderer_family = "python"
+    elif figure_semantics == "submission_companion":
+        template_id = "submission_graphical_abstract"
+        layout_qc_profile = "submission_graphical_abstract"
+        required_exports = ["png", "svg"]
+        renderer_family = "python"
     elif renderer_family == "python":
         template_id = "shap_summary_beeswarm"
         layout_qc_profile = "publication_shap_summary"

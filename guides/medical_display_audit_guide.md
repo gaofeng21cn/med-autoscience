@@ -10,9 +10,9 @@ For the exhaustive generated matrix, see [medical_display_template_catalog.md](.
 
 - Evidence figure classes: `9`
 - Implemented evidence figure templates: `23`
-- Illustration shells: `1`
+- Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `29`
+- Total implemented display templates: `30`
 
 ## Evidence Class Map
 
@@ -138,7 +138,7 @@ Authoritative contract:
 
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
-| Illustration Shell | 1 | `cohort_flow_shell_inputs_v1` | shell profile + catalog contract |
+| Illustration Shell | 2 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1` | shell profile + catalog contract |
 | Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Change Protocol

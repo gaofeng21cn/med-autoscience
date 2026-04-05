@@ -878,11 +878,10 @@ def infer_renderer_contract(item: dict[str, Any]) -> dict[str, Any]:
     renderer_family = str(item.get("renderer_family") or "").strip()
     qc_profile = str(item.get("qc_profile") or "").strip()
     if display_registry.is_illustration_shell(template_id):
-        figure_semantics = (
-            figure_renderer_contract.FIGURE_SEMANTICS_SUBMISSION_COMPANION
-            if display_registry.is_submission_companion_shell(template_id)
-            else figure_renderer_contract.FIGURE_SEMANTICS_ILLUSTRATION
-        )
+        if template_id == "submission_graphical_abstract":
+            figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_SUBMISSION_COMPANION
+        else:
+            figure_semantics = figure_renderer_contract.FIGURE_SEMANTICS_ILLUSTRATION
         shell_spec = display_registry.get_illustration_shell_spec(template_id)
         renderer_family = shell_spec.renderer_family
         qc_profile = shell_spec.shell_qc_profile

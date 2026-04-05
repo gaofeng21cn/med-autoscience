@@ -1249,7 +1249,7 @@ def test_build_report_accepts_submission_graphical_abstract_contract(tmp_path: P
                 "renderer_family": "python",
                 "template_id": "submission_graphical_abstract",
                 "selection_rationale": "Submission companion export stays aligned with the manuscript package.",
-                "layout_qc_profile": "publication_illustration_flow",
+                "layout_qc_profile": "submission_graphical_abstract",
                 "required_exports": ["png", "svg"],
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",

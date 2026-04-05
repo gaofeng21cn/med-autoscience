@@ -128,9 +128,7 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
                         f"{', '.join(missing_exports)}"
                     )
     if figure_semantics in {FIGURE_SEMANTICS_ILLUSTRATION, FIGURE_SEMANTICS_SUBMISSION_COMPANION} and template_id:
-        if figure_semantics == FIGURE_SEMANTICS_SUBMISSION_COMPANION and not display_registry.is_submission_companion_shell(template_id):
-            errors.append(f"template_id `{template_id}` is not a registered submission companion shell")
-        elif not display_registry.is_illustration_shell(template_id):
+        if not display_registry.is_illustration_shell(template_id):
             errors.append(f"template_id `{template_id}` is not a registered illustration shell")
         else:
             spec = display_registry.get_illustration_shell_spec(template_id)
