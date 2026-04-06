@@ -21,7 +21,7 @@
 - 不要把 `OPL` 顶层 gateway 写成对本仓库 gateway 的替代物；两层应是上下层关系，而不是替换关系。
 - 不要把底层 runtime executor、future monorepo 内部模块或单一 controller 文件误写成整个 `MedAutoScience` 本体；仓库级定位仍是 domain gateway + harness OS。
 - 优先通过 profile、overlay、controller 影响 `MedDeepScientist` / `DeepScientist` runtime，避免直接修改 runtime core。
-- 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到技术文档或控制器说明，而不是让首页退化成命令手册。
+- 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到操作文档或控制器说明，而不是让首页退化成命令手册。
 - 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。
 - `upstream intake` 是周期性、按价值触发的维护动作；不要因为 upstream 多了一个 commit，就默认把它升级成当前主线工作。
 - 只有当某个上游变更对 runtime 稳定性、兼容性或真实迁移成本有明确价值时，才应启动独立的 intake 审计与吸收流程。
@@ -37,10 +37,11 @@
 
 ## 文档分层
 
-- `docs/` 放可随仓库发布的公开文档，面向医学用户、Agent 与技术协作者。
-- `docs/policies/` 放稳定、长期公开保留的规则文档。
+- `README.md` / `README.zh-CN.md` 与 `docs/README.md` / `docs/README.zh-CN.md` 构成默认对外双语公开面。
+- 任何要提升到对外公开面的文档，必须同时提供英文 `.md` 与中文 `.zh-CN.md` 镜像，并保持同步更新。
+- `bootstrap/`、`controllers/`、`docs/*.md` 与 `docs/policies/*.md` 默认视为仓库跟踪的内部操作文档，可只保留中文；除非被显式提升到双语公开面，否则不要把它们写成 GitHub 默认公开入口。
 - `docs/superpowers/` 只放本地 AI / Superpowers 的设计稿、spec、plan 和工作过程产物，并保持未跟踪。
-- 不要再引入独立的 `guides/` 或仓库根级 `policies/` 作为公开入口；统一收敛到 `docs/`。
+- 不要再引入独立的 `guides/` 或仓库根级 `policies/` 作为公开入口；统一通过 `docs/README*` 维护文档入口。
 
 ## 数据与状态变更
 

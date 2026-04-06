@@ -89,12 +89,11 @@ That means:
 - the audit guide answers which templates are already audited end to end
 - the generated catalog answers what is concretely implemented in code today
 
-If you want those three truth surfaces directly, continue with:
+If you want the maintained documentation entry, continue with:
 
-- [Medical Display Family Roadmap](docs/medical_display_family_roadmap.md)
-- [Medical Display Audit Guide](docs/medical_display_audit_guide.md)
-- [Medical Display Template Catalog](docs/medical_display_template_catalog.md)
 - [Public documentation index](docs/README.md)
+
+The detailed display roadmap, audit, and catalog references remain repo-tracked operator docs and are currently Chinese-only unless they are explicitly promoted with bilingual mirrors.
 
 ## Typical Outputs
 
@@ -132,14 +131,8 @@ You can give your agent an instruction like this:
 ## Documentation
 
 - [Docs index](docs/README.md)
-- [Disease Workspace Quickstart](docs/disease_workspace_quickstart.md)
-- [Agent Runtime Interface](docs/agent_runtime_interface.md)
-- [Agent Entry Modes](docs/agent_entry_modes.md)
-- [Runtime Boundary](docs/runtime_boundary.md)
-- [Workspace Architecture](docs/workspace_architecture.md)
-- [Open Harness OS Architecture Boundary](docs/open_harness_os_architecture.md)
-- [Research Foundry Positioning](docs/research_foundry_positioning.md)
-- [Repo split boundary between Research Foundry and Med Auto Science](docs/repo_split_between_research_foundry_and_med_autoscience.md)
+
+Detailed operator docs stay repo-tracked, but they are not part of the default bilingual public surface unless they ship with synchronized English and Chinese mirrors.
 
 ## Technical Validation
 

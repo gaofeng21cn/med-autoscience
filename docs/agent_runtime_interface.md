@@ -1,9 +1,10 @@
 # Agent Runtime Interface
 
-这份文档写给 `Codex` 等 Agent 以及需要审阅 Agent 行为的技术合作者。
+这份文档写给 `Codex` 等 Agent、内部技术合作者，以及需要审阅 Agent 行为的人。
 
-它属于仓库的稳定公开文档层，因此放在 `docs/` 下。
+它属于仓库跟踪的操作文档层，因此保留在 `docs/` 下，但不属于首页默认双语公开面。
 与之相对，`docs/superpowers/` 更偏本地内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
+如果未来要把这份文档提升到默认公开面，必须同步提供英文 `.md` 与中文 `.zh-CN.md` 镜像。
 
 `MedAutoScience` 对外可以继续称为医学自动科研平台，但更准确的理解是：它对外是 `Research Ops Gateway`，对内由一个 `Agent-first, human-auditable` 的医学自动科研 harness 驱动：
 
@@ -34,9 +35,9 @@
 
 当前对外按兼容消费来表达的 Agent 包括：`Codex`、`Claude Code`、`OpenClaw`。
 
-如果你需要把 `MedAutoScience` 的入口契约直接交给外部 Agent，而不是只让它阅读 README，可优先使用这些公开资产：
+如果你需要把 `MedAutoScience` 的入口契约直接交给受控 Agent 或内部技术协作者，而不是只让它阅读 README，可优先使用这些仓库跟踪资产：
 
-- 入口模式公开契约：[`agent_entry_modes.md`](./agent_entry_modes.md)
+- 入口模式契约：[`agent_entry_modes.md`](./agent_entry_modes.md)
 - 机器可读镜像：[`../templates/agent_entry_modes.yaml`](../templates/agent_entry_modes.yaml)
 - `Codex` 入口模板：[`../templates/codex/medautoscience-entry.SKILL.md`](../templates/codex/medautoscience-entry.SKILL.md)
 - `OpenClaw` 入口模板：[`../templates/openclaw/medautoscience-entry.prompt.md`](../templates/openclaw/medautoscience-entry.prompt.md)

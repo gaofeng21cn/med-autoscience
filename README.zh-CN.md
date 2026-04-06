@@ -89,12 +89,11 @@
 - audit guide 负责回答“当前哪些模板已经严格 audited”
 - template catalog 负责回答“代码里现在到底注册了哪些模板与 contract”
 
-如果你想继续看这三层 truth source，可以直接查看：
+如果你想继续从维护中的文档入口往下读，优先查看：
 
-- [医学展示面家族路线图](docs/medical_display_family_roadmap.md)
-- [医学展示面审计指南](docs/medical_display_audit_guide.md)
-- [医学展示面模板目录](docs/medical_display_template_catalog.md)
 - [公开文档索引](docs/README.zh-CN.md)
+
+展示路线图、审计指南和模板目录这类细节文档当前仍按仓库跟踪的操作文档维护；除非被显式提升到双语公开面，否则默认不扩成双语正文。
 
 ## 典型交付结果
 
@@ -132,14 +131,8 @@
 ## 文档入口
 
 - [文档索引](docs/README.zh-CN.md)
-- [病种 workspace 快速起步](docs/disease_workspace_quickstart.md)
-- [Agent Runtime Interface](docs/agent_runtime_interface.md)
-- [Agent Entry Modes](docs/agent_entry_modes.md)
-- [Runtime Boundary](docs/runtime_boundary.md)
-- [Workspace Architecture](docs/workspace_architecture.md)
-- [Open Harness OS 架构边界](docs/open_harness_os_architecture.md)
-- [Research Foundry 定位](docs/research_foundry_positioning.md)
-- [Research Foundry 与 Med Auto Science 的 repo 拆分边界](docs/repo_split_between_research_foundry_and_med_autoscience.md)
+
+更细的操作文档继续保留在仓库中，但默认属于内部中文文档；只有被提升到双语公开面时，才会同步补齐英文与中文镜像。
 
 ## 技术验证
 
