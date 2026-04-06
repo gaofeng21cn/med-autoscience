@@ -354,6 +354,9 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
 
     markdown = module.render_display_template_catalog_markdown()
 
+    assert "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |" in markdown
+    assert "`A. Predictive Performance and Decision`" in markdown
+    assert "`H. Cohort and Study Design Evidence`" in markdown
     assert "roc_curve_binary" in markdown
     assert "shap_summary_inputs_v1" in markdown
     assert "cohort_flow_figure" in markdown

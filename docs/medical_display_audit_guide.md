@@ -2,6 +2,14 @@
 
 This guide is the stable, human-auditable view of the medical display system in `med-autoscience`.
 
+This file is the engineering audit surface, not the top-level product roadmap taxonomy.
+
+Use [medical_display_family_roadmap.md](./medical_display_family_roadmap.md) when the goal is to answer:
+
+- which paper-facing evidence families the platform should eventually cover;
+- how the original `A-H` families define the long-horizon display north star;
+- how real-paper-driven template expansion should be evaluated at the roadmap level.
+
 Use this file when the goal is to answer:
 
 - Which display classes are officially supported?
@@ -9,6 +17,8 @@ Use this file when the goal is to answer:
 - Which input schema contracts are enforced?
 - Which renderer and layout-QC path is authoritative for each template?
 - What must change together when a new display template is added?
+
+This guide primarily documents the deterministic and auditable lower-bound layer.
 
 For the exhaustive generated matrix, see [medical_display_template_catalog.md](./medical_display_template_catalog.md).
 
@@ -23,6 +33,8 @@ This guide covers the audited display surface only. A display counts as "impleme
 5. The resulting catalog entry survives publication-surface and submission-minimal validation.
 
 This definition is intentionally stricter than "present in a catalog" or "listed in a planning document".
+
+It is also intentionally narrower than "publication-perfect under every visual judgment." Some paper-facing refinement work will still require an explicit AI-first visual review loop on top of the deterministic audited path.
 
 ## Source Of Truth
 
@@ -90,7 +102,16 @@ Current implemented display inventory:
 | Illustration Shell | 2 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1` | shell profile + catalog contract |
 | Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
-## Nine-Class Audit Map
+## Current Audit-Family Map
+
+The audit families below are the current engineering governance view.
+
+They are intentionally not the same thing as the roadmap-level `A-H` paper families:
+
+- roadmap families answer manuscript-facing evidence questions;
+- audit families answer renderer, schema, QC, and materialization governance questions.
+
+That distinction is intentional and should be preserved.
 
 ### 1. Prediction Performance
 

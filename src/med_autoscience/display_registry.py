@@ -8,6 +8,7 @@ class EvidenceFigureSpec:
     template_id: str
     display_name: str
     evidence_class: str
+    paper_family_ids: tuple[str, ...]
     renderer_family: str
     input_schema_id: str
     layout_qc_profile: str
@@ -19,6 +20,7 @@ class EvidenceFigureSpec:
 class IllustrationShellSpec:
     shell_id: str
     display_name: str
+    paper_family_ids: tuple[str, ...]
     renderer_family: str
     input_schema_id: str
     shell_qc_profile: str
@@ -30,10 +32,23 @@ class IllustrationShellSpec:
 class TableShellSpec:
     shell_id: str
     display_name: str
+    paper_family_ids: tuple[str, ...]
     input_schema_id: str
     table_qc_profile: str
     required_exports: tuple[str, ...]
     allowed_paper_roles: tuple[str, ...] = ("main_text", "supplementary")
+
+
+_PAPER_FAMILY_LABELS: dict[str, str] = {
+    "A": "A. Predictive Performance and Decision",
+    "B": "B. Survival and Time-to-Event",
+    "C": "C. Effect Size and Heterogeneity",
+    "D": "D. Representation Structure and Data Geometry",
+    "E": "E. Feature Pattern and Matrix",
+    "F": "F. Model Explanation",
+    "G": "G. Bioinformatics and Omics Evidence",
+    "H": "H. Cohort and Study Design Evidence",
+}
 
 
 _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
@@ -41,6 +56,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="roc_curve_binary",
         display_name="ROC Curve (Binary Outcome)",
         evidence_class="prediction_performance",
+        paper_family_ids=("A",),
         renderer_family="r_ggplot2",
         input_schema_id="binary_prediction_curve_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -50,6 +66,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="pr_curve_binary",
         display_name="Precision-Recall Curve (Binary Outcome)",
         evidence_class="prediction_performance",
+        paper_family_ids=("A",),
         renderer_family="r_ggplot2",
         input_schema_id="binary_prediction_curve_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -59,6 +76,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="calibration_curve_binary",
         display_name="Calibration Curve (Binary Outcome)",
         evidence_class="prediction_performance",
+        paper_family_ids=("A",),
         renderer_family="r_ggplot2",
         input_schema_id="binary_prediction_curve_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -68,6 +86,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="decision_curve_binary",
         display_name="Decision Curve (Binary Outcome)",
         evidence_class="clinical_utility",
+        paper_family_ids=("A",),
         renderer_family="r_ggplot2",
         input_schema_id="binary_prediction_curve_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -77,6 +96,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="risk_layering_monotonic_bars",
         display_name="Monotonic Risk Layering Bars",
         evidence_class="time_to_event",
+        paper_family_ids=("B",),
         renderer_family="python",
         input_schema_id="risk_layering_monotonic_inputs_v1",
         layout_qc_profile="publication_risk_layering_bars",
@@ -86,6 +106,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="binary_calibration_decision_curve_panel",
         display_name="Binary Calibration and Decision Curve Panel",
         evidence_class="clinical_utility",
+        paper_family_ids=("A",),
         renderer_family="python",
         input_schema_id="binary_calibration_decision_curve_panel_inputs_v1",
         layout_qc_profile="publication_binary_calibration_decision_curve",
@@ -95,6 +116,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="model_complexity_audit_panel",
         display_name="Model Complexity Audit Panel",
         evidence_class="model_audit",
+        paper_family_ids=("F", "H"),
         renderer_family="python",
         input_schema_id="model_complexity_audit_panel_inputs_v1",
         layout_qc_profile="publication_model_complexity_audit",
@@ -104,6 +126,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="time_dependent_roc_horizon",
         display_name="Time-Dependent ROC (Horizon)",
         evidence_class="time_to_event",
+        paper_family_ids=("A", "B"),
         renderer_family="r_ggplot2",
         input_schema_id="binary_prediction_curve_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -113,6 +136,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="kaplan_meier_grouped",
         display_name="Kaplan-Meier Curve (Grouped)",
         evidence_class="time_to_event",
+        paper_family_ids=("B",),
         renderer_family="r_ggplot2",
         input_schema_id="time_to_event_grouped_inputs_v1",
         layout_qc_profile="publication_survival_curve",
@@ -122,6 +146,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="cumulative_incidence_grouped",
         display_name="Cumulative Incidence Curve (Grouped)",
         evidence_class="time_to_event",
+        paper_family_ids=("B",),
         renderer_family="r_ggplot2",
         input_schema_id="time_to_event_grouped_inputs_v1",
         layout_qc_profile="publication_survival_curve",
@@ -131,6 +156,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="umap_scatter_grouped",
         display_name="UMAP Scatter (Grouped)",
         evidence_class="data_geometry",
+        paper_family_ids=("D",),
         renderer_family="r_ggplot2",
         input_schema_id="embedding_grouped_inputs_v1",
         layout_qc_profile="publication_embedding_scatter",
@@ -140,6 +166,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="pca_scatter_grouped",
         display_name="PCA Scatter (Grouped)",
         evidence_class="data_geometry",
+        paper_family_ids=("D",),
         renderer_family="r_ggplot2",
         input_schema_id="embedding_grouped_inputs_v1",
         layout_qc_profile="publication_embedding_scatter",
@@ -149,6 +176,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="tsne_scatter_grouped",
         display_name="t-SNE Scatter (Grouped)",
         evidence_class="data_geometry",
+        paper_family_ids=("D",),
         renderer_family="r_ggplot2",
         input_schema_id="embedding_grouped_inputs_v1",
         layout_qc_profile="publication_embedding_scatter",
@@ -158,6 +186,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="heatmap_group_comparison",
         display_name="Heatmap (Group Comparison)",
         evidence_class="matrix_pattern",
+        paper_family_ids=("E",),
         renderer_family="r_ggplot2",
         input_schema_id="heatmap_group_comparison_inputs_v1",
         layout_qc_profile="publication_heatmap",
@@ -167,6 +196,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="correlation_heatmap",
         display_name="Correlation Heatmap",
         evidence_class="matrix_pattern",
+        paper_family_ids=("E",),
         renderer_family="r_ggplot2",
         input_schema_id="correlation_heatmap_inputs_v1",
         layout_qc_profile="publication_heatmap",
@@ -176,6 +206,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="clustered_heatmap",
         display_name="Clustered Heatmap (Precomputed Ordering)",
         evidence_class="matrix_pattern",
+        paper_family_ids=("E",),
         renderer_family="r_ggplot2",
         input_schema_id="clustered_heatmap_inputs_v1",
         layout_qc_profile="publication_heatmap",
@@ -185,6 +216,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="forest_effect_main",
         display_name="Forest Plot (Main Effects)",
         evidence_class="effect_estimate",
+        paper_family_ids=("C",),
         renderer_family="r_ggplot2",
         input_schema_id="forest_effect_inputs_v1",
         layout_qc_profile="publication_forest_plot",
@@ -194,6 +226,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="subgroup_forest",
         display_name="Forest Plot (Subgroup Effects)",
         evidence_class="effect_estimate",
+        paper_family_ids=("C",),
         renderer_family="r_ggplot2",
         input_schema_id="forest_effect_inputs_v1",
         layout_qc_profile="publication_forest_plot",
@@ -203,6 +236,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="shap_summary_beeswarm",
         display_name="SHAP Summary Beeswarm",
         evidence_class="model_explanation",
+        paper_family_ids=("F",),
         renderer_family="python",
         input_schema_id="shap_summary_inputs_v1",
         layout_qc_profile="publication_shap_summary",
@@ -212,6 +246,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="time_to_event_discrimination_calibration_panel",
         display_name="Validation Discrimination and Grouped Calibration (Time-to-Event)",
         evidence_class="time_to_event",
+        paper_family_ids=("A", "B"),
         renderer_family="python",
         input_schema_id="time_to_event_discrimination_calibration_inputs_v1",
         layout_qc_profile="publication_evidence_curve",
@@ -221,6 +256,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="time_to_event_risk_group_summary",
         display_name="Risk-Group Summary (Time-to-Event)",
         evidence_class="time_to_event",
+        paper_family_ids=("B",),
         renderer_family="python",
         input_schema_id="time_to_event_grouped_inputs_v1",
         layout_qc_profile="publication_survival_curve",
@@ -230,6 +266,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="time_to_event_decision_curve",
         display_name="Decision Curve (Time-to-Event Horizon)",
         evidence_class="clinical_utility",
+        paper_family_ids=("A", "B"),
         renderer_family="python",
         input_schema_id="time_to_event_decision_curve_inputs_v1",
         layout_qc_profile="publication_decision_curve",
@@ -239,6 +276,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         template_id="multicenter_generalizability_overview",
         display_name="Multicenter Generalizability Overview",
         evidence_class="generalizability",
+        paper_family_ids=("H",),
         renderer_family="python",
         input_schema_id="multicenter_generalizability_inputs_v1",
         layout_qc_profile="publication_multicenter_overview",
@@ -250,6 +288,7 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
     IllustrationShellSpec(
         shell_id="cohort_flow_figure",
         display_name="Cohort Flow Figure",
+        paper_family_ids=("H",),
         renderer_family="python",
         input_schema_id="cohort_flow_shell_inputs_v1",
         shell_qc_profile="publication_illustration_flow",
@@ -258,6 +297,7 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
     IllustrationShellSpec(
         shell_id="submission_graphical_abstract",
         display_name="Submission Graphical Abstract",
+        paper_family_ids=("A", "H"),
         renderer_family="python",
         input_schema_id="submission_graphical_abstract_inputs_v1",
         shell_qc_profile="submission_graphical_abstract",
@@ -270,6 +310,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
         shell_id="table1_baseline_characteristics",
         display_name="Table 1 Baseline Characteristics",
+        paper_family_ids=("H",),
         input_schema_id="baseline_characteristics_schema_v1",
         table_qc_profile="publication_table_baseline",
         required_exports=("csv", "md"),
@@ -277,6 +318,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
         shell_id="table2_time_to_event_performance_summary",
         display_name="Table 2 Time-to-Event Performance Summary",
+        paper_family_ids=("A", "B"),
         input_schema_id="time_to_event_performance_summary_v1",
         table_qc_profile="publication_table_performance",
         required_exports=("md",),
@@ -284,6 +326,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
         shell_id="table3_clinical_interpretation_summary",
         display_name="Table 3 Clinical Interpretation Summary",
+        paper_family_ids=("A", "H"),
         input_schema_id="clinical_interpretation_summary_v1",
         table_qc_profile="publication_table_interpretation",
         required_exports=("md",),
@@ -291,6 +334,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
         shell_id="performance_summary_table_generic",
         display_name="Performance Summary Table (Generic)",
+        paper_family_ids=("A",),
         input_schema_id="performance_summary_table_generic_v1",
         table_qc_profile="publication_table_performance",
         required_exports=("csv", "md"),
@@ -298,6 +342,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
         shell_id="grouped_risk_event_summary_table",
         display_name="Grouped Risk Event Summary Table",
+        paper_family_ids=("B",),
         input_schema_id="grouped_risk_event_summary_table_v1",
         table_qc_profile="publication_table_interpretation",
         required_exports=("csv", "md"),
@@ -319,6 +364,14 @@ def list_illustration_shell_specs() -> tuple[IllustrationShellSpec, ...]:
 
 def list_table_shell_specs() -> tuple[TableShellSpec, ...]:
     return _TABLE_SHELL_SPECS
+
+
+def get_paper_family_label(paper_family_id: str) -> str:
+    normalized = str(paper_family_id or "").strip()
+    try:
+        return _PAPER_FAMILY_LABELS[normalized]
+    except KeyError as exc:
+        raise ValueError(f"unknown paper family `{paper_family_id}`") from exc
 
 
 def get_evidence_figure_spec(template_id: str) -> EvidenceFigureSpec:

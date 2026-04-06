@@ -10,6 +10,9 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
     for spec in display_registry.list_evidence_figure_specs():
         metadata[spec.template_id] = {
             "display_name": spec.display_name,
+            "paper_families": ", ".join(
+                f"`{display_registry.get_paper_family_label(item)}`" for item in spec.paper_family_ids
+            ),
             "renderer_family": spec.renderer_family,
             "input_schema_id": spec.input_schema_id,
             "qc_profile": spec.layout_qc_profile,
@@ -19,6 +22,9 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
     for spec in display_registry.list_illustration_shell_specs():
         metadata[spec.shell_id] = {
             "display_name": spec.display_name,
+            "paper_families": ", ".join(
+                f"`{display_registry.get_paper_family_label(item)}`" for item in spec.paper_family_ids
+            ),
             "renderer_family": spec.renderer_family,
             "input_schema_id": spec.input_schema_id,
             "qc_profile": spec.shell_qc_profile,
@@ -28,6 +34,9 @@ def _template_metadata_by_id() -> dict[str, dict[str, str]]:
     for spec in display_registry.list_table_shell_specs():
         metadata[spec.shell_id] = {
             "display_name": spec.display_name,
+            "paper_families": ", ".join(
+                f"`{display_registry.get_paper_family_label(item)}`" for item in spec.paper_family_ids
+            ),
             "renderer_family": "n/a",
             "input_schema_id": spec.input_schema_id,
             "qc_profile": spec.table_qc_profile,
@@ -57,8 +66,8 @@ def _render_template_class_section() -> list[str]:
             [
                 f"### {display_class.display_name}",
                 "",
-                "| Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |",
-                "| --- | --- | --- | --- | --- | --- | --- |",
+                "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- |",
             ]
         )
         for template_id in display_class.template_ids:
@@ -69,6 +78,7 @@ def _render_template_class_section() -> list[str]:
                     [
                         f"`{template_id}`",
                         f"`{metadata['display_kind']}`",
+                        metadata["paper_families"],
                         metadata["display_name"],
                         f"`{metadata['renderer_family']}`",
                         f"`{metadata['input_schema_id']}`",
@@ -112,6 +122,8 @@ def render_display_template_catalog_markdown() -> str:
         "# Medical Display Template Catalog",
         "",
         "Generated from `med_autoscience.display_registry` and `med_autoscience.display_schema_contract`.",
+        "",
+        "Paper-family labels follow the roadmap in [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).",
         "",
         "For the stable human-auditable overview, completion counts, and change protocol, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).",
         "",
