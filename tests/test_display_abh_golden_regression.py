@@ -299,17 +299,15 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
     return paper_root
 
 
-def test_abh_golden_regression_iteration_log_tracks_current_suite() -> None:
-    iteration_log = (
-        Path(__file__).resolve().parents[1]
-        / ".omx"
-        / "reports"
-        / "medical-display-platform-hardening"
-        / "ITERATION_LOG.md"
+def test_abh_golden_regression_tracked_docs_track_current_suite() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    text = "\n".join(
+        (
+            (repo_root / "docs" / "medical_display_template_catalog.md").read_text(encoding="utf-8"),
+            (repo_root / "docs" / "medical_display_audit_guide.md").read_text(encoding="utf-8"),
+        )
     )
-    text = iteration_log.read_text(encoding="utf-8")
 
-    assert "A/B/H golden regression hardening" in text
     for token in (
         "binary_calibration_decision_curve_panel",
         "time_to_event_discrimination_calibration_panel",
@@ -322,10 +320,11 @@ def test_abh_golden_regression_iteration_log_tracks_current_suite() -> None:
     for token in (
         "title policy",
         "annotation placement",
-        "panel-label / header-band anchoring",
+        "panel-label/header-band anchoring",
         "graphical-abstract arrow lanes",
         "axis-window fit",
-        "legend / tick-label readability",
+        "grouped-separation readability",
+        "landmark/time-slice regression semantics",
     ):
         assert token in text
 
