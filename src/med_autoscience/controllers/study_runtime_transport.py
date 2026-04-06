@@ -4,6 +4,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.study_runtime_types import StudyRuntimeStartupContextSyncResult
+
 __all__ = [
     "_create_quest",
     "_inspect_quest_live_execution",
@@ -53,11 +55,13 @@ def _update_quest_startup_context(
     runtime_root: Path,
     quest_id: str,
     startup_contract: dict[str, Any],
-) -> dict[str, Any]:
-    return _router_module().med_deepscientist_transport.update_quest_startup_context(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        startup_contract=startup_contract,
+) -> StudyRuntimeStartupContextSyncResult:
+    return StudyRuntimeStartupContextSyncResult.from_payload(
+        _router_module().med_deepscientist_transport.update_quest_startup_context(
+            runtime_root=runtime_root,
+            quest_id=quest_id,
+            startup_contract=startup_contract,
+        )
     )
 
 

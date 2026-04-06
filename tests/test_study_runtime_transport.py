@@ -33,7 +33,16 @@ def test_study_runtime_transport_update_startup_context_uses_router_transport_bi
     monkeypatch.setattr(
         router.med_deepscientist_transport,
         "update_quest_startup_context",
-        lambda **kwargs: (seen.__setitem__("update_kwargs", kwargs) or {"ok": True}),
+        lambda **kwargs: (
+            seen.__setitem__("update_kwargs", kwargs)
+            or {
+                "ok": True,
+                "snapshot": {
+                    "quest_id": kwargs["quest_id"],
+                    "startup_contract": kwargs["startup_contract"],
+                },
+            }
+        ),
     )
 
     startup_contract = {"schema_version": 4}
@@ -43,8 +52,11 @@ def test_study_runtime_transport_update_startup_context_uses_router_transport_bi
         startup_contract=startup_contract,
     )
 
+    assert seen["update_kwargs"]["quest_id"] == "quest-001"
     assert seen["update_kwargs"]["startup_contract"] == startup_contract
-    assert result == {"ok": True}
+    assert result.ok is True
+    assert result.to_dict()["quest_id"] == "quest-001"
+    assert result.to_dict()["snapshot"]["startup_contract"] == startup_contract
 
 
 def test_study_runtime_transport_sync_completion_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:

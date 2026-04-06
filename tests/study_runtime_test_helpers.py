@@ -155,6 +155,7 @@ def make_runtime_overlay_result(*, all_roots_ready: bool = True) -> dict[str, ob
 def make_startup_context_sync_payload(*, quest_id: str = "quest-001") -> dict[str, object]:
     return {
         "ok": True,
+        "quest_id": quest_id,
         "snapshot": {
             "quest_id": quest_id,
             "startup_contract": {"schema_version": 4},

@@ -149,6 +149,7 @@ def make_runtime_overlay_result(*, all_roots_ready: bool = True) -> dict[str, ob
 def make_startup_context_sync_payload(*, quest_id: str = "quest-001") -> dict[str, object]:
     return {
         "ok": True,
+        "quest_id": quest_id,
         "snapshot": {
             "quest_id": quest_id,
             "startup_contract": {"schema_version": 4},
@@ -424,7 +425,7 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     with pytest.raises(ValueError, match="startup contract validation payload"):
         status.record_startup_contract_validation({"status": "clear"})
     status.record_startup_contract_validation(make_startup_contract_validation_payload())
-    status.record_startup_context_sync({"ok": True})
+    status.record_startup_context_sync(make_startup_context_sync_payload())
     with pytest.raises(ValueError, match="startup hydration payload"):
         status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
     status.record_startup_hydration(
@@ -444,7 +445,7 @@ def test_study_runtime_status_records_structured_runtime_extras() -> None:
     assert payload["analysis_bundle"] == {"ready": True}
     assert payload["runtime_overlay"] == {"audit": {"all_roots_ready": True}}
     assert payload["startup_contract_validation"] == make_startup_contract_validation_payload()
-    assert payload["startup_context_sync"] == {"ok": True}
+    assert payload["startup_context_sync"] == make_startup_context_sync_payload()
     assert payload["startup_hydration"]["status"] == "hydrated"
     assert payload["startup_hydration"]["report_path"] == (
         "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_report.json"
@@ -531,6 +532,20 @@ def test_startup_context_sync_result_requires_echoed_startup_contract() -> None:
                 "ok": True,
                 "snapshot": {
                     "quest_id": "quest-001",
+                },
+            }
+        )
+
+
+def test_startup_context_sync_result_requires_echoed_quest_id() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+
+    with pytest.raises(ValueError, match="quest_id"):
+        module.StudyRuntimeStartupContextSyncResult.from_payload(
+            {
+                "ok": True,
+                "snapshot": {
+                    "startup_contract": {"schema_version": 4},
                 },
             }
         )

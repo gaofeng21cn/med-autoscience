@@ -15,6 +15,7 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeReentryGate,
     StudyRuntimeStartupBoundaryGate,
+    StudyRuntimeStartupContextSyncResult,
     StudyRuntimeStatus,
 )
 from med_autoscience.overlay import installer as overlay_installer
@@ -300,7 +301,7 @@ def _sync_existing_quest_startup_context(
     runtime_root: Path,
     quest_id: str,
     create_payload: dict[str, Any],
-) -> dict[str, Any]:
+) -> StudyRuntimeStartupContextSyncResult:
     startup_contract = create_payload.get("startup_contract")
     if not isinstance(startup_contract, dict):
         raise ValueError("create payload missing startup_contract")

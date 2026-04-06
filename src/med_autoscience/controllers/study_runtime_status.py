@@ -282,12 +282,27 @@ class StudyRuntimeStartupContextSyncResult:
         ok = payload.get("ok")
         if not isinstance(ok, bool):
             raise TypeError("study runtime startup context sync ok must be bool")
+        normalized_payload = dict(payload)
         snapshot = payload.get("snapshot")
         if snapshot is not None and not isinstance(snapshot, dict):
             raise ValueError("study runtime startup context sync snapshot must be a mapping")
-        if isinstance(snapshot, dict) and not isinstance(snapshot.get("startup_contract"), dict):
-            raise ValueError("study runtime startup context sync snapshot missing startup_contract")
-        return cls(ok=ok, payload=dict(payload))
+        if ok:
+            if not isinstance(snapshot, dict):
+                raise ValueError("study runtime startup context sync payload missing snapshot")
+            payload_quest_id = str(payload.get("quest_id") or "").strip()
+            snapshot_quest_id = str(snapshot.get("quest_id") or "").strip()
+            if payload_quest_id and snapshot_quest_id and payload_quest_id != snapshot_quest_id:
+                raise ValueError("study runtime startup context sync quest_id mismatch")
+            quest_id = payload_quest_id or snapshot_quest_id
+            if not quest_id:
+                raise ValueError("study runtime startup context sync payload missing quest_id")
+            if not isinstance(snapshot.get("startup_contract"), dict):
+                raise ValueError("study runtime startup context sync snapshot missing startup_contract")
+            normalized_snapshot = dict(snapshot)
+            normalized_snapshot["quest_id"] = quest_id
+            normalized_payload["quest_id"] = quest_id
+            normalized_payload["snapshot"] = normalized_snapshot
+        return cls(ok=ok, payload=normalized_payload)
 
 
 @dataclass(frozen=True)

@@ -485,7 +485,13 @@ def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monke
     monkeypatch.setattr(
         module,
         "_sync_existing_quest_startup_context",
-        lambda **kwargs: {"ok": True},
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": kwargs["quest_id"],
+                "startup_contract": kwargs["create_payload"]["startup_contract"],
+            },
+        },
     )
     monkeypatch.setattr(
         module,
@@ -1619,6 +1625,8 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     assert escalation_payload["runtime_context_refs"] == {"launch_report_path": result["launch_report_path"]}
     assert "runtime_escalation_record" not in result
     assert "runtime_escalation_record" not in launch_report
+    assert result["startup_context_sync"]["ok"] is True
+    assert result["startup_context_sync"]["quest_id"] == "001-risk"
     synced_contract = result["startup_context_sync"]["snapshot"]["startup_contract"]
     assert "runtime_escalation_record" not in synced_contract
     assert "runtime_escalation_ref" not in synced_contract
@@ -3436,6 +3444,8 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     assert result["quest_id"] == "001-risk-reentry"
     assert result["quest_root"] == str(profile.runtime_root / "001-risk-reentry")
     assert result["quest_status"] == "active"
+    assert result["startup_context_sync"]["ok"] is True
+    assert result["startup_context_sync"]["quest_id"] == "001-risk-reentry"
     assert calls == [
         ("sync_startup_context", "001-risk-reentry", "full_research"),
         ("hydrate", profile.runtime_root / "001-risk-reentry"),
