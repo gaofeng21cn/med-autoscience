@@ -368,7 +368,7 @@ def test_study_runtime_status_normalizes_study_completion_contract_to_typed_stat
         "summary": "Study is done.",
         "user_approval_text": "同意",
         "completed_at": "2026-04-03T00:00:00+00:00",
-        "evidence_paths": ["manuscript/final/submission_manifest.json"],
+        "evidence_paths": ["manuscript/submission_manifest.json"],
         "missing_evidence_paths": [],
         "errors": [],
     }
@@ -382,7 +382,7 @@ def test_study_runtime_status_normalizes_study_completion_contract_to_typed_stat
         "summary": "Study is done.",
         "user_approval_text": "同意",
         "completed_at": "2026-04-03T00:00:00+00:00",
-        "evidence_paths": ["manuscript/final/submission_manifest.json"],
+        "evidence_paths": ["manuscript/submission_manifest.json"],
         "missing_evidence_paths": [],
         "errors": [],
     }
@@ -593,7 +593,7 @@ def test_study_runtime_status_exposes_typed_gate_and_completion_accessors() -> N
                 "user_approval_text": "同意",
                 "completed_at": "2026-04-03T00:00:00+00:00",
                 "evidence_paths": [
-                    "manuscript/final/submission_manifest.json",
+                    "manuscript/submission_manifest.json",
                 ],
                 "missing_evidence_paths": [],
                 "errors": [],

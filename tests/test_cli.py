@@ -1309,7 +1309,7 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
         return {
             "stage": stage,
             "publication_profile": publication_profile,
-            "targets": {"manuscript_final_root": str(tmp_path / "study" / "final")},
+            "targets": {"manuscript_root": str(tmp_path / "study" / "manuscript")},
         }
 
     monkeypatch.setattr(cli.study_delivery_sync, "sync_study_delivery", fake_sync)

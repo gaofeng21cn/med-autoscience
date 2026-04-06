@@ -414,9 +414,9 @@ At minimum, repeatedly verify:
 Before preparing any journal-facing package, read `paper/submission_targets.resolved.json` and the current journal-resolution guidance in `paper/journal-resolution/SKILL.md`.
 
 Do not invent ad-hoc package roots such as `paper/submission_<journal>`.
-Journal-specific package material belongs under the managed `paper/journal_submissions/<publication_profile>/...` surface, and study-facing delivery lands under `studies/<study-id>/manuscript/final`.
+Journal-specific package material belongs under the managed `paper/journal_submissions/<publication_profile>/...` surface, and study-facing delivery lands under `studies/<study-id>/manuscript`.
 
-Treat `studies/<study-id>/manuscript/final` as the authoritative post-sync handoff surface for humans and downstream automation.
+Treat `studies/<study-id>/manuscript` as the authoritative post-sync handoff surface for humans and downstream automation.
 Do not replace it with parallel paper-local delivery roots.
 
 ## Paper experiment matrix contract

@@ -133,7 +133,7 @@ def render_display_template_catalog_markdown() -> str:
         "- `paper/display_overrides.json` is the figure-level structured adjustment surface for manuscript-specific layout and readability decisions.",
         "- Templates preserve a stable lower bound; article-level style and figure-level overrides may refine expression without bypassing the audited renderer path.",
         "- Final manuscript-facing polish is **AI-first above that lower bound**: use the generated image as the truth surface, let visual review identify concrete defects, then harden the audited renderer/QC path instead of paper-local patching.",
-        "- Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/final/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.",
+        "- Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.",
         "- Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.",
         "",
     ]

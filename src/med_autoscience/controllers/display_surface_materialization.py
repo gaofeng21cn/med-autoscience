@@ -758,14 +758,14 @@ def _build_paper_surface_readmes(
     table_id_line = ", ".join(table_ids) if table_ids else "(none materialized yet)"
     return {
         paper_root / "README.md": textwrap.dedent(
-            f"""\
+            """\
             # Paper Authority Surface
 
             - This directory is the manuscript-facing authority surface for the active study line.
             - Figures: `paper/figures/figure_catalog.json` + `paper/figures/generated/`
             - Tables: `paper/tables/table_catalog.json` + `paper/tables/generated/`
             - Canonical submission package: `paper/submission_minimal/`
-            - Human-facing delivery mirror: `../manuscript/final/`
+            - Human-facing delivery mirror: `../manuscript/`
             - Auxiliary finalize/runtime evidence only: `../artifacts/`
 
             If a human needs the latest authoritative display outputs, start here instead of `manuscript/` or `artifacts/`.
@@ -6460,7 +6460,6 @@ def _render_python_time_to_event_risk_group_summary(
     style_roles = dict(render_context.get("style_roles") or {})
     palette = dict(render_context.get("palette") or {})
     typography = dict(render_context.get("typography") or {})
-    stroke = dict(render_context.get("stroke") or {})
     layout_override = dict(render_context.get("layout_override") or {})
     observed_color = _require_non_empty_string(
         style_roles.get("model_curve"),
@@ -7406,10 +7405,8 @@ def _render_python_multicenter_generalizability_overview(
         style_roles.get("comparator_curve"),
         label=f"{template_id} render_context.style_roles.comparator_curve",
     )
-    contrast_color = str(palette.get("contrast") or "#2F5D8A").strip() or "#2F5D8A"
     light_fill = str(palette.get("light") or palette.get("secondary_soft") or comparator_color).strip() or comparator_color
     audit_color = str(palette.get("audit") or "#B57F7F").strip() or "#B57F7F"
-    audit_soft = str(palette.get("audit_soft") or light_fill).strip() or light_fill
 
     def _resolve_center_axis_labels(labels: list[str]) -> tuple[list[str], str, str]:
         if not labels:

@@ -171,22 +171,22 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         stage="submission_minimal",
     )
 
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "final" / "paper.pdf").exists()
-    assert (study_root / "manuscript" / "final" / "submission_manifest.json").exists()
-    assert (study_root / "manuscript" / "final" / "delivery_manifest.json").exists()
-    assert "Fixed handoff mirror: `manuscript/final/`" in (
+    assert (study_root / "manuscript" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "paper.pdf").exists()
+    assert (study_root / "manuscript" / "submission_manifest.json").exists()
+    assert (study_root / "manuscript" / "delivery_manifest.json").exists()
+    assert "This directory: `manuscript/`" in (
         study_root / "manuscript" / "README.md"
     ).read_text(encoding="utf-8")
-    assert "paper/submission_minimal/" in (study_root / "manuscript" / "final" / "README.md").read_text(encoding="utf-8")
+    assert "paper/submission_minimal/" in (study_root / "manuscript" / "README.md").read_text(encoding="utf-8")
     assert "not part of the human-facing final delivery surface" in (
         study_root / "artifacts" / "README.md"
     ).read_text(encoding="utf-8")
     assert not (study_root / "artifacts" / "final").exists()
-    assert not (study_root / "manuscript" / "final" / "submission_package" / "figures" / "README.md").exists()
-    assert not (study_root / "manuscript" / "final" / "submission_package" / "tables" / "README.md").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package" / "figures" / "Figure1.pdf").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert not (study_root / "manuscript" / "submission_package" / "figures" / "README.md").exists()
+    assert not (study_root / "manuscript" / "submission_package" / "tables" / "README.md").exists()
+    assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.pdf").exists()
+    assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
 
 
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
@@ -200,8 +200,8 @@ def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> N
         stage="submission_minimal",
     )
 
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "submission_package.zip").exists()
     assert not (study_root / "artifacts" / "final").exists()
 
 
@@ -214,10 +214,10 @@ def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Pa
         stage="finalize",
     )
 
-    assert (study_root / "manuscript" / "final" / "SUMMARY.md").exists()
-    assert (study_root / "manuscript" / "final" / "status.md").exists()
-    assert (study_root / "manuscript" / "final" / "final_claim_ledger.md").exists()
-    assert (study_root / "manuscript" / "final" / "finalize_resume_packet.md").exists()
+    assert (study_root / "manuscript" / "SUMMARY.md").exists()
+    assert (study_root / "manuscript" / "status.md").exists()
+    assert (study_root / "manuscript" / "final_claim_ledger.md").exists()
+    assert (study_root / "manuscript" / "finalize_resume_packet.md").exists()
     assert "machine-generated finalization evidence only" in (
         study_root / "artifacts" / "final" / "README.md"
     ).read_text(encoding="utf-8")
@@ -238,7 +238,7 @@ def test_sync_study_delivery_for_finalize_accepts_canonical_handoff_from_worktre
         stage="finalize",
     )
 
-    assert (study_root / "manuscript" / "final" / "finalize_resume_packet.md").read_text(encoding="utf-8") == (
+    assert (study_root / "manuscript" / "finalize_resume_packet.md").read_text(encoding="utf-8") == (
         "# Canonical Finalize Resume Packet\n"
     )
 
@@ -249,7 +249,7 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
 
-    write_text(study_root / "manuscript" / "final" / "manuscript.docx", "existing generic package")
+    write_text(study_root / "manuscript" / "manuscript.docx", "existing generic package")
     write_text(
         paper_root / "journal_submissions" / "frontiers_family_harvard" / "manuscript.docx",
         "frontiers manuscript",
@@ -286,13 +286,13 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     )
 
     journal_package_root = (
-        study_root / "manuscript" / "final" / "journal_packages" / "frontiers_family_harvard"
+        study_root / "manuscript" / "journal_packages" / "frontiers_family_harvard"
     )
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").read_text(encoding="utf-8") == "existing generic package"
+    assert (study_root / "manuscript" / "manuscript.docx").read_text(encoding="utf-8") == "existing generic package"
     assert (journal_package_root / "manuscript.docx").exists()
     assert (journal_package_root / "Supplementary_Material.docx").exists()
     assert (journal_package_root / "README.md").exists()
-    assert (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
+    assert (study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip").exists()
 
 
 def test_sync_study_delivery_can_promote_primary_journal_package_into_study_final(tmp_path: Path) -> None:
@@ -337,14 +337,13 @@ def test_sync_study_delivery_can_promote_primary_journal_package_into_study_fina
     write_text(
         study_root
         / "manuscript"
-        / "final"
         / "journal_packages"
         / "frontiers_family_harvard"
         / "stale.txt",
         "legacy stale package\n",
     )
     write_text(
-        study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip",
+        study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip",
         "legacy stale zip\n",
     )
 
@@ -356,24 +355,23 @@ def test_sync_study_delivery_can_promote_primary_journal_package_into_study_fina
     )
 
     assert result["stage"] == "frontiers_family_harvard_submission"
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").read_text(encoding="utf-8") == (
+    assert (study_root / "manuscript" / "manuscript.docx").read_text(encoding="utf-8") == (
         "frontiers manuscript"
     )
-    assert (study_root / "manuscript" / "final" / "submission_package" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package" / "figures" / "Figure1.svg").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert (study_root / "manuscript" / "submission_package" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.svg").exists()
+    assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
     assert not (study_root / "artifacts" / "final").exists()
     assert (
         study_root
         / "manuscript"
-        / "final"
         / "journal_package_mirrors"
         / "frontiers_family_harvard"
         / "submission_manifest.json"
     ).exists()
-    assert not (study_root / "manuscript" / "final" / "journal_packages").exists()
-    assert not (study_root / "manuscript" / "final" / "frontiers_family_harvard_submission_package.zip").exists()
+    assert not (study_root / "manuscript" / "journal_packages").exists()
+    assert not (study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip").exists()
 
 
 def test_sync_study_delivery_rejects_unsupported_publication_profile(tmp_path: Path) -> None:
@@ -409,7 +407,7 @@ def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_
         stage="submission_minimal",
     )
 
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "manuscript.docx").exists()
 
 
 def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_is_nested_in_startup_contract(
@@ -428,7 +426,7 @@ def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_
         stage="submission_minimal",
     )
 
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "manuscript.docx").exists()
 
 
 def test_can_sync_study_delivery_accepts_quest_yaml_with_nested_startup_contract(tmp_path: Path) -> None:
@@ -458,6 +456,6 @@ def test_sync_study_delivery_maps_reentry_quest_back_to_study_root(tmp_path: Pat
         stage="submission_minimal",
     )
 
-    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "submission_package.zip").exists()
     assert manifest["study_id"] == "002-early-residual-risk"

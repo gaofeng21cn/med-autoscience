@@ -13,7 +13,6 @@ from .study_runtime_test_helpers import (
     _clear_readiness_report,
     make_profile,
     make_runtime_overlay_result,
-    make_startup_contract_validation_payload,
     make_startup_hydration_report,
     make_startup_hydration_validation_report,
     write_study,
@@ -813,12 +812,12 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
             "user_approval_text": "同意",
             "evidence_paths": [
                 "notes/revision_status.md",
-                "manuscript/final/submission_manifest.json",
+                "manuscript/submission_manifest.json",
             ],
         },
     )
     write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
-    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
 
     monkeypatch.setattr(
         module.quest_state,
@@ -870,12 +869,12 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
             "user_approval_text": "同意",
             "evidence_paths": [
                 "notes/revision_status.md",
-                "manuscript/final/submission_manifest.json",
+                "manuscript/submission_manifest.json",
             ],
         },
     )
     write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
-    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
 
     monkeypatch.setattr(
         module.quest_state,
@@ -953,7 +952,7 @@ def test_build_study_completion_request_message_accepts_typed_completion_state(t
             completed_at="2026-04-03T00:00:00+00:00",
             evidence_paths=(
                 "notes/revision_status.md",
-                "manuscript/final/submission_manifest.json",
+                "manuscript/submission_manifest.json",
             ),
             missing_evidence_paths=(),
         ),

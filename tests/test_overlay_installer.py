@@ -478,7 +478,7 @@ def test_load_overlay_skill_text_for_write_includes_medical_methods_and_results_
     assert "submission_targets.resolved.json" in write_text
     assert "journal-resolution/SKILL.md" in write_text
     assert "Do not invent ad-hoc package roots such as `paper/submission_<journal>`" in write_text
-    assert "studies/<study-id>/manuscript/final" in write_text
+    assert "studies/<study-id>/manuscript" in write_text
     assert "dataset version labels" in write_text
     assert "workspace cohort labels" in write_text
     assert "freeze labels" in write_text

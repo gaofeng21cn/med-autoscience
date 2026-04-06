@@ -14,7 +14,7 @@
 - `paper/figures/generated/` is the authority image surface for fresh visual QA.
 - `paper/figures/*.shell.json` and `paper/tables/*.shell.json` stay as study-owned contracts; they are not the retrieval target for the latest rendered deliverable.
 - `paper/submission_minimal/` is the fixed submission-package lookup path that should stay continuously refreshed for handoff and retrieval.
-- `manuscript/final/` is the only human-facing final-delivery mirror.
+- `manuscript/` is the only human-facing final-delivery mirror.
 - `artifacts/` is reserved for machine-generated auxiliary/finalization evidence and should not duplicate figure/table retrieval.
 - obsolete top-level rendered residues (for example `paper/figures/Figure*.png|pdf` or `paper/tables/Table*.md|csv` once the catalogs already point at `generated/`) should be cleaned instead of remaining as ambiguous pseudo-authority surfaces.
 - 审计原则保持两层：
@@ -34,7 +34,7 @@
 1. `001` 已不再缺失 study-owned `paper/` root。
    - 当前长期 authority surface 是：
      - `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/paper`
-   - `manuscript/final` 现在是唯一人用 final delivery mirror；`artifacts/` 仅保留辅助 evidence，不再充当图表 mirror。
+   - `manuscript` 现在是唯一人用 final delivery mirror；`artifacts/` 仅保留辅助 evidence，不再充当图表 mirror。
 2. `003` 已不再存在“F2/F3/F4 与 T2/T3 仍是模板 gap”的旧判断。
    - audited 主线现在正式包含：
      - `risk_layering_monotonic_bars`
@@ -60,8 +60,8 @@
 - Authoritative paper root:
   - `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/001-dm-cvd-mortality-risk/paper`
 - Delivery mirrors:
-  - `manuscript/final/submission_manifest.json`
-  - `manuscript/final/delivery_manifest.json`
+  - `manuscript/submission_manifest.json`
+  - `manuscript/delivery_manifest.json`
   - `artifacts/`（仅在 finalize/runtime 需要 auxiliary evidence 时使用）
 - Runtime audited quest root:
   - `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/med-deepscientist/runtime/quests/001-dm-cvd-mortality-risk-reentry-20260331`
@@ -91,7 +91,7 @@
 - Authoritative paper root:
   - `/Users/gaofeng/workspace/Yang/NF-PitNET/studies/003-endocrine-burden-followup/paper`
 - Delivery mirror:
-  - `manuscript/final/submission_manifest.json`
+  - `manuscript/submission_manifest.json`
 - Runtime audited quest root:
   - `/Users/gaofeng/workspace/Yang/NF-PitNET/ops/med-deepscientist/runtime/quests/003-endocrine-burden-followup-managed-20260402`
 

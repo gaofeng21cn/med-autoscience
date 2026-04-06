@@ -336,10 +336,10 @@ def build_submission_minimal_readme(*, publication_profile: str) -> str:
         "- Canonical authority surface: `paper/`\n"
         "- Canonical rendered assets: `paper/figures/generated/` and `paper/tables/generated/`\n"
         f"- Canonical package root: `{canonical_package_root}`\n"
-        "- Human-facing delivery mirror refreshed from this package: `manuscript/final/`\n"
+        "- Human-facing delivery mirror refreshed from this package: `manuscript/`\n"
         "- Auxiliary finalize/runtime evidence, when needed: `artifacts/`\n\n"
         "Use this directory as the fixed paper-owned submission-package lookup path. "
-        "`manuscript/final/` is the only human-facing final-delivery mirror; `artifacts/` is reserved for auxiliary machine-generated evidence rather than duplicated figure/table lookup.\n"
+        "`manuscript/` is the only human-facing final-delivery mirror; `artifacts/` is reserved for auxiliary machine-generated evidence rather than duplicated figure/table lookup.\n"
     )
 
 

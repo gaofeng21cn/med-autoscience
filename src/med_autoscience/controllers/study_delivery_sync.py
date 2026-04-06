@@ -175,13 +175,13 @@ def build_submission_package_readme(*, study_id: str, stage: str, publication_pr
 
 def build_general_delivery_readme(*, study_id: str, stage: str) -> str:
     return (
-        f"# Study Final Delivery Mirror\n\n"
+        f"# Study Final Delivery\n\n"
         f"- Study: `{study_id}`\n"
         f"- Sync stage: `{stage}`\n"
         f"- Canonical authority surface: `paper/`\n"
         f"- Canonical package root: `paper/submission_minimal/`\n"
-        f"- This directory: `manuscript/final/` (human-facing mirror)\n"
-        f"- Figures/tables for human handoff: `manuscript/final/submission_package/`\n\n"
+        f"- This directory: `manuscript/` (human-facing delivery root)\n"
+        f"- Figures/tables for human handoff: `manuscript/submission_package/`\n\n"
         f"This directory is refreshed automatically from the canonical paper-owned submission package so human handoff stays easy to find without introducing a second authority surface.\n"
     )
 
@@ -190,9 +190,9 @@ def build_manuscript_root_readme() -> str:
     return (
         "# Manuscript Delivery Surface\n\n"
         "- Canonical authority surface: `paper/`\n"
-        "- Fixed handoff mirror: `manuscript/final/`\n"
+        "- Human-facing delivery root: `manuscript/`\n"
         "- Fixed package root inside the authority surface: `paper/submission_minimal/`\n\n"
-        "Use `manuscript/final/` when a human needs the latest handoff-ready manuscript bundle. "
+        "Use `manuscript/` when a human needs the latest handoff-ready manuscript bundle. "
         "Edit or regenerate from `paper/`, not from this mirror.\n"
     )
 
@@ -201,10 +201,10 @@ def build_artifacts_root_readme() -> str:
     return (
         "# Artifact Auxiliary Surface\n\n"
         "- Canonical authority surface: `paper/`\n"
-        "- Human-facing final delivery surface: `manuscript/final/`\n"
+        "- Human-facing final delivery surface: `manuscript/`\n"
         "- This directory is reserved for machine-generated auxiliary/runtime/finalization evidence.\n"
         "- Figures/tables are no longer mirrored here during normal submission sync.\n\n"
-        "Use `manuscript/final/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
+        "Use `manuscript/` for the latest handoff-ready package. `artifacts/` is not part of the human-facing final delivery surface; touch it only when a runtime/finalize contract explicitly asks for auxiliary evidence.\n"
     )
 
 
@@ -215,7 +215,7 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
         f"- Sync stage: `{stage}`\n"
         "- This directory is not part of the human-facing final delivery surface.\n"
         "- Expected contents: finalize/manuscript build evidence such as `paper_bundle_manifest.json` and `compile_report.json`.\n"
-        "- Figures/tables remain in `manuscript/final/submission_package/` for handoff, and in `paper/` as authority.\n\n"
+        "- Figures/tables remain in `manuscript/submission_package/` for handoff, and in `paper/` as authority.\n\n"
         "Use this directory only for machine-generated finalization evidence only, not for human-facing display lookup.\n"
     )
 
@@ -236,6 +236,13 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str) -
         f"  - `journal_package_mirrors/{publication_profile}/`\n\n"
         f"This study-level final delivery is assembled automatically from the primary journal package so the canonical shallow handoff stays aligned with the active target-journal surface.\n"
     )
+
+
+def ensure_manuscript_root_readme(*, manuscript_root: Path) -> None:
+    readme_path = manuscript_root / "README.md"
+    if readme_path.exists():
+        return
+    write_text(readme_path, build_manuscript_root_readme())
 
 
 def resolve_finalize_resume_packet_source(*, paper_root: Path, worktree_root: Path) -> Path:
@@ -271,14 +278,13 @@ def sync_general_delivery(
     study_root: Path,
     normalized_stage: str,
 ) -> dict[str, Any]:
-    manuscript_final_root = study_root / "manuscript" / "final"
+    manuscript_root = study_root / "manuscript"
     artifacts_final_root = study_root / "artifacts" / "final"
-    submission_package_root = manuscript_final_root / "submission_package"
-    submission_package_zip = manuscript_final_root / "submission_package.zip"
+    submission_package_root = manuscript_root / "submission_package"
+    submission_package_zip = manuscript_root / "submission_package.zip"
 
-    reset_directory(manuscript_final_root)
+    reset_directory(manuscript_root)
     remove_directory(artifacts_final_root)
-    write_text(study_root / "manuscript" / "README.md", build_manuscript_root_readme())
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
 
     copied_files: list[dict[str, str]] = []
@@ -287,19 +293,19 @@ def sync_general_delivery(
 
     copy_file(
         source=source_root / "manuscript.docx",
-        target=manuscript_final_root / "manuscript.docx",
+        target=manuscript_root / "manuscript.docx",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
         source=source_root / "paper.pdf",
-        target=manuscript_final_root / "paper.pdf",
+        target=manuscript_root / "paper.pdf",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
         source=source_root / "submission_manifest.json",
-        target=manuscript_final_root / "submission_manifest.json",
+        target=manuscript_root / "submission_manifest.json",
         category="manifest",
         copied_files=copied_files,
     )
@@ -307,25 +313,25 @@ def sync_general_delivery(
         reset_directory(artifacts_final_root)
         copy_file(
             source=worktree_root / "SUMMARY.md",
-            target=manuscript_final_root / "SUMMARY.md",
+            target=manuscript_root / "SUMMARY.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=worktree_root / "status.md",
-            target=manuscript_final_root / "status.md",
+            target=manuscript_root / "status.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=paper_root / "final_claim_ledger.md",
-            target=manuscript_final_root / "final_claim_ledger.md",
+            target=manuscript_root / "final_claim_ledger.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
-            target=manuscript_final_root / "finalize_resume_packet.md",
+            target=manuscript_root / "finalize_resume_packet.md",
             category="closeout",
             copied_files=copied_files,
         )
@@ -342,7 +348,7 @@ def sync_general_delivery(
             copied_files=copied_files,
         )
 
-    readme_path = manuscript_final_root / "README.md"
+    readme_path = manuscript_root / "README.md"
     write_text(
         readme_path,
         build_general_delivery_readme(study_id=study_id, stage=normalized_stage),
@@ -368,19 +374,19 @@ def sync_general_delivery(
 
     reset_directory(submission_package_root)
     copy_file(
-        source=manuscript_final_root / "manuscript.docx",
+        source=manuscript_root / "manuscript.docx",
         target=submission_package_root / "manuscript.docx",
         category="submission_package",
         copied_files=copied_files,
     )
     copy_file(
-        source=manuscript_final_root / "paper.pdf",
+        source=manuscript_root / "paper.pdf",
         target=submission_package_root / "paper.pdf",
         category="submission_package",
         copied_files=copied_files,
     )
     copy_file(
-        source=manuscript_final_root / "submission_manifest.json",
+        source=manuscript_root / "submission_manifest.json",
         target=submission_package_root / "submission_manifest.json",
         category="submission_package",
         copied_files=copied_files,
@@ -427,7 +433,7 @@ def sync_general_delivery(
 
     targets = {
         "study_root": str(study_root),
-        "manuscript_final_root": str(manuscript_final_root),
+        "manuscript_root": str(manuscript_root),
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
     }
@@ -449,7 +455,7 @@ def sync_general_delivery(
         "copied_files": copied_files,
         "generated_files": generated_files,
     }
-    dump_json(manuscript_final_root / "delivery_manifest.json", manifest)
+    dump_json(manuscript_root / "delivery_manifest.json", manifest)
     return manifest
 
 
@@ -462,13 +468,14 @@ def sync_journal_specific_delivery(
     normalized_stage: str,
     publication_profile: str,
 ) -> dict[str, Any]:
-    manuscript_final_root = study_root / "manuscript" / "final"
-    journal_package_root = manuscript_final_root / "journal_packages" / publication_profile
-    journal_package_zip = manuscript_final_root / f"{publication_profile}_submission_package.zip"
+    manuscript_root = study_root / "manuscript"
+    journal_package_root = manuscript_root / "journal_packages" / publication_profile
+    journal_package_zip = manuscript_root / f"{publication_profile}_submission_package.zip"
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
 
+    manuscript_root.mkdir(parents=True, exist_ok=True)
     journal_package_root.parent.mkdir(parents=True, exist_ok=True)
-    write_text(study_root / "manuscript" / "README.md", build_manuscript_root_readme())
+    ensure_manuscript_root_readme(manuscript_root=manuscript_root)
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
     reset_directory(journal_package_root)
 
@@ -552,7 +559,7 @@ def sync_journal_specific_delivery(
         },
         "targets": {
             "study_root": str(study_root),
-            "manuscript_final_root": str(manuscript_final_root),
+            "manuscript_root": str(manuscript_root),
             "journal_package_root": str(journal_package_root),
             "journal_package_zip": str(journal_package_zip),
         },
@@ -572,35 +579,34 @@ def sync_promoted_journal_delivery(
     normalized_stage: str,
     publication_profile: str,
 ) -> dict[str, Any]:
-    manuscript_final_root = study_root / "manuscript" / "final"
+    manuscript_root = study_root / "manuscript"
     artifacts_final_root = study_root / "artifacts" / "final"
-    submission_package_root = manuscript_final_root / "submission_package"
-    submission_package_zip = manuscript_final_root / "submission_package.zip"
-    mirror_root = manuscript_final_root / "journal_package_mirrors" / publication_profile
+    submission_package_root = manuscript_root / "submission_package"
+    submission_package_zip = manuscript_root / "submission_package.zip"
+    mirror_root = manuscript_root / "journal_package_mirrors" / publication_profile
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
 
-    reset_directory(manuscript_final_root)
+    reset_directory(manuscript_root)
     remove_directory(artifacts_final_root)
-    write_text(study_root / "manuscript" / "README.md", build_manuscript_root_readme())
     write_text(study_root / "artifacts" / "README.md", build_artifacts_root_readme())
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
     copy_file(
         source=source_root / "manuscript.docx",
-        target=manuscript_final_root / "manuscript.docx",
+        target=manuscript_root / "manuscript.docx",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
         source=source_root / "paper.pdf",
-        target=manuscript_final_root / "paper.pdf",
+        target=manuscript_root / "paper.pdf",
         category="manuscript",
         copied_files=copied_files,
     )
     copy_file(
         source=source_root / "submission_manifest.json",
-        target=manuscript_final_root / "submission_manifest.json",
+        target=manuscript_root / "submission_manifest.json",
         category="manifest",
         copied_files=copied_files,
     )
@@ -608,7 +614,7 @@ def sync_promoted_journal_delivery(
     if supplementary_docx.exists():
         copy_file(
             source=supplementary_docx,
-            target=manuscript_final_root / "Supplementary_Material.docx",
+            target=manuscript_root / "Supplementary_Material.docx",
             category="manuscript",
             copied_files=copied_files,
         )
@@ -616,25 +622,25 @@ def sync_promoted_journal_delivery(
         reset_directory(artifacts_final_root)
         copy_file(
             source=worktree_root / "SUMMARY.md",
-            target=manuscript_final_root / "SUMMARY.md",
+            target=manuscript_root / "SUMMARY.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=worktree_root / "status.md",
-            target=manuscript_final_root / "status.md",
+            target=manuscript_root / "status.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=paper_root / "final_claim_ledger.md",
-            target=manuscript_final_root / "final_claim_ledger.md",
+            target=manuscript_root / "final_claim_ledger.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
             source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
-            target=manuscript_final_root / "finalize_resume_packet.md",
+            target=manuscript_root / "finalize_resume_packet.md",
             category="closeout",
             copied_files=copied_files,
         )
@@ -651,7 +657,7 @@ def sync_promoted_journal_delivery(
             copied_files=copied_files,
         )
 
-    readme_path = manuscript_final_root / "README.md"
+    readme_path = manuscript_root / "README.md"
     write_text(
         readme_path,
         build_promoted_delivery_readme(study_id=study_id, publication_profile=publication_profile),
@@ -677,26 +683,26 @@ def sync_promoted_journal_delivery(
 
     reset_directory(submission_package_root)
     copy_file(
-        source=manuscript_final_root / "manuscript.docx",
+        source=manuscript_root / "manuscript.docx",
         target=submission_package_root / "manuscript.docx",
         category="submission_package",
         copied_files=copied_files,
     )
     copy_file(
-        source=manuscript_final_root / "paper.pdf",
+        source=manuscript_root / "paper.pdf",
         target=submission_package_root / "paper.pdf",
         category="submission_package",
         copied_files=copied_files,
     )
     copy_file(
-        source=manuscript_final_root / "submission_manifest.json",
+        source=manuscript_root / "submission_manifest.json",
         target=submission_package_root / "submission_manifest.json",
         category="submission_package",
         copied_files=copied_files,
     )
     if supplementary_docx.exists():
         copy_file(
-            source=manuscript_final_root / "Supplementary_Material.docx",
+            source=manuscript_root / "Supplementary_Material.docx",
             target=submission_package_root / "Supplementary_Material.docx",
             category="submission_package",
             copied_files=copied_files,
@@ -789,7 +795,7 @@ def sync_promoted_journal_delivery(
 
     targets = {
         "study_root": str(study_root),
-        "manuscript_final_root": str(manuscript_final_root),
+        "manuscript_root": str(manuscript_root),
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
         "journal_package_mirror_root": str(mirror_root),
@@ -816,7 +822,7 @@ def sync_promoted_journal_delivery(
         ],
         "generated_files": generated_files,
     }
-    dump_json(manuscript_final_root / "delivery_manifest.json", manifest)
+    dump_json(manuscript_root / "delivery_manifest.json", manifest)
     return manifest
 
 

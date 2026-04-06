@@ -344,11 +344,11 @@ Required action:
 ```
 
 5. Verify the shallow delivery path now contains at least:
-   - `studies/<study-id>/manuscript/final/delivery_manifest.json`
-   - `studies/<study-id>/manuscript/final/SUMMARY.md`
-   - `studies/<study-id>/manuscript/final/status.md`
-   - `studies/<study-id>/manuscript/final/final_claim_ledger.md`
-   - `studies/<study-id>/manuscript/final/finalize_resume_packet.md`
+   - `studies/<study-id>/manuscript/delivery_manifest.json`
+   - `studies/<study-id>/manuscript/SUMMARY.md`
+   - `studies/<study-id>/manuscript/status.md`
+   - `studies/<study-id>/manuscript_claim_ledger.md`
+   - `studies/<study-id>/manuscriptize_resume_packet.md`
    - `studies/<study-id>/artifacts/final/paper_bundle_manifest.json`
    - `studies/<study-id>/artifacts/final/compile_report.json`
 6. Treat the formal paper delivery as incomplete until that sync has succeeded and the copied files are verifiably present.

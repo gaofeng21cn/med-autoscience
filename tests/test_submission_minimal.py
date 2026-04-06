@@ -750,7 +750,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     assert manifest["readme_path"] == "paper/submission_minimal/README.md"
     readme_text = (paper_root / "submission_minimal" / "README.md").read_text(encoding="utf-8")
     assert "paper/submission_minimal/" in readme_text
-    assert "manuscript/final/" in readme_text
+    assert "manuscript/" in readme_text
 
 
 def test_create_submission_minimal_package_frontiers_family_profile_creates_journal_specific_assets(
@@ -937,7 +937,6 @@ def test_create_submission_minimal_package_frontiers_family_syncs_into_study_fam
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
-    study_root = tmp_path / "workspace" / "studies" / "paper"
     # keep this assertion impossible for current implementation so the new sync contract is explicit
     frontiers_root = tmp_path / "frontiers_resources"
     manuscript_template = frontiers_root / "Frontiers_Template.docx"

@@ -150,7 +150,7 @@ def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_pat
 def test_run_publication_shell_sync_accepts_human_facing_submission_package_when_canonical_package_is_absent(tmp_path: Path) -> None:
     module, study_root, paper_root = _prepare_sync_context(tmp_path)
     write_csv(
-        study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv",
+        study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv",
         [
             "Characteristic",
             "Overall (N=357)",
@@ -169,7 +169,7 @@ def test_run_publication_shell_sync_accepts_human_facing_submission_package_when
 
     report = module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
 
-    assert report["source_paths"]["table1_source"].endswith("manuscript/final/submission_package/tables/Table1.csv")
+    assert report["source_paths"]["table1_source"].endswith("manuscript/submission_package/tables/Table1.csv")
 
 
 def test_run_publication_shell_sync_rejects_legacy_artifacts_final_table_surface(tmp_path: Path) -> None:

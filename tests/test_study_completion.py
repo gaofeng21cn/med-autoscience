@@ -31,13 +31,13 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
                 "  user_approval_text: 同意",
                 '  completed_at: "2026-04-03T00:00:00+00:00"',
                 "  evidence_paths:",
-                "    - manuscript/final/submission_manifest.json",
+                "    - manuscript/submission_manifest.json",
                 "    - notes/revision_status.md",
                 "",
             ]
         ),
     )
-    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
     write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
 
     state = module.resolve_study_completion_state(study_root=study_root)
@@ -54,7 +54,7 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
         "user_approval_text": "同意",
         "completed_at": "2026-04-03T00:00:00+00:00",
         "evidence_paths": [
-            "manuscript/final/submission_manifest.json",
+            "manuscript/submission_manifest.json",
             "notes/revision_status.md",
         ],
         "missing_evidence_paths": [],
@@ -73,13 +73,13 @@ def test_resolve_study_completion_contract_reports_missing_evidence(tmp_path: Pa
                 "  summary: Study is done.",
                 "  user_approval_text: 同意",
                 "  evidence_paths:",
-                "    - manuscript/final/submission_manifest.json",
+                "    - manuscript/submission_manifest.json",
                 "    - notes/revision_status.md",
                 "",
             ]
         ),
     )
-    write_text(study_root / "manuscript" / "final" / "submission_manifest.json", "{}\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
 
     contract = module.resolve_study_completion_contract(study_root=study_root)
 
@@ -102,7 +102,7 @@ def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(
                 "  summary: Study is done.",
                 "  user_approval_text: 同意",
                 "  evidence_paths:",
-                "    - manuscript/final/submission_manifest.json",
+                "    - manuscript/submission_manifest.json",
                 "",
             ]
         ),
@@ -172,7 +172,7 @@ def test_study_completion_state_from_payload_round_trips_resolved_contract() -> 
         "user_approval_text": "同意",
         "completed_at": "2026-04-03T00:00:00+00:00",
         "evidence_paths": [
-            "manuscript/final/submission_manifest.json",
+            "manuscript/submission_manifest.json",
             "notes/revision_status.md",
         ],
         "missing_evidence_paths": [],
@@ -204,7 +204,7 @@ def test_study_completion_state_from_payload_rejects_resolved_payload_without_co
                 "summary": "Study is done.",
                 "user_approval_text": "同意",
                 "completed_at": "2026-04-03T00:00:00+00:00",
-                "evidence_paths": ["manuscript/final/submission_manifest.json"],
+                "evidence_paths": ["manuscript/submission_manifest.json"],
                 "missing_evidence_paths": [],
                 "errors": [],
             },
@@ -228,7 +228,7 @@ def test_resolve_study_completion_contract_rejects_unsupported_status(tmp_path: 
                 "  summary: Study is done.",
                 "  user_approval_text: 同意",
                 "  evidence_paths:",
-                "    - manuscript/final/submission_manifest.json",
+                "    - manuscript/submission_manifest.json",
                 "",
             ]
         ),

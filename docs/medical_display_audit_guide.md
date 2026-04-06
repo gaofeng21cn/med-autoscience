@@ -67,7 +67,7 @@ The audited source files are:
   - `paper/figures/*.shell.json` / `paper/tables/*.shell.json` = display contracts and shells, not rendered deliverables;
   - `paper/figures/generated/` and `paper/tables/generated/` = authoritative generated display outputs;
   - `paper/submission_minimal/` = stable submission-package surface that should stay continuously refreshed;
-  - `manuscript/final/` = the only human-facing final-delivery mirror;
+  - `manuscript/` = the only human-facing final-delivery mirror;
   - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
   - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
 
