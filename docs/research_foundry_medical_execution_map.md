@@ -173,3 +173,7 @@
 4. 再用真实课题 relaunch 验证整条链是否成立
 
 只有在这四层都稳定后，才允许讨论更大的 monorepo scaffold/cutover。
+
+与这条四层路线配套的固定收尾纪律，见：
+
+- [Mainline Integration And Cleanup Cadence](./mainline_integration_and_cleanup.md)
