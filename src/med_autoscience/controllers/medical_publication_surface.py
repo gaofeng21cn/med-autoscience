@@ -33,6 +33,15 @@ class SurfaceState:
     endpoint_provenance_note_path: Path
 
 
+@dataclass(frozen=True)
+class MarkdownHeadingBlock:
+    level: int
+    heading: str
+    start_line: int
+    end_line: int
+    body: str
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -107,6 +116,9 @@ def scan_text_file(path: Path) -> list[dict[str, Any]]:
 TEXT_ASSET_SUFFIXES = {".svg", ".md", ".txt", ".html", ".xml", ".json"}
 MARKDOWN_TABLE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
 MARKDOWN_TABLE_DELIMITER_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
+MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+URL_RE = re.compile(r"https?://\S+", flags=re.IGNORECASE)
+QUESTION_SENTENCE_RE = re.compile(r"[^.!?\n]*[A-Za-z][^!?\n]{0,400}[?？]")
 
 
 def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
@@ -759,6 +771,238 @@ def unique_hits(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return unique
 
 
+def normalize_heading(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "").strip().lower().replace("&", "and"))
+
+
+def parse_markdown_heading_blocks(text: str) -> list[MarkdownHeadingBlock]:
+    lines = text.splitlines()
+    headings: list[tuple[int, str, int]] = []
+    in_front_matter = False
+    in_code_block = False
+
+    for line_number, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        if line_number == 1 and stripped == "---":
+            in_front_matter = True
+            continue
+        if in_front_matter:
+            if stripped == "---":
+                in_front_matter = False
+            continue
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+        match = MARKDOWN_HEADING_RE.match(raw_line)
+        if match is None:
+            continue
+        headings.append((len(match.group(1)), match.group(2).strip(), line_number))
+
+    blocks: list[MarkdownHeadingBlock] = []
+    total_lines = len(lines)
+    for index, (level, heading, start_line) in enumerate(headings):
+        end_line = total_lines
+        for next_level, _, next_start_line in headings[index + 1 :]:
+            if next_level <= level:
+                end_line = next_start_line - 1
+                break
+        body_start_index = start_line
+        body_end_index = end_line
+        body = "\n".join(lines[body_start_index:body_end_index]).strip()
+        blocks.append(
+            MarkdownHeadingBlock(
+                level=level,
+                heading=heading,
+                start_line=start_line,
+                end_line=end_line,
+                body=body,
+            )
+        )
+    return blocks
+
+
+def find_heading_block(
+    blocks: list[MarkdownHeadingBlock],
+    *,
+    level: int,
+    headings: tuple[str, ...],
+) -> MarkdownHeadingBlock | None:
+    normalized_targets = {normalize_heading(item) for item in headings}
+    for block in blocks:
+        if block.level != level:
+            continue
+        if normalize_heading(block.heading) in normalized_targets:
+            return block
+    return None
+
+
+def child_heading_blocks(
+    blocks: list[MarkdownHeadingBlock],
+    *,
+    parent: MarkdownHeadingBlock,
+    level: int,
+) -> list[MarkdownHeadingBlock]:
+    return [
+        block
+        for block in blocks
+        if block.level == level and parent.start_line < block.start_line <= parent.end_line
+    ]
+
+
+def extract_nonempty_paragraphs(text: str) -> list[str]:
+    without_headings = re.sub(r"(?m)^#{1,6}\s+.+$", "", text)
+    return [block.strip() for block in re.split(r"\n\s*\n", without_headings) if block.strip()]
+
+
+def inspect_introduction_structure(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
+    introduction_block = find_heading_block(blocks, level=2, headings=("Introduction",))
+    if introduction_block is None:
+        return [
+            {
+                "path": str(path),
+                "location": "file",
+                "pattern_id": "introduction_structure",
+                "phrase": "Introduction",
+                "excerpt": "Manuscript is missing a second-level `Introduction` section.",
+            }
+        ]
+    paragraphs = extract_nonempty_paragraphs(introduction_block.body)
+    if len(paragraphs) >= medical_surface_policy.INTRODUCTION_REQUIRED_PARAGRAPH_COUNT:
+        return []
+    return [
+        {
+            "path": str(path),
+            "location": f"line {introduction_block.start_line}",
+            "pattern_id": "introduction_structure",
+            "phrase": introduction_block.heading,
+            "excerpt": (
+                "Introduction must contain at least "
+                f"{medical_surface_policy.INTRODUCTION_REQUIRED_PARAGRAPH_COUNT} formal paragraphs "
+                "covering clinical context, current evidence gap, and present-study objective."
+            ),
+        }
+    ]
+
+
+def inspect_methods_section_structure(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
+    methods_block = find_heading_block(
+        blocks,
+        level=2,
+        headings=("Materials and Methods", "Materials & Methods", "Methods"),
+    )
+    if methods_block is None:
+        return [
+            {
+                "path": str(path),
+                "location": "file",
+                "pattern_id": "methods_section_structure",
+                "phrase": "Materials and Methods",
+                "excerpt": "Manuscript is missing a second-level Methods section.",
+            }
+        ]
+    subsection_blocks = child_heading_blocks(blocks, parent=methods_block, level=3)
+    subsection_map = {normalize_heading(block.heading): block for block in subsection_blocks if block.body.strip()}
+    missing_headings = [
+        heading
+        for heading in medical_surface_policy.METHODS_REQUIRED_SUBSECTION_HEADINGS
+        if normalize_heading(heading) not in subsection_map
+    ]
+    if not missing_headings:
+        return []
+    return [
+        {
+            "path": str(path),
+            "location": f"line {methods_block.start_line}",
+            "pattern_id": "methods_section_structure",
+            "phrase": methods_block.heading,
+            "excerpt": (
+                "Methods section must include the reviewer-facing subsections: "
+                + ", ".join(medical_surface_policy.METHODS_REQUIRED_SUBSECTION_HEADINGS)
+                + f". Missing: {', '.join(missing_headings)}."
+            ),
+        }
+    ]
+
+
+def inspect_results_section_structure(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
+    results_block = find_heading_block(blocks, level=2, headings=("Results",))
+    if results_block is None:
+        return [
+            {
+                "path": str(path),
+                "location": "file",
+                "pattern_id": "results_section_structure",
+                "phrase": "Results",
+                "excerpt": "Manuscript is missing a second-level `Results` section.",
+            }
+        ]
+    subsection_blocks = [block for block in child_heading_blocks(blocks, parent=results_block, level=3) if block.body.strip()]
+    if len(subsection_blocks) >= medical_surface_policy.RESULTS_MIN_SUBSECTION_COUNT:
+        return []
+    return [
+        {
+            "path": str(path),
+            "location": f"line {results_block.start_line}",
+            "pattern_id": "results_section_structure",
+            "phrase": results_block.heading,
+            "excerpt": (
+                "Results section must be broken into at least "
+                f"{medical_surface_policy.RESULTS_MIN_SUBSECTION_COUNT} subsection headings with non-empty prose."
+            ),
+        }
+    ]
+
+
+def scan_non_formal_question_sentences(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    hits: list[dict[str, Any]] = []
+    in_front_matter = False
+    in_code_block = False
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = raw_line.strip()
+        if line_number == 1 and stripped == "---":
+            in_front_matter = True
+            continue
+        if in_front_matter:
+            if stripped == "---":
+                in_front_matter = False
+            continue
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+        sanitized = URL_RE.sub("", raw_line).strip()
+        if not sanitized:
+            continue
+        for match in QUESTION_SENTENCE_RE.finditer(sanitized):
+            sentence = match.group(0).strip()
+            if not sentence:
+                continue
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"line {line_number}",
+                    "pattern_id": "non_formal_question_sentence",
+                    "phrase": sentence,
+                    "excerpt": sentence,
+                }
+            )
+    return hits
+
+
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     forbidden_hits: list[dict[str, Any]] = []
     forbidden_hits.extend(scan_text_file(state.draft_path))
@@ -887,6 +1131,18 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
     results_narration_hits.extend(scan_results_narration_text_file(state.review_manuscript_path))
+    introduction_structure_hits: list[dict[str, Any]] = []
+    introduction_structure_hits.extend(inspect_introduction_structure(state.draft_path))
+    introduction_structure_hits.extend(inspect_introduction_structure(state.review_manuscript_path))
+    methods_section_structure_hits: list[dict[str, Any]] = []
+    methods_section_structure_hits.extend(inspect_methods_section_structure(state.draft_path))
+    methods_section_structure_hits.extend(inspect_methods_section_structure(state.review_manuscript_path))
+    results_section_structure_hits: list[dict[str, Any]] = []
+    results_section_structure_hits.extend(inspect_results_section_structure(state.draft_path))
+    results_section_structure_hits.extend(inspect_results_section_structure(state.review_manuscript_path))
+    non_formal_question_hits: list[dict[str, Any]] = []
+    non_formal_question_hits.extend(scan_non_formal_question_sentences(state.draft_path))
+    non_formal_question_hits.extend(scan_non_formal_question_sentences(state.review_manuscript_path))
     methodology_label_hits: list[dict[str, Any]] = []
     methodology_label_hits.extend(scan_methodology_labels_text_file(state.draft_path))
     methodology_label_hits.extend(scan_methodology_labels_text_file(state.review_manuscript_path))
@@ -929,6 +1185,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
     hits.extend(missing_data_policy_hits)
+    hits.extend(introduction_structure_hits)
+    hits.extend(methods_section_structure_hits)
+    hits.extend(results_section_structure_hits)
+    hits.extend(non_formal_question_hits)
     hits.extend(endpoint_note_hits)
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
@@ -952,6 +1212,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
+    if introduction_structure_hits:
+        blockers.append("introduction_structure_missing_or_incomplete")
+    if methods_section_structure_hits:
+        blockers.append("methods_section_structure_missing_or_incomplete")
+    if results_section_structure_hits:
+        blockers.append("results_section_structure_missing_or_incomplete")
     if not figure_semantics_valid:
         blockers.append("figure_semantics_manifest_missing_or_incomplete")
     if not derived_analysis_valid:
@@ -966,6 +1232,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("undefined_methodology_labels_present")
     if results_narration_hits:
         blockers.append("figure_table_led_results_narration_present")
+    if non_formal_question_hits:
+        blockers.append("non_formal_question_sentence_present")
 
     return {
         "schema_version": 1,
@@ -996,6 +1264,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "methods_implementation_manifest_path": str(state.methods_implementation_manifest_path),
         "methods_implementation_manifest_present": state.methods_implementation_manifest_path.exists(),
         "methods_implementation_manifest_valid": methods_manifest_valid,
+        "introduction_structure_valid": not introduction_structure_hits,
+        "methods_section_structure_valid": not methods_section_structure_hits,
+        "results_section_structure_valid": not results_section_structure_hits,
         "results_narrative_map_path": str(state.results_narrative_map_path),
         "results_narrative_map_present": state.results_narrative_map_path.exists(),
         "results_narrative_map_valid": results_narrative_valid,
@@ -1019,6 +1290,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "forbidden_hit_count": len(hits),
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
+        "non_formal_question_hit_count": len(non_formal_question_hits),
         "top_hits": hits[:40],
     }
 
@@ -1042,6 +1314,9 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- required_display_catalog_coverage_valid: `{report.get('required_display_catalog_coverage_valid', True)}`",
         f"- methods_implementation_manifest_present: `{report['methods_implementation_manifest_present']}`",
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
+        f"- introduction_structure_valid: `{report.get('introduction_structure_valid', True)}`",
+        f"- methods_section_structure_valid: `{report.get('methods_section_structure_valid', True)}`",
+        f"- results_section_structure_valid: `{report.get('results_section_structure_valid', True)}`",
         f"- results_narrative_map_present: `{report['results_narrative_map_present']}`",
         f"- results_narrative_map_valid: `{report['results_narrative_map_valid']}`",
         f"- figure_semantics_manifest_present: `{report['figure_semantics_manifest_present']}`",
@@ -1057,6 +1332,7 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- forbidden_hit_count: `{report['forbidden_hit_count']}`",
         f"- undefined_methodology_label_hit_count: `{report['undefined_methodology_label_hit_count']}`",
         f"- results_narration_hit_count: `{report['results_narration_hit_count']}`",
+        f"- non_formal_question_hit_count: `{report.get('non_formal_question_hit_count', 0)}`",
         "",
         "## Top Hits",
         "",

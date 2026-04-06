@@ -75,6 +75,10 @@ def make_quest(
     include_model_method_details: bool | None = None,
     include_case_mix_boundary_fields: bool | None = None,
     align_missing_data_policy_ids: bool | None = None,
+    include_structured_introduction: bool | None = None,
+    include_structured_methods: bool | None = None,
+    include_structured_results: bool | None = None,
+    include_question_mark_prose: bool | None = None,
     generated_figure_text_override: str | None = None,
     renderer_contract_override: dict[str, object] | None = None,
 ) -> Path:
@@ -107,6 +111,14 @@ def make_quest(
         include_case_mix_boundary_fields = medicalized
     if align_missing_data_policy_ids is None:
         align_missing_data_policy_ids = medicalized
+    if include_structured_introduction is None:
+        include_structured_introduction = medicalized
+    if include_structured_methods is None:
+        include_structured_methods = medicalized
+    if include_structured_results is None:
+        include_structured_results = medicalized
+    if include_question_mark_prose is None:
+        include_question_mark_prose = False
 
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
@@ -151,28 +163,77 @@ def make_quest(
     (paper_root / "paper.pdf").write_text("%PDF", encoding="utf-8")
 
     if medicalized:
-        draft_text = (
-            "# Draft\n\n"
-            "## Abstract\n\n"
-            "We assessed whether an extended preoperative model could improve residual-risk estimation.\n"
-            "\n## Results\n\n"
-            "The primary question was whether the extended preoperative model improved discrimination and calibration "
-            "over the preoperative baseline. The answer was yes, with concordant gains in discrimination, calibration, "
-            "and clinical utility that remained directionally consistent across the prespecified strata.\n"
+        endpoint_statement = (
+            "The endpoint was based on the audited removal_rate field and should be interpreted as a working proxy "
+            "for early residual status with an explicit 3-month MRI provenance caveat.\n\n"
         )
-        review_text = (
-            "---\n"
-            'title: "Study title"\n'
-            "---\n\n"
-            "## Methods\n\n"
-            "This retrospective single-center cohort included adults undergoing surgery between January 2018 and December 2024. "
-            "The endpoint was based on the audited removal_rate field and should be interpreted as a working proxy for early residual status with an explicit 3-month MRI provenance caveat. "
-            "The calibration-first label was operationally defined as optimizing model selection on calibration and clinical utility rather than on discrimination alone.\n\n"
+        introduction_section = (
+            "## Introduction\n\n"
+            "Persistent postoperative endocrine burden remains clinically relevant after surgery for clinically nonfunctioning pituitary tumors because surveillance intensity, hormone replacement planning, and long-horizon follow-up all depend on how residual endocrine risk is framed for the treating team.\n\n"
+            "Recent postoperative endocrine and prediction studies have reported center-level outcomes, model comparisons, and recovery patterns, but they still leave a gap between broad outcome description and a narrow follow-up stratifier that can be read directly at a fixed postoperative landmark.\n\n"
+            "In this retrospective single-center cohort, we therefore evaluated whether a manuscript-safe postoperative model could support a narrow medical follow-up decision route by comparing calibration, prediction error, and clinical utility across prespecified candidate packages.\n\n"
+        )
+        methods_section = (
+            "## Materials and Methods\n\n"
+            "### Study design and cohort\n\n"
+            "This retrospective single-center cohort included adults undergoing surgery between January 2018 and December 2024.\n\n"
+            "### Variable definition and measurement\n\n"
+            "Predictors, outcome fields, and audited landmark variables were extracted from the curated study registry and reviewed against the endpoint provenance caveat.\n\n"
+            "### Model building\n\n"
+            "The manuscript-facing model registry defined the baseline package, the extended preoperative package, and the comparison rationale for each candidate model.\n\n"
+            "### Validation framework\n\n"
+            "All candidate packages were evaluated under the shared calibration-first selection rule using repeated cross-validation, with discrimination, calibration, and decision utility reported together.\n\n"
+        )
+        results_section = (
             "## Results\n\n"
-            "The main results section was organized around the prespecified research questions rather than around "
-            "individual display items. The extended preoperative model improved calibration and clinical utility, and "
-            "the subgroup analyses supported the same clinical direction of effect.\n"
+            "### Cohort characteristics\n\n"
+            "The cohort accounting and endpoint totals remained stable after applying the prespecified inclusion and exclusion rules.\n\n"
+            "### Unified validation and clinical utility\n\n"
+            "The extended preoperative model improved calibration and clinical utility in the primary comparison while preserving the intended medical interpretation boundary.\n\n"
+            "### Added-value assessment of model complexity\n\n"
+            "The complexity audit showed that any gain in discrimination had to be judged alongside calibration and decision utility rather than in isolation.\n"
         )
+        draft_text = "# Draft\n\n## Abstract\n\nWe assessed whether an extended preoperative model could improve residual-risk estimation.\n\n"
+        review_text = "---\n" 'title: "Study title"\n' "---\n\n"
+        if include_structured_introduction:
+            draft_text += introduction_section
+            review_text += introduction_section
+        else:
+            draft_text += (
+                "## Introduction\n\n"
+                "Persistent postoperative endocrine burden remains clinically relevant after surgery, and many recent studies have explored related outcomes without fully resolving how follow-up should be stratified in practice.\n\n"
+            )
+            review_text += (
+                "## Introduction\n\n"
+                "Persistent postoperative endocrine burden remains clinically relevant after surgery, and many recent studies have explored related outcomes without fully resolving how follow-up should be stratified in practice.\n\n"
+            )
+        if include_structured_methods:
+            draft_text += methods_section
+            review_text += methods_section
+        else:
+            draft_text += (
+                "## Materials and Methods\n\n"
+                "This retrospective single-center cohort included adults undergoing surgery between January 2018 and December 2024, and the endpoint was interpreted within the audited postoperative route.\n\n"
+            )
+            review_text += (
+                "## Materials and Methods\n\n"
+                "This retrospective single-center cohort included adults undergoing surgery between January 2018 and December 2024, and the endpoint was interpreted within the audited postoperative route.\n\n"
+            )
+        if include_endpoint_provenance_note:
+            draft_text += endpoint_statement
+            review_text += endpoint_statement
+        if include_structured_results:
+            draft_text += results_section
+            review_text += results_section
+        else:
+            draft_text += (
+                "## Results\n\n"
+                "The main manuscript results were clinically coherent and broadly favored the extended preoperative model across the headline metrics.\n"
+            )
+            review_text += (
+                "## Results\n\n"
+                "The main manuscript results were clinically coherent and broadly favored the extended preoperative model across the headline metrics.\n"
+            )
         figure_title = "Threshold-specific operating characteristics for the extended preoperative model"
         figure_caption = "This figure summarizes operating characteristics and risk-group profiles."
         table_caption = "This table summarizes cohort characteristics."
@@ -203,6 +264,9 @@ def make_quest(
     if figure_led_results:
         draft_text += "\n## Results\n\nFigure 1 shows the main model comparison. Table 1 summarizes the subgroup results.\n"
         review_text += "\nFigure 1 shows the primary discrimination result. Table 1 summarizes the cohort-level findings.\n"
+    if include_question_mark_prose:
+        draft_text += "\nCould this model be enough for postoperative follow-up?\n"
+        review_text += "\nCan this model become the preferred route for postoperative follow-up?\n"
 
     (paper_root / "draft.md").write_text(draft_text, encoding="utf-8")
     (paper_root / "build" / "review_manuscript.md").write_text(review_text, encoding="utf-8")
@@ -920,6 +984,9 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
     assert "ama_pdf_defaults_missing" in report["blockers"]
     assert "methods_implementation_manifest_missing_or_incomplete" in report["blockers"]
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
+    assert "introduction_structure_missing_or_incomplete" in report["blockers"]
+    assert "methods_section_structure_missing_or_incomplete" in report["blockers"]
+    assert "results_section_structure_missing_or_incomplete" in report["blockers"]
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
     assert "derived_analysis_manifest_missing_or_incomplete" in report["blockers"]
     assert "figure_table_led_results_narration_present" in report["blockers"]
@@ -957,6 +1024,70 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
     assert report["ama_csl_present"] is True
     assert report["ama_pdf_defaults_present"] is True
     assert report["top_hits"] == []
+
+
+def test_build_report_blocks_when_introduction_does_not_follow_three_move_structure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_structured_introduction=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "introduction_structure_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "introduction_structure" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_methods_subsections_are_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_structured_methods=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "methods_section_structure_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "methods_section_structure" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_results_section_lacks_subsection_structure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_structured_results=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "results_section_structure_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "results_section_structure" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_non_formal_question_sentence_appears(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_question_mark_prose=True,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "non_formal_question_sentence_present" in report["blockers"]
+    assert any(hit["pattern_id"] == "non_formal_question_sentence" for hit in report["top_hits"])
 
 
 def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path: Path) -> None:

@@ -246,7 +246,16 @@ Prefer the same compact reasoning-note shape for those files when possible:
 
 ## Medical manuscript contracts
 
-For medical and clinically oriented manuscripts, four additional durable contracts are mandatory before the write stage can be treated as stable.
+For medical and clinically oriented manuscripts, the manuscript prose itself and four additional durable contracts are mandatory before the write stage can be treated as stable.
+
+Before validating the JSON/text contracts below, make the reviewer-facing prose satisfy these structure rules:
+
+- `Introduction` should be a formal three-paragraph medical narrative:
+  clinical background and follow-up context; current study landscape with concrete gaps; present-study objective plus design.
+- `Materials and Methods` should expose the reviewer-facing subsections
+  `Study design and cohort`, `Variable definition and measurement`, `Model building`, and `Validation framework`.
+- `Results` should be broken into explicit subsection headings rather than one undifferentiated block of prose.
+- Do not use question-form sentences in manuscript prose; convert them into formal declarative statements.
 
 ### 1. Methods completeness contract
 

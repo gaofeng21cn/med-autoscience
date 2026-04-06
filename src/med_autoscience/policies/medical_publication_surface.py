@@ -65,6 +65,14 @@ METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("mechanistic", "mechanistic", r"\bmechanistic\b", re.IGNORECASE),
     ("calibration-first", "calibration-first", r"\bcalibration-first\b", re.IGNORECASE),
 ]
+INTRODUCTION_REQUIRED_PARAGRAPH_COUNT = 3
+METHODS_REQUIRED_SUBSECTION_HEADINGS = (
+    "Study design and cohort",
+    "Variable definition and measurement",
+    "Model building",
+    "Validation framework",
+)
+RESULTS_MIN_SUBSECTION_COUNT = 2
 
 
 def get_forbidden_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
@@ -559,12 +567,29 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "case mix, applicability boundary, model registry with input scope, feature construction, predictor-selection strategy, "
             "comparison rationale, software package and version, statistical analysis plan, and causal-language boundary."
         )
+    prose_structure_clause = ""
+    if "introduction_structure_missing_or_incomplete" in (report.get("blockers") or []):
+        prose_structure_clause += (
+            " Rewrite the Introduction into a formal three-paragraph medical structure: clinical background and follow-up context, "
+            "current study landscape with concrete gaps, and the present study objective plus design."
+        )
+    if "methods_section_structure_missing_or_incomplete" in (report.get("blockers") or []):
+        prose_structure_clause += (
+            " Rewrite the manuscript Methods prose so it includes the exact reviewer-facing subsections "
+            f"`{METHODS_REQUIRED_SUBSECTION_HEADINGS[0]}`, `{METHODS_REQUIRED_SUBSECTION_HEADINGS[1]}`, "
+            f"`{METHODS_REQUIRED_SUBSECTION_HEADINGS[2]}`, and `{METHODS_REQUIRED_SUBSECTION_HEADINGS[3]}`."
+        )
     results_clause = ""
     if "results_narrative_map_missing_or_incomplete" in (report.get("blockers") or []):
         results_clause = (
             f" Also create or complete `paper/{RESULTS_NARRATIVE_MAP_BASENAME}` so each results subsection is organized around "
             "a research question, a direct answer, key quantitative findings, supporting display items, clinical meaning, and "
             "claim boundary."
+        )
+    if "results_section_structure_missing_or_incomplete" in (report.get("blockers") or []):
+        prose_structure_clause += (
+            f" Rewrite the Results prose into at least {RESULTS_MIN_SUBSECTION_COUNT} reviewer-facing subsections with explicit headings "
+            "instead of a single undifferentiated block."
         )
     figure_semantics_clause = ""
     if "figure_semantics_manifest_missing_or_incomplete" in (report.get("blockers") or []):
@@ -610,6 +635,11 @@ def build_intervention_message(report: dict[str, object]) -> str:
             " Rewrite the Results section so it no longer reads as `Figure/Table X shows ...`; each subsection should answer "
             "the medical question first, then cite figures or tables as support."
         )
+    formal_tone_clause = ""
+    if "non_formal_question_sentence_present" in (report.get("blockers") or []):
+        formal_tone_clause = (
+            " Remove question-form sentences from the manuscript prose; convert them into formal declarative statements."
+        )
     return (
         "Hard control message from Codex orchestration layer: stop the current manuscript continuation now. "
         f"The current manuscript-facing surface still violates the `{PUBLICATION_PROFILE}` contract and may not continue "
@@ -623,6 +653,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )
