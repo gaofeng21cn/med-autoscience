@@ -30,8 +30,8 @@ def _minimal_payload() -> dict[str, object]:
             "main_result_ref": "/tmp/runtime/quests/quest-001/artifacts/results/main_result.json",
         },
         "delivery_context_refs": {
-            "paper_root_ref": "/tmp/workspace/studies/001-risk/artifacts/paper",
-            "submission_minimal_ref": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+            "paper_root_ref": "/tmp/workspace/studies/001-risk/paper",
+            "submission_minimal_ref": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
         },
         "verdict": {
             "overall_verdict": "blocked",
@@ -88,8 +88,8 @@ def test_publication_eval_record_from_payload_round_trips_minimal_shape() -> Non
             "main_result_ref": "/tmp/runtime/quests/quest-001/artifacts/results/main_result.json",
         },
         delivery_context_refs={
-            "paper_root_ref": "/tmp/workspace/studies/001-risk/artifacts/paper",
-            "submission_minimal_ref": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+            "paper_root_ref": "/tmp/workspace/studies/001-risk/paper",
+            "submission_minimal_ref": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
         },
         verdict=module.PublicationEvalVerdict(
             overall_verdict="blocked",
@@ -206,7 +206,7 @@ def test_publication_eval_record_rejects_mutation_shaped_recommended_action_fiel
             "delivery_context_refs",
             {
                 "submission_minimal_ref": {
-                    "artifact_path": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+                    "artifact_path": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
                     "status": "draft",
                 }
             },
@@ -249,16 +249,16 @@ def test_publication_eval_record_rejects_full_authority_payloads(
         (
             "delivery_context_refs",
             {
-                "unexpected_delivery_ref": "/tmp/workspace/studies/001-risk/artifacts/paper",
-                "submission_minimal_ref": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+                "unexpected_delivery_ref": "/tmp/workspace/studies/001-risk/paper",
+                "submission_minimal_ref": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
             },
             "publication eval record delivery_context_refs must include paper_root_ref",
         ),
         (
             "delivery_context_refs",
             {
-                "paper_root_ref": "/tmp/workspace/studies/001-risk/artifacts/paper",
-                "unexpected_delivery_ref": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+                "paper_root_ref": "/tmp/workspace/studies/001-risk/paper",
+                "unexpected_delivery_ref": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
             },
             "publication eval record delivery_context_refs must include submission_minimal_ref",
         ),
@@ -292,8 +292,8 @@ def test_publication_eval_record_requires_minimal_runtime_and_delivery_ref_keys(
         (
             "delivery_context_refs",
             {
-                "paper_root_ref": "/tmp/workspace/studies/001-risk/artifacts/paper",
-                "submission_minimal_ref": "/tmp/workspace/studies/001-risk/artifacts/paper/submission_minimal/submission_manifest.json",
+                "paper_root_ref": "/tmp/workspace/studies/001-risk/paper",
+                "submission_minimal_ref": "/tmp/workspace/studies/001-risk/paper/submission_minimal/submission_manifest.json",
                 "promotion_decision_ref": "/tmp/workspace/studies/001-risk/artifacts/controller/promotion_decision.json",
             },
             "publication eval record delivery_context_refs contains unexpected ref key promotion_decision_ref",

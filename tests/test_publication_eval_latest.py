@@ -34,8 +34,8 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
             "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
         },
         "delivery_context_refs": {
-            "paper_root_ref": str(study_root / "artifacts" / "paper"),
-            "submission_minimal_ref": str(study_root / "artifacts" / "paper" / "submission_minimal" / "submission_manifest.json"),
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
         },
         "verdict": {
             "overall_verdict": "blocked",

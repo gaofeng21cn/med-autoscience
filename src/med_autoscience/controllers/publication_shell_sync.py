@@ -61,6 +61,22 @@ def _load_csv_rows(path: Path) -> tuple[list[str], list[list[str]]]:
     return rows[0], rows[1:]
 
 
+def _resolve_table1_source_path(*, study_root: Path) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    candidates = (
+        resolved_study_root / "paper" / "submission_minimal" / "tables" / "Table1.csv",
+        resolved_study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    expected_paths = ", ".join(str(path) for path in candidates)
+    raise FileNotFoundError(
+        "missing required Table1 CSV in the audited delivery surfaces; expected one of: "
+        f"{expected_paths}"
+    )
+
+
 def _sync_cohort_flow_payload(
     *,
     source_payload: dict[str, Any],
@@ -162,7 +178,8 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
     table_binding = _require_binding(registry_payload=registry_payload, requirement_key="table1_baseline_characteristics")
 
     cohort_source = _load_json(resolved_study_root / "paper" / "derived" / "cohort_flow.json")
-    table_header, table_rows = _load_csv_rows(resolved_study_root / "artifacts" / "final" / "tables" / "Table1.csv")
+    table1_source_path = _resolve_table1_source_path(study_root=resolved_study_root)
+    table_header, table_rows = _load_csv_rows(table1_source_path)
     existing_cohort_payload = _load_json(resolved_paper_root / "cohort_flow.json")
     existing_table_payload = _load_json(resolved_paper_root / "baseline_characteristics_schema.json")
 
@@ -194,7 +211,7 @@ def run_publication_shell_sync(*, study_root: Path, paper_root: Path) -> dict[st
         "written_files": [str(cohort_path), str(table_path), str(report_path)],
         "source_paths": {
             "cohort_flow_source": str(resolved_study_root / "paper" / "derived" / "cohort_flow.json"),
-            "table1_source": str(resolved_study_root / "artifacts" / "final" / "tables" / "Table1.csv"),
+            "table1_source": str(table1_source_path),
         },
     }
     _write_json(report_path, report)

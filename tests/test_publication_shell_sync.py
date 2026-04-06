@@ -44,11 +44,10 @@ def _registry_payload() -> dict:
     }
 
 
-def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_path: Path) -> None:
+def _prepare_sync_context(tmp_path: Path) -> tuple[object, Path, Path]:
     module = importlib.import_module("med_autoscience.controllers.publication_shell_sync")
     study_root = tmp_path / "studies" / "003-endocrine-burden-followup"
     paper_root = tmp_path / "paper"
-
     write_json(paper_root / "display_registry.json", _registry_payload())
     write_json(
         paper_root / "cohort_flow.json",
@@ -87,8 +86,13 @@ def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_pat
             "analysis_event_n": 98,
         },
     )
+    return module, study_root, paper_root
+
+
+def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_path: Path) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
     write_csv(
-        study_root / "artifacts" / "final" / "tables" / "Table1.csv",
+        study_root / "paper" / "submission_minimal" / "tables" / "Table1.csv",
         [
             "Characteristic",
             "Overall (N=357)",
@@ -141,6 +145,51 @@ def test_run_publication_shell_sync_writes_cohort_flow_and_table1_inputs(tmp_pat
         "Later persistent global hypopituitarism (n=98)",
     ]
     assert [item["label"] for item in table1["variables"]] == ["Age, years", "Female sex, n (%)"]
+
+
+def test_run_publication_shell_sync_accepts_human_facing_submission_package_when_canonical_package_is_absent(tmp_path: Path) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
+    write_csv(
+        study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv",
+        [
+            "Characteristic",
+            "Overall (N=357)",
+            "No later persistent global hypopituitarism (n=259)",
+            "Later persistent global hypopituitarism (n=98)",
+        ],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=357)": "51 [40-59]",
+                "No later persistent global hypopituitarism (n=259)": "50 [38-58]",
+                "Later persistent global hypopituitarism (n=98)": "56 [44-62]",
+            },
+        ],
+    )
+
+    report = module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
+
+    assert report["source_paths"]["table1_source"].endswith("manuscript/final/submission_package/tables/Table1.csv")
+
+
+def test_run_publication_shell_sync_rejects_legacy_artifacts_final_table_surface(tmp_path: Path) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
+    write_csv(
+        study_root / "artifacts" / "final" / "tables" / "Table1.csv",
+        [
+            "Characteristic",
+            "Overall (N=357)",
+        ],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=357)": "51 [40-59]",
+            },
+        ],
+    )
+
+    with pytest.raises(FileNotFoundError, match="audited delivery surfaces"):
+        module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
 
 
 def test_run_publication_shell_sync_rejects_missing_required_binding(tmp_path: Path) -> None:
