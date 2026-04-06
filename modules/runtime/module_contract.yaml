@@ -1,0 +1,25 @@
+module: runtime
+status: scaffold
+owns:
+  - quest execution truth
+  - session / worktree / artifact execution truth
+  - runtime escalation record and runtime status refs
+consumes_refs:
+  - controller runtime-facing projections
+emits_refs:
+  - runtime status / runtime artifact / escalation refs
+forbids:
+  - publication authority ownership
+  - controller authority truth mutation
+  - eval verdict as runtime authority
+communication_rules:
+  allowed:
+    - explicit contract
+    - explicit artifact ref
+    - explicit typed output
+    - explicit typed summary
+  forbidden:
+    - ad-hoc dict mixed-layer shortcut
+    - hidden import shortcut
+    - direct private-state mutation
+    - authority takeover via read-model

@@ -1,0 +1,27 @@
+module: eval_hygiene
+status: scaffold
+owns:
+  - verdict / gap / recommendation
+  - promotion / stop-loss / hygiene gate conclusions
+consumes_refs:
+  - controller refs
+  - runtime refs
+  - delivery-facing refs
+emits_refs:
+  - verdict refs
+  - recommendation refs
+forbids:
+  - controller truth mutation
+  - runtime truth mutation
+  - becoming a new outer controller
+communication_rules:
+  allowed:
+    - explicit contract
+    - explicit artifact ref
+    - explicit typed output
+    - explicit typed summary
+  forbidden:
+    - ad-hoc dict mixed-layer shortcut
+    - hidden import shortcut
+    - direct private-state mutation
+    - authority takeover via read-model
