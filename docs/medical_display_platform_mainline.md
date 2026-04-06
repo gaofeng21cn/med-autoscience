@@ -9,6 +9,8 @@ Use this file when the question is:
 - how current paper work, platform hardening, and future family expansion should relate;
 - when an OMX lane should continue, hand off, or stop.
 
+For the current completion program across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+
 For the top-level evidence roadmap, see [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
 
 For the strict audited engineering truth, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
@@ -31,6 +33,22 @@ That means:
 The goal is not "draw more figures."
 
 The goal is "deliver publishable medical paper displays through a stable, extensible platform."
+
+## Current Completion Program
+
+The current long-run completion target is not "full maturity everywhere."
+
+It is:
+
+- get every `A-H` paper family over the line with at least one first audited baseline;
+- then keep hardening the weaker families without losing the paper-driven operating model.
+
+The authoritative completion-program details live in [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+
+That means the mainline now has two simultaneous truths:
+
+1. a permanent platform north star;
+2. a current completion program that OMX should pursue automatically.
 
 ## Stable Operating Model
 
@@ -113,6 +131,20 @@ The platform must not rely on:
 - one-off local nudges that are not promoted to a formal contract surface;
 - heuristic masking of renderer defects;
 - manual memory as the real source of truth.
+
+### 6. Continuous autonomous continuation is the default
+
+Within the display-only scope, OMX should continue automatically across phases.
+
+It should not stop just because:
+
+- one owner round reached merge-back ready;
+- one visual-audit round closed;
+- one family crossed a milestone.
+
+The default is to continue.
+
+Only hard blockers, truth conflicts, or genuine user-priority decisions should stop the line.
 
 ## Lane Model
 
@@ -273,6 +305,18 @@ Required outputs:
 - updated mainline reports;
 - explicit statement of the next active phase.
 
+## Autonomous Routing Priority
+
+When multiple reasonable next actions exist, the default priority order is:
+
+1. finish the currently active baton cleanly;
+2. finish required integration and merge-back;
+3. perform visual audit if freshly integrated outputs still need formal paper-facing review;
+4. if any `A-H` family still lacks a first audited baseline, onboard that missing family next;
+5. otherwise, harden the weakest or most paper-relevant family.
+
+This rule is what turns the display mainline from a sequence of isolated tasks into a continuous program.
+
 ## What "Excellent" Looks Like
 
 The display mainline should eventually look like this:
@@ -304,6 +348,12 @@ This baseline currently proves that the platform can already support, at minimum
 That baseline is not the end state.
 
 It is the first durable nucleus for the long-horizon platform.
+
+The current completion-program scoreboard is broader than that nucleus:
+
+- `A/B/H` are the deepest currently hardened families;
+- `C/D/E/F` already have first audited baselines, but remain thinner;
+- `G` is still the only family missing a first audited baseline.
 
 ## Stop Conditions
 

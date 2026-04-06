@@ -8,6 +8,8 @@ Use this file when the question is:
 - How should the original `A-H` display families relate to the current audited engineering taxonomy?
 - What should count as platform progress after the current anchor-paper figure recovery closes?
 
+For the current long-run completion program that drives OMX toward first-baseline coverage across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+
 For the strict engineering truth of what is already audited today, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
 For the generated inventory of registered templates, renderers, schemas, and QC profiles, see [medical_display_template_catalog.md](./medical_display_template_catalog.md).
@@ -488,6 +490,11 @@ The platform should report progress on three separate axes:
 
 - Which `A-H` families have meaningful paper-proven coverage?
 
+### 1b. Completion-program progress
+
+- Which `A-H` families have crossed the current target of **first audited baseline coverage**?
+- Which families are still missing even one dedicated end-to-end audited baseline?
+
 ### 2. Audit progress
 
 - Which audit families have stable contracts, QC, and materialization paths?
@@ -497,6 +504,12 @@ The platform should report progress on three separate axes:
 - How many audited templates, shells, and tables are registered today?
 
 No single count should be used as a substitute for all three.
+
+In particular:
+
+- a family can remain `partial` at the roadmap level;
+- while already satisfying the current completion-program baseline threshold;
+- and still needing later hardening and visual-review work.
 
 ## Execution Order After Current Figure QA Recovery
 
