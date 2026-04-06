@@ -1042,6 +1042,27 @@ def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> N
     assert all(not hit["path"].endswith("paper/figures/generated/README.md") for hit in report["top_hits"])
 
 
+def test_build_report_allows_generic_clinical_surface_language(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    draft_path = paper_root / "draft.md"
+    draft_path.write_text(
+        draft_path.read_text(encoding="utf-8").replace(
+            "### Added-value assessment of model complexity",
+            "### Monotonic score surface\n\n"
+            "The core logistic model remained recoverable on a conventional regression surface.\n\n"
+            "### Added-value assessment of model complexity",
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert all(hit["pattern_id"] != "surface" for hit in report["top_hits"])
+
+
 def test_build_report_blocks_when_introduction_does_not_follow_three_move_structure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
