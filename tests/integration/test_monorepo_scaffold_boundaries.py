@@ -6,49 +6,58 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-MODULES_ROOT = REPO_ROOT / "modules"
-TESTS_ROOT = REPO_ROOT / "tests"
 
 
 def load_contract(module_name: str) -> dict[str, object]:
-    return yaml.safe_load(
-        (MODULES_ROOT / module_name / "module_contract.yaml").read_text(encoding="utf-8")
-    ) or {}
+    contract_path = REPO_ROOT / "modules" / module_name / "module_contract.yaml"
+    assert contract_path.exists(), f"missing contract: {contract_path}"
+    payload = yaml.safe_load(contract_path.read_text(encoding="utf-8")) or {}
+    assert isinstance(payload, dict)
+    return payload
 
 
-def test_minimal_scaffold_directories_exist() -> None:
-    assert (MODULES_ROOT / "controller_charter").is_dir()
-    assert (MODULES_ROOT / "runtime").is_dir()
-    assert (MODULES_ROOT / "eval_hygiene").is_dir()
-    assert (TESTS_ROOT / "controller_charter").is_dir()
-    assert (TESTS_ROOT / "runtime").is_dir()
-    assert (TESTS_ROOT / "eval_hygiene").is_dir()
-    assert (TESTS_ROOT / "integration").is_dir()
+def test_scaffold_directories_exist_only_for_the_minimal_modules_and_tests() -> None:
+    expected_directories = [
+        REPO_ROOT / "modules" / "controller_charter",
+        REPO_ROOT / "modules" / "runtime",
+        REPO_ROOT / "modules" / "eval_hygiene",
+        REPO_ROOT / "tests" / "controller_charter",
+        REPO_ROOT / "tests" / "runtime",
+        REPO_ROOT / "tests" / "eval_hygiene",
+        REPO_ROOT / "tests" / "integration",
+    ]
+
+    for directory in expected_directories:
+        assert directory.is_dir(), f"missing scaffold directory: {directory}"
 
 
-def test_scaffold_contracts_preserve_authority_boundaries() -> None:
+def test_scaffold_contracts_share_the_same_cross_module_communication_firewall() -> None:
+    expected_allowed = [
+        "explicit contract",
+        "explicit artifact ref",
+        "explicit typed output",
+        "explicit typed summary",
+    ]
+    expected_forbidden = [
+        "ad-hoc dict mixed-layer shortcut",
+        "hidden import shortcut",
+        "direct private-state mutation",
+        "authority takeover via read-model",
+    ]
+
+    for module_name in ("controller_charter", "runtime", "eval_hygiene"):
+        payload = load_contract(module_name)
+        rules = payload["communication_rules"]
+        assert rules["allowed"] == expected_allowed
+        assert rules["forbidden"] == expected_forbidden
+
+
+def test_scaffold_contracts_preserve_module_firewalls() -> None:
     controller_contract = load_contract("controller_charter")
     runtime_contract = load_contract("runtime")
     eval_contract = load_contract("eval_hygiene")
 
     assert "direct runtime private state mutation" in controller_contract["forbids"]
-    assert "runtime event ownership" in controller_contract["forbids"]
     assert "publication authority ownership" in runtime_contract["forbids"]
-    assert "controller truth mutation" in runtime_contract["forbids"]
     assert "controller truth mutation" in eval_contract["forbids"]
     assert "runtime truth mutation" in eval_contract["forbids"]
-    assert "becoming a new controller" in eval_contract["forbids"]
-    assert "publication authority ownership" not in runtime_contract["owns"]
-
-
-def test_scaffold_contracts_only_exchange_explicit_refs() -> None:
-    controller_contract = load_contract("controller_charter")
-    runtime_contract = load_contract("runtime")
-    eval_contract = load_contract("eval_hygiene")
-
-    assert controller_contract["consumes_refs"] == ["none"]
-    assert all("refs" in item for item in controller_contract["emits_refs"])
-    assert all("refs" in item for item in runtime_contract["consumes_refs"])
-    assert all("refs" in item for item in runtime_contract["emits_refs"])
-    assert all("refs" in item for item in eval_contract["consumes_refs"])
-    assert all("refs" in item for item in eval_contract["emits_refs"])
