@@ -3,14 +3,23 @@ status: scaffold
 owns:
   - quest execution truth
   - session / worktree / artifact execution truth
-  - runtime escalation record
+  - runtime escalation record and runtime status refs
 consumes_refs:
-  - runtime-facing controller projection refs
+  - controller runtime-facing projections
 emits_refs:
-  - runtime status refs
-  - runtime artifact refs
-  - runtime escalation refs
+  - runtime status / runtime artifact / escalation refs
 forbids:
   - publication authority ownership
-  - controller truth mutation
-  - inline eval verdict authority
+  - controller authority truth mutation
+  - eval verdict as runtime authority
+communication_rules:
+  allowed:
+    - explicit contract
+    - explicit artifact ref
+    - explicit typed output
+    - explicit typed summary
+  forbidden:
+    - ad-hoc dict mixed-layer shortcut
+    - hidden import shortcut
+    - direct private-state mutation
+    - authority takeover via read-model

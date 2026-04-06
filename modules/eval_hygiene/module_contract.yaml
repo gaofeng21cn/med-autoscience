@@ -8,10 +8,20 @@ consumes_refs:
   - runtime refs
   - delivery-facing refs
 emits_refs:
-  - hygiene verdict refs
-  - promotion decision refs
-  - stop-loss recommendation refs
+  - verdict refs
+  - recommendation refs
 forbids:
   - controller truth mutation
   - runtime truth mutation
-  - becoming a new controller
+  - becoming a new outer controller
+communication_rules:
+  allowed:
+    - explicit contract
+    - explicit artifact ref
+    - explicit typed output
+    - explicit typed summary
+  forbidden:
+    - ad-hoc dict mixed-layer shortcut
+    - hidden import shortcut
+    - direct private-state mutation
+    - authority takeover via read-model
