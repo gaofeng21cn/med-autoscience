@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from med_autoscience.publication_profiles import (
+    default_citation_style_for_publication_profile,
+    exporter_family_for_publication_profile,
+    is_generic_publication_profile,
+    publication_profile_supports_citation_style,
     is_supported_publication_profile,
     normalize_publication_profile,
 )
@@ -19,6 +23,8 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class SubmissionTarget:
     publication_profile: str | None
+    exporter_profile: str | None
+    exporter_family: str | None
     journal_name: str | None
     journal_family: str | None
     citation_style: str | None
@@ -30,6 +36,10 @@ class SubmissionTarget:
     primary: bool
     source: str
     resolution_status: str
+    exporter_status: str
+    generic_export_allowed: bool | None
+    decision_kind: str | None
+    decision_source: str | None
     target_key: str
 
 
@@ -54,14 +64,64 @@ def _load_yaml_dict(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _target_key(*, publication_profile: str | None, journal_name: str | None, official_guidelines_url: str | None) -> str:
-    if publication_profile:
-        return f"profile:{normalize_publication_profile(publication_profile)}"
+def _target_key(
+    *,
+    publication_profile: str | None,
+    journal_name: str | None,
+    official_guidelines_url: str | None,
+    decision_kind: str | None,
+) -> str:
     if journal_name:
         return f"journal:{journal_name.strip().lower()}"
     if official_guidelines_url:
         return f"url:{official_guidelines_url.strip()}"
-    raise ValueError("submission target requires publication_profile, journal_name, or official_guidelines_url")
+    if publication_profile:
+        return f"profile:{normalize_publication_profile(publication_profile)}"
+    if decision_kind:
+        return f"decision:{decision_kind.strip().lower()}"
+    raise ValueError("submission target requires publication_profile, journal_name, official_guidelines_url, or decision_kind")
+
+
+def _optional_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _resolve_generic_export_allowed(
+    *,
+    payload: dict[str, Any],
+    source: str,
+    exporter_profile: str | None,
+    decision_kind: str | None,
+) -> bool | None:
+    if "generic_export_allowed" in payload:
+        return bool(payload.get("generic_export_allowed"))
+    if decision_kind == "generic_export_authorized_without_unique_journal":
+        return True
+    if exporter_profile is None or not is_generic_publication_profile(exporter_profile):
+        return None
+    if source == "quest_paper_resolved":
+        return False
+    return True
+
+
+def _resolve_exporter_status(
+    *,
+    exporter_profile: str | None,
+    citation_style: str | None,
+    generic_export_allowed: bool | None,
+) -> str:
+    if exporter_profile is None:
+        return "missing_exporter_profile"
+    if not is_supported_publication_profile(exporter_profile):
+        return "unsupported_exporter_profile"
+    if is_generic_publication_profile(exporter_profile) and generic_export_allowed is not True:
+        return "blocked_generic_export_requires_explicit_controller_decision"
+    if not publication_profile_supports_citation_style(exporter_profile, citation_style):
+        return "unsupported_citation_style"
+    return "ready"
 
 
 def _normalize_target(
@@ -77,40 +137,85 @@ def _normalize_target(
     else:
         raise ValueError(f"unsupported submission target payload from {source}: {raw_target!r}")
 
-    publication_profile_raw = payload.get("publication_profile")
-    publication_profile = (
-        normalize_publication_profile(str(publication_profile_raw))
-        if isinstance(publication_profile_raw, str) and publication_profile_raw.strip()
+    legacy_publication_profile_raw = payload.get("publication_profile")
+    legacy_publication_profile = (
+        normalize_publication_profile(str(legacy_publication_profile_raw))
+        if isinstance(legacy_publication_profile_raw, str) and legacy_publication_profile_raw.strip()
         else None
     )
-    journal_name = str(payload.get("journal_name")).strip() if payload.get("journal_name") else None
-    official_guidelines_url = (
-        str(payload.get("official_guidelines_url")).strip() if payload.get("official_guidelines_url") else None
+    exporter_profile_raw = payload.get("exporter_profile")
+    exporter_profile = (
+        normalize_publication_profile(str(exporter_profile_raw))
+        if isinstance(exporter_profile_raw, str) and exporter_profile_raw.strip()
+        else legacy_publication_profile
     )
-    citation_style = str(payload.get("citation_style")).strip() if payload.get("citation_style") else default_citation_style
-    story_surface = str(payload.get("story_surface")).strip() if payload.get("story_surface") else None
+    if (
+        legacy_publication_profile is not None
+        and exporter_profile is not None
+        and legacy_publication_profile != exporter_profile
+    ):
+        raise ValueError("publication_profile legacy alias must match exporter_profile when both are present")
+
+    publication_profile = legacy_publication_profile or exporter_profile
+    decision_kind = _optional_text(payload.get("decision_kind"))
+    decision_source = _optional_text(payload.get("decision_source"))
+    journal_name = _optional_text(payload.get("journal_name"))
+    official_guidelines_url = (
+        _optional_text(payload.get("official_guidelines_url"))
+    )
+    citation_style = (
+        _optional_text(payload.get("citation_style"))
+        or default_citation_style_for_publication_profile(exporter_profile)
+        or default_citation_style
+    )
+    story_surface = _optional_text(payload.get("story_surface"))
     emphasis_raw = payload.get("narrative_emphasis") or []
     if not isinstance(emphasis_raw, list):
         emphasis_raw = []
     narrative_emphasis = tuple(str(item) for item in emphasis_raw if str(item).strip())
-    resolution_status = "resolved_profile" if is_supported_publication_profile(publication_profile) else "needs_journal_resolution"
+    generic_export_allowed = _resolve_generic_export_allowed(
+        payload=payload,
+        source=source,
+        exporter_profile=exporter_profile,
+        decision_kind=decision_kind,
+    )
+    exporter_status = _resolve_exporter_status(
+        exporter_profile=exporter_profile,
+        citation_style=citation_style,
+        generic_export_allowed=generic_export_allowed,
+    )
+    resolution_status = "resolved_profile" if is_supported_publication_profile(exporter_profile) else "needs_journal_resolution"
+    if decision_kind == "blocked_no_unique_journal_target":
+        resolution_status = "blocked_no_unique_journal_target"
+    elif source == "quest_paper_resolved" and resolution_status == "needs_journal_resolution" and (
+        journal_name or official_guidelines_url or decision_kind
+    ):
+        resolution_status = "resolved_target"
     return SubmissionTarget(
         publication_profile=publication_profile,
+        exporter_profile=exporter_profile,
+        exporter_family=_optional_text(payload.get("exporter_family"))
+        or exporter_family_for_publication_profile(exporter_profile),
         journal_name=journal_name,
-        journal_family=str(payload.get("journal_family")).strip() if payload.get("journal_family") else None,
+        journal_family=_optional_text(payload.get("journal_family")),
         citation_style=citation_style,
         official_guidelines_url=official_guidelines_url,
-        template_url=str(payload.get("template_url")).strip() if payload.get("template_url") else None,
+        template_url=_optional_text(payload.get("template_url")),
         story_surface=story_surface,
         narrative_emphasis=narrative_emphasis,
         package_required=bool(payload.get("package_required", True)),
         primary=bool(payload.get("primary", False)),
         source=source,
         resolution_status=resolution_status,
+        exporter_status=exporter_status,
+        generic_export_allowed=generic_export_allowed,
+        decision_kind=decision_kind,
+        decision_source=decision_source,
         target_key=_target_key(
-            publication_profile=publication_profile,
+            publication_profile=exporter_profile,
             journal_name=journal_name,
             official_guidelines_url=official_guidelines_url,
+            decision_kind=decision_kind,
         ),
     )
 
@@ -154,6 +259,8 @@ def _profile_layer(profile: WorkspaceProfile | None) -> _TargetLayer:
         targets=(
             SubmissionTarget(
                 publication_profile=normalize_publication_profile(profile.default_publication_profile),
+                exporter_profile=normalize_publication_profile(profile.default_publication_profile),
+                exporter_family=exporter_family_for_publication_profile(profile.default_publication_profile),
                 journal_name=None,
                 journal_family=None,
                 citation_style=profile.default_citation_style,
@@ -165,6 +272,10 @@ def _profile_layer(profile: WorkspaceProfile | None) -> _TargetLayer:
                 primary=True,
                 source="workspace_profile_fallback",
                 resolution_status="resolved_profile",
+                exporter_status="ready",
+                generic_export_allowed=True,
+                decision_kind=None,
+                decision_source=None,
                 target_key=f"profile:{normalize_publication_profile(profile.default_publication_profile)}",
             ),
         ),
@@ -210,11 +321,19 @@ def _quest_paper_resolved_layer(quest_root: Path | None, *, default_citation_sty
     primary_target = payload.get("primary_target")
     if not isinstance(primary_target, dict):
         return _TargetLayer(mode="append", targets=tuple())
+    decision_kind = _optional_text(primary_target.get("decision_kind")) or _optional_text(payload.get("decision_kind"))
+    decision_source = _optional_text(primary_target.get("decision_source")) or _optional_text(payload.get("decision_source"))
     resolution_status = str(primary_target.get("resolution_status") or "").strip().lower()
-    if resolution_status not in {"resolved", "resolved_profile"}:
+    if resolution_status not in {"resolved", "resolved_profile"} and decision_kind is None:
         return _TargetLayer(mode="append", targets=tuple())
     normalized_target = dict(primary_target)
     normalized_target["primary"] = True
+    if decision_kind is not None:
+        normalized_target["decision_kind"] = decision_kind
+    if decision_source is not None:
+        normalized_target["decision_source"] = decision_source
+    if "generic_export_allowed" not in normalized_target and "generic_export_allowed" in payload:
+        normalized_target["generic_export_allowed"] = payload.get("generic_export_allowed")
     return _TargetLayer(
         mode="replace",
         targets=_targets_from_payload(
@@ -271,6 +390,8 @@ def resolve_submission_target_contract(
         final_targets.append(
             SubmissionTarget(
                 publication_profile=target.publication_profile,
+                exporter_profile=target.exporter_profile,
+                exporter_family=target.exporter_family,
                 journal_name=target.journal_name,
                 journal_family=target.journal_family,
                 citation_style=target.citation_style,
@@ -282,15 +403,19 @@ def resolve_submission_target_contract(
                 primary=index == primary_index,
                 source=target.source,
                 resolution_status=target.resolution_status,
+                exporter_status=target.exporter_status,
+                generic_export_allowed=target.generic_export_allowed,
+                decision_kind=target.decision_kind,
+                decision_source=target.decision_source,
                 target_key=target.target_key,
             )
         )
 
     unresolved_targets = tuple(target for target in final_targets if target.resolution_status != "resolved_profile")
     export_publication_profiles = tuple(
-        target.publication_profile
+        target.exporter_profile
         for target in final_targets
-        if target.package_required and target.publication_profile and target.resolution_status == "resolved_profile"
+        if target.package_required and target.exporter_profile and target.exporter_status == "ready"
     )
     return SubmissionTargetContract(
         targets=tuple(final_targets),

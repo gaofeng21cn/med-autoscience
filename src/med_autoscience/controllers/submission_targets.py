@@ -106,6 +106,7 @@ def resolve_submission_targets(
         "unresolved_target_count": len(contract.unresolved_targets),
         "unresolved_targets": [_serialize_target(target) for target in contract.unresolved_targets],
         "export_publication_profiles": list(contract.export_publication_profiles),
+        "exporter_profiles": list(contract.export_publication_profiles),
     }
 
 
@@ -140,21 +141,25 @@ def export_submission_targets(
             item["export_status"] = "skipped_package_not_required"
             target_results.append(item)
             continue
-        if target.resolution_status != "resolved_profile" or not target.publication_profile:
+        if target.exporter_status != "ready" or not target.exporter_profile:
             blocked_target_count += 1
-            item["export_status"] = "blocked_needs_journal_resolution"
+            if target.exporter_status == "missing_exporter_profile":
+                item["export_status"] = "blocked_needs_journal_resolution"
+            else:
+                item["export_status"] = "blocked_exporter_not_ready"
+            item["export_reason"] = target.exporter_status
             target_results.append(item)
             continue
-        if target.publication_profile not in exported_profiles:
-            exported_profiles[target.publication_profile] = submission_minimal.create_submission_minimal_package(
+        if target.exporter_profile not in exported_profiles:
+            exported_profiles[target.exporter_profile] = submission_minimal.create_submission_minimal_package(
                 paper_root=resolved_paper_root,
-                publication_profile=target.publication_profile,
+                publication_profile=target.exporter_profile,
                 citation_style=target.citation_style or "auto",
             )
             item["export_status"] = "exported"
         else:
             item["export_status"] = "already_exported_in_batch"
-        item["export_result"] = exported_profiles[target.publication_profile]
+        item["export_result"] = exported_profiles[target.exporter_profile]
         target_results.append(item)
 
     return {
@@ -167,5 +172,6 @@ def export_submission_targets(
         "primary_target": _serialize_target(contract.primary_target),
         "blocked_target_count": blocked_target_count,
         "exported_publication_profiles": list(exported_profiles),
+        "exported_exporter_profiles": list(exported_profiles),
         "targets": target_results,
     }

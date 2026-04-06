@@ -9,13 +9,10 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def write_resolved_target(path: Path) -> None:
-    write_text(
-        path,
-        """{
-  "schema_version": 1,
-  "updated_at": "2026-04-06T00:00:00+00:00",
-  "primary_target": {
+def write_resolved_target(
+    path: Path,
+    *,
+    primary_target_block: str = """{
     "journal_name": "Diabetes Research and Clinical Practice",
     "publication_profile": "general_medical_journal",
     "citation_style": "numeric_square_brackets",
@@ -23,10 +20,23 @@ def write_resolved_target(path: Path) -> None:
     "package_required": true,
     "story_surface": "clinical_diabetes_prognosis_internal_validation",
     "resolution_status": "resolved"
-  },
+  }""",
+    decision_kind: str = "journal_selected",
+    decision_source: str = "controller_explicit",
+    extra_root_fields: str = "",
+) -> None:
+    write_text(
+        path,
+        f"""{{
+  "schema_version": 1,
+  "updated_at": "2026-04-06T00:00:00+00:00",
+  "decision_kind": "{decision_kind}",
+  "decision_source": "{decision_source}",
+  "primary_target": {primary_target_block},
+  {extra_root_fields}
   "blocked_items": []
-}
-""",
+}}
+""".replace('\n  \n', '\n'),
     )
 
 
@@ -190,4 +200,52 @@ startup_contract:
     assert result["primary_target"]["journal_name"] == "Diabetes Research and Clinical Practice"
     assert result["primary_target"]["official_guidelines_url"] == "https://example.org/drcp-guide"
     assert result["primary_target"]["citation_style"] == "numeric_square_brackets"
+    assert result["primary_target"]["exporter_profile"] == "general_medical_journal"
+    assert result["primary_target"]["exporter_family"] == "generic_medical_journal"
+    assert result["primary_target"]["decision_kind"] == "journal_selected"
+    assert result["primary_target"]["decision_source"] == "controller_explicit"
+    assert result["primary_target"]["exporter_status"] == "blocked_generic_export_requires_explicit_controller_decision"
     assert result["unresolved_target_count"] == 0
+    assert result["export_publication_profiles"] == []
+    assert result["exporter_profiles"] == []
+
+
+def test_export_submission_targets_blocks_controller_resolved_generic_target_without_explicit_generic_export(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_targets")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "dm.local.toml"
+    study_root = workspace_root / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-dm-cvd-mortality-risk-reentry-20260331"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678" / "paper"
+    write_profile(profile_path, workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 001-dm-cvd-mortality-risk\n")
+    write_text(quest_root / "quest.yaml", "quest_id: 001-dm-cvd-mortality-risk-reentry-20260331\n")
+    write_text(paper_root / "paper_bundle_manifest.json", "{\n  \"schema_version\": 1\n}\n")
+    write_resolved_target(quest_root / "paper" / "submission_targets.resolved.json")
+    calls: list[tuple[Path, str, str | None]] = []
+
+    def fake_export(*, paper_root: Path, publication_profile: str, citation_style: str | None = "auto") -> dict:
+        calls.append((paper_root, publication_profile, citation_style))
+        return {"publication_profile": publication_profile, "citation_style": citation_style}
+
+    monkeypatch.setattr(module.submission_minimal, "create_submission_minimal_package", fake_export)
+
+    result = module.export_submission_targets(
+        profile_path=profile_path,
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert calls == []
+    assert result["status"] == "blocked"
+    assert result["blocked_target_count"] == 1
+    assert result["exported_publication_profiles"] == []
+    assert result["exported_exporter_profiles"] == []
+    assert result["targets"][0]["export_status"] == "blocked_exporter_not_ready"
+    assert (
+        result["targets"][0]["export_reason"]
+        == "blocked_generic_export_requires_explicit_controller_decision"
+    )
