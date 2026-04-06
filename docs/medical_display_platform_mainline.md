@@ -352,8 +352,8 @@ It is the first durable nucleus for the long-horizon platform.
 The current completion-program scoreboard is broader than that nucleus:
 
 - `A/B/H` are the deepest currently hardened families;
-- `C/D/E/F` already have first audited baselines, but remain thinner;
-- `G` is still the only family missing a first audited baseline.
+- `C/D/E/F/G` already have first audited baselines, but remain thinner;
+- the first-baseline completion target across `A-H` is now met, so continuation should shift to rolling hardening / visual-audit / paper-driven family strengthening rather than parking.
 
 ## Stop Conditions
 

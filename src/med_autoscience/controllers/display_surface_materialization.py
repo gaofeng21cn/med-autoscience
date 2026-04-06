@@ -38,6 +38,7 @@ _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",
     "clustered_heatmap_inputs_v1": "clustered_heatmap_inputs.json",
+    "gsva_ssgsea_heatmap_inputs_v1": "gsva_ssgsea_heatmap_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
@@ -499,6 +500,10 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     correlation_heatmap = list(matrix_cells = display_payload$cells),
     clustered_heatmap = list(matrix_cells = display_payload$cells),
+    gsva_ssgsea_heatmap = list(
+      matrix_cells = display_payload$cells,
+      score_method = trimws(as.character(display_payload$score_method %||% ""))
+    ),
     forest_effect_main = list(rows = display_payload$rows),
     subgroup_forest = list(rows = display_payload$rows),
     list()
@@ -527,15 +532,15 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
     heights,
     c("panel"),
     "panel",
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "heatmap_tile_region" else "panel"
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "heatmap_tile_region" else "panel"
   )
   guide_box <- find_layout_box(
     gt,
     widths,
     heights,
     c("guide-box"),
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "colorbar" else "legend",
-    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap")) "colorbar" else "legend"
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend",
+    if (template_id %in% c("heatmap_group_comparison", "correlation_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap")) "colorbar" else "legend"
   )
   axis_left_box <- find_layout_box(gt, widths, heights, c("axis-l"), "axis_left", "axis_left")
   layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
@@ -572,6 +577,7 @@ plot <- switch(
   heatmap_group_comparison = plot_heatmap(payload),
   correlation_heatmap = plot_heatmap(payload),
   clustered_heatmap = plot_heatmap(payload),
+  gsva_ssgsea_heatmap = plot_heatmap(payload),
   forest_effect_main = plot_forest(payload),
   subgroup_forest = plot_forest(payload),
   stop(sprintf("unsupported evidence template `%s`", template_id))
@@ -2305,6 +2311,26 @@ def _validate_clustered_heatmap_display_payload(
     }
 
 
+def _validate_gsva_ssgsea_heatmap_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    normalized_payload = _validate_clustered_heatmap_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    normalized_payload["score_method"] = _require_non_empty_string(
+        payload.get("score_method"),
+        label=f"{path.name} display `{expected_display_id}` score_method",
+    )
+    return normalized_payload
+
+
 def _validate_forest_display_payload(
     *,
     path: Path,
@@ -2662,6 +2688,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "clustered_heatmap_inputs_v1":
         return payload_path, _validate_clustered_heatmap_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "gsva_ssgsea_heatmap_inputs_v1":
+        return payload_path, _validate_gsva_ssgsea_heatmap_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

@@ -1175,7 +1175,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id in {"heatmap_group_comparison", "clustered_heatmap"}:
+    if template_id in {"heatmap_group_comparison", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1189,7 +1189,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "guide_boxes": [
                 {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
             ],
-            "metrics": {},
+            "metrics": {"score_method": "GSVA"} if template_id == "gsva_ssgsea_heatmap" else {},
         }
     if template_id == "correlation_heatmap":
         return {
@@ -2818,6 +2818,97 @@ def test_materialize_display_surface_generates_risk_layering_monotonic_bars(tmp_
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_generates_gsva_ssgsea_heatmap_baseline(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "display_kind": "figure",
+                    "requirement_key": "gsva_ssgsea_heatmap",
+                    "catalog_id": "F23",
+                    "shell_path": "paper/figures/Figure23.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "template_id": "gsva_ssgsea_heatmap",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "gsva_ssgsea_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "gsva_ssgsea_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "template_id": "gsva_ssgsea_heatmap",
+                    "title": "GSVA heatmap for immune and stromal programs",
+                    "caption": "Precomputed GSVA pathway scores across the analytic cohort highlight the dominant immune-stromal contrast.",
+                    "x_label": "Samples",
+                    "y_label": "Gene-set programs",
+                    "score_method": "GSVA",
+                    "row_order": [
+                        {"label": "IFN-gamma response"},
+                        {"label": "TGF-beta signaling"},
+                    ],
+                    "column_order": [
+                        {"label": "Sample-01"},
+                        {"label": "Sample-02"},
+                    ],
+                    "cells": [
+                        {"x": "Sample-01", "y": "IFN-gamma response", "value": 0.72},
+                        {"x": "Sample-02", "y": "IFN-gamma response", "value": -0.24},
+                        {"x": "Sample-01", "y": "TGF-beta signaling", "value": -0.11},
+                        {"x": "Sample-02", "y": "TGF-beta signaling", "value": 0.58},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F23"]
+    assert (paper_root / "figures" / "generated" / "F23_gsva_ssgsea_heatmap.png").exists()
+    assert (paper_root / "figures" / "generated" / "F23_gsva_ssgsea_heatmap.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F23_gsva_ssgsea_heatmap.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["score_method"] == "GSVA"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F23"
+    assert figure_entry["template_id"] == "gsva_ssgsea_heatmap"
+    assert figure_entry["renderer_family"] == "r_ggplot2"
+    assert figure_entry["input_schema_id"] == "gsva_ssgsea_heatmap_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_heatmap"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_wraps_long_risk_layering_title_within_device(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -4065,4 +4156,38 @@ def test_load_evidence_display_payload_rejects_incomplete_clustered_heatmap_grid
             paper_root=paper_root,
             spec=spec,
             display_id="Figure21",
+        )
+
+
+def test_load_evidence_display_payload_rejects_gsva_heatmap_without_score_method(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "gsva_ssgsea_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "gsva_ssgsea_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure23",
+                    "template_id": "gsva_ssgsea_heatmap",
+                    "title": "GSVA heatmap for stromal programs",
+                    "caption": "Pathway activity overview.",
+                    "x_label": "Samples",
+                    "y_label": "Gene-set programs",
+                    "row_order": [{"label": "TGF-beta signaling"}],
+                    "column_order": [{"label": "Sample-01"}],
+                    "cells": [{"x": "Sample-01", "y": "TGF-beta signaling", "value": 0.58}],
+                }
+            ],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("gsva_ssgsea_heatmap")
+
+    with pytest.raises(ValueError, match="score_method"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure23",
         )

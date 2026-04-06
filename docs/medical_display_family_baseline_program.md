@@ -72,13 +72,13 @@ The current best-grounded baseline scoreboard is:
 | `D. Representation Structure and Data Geometry` | `yes` | `baseline_complete / hardening_pending` | grouped embedding baseline exists |
 | `E. Feature Pattern and Matrix` | `yes` | `baseline_complete / hardening_pending` | heatmap-style matrix baseline exists |
 | `F. Model Explanation` | `yes` | `baseline_complete / hardening_pending` | explanation baseline exists, but remains thin |
-| `G. Omics-Native Evidence` | `no` | `baseline_missing / onboarding_required` | no dedicated omics-native audited family is over the line yet |
+| `G. Omics-Native Evidence` | `yes` | `baseline_complete / hardening_pending` | dedicated omics-native baseline now exists through `gsva_ssgsea_heatmap` |
 | `H. Cohort and Study Design Evidence` | `yes` | `baseline_complete / hardening_active` | shells, tables, and generalizability surfaces exist |
 
 In other words:
 
-- current completion score is `7 / 8`;
-- the only family still missing a first audited baseline is `G`.
+- current completion score is `8 / 8`;
+- every `A-H` family now has a first audited baseline.
 
 ## Execution Strategy
 
@@ -106,15 +106,15 @@ OMX should continue in the following order unless a hard blocker overrides it:
 
 ## Current Default Next Family
 
-After the current `Phase 5 / integration / merge-back / monitor` baton finishes, the default next family should be:
+Now that `G` has its first audited baseline, the default next family should be:
 
-- `G. Omics-Native Evidence`
+- `F. Model Explanation`
 
 unless one of the following is true:
 
-1. integration reveals a fresh blocker that must be resolved first;
-2. the freshly integrated outputs require a formal `Phase 3` visual-audit round;
-3. a higher-priority real paper demand appears and clearly outranks proactive `G` onboarding.
+1. the newly integrated `G` outputs require a formal `Phase 3` visual-audit round;
+2. a harder cross-family deterministic gap is exposed in another weaker family;
+3. a higher-priority real paper demand appears and clearly outranks proactive `F` hardening.
 
 ## Acceptable First-Baseline Shapes For `G`
 

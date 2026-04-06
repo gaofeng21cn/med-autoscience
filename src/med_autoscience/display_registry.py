@@ -213,6 +213,16 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
+        template_id="gsva_ssgsea_heatmap",
+        display_name="GSVA/ssGSEA Heatmap",
+        evidence_class="matrix_pattern",
+        paper_family_ids=("G",),
+        renderer_family="r_ggplot2",
+        input_schema_id="gsva_ssgsea_heatmap_inputs_v1",
+        layout_qc_profile="publication_heatmap",
+        required_exports=("png", "pdf"),
+    ),
+    EvidenceFigureSpec(
         template_id="forest_effect_main",
         display_name="Forest Plot (Main Effects)",
         evidence_class="effect_estimate",

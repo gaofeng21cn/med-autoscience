@@ -436,16 +436,16 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `planned`
+- `partial`
 
 Current audited anchors:
 
-- no dedicated omics-native family is audited end to end yet
+- `gsva_ssgsea_heatmap`
 
 Current gap direction:
 
-- define the first dedicated omics-native audited templates through real paper demand
-- avoid pretending shared heatmap/scatter coverage already equals omics-native maturity
+- expand beyond the first omics-native baseline into volcano, enrichment, oncoplot, and mutation-landscape families as real paper demand appears
+- strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices without pretending shared neighboring templates already solve the whole family
 
 ### H. 队列与研究设计证据类
 

@@ -31,6 +31,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         "heatmap_group_comparison",
         "correlation_heatmap",
         "clustered_heatmap",
+        "gsva_ssgsea_heatmap",
         "forest_effect_main",
         "subgroup_forest",
         "shap_summary_beeswarm",
@@ -56,6 +57,7 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure7 = display_registry.get_evidence_figure_spec("time_dependent_roc_horizon")
     figure9 = display_registry.get_evidence_figure_spec("tsne_scatter_grouped")
     figure10 = display_registry.get_evidence_figure_spec("clustered_heatmap")
+    figure10b = display_registry.get_evidence_figure_spec("gsva_ssgsea_heatmap")
     figure12 = display_registry.get_evidence_figure_spec("subgroup_forest")
     figure14 = display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
     figure15 = display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
@@ -74,6 +76,10 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure9.layout_qc_profile == "publication_embedding_scatter"
     assert figure10.input_schema_id == "clustered_heatmap_inputs_v1"
     assert figure10.layout_qc_profile == "publication_heatmap"
+    assert figure10b.paper_family_ids == ("G",)
+    assert figure10b.evidence_class == "matrix_pattern"
+    assert figure10b.input_schema_id == "gsva_ssgsea_heatmap_inputs_v1"
+    assert figure10b.layout_qc_profile == "publication_heatmap"
     assert figure12.input_schema_id == "forest_effect_inputs_v1"
     assert figure12.layout_qc_profile == "publication_forest_plot"
     assert figure14.renderer_family == "python"
