@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.runtime_protocol.paper_artifacts import (
     find_unmanaged_submission_surface_roots,
+    resolve_archived_submission_surface_roots,
     resolve_artifact_manifest_from_main_result,
     resolve_latest_paper_root,
     resolve_managed_submission_surface_roots,
@@ -103,3 +104,97 @@ def test_submission_surface_resolution_distinguishes_managed_and_unmanaged_roots
         (paper_root / "submission_pituitary").resolve(),
         (paper_root / "journal_submissions" / "pituitary").resolve(),
     )
+
+
+def test_submission_surface_resolution_recognizes_archived_reference_only_legacy_root(tmp_path: Path) -> None:
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    submission_minimal_manifest = paper_root / "submission_minimal" / "submission_manifest.json"
+    dump_json(
+        submission_minimal_manifest,
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    archived_manifest = paper_root / "submission_pituitary" / "submission_manifest.json"
+    dump_json(
+        archived_manifest,
+        {
+            "schema_version": 1,
+            "surface_status": "archived_reference_only",
+            "archive_reason": "Retained only as a historical journal-target package.",
+            "active_managed_submission_manifest_path": "paper/submission_minimal/submission_manifest.json",
+        },
+    )
+
+    archived = resolve_archived_submission_surface_roots(paper_root)
+    unmanaged = find_unmanaged_submission_surface_roots(paper_root)
+
+    assert archived == ((paper_root / "submission_pituitary").resolve(),)
+    assert unmanaged == ()
+
+
+def test_submission_surface_resolution_rejects_archived_reference_only_when_target_manifest_is_outside_current_paper(
+    tmp_path: Path,
+) -> None:
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    external_paper_root = tmp_path / "other" / "paper"
+    dump_json(
+        external_paper_root / "submission_minimal" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    dump_json(
+        paper_root / "submission_pituitary" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "surface_status": "archived_reference_only",
+            "archive_reason": "Retained only as a historical journal-target package.",
+            "active_managed_submission_manifest_path": str(
+                (external_paper_root / "submission_minimal" / "submission_manifest.json").resolve()
+            ),
+        },
+    )
+
+    archived = resolve_archived_submission_surface_roots(paper_root)
+    unmanaged = find_unmanaged_submission_surface_roots(paper_root)
+
+    assert archived == ()
+    assert unmanaged == ((paper_root / "submission_pituitary").resolve(),)
+
+
+def test_submission_surface_resolution_rejects_archived_reference_only_when_target_manifest_is_not_a_managed_root(
+    tmp_path: Path,
+) -> None:
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    dump_json(
+        paper_root / "submission_minimal" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    dump_json(
+        paper_root / "notes" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    dump_json(
+        paper_root / "submission_pituitary" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "surface_status": "archived_reference_only",
+            "archive_reason": "Retained only as a historical journal-target package.",
+            "active_managed_submission_manifest_path": "paper/notes/submission_manifest.json",
+        },
+    )
+
+    archived = resolve_archived_submission_surface_roots(paper_root)
+    unmanaged = find_unmanaged_submission_surface_roots(paper_root)
+
+    assert archived == ()
+    assert unmanaged == ((paper_root / "submission_pituitary").resolve(),)

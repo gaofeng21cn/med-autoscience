@@ -33,15 +33,53 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
 SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier",)
 SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
+_LEGACY_REQUIREMENT_KEY_ALIASES: dict[str, tuple[str, ...]] = {
+    "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),
+}
 _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
     "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
     "table2_time_to_event_performance_summary": ("time_to_event_performance_summary", "table", "T2"),
     "time_to_event_discrimination_calibration_panel": ("discrimination_calibration", "figure", "F2"),
-    "kaplan_meier_grouped": ("km_risk_stratification", "figure", "F3"),
+    "time_to_event_risk_group_summary": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
     "multicenter_generalizability_overview": ("multicenter_generalizability", "figure", "F5"),
 }
+
+
+def normalize_requirement_key(requirement_key: object) -> str:
+    normalized = str(requirement_key or "").strip()
+    for canonical_key, aliases in _LEGACY_REQUIREMENT_KEY_ALIASES.items():
+        if normalized in aliases:
+            return canonical_key
+    return normalized
+
+
+def normalize_legacy_requirement_keys(payload: object) -> bool:
+    if not isinstance(payload, dict):
+        raise ValueError("medical_reporting_contract payload must be a JSON object")
+
+    updated = False
+    for key in ("figure_shell_requirements", "required_evidence_templates"):
+        values = payload.get(key)
+        if not isinstance(values, list):
+            continue
+        normalized_values = [normalize_requirement_key(value) for value in values]
+        if normalized_values != values:
+            payload[key] = normalized_values
+            updated = True
+
+    display_shell_plan = payload.get("display_shell_plan")
+    if isinstance(display_shell_plan, list):
+        for item in display_shell_plan:
+            if not isinstance(item, dict):
+                continue
+            normalized_requirement_key = normalize_requirement_key(item.get("requirement_key"))
+            if normalized_requirement_key and normalized_requirement_key != item.get("requirement_key"):
+                item["requirement_key"] = normalized_requirement_key
+                updated = True
+
+    return updated
 
 
 def _build_display_shell_plan(
@@ -111,7 +149,7 @@ def resolve_medical_reporting_contract(
         figure_shell_requirements = (
             "cohort_flow_figure",
             "time_to_event_discrimination_calibration_panel",
-            "kaplan_meier_grouped",
+            "time_to_event_risk_group_summary",
             "time_to_event_decision_curve",
             "multicenter_generalizability_overview",
         )

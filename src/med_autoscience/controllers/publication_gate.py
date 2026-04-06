@@ -28,6 +28,8 @@ class GateState:
     compile_report: dict[str, Any] | None
     latest_gate_path: Path | None
     latest_gate: dict[str, Any] | None
+    latest_medical_publication_surface_path: Path | None
+    latest_medical_publication_surface: dict[str, Any] | None
     active_run_stdout_path: Path | None
     recent_stdout_lines: list[str]
     write_drift_detected: bool
@@ -39,6 +41,8 @@ class GateState:
     submission_minimal_manifest: dict[str, Any] | None
     submission_minimal_docx_present: bool
     submission_minimal_pdf_present: bool
+    submission_surface_qc_failures: list[dict[str, Any]]
+    archived_submission_surface_roots: list[str]
     unmanaged_submission_surface_roots: list[str]
     manuscript_terminology_violations: list[dict[str, str]]
 
@@ -66,6 +70,10 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 def find_latest_gate_report(quest_root: Path) -> Path | None:
     return find_latest(list((quest_root / "artifacts" / "reports" / "publishability_gate").glob("*.json")))
+
+
+def find_latest_medical_publication_surface_report(quest_root: Path) -> Path | None:
+    return find_latest(list((quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json")))
 
 
 def detect_write_drift(lines: list[str]) -> bool:
@@ -145,6 +153,36 @@ def detect_manuscript_terminology_violations(paper_root: Path | None) -> list[di
                     }
                 )
     return violations
+
+
+def collect_submission_surface_qc_failures(submission_minimal_manifest: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(submission_minimal_manifest, dict):
+        return []
+    failures: list[dict[str, Any]] = []
+    for collection_key, item_id_key, descriptor_key in (
+        ("figures", "figure_id", "template_id"),
+        ("tables", "table_id", "table_shell_id"),
+    ):
+        for index, item in enumerate(submission_minimal_manifest.get(collection_key, []) or []):
+            if not isinstance(item, dict):
+                continue
+            qc_result = item.get("qc_result")
+            if not isinstance(qc_result, dict):
+                continue
+            qc_status = str(qc_result.get("status") or "").strip().lower()
+            if qc_status != "fail":
+                continue
+            failures.append(
+                {
+                    "collection": collection_key,
+                    "item_id": str(item.get(item_id_key) or f"{collection_key}[{index}]").strip(),
+                    "descriptor": str(item.get(descriptor_key) or "").strip(),
+                    "qc_profile": str(item.get("qc_profile") or qc_result.get("qc_profile") or "").strip(),
+                    "failure_reason": str(qc_result.get("failure_reason") or "").strip(),
+                    "audit_classes": list(qc_result.get("audit_classes") or []),
+                }
+            )
+    return failures
 
 
 def gate_allows_write(
@@ -227,6 +265,10 @@ def build_gate_state(quest_root: Path) -> GateState:
     compile_report = load_json(compile_report_path) if compile_report_path else None
     latest_gate_path = find_latest_gate_report(quest_root)
     latest_gate = load_json(latest_gate_path) if latest_gate_path else None
+    latest_medical_publication_surface_path = find_latest_medical_publication_surface_report(quest_root)
+    latest_medical_publication_surface = (
+        load_json(latest_medical_publication_surface_path) if latest_medical_publication_surface_path else None
+    )
     stdout_path = quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
     recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
     if main_result_path is not None and main_result is not None:
@@ -240,6 +282,12 @@ def build_gate_state(quest_root: Path) -> GateState:
     submission_minimal_docx_path, submission_minimal_pdf_path = paper_artifacts.resolve_submission_minimal_output_paths(
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
+    )
+    submission_surface_qc_failures = collect_submission_surface_qc_failures(submission_minimal_manifest)
+    archived_submission_surface_roots = (
+        [str(path) for path in paper_artifacts.resolve_archived_submission_surface_roots(paper_root)]
+        if paper_root is not None
+        else []
     )
     unmanaged_submission_surface_roots = (
         [str(path) for path in paper_artifacts.find_unmanaged_submission_surface_roots(paper_root)]
@@ -261,6 +309,8 @@ def build_gate_state(quest_root: Path) -> GateState:
         compile_report=compile_report,
         latest_gate_path=latest_gate_path,
         latest_gate=latest_gate,
+        latest_medical_publication_surface_path=latest_medical_publication_surface_path,
+        latest_medical_publication_surface=latest_medical_publication_surface,
         active_run_stdout_path=stdout_path,
         recent_stdout_lines=recent_lines,
         write_drift_detected=detect_write_drift(recent_lines),
@@ -272,6 +322,8 @@ def build_gate_state(quest_root: Path) -> GateState:
         submission_minimal_manifest=submission_minimal_manifest,
         submission_minimal_docx_present=bool(submission_minimal_docx_path and submission_minimal_docx_path.exists()),
         submission_minimal_pdf_present=bool(submission_minimal_pdf_path and submission_minimal_pdf_path.exists()),
+        submission_surface_qc_failures=submission_surface_qc_failures,
+        archived_submission_surface_roots=archived_submission_surface_roots,
         unmanaged_submission_surface_roots=unmanaged_submission_surface_roots,
         manuscript_terminology_violations=manuscript_terminology_violations,
     )
@@ -327,8 +379,14 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
     if state.unmanaged_submission_surface_roots:
         blockers.append("unmanaged_submission_surface_present")
+    medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
+    if medical_publication_surface_status and medical_publication_surface_status != "clear":
+        blockers.append("medical_publication_surface_blocked")
+    if state.submission_surface_qc_failures:
+        blockers.append("submission_surface_qc_failure_present")
     if state.manuscript_terminology_violations:
         blockers.append("forbidden_manuscript_terminology")
+    allow_write = allow_write and not blockers
 
     return {
         "schema_version": 1,
@@ -347,6 +405,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "paper_root": str(state.paper_root) if state.paper_root else None,
         "compile_report_path": str(state.compile_report_path) if state.compile_report_path else None,
         "latest_gate_path": str(state.latest_gate_path) if state.latest_gate_path else None,
+        "medical_publication_surface_report_path": (
+            str(state.latest_medical_publication_surface_path) if state.latest_medical_publication_surface_path else None
+        ),
         "allow_write": allow_write,
         "recommended_action": (
             publication_gate_policy.BLOCKED_RECOMMENDED_ACTION
@@ -368,6 +429,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
+        "medical_publication_surface_status": medical_publication_surface_status or None,
+        "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
+        "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
         "unmanaged_submission_surface_roots": list(state.unmanaged_submission_surface_roots),
         "manuscript_terminology_violations": list(state.manuscript_terminology_violations),
         "headline_metrics": (state.main_result or {}).get("metrics_summary") or {},
@@ -383,6 +447,7 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
     missing = report.get("missing_non_scalar_deliverables") or []
     metrics = report.get("headline_metrics") or {}
     terminology_violations = report.get("manuscript_terminology_violations") or []
+    submission_surface_qc_failures = report.get("submission_surface_qc_failures") or []
     lines = [
         "# Publishability Gate Control Report",
         "",
@@ -433,9 +498,21 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
+            f"- `medical_publication_surface_report_path`: `{report.get('medical_publication_surface_report_path')}`",
+            f"- `medical_publication_surface_status`: `{report.get('medical_publication_surface_status')}`",
         ]
     )
     unmanaged_roots = report.get("unmanaged_submission_surface_roots") or []
+    archived_roots = report.get("archived_submission_surface_roots") or []
+    if archived_roots:
+        lines.extend(
+            [
+                "",
+                "## Archived Legacy Submission Surfaces",
+                "",
+                *[f"- `{item}`" for item in archived_roots],
+            ]
+        )
     if unmanaged_roots:
         lines.extend(
             [
@@ -443,6 +520,34 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
                 "## Unmanaged Submission Surfaces",
                 "",
                 *[f"- `{item}`" for item in unmanaged_roots],
+            ]
+        )
+    if submission_surface_qc_failures:
+        lines.extend(
+            [
+                "",
+                "## Submission Surface QC Failures",
+                "",
+            ]
+        )
+        lines.extend(
+            "- `{collection}` `{item_id}` ({descriptor}) failed `{qc_profile}` with `{failure_reason}` audit classes {audit_classes}".format(
+                collection=item.get("collection"),
+                item_id=item.get("item_id"),
+                descriptor=item.get("descriptor") or "unlabeled",
+                qc_profile=item.get("qc_profile") or "unknown_qc_profile",
+                failure_reason=item.get("failure_reason") or "unspecified_failure",
+                audit_classes=item.get("audit_classes") or [],
+            )
+            for item in submission_surface_qc_failures
+        )
+    else:
+        lines.extend(
+            [
+                "",
+                "## Submission Surface QC Failures",
+                "",
+                "- None",
             ]
         )
     if terminology_violations:

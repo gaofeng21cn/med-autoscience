@@ -751,47 +751,57 @@ def build_display_surface_workspace(
                             "display_id": "Figure14",
                             "template_id": "time_to_event_discrimination_calibration_panel",
                             "title": "Time-to-event discrimination and grouped calibration",
-                            "caption": "Horizon-specific discrimination and calibration structure for the locked survival model.",
-                            "discrimination_x_label": "1 - Specificity",
-                            "discrimination_y_label": "Sensitivity",
-                            "calibration_x_label": "Months from surgery",
-                            "calibration_y_label": "Observed event-free probability",
-                            "discrimination_reference_line": {
-                                "x": [0.0, 1.0],
-                                "y": [0.0, 1.0],
-                                "label": "Chance",
-                            },
-                            "calibration_reference_line": {
-                                "x": [0.0, 24.0],
-                                "y": [1.0, 0.60],
-                                "label": "Expected",
-                            },
-                            "discrimination_series": [
+                            "caption": "Validation discrimination and grouped 5-year calibration for the locked survival model.",
+                            "panel_a_title": "Validation discrimination",
+                            "panel_b_title": "Grouped 5-year calibration",
+                            "discrimination_x_label": "Validation C-index",
+                            "calibration_x_label": "Risk decile",
+                            "calibration_y_label": "5-year risk (%)",
+                            "discrimination_points": [
                                 {
-                                    "label": "12-month horizon",
-                                    "x": [0.0, 0.10, 0.22, 1.0],
-                                    "y": [0.0, 0.71, 0.86, 1.0],
-                                    "annotation": "AUC = 0.83",
+                                    "label": "Ridge Cox",
+                                    "c_index": 0.83,
+                                    "annotation": "0.830",
                                 },
                                 {
-                                    "label": "24-month horizon",
-                                    "x": [0.0, 0.15, 0.30, 1.0],
-                                    "y": [0.0, 0.66, 0.81, 1.0],
-                                    "annotation": "AUC = 0.79",
+                                    "label": "Lasso Cox",
+                                    "c_index": 0.79,
+                                    "annotation": "0.790",
                                 },
                             ],
-                            "calibration_groups": [
+                            "calibration_summary": [
                                 {
-                                    "label": "Predicted low risk",
-                                    "times": [0, 6, 12, 18, 24],
-                                    "values": [1.0, 0.96, 0.92, 0.90, 0.87],
+                                    "group_label": "Decile 1",
+                                    "group_order": 1,
+                                    "n": 60,
+                                    "events_5y": 1,
+                                    "predicted_risk_5y": 0.012,
+                                    "observed_risk_5y": 0.010,
                                 },
                                 {
-                                    "label": "Predicted high risk",
-                                    "times": [0, 6, 12, 18, 24],
-                                    "values": [1.0, 0.86, 0.75, 0.66, 0.58],
+                                    "group_label": "Decile 5",
+                                    "group_order": 5,
+                                    "n": 60,
+                                    "events_5y": 3,
+                                    "predicted_risk_5y": 0.026,
+                                    "observed_risk_5y": 0.032,
+                                },
+                                {
+                                    "group_label": "Decile 10",
+                                    "group_order": 10,
+                                    "n": 60,
+                                    "events_5y": 8,
+                                    "predicted_risk_5y": 0.051,
+                                    "observed_risk_5y": 0.074,
                                 },
                             ],
+                            "calibration_callout": {
+                                "group_label": "Decile 10",
+                                "predicted_risk_5y": 0.051,
+                                "observed_risk_5y": 0.074,
+                                "events_5y": 8,
+                                "n": 60,
+                            },
                         }
                     ],
                 },
@@ -1079,22 +1089,37 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
             "layout_boxes": [
                 {"box_id": "title", "box_type": "title", "x0": 0.12, "y0": 0.02, "x1": 0.62, "y1": 0.08},
-                {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.23, "y0": 0.90, "x1": 0.43, "y1": 0.95},
-                {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+                {"box_id": "panel_left_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.16, "y0": 0.90, "x1": 0.32, "y1": 0.95},
+                {"box_id": "panel_left_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.02, "y0": 0.24, "x1": 0.06, "y1": 0.74},
+                {"box_id": "panel_left_title", "box_type": "panel_title", "x0": 0.12, "y0": 0.10, "x1": 0.40, "y1": 0.15},
+                {"box_id": "calibration_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.62, "y0": 0.90, "x1": 0.78, "y1": 0.95},
+                {"box_id": "calibration_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.52, "y0": 0.24, "x1": 0.56, "y1": 0.74},
+                {"box_id": "panel_right_title", "box_type": "panel_title", "x0": 0.58, "y0": 0.10, "x1": 0.88, "y1": 0.15},
+                {"box_id": "annotation_callout", "box_type": "annotation_block", "x0": 0.66, "y0": 0.02, "x1": 0.94, "y1": 0.08},
+                {"box_id": "discrimination_marker_1", "box_type": "metric_marker", "x0": 0.24, "y0": 0.34, "x1": 0.26, "y1": 0.38},
+                {"box_id": "discrimination_marker_2", "box_type": "metric_marker", "x0": 0.28, "y0": 0.56, "x1": 0.30, "y1": 0.60},
+                {"box_id": "predicted_marker_1", "box_type": "metric_marker", "x0": 0.62, "y0": 0.46, "x1": 0.64, "y1": 0.50},
+                {"box_id": "observed_marker_1", "box_type": "metric_marker", "x0": 0.62, "y0": 0.44, "x1": 0.64, "y1": 0.48},
+                {"box_id": "predicted_marker_2", "box_type": "metric_marker", "x0": 0.70, "y0": 0.52, "x1": 0.72, "y1": 0.56},
+                {"box_id": "observed_marker_2", "box_type": "metric_marker", "x0": 0.70, "y0": 0.55, "x1": 0.72, "y1": 0.59},
             ],
             "panel_boxes": [
                 {"box_id": "panel_left", "box_type": "panel", "x0": 0.10, "y0": 0.18, "x1": 0.44, "y1": 0.84},
                 {"box_id": "panel_right", "box_type": "panel", "x0": 0.54, "y0": 0.18, "x1": 0.88, "y1": 0.84},
             ],
             "guide_boxes": [
-                {"box_id": "legend", "box_type": "legend", "x0": 0.76, "y0": 0.08, "x1": 0.94, "y1": 0.16},
+                {"box_id": "legend", "box_type": "legend", "x0": 0.34, "y0": 0.02, "x1": 0.62, "y1": 0.08},
             ],
             "metrics": {
-                "series": [
-                    {"label": "12-month horizon", "x": [0.0, 0.4, 1.0], "y": [0.0, 0.72, 1.0]},
-                    {"label": "24-month horizon", "x": [0.0, 0.5, 1.0], "y": [0.0, 0.68, 1.0]},
+                "discrimination_points": [
+                    {"label": "Ridge Cox", "c_index": 0.83},
+                    {"label": "Lasso Cox", "c_index": 0.79},
                 ],
-                "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
+                "calibration_summary": [
+                    {"group_label": "Decile 1", "group_order": 1, "n": 60, "events_5y": 1, "predicted_risk_5y": 0.012, "observed_risk_5y": 0.010},
+                    {"group_label": "Decile 10", "group_order": 10, "n": 60, "events_5y": 8, "predicted_risk_5y": 0.051, "observed_risk_5y": 0.074},
+                ],
+                "calibration_callout": {"group_label": "Decile 10", "predicted_risk_5y": 0.051, "observed_risk_5y": 0.074},
             },
         }
     if template_id == "time_to_event_decision_curve":
@@ -1206,6 +1231,9 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
             "layout_boxes": [
                 {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.62, "y1": 0.08},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.09, "y0": 0.47, "x1": 0.12, "y1": 0.51},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.09, "y0": 0.89, "x1": 0.12, "y1": 0.93},
+                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.57, "y0": 0.89, "x1": 0.60, "y1": 0.93},
                 {"box_id": "center_event_y_axis_title", "box_type": "y_axis_title", "x0": 0.01, "y0": 0.12, "x1": 0.05, "y1": 0.52},
                 {"box_id": "coverage_y_axis_title", "box_type": "y_axis_title", "x0": 0.01, "y0": 0.58, "x1": 0.05, "y1": 0.94},
                 {"box_id": "center_event_bar_1", "box_type": "center_event_bar", "x0": 0.08, "y0": 0.14, "x1": 0.20, "y1": 0.52},
@@ -1222,6 +1250,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "coverage_panel_wide_left", "box_type": "coverage_panel", "x0": 0.08, "y0": 0.64, "x1": 0.44, "y1": 0.94},
                 {"box_id": "coverage_panel_top_right", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.58, "x1": 0.92, "y1": 0.78},
                 {"box_id": "coverage_panel_bottom_right", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.82, "x1": 0.92, "y1": 0.94},
+                {"box_id": "coverage_panel_right_stack", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.58, "x1": 0.92, "y1": 0.94},
             ],
             "guide_boxes": [],
             "metrics": {
@@ -2335,6 +2364,194 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
 
 
+def test_materialize_display_surface_materializes_optional_submission_graphical_abstract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "submission_graphical_abstract.json",
+        {
+            "schema_version": 1,
+            "shell_id": "submission_graphical_abstract",
+            "display_id": "submission_graphical_abstract",
+            "catalog_id": "GA1",
+            "paper_role": "submission_companion",
+            "title": "Submission companion overview",
+            "caption": "A programmatic graphical abstract aligned to the audited paper-facing surface.",
+            "panels": [
+                {
+                    "panel_id": "cohort_split",
+                    "panel_label": "A",
+                    "title": "Cohort and split",
+                    "subtitle": "Locked analysis cohort",
+                    "rows": [{"cards": [{"card_id": "analytic", "title": "Analytic cohort", "value": "15,787", "detail": "Formal modeling cohort"}]}],
+                },
+                {
+                    "panel_id": "primary_endpoint",
+                    "panel_label": "B",
+                    "title": "Primary endpoint",
+                    "subtitle": "Cardiovascular mortality",
+                    "rows": [{"cards": [{"card_id": "ridge", "title": "Validation C-index", "value": "0.857", "detail": "Primary five-year endpoint", "accent_role": "primary"}]}],
+                },
+                {
+                    "panel_id": "supportive_context",
+                    "panel_label": "C",
+                    "title": "Supportive context",
+                    "subtitle": "Applicability boundary",
+                    "rows": [{"cards": [{"card_id": "boundary", "title": "Transportability boundary", "value": "No external validation", "detail": "Internal cohort only", "accent_role": "audit"}]}],
+                },
+            ],
+            "footer_pills": [
+                {"pill_id": "p1", "panel_id": "cohort_split", "label": "Internal validation only", "style_role": "neutral"},
+                {"pill_id": "p2", "panel_id": "primary_endpoint", "label": "Supportive endpoint retained", "style_role": "secondary"},
+                {"pill_id": "p3", "panel_id": "supportive_context", "label": "No external validation", "style_role": "audit"},
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert "GA1" in result["figures_materialized"]
+    assert (paper_root / "figures" / "generated" / "GA1_graphical_abstract.svg").exists()
+    assert (paper_root / "figures" / "generated" / "GA1_graphical_abstract.png").exists()
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["GA1"]["template_id"] == "submission_graphical_abstract"
+    assert figures_by_id["GA1"]["qc_profile"] == "submission_graphical_abstract"
+    assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
+
+
+def test_choose_submission_graphical_abstract_arrow_lane_prefers_shared_blank_gap() -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+
+    lane_center_y = module._choose_submission_graphical_abstract_arrow_lane(
+        left_panel_box={"x0": 10.0, "y0": 100.0, "x1": 210.0, "y1": 480.0},
+        right_panel_box={"x0": 250.0, "y0": 100.0, "x1": 450.0, "y1": 480.0},
+        left_occupied_boxes=(
+            {"x0": 24.0, "y0": 120.0, "x1": 196.0, "y1": 190.0},
+            {"x0": 24.0, "y0": 392.0, "x1": 196.0, "y1": 450.0},
+        ),
+        right_occupied_boxes=(
+            {"x0": 264.0, "y0": 130.0, "x1": 436.0, "y1": 200.0},
+            {"x0": 264.0, "y0": 382.0, "x1": 436.0, "y1": 440.0},
+        ),
+        clearance_pt=12.0,
+        arrow_half_height_pt=18.0,
+    )
+
+    assert 240.0 <= lane_center_y <= 320.0
+
+
+def test_choose_submission_graphical_abstract_arrow_lane_prefers_shared_midline_over_larger_top_gap() -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+
+    lane_center_y = module._choose_submission_graphical_abstract_arrow_lane(
+        left_panel_box={"x0": 10.0, "y0": 100.0, "x1": 210.0, "y1": 500.0},
+        right_panel_box={"x0": 250.0, "y0": 100.0, "x1": 450.0, "y1": 500.0},
+        left_occupied_boxes=(
+            {"x0": 24.0, "y0": 240.0, "x1": 196.0, "y1": 280.0},
+            {"x0": 24.0, "y0": 350.0, "x1": 196.0, "y1": 380.0},
+        ),
+        right_occupied_boxes=(
+            {"x0": 264.0, "y0": 240.0, "x1": 436.0, "y1": 280.0},
+            {"x0": 264.0, "y0": 350.0, "x1": 436.0, "y1": 380.0},
+        ),
+        clearance_pt=12.0,
+        arrow_half_height_pt=18.0,
+    )
+
+    assert 300.0 <= lane_center_y <= 330.0
+
+
+def test_materialize_display_surface_wraps_or_stacks_long_graphical_abstract_boundary_cards(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "submission_graphical_abstract.json",
+        {
+            "schema_version": 1,
+            "shell_id": "submission_graphical_abstract",
+            "display_id": "submission_graphical_abstract",
+            "catalog_id": "GA1",
+            "paper_role": "submission_companion",
+            "title": "Submission companion overview",
+            "caption": "A programmatic graphical abstract aligned to the audited paper-facing surface.",
+            "panels": [
+                {
+                    "panel_id": "cohort_split",
+                    "panel_label": "A",
+                    "title": "Cohort and split",
+                    "subtitle": "Locked analysis cohort",
+                    "rows": [{"cards": [{"card_id": "analytic", "title": "Analytic cohort", "value": "15,787", "detail": "Formal modeling cohort"}]}],
+                },
+                {
+                    "panel_id": "primary_endpoint",
+                    "panel_label": "B",
+                    "title": "Primary endpoint",
+                    "subtitle": "Cardiovascular mortality",
+                    "rows": [{"cards": [{"card_id": "ridge", "title": "Validation C-index", "value": "0.857", "detail": "Primary five-year endpoint", "accent_role": "primary"}]}],
+                },
+                {
+                    "panel_id": "supportive_context",
+                    "panel_label": "C",
+                    "title": "Supportive context",
+                    "subtitle": "Applicability boundary",
+                    "rows": [
+                        {
+                            "cards": [
+                                {
+                                    "card_id": "internal_boundary",
+                                    "title": "Applicability boundary",
+                                    "value": "Internal validation only",
+                                    "detail": "Multicenter support inside the current cohort",
+                                    "accent_role": "contrast",
+                                },
+                                {
+                                    "card_id": "transportability_boundary",
+                                    "title": "Transportability boundary",
+                                    "value": "No external validation",
+                                    "detail": "Do not expand beyond the audited cohort",
+                                    "accent_role": "audit",
+                                },
+                            ]
+                        }
+                    ],
+                },
+            ],
+            "footer_pills": [
+                {"pill_id": "p1", "panel_id": "cohort_split", "label": "Internal validation only", "style_role": "neutral"},
+                {"pill_id": "p2", "panel_id": "primary_endpoint", "label": "Supportive endpoint retained", "style_role": "secondary"},
+                {"pill_id": "p3", "panel_id": "supportive_context", "label": "No external validation", "style_role": "audit"},
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "GA1_graphical_abstract.layout.json").read_text(encoding="utf-8")
+    )
+    value_boxes = {
+        item["box_id"]: item
+        for item in layout_sidecar["layout_boxes"]
+        if item["box_type"] == "card_value"
+    }
+    arrow_boxes = [
+        item
+        for item in layout_sidecar["guide_boxes"]
+        if item["box_type"] == "arrow_connector"
+    ]
+    arrow_mid_ys = [((item["y0"] + item["y1"]) / 2.0) for item in arrow_boxes]
+    assert value_boxes["supportive_context_internal_boundary_value"]["x1"] <= 1.0
+    assert value_boxes["supportive_context_transportability_boundary_value"]["x1"] <= 1.0
+    assert len(arrow_boxes) == 2
+    assert max(arrow_mid_ys) - min(arrow_mid_ys) <= 0.03
+
+
 def test_materialize_display_surface_supports_generic_anchor_table_shells(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -2715,6 +2932,7 @@ def test_materialize_display_surface_generates_binary_calibration_decision_curve
                     "calibration_y_label": "Observed probability",
                     "decision_x_label": "Threshold probability",
                     "decision_y_label": "Net benefit",
+                    "calibration_axis_window": {"xmin": 0.0, "xmax": 0.5, "ymin": 0.0, "ymax": 0.35},
                     "calibration_reference_line": {"label": "Ideal", "x": [0.0, 1.0], "y": [0.0, 1.0]},
                     "calibration_series": [
                         {"label": "Core preoperative model", "x": [0.15, 0.25, 0.35, 0.45], "y": [0.04, 0.08, 0.16, 0.32]},
@@ -2943,6 +3161,438 @@ def test_materialize_display_surface_honors_calibration_axis_window_for_binary_c
     assert all(0.0 <= value <= 1.0 for value in reference_line["y"])
     assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
     assert sum(1 for item in layout_sidecar["layout_boxes"] if item["box_type"] == "subplot_title") == 2
+
+
+def test_materialize_display_surface_omits_figure_title_for_time_to_event_discrimination_calibration_panel_by_default(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "discrimination_calibration",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    "catalog_id": "F2",
+                    "shell_path": "paper/figures/discrimination_calibration.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "time_to_event_discrimination_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "discrimination_calibration",
+                    "template_id": "time_to_event_discrimination_calibration_panel",
+                    "title": "Validation discrimination and grouped calibration for 5-year cardiovascular mortality",
+                    "caption": "Validation discrimination remained strong, and grouped calibration showed underprediction in the highest-risk decile.",
+                    "panel_a_title": "Validation discrimination",
+                    "panel_b_title": "Grouped 5-year calibration",
+                    "discrimination_x_label": "Validation C-index",
+                    "calibration_x_label": "Risk decile",
+                    "calibration_y_label": "5-year risk (%)",
+                    "discrimination_points": [
+                        {"label": "CoxPH", "c_index": 0.857306, "annotation": "0.857"},
+                        {"label": "LassoCox", "c_index": 0.849734, "annotation": "0.850"},
+                    ],
+                    "calibration_summary": [
+                        {"group_label": "Decile 1", "group_order": 1, "n": 732, "events_5y": 0, "predicted_risk_5y": 0.0013, "observed_risk_5y": 0.0},
+                        {"group_label": "Decile 10", "group_order": 10, "n": 731, "events_5y": 26, "predicted_risk_5y": 0.0159, "observed_risk_5y": 0.0356},
+                    ],
+                    "calibration_callout": {
+                        "group_label": "Decile 10",
+                        "predicted_risk_5y": 0.0159,
+                        "observed_risk_5y": 0.0356,
+                        "events_5y": 26,
+                        "n": 731,
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F2_time_to_event_discrimination_calibration_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+
+
+def test_materialize_display_surface_places_time_to_event_callout_in_right_upper_blank_zone(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "discrimination_calibration",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_discrimination_calibration_panel",
+                    "catalog_id": "F2",
+                    "shell_path": "paper/figures/discrimination_calibration.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "time_to_event_discrimination_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_discrimination_calibration_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "discrimination_calibration",
+                    "template_id": "time_to_event_discrimination_calibration_panel",
+                    "title": "Validation discrimination and grouped calibration for 5-year cardiovascular mortality",
+                    "caption": "Validation discrimination remained strong, and grouped calibration showed underprediction in the highest-risk decile.",
+                    "panel_a_title": "Validation discrimination",
+                    "panel_b_title": "Grouped 5-year calibration",
+                    "discrimination_x_label": "Validation C-index",
+                    "calibration_x_label": "Risk decile",
+                    "calibration_y_label": "5-year risk (%)",
+                    "discrimination_points": [
+                        {"label": "CoxPH", "c_index": 0.857306, "annotation": "0.857"},
+                        {"label": "LassoCox", "c_index": 0.849734, "annotation": "0.850"},
+                    ],
+                    "calibration_summary": [
+                        {"group_label": "Decile 1", "group_order": 1, "n": 732, "events_5y": 0, "predicted_risk_5y": 0.0013, "observed_risk_5y": 0.0},
+                        {"group_label": "Decile 10", "group_order": 10, "n": 731, "events_5y": 26, "predicted_risk_5y": 0.0159, "observed_risk_5y": 0.0356},
+                    ],
+                    "calibration_callout": {
+                        "group_label": "Decile 10",
+                        "predicted_risk_5y": 0.0159,
+                        "observed_risk_5y": 0.0356,
+                        "events_5y": 26,
+                        "n": 731,
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F2_time_to_event_discrimination_calibration_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    panel_boxes = {item["box_id"]: item for item in layout_sidecar["panel_boxes"]}
+    annotation_box = layout_boxes["annotation_callout"]
+    left_panel = panel_boxes["panel_left"]
+    right_panel = panel_boxes["panel_right"]
+    right_title = layout_boxes["panel_right_title"]
+
+    assert annotation_box["x0"] >= left_panel["x1"] + 0.02
+    assert right_panel["x0"] <= annotation_box["x0"] <= right_panel["x0"] + (right_panel["x1"] - right_panel["x0"]) * 0.14
+    assert annotation_box["x1"] <= right_panel["x0"] + (right_panel["x1"] - right_panel["x0"]) * 0.58
+    assert annotation_box["y0"] >= right_panel["y0"] + 0.01
+    assert annotation_box["y1"] <= right_panel["y1"] - 0.03
+    assert (
+        annotation_box["y1"] <= right_title["y0"] - 0.005
+        or annotation_box["y0"] >= right_title["y1"] + 0.005
+    )
+    assert annotation_box["y1"] >= right_panel["y0"] + (right_panel["y1"] - right_panel["y0"]) * 0.58
+
+
+def test_materialize_display_surface_omits_figure_title_and_legend_for_time_to_event_risk_group_summary_by_default(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_risk_group_summary",
+                    "catalog_id": "F3",
+                    "shell_path": "paper/figures/km_risk_stratification.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "time_to_event_grouped_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_grouped_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "km_risk_stratification",
+                    "template_id": "time_to_event_risk_group_summary",
+                    "title": "Tertile-based 5-year cardiovascular risk stratification",
+                    "caption": "Predicted versus observed 5-year cardiovascular risk and observed event concentration across prespecified validation tertiles.",
+                    "panel_a_title": "Predicted and observed risk by tertile",
+                    "panel_b_title": "Event concentration across tertiles",
+                    "x_label": "Risk tertile",
+                    "y_label": "5-year risk (%)",
+                    "event_count_y_label": "Observed 5-year events",
+                    "risk_group_summaries": [
+                        {"label": "Low risk", "sample_size": 2437, "events_5y": 0, "mean_predicted_risk_5y": 0.0022, "observed_km_risk_5y": 0.0},
+                        {"label": "Intermediate risk", "sample_size": 2437, "events_5y": 4, "mean_predicted_risk_5y": 0.0047, "observed_km_risk_5y": 0.0016},
+                        {"label": "High risk", "sample_size": 2437, "events_5y": 44, "mean_predicted_risk_5y": 0.0105, "observed_km_risk_5y": 0.0181},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F3_time_to_event_risk_group_summary.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+    assert not any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+
+
+def test_materialize_display_surface_omits_figure_title_and_legend_for_time_to_event_decision_curve_by_default(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "decision_curve",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_decision_curve",
+                    "catalog_id": "F4",
+                    "shell_path": "paper/figures/decision_curve.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "time_to_event_decision_curve_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_decision_curve_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "decision_curve",
+                    "template_id": "time_to_event_decision_curve",
+                    "title": "Five-year decision curve",
+                    "caption": "Net benefit for the locked survival model across the prespecified threshold range.",
+                    "panel_a_title": "Decision-curve net benefit",
+                    "panel_b_title": "Model-treated fraction",
+                    "x_label": "Threshold risk (%)",
+                    "y_label": "Net benefit",
+                    "treated_fraction_y_label": "Patients classified above threshold (%)",
+                    "reference_line": {"x": [0.5, 4.0], "y": [0.0, 0.0], "label": "Treat none"},
+                    "series": [
+                        {"label": "Model", "x": [0.5, 1.0, 2.0, 4.0], "y": [0.004, 0.003, 0.001, 0.0]},
+                        {"label": "Treat all", "x": [0.5, 1.0, 2.0, 4.0], "y": [0.002, -0.003, -0.014, -0.035]},
+                    ],
+                    "treated_fraction_series": {
+                        "label": "Model",
+                        "x": [0.5, 1.0, 2.0, 4.0],
+                        "y": [45.0, 28.0, 12.0, 2.0],
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F4_time_to_event_decision_curve.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+    assert not any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+
+
+def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_compacts_center_tick_labels(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "display_kind": "figure",
+                    "requirement_key": "multicenter_generalizability_overview",
+                    "catalog_id": "F5",
+                    "shell_path": "paper/figures/multicenter_generalizability.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "multicenter_generalizability_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "multicenter_generalizability_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "multicenter_generalizability",
+                    "template_id": "multicenter_generalizability_overview",
+                    "catalog_id": "F5",
+                    "paper_role": "main_text",
+                    "title": "Internal multicenter heterogeneity summary",
+                    "caption": "Center-level event support with coverage context under the frozen split.",
+                    "overview_mode": "center_support_counts",
+                    "center_event_y_label": "5-year CVD events",
+                    "coverage_y_label": "Patient count",
+                    "center_event_counts": [
+                        {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
+                        {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
+                        {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                    ],
+                    "coverage_panels": [
+                        {
+                            "panel_id": "region",
+                            "title": "Region coverage",
+                            "layout_role": "wide_left",
+                            "bars": [{"label": "Central", "count": 72}],
+                        },
+                        {
+                            "panel_id": "north_south",
+                            "title": "North vs South",
+                            "layout_role": "top_right",
+                            "bars": [{"label": "North", "count": 84}],
+                        },
+                        {
+                            "panel_id": "urban_rural",
+                            "title": "Urban/rural",
+                            "layout_role": "bottom_right",
+                            "bars": [{"label": "Urban", "count": 101}],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F5_multicenter_generalizability_overview.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    layout_box_ids = {item["box_id"] for item in layout_sidecar["layout_boxes"]}
+    panel_box_ids = {item["box_id"] for item in layout_sidecar["panel_boxes"]}
+    assert {"panel_label_A", "panel_label_B", "panel_label_C"} <= layout_box_ids
+    assert "coverage_panel_right_stack" in panel_box_ids
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    panel_boxes = {item["box_id"]: item for item in layout_sidecar["panel_boxes"]}
+    for label_box_id, panel_box_id in {
+        "panel_label_A": "center_event_panel",
+        "panel_label_B": "coverage_panel_wide_left",
+        "panel_label_C": "coverage_panel_right_stack",
+    }.items():
+        label_box = layout_boxes[label_box_id]
+        panel_box = panel_boxes[panel_box_id]
+        panel_width = panel_box["x1"] - panel_box["x0"]
+        panel_height = panel_box["y1"] - panel_box["y0"]
+        assert label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
+        assert label_box["y1"] >= panel_box["y1"] - panel_height * 0.10
+        assert (label_box["y1"] - label_box["y0"]) >= 0.014
+    assert layout_sidecar["metrics"]["center_label_mode"] == "shared_prefix_compacted"
+    assert layout_sidecar["metrics"]["center_tick_labels"] == ["01", "02", "25"]
+    assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+    assert "manuscript-facing authority surface" in (paper_root / "README.md").read_text(encoding="utf-8")
+    assert "figure_catalog.json" in (paper_root / "figures" / "README.md").read_text(encoding="utf-8")
+    generated_readme = (paper_root / "figures" / "generated" / "README.md").read_text(encoding="utf-8")
+    assert "use the catalog rather than guessing by filename age" in generated_readme
+    assert "F5" in generated_readme
+    assert "table_catalog.json" in (paper_root / "tables" / "README.md").read_text(encoding="utf-8")
+    assert "paper/tables/generated/" in (paper_root / "tables" / "generated" / "README.md").read_text(encoding="utf-8")
+
+
+def test_materialize_display_surface_prunes_unreferenced_generated_outputs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+
+    stale_paths = [
+        paper_root / "figures" / "generated" / "F15_kaplan_meier_grouped.png",
+        paper_root / "figures" / "generated" / "F15_kaplan_meier_grouped.pdf",
+        paper_root / "figures" / "generated" / "F15_kaplan_meier_grouped.layout.json",
+        paper_root / "tables" / "generated" / "T2_old_summary.md",
+    ]
+    for stale_path in stale_paths:
+        stale_path.parent.mkdir(parents=True, exist_ok=True)
+        if stale_path.suffix == ".png":
+            stale_path.write_bytes(
+                bytes.fromhex(
+                    "89504e470d0a1a0a"
+                    "0000000d49484452000000010000000108060000001f15c489"
+                    "0000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082"
+                )
+            )
+        else:
+            stale_path.write_text("stale\n", encoding="utf-8")
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["pruned_generated_paths"] == [
+        "paper/figures/generated/F15_kaplan_meier_grouped.layout.json",
+        "paper/figures/generated/F15_kaplan_meier_grouped.pdf",
+        "paper/figures/generated/F15_kaplan_meier_grouped.png",
+        "paper/tables/generated/T2_old_summary.md",
+    ]
+    for stale_path in stale_paths:
+        assert not stale_path.exists()
+    assert (paper_root / "figures" / "generated" / "F15_time_to_event_risk_group_summary.png").exists()
 
 
 def test_materialize_display_surface_generates_model_complexity_audit_panel(tmp_path: Path) -> None:
@@ -3174,17 +3824,24 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
         spec=spec,
         display_id=display_id,
     )
-    if template_id == "time_to_event_decision_curve":
+    if template_id in {
+        "time_to_event_discrimination_calibration_panel",
+        "time_to_event_risk_group_summary",
+        "time_to_event_decision_curve",
+        "multicenter_generalizability_overview",
+    }:
+        style_roles = {
+            "model_curve": "#245A6B",
+            "comparator_curve": "#B89A6D",
+            "reference_line": "#6B7280",
+        }
+        if template_id == "time_to_event_decision_curve":
+            style_roles["highlight_band"] = "#E7E1D8"
         display_payload = {
             **display_payload,
             "render_context": {
                 "style_profile_id": "paper_neutral_clinical_v1",
-                "style_roles": {
-                    "model_curve": "#245A6B",
-                    "comparator_curve": "#B89A6D",
-                    "reference_line": "#6B7280",
-                    "highlight_band": "#E7E1D8",
-                },
+                "style_roles": style_roles,
                 "layout_override": {},
                 "readability_override": {},
             },

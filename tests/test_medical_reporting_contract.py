@@ -82,7 +82,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
     assert contract.figure_shell_requirements == (
         "cohort_flow_figure",
         "time_to_event_discrimination_calibration_panel",
-        "kaplan_meier_grouped",
+        "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
     )
@@ -93,7 +93,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
     )
     assert contract.required_evidence_templates == (
         "time_to_event_discrimination_calibration_panel",
-        "kaplan_meier_grouped",
+        "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
     )
@@ -113,7 +113,7 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
         module.DisplayShellPlanItem(
             display_id="km_risk_stratification",
             display_kind="figure",
-            requirement_key="kaplan_meier_grouped",
+            requirement_key="time_to_event_risk_group_summary",
             catalog_id="F3",
         ),
         module.DisplayShellPlanItem(
@@ -141,3 +141,39 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
             catalog_id="T2",
         ),
     )
+
+
+def test_normalize_legacy_requirement_keys_rewrites_time_to_event_aliases() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+
+    payload = {
+        "figure_shell_requirements": [
+            "cohort_flow_figure",
+            "kaplan_meier_grouped",
+        ],
+        "required_evidence_templates": [
+            "kaplan_meier_grouped",
+            "time_to_event_decision_curve",
+        ],
+        "display_shell_plan": [
+            {
+                "display_id": "km_risk_stratification",
+                "display_kind": "figure",
+                "requirement_key": "kaplan_meier_grouped",
+                "catalog_id": "F3",
+            }
+        ],
+    }
+
+    updated = module.normalize_legacy_requirement_keys(payload)
+
+    assert updated is True
+    assert payload["figure_shell_requirements"] == [
+        "cohort_flow_figure",
+        "time_to_event_risk_group_summary",
+    ]
+    assert payload["required_evidence_templates"] == [
+        "time_to_event_risk_group_summary",
+        "time_to_event_decision_curve",
+    ]
+    assert payload["display_shell_plan"][0]["requirement_key"] == "time_to_event_risk_group_summary"

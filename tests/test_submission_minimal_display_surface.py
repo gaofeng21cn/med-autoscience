@@ -153,6 +153,34 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
     assert manifest["tables"][0]["qc_profile"] == "publication_table_baseline"
 
 
+def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_table_exports(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_workspace(tmp_path)
+
+    write_png(paper_root / "figures" / "Figure1.png")
+    write_text(paper_root / "figures" / "Figure1.pdf", "%PDF-1.4\n")
+    write_text(paper_root / "figures" / "Figure1.shell.json", "{\"keep\": true}\n")
+    write_text(paper_root / "tables" / "Table1.csv", "legacy,stale\n")
+    write_text(paper_root / "tables" / "Table1.md", "| legacy | stale |\n")
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert not (paper_root / "figures" / "Figure1.png").exists()
+    assert not (paper_root / "figures" / "Figure1.pdf").exists()
+    assert (paper_root / "figures" / "Figure1.shell.json").exists()
+    assert not (paper_root / "tables" / "Table1.csv").exists()
+    assert not (paper_root / "tables" / "Table1.md").exists()
+    assert manifest["pruned_legacy_paths"] == [
+        "paper/figures/Figure1.pdf",
+        "paper/figures/Figure1.png",
+        "paper/tables/Table1.csv",
+        "paper/tables/Table1.md",
+    ]
+
+
 def test_create_submission_minimal_package_preserves_second_stage_display_entries(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
@@ -280,8 +308,8 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
     write_text(paper_root / "figures" / "F1_cohort_flow.svg", "<svg><text>flow</text></svg>\n")
     write_png(paper_root / "figures" / "F2_validation.png")
     write_text(paper_root / "figures" / "F2_validation.pdf", "%PDF-1.4\n")
-    write_png(paper_root / "figures" / "F3_km.png")
-    write_text(paper_root / "figures" / "F3_km.pdf", "%PDF-1.4\n")
+    write_png(paper_root / "figures" / "F3_risk_group_summary.png")
+    write_text(paper_root / "figures" / "F3_risk_group_summary.pdf", "%PDF-1.4\n")
     write_png(paper_root / "figures" / "F4_dca.png")
     write_text(paper_root / "figures" / "F4_dca.pdf", "%PDF-1.4\n")
     write_png(paper_root / "figures" / "F5_generalizability.png")
@@ -327,8 +355,8 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                 },
                 {
                     "figure_id": "F3",
-                    "template_id": "kaplan_meier_grouped",
-                    "renderer_family": "r_ggplot2",
+                    "template_id": "time_to_event_risk_group_summary",
+                    "renderer_family": "python",
                     "paper_role": "main_text",
                     "input_schema_id": "time_to_event_grouped_inputs_v1",
                     "qc_profile": "publication_survival_curve",
@@ -340,8 +368,8 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
                         "layout_sidecar_path": "paper/figures/generated/F3.layout.json",
                         "issues": [],
                     },
-                    "title": "Risk-group Kaplan-Meier curves",
-                    "export_paths": ["paper/figures/F3_km.pdf", "paper/figures/F3_km.png"],
+                    "title": "Primary risk-group summary",
+                    "export_paths": ["paper/figures/F3_risk_group_summary.pdf", "paper/figures/F3_risk_group_summary.png"],
                 },
                 {
                     "figure_id": "F4",

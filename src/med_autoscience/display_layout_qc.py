@@ -383,6 +383,115 @@ def _check_curve_metrics(metrics: dict[str, Any]) -> list[dict[str, Any]]:
     return issues
 
 
+def _check_time_to_event_discrimination_calibration_metrics(metrics: dict[str, Any]) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    discrimination_points = metrics.get("discrimination_points")
+    if not isinstance(discrimination_points, list) or not discrimination_points:
+        issues.append(
+            _issue(
+                rule_id="discrimination_points_missing",
+                message="time-to-event discrimination/calibration qc requires non-empty discrimination_points",
+                target="metrics.discrimination_points",
+            )
+        )
+    else:
+        for index, item in enumerate(discrimination_points):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.discrimination_points[{index}] must be an object")
+            label = str(item.get("label") or "").strip()
+            if not label:
+                issues.append(
+                    _issue(
+                        rule_id="discrimination_point_label_missing",
+                        message="discrimination point labels must be non-empty",
+                        target=f"metrics.discrimination_points[{index}].label",
+                    )
+                )
+            c_index = _require_numeric(
+                item.get("c_index"),
+                label=f"layout_sidecar.metrics.discrimination_points[{index}].c_index",
+            )
+            if not 0.0 <= c_index <= 1.0:
+                issues.append(
+                    _issue(
+                        rule_id="discrimination_point_out_of_range",
+                        message="discrimination C-index must stay within [0, 1]",
+                        target=f"metrics.discrimination_points[{index}].c_index",
+                        observed=c_index,
+                    )
+                )
+
+    calibration_summary = metrics.get("calibration_summary")
+    group_labels: set[str] = set()
+    previous_group_order = 0
+    if not isinstance(calibration_summary, list) or not calibration_summary:
+        issues.append(
+            _issue(
+                rule_id="calibration_summary_missing",
+                message="time-to-event discrimination/calibration qc requires non-empty calibration_summary",
+                target="metrics.calibration_summary",
+            )
+        )
+    else:
+        for index, item in enumerate(calibration_summary):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.calibration_summary[{index}] must be an object")
+            group_label = str(item.get("group_label") or "").strip()
+            if not group_label:
+                issues.append(
+                    _issue(
+                        rule_id="calibration_group_label_missing",
+                        message="calibration summary group labels must be non-empty",
+                        target=f"metrics.calibration_summary[{index}].group_label",
+                    )
+                )
+            group_labels.add(group_label)
+            group_order = _require_numeric(
+                item.get("group_order"),
+                label=f"layout_sidecar.metrics.calibration_summary[{index}].group_order",
+            )
+            if int(group_order) != group_order or group_order <= previous_group_order:
+                issues.append(
+                    _issue(
+                        rule_id="calibration_group_order_invalid",
+                        message="calibration summary group_order must be strictly increasing integers",
+                        target=f"metrics.calibration_summary[{index}].group_order",
+                        observed=group_order,
+                    )
+                )
+            previous_group_order = int(group_order)
+            for field_name in ("predicted_risk_5y", "observed_risk_5y"):
+                risk_value = _require_numeric(
+                    item.get(field_name),
+                    label=f"layout_sidecar.metrics.calibration_summary[{index}].{field_name}",
+                )
+                if not 0.0 <= risk_value <= 1.0:
+                    issues.append(
+                        _issue(
+                            rule_id="calibration_risk_out_of_range",
+                            message="calibration summary risks must stay within [0, 1]",
+                            target=f"metrics.calibration_summary[{index}].{field_name}",
+                            observed=risk_value,
+                        )
+                    )
+
+    calibration_callout = metrics.get("calibration_callout")
+    if calibration_callout is not None:
+        if not isinstance(calibration_callout, dict):
+            raise ValueError("layout_sidecar.metrics.calibration_callout must be an object when present")
+        callout_group_label = str(calibration_callout.get("group_label") or "").strip()
+        if not callout_group_label or callout_group_label not in group_labels:
+            issues.append(
+                _issue(
+                    rule_id="calibration_callout_group_unknown",
+                    message="calibration_callout.group_label must reference calibration_summary",
+                    target="metrics.calibration_callout.group_label",
+                    observed=callout_group_label,
+                )
+            )
+    return issues
+
+
 def _check_reference_line_within_device(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     reference_line = sidecar.metrics.get("reference_line")
     if reference_line is None:
@@ -469,7 +578,119 @@ def _check_curve_like_layout(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
 
 def _check_publication_evidence_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues = _check_curve_like_layout(sidecar)
+    if not _layout_override_flag(sidecar, "show_figure_title", False):
+        issues = [
+            issue
+            for issue in issues
+            if not (issue.get("rule_id") == "missing_box" and issue.get("target") == "title")
+        ]
     issues.extend(_check_legend_panel_overlap(sidecar))
+    if sidecar.template_id == "time_to_event_discrimination_calibration_panel":
+        if len(sidecar.panel_boxes) < 2:
+            issues.append(
+                _issue(
+                    rule_id="composite_panels_missing",
+                    message="time-to-event discrimination/calibration panel requires left and right panels",
+                    target="panel_boxes",
+                    expected={"minimum_count": 2},
+                    observed={"count": len(sidecar.panel_boxes)},
+                )
+            )
+        issues.extend(_check_time_to_event_discrimination_calibration_metrics(sidecar.metrics))
+        discrimination_points = sidecar.metrics.get("discrimination_points")
+        calibration_summary = sidecar.metrics.get("calibration_summary")
+        expected_marker_count = 0
+        if isinstance(discrimination_points, list):
+            expected_marker_count += len(discrimination_points)
+        if isinstance(calibration_summary, list):
+            expected_marker_count += len(calibration_summary) * 2
+        metric_marker_count = len(_boxes_of_type(sidecar.layout_boxes, "metric_marker"))
+        if expected_marker_count and metric_marker_count < expected_marker_count:
+            issues.append(
+                _issue(
+                    rule_id="metric_markers_incomplete",
+                    message="time-to-event discrimination/calibration panel requires marker boxes for all summary points",
+                    target="layout_boxes",
+                    observed={"metric_marker_count": metric_marker_count},
+                    expected={"minimum_count": expected_marker_count},
+                )
+            )
+        annotation = _first_box_of_type(sidecar.layout_boxes, "annotation_block")
+        legend = _first_box_of_type(sidecar.guide_boxes, "legend")
+        if annotation is not None:
+            panel_titles = _boxes_of_type(sidecar.layout_boxes, "panel_title")
+            overlapped_panels = [panel for panel in sidecar.panel_boxes if _boxes_overlap(annotation, panel)]
+            containing_panels = [panel for panel in sidecar.panel_boxes if _box_within_box(annotation, panel)]
+            expected_callout_panel = next((panel for panel in sidecar.panel_boxes if panel.box_id == "panel_right"), None)
+            if len(overlapped_panels) > 1:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_cross_panel_overlap",
+                        message="calibration callout must stay within a single blank region rather than spanning multiple panels",
+                        target="annotation_block",
+                        box_refs=tuple(box.box_id for box in overlapped_panels),
+                    )
+                )
+            if not containing_panels:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_out_of_panel",
+                        message="calibration callout must stay fully inside a single panel canvas",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id,),
+                    )
+                )
+            elif expected_callout_panel is not None and not _box_within_box(annotation, expected_callout_panel):
+                issues.append(
+                    _issue(
+                        rule_id="annotation_wrong_panel",
+                        message="calibration callout must stay in Panel B (the grouped-calibration panel)",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id, expected_callout_panel.box_id),
+                    )
+                )
+            if panel_titles and annotation.y1 > min(panel_title.y0 for panel_title in panel_titles):
+                issues.append(
+                    _issue(
+                        rule_id="annotation_header_band",
+                        message="calibration callout must stay below the panel-title header band",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id,),
+                    )
+                )
+            for panel_title in panel_titles:
+                if not _boxes_overlap(annotation, panel_title):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="annotation_title_overlap",
+                        message="calibration callout must not overlap the panel title",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id, panel_title.box_id),
+                    )
+                )
+            for marker_box in _boxes_of_type(sidecar.layout_boxes, "metric_marker"):
+                if not _boxes_overlap(annotation, marker_box):
+                    continue
+                issues.append(
+                    _issue(
+                        rule_id="annotation_metric_overlap",
+                        message="calibration callout must not overlap evidence markers",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id, marker_box.box_id),
+                    )
+                )
+            if legend is not None and _boxes_overlap(annotation, legend):
+                issues.append(
+                    _issue(
+                        rule_id="annotation_legend_overlap",
+                        message="calibration callout must not overlap the legend",
+                        target="annotation_block",
+                        box_refs=(annotation.box_id, legend.box_id),
+                    )
+                )
+        return issues
+
     issues.extend(_check_curve_metrics(sidecar.metrics))
     issues.extend(_check_reference_line_within_device(sidecar))
     return issues
@@ -681,6 +902,60 @@ def _check_publication_binary_calibration_decision_curve(sidecar: LayoutSidecar)
     )
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
     issues.extend(_check_legend_panel_overlap(sidecar))
+    calibration_axis_window = sidecar.metrics.get("calibration_axis_window")
+    if not isinstance(calibration_axis_window, dict):
+        issues.append(
+            _issue(
+                rule_id="calibration_axis_window_missing",
+                message="binary calibration/decision panel requires an explicit calibration_axis_window metric",
+                target="metrics.calibration_axis_window",
+            )
+        )
+    else:
+        xmin = _require_numeric(calibration_axis_window.get("xmin"), label="metrics.calibration_axis_window.xmin")
+        xmax = _require_numeric(calibration_axis_window.get("xmax"), label="metrics.calibration_axis_window.xmax")
+        ymin = _require_numeric(calibration_axis_window.get("ymin"), label="metrics.calibration_axis_window.ymin")
+        ymax = _require_numeric(calibration_axis_window.get("ymax"), label="metrics.calibration_axis_window.ymax")
+        if xmin >= xmax or ymin >= ymax:
+            issues.append(
+                _issue(
+                    rule_id="calibration_axis_window_invalid",
+                    message="calibration axis window must be strictly increasing on both axes",
+                    target="metrics.calibration_axis_window",
+                    observed={"xmin": xmin, "xmax": xmax, "ymin": ymin, "ymax": ymax},
+                )
+            )
+        else:
+            calibration_series = sidecar.metrics.get("calibration_series")
+            if isinstance(calibration_series, list):
+                for series_index, series in enumerate(calibration_series):
+                    if not isinstance(series, dict):
+                        continue
+                    x_values = series.get("x")
+                    y_values = series.get("y")
+                    if not isinstance(x_values, list) or not isinstance(y_values, list):
+                        continue
+                    for point_index, (x_value, y_value) in enumerate(zip(x_values, y_values, strict=True)):
+                        x_numeric = _require_numeric(
+                            x_value,
+                            label=f"metrics.calibration_series[{series_index}].x[{point_index}]",
+                        )
+                        y_numeric = _require_numeric(
+                            y_value,
+                            label=f"metrics.calibration_series[{series_index}].y[{point_index}]",
+                        )
+                        if xmin <= x_numeric <= xmax and ymin <= y_numeric <= ymax:
+                            continue
+                        issues.append(
+                            _issue(
+                                rule_id="calibration_axis_window_excludes_data",
+                                message="calibration axis window must cover every audited calibration point",
+                                target=f"metrics.calibration_series[{series_index}]",
+                                observed={"x": x_numeric, "y": y_numeric},
+                                expected={"xmin": xmin, "xmax": xmax, "ymin": ymin, "ymax": ymax},
+                            )
+                        )
+                        break
     issues.extend(_check_curve_series_collection(sidecar.metrics.get("calibration_series"), target="metrics.calibration_series"))
     issues.extend(_check_curve_series_collection(sidecar.metrics.get("decision_series"), target="metrics.decision_series"))
 
@@ -855,6 +1130,12 @@ def _check_publication_risk_layering_bars(sidecar: LayoutSidecar) -> list[dict[s
 
 def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues = _check_curve_like_layout(sidecar)
+    if not _layout_override_flag(sidecar, "show_figure_title", False):
+        issues = [
+            issue
+            for issue in issues
+            if not (issue.get("rule_id") == "missing_box" and issue.get("target") == "title")
+        ]
     issues.extend(_check_legend_panel_overlap(sidecar))
 
     annotation = _first_box_of_type(sidecar.guide_boxes + sidecar.layout_boxes, "annotation_block")
@@ -1414,7 +1695,7 @@ def _check_publication_model_complexity_audit(sidecar: LayoutSidecar) -> list[di
 def _check_publication_multicenter_overview(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     issues.extend(_check_boxes_within_device(sidecar))
-    issues.extend(_check_required_box_types(_all_boxes(sidecar), required_box_types=("title", "y_axis_title", "coverage_bar")))
+    issues.extend(_check_required_box_types(_all_boxes(sidecar), required_box_types=("y_axis_title", "coverage_bar")))
     issues.extend(_check_legend_panel_overlap(sidecar))
 
     center_event_panel = _first_box_of_type(sidecar.panel_boxes, "center_event_panel")
@@ -1443,6 +1724,55 @@ def _check_publication_multicenter_overview(sidecar: LayoutSidecar) -> list[dict
                 expected=missing_box_id,
             )
         )
+
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+    panel_labels = {box.box_id: box for box in _boxes_of_type(sidecar.layout_boxes, "panel_label")}
+    required_panel_labels = {
+        "panel_label_A": "center_event_panel",
+        "panel_label_B": "coverage_panel_wide_left",
+        "panel_label_C": "coverage_panel_right_stack",
+    }
+    for label_box_id, panel_box_id in required_panel_labels.items():
+        label_box = panel_labels.get(label_box_id)
+        if label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="missing_panel_label",
+                    message="multicenter overview requires explicit A/B/C panel labels",
+                    target="layout_boxes",
+                    expected=label_box_id,
+                )
+            )
+            continue
+        parent_panel = panel_boxes_by_id.get(panel_box_id)
+        if parent_panel is None and panel_box_id == "coverage_panel_right_stack":
+            parent_panel = panel_boxes_by_id.get("coverage_panel_top_right")
+        if parent_panel is None:
+            continue
+        if not _box_within_box(label_box, parent_panel):
+            issues.append(
+                _issue(
+                    rule_id="panel_label_out_of_panel",
+                    message="multicenter panel labels must stay within their declared panel region",
+                    target="panel_label",
+                    box_refs=(label_box.box_id, parent_panel.box_id),
+                )
+            )
+            continue
+        panel_width = max(parent_panel.x1 - parent_panel.x0, 1e-9)
+        panel_height = max(parent_panel.y1 - parent_panel.y0, 1e-9)
+        if (
+            label_box.x0 > parent_panel.x0 + panel_width * 0.18
+            or label_box.y1 < parent_panel.y1 - panel_height * 0.18
+        ):
+            issues.append(
+                _issue(
+                    rule_id="panel_label_anchor_drift",
+                    message="multicenter panel labels must stay near the parent panel top-left anchor",
+                    target="panel_label",
+                    box_refs=(label_box.box_id, parent_panel.box_id),
+                )
+            )
 
     center_event_counts = sidecar.metrics.get("center_event_counts")
     if not isinstance(center_event_counts, list) or not center_event_counts:
@@ -1609,6 +1939,83 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
     issues.extend(_check_required_box_types(all_boxes, required_box_types=("main_step",)))
+
+    flow_nodes = sidecar.metrics.get("flow_nodes")
+    if not isinstance(flow_nodes, list) or not flow_nodes:
+        issues.append(
+            _issue(
+                rule_id="flow_nodes_missing",
+                message="illustration flow qc requires flow_nodes metrics for node-level readability checks",
+                target="metrics.flow_nodes",
+            )
+        )
+    else:
+        for index, item in enumerate(flow_nodes):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.flow_nodes[{index}] must be an object")
+            box_type = str(item.get("box_type") or "").strip()
+            rendered_height_pt = _require_numeric(
+                item.get("rendered_height_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_height_pt",
+            )
+            rendered_width_pt = _require_numeric(
+                item.get("rendered_width_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].rendered_width_pt",
+            )
+            line_count = _require_numeric(
+                item.get("line_count"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].line_count",
+            )
+            max_line_chars = _require_numeric(
+                item.get("max_line_chars"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].max_line_chars",
+            )
+            padding_pt = _require_numeric(
+                item.get("padding_pt"),
+                label=f"layout_sidecar.metrics.flow_nodes[{index}].padding_pt",
+            )
+            minimum_height_pt = 80.0 if box_type == "main_step" else 56.0
+            minimum_padding_pt = 8.0 if box_type == "main_step" else 6.0
+            if rendered_height_pt < minimum_height_pt:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_height_too_small",
+                        message="flow node height is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"rendered_height_pt": rendered_height_pt, "box_type": box_type},
+                        expected={"minimum_height_pt": minimum_height_pt},
+                    )
+                )
+            if rendered_width_pt < 160.0:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_width_too_small",
+                        message="flow node width is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"rendered_width_pt": rendered_width_pt, "box_type": box_type},
+                        expected={"minimum_width_pt": 160.0},
+                    )
+                )
+            if padding_pt < minimum_padding_pt:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_padding_too_small",
+                        message="flow node padding is too small for manuscript-facing readability",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"padding_pt": padding_pt, "box_type": box_type},
+                        expected={"minimum_padding_pt": minimum_padding_pt},
+                    )
+                )
+            if line_count > 0 and max_line_chars > 44:
+                issues.append(
+                    _issue(
+                        rule_id="flow_node_text_density_high",
+                        message="flow node line length is too dense for the audited cohort-flow shell",
+                        target=f"metrics.flow_nodes[{index}]",
+                        observed={"line_count": line_count, "max_line_chars": max_line_chars},
+                        expected={"maximum_max_line_chars": 44},
+                    )
+                )
 
     step_boxes = _boxes_of_type(sidecar.layout_boxes, "main_step")
     sorted_step_boxes = tuple(
@@ -1817,6 +2224,158 @@ def _check_publication_illustration_flow(sidecar: LayoutSidecar) -> list[dict[st
     return issues
 
 
+def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("title", "panel_label", "card_box", "footer_pill")))
+
+    panel_boxes = tuple(box for box in sidecar.panel_boxes if box.box_type == "panel")
+    if len(panel_boxes) < 3:
+        issues.append(
+            _issue(
+                rule_id="graphical_abstract_panels_missing",
+                message="submission graphical abstract requires three panels",
+                target="panel_boxes",
+                expected={"minimum_count": 3},
+                observed={"count": len(panel_boxes)},
+            )
+        )
+
+    card_boxes = _boxes_of_type(sidecar.layout_boxes, "card_box")
+    footer_pills = _boxes_of_type(sidecar.layout_boxes, "footer_pill")
+    panel_labels = _boxes_of_type(sidecar.layout_boxes, "panel_label")
+    arrow_boxes = _boxes_of_type(sidecar.guide_boxes, "arrow_connector")
+    text_boxes = tuple(
+        box
+        for box in sidecar.layout_boxes
+        if box.box_type in {"panel_title", "panel_subtitle", "card_title", "card_value", "card_detail"}
+    )
+
+    issues.extend(_check_pairwise_non_overlap(card_boxes, rule_id="graphical_abstract_card_overlap", target="card_box"))
+    issues.extend(_check_pairwise_non_overlap(footer_pills, rule_id="graphical_abstract_footer_overlap", target="footer_pill"))
+    issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="graphical_abstract_text_overlap", target="text"))
+
+    for card_box in card_boxes:
+        if any(_box_within_box(card_box, panel_box) for panel_box in panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="card_out_of_panel",
+                message="graphical-abstract cards must stay within a panel",
+                target="card_box",
+                box_refs=(card_box.box_id,),
+            )
+        )
+    for panel_label in panel_labels:
+        if any(_box_within_box(panel_label, panel_box) for panel_box in panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="panel_label_out_of_panel",
+                message="graphical-abstract panel labels must stay within their panels",
+                target="panel_label",
+                box_refs=(panel_label.box_id,),
+            )
+        )
+    for text_box in text_boxes:
+        if any(_box_within_box(text_box, panel_box) for panel_box in panel_boxes):
+            continue
+        issues.append(
+            _issue(
+                rule_id="panel_text_out_of_panel",
+                message="graphical-abstract panel text must stay within a panel",
+                target=text_box.box_type,
+                box_refs=(text_box.box_id,),
+            )
+        )
+    for footer_pill in footer_pills:
+        for panel_box in panel_boxes:
+            if not _boxes_overlap(footer_pill, panel_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="footer_pill_panel_overlap",
+                    message="graphical-abstract footer pills must stay outside the panels",
+                    target="footer_pill",
+                    box_refs=(footer_pill.box_id, panel_box.box_id),
+                )
+            )
+        for arrow_box in arrow_boxes:
+            if not _boxes_overlap(footer_pill, arrow_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="footer_pill_arrow_overlap",
+                    message="graphical-abstract footer pills must not overlap arrow connectors",
+                    target="footer_pill",
+                    box_refs=(footer_pill.box_id, arrow_box.box_id),
+                )
+            )
+    for arrow_box in arrow_boxes:
+        for panel_box in panel_boxes:
+            if _boxes_overlap(arrow_box, panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="arrow_panel_overlap",
+                        message="graphical-abstract arrows must stay between panels",
+                        target="arrow_connector",
+                        box_refs=(arrow_box.box_id, panel_box.box_id),
+                    )
+                )
+        for text_box in text_boxes:
+            if not _boxes_overlap(arrow_box, text_box):
+                continue
+            issues.append(
+                _issue(
+                    rule_id="arrow_text_overlap",
+                    message="graphical-abstract arrows must not overlap panel text",
+                    target="arrow_connector",
+                    box_refs=(arrow_box.box_id, text_box.box_id),
+                )
+            )
+    sorted_panels = tuple(sorted(panel_boxes, key=lambda box: (box.x0, box.y0, box.box_id)))
+    sorted_arrows = tuple(sorted(arrow_boxes, key=lambda box: (box.x0, box.y0, box.box_id)))
+    if len(sorted_arrows) >= 2:
+        arrow_mid_ys = [((arrow_box.y0 + arrow_box.y1) / 2.0) for arrow_box in sorted_arrows]
+        arrow_heights = [(arrow_box.y1 - arrow_box.y0) for arrow_box in sorted_arrows]
+        alignment_tolerance = max(max(arrow_heights, default=0.0) * 1.5, 0.03)
+        if max(arrow_mid_ys) - min(arrow_mid_ys) > alignment_tolerance:
+            issues.append(
+                _issue(
+                    rule_id="arrow_cross_pair_misalignment",
+                    message="graphical-abstract arrows between adjacent panels must share the same horizontal lane",
+                    target="arrow_connector",
+                    box_refs=tuple(arrow_box.box_id for arrow_box in sorted_arrows),
+                )
+            )
+    for arrow_box in sorted_arrows:
+        arrow_mid_x = (arrow_box.x0 + arrow_box.x1) / 2.0
+        arrow_mid_y = (arrow_box.y0 + arrow_box.y1) / 2.0
+        parent_pair: tuple[Box, Box] | None = None
+        for left_panel, right_panel in zip(sorted_panels, sorted_panels[1:], strict=False):
+            if left_panel.x1 <= arrow_mid_x <= right_panel.x0:
+                parent_pair = (left_panel, right_panel)
+                break
+        if parent_pair is None:
+            continue
+        shared_y0 = max(parent_pair[0].y0, parent_pair[1].y0)
+        shared_y1 = min(parent_pair[0].y1, parent_pair[1].y1)
+        shared_height = max(shared_y1 - shared_y0, 1e-9)
+        shared_mid_y = (shared_y0 + shared_y1) / 2.0
+        if abs(arrow_mid_y - shared_mid_y) <= max(shared_height * 0.18, (arrow_box.y1 - arrow_box.y0) * 1.5):
+            continue
+        issues.append(
+            _issue(
+                rule_id="arrow_midline_alignment",
+                message="graphical-abstract arrows must stay near the shared vertical midline between adjacent panels",
+                target="arrow_connector",
+                box_refs=(arrow_box.box_id, parent_pair[0].box_id, parent_pair[1].box_id),
+            )
+        )
+    return issues
+
+
 def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object]) -> dict[str, object]:
     normalized_sidecar = _normalize_layout_sidecar(layout_sidecar)
     normalized_profile = str(qc_profile or "").strip()
@@ -1842,6 +2401,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_model_complexity_audit(normalized_sidecar)
     elif normalized_profile == "publication_multicenter_overview":
         layout_issues = _check_publication_multicenter_overview(normalized_sidecar)
+    elif normalized_profile == "submission_graphical_abstract":
+        layout_issues = _check_submission_graphical_abstract(normalized_sidecar)
     elif normalized_profile == "publication_shap_summary":
         layout_issues = _check_publication_shap_summary(normalized_sidecar)
     else:

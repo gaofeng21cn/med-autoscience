@@ -255,6 +255,15 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
         shell_qc_profile="publication_illustration_flow",
         required_exports=("png", "svg"),
     ),
+    IllustrationShellSpec(
+        shell_id="submission_graphical_abstract",
+        display_name="Submission Graphical Abstract",
+        renderer_family="python",
+        input_schema_id="submission_graphical_abstract_inputs_v1",
+        shell_qc_profile="submission_graphical_abstract",
+        required_exports=("png", "svg"),
+        allowed_paper_roles=("submission_companion",),
+    ),
 )
 
 _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (

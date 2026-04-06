@@ -45,6 +45,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     interpretation_table = module.get_input_schema_contract("clinical_interpretation_summary_v1")
     generic_performance_table = module.get_input_schema_contract("performance_summary_table_generic_v1")
     grouped_risk_table = module.get_input_schema_contract("grouped_risk_event_summary_table_v1")
+    submission_graphical_abstract = module.get_input_schema_contract("submission_graphical_abstract_inputs_v1")
     time_to_event_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "time_to_event"
     )
@@ -132,15 +133,24 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "template_id",
         "title",
         "caption",
+        "panel_a_title",
+        "panel_b_title",
         "discrimination_x_label",
-        "discrimination_y_label",
         "calibration_x_label",
         "calibration_y_label",
-        "discrimination_series",
-        "calibration_groups",
+        "discrimination_points",
+        "calibration_summary",
     )
-    assert time_to_event_panel.collection_required_fields["discrimination_series"] == ("label", "x", "y")
-    assert time_to_event_panel.collection_required_fields["calibration_groups"] == ("label", "times", "values")
+    assert time_to_event_panel.collection_required_fields["discrimination_points"] == ("label", "c_index")
+    assert time_to_event_panel.collection_required_fields["calibration_summary"] == (
+        "group_label",
+        "group_order",
+        "n",
+        "events_5y",
+        "predicted_risk_5y",
+        "observed_risk_5y",
+    )
+    assert "calibration_callout" in time_to_event_panel.display_optional_fields
     assert "binary_calibration_decision_curve_panel" in clinical_utility_class.template_ids
     assert "binary_calibration_decision_curve_panel_inputs_v1" in clinical_utility_class.input_schema_ids
     assert binary_calibration_decision.template_ids == ("binary_calibration_decision_curve_panel",)
@@ -153,6 +163,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "calibration_y_label",
         "decision_x_label",
         "decision_y_label",
+        "calibration_axis_window",
         "calibration_series",
         "decision_series",
         "decision_reference_lines",
@@ -165,7 +176,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "x",
         "y",
     )
-    assert "calibration_axis_window" in binary_calibration_decision.display_optional_fields
+    assert "calibration_axis_window" not in binary_calibration_decision.display_optional_fields
     assert binary_calibration_decision.nested_collection_required_fields["calibration_axis_window"] == (
         "xmin",
         "xmax",
@@ -279,6 +290,23 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "cases",
         "events",
         "risk_display",
+    )
+    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
+    assert submission_graphical_abstract.required_top_level_fields == (
+        "schema_version",
+        "shell_id",
+        "display_id",
+        "catalog_id",
+        "title",
+        "caption",
+        "panels",
+    )
+    assert submission_graphical_abstract.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "subtitle",
+        "rows",
     )
     cohort_flow_shell = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     assert cohort_flow_shell.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")

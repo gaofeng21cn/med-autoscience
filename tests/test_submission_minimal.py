@@ -734,7 +734,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
     monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
 
-    module.create_submission_minimal_package(
+    manifest = module.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -743,6 +743,14 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     assert called["sync_paper_root"] == paper_root
     assert called["sync_stage"] == "submission_minimal"
     assert called["sync_publication_profile"] == "general_medical_journal"
+    assert manifest["delivery_sync"] == {
+        "stage": "submission_minimal",
+        "publication_profile": "general_medical_journal",
+    }
+    assert manifest["readme_path"] == "paper/submission_minimal/README.md"
+    readme_text = (paper_root / "submission_minimal" / "README.md").read_text(encoding="utf-8")
+    assert "paper/submission_minimal/" in readme_text
+    assert "manuscript/final/" in readme_text
 
 
 def test_create_submission_minimal_package_frontiers_family_profile_creates_journal_specific_assets(
@@ -773,9 +781,13 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
     assert submission_root.exists()
     assert manifest["publication_profile"] == "frontiers_family_harvard"
     assert manifest["citation_style"] == "FrontiersHarvard"
+    assert manifest["readme_path"] == "paper/journal_submissions/frontiers_family_harvard/README.md"
     assert (submission_root / "manuscript.docx").exists()
     assert (submission_root / "Supplementary_Material.docx").exists()
     assert (submission_root / "paper.pdf").exists()
+    assert "paper/journal_submissions/frontiers_family_harvard/" in (
+        submission_root / "README.md"
+    ).read_text(encoding="utf-8")
     assert manifest["manuscript"]["docx_path"] == "paper/journal_submissions/frontiers_family_harvard/manuscript.docx"
     assert (
         manifest["supplementary_material"]["docx_path"]

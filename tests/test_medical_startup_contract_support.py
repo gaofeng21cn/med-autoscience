@@ -272,7 +272,7 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
         {
             "display_id": "km_risk_stratification",
             "display_kind": "figure",
-            "requirement_key": "kaplan_meier_grouped",
+            "requirement_key": "time_to_event_risk_group_summary",
             "catalog_id": "F3",
         },
         {
@@ -397,16 +397,30 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
             "displays": [
                 {
                     "display_id": "km_risk_stratification",
-                    "template_id": "kaplan_meier_grouped",
-                    "title": "Kaplan-Meier risk stratification",
-                    "caption": "Time-to-event separation across prespecified risk groups.",
-                    "x_label": "Months from surgery",
-                    "y_label": "Survival probability",
-                    "groups": [
-                        {"label": "Low risk", "times": [0, 6, 12, 24], "values": [1.0, 0.96, 0.93, 0.88]},
-                        {"label": "High risk", "times": [0, 6, 12, 24], "values": [1.0, 0.88, 0.77, 0.62]},
+                    "template_id": "time_to_event_risk_group_summary",
+                    "title": "Five-year risk-group summary",
+                    "caption": "Predicted versus observed five-year risk across prespecified risk groups.",
+                    "panel_a_title": "Predicted and observed five-year risk",
+                    "panel_b_title": "Observed five-year events",
+                    "x_label": "Risk group",
+                    "y_label": "Five-year risk (%)",
+                    "event_count_y_label": "Observed five-year events",
+                    "risk_group_summaries": [
+                        {
+                            "label": "Low risk",
+                            "sample_size": 64,
+                            "events_5y": 3,
+                            "mean_predicted_risk_5y": 0.06,
+                            "observed_km_risk_5y": 0.05,
+                        },
+                        {
+                            "label": "High risk",
+                            "sample_size": 64,
+                            "events_5y": 18,
+                            "mean_predicted_risk_5y": 0.24,
+                            "observed_km_risk_5y": 0.28,
+                        },
                     ],
-                    "annotation": "Log-rank P < .001",
                 }
             ],
         },
@@ -421,20 +435,21 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
                     "display_id": "discrimination_calibration",
                     "template_id": "time_to_event_discrimination_calibration_panel",
                     "title": "Time-to-event discrimination and grouped calibration",
-                    "caption": "Horizon-specific discrimination and calibration structure.",
-                    "discrimination_x_label": "1 - Specificity",
-                    "discrimination_y_label": "Sensitivity",
-                    "calibration_x_label": "Months from surgery",
-                    "calibration_y_label": "Observed event-free probability",
-                    "discrimination_reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0], "label": "Chance"},
-                    "calibration_reference_line": {"x": [0.0, 24.0], "y": [1.0, 0.60], "label": "Expected"},
-                    "discrimination_series": [
-                        {"label": "24-month horizon", "x": [0.0, 0.15, 0.30, 1.0], "y": [0.0, 0.66, 0.81, 1.0]}
+                    "caption": "Validation discrimination and grouped 5-year calibration structure.",
+                    "panel_a_title": "Validation discrimination",
+                    "panel_b_title": "Grouped 5-year calibration",
+                    "discrimination_x_label": "Validation C-index",
+                    "calibration_x_label": "Risk decile",
+                    "calibration_y_label": "5-year risk (%)",
+                    "discrimination_points": [
+                        {"label": "Ridge Cox", "c_index": 0.81},
+                        {"label": "Lasso Cox", "c_index": 0.78},
                     ],
-                    "calibration_groups": [
-                        {"label": "Predicted low risk", "times": [0, 6, 12, 24], "values": [1.0, 0.96, 0.92, 0.87]},
-                        {"label": "Predicted high risk", "times": [0, 6, 12, 24], "values": [1.0, 0.86, 0.75, 0.58]},
+                    "calibration_summary": [
+                        {"group_label": "Decile 1", "group_order": 1, "n": 24, "events_5y": 0, "predicted_risk_5y": 0.010, "observed_risk_5y": 0.009},
+                        {"group_label": "Decile 10", "group_order": 10, "n": 24, "events_5y": 4, "predicted_risk_5y": 0.058, "observed_risk_5y": 0.081},
                     ],
+                    "calibration_callout": {"group_label": "Decile 10", "predicted_risk_5y": 0.058, "observed_risk_5y": 0.081},
                 }
             ],
         },

@@ -9,6 +9,9 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - `paper/publication_style_profile.json` is the article-level visual truth source for publication-facing figures.
 - `paper/display_overrides.json` is the figure-level structured adjustment surface for manuscript-specific layout and readability decisions.
 - Templates preserve a stable lower bound; article-level style and figure-level overrides may refine expression without bypassing the audited renderer path.
+- Final manuscript-facing polish is **AI-first above that lower bound**: use the generated image as the truth surface, let visual review identify concrete defects, then harden the audited renderer/QC path instead of paper-local patching.
+- Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/final/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.
+- Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.
 
 ## Template Classes
 
@@ -85,6 +88,7 @@ For the stable human-auditable overview, completion counts, and change protocol,
 | Template ID | Kind | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- |
 | `cohort_flow_figure` | `illustration_shell` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
+| `submission_graphical_abstract` | `illustration_shell` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
 | `table1_baseline_characteristics` | `table_shell` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `table2_time_to_event_performance_summary` | `table_shell` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `table3_clinical_interpretation_summary` | `table_shell` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
@@ -130,8 +134,8 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Templates: `binary_calibration_decision_curve_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
-- Required display fields: `display_id`, `template_id`, `title`, `caption`, `calibration_x_label`, `calibration_y_label`, `decision_x_label`, `decision_y_label`, `calibration_series`, `decision_series`, `decision_reference_lines`, `decision_focus_window`
-- Optional display fields: `paper_role`, `calibration_reference_line`, `calibration_axis_window`
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `calibration_x_label`, `calibration_y_label`, `decision_x_label`, `decision_y_label`, `calibration_axis_window`, `calibration_series`, `decision_series`, `decision_reference_lines`, `decision_focus_window`
+- Optional display fields: `paper_role`, `calibration_reference_line`
 - Required collection fields: `calibration_series` -> `label`, `x`, `y`<br>`decision_series` -> `label`, `x`, `y`<br>`decision_reference_lines` -> `label`, `x`, `y`
 - Optional collection fields: `calibration_reference_line` -> `label`
 - Required nested collection fields: `calibration_reference_line` -> `x`, `y`<br>`calibration_axis_window` -> `xmin`, `xmax`, `ymin`, `ymax`<br>`decision_focus_window` -> `xmin`, `xmax`
@@ -175,13 +179,13 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Templates: `time_to_event_discrimination_calibration_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
-- Required display fields: `display_id`, `template_id`, `title`, `caption`, `discrimination_x_label`, `discrimination_y_label`, `calibration_x_label`, `calibration_y_label`, `discrimination_series`, `calibration_groups`
-- Optional display fields: `paper_role`, `discrimination_reference_line`, `calibration_reference_line`
-- Required collection fields: `discrimination_series` -> `label`, `x`, `y`<br>`calibration_groups` -> `label`, `times`, `values`
-- Optional collection fields: `discrimination_series` -> `annotation`<br>`discrimination_reference_line` -> `label`<br>`calibration_reference_line` -> `label`
-- Required nested collection fields: `discrimination_reference_line` -> `x`, `y`<br>`calibration_reference_line` -> `x`, `y`
-- Optional nested collection fields: None
-- Additional constraints: `discrimination_series_must_be_non_empty`, `discrimination_series_x_y_lengths_must_match`, `calibration_groups_must_be_non_empty`, `calibration_group_times_values_lengths_must_match`, `calibration_values_must_be_finite`
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `panel_a_title`, `panel_b_title`, `discrimination_x_label`, `calibration_x_label`, `calibration_y_label`, `discrimination_points`, `calibration_summary`
+- Optional display fields: `paper_role`, `calibration_callout`
+- Required collection fields: `discrimination_points` -> `label`, `c_index`<br>`calibration_summary` -> `group_label`, `group_order`, `n`, `events_5y`, `predicted_risk_5y`, `observed_risk_5y`
+- Optional collection fields: `discrimination_points` -> `annotation`
+- Required nested collection fields: `calibration_callout` -> `group_label`, `predicted_risk_5y`, `observed_risk_5y`
+- Optional nested collection fields: `calibration_callout` -> `events_5y`, `n`
+- Additional constraints: `discrimination_points_must_be_non_empty`, `discrimination_points_must_be_finite_c_index`, `calibration_summary_must_be_non_empty`, `calibration_group_order_must_be_strictly_increasing`, `calibration_summary_risks_must_be_finite_probability`, `calibration_callout_must_reference_group_label_when_present`
 
 ### `time_to_event_decision_curve_inputs_v1`
 
@@ -317,6 +321,21 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Required nested collection fields: `design_panels.lines` -> `label`
 - Optional nested collection fields: `design_panels.lines` -> `detail`
 - Additional constraints: `steps_must_be_non_empty`, `step_ids_must_be_unique`, `step_label_must_be_non_empty`, `step_n_must_be_integer`, `exclusions_from_step_ids_must_reference_steps`, `exclusion_ids_must_be_unique`, `exclusion_n_must_be_integer`, `endpoint_inventory_ids_must_be_unique`, `endpoint_inventory_event_n_must_be_integer`, `design_panel_ids_must_be_unique`, `design_panel_layout_roles_must_be_supported_and_unique`, `design_panel_lines_must_be_non_empty`
+
+### `submission_graphical_abstract_inputs_v1`
+
+- Display kind: `illustration_shell`
+- Display name: Submission Graphical Abstract
+- Templates: `submission_graphical_abstract`
+- Required top-level fields: `schema_version`, `shell_id`, `display_id`, `catalog_id`, `title`, `caption`, `panels`
+- Optional top-level fields: `paper_role`, `footer_pills`
+- Required display fields: None
+- Optional display fields: None
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `subtitle`, `rows`
+- Optional collection fields: `footer_pills` -> `pill_id`, `label`, `style_role`
+- Required nested collection fields: `panels.rows` -> `cards`<br>`panels.rows.cards` -> `card_id`, `title`, `value`
+- Optional nested collection fields: `panels.rows.cards` -> `detail`, `accent_role`<br>`footer_pills` -> `panel_id`
+- Additional constraints: `graphical_abstract_panels_must_be_non_empty`, `graphical_abstract_panel_ids_must_be_unique`, `graphical_abstract_rows_must_be_non_empty`, `graphical_abstract_cards_must_be_non_empty`, `graphical_abstract_footer_pills_must_reference_known_panels_when_present`
 
 ### `baseline_characteristics_schema_v1`
 
