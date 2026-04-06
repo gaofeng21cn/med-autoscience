@@ -77,26 +77,21 @@
 
 这套系统的目标是保住论文图表与表格的下限，但不限制针对具体课题做上限优化。平台约束的不只是配色或外观，而是版式边界、字段组织、导出结构和质量检查。像文字重叠、注释越界、子图难读、复合 panel 失衡这类低级问题，会被当作 contract / QC 问题处理，而不是留到人工临时补救。
 
-当前范围包括：
+现在这条展示主线有三层分工：
 
-- 面向医学 AI 论文高频展示的 8 大类模板
-- 朝 40 种图表与表格类型持续扩展
-- 已经正式纳入 renderer 链路的 20 个 audited evidence template
-- 临床入组流程图、基线特征表、主要结果表、补充结果表等正式壳层
+- 顶层目标：用 `A-H` 八大类 paper family 定义长期路线
+- 工程审计：用 audited audit families 管理 schema、renderer、QC 与 materialization
+- 具体库存：用 template catalog 记录当前已经正式注册的模板、壳层与表格
 
-代表性大类包括：
+这意味着：
 
-- 预测性能
-- 临床效用
-- 生存与时间结局
-- 降维与分布展示
-- 热图与矩阵模式
-- 效应量与亚组比较
-- 模型解释
-- 泛化与外部验证
+- roadmap 负责回答“平台最终要覆盖哪些常见医学论文证据家族”
+- audit guide 负责回答“当前哪些模板已经严格 audited”
+- template catalog 负责回答“代码里现在到底注册了哪些模板与 contract”
 
-如果你想继续看模板目录和审计规则，可以直接查看：
+如果你想继续看这三层 truth source，可以直接查看：
 
+- [医学展示面家族路线图](docs/medical_display_family_roadmap.md)
 - [医学展示面审计指南](docs/medical_display_audit_guide.md)
 - [医学展示面模板目录](docs/medical_display_template_catalog.md)
 - [公开文档索引](docs/README.zh-CN.md)

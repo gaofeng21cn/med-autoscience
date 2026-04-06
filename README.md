@@ -77,26 +77,21 @@ The publication display surface is now formally templated.
 
 The current medical display system is designed to protect the lower bound of paper figures and tables without capping the upper bound of study-specific presentation. It constrains layout, field organization, export boundaries, and quality checks so that low-level problems such as text overlap, annotation overflow, or unreadable composite panels are caught as contract issues rather than left to ad-hoc repair.
 
-Current scope:
+The display line now has three explicit layers:
 
-- 8 major template families for common medical AI paper displays
-- ongoing expansion toward 40 chart and table types
-- 20 audited evidence templates already formalized in the renderer chain
-- formal shells for cohort flow, baseline table, main results table, and supplementary result tables
+- a top-level roadmap defined by the original `A-H` paper families
+- an engineering audit layer that governs schemas, renderers, QC, and materialization contracts
+- a concrete inventory layer that records the currently registered templates, shells, and tables
 
-Representative families include:
+That means:
 
-- predictive performance
-- clinical utility
-- survival and time-to-event outcomes
-- dimensionality reduction and distribution displays
-- heatmaps and matrix-pattern figures
-- effect-size and subgroup comparison figures
-- model interpretation
-- generalization and external validation
+- the roadmap answers which manuscript-facing evidence families the platform should ultimately cover
+- the audit guide answers which templates are already audited end to end
+- the generated catalog answers what is concretely implemented in code today
 
-If you want the detailed catalog and audit rules, continue with:
+If you want those three truth surfaces directly, continue with:
 
+- [Medical Display Family Roadmap](docs/medical_display_family_roadmap.md)
 - [Medical Display Audit Guide](docs/medical_display_audit_guide.md)
 - [Medical Display Template Catalog](docs/medical_display_template_catalog.md)
 - [Public documentation index](docs/README.md)
