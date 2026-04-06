@@ -11,6 +11,7 @@ __all__ = [
     "stable_study_charter_path",
 ]
 
+
 STABLE_STUDY_CHARTER_RELATIVE_PATH = Path("artifacts/controller/study_charter.json")
 
 
