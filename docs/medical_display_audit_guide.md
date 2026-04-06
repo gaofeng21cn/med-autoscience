@@ -41,15 +41,33 @@ The audited source files are:
 - `src/med_autoscience/controllers/submission_minimal.py`
   - Official submission packaging consumer for figure/table metadata.
 
+## Visual QA And Canonical Surface Policy
+
+- Renderer contracts, schema contracts, and layout QC define the **minimum audited quality floor** for publication-facing displays.
+- Final visual quality is intentionally **AI-first above that floor**:
+  - generate the figure from the audited pipeline;
+  - review the real image, not just manifests or reports;
+  - let AI/human visual audit call out concrete readability/presentation defects;
+  - tighten renderer/QC/contract based on those defects.
+- `publication-gate` / `submission_manifest` clear is therefore **not sufficient evidence** that a final figure is manuscript-ready.
+- For anchor-paper and paper-owned delivery surfaces, keep the directory truth simple and stable:
+  - `paper/` = authoritative manuscript-facing source surface;
+  - `paper/figures/*.shell.json` / `paper/tables/*.shell.json` = display contracts and shells, not rendered deliverables;
+  - `paper/figures/generated/` and `paper/tables/generated/` = authoritative generated display outputs;
+  - `paper/submission_minimal/` = stable submission-package surface that should stay continuously refreshed;
+  - `manuscript/final/` = the only human-facing final-delivery mirror;
+  - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
+  - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
+
 ## Current Audited Coverage
 
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
 - Implemented evidence figure templates: `23`
-- Illustration shells: `1`
-- Table shells: `3`
-- Total implemented display templates: `27`
+- Illustration shells: `2`
+- Table shells: `5`
+- Total implemented display templates: `30`
 
 ### Evidence Classes
 
@@ -69,8 +87,8 @@ Current implemented display inventory:
 
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
-| Illustration Shell | 1 | `cohort_flow_shell_inputs_v1` | shell profile + catalog contract |
-| Table Shell | 3 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1` | table profile + catalog contract |
+| Illustration Shell | 2 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1` | shell profile + catalog contract |
+| Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Nine-Class Audit Map
 
@@ -254,6 +272,12 @@ Authoritative contract:
   - Input schema: `clinical_interpretation_summary_v1`
   - Required exports: `md`
   - Additional publication-surface rule: the markdown table body is scanned for forbidden engineering or tooling language, because interpretation text must be manuscript-safe even when the catalog title/caption is clean.
+- `performance_summary_table_generic`
+  - Input schema: `performance_summary_table_generic_v1`
+  - Required exports: `csv`, `md`
+- `grouped_risk_event_summary_table`
+  - Input schema: `grouped_risk_event_summary_table_v1`
+  - Required exports: `csv`, `md`
 
 ## Input Schema Contract Rules
 

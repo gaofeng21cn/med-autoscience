@@ -55,14 +55,14 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         status="required_pending_materialization",
         template_id="time_to_event_discrimination_calibration_panel",
     ),
-    "kaplan_meier_grouped": RequiredDisplaySurfaceStub(
+    "time_to_event_risk_group_summary": RequiredDisplaySurfaceStub(
         filename="time_to_event_grouped_inputs.json",
         blocker_key="missing_time_to_event_grouped_inputs",
         stub_kind="evidence_inputs",
         schema_key="input_schema_id",
         schema_value="time_to_event_grouped_inputs_v1",
         status="required_pending_materialization",
-        template_id="kaplan_meier_grouped",
+        template_id="time_to_event_risk_group_summary",
     ),
     "time_to_event_decision_curve": RequiredDisplaySurfaceStub(
         filename="time_to_event_decision_curve_inputs.json",

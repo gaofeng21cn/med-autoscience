@@ -4,6 +4,7 @@ import base64
 import importlib
 import json
 from pathlib import Path
+import shutil
 
 
 PNG_1X1_BASE64 = (
@@ -174,8 +175,34 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert (study_root / "manuscript" / "final" / "paper.pdf").exists()
     assert (study_root / "manuscript" / "final" / "submission_manifest.json").exists()
     assert (study_root / "manuscript" / "final" / "delivery_manifest.json").exists()
-    assert (study_root / "artifacts" / "final" / "figures" / "Figure1.pdf").exists()
-    assert (study_root / "artifacts" / "final" / "tables" / "Table1.csv").exists()
+    assert "Fixed handoff mirror: `manuscript/final/`" in (
+        study_root / "manuscript" / "README.md"
+    ).read_text(encoding="utf-8")
+    assert "paper/submission_minimal/" in (study_root / "manuscript" / "final" / "README.md").read_text(encoding="utf-8")
+    assert "not part of the human-facing final delivery surface" in (
+        study_root / "artifacts" / "README.md"
+    ).read_text(encoding="utf-8")
+    assert not (study_root / "artifacts" / "final").exists()
+    assert not (study_root / "manuscript" / "final" / "submission_package" / "figures" / "README.md").exists()
+    assert not (study_root / "manuscript" / "final" / "submission_package" / "tables" / "README.md").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package" / "figures" / "Figure1.pdf").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv").exists()
+
+
+def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    quest_paper_root, study_root = make_delivery_workspace(tmp_path)
+    study_paper_root = study_root / "paper"
+    shutil.copytree(quest_paper_root, study_paper_root)
+
+    module.sync_study_delivery(
+        paper_root=study_paper_root,
+        stage="submission_minimal",
+    )
+
+    assert (study_root / "manuscript" / "final" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
+    assert not (study_root / "artifacts" / "final").exists()
 
 
 def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Path) -> None:
@@ -191,8 +218,13 @@ def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Pa
     assert (study_root / "manuscript" / "final" / "status.md").exists()
     assert (study_root / "manuscript" / "final" / "final_claim_ledger.md").exists()
     assert (study_root / "manuscript" / "final" / "finalize_resume_packet.md").exists()
+    assert "machine-generated finalization evidence only" in (
+        study_root / "artifacts" / "final" / "README.md"
+    ).read_text(encoding="utf-8")
     assert (study_root / "artifacts" / "final" / "paper_bundle_manifest.json").exists()
     assert (study_root / "artifacts" / "final" / "compile_report.json").exists()
+    assert not (study_root / "artifacts" / "final" / "figures").exists()
+    assert not (study_root / "artifacts" / "final" / "tables").exists()
 
 
 def test_sync_study_delivery_for_finalize_accepts_canonical_handoff_from_worktree(tmp_path: Path) -> None:
@@ -329,8 +361,9 @@ def test_sync_study_delivery_can_promote_primary_journal_package_into_study_fina
     )
     assert (study_root / "manuscript" / "final" / "submission_package" / "manuscript.docx").exists()
     assert (study_root / "manuscript" / "final" / "submission_package.zip").exists()
-    assert (study_root / "artifacts" / "final" / "figures" / "Figure1.svg").exists()
-    assert (study_root / "artifacts" / "final" / "tables" / "Table1.csv").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package" / "figures" / "Figure1.svg").exists()
+    assert (study_root / "manuscript" / "final" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert not (study_root / "artifacts" / "final").exists()
     assert (
         study_root
         / "manuscript"

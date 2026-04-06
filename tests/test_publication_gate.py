@@ -17,6 +17,7 @@ def make_quest(
     include_main_result: bool = True,
     runtime_status: str = "running",
     include_unmanaged_submission_surface: bool = False,
+    archive_legacy_submission_surface: bool = False,
     manuscript_files: dict[str, str] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
@@ -90,9 +91,18 @@ def make_quest(
         (worktree_root / "paper" / "submission_minimal" / "paper.pdf").write_text("%PDF", encoding="utf-8")
     if include_unmanaged_submission_surface:
         (worktree_root / "paper" / "submission_pituitary").mkdir(parents=True, exist_ok=True)
-        (worktree_root / "paper" / "submission_pituitary" / "submission_manifest.json").write_text(
-            "{}",
-            encoding="utf-8",
+        dump_json(
+            worktree_root / "paper" / "submission_pituitary" / "submission_manifest.json",
+            (
+                {
+                    "schema_version": 1,
+                    "surface_status": "archived_reference_only",
+                    "archive_reason": "Retained only as a historical journal-target package.",
+                    "active_managed_submission_manifest_path": "paper/submission_minimal/submission_manifest.json",
+                }
+                if archive_legacy_submission_surface
+                else {}
+            ),
         )
     if manuscript_files:
         for relpath, body in manuscript_files.items():
@@ -193,6 +203,72 @@ def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: P
     ]
 
 
+def test_build_gate_report_accepts_archived_reference_only_legacy_submission_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_unmanaged_submission_surface=True,
+        archive_legacy_submission_surface=True,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "clear"
+    assert report["blockers"] == []
+    assert report["unmanaged_submission_surface_roots"] == []
+    assert report["archived_submission_surface_roots"] == [
+        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+    ]
+
+
+def test_build_gate_report_blocks_archived_reference_only_surface_when_target_manifest_is_outside_current_paper(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_unmanaged_submission_surface=True,
+        archive_legacy_submission_surface=True,
+    )
+    external_manifest = tmp_path / "external" / "paper" / "submission_minimal" / "submission_manifest.json"
+    dump_json(
+        external_manifest,
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    archived_manifest_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "paper"
+        / "submission_pituitary"
+        / "submission_manifest.json"
+    )
+    payload = json.loads(archived_manifest_path.read_text(encoding="utf-8"))
+    payload["active_managed_submission_manifest_path"] = str(external_manifest.resolve())
+    dump_json(archived_manifest_path, payload)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "unmanaged_submission_surface_present" in report["blockers"]
+    assert report["archived_submission_surface_roots"] == []
+    assert report["unmanaged_submission_surface_roots"] == [
+        str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "submission_pituitary").resolve())
+    ]
+
+
 def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -242,6 +318,75 @@ def test_build_gate_report_blocks_forbidden_manuscript_terminology(tmp_path: Pat
         and item["label"] == "followup_freeze_label"
         and item["match"] == "follow-up freeze"
         for item in violations
+    )
+
+
+def test_build_gate_report_blocks_submission_surface_qc_failures(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    submission_manifest_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "paper"
+        / "submission_minimal"
+        / "submission_manifest.json"
+    )
+    payload = json.loads(submission_manifest_path.read_text(encoding="utf-8"))
+    payload["figures"] = [
+        {
+            "figure_id": "GA1",
+            "template_id": "submission_graphical_abstract",
+            "qc_profile": "submission_graphical_abstract",
+            "qc_result": {
+                "status": "fail",
+                "qc_profile": "submission_graphical_abstract",
+                "failure_reason": "panel_text_out_of_panel",
+                "audit_classes": ["layout"],
+            },
+        }
+    ]
+    submission_manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert "submission_surface_qc_failure_present" in report["blockers"]
+    assert report["submission_surface_qc_failures"] == [
+        {
+            "collection": "figures",
+            "item_id": "GA1",
+            "descriptor": "submission_graphical_abstract",
+            "qc_profile": "submission_graphical_abstract",
+            "failure_reason": "panel_text_out_of_panel",
+            "audit_classes": ["layout"],
+        }
+    ]
+
+
+def test_build_gate_report_inherits_blocked_medical_publication_surface_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    dump_json(
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json",
+        {
+            "status": "blocked",
+            "blockers": ["figure_catalog_missing_or_incomplete"],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert report["medical_publication_surface_status"] == "blocked"
+    assert "medical_publication_surface_blocked" in report["blockers"]
+    assert report["medical_publication_surface_report_path"].endswith(
+        "artifacts/reports/medical_publication_surface/2026-04-05T15:29:32Z.json"
     )
 
 

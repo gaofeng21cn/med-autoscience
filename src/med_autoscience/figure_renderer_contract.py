@@ -5,6 +5,7 @@ from med_autoscience import display_registry
 
 FIGURE_SEMANTICS_EVIDENCE = "evidence"
 FIGURE_SEMANTICS_ILLUSTRATION = "illustration"
+FIGURE_SEMANTICS_SUBMISSION_COMPANION = "submission_companion"
 RENDERER_FAMILY_PYTHON = "python"
 RENDERER_FAMILY_R_GGPLOT2 = "r_ggplot2"
 RENDERER_FAMILY_HTML_SVG = "html_svg"
@@ -16,6 +17,11 @@ _ALLOWED_RENDERERS_BY_SEMANTICS: dict[str, tuple[str, ...]] = {
         RENDERER_FAMILY_R_GGPLOT2,
     ),
     FIGURE_SEMANTICS_ILLUSTRATION: (
+        RENDERER_FAMILY_PYTHON,
+        RENDERER_FAMILY_R_GGPLOT2,
+        RENDERER_FAMILY_HTML_SVG,
+    ),
+    FIGURE_SEMANTICS_SUBMISSION_COMPANION: (
         RENDERER_FAMILY_PYTHON,
         RENDERER_FAMILY_R_GGPLOT2,
         RENDERER_FAMILY_HTML_SVG,
@@ -33,6 +39,14 @@ def allowed_renderer_families(figure_semantics: str) -> tuple[str, ...]:
         supported = ", ".join(sorted(_ALLOWED_RENDERERS_BY_SEMANTICS))
         raise ValueError(f"Unsupported figure_semantics `{figure_semantics}`; expected one of: {supported}")
     return _ALLOWED_RENDERERS_BY_SEMANTICS[normalized]
+
+
+def _uses_illustration_shell_contract(figure_semantics: str) -> bool:
+    normalized = _normalize_string(figure_semantics)
+    return normalized in {
+        FIGURE_SEMANTICS_ILLUSTRATION,
+        FIGURE_SEMANTICS_SUBMISSION_COMPANION,
+    }
 
 
 def validate_renderer_contract(payload: object, *, label: str = "renderer_contract") -> list[str]:
@@ -123,7 +137,7 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
                         f"required_exports missing registered export formats for template_id `{template_id}`: "
                         f"{', '.join(missing_exports)}"
                     )
-    if figure_semantics == FIGURE_SEMANTICS_ILLUSTRATION and template_id:
+    if _uses_illustration_shell_contract(figure_semantics) and template_id:
         if not display_registry.is_illustration_shell(template_id):
             errors.append(f"template_id `{template_id}` is not a registered illustration shell")
         else:

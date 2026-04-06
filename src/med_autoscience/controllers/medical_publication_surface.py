@@ -506,6 +506,68 @@ def inspect_figure_semantics_coverage(
     return hits
 
 
+def inspect_figure_semantic_renderer_alignment(
+    *,
+    path: Path,
+    figure_catalog_payload: object,
+    figure_semantics_payload: object,
+) -> list[dict[str, Any]]:
+    if not isinstance(figure_catalog_payload, dict) or not isinstance(figure_semantics_payload, dict):
+        return []
+    semantics_by_id = {
+        str(item.get("figure_id") or "").strip(): item
+        for item in figure_semantics_payload.get("figures", []) or []
+        if isinstance(item, dict) and str(item.get("figure_id") or "").strip()
+    }
+    hits: list[dict[str, Any]] = []
+    for figure in figure_catalog_payload.get("figures", []) or []:
+        if not isinstance(figure, dict):
+            continue
+        if str(figure.get("paper_role") or "").strip() != "main_text":
+            continue
+        figure_id = str(figure.get("figure_id") or "").strip()
+        if not figure_id:
+            continue
+        semantics_entry = semantics_by_id.get(figure_id)
+        if not isinstance(semantics_entry, dict):
+            continue
+        renderer_contract = semantics_entry.get("renderer_contract")
+        if not isinstance(renderer_contract, dict):
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"figures[{figure_id}].renderer_contract",
+                    "pattern_id": "figure_semantics_renderer_contract_missing",
+                    "phrase": figure_id,
+                    "excerpt": f"Figure semantics entry `{figure_id}` is missing renderer_contract.",
+                }
+            )
+            continue
+        expected_pairs = (
+            ("template_id", "template_id"),
+            ("renderer_family", "renderer_family"),
+            ("layout_qc_profile", "qc_profile"),
+        )
+        for semantics_field, catalog_field in expected_pairs:
+            expected_value = str(renderer_contract.get(semantics_field) or "").strip()
+            observed_value = str(figure.get(catalog_field) or "").strip()
+            if expected_value and observed_value == expected_value:
+                continue
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"figures[{figure_id}].renderer_contract.{semantics_field}",
+                    "pattern_id": "figure_semantics_renderer_contract_mismatch",
+                    "phrase": figure_id,
+                    "excerpt": (
+                        f"Figure `{figure_id}` catalog field `{catalog_field}` is `{observed_value}` but "
+                        f"renderer_contract expects `{expected_value}`."
+                    ),
+                }
+            )
+    return hits
+
+
 def inspect_required_display_catalog_coverage(
     *,
     reporting_contract_path: Path,
@@ -786,6 +848,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         results_narrative_valid = False
         results_narrative_hits.extend(results_narrative_figure_coverage_hits)
     figure_semantics_payload = load_json(state.figure_semantics_manifest_path, default=None)
+    figure_catalog_payload = load_json(state.figure_catalog_path, default=None)
     figure_semantics_coverage_hits = inspect_figure_semantics_coverage(
         path=state.figure_semantics_manifest_path,
         payload=figure_semantics_payload,
@@ -794,6 +857,14 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     if figure_semantics_coverage_hits:
         figure_semantics_valid = False
         figure_semantics_hits.extend(figure_semantics_coverage_hits)
+    figure_semantics_renderer_alignment_hits = inspect_figure_semantic_renderer_alignment(
+        path=state.figure_semantics_manifest_path,
+        figure_catalog_payload=figure_catalog_payload,
+        figure_semantics_payload=figure_semantics_payload,
+    )
+    if figure_semantics_renderer_alignment_hits:
+        figure_semantics_valid = False
+        figure_semantics_hits.extend(figure_semantics_renderer_alignment_hits)
     methods_manifest_payload = load_json(state.methods_implementation_manifest_path, default=None)
     derived_analysis_payload = load_json(state.derived_analysis_manifest_path, default=None)
     reproducibility_payload = load_json(state.reproducibility_supplement_path, default=None)

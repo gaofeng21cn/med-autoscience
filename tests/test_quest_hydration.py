@@ -27,7 +27,7 @@ def _time_to_event_reporting_contract() -> dict[str, object]:
             {
                 "display_id": "km_risk_stratification",
                 "display_kind": "figure",
-                "requirement_key": "kaplan_meier_grouped",
+                "requirement_key": "time_to_event_risk_group_summary",
                 "catalog_id": "F3",
             },
             {
@@ -148,7 +148,7 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
         {
             "display_id": "km_risk_stratification",
             "display_kind": "figure",
-            "requirement_key": "kaplan_meier_grouped",
+            "requirement_key": "time_to_event_risk_group_summary",
             "catalog_id": "F3",
             "shell_path": "paper/figures/km_risk_stratification.shell.json",
         },

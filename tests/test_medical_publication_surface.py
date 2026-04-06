@@ -21,7 +21,7 @@ TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
     {
         "display_id": "km_risk_stratification",
         "display_kind": "figure",
-        "requirement_key": "kaplan_meier_grouped",
+        "requirement_key": "time_to_event_risk_group_summary",
         "catalog_id": "F3",
     },
     {
@@ -580,7 +580,14 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
             "renderer_family": "python",
             "input_schema_id": "cohort_flow_shell_inputs_v1",
             "qc_profile": "publication_illustration_flow",
-            "qc_result": {"status": "pass", "issues": []},
+            "qc_result": {
+                "status": "pass",
+                "checked_at": "2026-04-03T10:00:00+00:00",
+                "engine_id": "display_layout_qc_v1",
+                "qc_profile": "publication_illustration_flow",
+                "layout_sidecar_path": "paper/figures/generated/F1.layout.json",
+                "issues": [],
+            },
             "title": "Cohort derivation and endpoint inventory",
             "caption": "Cohort flow and endpoint inventory for the formal analysis cohort.",
             "paper_role": "main_text",
@@ -607,8 +614,8 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         },
         {
             "figure_id": "F3",
-            "template_id": "kaplan_meier_grouped",
-            "renderer_family": "r_ggplot2",
+            "template_id": "time_to_event_risk_group_summary",
+            "renderer_family": "python",
             "input_schema_id": "time_to_event_grouped_inputs_v1",
             "qc_profile": "publication_survival_curve",
             "qc_result": {
@@ -619,10 +626,10 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "layout_sidecar_path": "paper/figures/generated/F3.layout.json",
                 "issues": [],
             },
-            "title": "Risk-group Kaplan-Meier curves",
-            "caption": "Five-year Kaplan-Meier separation across prespecified risk groups.",
+            "title": "Primary risk-group summary",
+            "caption": "Predicted versus observed five-year risk and observed event concentration across prespecified tertiles.",
             "paper_role": "main_text",
-            "export_paths": ["paper/figures/F3_km.png", "paper/figures/F3_km.pdf"],
+            "export_paths": ["paper/figures/F3_risk_group_summary.png", "paper/figures/F3_risk_group_summary.pdf"],
         },
         {
             "figure_id": "F4",
@@ -753,20 +760,20 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
         {
             "figure_id": "F3",
             "story_role": "risk_stratification",
-            "research_question": "Did the prespecified risk groups separate over follow-up?",
-            "direct_message": "The prespecified risk groups remained separated across follow-up.",
+            "research_question": "Did tertile-based grouping concentrate observed events and separate five-year risk?",
+            "direct_message": "Observed five-year events concentrated in the highest tertile and were absent in the low-risk tertile.",
             "clinical_implication": "Supports clinically interpretable risk layering in the main manuscript.",
-            "interpretation_boundary": "Shows grouped survival separation, not a mechanistic explanation.",
-            "panel_messages": [{"panel_id": "A", "message": "Risk-group survival separation remains directionally consistent."}],
-            "legend_glossary": [{"term": "Kaplan-Meier", "explanation": "Time-to-event separation across grouped risk strata."}],
-            "threshold_semantics": "No intervention threshold is encoded in the KM panel.",
-            "stratification_basis": "Groups are derived from the prespecified manuscript risk stratification.",
+            "interpretation_boundary": "Shows tertile-based five-year risk separation rather than a full survival-curve reconstruction.",
+            "panel_messages": [{"panel_id": "A", "message": "Predicted and observed five-year risks rise stepwise from low to high tertiles."}],
+            "legend_glossary": [{"term": "risk tertile", "explanation": "Ordered groups formed from predicted five-year risk."}],
+            "threshold_semantics": "No intervention threshold is encoded in the tertile summary.",
+            "stratification_basis": "Groups are derived from the prespecified manuscript five-year risk stratification.",
             "recommendation_boundary": "Risk-group separation does not by itself define a treatment rule.",
             "renderer_contract": {
                 "figure_semantics": "evidence",
-                "renderer_family": "r_ggplot2",
-                "template_id": "kaplan_meier_grouped",
-                "selection_rationale": "The grouped survival figure reuses the audited survival template directly.",
+                "renderer_family": "python",
+                "template_id": "time_to_event_risk_group_summary",
+                "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM fallback.",
                 "layout_qc_profile": "publication_survival_curve",
                 "required_exports": ["png", "pdf"],
                 "fallback_on_failure": False,
@@ -1202,6 +1209,105 @@ def test_build_report_blocks_when_renderer_contract_allows_fallback(tmp_path: Pa
     assert "fallback_on_failure" in excerpts
 
 
+def test_build_report_blocks_when_figure_catalog_breaks_renderer_contract_alignment(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"][0]["template_id"] = "pr_curve_binary"
+    figure_catalog_path.write_text(json.dumps(figure_catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "figure_semantics_renderer_contract_mismatch" for hit in report["top_hits"])
+
+
+def test_build_report_allows_submission_companion_renderer_contract_in_figure_semantics_manifest(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"].append(
+        {
+            "figure_id": "GA1",
+            "template_id": "submission_graphical_abstract",
+            "renderer_family": "python",
+            "paper_role": "submission_companion",
+            "input_schema_id": "submission_graphical_abstract_inputs_v1",
+            "qc_profile": "submission_graphical_abstract",
+            "qc_result": {
+                "status": "pass",
+                "checked_at": "2026-04-05T00:00:00+00:00",
+                "engine_id": "display_layout_qc_v1",
+                "qc_profile": "submission_graphical_abstract",
+                "layout_sidecar_path": "paper/figures/generated/GA1.layout.json",
+                "audit_classes": [],
+                "issues": [],
+                "failure_reason": "",
+                "readability_findings": [],
+                "revision_note": "",
+            },
+            "title": "Submission graphical abstract",
+            "caption": "Graphical abstract summarizes the cohort, primary result, and applicability boundary.",
+            "export_paths": ["paper/figures/generated/GA1.svg", "paper/figures/generated/GA1.png"],
+        }
+    )
+    figure_catalog_path.write_text(json.dumps(figure_catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    figure_semantics_path = paper_root / "figure_semantics_manifest.json"
+    figure_semantics = json.loads(figure_semantics_path.read_text(encoding="utf-8"))
+    figure_semantics["figures"].append(
+        {
+            "figure_id": "GA1",
+            "story_role": "submission-facing study synopsis",
+            "research_question": "How should the submission companion summarize the audited study surface without adding new evidence?",
+            "direct_message": "The graphical abstract compresses audited cohort, endpoint, and boundary information into a submission-facing synopsis.",
+            "clinical_implication": "Editors and reviewers can see the main audited boundary conditions before reading the full text.",
+            "interpretation_boundary": "The graphical abstract is a submission companion and does not add new evidence beyond the audited manuscript surface.",
+            "panel_messages": [
+                {"panel_id": "A", "message": "Panel A summarizes the cohort and split."},
+                {"panel_id": "B", "message": "Panel B summarizes the primary 5-year endpoint."},
+            ],
+            "legend_glossary": [
+                {"term": "submission companion", "explanation": "A manuscript-adjacent summary artifact for editorial review."},
+            ],
+            "threshold_semantics": "Any displayed thresholds summarize audited evidence and do not introduce new decision cut-offs.",
+            "stratification_basis": "The companion mirrors the audited paper-owned displays and tables.",
+            "recommendation_boundary": "No new recommendation claim is introduced by the submission companion.",
+            "renderer_contract": {
+                "figure_semantics": "submission_companion",
+                "renderer_family": "python",
+                "template_id": "submission_graphical_abstract",
+                "selection_rationale": "The submission graphical abstract must stay on the audited illustration shell so the manuscript-facing summary remains deterministic.",
+                "layout_qc_profile": "submission_graphical_abstract",
+                "required_exports": ["png", "svg"],
+                "fallback_on_failure": False,
+                "failure_action": "block_and_fix_environment",
+            },
+        }
+    )
+    figure_semantics_path.write_text(json.dumps(figure_semantics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "figure_semantics_manifest_missing_or_incomplete" not in report["blockers"]
+
+
 def test_build_report_blocks_when_catalog_entry_missing_template_metadata(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -1429,6 +1535,46 @@ def test_validate_figure_catalog_blocks_readability_failures() -> None:
     assert any("readability" in error for error in errors)
 
 
+def test_validate_figure_catalog_blocks_failed_illustration_shell_qc() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_figure_catalog(
+        {
+            "figures": [
+                {
+                    "figure_id": "GA1",
+                    "template_id": "submission_graphical_abstract",
+                    "renderer_family": "python",
+                    "paper_role": "submission_companion",
+                    "input_schema_id": "submission_graphical_abstract_inputs_v1",
+                    "qc_profile": "submission_graphical_abstract",
+                    "qc_result": {
+                        "status": "fail",
+                        "checked_at": "2026-04-05T00:00:00+00:00",
+                        "engine_id": "display_layout_qc_v1",
+                        "qc_profile": "submission_graphical_abstract",
+                        "layout_sidecar_path": "paper/figures/generated/GA1.layout.json",
+                        "audit_classes": ["layout"],
+                        "issues": [
+                            {
+                                "audit_class": "layout",
+                                "rule_id": "panel_text_out_of_panel",
+                                "message": "graphical-abstract panel text must stay within a panel",
+                            }
+                        ],
+                        "failure_reason": "panel_text_out_of_panel",
+                        "readability_findings": [],
+                        "revision_note": "",
+                    },
+                    "export_paths": ["paper/figures/generated/GA1.svg", "paper/figures/generated/GA1.png"],
+                }
+            ]
+        }
+    )
+
+    assert any("blocks publication" in error for error in errors)
+
+
 def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
@@ -1481,6 +1627,68 @@ def test_validate_table_catalog_rejects_missing_md_export_for_second_stage_table
 
     assert "missing required export formats" in errors[0]
     assert "md" in errors[0]
+
+
+def test_validate_table_catalog_accepts_csv_and_md_anchor_generic_tables() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "performance_summary_table_generic",
+                    "paper_role": "main_text",
+                    "input_schema_id": "performance_summary_table_generic_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": [
+                        "paper/tables/T2_performance_summary.csv",
+                        "paper/tables/T2_performance_summary.md",
+                    ],
+                },
+                {
+                    "table_id": "T3",
+                    "table_shell_id": "grouped_risk_event_summary_table",
+                    "paper_role": "main_text",
+                    "input_schema_id": "grouped_risk_event_summary_table_v1",
+                    "qc_profile": "publication_table_interpretation",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": [
+                        "paper/tables/T3_grouped_risk_summary.csv",
+                        "paper/tables/T3_grouped_risk_summary.md",
+                    ],
+                },
+            ]
+        }
+    )
+
+    assert errors == []
+
+
+def test_validate_table_catalog_rejects_missing_csv_for_anchor_generic_tables() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_table_catalog(
+        {
+            "tables": [
+                {
+                    "table_id": "T2",
+                    "table_shell_id": "performance_summary_table_generic",
+                    "paper_role": "main_text",
+                    "input_schema_id": "performance_summary_table_generic_v1",
+                    "qc_profile": "publication_table_performance",
+                    "qc_result": {"status": "pass", "issues": []},
+                    "asset_paths": ["paper/tables/T2_performance_summary.md"],
+                }
+            ]
+        }
+    )
+
+    assert "missing required export formats" in errors[0]
+    assert "csv" in errors[0]
+
+
 def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")

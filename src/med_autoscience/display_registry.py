@@ -255,6 +255,15 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
         shell_qc_profile="publication_illustration_flow",
         required_exports=("png", "svg"),
     ),
+    IllustrationShellSpec(
+        shell_id="submission_graphical_abstract",
+        display_name="Submission Graphical Abstract",
+        renderer_family="python",
+        input_schema_id="submission_graphical_abstract_inputs_v1",
+        shell_qc_profile="submission_graphical_abstract",
+        required_exports=("png", "svg"),
+        allowed_paper_roles=("submission_companion",),
+    ),
 )
 
 _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
@@ -278,6 +287,20 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         input_schema_id="clinical_interpretation_summary_v1",
         table_qc_profile="publication_table_interpretation",
         required_exports=("md",),
+    ),
+    TableShellSpec(
+        shell_id="performance_summary_table_generic",
+        display_name="Performance Summary Table (Generic)",
+        input_schema_id="performance_summary_table_generic_v1",
+        table_qc_profile="publication_table_performance",
+        required_exports=("csv", "md"),
+    ),
+    TableShellSpec(
+        shell_id="grouped_risk_event_summary_table",
+        display_name="Grouped Risk Event Summary Table",
+        input_schema_id="grouped_risk_event_summary_table_v1",
+        table_qc_profile="publication_table_interpretation",
+        required_exports=("csv", "md"),
     ),
 )
 

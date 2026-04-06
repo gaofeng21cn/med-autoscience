@@ -274,6 +274,116 @@ Conclusion paragraph.
     return paper_root
 
 
+def make_manuscript_shaped_draft_workspace(tmp_path: Path) -> Path:
+    workspace_root = tmp_path / "workspace"
+    paper_root = workspace_root / "paper"
+
+    write_text(
+        paper_root / "draft.md",
+        """# Manuscript-Shaped Draft Title
+
+## Abstract
+
+### Background
+
+Draft abstract background with evidence [@ref1].
+
+### Methods
+
+Draft abstract methods.
+
+### Results
+
+Draft abstract results.
+
+### Conclusions
+
+Draft abstract conclusions.
+
+## Introduction
+
+Intro paragraph with citation [@ref1].
+
+## Materials and Methods
+
+Study methods paragraph.
+
+## Results
+
+Results paragraph.
+
+## Discussion
+
+Discussion paragraph.
+""",
+    )
+    write_text(
+        paper_root / "references.bib",
+        """@article{ref1,
+  title={A primary source},
+  author={Author, A. and Author, B.},
+  journal={Journal},
+  year={2024}
+}
+""",
+    )
+    write_png(paper_root / "figures" / "F1_main.png")
+    write_text(paper_root / "figures" / "F1_main.pdf", "%PDF-1.4\n%main figure\n")
+    write_text(paper_root / "tables" / "T1_summary.md", "| Characteristic | Value |\n| --- | --- |\n| Age | 52 |\n")
+    write_text(paper_root / "paper.pdf", "%PDF-1.4\n%paper bundle\n")
+
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "pdf_path": "paper/paper.pdf",
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "Main figure",
+                    "planned_exports": ["paper/figures/F1_main.pdf", "paper/figures/F1_main.png"],
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T1",
+                    "paper_role": "main_text",
+                    "path": "paper/tables/T1_summary.md",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/draft.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+            "included_assets": [
+                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
+            ],
+        },
+    )
+    return paper_root
+
+
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -624,7 +734,7 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", fake_can_sync)
     monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
 
-    module.create_submission_minimal_package(
+    manifest = module.create_submission_minimal_package(
         paper_root=paper_root,
         publication_profile="general_medical_journal",
     )
@@ -633,6 +743,14 @@ def test_create_submission_minimal_package_syncs_study_delivery_when_context_is_
     assert called["sync_paper_root"] == paper_root
     assert called["sync_stage"] == "submission_minimal"
     assert called["sync_publication_profile"] == "general_medical_journal"
+    assert manifest["delivery_sync"] == {
+        "stage": "submission_minimal",
+        "publication_profile": "general_medical_journal",
+    }
+    assert manifest["readme_path"] == "paper/submission_minimal/README.md"
+    readme_text = (paper_root / "submission_minimal" / "README.md").read_text(encoding="utf-8")
+    assert "paper/submission_minimal/" in readme_text
+    assert "manuscript/final/" in readme_text
 
 
 def test_create_submission_minimal_package_frontiers_family_profile_creates_journal_specific_assets(
@@ -663,9 +781,13 @@ def test_create_submission_minimal_package_frontiers_family_profile_creates_jour
     assert submission_root.exists()
     assert manifest["publication_profile"] == "frontiers_family_harvard"
     assert manifest["citation_style"] == "FrontiersHarvard"
+    assert manifest["readme_path"] == "paper/journal_submissions/frontiers_family_harvard/README.md"
     assert (submission_root / "manuscript.docx").exists()
     assert (submission_root / "Supplementary_Material.docx").exists()
     assert (submission_root / "paper.pdf").exists()
+    assert "paper/journal_submissions/frontiers_family_harvard/" in (
+        submission_root / "README.md"
+    ).read_text(encoding="utf-8")
     assert manifest["manuscript"]["docx_path"] == "paper/journal_submissions/frontiers_family_harvard/manuscript.docx"
     assert (
         manifest["supplementary_material"]["docx_path"]
@@ -886,3 +1008,37 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
     assert "Draft" not in paragraphs[:3]
     assert any("A primary source" in paragraph for paragraph in paragraphs)
     assert not any("ref1?" in paragraph for paragraph in paragraphs)
+
+
+def test_create_submission_minimal_package_supports_manuscript_shaped_draft_without_front_matter(
+    tmp_path: Path,
+) -> None:
+    from docx import Document
+
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_manuscript_shaped_draft_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    compiled_submission_markdown = submission_root / "manuscript_submission.md"
+    assert compiled_submission_markdown.exists()
+
+    submission_markdown = compiled_submission_markdown.read_text(encoding="utf-8")
+    assert submission_markdown.startswith("---\n")
+    assert 'title: "Manuscript-Shaped Draft Title"' in submission_markdown
+    assert "bibliography: ../references.bib" in submission_markdown
+    assert "bibliography: ../../references.bib" not in submission_markdown
+    assert "title: \"Article Title\"" not in submission_markdown
+    assert "\n# Methods\n\nStudy methods paragraph.\n" in submission_markdown
+    assert "Draft abstract methods." in submission_markdown
+    assert manifest["manuscript"]["source_markdown_path"] == "paper/submission_minimal/manuscript_submission.md"
+
+    document = Document(submission_root / "manuscript.docx")
+    paragraphs = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+    assert paragraphs[0] == "Manuscript-Shaped Draft Title"
+    assert any("Study methods paragraph." in paragraph for paragraph in paragraphs)
+    assert any("A primary source" in paragraph for paragraph in paragraphs)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 import html
 import json
 import re
@@ -10,6 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import textwrap
 from typing import Any
 
 import matplotlib
@@ -45,6 +47,8 @@ _TABLE_INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "baseline_characteristics_schema_v1": "baseline_characteristics_schema.json",
     "time_to_event_performance_summary_v1": "time_to_event_performance_summary.json",
     "clinical_interpretation_summary_v1": "clinical_interpretation_summary.json",
+    "performance_summary_table_generic_v1": "performance_summary_table_generic.json",
+    "grouped_risk_event_summary_table_v1": "grouped_risk_event_summary_table.json",
 }
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -586,6 +590,11 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def _paper_relative_path(path: Path, *, paper_root: Path) -> str:
     return path.resolve().relative_to(paper_root.parent.resolve()).as_posix()
 
@@ -621,6 +630,9 @@ def _read_bool_override(mapping: dict[str, Any], key: str, default: bool) -> boo
 
 def _normalize_figure_catalog_id(raw_id: str) -> str:
     item = str(raw_id).strip()
+    graphical_abstract_match = re.fullmatch(r"(?:GraphicalAbstract|GA)(\d+)", item, flags=re.IGNORECASE)
+    if graphical_abstract_match:
+        return f"GA{int(graphical_abstract_match.group(1))}"
     supplementary_match = re.fullmatch(r"SupplementaryFigureS(\d+)", item, flags=re.IGNORECASE)
     if supplementary_match:
         return f"FS{int(supplementary_match.group(1))}"
@@ -666,6 +678,146 @@ def _replace_catalog_entry(items: list[dict[str, Any]], *, key: str, value: str,
     return updated
 
 
+def _collect_referenced_generated_surface_paths(
+    *,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+) -> set[str]:
+    referenced_paths: set[str] = set()
+
+    def maybe_add(path_value: object) -> None:
+        normalized = str(path_value or "").strip()
+        if not normalized.startswith("paper/") or "/generated/" not in normalized:
+            return
+        referenced_paths.add(normalized)
+
+    for entry in figure_catalog.get("figures", []):
+        if not isinstance(entry, dict):
+            continue
+        for export_path in entry.get("export_paths") or []:
+            maybe_add(export_path)
+        qc_result = entry.get("qc_result")
+        if isinstance(qc_result, dict):
+            maybe_add(qc_result.get("layout_sidecar_path"))
+
+    for entry in table_catalog.get("tables", []):
+        if not isinstance(entry, dict):
+            continue
+        for asset_path in entry.get("asset_paths") or []:
+            maybe_add(asset_path)
+
+    return referenced_paths
+
+
+def _prune_unreferenced_generated_surface_outputs(
+    *,
+    paper_root: Path,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+) -> list[str]:
+    referenced_paths = _collect_referenced_generated_surface_paths(
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    )
+    deleted_paths: list[str] = []
+    generated_roots = (
+        (paper_root / "figures" / "generated", {".png", ".pdf", ".svg", ".json"}),
+        (paper_root / "tables" / "generated", {".csv", ".md"}),
+    )
+    for generated_root, allowed_suffixes in generated_roots:
+        if not generated_root.exists():
+            continue
+        for candidate in sorted(generated_root.glob("*")):
+            if not candidate.is_file() or candidate.suffix.lower() not in allowed_suffixes:
+                continue
+            relpath = f"paper/{candidate.relative_to(paper_root).as_posix()}"
+            if relpath in referenced_paths:
+                continue
+            candidate.unlink()
+            deleted_paths.append(relpath)
+    return deleted_paths
+
+
+def _build_paper_surface_readmes(
+    *,
+    paper_root: Path,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+) -> dict[Path, str]:
+    figure_ids = [
+        str(entry.get("figure_id") or "").strip()
+        for entry in figure_catalog.get("figures", [])
+        if isinstance(entry, dict) and str(entry.get("figure_id") or "").strip()
+    ]
+    table_ids = [
+        str(entry.get("table_id") or "").strip()
+        for entry in table_catalog.get("tables", [])
+        if isinstance(entry, dict) and str(entry.get("table_id") or "").strip()
+    ]
+    figure_id_line = ", ".join(figure_ids) if figure_ids else "(none materialized yet)"
+    table_id_line = ", ".join(table_ids) if table_ids else "(none materialized yet)"
+    return {
+        paper_root / "README.md": textwrap.dedent(
+            f"""\
+            # Paper Authority Surface
+
+            - This directory is the manuscript-facing authority surface for the active study line.
+            - Figures: `paper/figures/figure_catalog.json` + `paper/figures/generated/`
+            - Tables: `paper/tables/table_catalog.json` + `paper/tables/generated/`
+            - Canonical submission package: `paper/submission_minimal/`
+            - Human-facing delivery mirror: `../manuscript/final/`
+            - Auxiliary finalize/runtime evidence only: `../artifacts/`
+
+            If a human needs the latest authoritative display outputs, start here instead of `manuscript/` or `artifacts/`.
+            """
+        ),
+        paper_root / "figures" / "README.md": textwrap.dedent(
+            f"""\
+            # Figure Authority Surface
+
+            - Catalog contract: `paper/figures/figure_catalog.json`
+            - Active rendered outputs: `paper/figures/generated/`
+            - Current figure ids: {figure_id_line}
+
+            Treat `figure_catalog.json` as the canonical routing/index surface. The files under `generated/` are the current paper-owned renders referenced by that catalog.
+            """
+        ),
+        paper_root / "figures" / "generated" / "README.md": textwrap.dedent(
+            f"""\
+            # Generated Figure Outputs
+
+            - Authority: `paper/figures/generated/`
+            - Routed by: `paper/figures/figure_catalog.json`
+            - Current figure ids: {figure_id_line}
+
+            Every authoritative figure render for the active paper line lives here. Any unreferenced stale generated files are pruned during `materialize-display-surface`; use the catalog rather than guessing by filename age.
+            """
+        ),
+        paper_root / "tables" / "README.md": textwrap.dedent(
+            f"""\
+            # Table Authority Surface
+
+            - Catalog contract: `paper/tables/table_catalog.json`
+            - Active rendered outputs: `paper/tables/generated/`
+            - Current table ids: {table_id_line}
+
+            Treat `table_catalog.json` as the canonical routing/index surface. The files under `generated/` are the current paper-owned table renders referenced by that catalog.
+            """
+        ),
+        paper_root / "tables" / "generated" / "README.md": textwrap.dedent(
+            f"""\
+            # Generated Table Outputs
+
+            - Authority: `paper/tables/generated/`
+            - Routed by: `paper/tables/table_catalog.json`
+            - Current table ids: {table_id_line}
+
+            Every authoritative table render for the active paper line lives here. Any unreferenced stale generated files are pruned during `materialize-display-surface`; use the catalog rather than guessing by filename age.
+            """
+        ),
+    }
+
+
 def _require_non_empty_string(value: object, *, label: str) -> str:
     normalized = str(value or "").strip()
     if not normalized:
@@ -690,6 +842,13 @@ def _require_numeric_value(value: object, *, label: str) -> float:
     return float(value)
 
 
+def _require_probability_value(value: object, *, label: str) -> float:
+    normalized = _require_numeric_value(value, label=label)
+    if normalized < 0.0 or normalized > 1.0:
+        raise ValueError(f"{label} must be a probability between 0 and 1")
+    return normalized
+
+
 def _require_non_negative_int(value: object, *, label: str, allow_zero: bool = True) -> int:
     numeric_value = _require_numeric_value(value, label=label)
     if not float(numeric_value).is_integer():
@@ -699,6 +858,11 @@ def _require_non_negative_int(value: object, *, label: str, allow_zero: bool = T
         comparator = ">= 1" if not allow_zero else ">= 0"
         raise ValueError(f"{label} must be {comparator}")
     return normalized
+
+
+_COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {
+    "full_right": "wide_top",
+}
 
 
 def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
@@ -800,7 +964,8 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
         if not isinstance(block, dict):
             raise ValueError(f"{path.name} design_panels[{index}] must be an object")
         block_id = str(block.get("panel_id") or block.get("block_id") or "").strip()
-        block_type = str(block.get("layout_role") or block.get("block_type") or "").strip()
+        raw_block_type = str(block.get("layout_role") or block.get("block_type") or "").strip()
+        block_type = _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES.get(raw_block_type, raw_block_type)
         style_role = str(block.get("style_role") or "secondary").strip().lower()
         title = str(block.get("title") or "").strip()
         items = block.get("lines")
@@ -844,6 +1009,155 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
         "exclusions": normalized_exclusions,
         "endpoint_inventory": normalized_endpoint_inventory,
         "design_panels": normalized_design_panels,
+    }
+
+
+def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    shell_id = _require_non_empty_string(payload.get("shell_id"), label=f"{path.name} shell_id")
+    if shell_id != "submission_graphical_abstract":
+        raise ValueError(f"{path.name} shell_id must be `submission_graphical_abstract`")
+    display_id = _require_non_empty_string(payload.get("display_id"), label=f"{path.name} display_id")
+    catalog_id = _require_non_empty_string(payload.get("catalog_id"), label=f"{path.name} catalog_id")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} title")
+    caption = _require_non_empty_string(payload.get("caption"), label=f"{path.name} caption")
+
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} must contain a non-empty panels list")
+    normalized_panels: list[dict[str, Any]] = []
+    panel_ids: set[str] = set()
+    for panel_index, panel in enumerate(panels_payload):
+        if not isinstance(panel, dict):
+            raise ValueError(f"{path.name} panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel.get("panel_id"),
+            label=f"{path.name} panels[{panel_index}].panel_id",
+        )
+        if panel_id in panel_ids:
+            raise ValueError(f"{path.name} panels[{panel_index}].panel_id must be unique")
+        panel_ids.add(panel_id)
+        rows_payload = panel.get("rows")
+        if not isinstance(rows_payload, list) or not rows_payload:
+            raise ValueError(f"{path.name} panels[{panel_index}].rows must be a non-empty list")
+        normalized_rows: list[dict[str, Any]] = []
+        for row_index, row in enumerate(rows_payload):
+            if not isinstance(row, dict):
+                raise ValueError(f"{path.name} panels[{panel_index}].rows[{row_index}] must be an object")
+            cards_payload = row.get("cards")
+            if not isinstance(cards_payload, list) or not cards_payload:
+                raise ValueError(
+                    f"{path.name} panels[{panel_index}].rows[{row_index}].cards must be a non-empty list"
+                )
+            if len(cards_payload) > 2:
+                raise ValueError(
+                    f"{path.name} panels[{panel_index}].rows[{row_index}] supports at most two cards"
+                )
+            normalized_cards: list[dict[str, Any]] = []
+            card_ids: set[str] = set()
+            for card_index, card in enumerate(cards_payload):
+                if not isinstance(card, dict):
+                    raise ValueError(
+                        f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}] must be an object"
+                    )
+                card_id = _require_non_empty_string(
+                    card.get("card_id"),
+                    label=f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].card_id",
+                )
+                if card_id in card_ids:
+                    raise ValueError(
+                        f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].card_id must be unique within the row"
+                    )
+                card_ids.add(card_id)
+                accent_role = str(card.get("accent_role") or "neutral").strip().lower()
+                if accent_role not in {"neutral", "primary", "secondary", "contrast", "audit"}:
+                    raise ValueError(
+                        f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].accent_role "
+                        "must be one of neutral, primary, secondary, contrast, audit"
+                    )
+                normalized_cards.append(
+                    {
+                        "card_id": card_id,
+                        "title": _require_non_empty_string(
+                            card.get("title"),
+                            label=f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].title",
+                        ),
+                        "value": _require_non_empty_string(
+                            card.get("value"),
+                            label=f"{path.name} panels[{panel_index}].rows[{row_index}].cards[{card_index}].value",
+                        ),
+                        "detail": str(card.get("detail") or "").strip(),
+                        "accent_role": accent_role,
+                    }
+                )
+            normalized_rows.append({"cards": normalized_cards})
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": _require_non_empty_string(
+                    panel.get("panel_label"),
+                    label=f"{path.name} panels[{panel_index}].panel_label",
+                ),
+                "title": _require_non_empty_string(
+                    panel.get("title"),
+                    label=f"{path.name} panels[{panel_index}].title",
+                ),
+                "subtitle": _require_non_empty_string(
+                    panel.get("subtitle"),
+                    label=f"{path.name} panels[{panel_index}].subtitle",
+                ),
+                "rows": normalized_rows,
+            }
+        )
+
+    footer_pills_payload = payload.get("footer_pills") or []
+    if not isinstance(footer_pills_payload, list):
+        raise ValueError(f"{path.name} footer_pills must be a list when provided")
+    normalized_footer_pills: list[dict[str, Any]] = []
+    pill_ids: set[str] = set()
+    for pill_index, pill in enumerate(footer_pills_payload):
+        if not isinstance(pill, dict):
+            raise ValueError(f"{path.name} footer_pills[{pill_index}] must be an object")
+        pill_id = _require_non_empty_string(
+            pill.get("pill_id"),
+            label=f"{path.name} footer_pills[{pill_index}].pill_id",
+        )
+        if pill_id in pill_ids:
+            raise ValueError(f"{path.name} footer_pills[{pill_index}].pill_id must be unique")
+        pill_ids.add(pill_id)
+        panel_id = _require_non_empty_string(
+            pill.get("panel_id"),
+            label=f"{path.name} footer_pills[{pill_index}].panel_id",
+        )
+        if panel_id not in panel_ids:
+            raise ValueError(
+                f"{path.name} footer_pills[{pill_index}].panel_id must reference a declared panel"
+            )
+        style_role = str(pill.get("style_role") or "secondary").strip().lower()
+        if style_role not in {"primary", "secondary", "contrast", "audit", "neutral"}:
+            raise ValueError(
+                f"{path.name} footer_pills[{pill_index}].style_role must be one of primary, secondary, contrast, audit, neutral"
+            )
+        normalized_footer_pills.append(
+            {
+                "pill_id": pill_id,
+                "panel_id": panel_id,
+                "label": _require_non_empty_string(
+                    pill.get("label"),
+                    label=f"{path.name} footer_pills[{pill_index}].label",
+                ),
+                "style_role": style_role,
+            }
+        )
+
+    return {
+        "shell_id": shell_id,
+        "display_id": display_id,
+        "catalog_id": catalog_id,
+        "title": title,
+        "caption": caption,
+        "paper_role": str(payload.get("paper_role") or "submission_companion").strip() or "submission_companion",
+        "panels": normalized_panels,
+        "footer_pills": normalized_footer_pills,
     }
 
 
@@ -906,6 +1220,60 @@ def _validate_column_table_payload(path: Path, payload: dict[str, Any]) -> tuple
     return column_labels, normalized_rows
 
 
+def _format_percent_1dp(*, numerator: int, denominator: int) -> str:
+    percent = (Decimal(numerator) * Decimal("100")) / Decimal(denominator)
+    return f"{percent.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)}%"
+
+
+def _validate_performance_summary_table_generic_payload(
+    path: Path,
+    payload: dict[str, Any],
+) -> tuple[str, list[str], list[dict[str, Any]]]:
+    row_header_label = _require_non_empty_string(
+        payload.get("row_header_label"),
+        label=f"{path.name} row_header_label",
+    )
+    column_labels, rows = _validate_column_table_payload(path, payload)
+    return row_header_label, column_labels, rows
+
+
+def _validate_grouped_risk_event_summary_table_payload(
+    path: Path,
+    payload: dict[str, Any],
+) -> tuple[list[str], list[list[str]]]:
+    headers = [
+        _require_non_empty_string(payload.get("surface_column_label"), label=f"{path.name} surface_column_label"),
+        _require_non_empty_string(payload.get("stratum_column_label"), label=f"{path.name} stratum_column_label"),
+        _require_non_empty_string(payload.get("cases_column_label"), label=f"{path.name} cases_column_label"),
+        _require_non_empty_string(payload.get("events_column_label"), label=f"{path.name} events_column_label"),
+        _require_non_empty_string(payload.get("risk_column_label"), label=f"{path.name} risk_column_label"),
+    ]
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path.name} must contain a non-empty rows list")
+    normalized_rows: list[list[str]] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} rows[{index}] must be an object")
+        surface = _require_non_empty_string(row.get("surface"), label=f"{path.name} rows[{index}].surface")
+        stratum = _require_non_empty_string(row.get("stratum"), label=f"{path.name} rows[{index}].stratum")
+        cases = _require_non_negative_int(row.get("cases"), label=f"{path.name} rows[{index}].cases", allow_zero=False)
+        events = _require_non_negative_int(row.get("events"), label=f"{path.name} rows[{index}].events")
+        if events > cases:
+            raise ValueError(f"{path.name} rows[{index}].events must not exceed cases")
+        risk_display = _require_non_empty_string(
+            row.get("risk_display"),
+            label=f"{path.name} rows[{index}].risk_display",
+        )
+        expected_risk_display = _format_percent_1dp(numerator=events, denominator=cases)
+        if risk_display != expected_risk_display:
+            raise ValueError(
+                f"{path.name} rows[{index}].risk_display must equal {expected_risk_display} for {events}/{cases}"
+            )
+        normalized_rows.append([surface, stratum, str(cases), str(events), risk_display])
+    return headers, normalized_rows
+
+
 def _validate_reference_line_payload(
     *,
     path: Path,
@@ -932,15 +1300,17 @@ def _validate_axis_window_payload(
     path: Path,
     payload: object,
     label: str,
+    require_probability_bounds: bool = False,
 ) -> dict[str, float] | None:
     if payload is None:
         return None
     if not isinstance(payload, dict):
         raise ValueError(f"{path.name} {label} must be an object")
-    xmin = _require_numeric_value(payload.get("xmin"), label=f"{path.name} {label}.xmin")
-    xmax = _require_numeric_value(payload.get("xmax"), label=f"{path.name} {label}.xmax")
-    ymin = _require_numeric_value(payload.get("ymin"), label=f"{path.name} {label}.ymin")
-    ymax = _require_numeric_value(payload.get("ymax"), label=f"{path.name} {label}.ymax")
+    reader = _require_probability_value if require_probability_bounds else _require_numeric_value
+    xmin = reader(payload.get("xmin"), label=f"{path.name} {label}.xmin")
+    xmax = reader(payload.get("xmax"), label=f"{path.name} {label}.xmax")
+    ymin = reader(payload.get("ymin"), label=f"{path.name} {label}.ymin")
+    ymax = reader(payload.get("ymax"), label=f"{path.name} {label}.ymax")
     if xmin >= xmax:
         raise ValueError(f"{path.name} {label}.xmin must be < .xmax")
     if ymin >= ymax:
@@ -1307,7 +1677,12 @@ def _validate_binary_calibration_decision_curve_display_payload(
         path=path,
         payload=payload.get("calibration_axis_window"),
         label=f"display `{expected_display_id}` calibration_axis_window",
+        require_probability_bounds=True,
     )
+    if calibration_axis_window is None:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` calibration_axis_window must be declared for audited binary calibration panels"
+        )
     decision_focus_window = payload.get("decision_focus_window")
     if not isinstance(decision_focus_window, dict):
         raise ValueError(f"{path.name} display `{expected_display_id}` decision_focus_window must be an object")
@@ -1578,13 +1953,17 @@ def _validate_time_to_event_discrimination_calibration_display_payload(
     if str(payload.get("template_id") or "").strip() != expected_template_id:
         raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
     title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    panel_a_title = _require_non_empty_string(
+        payload.get("panel_a_title"),
+        label=f"{path.name} display `{expected_display_id}` panel_a_title",
+    )
+    panel_b_title = _require_non_empty_string(
+        payload.get("panel_b_title"),
+        label=f"{path.name} display `{expected_display_id}` panel_b_title",
+    )
     discrimination_x_label = _require_non_empty_string(
         payload.get("discrimination_x_label"),
         label=f"{path.name} display `{expected_display_id}` discrimination_x_label",
-    )
-    discrimination_y_label = _require_non_empty_string(
-        payload.get("discrimination_y_label"),
-        label=f"{path.name} display `{expected_display_id}` discrimination_y_label",
     )
     calibration_x_label = _require_non_empty_string(
         payload.get("calibration_x_label"),
@@ -1594,70 +1973,123 @@ def _validate_time_to_event_discrimination_calibration_display_payload(
         payload.get("calibration_y_label"),
         label=f"{path.name} display `{expected_display_id}` calibration_y_label",
     )
-    discrimination_series_payload = payload.get("discrimination_series")
-    if not isinstance(discrimination_series_payload, list) or not discrimination_series_payload:
+    discrimination_points_payload = payload.get("discrimination_points")
+    if not isinstance(discrimination_points_payload, list) or not discrimination_points_payload:
         raise ValueError(
-            f"{path.name} display `{expected_display_id}` must contain a non-empty discrimination_series list"
+            f"{path.name} display `{expected_display_id}` must contain a non-empty discrimination_points list"
         )
-    normalized_series: list[dict[str, Any]] = []
-    for index, item in enumerate(discrimination_series_payload):
+    normalized_points: list[dict[str, Any]] = []
+    for index, item in enumerate(discrimination_points_payload):
         if not isinstance(item, dict):
             raise ValueError(
-                f"{path.name} display `{expected_display_id}` discrimination_series[{index}] must be an object"
+                f"{path.name} display `{expected_display_id}` discrimination_points[{index}] must be an object"
             )
-        label = _require_non_empty_string(
-            item.get("label"),
-            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].label",
-        )
-        x = _require_numeric_list(
-            item.get("x"),
-            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].x",
-        )
-        y = _require_numeric_list(
-            item.get("y"),
-            label=f"{path.name} display `{expected_display_id}` discrimination_series[{index}].y",
-        )
-        if len(x) != len(y):
-            raise ValueError(
-                f"{path.name} display `{expected_display_id}` discrimination_series[{index}].x and .y "
-                "must have the same length"
-            )
-        normalized_series.append(
+        normalized_points.append(
             {
-                "label": label,
-                "x": x,
-                "y": y,
+                "label": _require_non_empty_string(
+                    item.get("label"),
+                    label=f"{path.name} display `{expected_display_id}` discrimination_points[{index}].label",
+                ),
+                "c_index": _require_numeric_value(
+                    item.get("c_index"),
+                    label=f"{path.name} display `{expected_display_id}` discrimination_points[{index}].c_index",
+                ),
                 "annotation": str(item.get("annotation") or "").strip(),
             }
         )
 
-    calibration_groups_payload = payload.get("calibration_groups")
-    if not isinstance(calibration_groups_payload, list) or not calibration_groups_payload:
-        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty calibration_groups list")
-    normalized_groups: list[dict[str, Any]] = []
-    for index, item in enumerate(calibration_groups_payload):
+    calibration_summary_payload = payload.get("calibration_summary")
+    if not isinstance(calibration_summary_payload, list) or not calibration_summary_payload:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must contain a non-empty calibration_summary list"
+        )
+    normalized_summary: list[dict[str, Any]] = []
+    previous_order = 0
+    for index, item in enumerate(calibration_summary_payload):
         if not isinstance(item, dict):
             raise ValueError(
-                f"{path.name} display `{expected_display_id}` calibration_groups[{index}] must be an object"
+                f"{path.name} display `{expected_display_id}` calibration_summary[{index}] must be an object"
             )
-        label = _require_non_empty_string(
-            item.get("label"),
-            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].label",
+        group_order = _require_non_negative_int(
+            item.get("group_order"),
+            label=f"{path.name} display `{expected_display_id}` calibration_summary[{index}].group_order",
+            allow_zero=False,
         )
-        times = _require_numeric_list(
-            item.get("times"),
-            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].times",
-        )
-        values = _require_numeric_list(
-            item.get("values"),
-            label=f"{path.name} display `{expected_display_id}` calibration_groups[{index}].values",
-        )
-        if len(times) != len(values):
+        if group_order <= previous_order:
             raise ValueError(
-                f"{path.name} display `{expected_display_id}` calibration_groups[{index}].times and .values "
-                "must have the same length"
+                f"{path.name} display `{expected_display_id}` calibration_summary[{index}].group_order "
+                "must be strictly increasing"
             )
-        normalized_groups.append({"label": label, "times": times, "values": values})
+        previous_order = group_order
+        normalized_summary.append(
+            {
+                "group_label": _require_non_empty_string(
+                    item.get("group_label"),
+                    label=f"{path.name} display `{expected_display_id}` calibration_summary[{index}].group_label",
+                ),
+                "group_order": group_order,
+                "n": _require_non_negative_int(
+                    item.get("n"),
+                    label=f"{path.name} display `{expected_display_id}` calibration_summary[{index}].n",
+                    allow_zero=False,
+                ),
+                "events_5y": _require_non_negative_int(
+                    item.get("events_5y"),
+                    label=f"{path.name} display `{expected_display_id}` calibration_summary[{index}].events_5y",
+                ),
+                "predicted_risk_5y": _require_probability_value(
+                    item.get("predicted_risk_5y"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` calibration_summary[{index}].predicted_risk_5y"
+                    ),
+                ),
+                "observed_risk_5y": _require_probability_value(
+                    item.get("observed_risk_5y"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` calibration_summary[{index}].observed_risk_5y"
+                    ),
+                ),
+            }
+        )
+
+    calibration_callout_payload = payload.get("calibration_callout")
+    normalized_callout: dict[str, Any] | None = None
+    if calibration_callout_payload is not None:
+        if not isinstance(calibration_callout_payload, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` calibration_callout must be an object when provided"
+            )
+        normalized_callout = {
+            "group_label": _require_non_empty_string(
+                calibration_callout_payload.get("group_label"),
+                label=f"{path.name} display `{expected_display_id}` calibration_callout.group_label",
+            ),
+            "predicted_risk_5y": _require_probability_value(
+                calibration_callout_payload.get("predicted_risk_5y"),
+                label=f"{path.name} display `{expected_display_id}` calibration_callout.predicted_risk_5y",
+            ),
+            "observed_risk_5y": _require_probability_value(
+                calibration_callout_payload.get("observed_risk_5y"),
+                label=f"{path.name} display `{expected_display_id}` calibration_callout.observed_risk_5y",
+            ),
+            "events_5y": (
+                _require_non_negative_int(
+                    calibration_callout_payload.get("events_5y"),
+                    label=f"{path.name} display `{expected_display_id}` calibration_callout.events_5y",
+                )
+                if calibration_callout_payload.get("events_5y") is not None
+                else None
+            ),
+            "n": (
+                _require_non_negative_int(
+                    calibration_callout_payload.get("n"),
+                    label=f"{path.name} display `{expected_display_id}` calibration_callout.n",
+                    allow_zero=False,
+                )
+                if calibration_callout_payload.get("n") is not None
+                else None
+            ),
+        }
 
     return {
         "display_id": expected_display_id,
@@ -1665,22 +2097,14 @@ def _validate_time_to_event_discrimination_calibration_display_payload(
         "title": title,
         "caption": str(payload.get("caption") or "").strip(),
         "paper_role": str(payload.get("paper_role") or "").strip(),
+        "panel_a_title": panel_a_title,
+        "panel_b_title": panel_b_title,
         "discrimination_x_label": discrimination_x_label,
-        "discrimination_y_label": discrimination_y_label,
         "calibration_x_label": calibration_x_label,
         "calibration_y_label": calibration_y_label,
-        "discrimination_reference_line": _validate_reference_line_payload(
-            path=path,
-            payload=payload.get("discrimination_reference_line"),
-            label=f"display `{expected_display_id}` discrimination_reference_line",
-        ),
-        "calibration_reference_line": _validate_reference_line_payload(
-            path=path,
-            payload=payload.get("calibration_reference_line"),
-            label=f"display `{expected_display_id}` calibration_reference_line",
-        ),
-        "discrimination_series": normalized_series,
-        "calibration_groups": normalized_groups,
+        "discrimination_points": normalized_points,
+        "calibration_summary": normalized_summary,
+        "calibration_callout": normalized_callout,
     }
 
 
@@ -2328,6 +2752,7 @@ def _wrap_flow_text_to_width(
     max_width_pt: float,
     font_size: float,
     font_weight: str,
+    max_chars: int | None = None,
 ) -> tuple[str, ...]:
     normalized = " ".join(str(value or "").split())
     if not normalized:
@@ -2345,7 +2770,22 @@ def _wrap_flow_text_to_width(
         current = candidate_words
     if current:
         lines.append(" ".join(current))
-    return tuple(lines)
+    if max_chars is None or max_chars <= 0:
+        return tuple(lines)
+    normalized_lines: list[str] = []
+    for line in lines:
+        if len(line) <= max_chars:
+            normalized_lines.append(line)
+            continue
+        normalized_lines.extend(
+            textwrap.wrap(
+                line,
+                width=max_chars,
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+        )
+    return tuple(normalized_lines)
 
 
 def _wrap_figure_title_to_width(
@@ -2563,9 +3003,13 @@ def _render_cohort_flow_figure(
     hierarchy_nodesep = read_float(layout_override, "graphviz_hierarchy_nodesep", 0.60)
     hierarchy_ranksep = read_float(layout_override, "graphviz_hierarchy_ranksep", 0.82)
     sparse_stack_gap_pt = read_float(layout_override, "hierarchy_sparse_stack_gap_pt", 18.0)
-    step_padding_pt = read_float(layout_override, "flow_step_padding_pt", 9.0)
+    step_padding_pt = read_float(layout_override, "flow_step_padding_pt", 11.0)
     exclusion_padding_pt = read_float(layout_override, "flow_exclusion_padding_pt", 8.0)
     hierarchy_padding_pt = read_float(layout_override, "hierarchy_panel_padding_pt", 9.0)
+    step_min_rendered_height_pt = read_float(layout_override, "flow_step_min_rendered_height_pt", 82.0)
+    exclusion_min_rendered_height_pt = read_float(layout_override, "flow_exclusion_min_rendered_height_pt", 58.0)
+    step_min_rendered_padding_pt = read_float(layout_override, "flow_step_min_rendered_padding_pt", 8.0)
+    exclusion_min_rendered_padding_pt = read_float(layout_override, "flow_exclusion_min_rendered_padding_pt", 6.0)
 
     modern_roles = {"wide_top", "wide_bottom", "left_middle", "right_middle", "left_bottom", "right_bottom"}
     legacy_roles = {"wide_left", "top_right", "bottom_right"}
@@ -2602,12 +3046,14 @@ def _render_cohort_flow_figure(
             max_width_pt=content_width_pt,
             font_size=base_card_title_size + 0.5,
             font_weight="bold",
+            max_chars=36,
         )
         detail_lines = _wrap_flow_text_to_width(
             str(step.get("detail") or ""),
             max_width_pt=content_width_pt,
             font_size=base_detail_size,
             font_weight="normal",
+            max_chars=44,
         )
         lines = [
             *[
@@ -2624,7 +3070,7 @@ def _render_cohort_flow_figure(
                 font_size=base_label_size,
                 font_weight="normal",
                 color=flow_body_text,
-                gap_before=8.0,
+                gap_before=14.0,
             ),
         ]
         lines.extend(
@@ -2633,7 +3079,7 @@ def _render_cohort_flow_figure(
                 font_size=base_detail_size,
                 font_weight="normal",
                 color=flow_body_text,
-                gap_before=6.0 if index == 0 else 0.0,
+                gap_before=12.0 if index == 0 else 0.0,
             )
             for index, line in enumerate(detail_lines)
         )
@@ -2657,12 +3103,14 @@ def _render_cohort_flow_figure(
             max_width_pt=content_width_pt,
             font_size=base_label_size,
             font_weight="bold",
+            max_chars=40,
         )
         detail_lines = _wrap_flow_text_to_width(
             str(exclusion.get("detail") or ""),
             max_width_pt=content_width_pt,
             font_size=base_detail_size,
             font_weight="normal",
+            max_chars=44,
         )
         lines = [
             *[
@@ -2681,7 +3129,7 @@ def _render_cohort_flow_figure(
                 font_size=base_detail_size,
                 font_weight="normal",
                 color=flow_exclusion_edge,
-                gap_before=6.0 if index == 0 else 0.0,
+                gap_before=8.0 if index == 0 else 0.0,
             )
             for index, line in enumerate(detail_lines)
         )
@@ -2935,7 +3383,56 @@ def _render_cohort_flow_figure(
     available_width_pt = figure_width_pt - side_margin_pt * 2.0 - panel_gap_pt
     total_base_width = flow_panel_base_width_pt + max(panel_b_main_base_width, max((spec.width_pt for spec in footer_specs), default=0.0))
     scale = available_width_pt / total_base_width if total_base_width > 0 else 1.0
-    content_height_pt = max(panel_a_base_height_pt, panel_b_total_base_height) * scale
+
+    def rendered_padding_for_spec(spec: _FlowNodeSpec) -> float:
+        scaled_padding = spec.padding_pt * scale
+        if spec.box_type == "main_step":
+            return max(scaled_padding, step_min_rendered_padding_pt)
+        if spec.box_type == "exclusion_box":
+            return max(scaled_padding, exclusion_min_rendered_padding_pt)
+        return scaled_padding
+
+    def rendered_height_for_spec(spec: _FlowNodeSpec) -> float:
+        height = rendered_padding_for_spec(spec) * 2.0
+        for line in spec.lines:
+            height += line.gap_before * scale
+            height += line.font_size * scale * 1.24
+        if spec.box_type == "main_step":
+            return max(height, step_min_rendered_height_pt)
+        if spec.box_type == "exclusion_box":
+            return max(height, exclusion_min_rendered_height_pt)
+        return height
+
+    rendered_step_heights_pt = {spec.node_id: rendered_height_for_spec(spec) for spec in step_specs}
+    rendered_exclusion_heights_pt = {
+        spec.node_id: rendered_height_for_spec(spec) for spec in exclusion_specs.values()
+    }
+    rendered_step_stack_gap_pt: dict[str, float] = {}
+    rendered_stage_cluster_heights_pt: dict[str, float] = {}
+    panel_a_rendered_height_pt = 0.0
+    rendered_flow_step_gap_pt = flow_step_gap_pt * scale
+    rendered_flow_exclusion_stack_gap_pt = flow_exclusion_stack_gap_pt * scale
+    rendered_flow_split_clearance_pt = flow_split_clearance_pt * scale
+    for index, step in enumerate(steps):
+        step_id = str(step["step_id"])
+        panel_a_rendered_height_pt += rendered_step_heights_pt[f"step_{step_id}"]
+        if index == len(steps) - 1:
+            continue
+        related_exclusions = exclusions_by_step.get(step_id, [])
+        cluster_height_pt = 0.0
+        if related_exclusions:
+            cluster_height_pt = sum(
+                rendered_exclusion_heights_pt[f"exclusion_{item['exclusion_id']}"] for item in related_exclusions
+            ) + rendered_flow_exclusion_stack_gap_pt * max(0, len(related_exclusions) - 1)
+        gap_height_pt = max(
+            rendered_flow_step_gap_pt,
+            cluster_height_pt + rendered_flow_split_clearance_pt * 2.0,
+        )
+        rendered_step_stack_gap_pt[step_id] = gap_height_pt
+        rendered_stage_cluster_heights_pt[step_id] = cluster_height_pt
+        panel_a_rendered_height_pt += gap_height_pt
+
+    content_height_pt = max(panel_a_rendered_height_pt, panel_b_total_base_height * scale)
     canvas_height_pt = bottom_margin_pt + content_height_pt + heading_band_pt
 
     fig = plt.figure(figsize=(figure_width_pt / 72.0, canvas_height_pt / 72.0))
@@ -2946,7 +3443,7 @@ def _render_cohort_flow_figure(
     ax.axis("off")
 
     panel_a_x0 = side_margin_pt
-    panel_a_y0 = bottom_margin_pt + content_height_pt - panel_a_base_height_pt * scale
+    panel_a_y0 = bottom_margin_pt + content_height_pt - panel_a_rendered_height_pt
     panel_a_width_pt = flow_panel_base_width_pt * scale
     panel_b_x0 = panel_a_x0 + panel_a_width_pt + panel_gap_pt
     panel_b_total_y0 = bottom_margin_pt + content_height_pt - panel_b_total_base_height * scale
@@ -2975,8 +3472,9 @@ def _render_cohort_flow_figure(
                 facecolor=spec.fill_color,
             )
         )
-        x_text = box["x0"] + spec.padding_pt * scale
-        y_cursor = box["y1"] - spec.padding_pt * scale
+        rendered_padding_pt = rendered_padding_for_spec(spec)
+        x_text = box["x0"] + rendered_padding_pt
+        y_cursor = box["y1"] - rendered_padding_pt
         for line in spec.lines:
             y_cursor -= line.gap_before * scale
             ax.text(
@@ -3082,12 +3580,12 @@ def _render_cohort_flow_figure(
     step_boxes_by_id: dict[str, dict[str, float]] = {}
     exclusion_boxes_by_id: dict[str, dict[str, float]] = {}
     stage_split_y_by_step: dict[str, float] = {}
-    panel_a_top = panel_a_y0 + panel_a_base_height_pt * scale
+    panel_a_top = panel_a_y0 + panel_a_rendered_height_pt
     current_top = panel_a_top
     exclusion_x0 = panel_a_x0 + (step_width_pt + branch_gap_pt) * scale
 
     for index, spec in enumerate(step_specs):
-        step_height_pt = step_heights_pt[spec.node_id] * scale
+        step_height_pt = rendered_step_heights_pt[spec.node_id]
         box = {
             "x0": panel_a_x0,
             "y0": current_top - step_height_pt,
@@ -3108,23 +3606,23 @@ def _render_cohort_flow_figure(
         if index == len(steps) - 1:
             continue
         step_id = str(steps[index]["step_id"])
-        stage_gap_pt = step_stack_gap_pt[step_id] * scale
+        stage_gap_pt = rendered_step_stack_gap_pt[step_id]
         stage_split_y = box["y0"] - stage_gap_pt / 2.0
         stage_split_y_by_step[step_id] = stage_split_y
         related_exclusions = exclusions_by_step.get(step_id, [])
         if related_exclusions:
-            cluster_height_pt = stage_cluster_heights_pt[step_id] * scale
+            cluster_height_pt = rendered_stage_cluster_heights_pt[step_id]
             cluster_top = stage_split_y + cluster_height_pt / 2.0
             for exclusion in related_exclusions:
                 exclusion_spec = exclusion_specs[str(exclusion["exclusion_id"])]
-                exclusion_height_pt = exclusion_heights_pt[exclusion_spec.node_id] * scale
+                exclusion_height_pt = rendered_exclusion_heights_pt[exclusion_spec.node_id]
                 exclusion_box = {
                     "x0": exclusion_x0,
                     "y0": cluster_top - exclusion_height_pt,
                     "x1": exclusion_x0 + exclusion_spec.width_pt * scale,
                     "y1": cluster_top,
                 }
-                cluster_top = exclusion_box["y0"] - flow_exclusion_stack_gap_pt * scale
+                cluster_top = exclusion_box["y0"] - rendered_flow_exclusion_stack_gap_pt
                 draw_node(exclusion_spec, exclusion_box)
                 exclusion_boxes_by_id[exclusion_spec.node_id] = exclusion_box
                 layout_boxes.append(
@@ -3459,6 +3957,37 @@ def _render_cohort_flow_figure(
         )
 
     output_svg_path.parent.mkdir(parents=True, exist_ok=True)
+    flow_nodes = []
+    for spec in step_specs:
+        box = step_boxes_by_id.get(spec.node_id)
+        if box is None:
+            continue
+        flow_nodes.append(
+            {
+                "box_id": spec.box_id,
+                "box_type": spec.box_type,
+                "line_count": len(spec.lines),
+                "max_line_chars": max((len(line.text) for line in spec.lines), default=0),
+                "rendered_height_pt": box["y1"] - box["y0"],
+                "rendered_width_pt": box["x1"] - box["x0"],
+                "padding_pt": rendered_padding_for_spec(spec),
+            }
+        )
+    for spec in exclusion_specs.values():
+        box = exclusion_boxes_by_id.get(spec.node_id)
+        if box is None:
+            continue
+        flow_nodes.append(
+            {
+                "box_id": spec.box_id,
+                "box_type": spec.box_type,
+                "line_count": len(spec.lines),
+                "max_line_chars": max((len(line.text) for line in spec.lines), default=0),
+                "rendered_height_pt": box["y1"] - box["y0"],
+                "rendered_width_pt": box["x1"] - box["x0"],
+                "padding_pt": rendered_padding_for_spec(spec),
+            }
+        )
     dump_json(
         output_layout_path,
         {
@@ -3472,6 +4001,7 @@ def _render_cohort_flow_figure(
                 "exclusions": exclusions,
                 "endpoint_inventory": endpoint_inventory,
                 "design_panels": design_panels,
+                "flow_nodes": flow_nodes,
             },
             "render_context": render_context_payload,
         },
@@ -3481,18 +4011,838 @@ def _render_cohort_flow_figure(
     fig.savefig(output_png_path, format="png", dpi=220)
     plt.close(fig)
 
-def _write_table_outputs(
+
+def _build_submission_graphical_abstract_arrow_lane_spec(
+    *,
+    left_panel_box: dict[str, float],
+    right_panel_box: dict[str, float],
+    left_occupied_boxes: list[dict[str, float]] | tuple[dict[str, float], ...],
+    right_occupied_boxes: list[dict[str, float]] | tuple[dict[str, float], ...],
+    clearance_pt: float,
+    arrow_half_height_pt: float,
+    edge_proximity_pt: float | None = None,
+) -> dict[str, Any]:
+    def _collect_expanded_intervals(boxes: list[dict[str, float]] | tuple[dict[str, float], ...]) -> list[tuple[float, float]]:
+        intervals: list[tuple[float, float]] = []
+        expansion = max(clearance_pt + arrow_half_height_pt, 0.0)
+        for box in boxes:
+            lower = max(shared_y0, float(box["y0"]) - expansion)
+            upper = min(shared_y1, float(box["y1"]) + expansion)
+            if upper <= lower:
+                continue
+            intervals.append((lower, upper))
+        intervals.sort()
+        return intervals
+
+    def _merge_intervals(intervals: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        if not intervals:
+            return []
+        merged: list[list[float]] = [[intervals[0][0], intervals[0][1]]]
+        for lower, upper in intervals[1:]:
+            current = merged[-1]
+            if lower <= current[1]:
+                current[1] = max(current[1], upper)
+                continue
+            merged.append([lower, upper])
+        return [(float(lower), float(upper)) for lower, upper in merged]
+
+    shared_y0 = max(float(left_panel_box["y0"]), float(right_panel_box["y0"]))
+    shared_y1 = min(float(left_panel_box["y1"]), float(right_panel_box["y1"]))
+    if shared_y1 <= shared_y0:
+        raise ValueError("submission_graphical_abstract panels must share a vertical overlap to place arrows")
+
+    merged_occupied_intervals = _merge_intervals(
+        _collect_expanded_intervals(left_occupied_boxes) + _collect_expanded_intervals(right_occupied_boxes)
+    )
+    candidate_gaps: list[tuple[float, float]] = []
+    cursor = shared_y0
+    for lower, upper in merged_occupied_intervals:
+        if lower > cursor:
+            candidate_gaps.append((cursor, lower))
+        cursor = max(cursor, upper)
+    if cursor < shared_y1:
+        candidate_gaps.append((cursor, shared_y1))
+
+    target_y = (shared_y0 + shared_y1) / 2.0
+    left_span_y0 = min((float(box["y0"]) for box in left_occupied_boxes), default=shared_y0)
+    right_span_y0 = min((float(box["y0"]) for box in right_occupied_boxes), default=shared_y0)
+    left_span_y1 = max((float(box["y1"]) for box in left_occupied_boxes), default=shared_y1)
+    right_span_y1 = max((float(box["y1"]) for box in right_occupied_boxes), default=shared_y1)
+    shared_content_y0 = max(shared_y0, left_span_y0, right_span_y0)
+    shared_content_y1 = min(shared_y1, left_span_y1, right_span_y1)
+    if shared_content_y1 > shared_content_y0:
+        target_y = (shared_content_y0 + shared_content_y1) / 2.0
+
+    lane_margin = max(arrow_half_height_pt, 0.0)
+    edge_margin = max(edge_proximity_pt or 0.0, 0.0)
+    usable_gaps: list[tuple[float, float]] = []
+    for lower, upper in candidate_gaps:
+        usable_lower = max(lower, shared_y0 + lane_margin)
+        usable_upper = min(upper, shared_y1 - lane_margin)
+        if edge_margin > 0.0:
+            usable_lower = max(usable_lower, shared_y0 + edge_margin)
+            usable_upper = min(usable_upper, shared_y1 - edge_margin)
+        if usable_upper <= usable_lower:
+            continue
+        usable_gaps.append((usable_lower, usable_upper))
+
+    if not usable_gaps:
+        lower_bound = shared_y0 + lane_margin
+        upper_bound = shared_y1 - lane_margin
+        if lower_bound > upper_bound:
+            lower_bound = upper_bound = (shared_y0 + shared_y1) / 2.0
+        usable_gaps = [(lower_bound, upper_bound)]
+
+    return {
+        "target_y": float(target_y),
+        "usable_gaps": [(float(lower), float(upper)) for lower, upper in usable_gaps],
+    }
+
+
+def _choose_submission_graphical_abstract_arrow_lane(
+    *,
+    left_panel_box: dict[str, float],
+    right_panel_box: dict[str, float],
+    left_occupied_boxes: list[dict[str, float]] | tuple[dict[str, float], ...],
+    right_occupied_boxes: list[dict[str, float]] | tuple[dict[str, float], ...],
+    clearance_pt: float,
+    arrow_half_height_pt: float,
+    edge_proximity_pt: float | None = None,
+) -> float:
+    lane_spec = _build_submission_graphical_abstract_arrow_lane_spec(
+        left_panel_box=left_panel_box,
+        right_panel_box=right_panel_box,
+        left_occupied_boxes=left_occupied_boxes,
+        right_occupied_boxes=right_occupied_boxes,
+        clearance_pt=clearance_pt,
+        arrow_half_height_pt=arrow_half_height_pt,
+        edge_proximity_pt=edge_proximity_pt,
+    )
+    usable_gaps = list(lane_spec["usable_gaps"])
+    target_y = float(lane_spec["target_y"])
+
+    for lower, upper in usable_gaps:
+        if lower <= target_y <= upper:
+            return target_y
+    best_lower, best_upper = min(
+        usable_gaps,
+        key=lambda gap: abs(((gap[0] + gap[1]) / 2.0) - target_y),
+    )
+    return (best_lower + best_upper) / 2.0
+
+
+def _choose_shared_submission_graphical_abstract_arrow_lane(
+    lane_specs: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+) -> float:
+    normalized_specs = [dict(spec) for spec in lane_specs if isinstance(spec, dict)]
+    if not normalized_specs:
+        raise ValueError("submission_graphical_abstract requires at least one adjacent panel pair")
+
+    shared_intervals = [tuple(interval) for interval in normalized_specs[0]["usable_gaps"]]
+    for spec in normalized_specs[1:]:
+        next_intersection: list[tuple[float, float]] = []
+        for current_lower, current_upper in shared_intervals:
+            for candidate_lower, candidate_upper in spec["usable_gaps"]:
+                overlap_lower = max(float(current_lower), float(candidate_lower))
+                overlap_upper = min(float(current_upper), float(candidate_upper))
+                if overlap_upper <= overlap_lower:
+                    continue
+                next_intersection.append((overlap_lower, overlap_upper))
+        shared_intervals = next_intersection
+        if not shared_intervals:
+            break
+
+    if not shared_intervals:
+        raise ValueError(
+            "submission_graphical_abstract arrows require a shared blank lane across all adjacent panel pairs"
+        )
+
+    target_y = sum(float(spec["target_y"]) for spec in normalized_specs) / len(normalized_specs)
+    for lower, upper in shared_intervals:
+        if lower <= target_y <= upper:
+            return target_y
+    best_lower, best_upper = min(
+        shared_intervals,
+        key=lambda gap: abs(((gap[0] + gap[1]) / 2.0) - target_y),
+    )
+    return (best_lower + best_upper) / 2.0
+
+
+def _render_submission_graphical_abstract(
+    *,
+    output_svg_path: Path,
+    output_png_path: Path,
+    output_layout_path: Path,
+    shell_payload: dict[str, Any],
+    render_context: dict[str, Any],
+) -> None:
+    def read_float(mapping: dict[str, Any], key: str, default: float) -> float:
+        value = mapping.get(key, default)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        return float(default)
+
+    def resolve_color(role_name: str, fallback: str) -> str:
+        return str(style_roles.get(role_name) or fallback).strip() or fallback
+
+    def fit_wrapped_text(
+        text: str,
+        *,
+        preferred: float,
+        min_size: float,
+        max_width_pt: float,
+        font_weight: str,
+        max_lines: int,
+    ) -> tuple[tuple[str, ...], float, bool]:
+        normalized = " ".join(str(text or "").split())
+        if not normalized:
+            return tuple(), preferred, False
+        font_size = preferred
+        while font_size >= min_size - 1e-6:
+            lines = _wrap_flow_text_to_width(
+                normalized,
+                max_width_pt=max_width_pt,
+                font_size=font_size,
+                font_weight=font_weight,
+            )
+            widest_line_pt = max(
+                (
+                    _measure_flow_text_width_pt(line, font_size=font_size, font_weight=font_weight)
+                    for line in lines
+                ),
+                default=0.0,
+            )
+            if len(lines) <= max_lines and widest_line_pt <= max_width_pt + 0.1:
+                return lines, font_size, False
+            font_size -= 0.5
+        resolved_font_size = max(min_size, 1.0)
+        resolved_lines = _wrap_flow_text_to_width(
+            normalized,
+            max_width_pt=max_width_pt,
+            font_size=resolved_font_size,
+            font_weight=font_weight,
+        )
+        widest_line_pt = max(
+            (
+                _measure_flow_text_width_pt(line, font_size=resolved_font_size, font_weight=font_weight)
+                for line in resolved_lines
+            ),
+            default=0.0,
+        )
+        overflowed = len(resolved_lines) > max_lines or widest_line_pt > max_width_pt + 0.1
+        return resolved_lines, resolved_font_size, overflowed
+
+    def text_block_height(lines: tuple[str, ...], *, font_size: float, extra_gap: float = 0.0) -> float:
+        if not lines:
+            return 0.0
+        return len(lines) * font_size * 1.22 + extra_gap
+
+    def row_width_weights(cards: list[dict[str, Any]]) -> list[float]:
+        if len(cards) <= 1:
+            return [1.0]
+        first_score = max(
+            len(str(cards[0]["title"])),
+            len(str(cards[0]["detail"])),
+            int(len(str(cards[0]["value"])) * 1.2),
+        )
+        second_score = max(
+            len(str(cards[1]["title"])),
+            len(str(cards[1]["detail"])),
+            int(len(str(cards[1]["value"])) * 1.2),
+        )
+        total = max(float(first_score + second_score), 1.0)
+        first_ratio = min(0.66, max(0.42, first_score / total))
+        return [first_ratio, 1.0 - first_ratio]
+
+    render_context_payload = dict(render_context or {})
+    style_roles = dict(render_context_payload.get("style_roles") or {})
+    palette = dict(render_context_payload.get("palette") or {})
+    typography = dict(render_context_payload.get("typography") or {})
+    layout_override = dict(render_context_payload.get("layout_override") or {})
+    stroke = dict(render_context_payload.get("stroke") or {})
+
+    _prepare_python_illustration_output_paths(
+        output_png_path=output_png_path,
+        output_svg_path=output_svg_path,
+        layout_sidecar_path=output_layout_path,
+    )
+
+    neutral_color = resolve_color("reference_line", str(palette.get("neutral") or "#7B8794"))
+    primary_color = resolve_color("model_curve", str(palette.get("primary") or "#5F766B"))
+    secondary_color = resolve_color("comparator_curve", str(palette.get("secondary") or "#B9AD9C"))
+    contrast_color = str(palette.get("contrast") or "#2F5D8A").strip() or "#2F5D8A"
+    audit_color = str(palette.get("audit") or "#B57F7F").strip() or "#B57F7F"
+    soft_fill_by_role = {
+        "neutral": str(palette.get("light") or "#E7E1D8").strip() or "#E7E1D8",
+        "primary": str(palette.get("primary_soft") or "#EEF3F1").strip() or "#EEF3F1",
+        "secondary": str(palette.get("secondary_soft") or "#F4EFE8").strip() or "#F4EFE8",
+        "contrast": str(palette.get("contrast_soft") or "#E6EDF5").strip() or "#E6EDF5",
+        "audit": str(palette.get("audit_soft") or "#F5ECE8").strip() or "#F5ECE8",
+    }
+    edge_by_role = {
+        "neutral": neutral_color,
+        "primary": primary_color,
+        "secondary": secondary_color,
+        "contrast": contrast_color,
+        "audit": audit_color,
+    }
+
+    title_size = read_float(typography, "title_size", 12.5) + 1.0
+    panel_title_size = read_float(typography, "axis_title_size", 11.0) + 1.2
+    subtitle_size = max(10.0, read_float(typography, "tick_size", 10.0) + 0.1)
+    card_title_size = max(10.0, read_float(typography, "tick_size", 10.0) + 0.6)
+    card_detail_size = max(8.8, read_float(typography, "tick_size", 10.0) - 0.4)
+    panel_label_size = max(11.2, read_float(typography, "panel_label_size", 11.0) + 0.6)
+    value_font_preferred = max(20.0, read_float(typography, "title_size", 12.5) * 2.35)
+    value_font_min = max(14.0, read_float(typography, "axis_title_size", 11.0) + 3.0)
+
+    figure_width_pt = read_float(layout_override, "figure_width", 15.4) * 72.0
+    side_margin_pt = read_float(layout_override, "figure_side_margin_pt", 30.0)
+    panel_gap_pt = read_float(layout_override, "panel_gap_pt", 24.0)
+    panel_padding_pt = read_float(layout_override, "panel_padding_pt", 18.0)
+    card_padding_pt = read_float(layout_override, "card_padding_pt", 14.0)
+    card_gap_pt = read_float(layout_override, "card_gap_pt", 12.0)
+    row_gap_pt = read_float(layout_override, "row_gap_pt", 12.0)
+    footer_gap_pt = read_float(layout_override, "footer_gap_pt", 16.0)
+    footer_pill_height_pt = read_float(layout_override, "footer_pill_height_pt", 28.0)
+    top_margin_pt = read_float(layout_override, "top_margin_pt", 22.0)
+    title_gap_pt = read_float(layout_override, "title_gap_pt", 16.0)
+    bottom_margin_pt = read_float(layout_override, "bottom_margin_pt", 22.0)
+    panel_line_width = max(0.9, read_float(stroke, "secondary_linewidth", 1.8) * 0.75)
+    accent_line_width = max(1.0, read_float(stroke, "primary_linewidth", 2.2) * 0.58)
+
+    panels_payload = list(shell_payload.get("panels") or [])
+    footer_pills = list(shell_payload.get("footer_pills") or [])
+    panel_width_pt = (figure_width_pt - side_margin_pt * 2.0 - panel_gap_pt * 2.0) / 3.0
+    card_full_width_pt = panel_width_pt - panel_padding_pt * 2.0
+
+    def build_card_spec(
+        card: dict[str, Any],
+        *,
+        available_width_pt: float,
+        max_value_lines: int,
+    ) -> dict[str, Any]:
+        inner_width_pt = max(available_width_pt - card_padding_pt * 2.0, 1.0)
+        title_lines = _wrap_flow_text_to_width(
+            str(card["title"]),
+            max_width_pt=inner_width_pt,
+            font_size=card_title_size,
+            font_weight="normal",
+        )
+        detail_lines = _wrap_flow_text_to_width(
+            str(card.get("detail") or ""),
+            max_width_pt=inner_width_pt,
+            font_size=card_detail_size,
+            font_weight="normal",
+        )
+        value_lines, value_font_size, value_overflowed = fit_wrapped_text(
+            str(card["value"]),
+            preferred=value_font_preferred,
+            min_size=value_font_min,
+            max_width_pt=inner_width_pt,
+            font_weight="bold",
+            max_lines=max_value_lines,
+        )
+        title_height_pt = text_block_height(title_lines, font_size=card_title_size, extra_gap=5.0)
+        value_height_pt = text_block_height(value_lines, font_size=value_font_size, extra_gap=0.0)
+        detail_height_pt = text_block_height(detail_lines, font_size=card_detail_size, extra_gap=0.0)
+        card_height_pt = card_padding_pt * 2.0 + title_height_pt + value_height_pt
+        if detail_lines:
+            card_height_pt += 7.0 + detail_height_pt
+        return {
+            "card": card,
+            "width_pt": available_width_pt,
+            "height_pt": card_height_pt,
+            "title_lines": title_lines,
+            "detail_lines": detail_lines,
+            "value_lines": value_lines,
+            "value_font_size": value_font_size,
+            "overflowed": value_overflowed,
+        }
+
+    def build_row_spec(cards: list[dict[str, Any]]) -> dict[str, Any]:
+        if len(cards) == 1:
+            row_card_specs = [
+                build_card_spec(
+                    cards[0],
+                    available_width_pt=card_full_width_pt,
+                    max_value_lines=3,
+                )
+            ]
+            return {
+                "layout_mode": "single",
+                "cards": row_card_specs,
+                "height_pt": row_card_specs[0]["height_pt"],
+                "row_internal_gap_pt": 0.0,
+            }
+
+        weights = row_width_weights(cards)
+        horizontal_widths = [
+            card_full_width_pt * weights[index] - card_gap_pt / 2.0
+            for index in range(len(cards))
+        ]
+        horizontal_specs = [
+            build_card_spec(card, available_width_pt=horizontal_widths[index], max_value_lines=2)
+            for index, card in enumerate(cards)
+        ]
+        if not any(card_spec["overflowed"] for card_spec in horizontal_specs):
+            return {
+                "layout_mode": "horizontal",
+                "cards": horizontal_specs,
+                "height_pt": max(card_spec["height_pt"] for card_spec in horizontal_specs),
+                "row_internal_gap_pt": card_gap_pt,
+            }
+
+        stacked_specs = [
+            build_card_spec(card, available_width_pt=card_full_width_pt, max_value_lines=3)
+            for card in cards
+        ]
+        stacked_overflow_ids = [str(spec["card"]["card_id"]) for spec in stacked_specs if spec["overflowed"]]
+        if stacked_overflow_ids:
+            joined_ids = ", ".join(stacked_overflow_ids)
+            raise ValueError(
+                "submission_graphical_abstract could not fit the following card values even after stacked layout: "
+                f"{joined_ids}"
+            )
+        return {
+            "layout_mode": "stacked",
+            "cards": stacked_specs,
+            "height_pt": (
+                sum(card_spec["height_pt"] for card_spec in stacked_specs)
+                + card_gap_pt * max(0, len(stacked_specs) - 1)
+            ),
+            "row_internal_gap_pt": card_gap_pt,
+        }
+
+    panel_specs: list[dict[str, Any]] = []
+    for panel in panels_payload:
+        panel_title_lines = _wrap_flow_text_to_width(
+            str(panel["title"]),
+            max_width_pt=panel_width_pt - panel_padding_pt * 2.0 - 32.0,
+            font_size=panel_title_size,
+            font_weight="bold",
+        )
+        subtitle_lines = _wrap_flow_text_to_width(
+            str(panel["subtitle"]),
+            max_width_pt=panel_width_pt - panel_padding_pt * 2.0,
+            font_size=subtitle_size,
+            font_weight="normal",
+        )
+        header_height_pt = text_block_height(panel_title_lines, font_size=panel_title_size, extra_gap=6.0)
+        header_height_pt += text_block_height(subtitle_lines, font_size=subtitle_size, extra_gap=10.0)
+        row_specs: list[dict[str, Any]] = []
+        for row in panel["rows"]:
+            row_specs.append(build_row_spec(list(row["cards"])))
+        content_height_pt = header_height_pt
+        if row_specs:
+            content_height_pt += sum(item["height_pt"] for item in row_specs) + row_gap_pt * max(0, len(row_specs) - 1)
+        panel_specs.append(
+            {
+                "panel": panel,
+                "panel_title_lines": panel_title_lines,
+                "subtitle_lines": subtitle_lines,
+                "header_height_pt": header_height_pt,
+                "row_specs": row_specs,
+                "content_height_pt": content_height_pt,
+            }
+        )
+
+    panel_height_pt = max(spec["content_height_pt"] for spec in panel_specs) + panel_padding_pt * 2.0
+    title_text, title_line_count = _wrap_figure_title_to_width(
+        str(shell_payload.get("title") or "").strip(),
+        max_width_pt=figure_width_pt - side_margin_pt * 2.0,
+        font_size=title_size,
+    )
+    title_height_pt = max(title_line_count, 1) * title_size * 1.18
+    canvas_height_pt = (
+        top_margin_pt
+        + title_height_pt
+        + title_gap_pt
+        + panel_height_pt
+        + footer_gap_pt
+        + footer_pill_height_pt
+        + bottom_margin_pt
+    )
+
+    fig = plt.figure(figsize=(figure_width_pt / 72.0, canvas_height_pt / 72.0))
+    fig.patch.set_facecolor("white")
+    ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+    ax.set_xlim(0.0, figure_width_pt)
+    ax.set_ylim(0.0, canvas_height_pt)
+    ax.axis("off")
+
+    title_artist = ax.text(
+        side_margin_pt,
+        canvas_height_pt - top_margin_pt,
+        title_text,
+        fontsize=title_size,
+        fontweight="bold",
+        color=neutral_color,
+        ha="left",
+        va="top",
+    )
+
+    panel_y0 = bottom_margin_pt + footer_pill_height_pt + footer_gap_pt
+    footer_y0 = bottom_margin_pt
+    text_layout_records: list[tuple[Any, str, str]] = [(title_artist, "title", "title")]
+    layout_boxes: list[dict[str, Any]] = []
+    panel_boxes: list[dict[str, Any]] = []
+    guide_boxes: list[dict[str, Any]] = []
+    panel_regions: dict[str, dict[str, float]] = {}
+    panel_occupied_regions: dict[str, list[dict[str, float]]] = {}
+    arrow_artists: list[tuple[str, Any]] = []
+
+    def add_text_box(artist: Any, *, box_id: str, box_type: str) -> None:
+        text_layout_records.append((artist, box_id, box_type))
+
+    def draw_graphical_abstract_card(*, panel_id: str, card_spec: dict[str, Any], card_box: dict[str, float]) -> None:
+        card = dict(card_spec["card"])
+        accent_role = str(card.get("accent_role") or "neutral").strip().lower()
+        ax.add_patch(
+            FancyBboxPatch(
+                (card_box["x0"], card_box["y0"]),
+                card_box["x1"] - card_box["x0"],
+                card_box["y1"] - card_box["y0"],
+                boxstyle="round,pad=0.0,rounding_size=14",
+                linewidth=max(0.9, accent_line_width),
+                edgecolor=edge_by_role.get(accent_role, neutral_color),
+                facecolor=soft_fill_by_role.get(accent_role, soft_fill_by_role["neutral"]),
+            )
+        )
+        layout_boxes.append(
+            _flow_box_to_normalized(
+                **card_box,
+                canvas_width_pt=figure_width_pt,
+                canvas_height_pt=canvas_height_pt,
+                box_id=f"{panel_id}_{card['card_id']}",
+                box_type="card_box",
+            )
+        )
+        text_x = card_box["x0"] + card_padding_pt
+        y_cursor = card_box["y1"] - card_padding_pt
+        title_artist = ax.text(
+            text_x,
+            y_cursor,
+            "\n".join(card_spec["title_lines"]),
+            fontsize=card_title_size,
+            fontweight="normal",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+        add_text_box(title_artist, box_id=f"{panel_id}_{card['card_id']}_title", box_type="card_title")
+        y_cursor -= text_block_height(card_spec["title_lines"], font_size=card_title_size, extra_gap=4.0)
+        value_artist = ax.text(
+            text_x,
+            y_cursor,
+            "\n".join(card_spec["value_lines"]),
+            fontsize=card_spec["value_font_size"],
+            fontweight="bold",
+            color=edge_by_role.get(accent_role, neutral_color),
+            ha="left",
+            va="top",
+        )
+        add_text_box(value_artist, box_id=f"{panel_id}_{card['card_id']}_value", box_type="card_value")
+        y_cursor -= text_block_height(card_spec["value_lines"], font_size=card_spec["value_font_size"], extra_gap=0.0)
+        if card_spec["detail_lines"]:
+            y_cursor -= 7.0
+            detail_artist = ax.text(
+                text_x,
+                y_cursor,
+                "\n".join(card_spec["detail_lines"]),
+                fontsize=card_detail_size,
+                fontweight="normal",
+                color=neutral_color,
+                ha="left",
+                va="top",
+            )
+            add_text_box(
+                detail_artist,
+                box_id=f"{panel_id}_{card['card_id']}_detail",
+                box_type="card_detail",
+            )
+
+    for panel_index, panel_spec in enumerate(panel_specs):
+        panel = dict(panel_spec["panel"])
+        panel_x0 = side_margin_pt + panel_index * (panel_width_pt + panel_gap_pt)
+        panel_box = {
+            "x0": panel_x0,
+            "y0": panel_y0,
+            "x1": panel_x0 + panel_width_pt,
+            "y1": panel_y0 + panel_height_pt,
+        }
+        panel_regions[str(panel["panel_id"])] = panel_box
+        panel_occupied_regions[str(panel["panel_id"])] = []
+        panel_fill = str(palette.get("secondary_soft") or palette.get("light") or "#F4EFE8").strip() or "#F4EFE8"
+        ax.add_patch(
+            FancyBboxPatch(
+                (panel_box["x0"], panel_box["y0"]),
+                panel_width_pt,
+                panel_height_pt,
+                boxstyle="round,pad=0.0,rounding_size=18",
+                linewidth=panel_line_width,
+                edgecolor=neutral_color,
+                facecolor=panel_fill,
+            )
+        )
+        panel_boxes.append(
+            _flow_box_to_normalized(
+                **panel_box,
+                canvas_width_pt=figure_width_pt,
+                canvas_height_pt=canvas_height_pt,
+                box_id=f"panel_{panel['panel_id']}",
+                box_type="panel",
+            )
+        )
+
+        label_center_x = panel_box["x0"] + panel_padding_pt + 14.0
+        label_center_y = panel_box["y1"] - panel_padding_pt - 14.0
+        label_radius = 14.0
+        ax.add_patch(
+            matplotlib.patches.Circle(
+                (label_center_x, label_center_y),
+                radius=label_radius,
+                facecolor="white",
+                edgecolor=neutral_color,
+                linewidth=max(0.9, panel_line_width * 0.9),
+            )
+        )
+        layout_boxes.append(
+            _flow_box_to_normalized(
+                x0=label_center_x - label_radius,
+                y0=label_center_y - label_radius,
+                x1=label_center_x + label_radius,
+                y1=label_center_y + label_radius,
+                canvas_width_pt=figure_width_pt,
+                canvas_height_pt=canvas_height_pt,
+                box_id=f"panel_label_{panel['panel_label']}",
+                box_type="panel_label",
+            )
+        )
+        label_artist = ax.text(
+            label_center_x,
+            label_center_y,
+            str(panel["panel_label"]),
+            fontsize=panel_label_size,
+            fontweight="bold",
+            color=neutral_color,
+            ha="center",
+            va="center",
+        )
+        add_text_box(label_artist, box_id=f"panel_label_text_{panel['panel_label']}", box_type="panel_label_text")
+
+        title_x = label_center_x + label_radius + 10.0
+        title_y = panel_box["y1"] - panel_padding_pt
+        panel_title_artist = ax.text(
+            title_x,
+            title_y,
+            "\n".join(panel_spec["panel_title_lines"]),
+            fontsize=panel_title_size,
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+        add_text_box(panel_title_artist, box_id=f"{panel['panel_id']}_title", box_type="panel_title")
+        panel_title_height_pt = text_block_height(panel_spec["panel_title_lines"], font_size=panel_title_size)
+        subtitle_y = title_y - panel_title_height_pt - 4.0
+        subtitle_artist = ax.text(
+            title_x,
+            subtitle_y,
+            "\n".join(panel_spec["subtitle_lines"]),
+            fontsize=subtitle_size,
+            fontweight="normal",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+        add_text_box(subtitle_artist, box_id=f"{panel['panel_id']}_subtitle", box_type="panel_subtitle")
+
+        current_top = panel_box["y1"] - panel_padding_pt - panel_spec["header_height_pt"]
+        panel_occupied_regions[str(panel["panel_id"])].append(
+            {
+                "x0": panel_box["x0"] + panel_padding_pt,
+                "y0": current_top,
+                "x1": panel_box["x1"] - panel_padding_pt,
+                "y1": panel_box["y1"] - panel_padding_pt,
+            }
+        )
+        for row_index, row_spec in enumerate(panel_spec["row_specs"]):
+            row_cards = list(row_spec["cards"])
+            layout_mode = str(row_spec.get("layout_mode") or "horizontal")
+            if layout_mode == "stacked":
+                row_top = current_top
+                for card_index, card_spec in enumerate(row_cards):
+                    card_y1 = row_top
+                    card_y0 = card_y1 - card_spec["height_pt"]
+                    card_box = {
+                        "x0": panel_box["x0"] + panel_padding_pt,
+                        "y0": card_y0,
+                        "x1": panel_box["x0"] + panel_padding_pt + card_spec["width_pt"],
+                        "y1": card_y1,
+                    }
+                    draw_graphical_abstract_card(
+                        panel_id=str(panel["panel_id"]),
+                        card_spec=card_spec,
+                        card_box=card_box,
+                    )
+                    panel_occupied_regions[str(panel["panel_id"])].append(dict(card_box))
+                    row_top = card_y0 - (
+                        row_spec["row_internal_gap_pt"] if card_index < len(row_cards) - 1 else 0.0
+                    )
+            else:
+                card_y1 = current_top
+                card_y0 = card_y1 - row_spec["height_pt"]
+                x_cursor = panel_box["x0"] + panel_padding_pt
+                for card_index, card_spec in enumerate(row_cards):
+                    card_box = {
+                        "x0": x_cursor,
+                        "y0": card_y0,
+                        "x1": x_cursor + card_spec["width_pt"],
+                        "y1": card_y1,
+                    }
+                    draw_graphical_abstract_card(
+                        panel_id=str(panel["panel_id"]),
+                        card_spec=card_spec,
+                        card_box=card_box,
+                    )
+                    panel_occupied_regions[str(panel["panel_id"])].append(dict(card_box))
+                    x_cursor = card_box["x1"] + (
+                        row_spec["row_internal_gap_pt"] if card_index < len(row_cards) - 1 else 0.0
+                    )
+            current_top = card_y0 - (row_gap_pt if row_index < len(panel_spec["row_specs"]) - 1 else 0.0)
+
+    ordered_panels = [panel_regions[str(panel["panel_id"])] for panel in panels_payload]
+    arrow_pair_specs: list[tuple[int, dict[str, float], dict[str, float], dict[str, Any]]] = []
+    for index, (left_panel, right_panel) in enumerate(zip(ordered_panels, ordered_panels[1:], strict=False), start=1):
+        left_panel_id = str(panels_payload[index - 1]["panel_id"])
+        right_panel_id = str(panels_payload[index]["panel_id"])
+        arrow_half_height_pt = max(12.0, min(16.0, panel_gap_pt * 0.58))
+        lane_spec = _build_submission_graphical_abstract_arrow_lane_spec(
+            left_panel_box=left_panel,
+            right_panel_box=right_panel,
+            left_occupied_boxes=tuple(panel_occupied_regions[left_panel_id]),
+            right_occupied_boxes=tuple(panel_occupied_regions[right_panel_id]),
+            clearance_pt=max(6.0, card_gap_pt * 0.45),
+            arrow_half_height_pt=arrow_half_height_pt,
+            edge_proximity_pt=max(panel_padding_pt + card_padding_pt * 2.0, panel_width_pt * 0.24),
+        )
+        arrow_pair_specs.append((index, left_panel, right_panel, lane_spec))
+
+    shared_arrow_y = _choose_shared_submission_graphical_abstract_arrow_lane(
+        [lane_spec for _, _, _, lane_spec in arrow_pair_specs]
+    )
+    for index, left_panel, right_panel, _lane_spec in arrow_pair_specs:
+        x_left = left_panel["x1"] + 5.0
+        x_right = right_panel["x0"] - 5.0
+        arrow_artist = FancyArrowPatch(
+            (x_left, shared_arrow_y),
+            (x_right, shared_arrow_y),
+            arrowstyle="simple",
+            mutation_scale=max(24.0, min(34.0, panel_gap_pt * 1.35)),
+            linewidth=0.0,
+            color=neutral_color,
+            alpha=0.72,
+        )
+        ax.add_patch(arrow_artist)
+        arrow_artists.append((f"panel_arrow_{index}", arrow_artist))
+
+    for pill in footer_pills:
+        panel_box = panel_regions.get(str(pill["panel_id"]))
+        if panel_box is None:
+            continue
+        label = str(pill["label"])
+        style_role = str(pill.get("style_role") or "neutral").strip().lower()
+        pill_width_pt = max(146.0, _measure_flow_text_width_pt(label, font_size=subtitle_size, font_weight="normal") + 38.0)
+        pill_x0 = ((panel_box["x0"] + panel_box["x1"]) / 2.0) - pill_width_pt / 2.0
+        pill_box = {
+            "x0": pill_x0,
+            "y0": footer_y0,
+            "x1": pill_x0 + pill_width_pt,
+            "y1": footer_y0 + footer_pill_height_pt,
+        }
+        ax.add_patch(
+            FancyBboxPatch(
+                (pill_box["x0"], pill_box["y0"]),
+                pill_width_pt,
+                footer_pill_height_pt,
+                boxstyle="round,pad=0.0,rounding_size=14",
+                linewidth=max(0.8, panel_line_width * 0.9),
+                edgecolor=edge_by_role.get(style_role, neutral_color),
+                facecolor="white",
+            )
+        )
+        layout_boxes.append(
+            _flow_box_to_normalized(
+                **pill_box,
+                canvas_width_pt=figure_width_pt,
+                canvas_height_pt=canvas_height_pt,
+                box_id=f"footer_pill_{pill['pill_id']}",
+                box_type="footer_pill",
+            )
+        )
+        pill_artist = ax.text(
+            (pill_box["x0"] + pill_box["x1"]) / 2.0,
+            (pill_box["y0"] + pill_box["y1"]) / 2.0,
+            label,
+            fontsize=subtitle_size,
+            fontweight="normal",
+            color=neutral_color,
+            ha="center",
+            va="center",
+        )
+        add_text_box(pill_artist, box_id=f"footer_pill_text_{pill['pill_id']}", box_type="footer_pill_text")
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    for box_id, artist in arrow_artists:
+        guide_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=artist.get_window_extent(renderer=renderer),
+                box_id=box_id,
+                box_type="arrow_connector",
+            )
+        )
+    for artist, box_id, box_type in text_layout_records:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=artist.get_window_extent(renderer=renderer),
+                box_id=box_id,
+                box_type=box_type,
+            )
+        )
+
+    dump_json(
+        output_layout_path,
+        {
+            "template_id": "submission_graphical_abstract",
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "panels": panels_payload,
+                "footer_pills": footer_pills,
+            },
+            "render_context": render_context_payload,
+        },
+    )
+
+    fig.savefig(output_svg_path, format="svg")
+    fig.savefig(output_png_path, format="png", dpi=240)
+    plt.close(fig)
+
+
+def _write_rectangular_table_outputs(
     *,
     output_md_path: Path,
     title: str,
-    column_labels: list[str],
-    rows: list[dict[str, Any]],
-    stub_header: str,
+    headers: list[str],
+    table_rows: list[list[str]],
     output_csv_path: Path | None = None,
 ) -> None:
-    headers = [stub_header, *column_labels]
-    table_rows = [[row["label"], *row["values"]] for row in rows]
-
     if output_csv_path is not None:
         output_csv_path.parent.mkdir(parents=True, exist_ok=True)
         with output_csv_path.open("w", encoding="utf-8", newline="") as handle:
@@ -3505,6 +4855,26 @@ def _write_table_outputs(
     for row in table_rows:
         markdown_lines.append("| " + " | ".join(row) + " |")
     output_md_path.write_text("\n".join(markdown_lines) + "\n", encoding="utf-8")
+
+
+def _write_table_outputs(
+    *,
+    output_md_path: Path,
+    title: str,
+    column_labels: list[str],
+    rows: list[dict[str, Any]],
+    stub_header: str,
+    output_csv_path: Path | None = None,
+) -> None:
+    headers = [stub_header, *column_labels]
+    table_rows = [[row["label"], *row["values"]] for row in rows]
+    _write_rectangular_table_outputs(
+        output_md_path=output_md_path,
+        title=title,
+        headers=headers,
+        table_rows=table_rows,
+        output_csv_path=output_csv_path,
+    )
 
 
 def _bbox_to_layout_box(
@@ -3854,6 +5224,17 @@ def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
 def _prepare_python_render_output_paths(*, output_png_path: Path, output_pdf_path: Path, layout_sidecar_path: Path) -> None:
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _prepare_python_illustration_output_paths(
+    *,
+    output_png_path: Path,
+    output_svg_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    output_png_path.parent.mkdir(parents=True, exist_ok=True)
+    output_svg_path.parent.mkdir(parents=True, exist_ok=True)
     layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
 
@@ -5075,17 +6456,46 @@ def _render_python_time_to_event_risk_group_summary(
         layout_sidecar_path=layout_sidecar_path,
     )
 
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+    observed_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    predicted_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    group_colors = (
+        str(palette.get("light") or palette.get("secondary_soft") or predicted_color).strip() or predicted_color,
+        str(palette.get("secondary") or predicted_color).strip() or predicted_color,
+        str(palette.get("primary") or observed_color).strip() or observed_color,
+    )
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = float(typography.get("panel_label_size") or 11.0)
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+    show_legend = _read_bool_override(layout_override, "show_legend", False)
+
     fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(10.4, 4.2))
     fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
-        str(display_payload.get("title") or "").strip(),
-        fontsize=12.5,
-        fontweight="bold",
-        color="#13293d",
-    )
-    predicted_color = "#b7a99a"
-    observed_color = "#7f8f84"
-    group_colors = ("#d8d1c7", "#b7a99a", "#7f8f84")
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
+        )
     x_positions = list(range(len(risk_group_summaries)))
     group_labels = [str(item["label"]) for item in risk_group_summaries]
     predicted_risk = [float(item["mean_predicted_risk_5y"]) * 100.0 for item in risk_group_summaries]
@@ -5109,21 +6519,45 @@ def _render_python_time_to_event_risk_group_summary(
     )
     left_axes.set_xticks(x_positions)
     left_axes.set_xticklabels(group_labels)
-    left_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
-    left_axes.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
-    left_axes.set_title(str(display_payload.get("panel_a_title") or "").strip(), fontsize=11, fontweight="bold", color="#334155")
-    left_axes.grid(axis="y", color="#d8d1c7", linewidth=0.8, linestyle=":")
-    left_axes.grid(axis="x", visible=False)
-    left_axes.spines["top"].set_visible(False)
-    left_axes.spines["right"].set_visible(False)
-    legend = fig.legend(
-        *left_axes.get_legend_handles_labels(),
-        loc="lower center",
-        bbox_to_anchor=(0.28, 0.02),
-        ncol=2,
-        frameon=False,
+    left_axes.set_xlabel(
+        str(display_payload.get("x_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
     )
-    left_axes.text(-0.08, 1.04, "A", transform=left_axes.transAxes, fontsize=11, fontweight="bold", color="#2F3437")
+    left_axes.set_ylabel(
+        str(display_payload.get("y_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.set_title(
+        str(display_payload.get("panel_a_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.grid(axis="y", color=str(palette.get("light") or "#E7E1D8"), linewidth=0.8, linestyle=":")
+    left_axes.grid(axis="x", visible=False)
+    _apply_publication_axes_style(left_axes)
+    legend = None
+    if show_legend:
+        legend = fig.legend(
+            *left_axes.get_legend_handles_labels(),
+            loc="lower center",
+            bbox_to_anchor=(0.28, 0.02),
+            ncol=2,
+            frameon=False,
+        )
+    left_axes.text(
+        -0.08,
+        1.04,
+        "A",
+        transform=left_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
 
     right_axes.bar(
         x_positions,
@@ -5133,64 +6567,100 @@ def _render_python_time_to_event_risk_group_summary(
     )
     upper_margin = max(max(event_counts) * 0.08, 1.2)
     for index, value in enumerate(event_counts):
-        right_axes.text(index, float(value) + upper_margin * 0.35, str(value), ha="center", va="bottom", fontsize=9)
+        right_axes.text(
+            index,
+            float(value) + upper_margin * 0.35,
+            str(value),
+            ha="center",
+            va="bottom",
+            fontsize=tick_size - 1.0,
+            color=neutral_color,
+        )
     right_axes.set_xticks(x_positions)
     right_axes.set_xticklabels(group_labels)
-    right_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    right_axes.set_xlabel(
+        str(display_payload.get("x_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
     right_axes.set_ylabel(
         str(display_payload.get("event_count_y_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
-    right_axes.set_title(str(display_payload.get("panel_b_title") or "").strip(), fontsize=11, fontweight="bold", color="#334155")
+    right_axes.set_title(
+        str(display_payload.get("panel_b_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
     right_axes.set_ylim(0.0, max(event_counts) + upper_margin)
-    right_axes.grid(axis="y", color="#d8d1c7", linewidth=0.8, linestyle=":")
+    right_axes.grid(axis="y", color=str(palette.get("light") or "#E7E1D8"), linewidth=0.8, linestyle=":")
     right_axes.grid(axis="x", visible=False)
-    right_axes.spines["top"].set_visible(False)
-    right_axes.spines["right"].set_visible(False)
-    right_axes.text(-0.08, 1.04, "B", transform=right_axes.transAxes, fontsize=11, fontweight="bold", color="#2F3437")
+    _apply_publication_axes_style(right_axes)
+    right_axes.text(
+        -0.08,
+        1.04,
+        "B",
+        transform=right_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
 
-    fig.subplots_adjust(left=0.09, right=0.98, top=0.82, bottom=0.21, wspace=0.26)
+    fig.subplots_adjust(
+        left=0.09,
+        right=0.98,
+        top=0.82 if show_figure_title else 0.90,
+        bottom=0.21 if show_legend else 0.12,
+        wspace=0.26,
+    )
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="y_axis_title",
+            box_type="y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="panel_right_x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="panel_right_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+    ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
     dump_json(
         layout_sidecar_path,
         {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=title_artist.get_window_extent(renderer=renderer),
-                    box_id="title",
-                    box_type="title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
-                    box_id="x_axis_title",
-                    box_type="x_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
-                    box_id="y_axis_title",
-                    box_type="y_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
-                    box_id="panel_right_x_axis_title",
-                    box_type="subplot_x_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
-                    box_id="panel_right_y_axis_title",
-                    box_type="subplot_y_axis_title",
-                ),
-            ],
+            "layout_boxes": layout_boxes,
             "panel_boxes": [
                 _bbox_to_layout_box(
                     figure=fig,
@@ -5205,7 +6675,9 @@ def _render_python_time_to_event_risk_group_summary(
                     box_type="panel",
                 ),
             ],
-            "guide_boxes": [
+            "guide_boxes": []
+            if legend is None
+            else [
                 _bbox_to_layout_box(
                     figure=fig,
                     bbox=legend.get_window_extent(renderer=renderer),
@@ -5247,6 +6719,8 @@ def _render_python_time_to_event_decision_curve(
 
     render_context = dict(display_payload.get("render_context") or {})
     style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
     layout_override = dict(render_context.get("layout_override") or {})
     model_color = _require_non_empty_string(
         style_roles.get("model_curve"),
@@ -5260,16 +6734,28 @@ def _render_python_time_to_event_decision_curve(
         style_roles.get("reference_line"),
         label=f"{template_id} render_context.style_roles.reference_line",
     )
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    panel_label_size = float(typography.get("panel_label_size") or 11.0)
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+    show_legend = _read_bool_override(layout_override, "show_legend", False)
 
     fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(10.8, 4.2))
     fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
-        str(display_payload.get("title") or "").strip(),
-        fontsize=12.5,
-        fontweight="bold",
-        color="#13293d",
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=reference_color,
+        )
+    extra_series_palette = (
+        str(palette.get("contrast") or "#2F5D8A").strip() or "#2F5D8A",
+        str(palette.get("secondary") or comparator_color).strip() or comparator_color,
+        str(palette.get("neutral") or reference_color).strip() or reference_color,
+        str(palette.get("primary_soft") or model_color).strip() or model_color,
     )
-    palette = ("#2a9d8f", "#8c6d31", "#9467bd", "#7f7f7f")
     x_values = [float(value) for item in series for value in item["x"]]
     y_values = [float(value) for item in series for value in item["y"]]
     reference_line = display_payload.get("reference_line")
@@ -5300,7 +6786,7 @@ def _render_python_time_to_event_decision_curve(
         elif index == 0:
             line_color = model_color
         else:
-            line_color = palette[(index - 1) % len(palette)]
+            line_color = extra_series_palette[(index - 1) % len(extra_series_palette)]
         left_axes.plot(
             item["x"],
             item["y"],
@@ -5325,11 +6811,11 @@ def _render_python_time_to_event_decision_curve(
     y_padding = max((y_max - y_min) * 0.10, 0.02)
     left_axes.set_xlim(x_min - x_padding, x_max + x_padding)
     left_axes.set_ylim(y_min - y_padding, y_max + y_padding)
-    left_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
-    left_axes.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
-    left_axes.set_title(str(display_payload.get("panel_a_title") or "").strip(), fontsize=11, fontweight="bold", color="#334155")
+    left_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
+    left_axes.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
+    left_axes.set_title(str(display_payload.get("panel_a_title") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
     _apply_publication_axes_style(left_axes)
-    left_axes.text(-0.08, 1.04, "A", transform=left_axes.transAxes, fontsize=11, fontweight="bold", color="#2F3437")
+    left_axes.text(-0.08, 1.04, "A", transform=left_axes.transAxes, fontsize=panel_label_size, fontweight="bold", color=reference_color)
 
     right_x_values = [float(value) for value in treated_fraction_series["x"]]
     right_y_values = [float(value) for value in treated_fraction_series["y"]]
@@ -5345,29 +6831,35 @@ def _render_python_time_to_event_decision_curve(
     right_y_padding = max((max(right_y_values) - min(right_y_values)) * 0.10, 0.5)
     right_axes.set_xlim(min(right_x_values) - right_x_padding, max(right_x_values) + right_x_padding)
     right_axes.set_ylim(min(0.0, min(right_y_values) - right_y_padding), max(right_y_values) + right_y_padding)
-    right_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=11, fontweight="bold", color="#13293d")
+    right_axes.set_xlabel(str(display_payload.get("x_label") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
     right_axes.set_ylabel(
         str(display_payload.get("treated_fraction_y_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=reference_color,
     )
-    right_axes.set_title(str(display_payload.get("panel_b_title") or "").strip(), fontsize=11, fontweight="bold", color="#334155")
+    right_axes.set_title(str(display_payload.get("panel_b_title") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
     right_axes.grid(axis="y", color="#e6edf2", linewidth=0.4)
     right_axes.grid(axis="x", visible=False)
     right_axes.spines["top"].set_visible(False)
     right_axes.spines["right"].set_visible(False)
-    right_axes.text(-0.08, 1.04, "B", transform=right_axes.transAxes, fontsize=11, fontweight="bold", color="#2F3437")
+    right_axes.text(-0.08, 1.04, "B", transform=right_axes.transAxes, fontsize=panel_label_size, fontweight="bold", color=reference_color)
 
     handles, labels = left_axes.get_legend_handles_labels()
-    legend_position = str(layout_override.get("legend_position") or "lower_center").strip().lower()
+    legend_position = "none" if not show_legend else str(layout_override.get("legend_position") or "lower_center").strip().lower()
     legend = None
     if legend_position != "none":
         if legend_position == "right_bottom":
             legend = fig.legend(handles, labels, loc="lower right", bbox_to_anchor=(0.98, 0.02), ncol=1, frameon=False)
         else:
             legend = fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.02), ncol=3, frameon=False)
-    fig.subplots_adjust(left=0.09, right=0.98, bottom=0.22, top=0.82, wspace=0.28)
+    fig.subplots_adjust(
+        left=0.09,
+        right=0.98,
+        bottom=0.22 if show_legend else 0.12,
+        top=0.82 if show_figure_title else 0.90,
+        wspace=0.28,
+    )
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     normalized_reference_line = _normalize_reference_line_to_device_space(
@@ -5375,43 +6867,48 @@ def _render_python_time_to_event_decision_curve(
         axes=left_axes,
         figure=fig,
     )
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="y_axis_title",
+            box_type="y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="panel_right_x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="panel_right_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+    ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
     dump_json(
         layout_sidecar_path,
         {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
-            "layout_boxes": [
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=title_artist.get_window_extent(renderer=renderer),
-                    box_id="title",
-                    box_type="title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
-                    box_id="x_axis_title",
-                    box_type="x_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
-                    box_id="y_axis_title",
-                    box_type="y_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
-                    box_id="panel_right_x_axis_title",
-                    box_type="subplot_x_axis_title",
-                ),
-                _bbox_to_layout_box(
-                    figure=fig,
-                    bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
-                    box_id="panel_right_y_axis_title",
-                    box_type="subplot_y_axis_title",
-                ),
-            ],
+            "layout_boxes": layout_boxes,
             "panel_boxes": [
                 _bbox_to_layout_box(
                     figure=fig,
@@ -5460,10 +6957,10 @@ def _render_python_time_to_event_discrimination_calibration_panel(
     output_pdf_path: Path,
     layout_sidecar_path: Path,
 ) -> None:
-    discrimination_series = list(display_payload.get("discrimination_series") or [])
-    calibration_groups = list(display_payload.get("calibration_groups") or [])
-    if not discrimination_series or not calibration_groups:
-        raise RuntimeError(f"{template_id} requires non-empty discrimination_series and calibration_groups")
+    discrimination_points = list(display_payload.get("discrimination_points") or [])
+    calibration_summary = list(display_payload.get("calibration_summary") or [])
+    if not discrimination_points or not calibration_summary:
+        raise RuntimeError(f"{template_id} requires non-empty discrimination_points and calibration_summary")
 
     _prepare_python_render_output_paths(
         output_png_path=output_png_path,
@@ -5471,117 +6968,279 @@ def _render_python_time_to_event_discrimination_calibration_panel(
         layout_sidecar_path=layout_sidecar_path,
     )
 
-    fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(9.0, 4.8))
-    fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
-        str(display_payload.get("title") or "").strip(),
-        fontsize=12.5,
-        fontweight="bold",
-        color="#13293d",
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
     )
-    palette = ("#1f4e79", "#c94f3d", "#2a9d8f", "#8c6d31")
+    model_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    comparator_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    highlight_color = str(palette.get("light") or palette.get("secondary_soft") or comparator_color).strip() or comparator_color
+    marker_size = max(float(stroke.get("marker_size") or 4.5), 3.8)
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = float(typography.get("panel_label_size") or 11.0)
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
 
-    for index, item in enumerate(discrimination_series):
-        left_axes.plot(
-            item["x"],
-            item["y"],
-            linewidth=2.0,
-            color=palette[index % len(palette)],
-            label=str(item["label"]),
+    fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(10.8, 4.3))
+    fig.patch.set_facecolor("white")
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
         )
-    discrimination_reference_line = display_payload.get("discrimination_reference_line")
-    if isinstance(discrimination_reference_line, dict):
-        left_axes.plot(
-            discrimination_reference_line["x"],
-            discrimination_reference_line["y"],
-            linewidth=1.0,
-            linestyle="--",
-            color="#6b7280",
+
+    c_index_values = [float(item["c_index"]) for item in discrimination_points]
+    x_range = max(max(c_index_values) - min(c_index_values), 0.01)
+    x_floor = max(0.0, min(c_index_values) - max(0.012, x_range * 0.8))
+    x_ceiling = min(1.0, max(c_index_values) + max(0.012, x_range * 1.2))
+    y_positions = list(range(len(discrimination_points)))[::-1]
+    left_axes.set_xlim(x_floor, x_ceiling)
+    left_axes.set_ylim(-0.5, len(discrimination_points) - 0.5)
+    left_axes.set_yticks(y_positions)
+    left_axes.set_yticklabels(
+        [str(item["label"]) for item in discrimination_points],
+        fontsize=tick_size,
+        color=neutral_color,
+    )
+    discrimination_marker_boxes: list[dict[str, Any]] = []
+    for y_position, item in zip(y_positions, discrimination_points, strict=True):
+        label = str(item["label"])
+        c_index = float(item["c_index"])
+        point_color = comparator_color if "lasso" in label.casefold() else model_color
+        left_axes.hlines(
+            y=y_position,
+            xmin=x_floor,
+            xmax=c_index,
+            linewidth=2.1,
+            color=point_color,
+            zorder=2,
         )
-    left_axes.set_xlim(0.0, 1.0)
-    left_axes.set_ylim(0.0, 1.02)
+        left_axes.scatter([c_index], [y_position], s=(marker_size * 11.0), color=point_color, zorder=3)
+        annotation_text = str(item.get("annotation") or f"{c_index:.3f}").strip()
+        x_offset = max(x_range * 0.07, 0.0025)
+        text_x = c_index + x_offset
+        text_ha = "left"
+        if text_x > x_ceiling - x_offset * 0.35:
+            text_x = c_index - x_offset
+            text_ha = "right"
+        left_axes.text(
+            text_x,
+            y_position + 0.02,
+            annotation_text,
+            fontsize=tick_size - 0.2,
+            color=neutral_color,
+            va="center",
+            ha=text_ha,
+        )
+        discrimination_marker_boxes.append(
+            {
+                "label": label,
+                "c_index": c_index,
+                "y": float(y_position),
+            }
+        )
     left_axes.set_xlabel(
         str(display_payload.get("discrimination_x_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
     left_axes.set_ylabel(
-        str(display_payload.get("discrimination_y_label") or "").strip(),
-        fontsize=11,
+        "Model",
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
-    left_axes.set_title("Discrimination", fontsize=11, fontweight="bold", color="#334155")
+    left_axes.set_title(
+        str(display_payload.get("panel_a_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.tick_params(axis="x", labelsize=tick_size)
+    left_axes.tick_params(axis="y", length=0, pad=6)
+    left_axes.grid(axis="y", visible=False)
+    left_axes.grid(axis="x", color=highlight_color, linewidth=0.8, linestyle=":")
     _apply_publication_axes_style(left_axes)
+    left_axes.text(
+        -0.10,
+        1.04,
+        "A",
+        transform=left_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
 
-    max_time = max(max(float(item) for item in group["times"]) for group in calibration_groups)
-    for index, group in enumerate(calibration_groups):
-        right_axes.plot(
-            group["times"],
-            group["values"],
-            linewidth=1.8,
-            marker="o",
-            markersize=4.2,
-            color=palette[index % len(palette)],
-            label=str(group["label"]),
-        )
-    calibration_reference_line = display_payload.get("calibration_reference_line")
-    if isinstance(calibration_reference_line, dict):
-        right_axes.plot(
-            calibration_reference_line["x"],
-            calibration_reference_line["y"],
-            linewidth=1.0,
-            linestyle="--",
-            color="#6b7280",
-        )
-    right_axes.set_xlim(0.0, max_time)
-    right_axes.set_ylim(0.0, 1.02)
+    risk_deciles = [int(item["group_order"]) for item in calibration_summary]
+    predicted_risk = [float(item["predicted_risk_5y"]) * 100.0 for item in calibration_summary]
+    observed_risk = [float(item["observed_risk_5y"]) * 100.0 for item in calibration_summary]
+    calibration_marker_boxes: list[dict[str, Any]] = []
+    right_axes.plot(
+        risk_deciles,
+        predicted_risk,
+        linewidth=2.2,
+        marker="o",
+        markersize=marker_size,
+        color=comparator_color,
+        label="Predicted",
+        zorder=2,
+    )
+    right_axes.plot(
+        risk_deciles,
+        observed_risk,
+        linewidth=2.2,
+        marker="o",
+        markersize=marker_size,
+        color=model_color,
+        label="Observed",
+        zorder=3,
+    )
+    y_top = max(max(predicted_risk), max(observed_risk))
+    right_axes.set_xlim(0.7, max(risk_deciles) + 0.3)
+    right_axes.set_ylim(0.0, max(4.0, y_top * 1.18))
     right_axes.set_xlabel(
         str(display_payload.get("calibration_x_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
     right_axes.set_ylabel(
         str(display_payload.get("calibration_y_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
-    right_axes.set_title("Grouped Calibration", fontsize=11, fontweight="bold", color="#334155")
+    right_axes.set_title(
+        str(display_payload.get("panel_b_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    right_axes.set_xticks(risk_deciles)
+    right_axes.set_xticklabels([str(item) for item in risk_deciles], fontsize=tick_size, color=neutral_color)
+    right_axes.tick_params(axis="y", labelsize=tick_size)
+    right_axes.grid(axis="y", color=highlight_color, linewidth=0.8, linestyle=":")
+    right_axes.grid(axis="x", visible=False)
     _apply_publication_axes_style(right_axes)
+    right_axes.text(
+        -0.10,
+        1.04,
+        "B",
+        transform=right_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    legend_handles, legend_labels = right_axes.get_legend_handles_labels()
+    for group_order, predicted_value, observed_value in zip(risk_deciles, predicted_risk, observed_risk, strict=True):
+        calibration_marker_boxes.append(
+            {
+                "group_order": group_order,
+                "predicted_risk_pct": predicted_value,
+                "observed_risk_pct": observed_value,
+            }
+        )
 
-    handles, labels = [], []
-    for axes in (left_axes, right_axes):
-        axis_handles, axis_labels = axes.get_legend_handles_labels()
-        for handle, label in zip(axis_handles, axis_labels, strict=True):
-            if label in labels or not label:
-                continue
-            handles.append(handle)
-            labels.append(label)
-    legend = fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.03), ncol=2, frameon=False)
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.80, bottom=0.22, wspace=0.28)
+    calibration_callout = display_payload.get("calibration_callout")
+    callout_artist = None
+    if isinstance(calibration_callout, dict):
+        callout_group_label = str(calibration_callout.get("group_label") or "").strip()
+        callout_predicted = float(calibration_callout["predicted_risk_5y"]) * 100.0
+        callout_observed = float(calibration_callout["observed_risk_5y"]) * 100.0
+        callout_events = int(calibration_callout.get("events_5y") or 0)
+        callout_n = int(calibration_callout.get("n") or 0)
+        callout_lines = _wrap_flow_text_to_width(
+            (
+                f"{callout_group_label}: {callout_predicted:.2f}% predicted, "
+                f"{callout_observed:.2f}% observed, {callout_events}/{callout_n} events"
+            ),
+            max_width_pt=fig.get_figwidth() * 72.0 * 0.19,
+            font_size=max(tick_size - 0.6, 8.6),
+            font_weight="normal",
+        )
+        callout_artist = right_axes.text(
+            0.03,
+            0.88,
+            "\n".join(callout_lines),
+            transform=right_axes.transAxes,
+            fontsize=max(tick_size - 0.6, 8.6),
+            color=neutral_color,
+            ha="left",
+            va="top",
+            bbox={
+                "boxstyle": "round,pad=0.26,rounding_size=0.18",
+                "facecolor": matplotlib.colors.to_rgba(highlight_color, alpha=0.94),
+                "edgecolor": neutral_color,
+                "linewidth": 0.9,
+            },
+        )
+
+    fig.subplots_adjust(
+        left=0.10,
+        right=0.96,
+        top=0.72 if show_figure_title else 0.78,
+        bottom=0.24,
+        wspace=0.28,
+    )
+    legend = fig.legend(
+        legend_handles,
+        legend_labels,
+        frameon=False,
+        loc="lower center",
+        bbox_to_anchor=(0.50, 0.035),
+        ncol=min(2, max(1, len(legend_labels))),
+    )
     fig.canvas.draw()
+    if callout_artist is not None:
+        renderer = fig.canvas.get_renderer()
+        right_panel_bbox = right_axes.get_window_extent(renderer=renderer)
+        right_title_bbox = right_axes.title.get_window_extent(renderer=renderer)
+        callout_bbox = callout_artist.get_window_extent(renderer=renderer)
+        horizontal_padding_px = max(right_panel_bbox.width * 0.03, 10.0)
+        vertical_padding_px = max(right_panel_bbox.height * 0.08, 12.0)
+        target_x0_px = right_panel_bbox.x0 + horizontal_padding_px
+        target_y1_px = min(right_panel_bbox.y1 - vertical_padding_px, right_title_bbox.y0 - vertical_padding_px)
+        minimum_y1_px = right_panel_bbox.y0 + vertical_padding_px + callout_bbox.height
+        target_y1_px = max(target_y1_px, minimum_y1_px)
+        target_axes_x, target_axes_y = right_axes.transAxes.inverted().transform((target_x0_px, target_y1_px))
+        callout_artist.set_position((float(target_axes_x), float(target_axes_y)))
+        fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     layout_boxes = [
         _bbox_to_layout_box(
             figure=fig,
-            bbox=title_artist.get_window_extent(renderer=renderer),
-            box_id="title",
-            box_type="title",
-        ),
-        _bbox_to_layout_box(
-            figure=fig,
             bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
-            box_id="x_axis_title",
-            box_type="x_axis_title",
+            box_id="panel_left_x_axis_title",
+            box_type="subplot_x_axis_title",
         ),
         _bbox_to_layout_box(
             figure=fig,
             bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
-            box_id="y_axis_title",
-            box_type="y_axis_title",
+            box_id="panel_left_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_left_title",
+            box_type="panel_title",
         ),
         _bbox_to_layout_box(
             figure=fig,
@@ -5595,7 +7254,73 @@ def _render_python_time_to_event_discrimination_calibration_panel(
             box_id="calibration_y_axis_title",
             box_type="subplot_y_axis_title",
         ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_right_title",
+            box_type="panel_title",
+        ),
     ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
+    for index, marker in enumerate(discrimination_marker_boxes, start=1):
+        marker_width = max((x_ceiling - x_floor) * 0.015, 0.002)
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=left_axes,
+                figure=fig,
+                x0=float(marker["c_index"]) - marker_width,
+                y0=float(marker["y"]) - 0.14,
+                x1=float(marker["c_index"]) + marker_width,
+                y1=float(marker["y"]) + 0.14,
+                box_id=f"discrimination_marker_{index}",
+                box_type="metric_marker",
+            )
+        )
+    for index, marker in enumerate(calibration_marker_boxes, start=1):
+        marker_half_width = 0.14
+        marker_half_height = max(y_top * 0.03, 0.18)
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=right_axes,
+                figure=fig,
+                x0=float(marker["group_order"]) - marker_half_width,
+                y0=float(marker["predicted_risk_pct"]) - marker_half_height,
+                x1=float(marker["group_order"]) + marker_half_width,
+                y1=float(marker["predicted_risk_pct"]) + marker_half_height,
+                box_id=f"predicted_marker_{index}",
+                box_type="metric_marker",
+            )
+        )
+        layout_boxes.append(
+            _data_box_to_layout_box(
+                axes=right_axes,
+                figure=fig,
+                x0=float(marker["group_order"]) - marker_half_width,
+                y0=float(marker["observed_risk_pct"]) - marker_half_height,
+                x1=float(marker["group_order"]) + marker_half_width,
+                y1=float(marker["observed_risk_pct"]) + marker_half_height,
+                box_id=f"observed_marker_{index}",
+                box_type="metric_marker",
+            )
+        )
+    if callout_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=callout_artist.get_window_extent(renderer=renderer),
+                box_id="annotation_callout",
+                box_type="annotation_block",
+            )
+        )
     panel_boxes = [
         _bbox_to_layout_box(
             figure=fig,
@@ -5627,8 +7352,9 @@ def _render_python_time_to_event_discrimination_calibration_panel(
             "panel_boxes": panel_boxes,
             "guide_boxes": guide_boxes,
             "metrics": {
-                "series": discrimination_series,
-                "reference_line": discrimination_reference_line,
+                "discrimination_points": discrimination_points,
+                "calibration_summary": calibration_summary,
+                "calibration_callout": calibration_callout,
             },
         },
     )
@@ -5656,6 +7382,56 @@ def _render_python_multicenter_generalizability_overview(
         layout_sidecar_path=layout_sidecar_path,
     )
 
+    render_context = dict(display_payload.get("render_context") or {})
+    typography = dict(render_context.get("typography") or {})
+    palette = dict(render_context.get("palette") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = max(12.0, float(typography.get("panel_label_size") or 11.0))
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    model_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    comparator_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    contrast_color = str(palette.get("contrast") or "#2F5D8A").strip() or "#2F5D8A"
+    light_fill = str(palette.get("light") or palette.get("secondary_soft") or comparator_color).strip() or comparator_color
+    audit_color = str(palette.get("audit") or "#B57F7F").strip() or "#B57F7F"
+    audit_soft = str(palette.get("audit_soft") or light_fill).strip() or light_fill
+
+    def _resolve_center_axis_labels(labels: list[str]) -> tuple[list[str], str, str]:
+        if not labels:
+            return [], "verbatim", "Anonymous center identifier"
+        parsed: list[tuple[str, str]] = []
+        for label in labels:
+            match = re.fullmatch(r"\s*([^\d]+?)\s*(\d+)\s*", label)
+            if match is None:
+                return labels, "verbatim", "Anonymous center identifier"
+            prefix = re.sub(r"\s+", " ", match.group(1)).strip()
+            digits = match.group(2)
+            if not prefix:
+                return labels, "verbatim", "Anonymous center identifier"
+            parsed.append((prefix, digits))
+        normalized_prefixes = {prefix.casefold() for prefix, _ in parsed}
+        compacted_labels = [digits for _, digits in parsed]
+        if len(normalized_prefixes) != 1 or len(set(compacted_labels)) != len(compacted_labels):
+            return labels, "verbatim", "Anonymous center identifier"
+        shared_prefix = parsed[0][0]
+        axis_title = f"{shared_prefix} ID"
+        return compacted_labels, "shared_prefix_compacted", axis_title
+
     figure_height = max(7.0, 0.18 * len(center_event_counts) + 5.8)
     fig = plt.figure(figsize=(10.8, figure_height))
     grid = fig.add_gridspec(2, 2, height_ratios=[2.0, 1.0], hspace=0.38, width_ratios=[1.0, 1.0])
@@ -5665,18 +7441,24 @@ def _render_python_multicenter_generalizability_overview(
     north_south_axes = fig.add_subplot(right_grid[0, 0])
     urban_rural_axes = fig.add_subplot(right_grid[1, 0])
     fig.patch.set_facecolor("white")
-    title_artist = fig.suptitle(
-        str(display_payload.get("title") or "").strip(),
-        fontsize=12.5,
-        fontweight="bold",
-        color="#13293d",
-    )
-    center_colors = {"train": "#B7A99A", "validation": "#7F8F84"}
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
+            y=0.985,
+        )
+    center_colors = {"train": comparator_color, "validation": model_color}
     center_labels = [str(item["center_label"]) for item in center_event_counts]
+    center_tick_labels, center_label_mode, center_axis_title = _resolve_center_axis_labels(center_labels)
+    if not center_tick_labels:
+        center_tick_labels = center_labels
     center_values = [int(item["event_count"]) for item in center_event_counts]
     center_split_buckets = [str(item["split_bucket"]) for item in center_event_counts]
     center_bars = center_axes.bar(
-        center_labels,
+        center_tick_labels,
         center_values,
         color=[center_colors[item] for item in center_split_buckets],
         edgecolor="none",
@@ -5684,29 +7466,34 @@ def _render_python_multicenter_generalizability_overview(
     )
     center_axes.set_ylabel(
         str(display_payload.get("center_event_y_label") or "").strip(),
-        fontsize=11,
+        fontsize=axis_title_size,
         fontweight="bold",
-        color="#13293d",
+        color=neutral_color,
     )
-    center_axes.set_xlabel("Anonymous center identifier", fontsize=11, fontweight="bold", color="#13293d")
-    center_axes.set_title("Center-level support across the frozen split", fontsize=11, fontweight="bold", color="#334155")
-    center_axes.grid(axis="y", linestyle=":", color="#d0d0d0", zorder=0)
-    center_axes.tick_params(axis="x", rotation=90, labelsize=6)
-    center_axes.spines["top"].set_visible(False)
-    center_axes.spines["right"].set_visible(False)
-    legend = center_axes.legend(
+    center_axes.set_xlabel(center_axis_title, fontsize=axis_title_size, fontweight="bold", color=neutral_color)
+    center_axes.set_title(
+        "Center-level support across the frozen split",
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+        pad=10,
+    )
+    center_axes.grid(axis="y", linestyle=":", color=light_fill, zorder=0)
+    center_axes.tick_params(axis="x", rotation=90, labelsize=max(tick_size - 3.0, 6.0), colors=neutral_color)
+    center_axes.tick_params(axis="y", labelsize=tick_size, colors=neutral_color)
+    _apply_publication_axes_style(center_axes)
+    legend = fig.legend(
         handles=[
             matplotlib.patches.Patch(color=center_colors["train"], label="Train"),
             matplotlib.patches.Patch(color=center_colors["validation"], label="Validation"),
         ],
         title="Split",
         frameon=False,
-        loc="lower left",
-        bbox_to_anchor=(0.0, 1.02),
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.02),
         ncol=2,
         borderaxespad=0.0,
     )
-
     coverage_axes_by_role = {
         "wide_left": region_axes,
         "top_right": north_south_axes,
@@ -5718,45 +7505,110 @@ def _render_python_multicenter_generalizability_overview(
         labels = [str(bar["label"]) for bar in panel["bars"]]
         counts = [int(bar["count"]) for bar in panel["bars"]]
         if panel["layout_role"] == "wide_left":
-            colors = ["#8A9199"] * len(counts)
+            colors = [neutral_color] * len(counts)
         elif panel["layout_role"] == "top_right":
-            colors = ["#8A9199", "#CDB89B"][: len(counts)] or ["#8A9199"]
+            colors = [neutral_color, comparator_color][: len(counts)] or [neutral_color]
         else:
-            default_palette = ["#7F8F84", "#C59D7B", "#D8D1C7", "#B7A99A"]
+            default_palette = [model_color, audit_color, light_fill, comparator_color]
             colors = default_palette[: len(counts)]
             if len(colors) < len(counts):
                 colors.extend([default_palette[-1]] * (len(counts) - len(colors)))
         bars = axes.bar(labels, counts, color=colors, edgecolor="none")
-        axes.set_title(str(panel["title"]), fontsize=10, pad=8)
+        axes.set_title(str(panel["title"]), fontsize=max(axis_title_size - 1.0, 9.8), fontweight="bold", color=neutral_color, pad=8)
         axes.set_ylabel(
             str(display_payload.get("coverage_y_label") or "").strip(),
-            fontsize=9,
-            color="#13293d",
+            fontsize=max(axis_title_size - 2.0, 9.0),
+            color=neutral_color,
         )
-        axes.grid(axis="y", linestyle=":", color="#dddddd", zorder=0)
-        axes.spines["top"].set_visible(False)
-        axes.spines["right"].set_visible(False)
+        axes.grid(axis="y", linestyle=":", color=light_fill, zorder=0)
         if panel["layout_role"] == "wide_left":
-            axes.tick_params(axis="x", rotation=45, labelsize=8)
+            axes.tick_params(axis="x", rotation=45, labelsize=max(tick_size - 2.0, 8.0), colors=neutral_color)
         else:
-            axes.tick_params(axis="x", labelsize=8)
+            axes.tick_params(axis="x", labelsize=max(tick_size - 2.0, 8.0), colors=neutral_color)
+        axes.tick_params(axis="y", labelsize=max(tick_size - 1.0, 8.5), colors=neutral_color)
+        _apply_publication_axes_style(axes)
         upper = max(counts, default=0)
         y_offset = upper * 0.02 if upper > 0 else 0.0
         for idx, value in enumerate(counts):
-            axes.text(idx, value + y_offset, f"{value:,}", ha="center", va="bottom", fontsize=8)
+            axes.text(
+                idx,
+                value + y_offset,
+                f"{value:,}",
+                ha="center",
+                va="bottom",
+                fontsize=max(tick_size - 2.0, 8.0),
+                color=neutral_color,
+            )
         for idx, artist in enumerate(bars, start=1):
             coverage_bar_artists.append((f"{panel['panel_id']}_{idx}", artist))
 
-    fig.subplots_adjust(top=0.92, bottom=0.10, left=0.08, right=0.97)
+    subplot_left = 0.08
+    subplot_right = 0.97
+    subplot_bottom = 0.10
+    subplot_top = 0.90 if show_figure_title else 0.95
+    fig.subplots_adjust(top=subplot_top, bottom=subplot_bottom, left=subplot_left, right=subplot_right)
+    fig.canvas.draw()
+    for _ in range(3):
+        renderer = fig.canvas.get_renderer()
+        legend_bbox = legend.get_window_extent(renderer=renderer)
+        overflow_px = float(legend_bbox.y1 - fig.bbox.height)
+        if overflow_px <= 0.0:
+            break
+        min_top = 0.82 if show_figure_title else 0.88
+        top_delta = overflow_px / max(float(fig.bbox.height), 1.0)
+        next_top = max(min_top, subplot_top - top_delta - 0.01)
+        if next_top >= subplot_top - 1e-6:
+            break
+        subplot_top = next_top
+        fig.subplots_adjust(top=subplot_top, bottom=subplot_bottom, left=subplot_left, right=subplot_right)
+        fig.canvas.draw()
+
+    renderer = fig.canvas.get_renderer()
+    center_panel_bbox = matplotlib.transforms.Bbox.union(
+        [
+            center_axes.get_window_extent(renderer=renderer),
+            center_axes.title.get_window_extent(renderer=renderer),
+        ]
+    )
+    region_panel_bbox = matplotlib.transforms.Bbox.union(
+        [
+            region_axes.get_window_extent(renderer=renderer),
+            region_axes.title.get_window_extent(renderer=renderer),
+        ]
+    )
+    right_stack_bbox = matplotlib.transforms.Bbox.union(
+        [
+            north_south_axes.get_window_extent(renderer=renderer),
+            urban_rural_axes.get_window_extent(renderer=renderer),
+            north_south_axes.title.get_window_extent(renderer=renderer),
+        ]
+    )
+
+    def _add_figure_panel_label(*, panel_bbox, label: str) -> Any:
+        panel_x0, panel_y0 = fig.transFigure.inverted().transform((panel_bbox.x0, panel_bbox.y0))
+        panel_x1, panel_y1 = fig.transFigure.inverted().transform((panel_bbox.x1, panel_bbox.y1))
+        panel_width = float(panel_x1 - panel_x0)
+        panel_height = float(panel_y1 - panel_y0)
+        x_padding = min(max(panel_width * 0.014, 0.006), 0.014)
+        y_padding = min(max(panel_height * 0.028, 0.008), 0.015)
+        return fig.text(
+            panel_x0 + x_padding,
+            panel_y1 - y_padding,
+            label,
+            transform=fig.transFigure,
+            fontsize=max(panel_label_size + 2.6, 15.0),
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+
+    center_panel_label = _add_figure_panel_label(panel_bbox=center_panel_bbox, label="A")
+    wide_left_panel_label = _add_figure_panel_label(panel_bbox=region_panel_bbox, label="B")
+    right_stack_panel_label = _add_figure_panel_label(panel_bbox=right_stack_bbox, label="C")
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
     layout_boxes = [
-        _bbox_to_layout_box(
-            figure=fig,
-            bbox=title_artist.get_window_extent(renderer=renderer),
-            box_id="title",
-            box_type="title",
-        ),
         _bbox_to_layout_box(
             figure=fig,
             bbox=center_axes.yaxis.label.get_window_extent(renderer=renderer),
@@ -5765,11 +7617,45 @@ def _render_python_multicenter_generalizability_overview(
         ),
         _bbox_to_layout_box(
             figure=fig,
+            bbox=center_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="center_event_x_axis_title",
+            box_type="x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
             bbox=region_axes.yaxis.label.get_window_extent(renderer=renderer),
             box_id="coverage_y_axis_title",
             box_type="y_axis_title",
         ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=center_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_A",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=wide_left_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_B",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_stack_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_C",
+            box_type="panel_label",
+        ),
     ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
     for index, artist in enumerate(center_bars, start=1):
         layout_boxes.append(
             _bbox_to_layout_box(
@@ -5797,13 +7683,13 @@ def _render_python_multicenter_generalizability_overview(
             "panel_boxes": [
                 _bbox_to_layout_box(
                     figure=fig,
-                    bbox=center_axes.get_window_extent(renderer=renderer),
+                    bbox=center_panel_bbox,
                     box_id="center_event_panel",
                     box_type="center_event_panel",
                 ),
                 _bbox_to_layout_box(
                     figure=fig,
-                    bbox=region_axes.get_window_extent(renderer=renderer),
+                    bbox=region_panel_bbox,
                     box_id="coverage_panel_wide_left",
                     box_type="coverage_panel",
                 ),
@@ -5819,6 +7705,12 @@ def _render_python_multicenter_generalizability_overview(
                     box_id="coverage_panel_bottom_right",
                     box_type="coverage_panel",
                 ),
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=right_stack_bbox,
+                    box_id="coverage_panel_right_stack",
+                    box_type="coverage_panel",
+                ),
             ],
             "guide_boxes": [
                 _bbox_to_layout_box(
@@ -5831,6 +7723,9 @@ def _render_python_multicenter_generalizability_overview(
             "metrics": {
                 "center_event_counts": center_event_counts,
                 "coverage_panels": coverage_panels,
+                "center_label_mode": center_label_mode,
+                "center_tick_labels": center_tick_labels,
+                "center_axis_title": center_axis_title,
             },
         },
     )
@@ -6072,15 +7967,18 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         if requirement_key in {
             "table2_time_to_event_performance_summary",
             "table3_clinical_interpretation_summary",
+            "performance_summary_table_generic",
+            "grouped_risk_event_summary_table",
         }:
             if display_kind != "table":
                 raise ValueError(f"{requirement_key} must be registered as a table display")
             spec = display_registry.get_table_shell_spec(requirement_key)
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
-            column_labels, rows = _validate_column_table_payload(payload_path, payload)
             table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
+            output_csv_path: Path | None = None
             if requirement_key == "table2_time_to_event_performance_summary":
+                column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = (
                     str(payload.get("title") or "Time-to-event model performance summary").strip()
                     or "Time-to-event model performance summary"
@@ -6088,19 +7986,67 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_time_to_event_performance_summary.md"
                 stub_header = "Metric"
                 default_caption = "Time-to-event discrimination and error metrics across analysis cohorts."
-            else:
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=stub_header,
+                )
+            elif requirement_key == "table3_clinical_interpretation_summary":
+                column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = str(payload.get("title") or "Clinical interpretation summary").strip() or "Clinical interpretation summary"
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_clinical_interpretation_summary.md"
                 stub_header = "Clinical Item"
                 default_caption = "Clinical interpretation anchors for prespecified risk groups and use cases."
-            _write_table_outputs(
-                output_md_path=output_md_path,
-                title=title,
-                column_labels=column_labels,
-                rows=rows,
-                stub_header=stub_header,
-            )
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=stub_header,
+                )
+            elif requirement_key == "performance_summary_table_generic":
+                row_header_label, column_labels, rows = _validate_performance_summary_table_generic_payload(
+                    payload_path,
+                    payload,
+                )
+                title = str(payload.get("title") or "Performance summary").strip() or "Performance summary"
+                output_md_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_performance_summary_table_generic.md"
+                )
+                output_csv_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_performance_summary_table_generic.csv"
+                )
+                default_caption = "Structured repeated-validation performance summaries across candidate packages."
+                _write_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    column_labels=column_labels,
+                    rows=rows,
+                    stub_header=row_header_label,
+                    output_csv_path=output_csv_path,
+                )
+            else:
+                headers, table_rows = _validate_grouped_risk_event_summary_table_payload(payload_path, payload)
+                title = str(payload.get("title") or "Grouped risk event summary").strip() or "Grouped risk event summary"
+                output_md_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_grouped_risk_event_summary_table.md"
+                )
+                output_csv_path = (
+                    resolved_paper_root / "tables" / "generated" / f"{table_id}_grouped_risk_event_summary_table.csv"
+                )
+                default_caption = "Observed case counts, event counts, and absolute risks across grouped-risk strata."
+                _write_rectangular_table_outputs(
+                    output_md_path=output_md_path,
+                    title=title,
+                    headers=headers,
+                    table_rows=table_rows,
+                    output_csv_path=output_csv_path,
+                )
             written_files.append(str(output_md_path))
+            if output_csv_path is not None:
+                written_files.append(str(output_csv_path))
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
@@ -6115,6 +8061,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "title": title,
                 "caption": str(payload.get("caption") or default_caption).strip(),
                 "asset_paths": [
+                    *(
+                        [_paper_relative_path(output_csv_path, paper_root=resolved_paper_root)]
+                        if output_csv_path is not None
+                        else []
+                    ),
                     _paper_relative_path(output_md_path, paper_root=resolved_paper_root),
                 ],
                 "source_paths": [
@@ -6223,12 +8174,100 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             figures_materialized.append(figure_id)
             continue
 
+    submission_graphical_abstract_path = resolved_paper_root / "submission_graphical_abstract.json"
+    if submission_graphical_abstract_path.exists():
+        spec = display_registry.get_illustration_shell_spec("submission_graphical_abstract")
+        if style_profile is None:
+            style_profile = publication_display_contract.load_publication_style_profile(
+                resolved_paper_root / "publication_style_profile.json"
+            )
+        if display_overrides is None:
+            display_overrides = publication_display_contract.load_display_overrides(
+                resolved_paper_root / "display_overrides.json"
+            )
+        shell_payload = load_json(submission_graphical_abstract_path)
+        normalized_shell_payload = _validate_submission_graphical_abstract_payload(
+            submission_graphical_abstract_path,
+            shell_payload,
+        )
+        figure_id = _resolve_figure_catalog_id(
+            display_id=str(normalized_shell_payload["display_id"]),
+            catalog_id=str(normalized_shell_payload["catalog_id"]),
+        )
+        render_context = _build_render_context(
+            style_profile=style_profile,
+            display_overrides=display_overrides,
+            display_id=str(normalized_shell_payload["display_id"]),
+            template_id=spec.shell_id,
+        )
+        output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_graphical_abstract.svg"
+        output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_graphical_abstract.png"
+        output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_graphical_abstract.layout.json"
+        _render_submission_graphical_abstract(
+            output_svg_path=output_svg_path,
+            output_png_path=output_png_path,
+            output_layout_path=output_layout_path,
+            shell_payload=normalized_shell_payload,
+            render_context=render_context,
+        )
+        layout_sidecar = load_json(output_layout_path)
+        layout_sidecar["render_context"] = render_context
+        dump_json(output_layout_path, layout_sidecar)
+        qc_result = display_layout_qc.run_display_layout_qc(
+            qc_profile=spec.shell_qc_profile,
+            layout_sidecar=layout_sidecar,
+        )
+        qc_result["layout_sidecar_path"] = _paper_relative_path(output_layout_path, paper_root=resolved_paper_root)
+        written_files.extend([str(output_svg_path), str(output_png_path), str(output_layout_path)])
+        entry = {
+            "figure_id": figure_id,
+            "template_id": spec.shell_id,
+            "renderer_family": spec.renderer_family,
+            "paper_role": str(normalized_shell_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip(),
+            "input_schema_id": spec.input_schema_id,
+            "qc_profile": spec.shell_qc_profile,
+            "qc_result": qc_result,
+            "title": str(normalized_shell_payload.get("title") or "").strip(),
+            "caption": str(normalized_shell_payload.get("caption") or "").strip(),
+            "export_paths": [
+                _paper_relative_path(output_svg_path, paper_root=resolved_paper_root),
+                _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
+            ],
+            "source_paths": [
+                _paper_relative_path(submission_graphical_abstract_path, paper_root=resolved_paper_root),
+            ],
+            "claim_ids": [],
+            "render_context": render_context,
+        }
+        figure_catalog["figures"] = _replace_catalog_entry(
+            list(figure_catalog.get("figures") or []),
+            key="figure_id",
+            value=figure_id,
+            entry=entry,
+        )
+        if figure_id not in figures_materialized:
+            figures_materialized.append(figure_id)
+
+    pruned_generated_paths = _prune_unreferenced_generated_surface_outputs(
+        paper_root=resolved_paper_root,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    )
+    readme_paths: list[str] = []
+    for path, content in _build_paper_surface_readmes(
+        paper_root=resolved_paper_root,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    ).items():
+        write_text(path, content)
+        readme_paths.append(str(path))
     dump_json(resolved_paper_root / "figures" / "figure_catalog.json", figure_catalog)
     dump_json(resolved_paper_root / "tables" / "table_catalog.json", table_catalog)
     written_files.extend(
         [
             str(resolved_paper_root / "figures" / "figure_catalog.json"),
             str(resolved_paper_root / "tables" / "table_catalog.json"),
+            *readme_paths,
         ]
     )
     return {
@@ -6236,5 +8275,6 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         "paper_root": str(resolved_paper_root),
         "figures_materialized": figures_materialized,
         "tables_materialized": tables_materialized,
+        "pruned_generated_paths": pruned_generated_paths,
         "written_files": written_files,
     }

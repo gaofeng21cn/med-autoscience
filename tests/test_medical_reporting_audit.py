@@ -105,7 +105,7 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
         {
             "display_id": "km_risk_stratification",
             "display_kind": "figure",
-            "requirement_key": "kaplan_meier_grouped",
+            "requirement_key": "time_to_event_risk_group_summary",
             "catalog_id": "F3",
         },
         {
@@ -261,7 +261,7 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
                     {
                         "display_id": "km_risk_stratification",
                         "catalog_id": "F3",
-                        "template_id": "kaplan_meier_grouped",
+                        "template_id": "time_to_event_risk_group_summary",
                     }
                 ],
             },

@@ -260,6 +260,57 @@ def resolve_table_source_paths(entry: dict[str, Any]) -> list[str]:
     return []
 
 
+def collect_referenced_paper_surface_paths(
+    *,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+) -> set[str]:
+    referenced_paths: set[str] = set()
+    for entry in figure_catalog.get("figures", []):
+        if not isinstance(entry, dict):
+            continue
+        referenced_paths.update(resolve_figure_source_paths(entry))
+    for entry in table_catalog.get("tables", []):
+        if not isinstance(entry, dict):
+            continue
+        referenced_paths.update(resolve_table_source_paths(entry))
+    return {path for path in referenced_paths if isinstance(path, str) and path.strip()}
+
+
+def prune_legacy_paper_surface_exports(
+    *,
+    paper_root: Path,
+    figure_catalog: dict[str, Any],
+    table_catalog: dict[str, Any],
+) -> list[str]:
+    referenced_paths = collect_referenced_paper_surface_paths(
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    )
+    deleted_paths: list[str] = []
+    patterns = (
+        ("figures", "Figure*"),
+        ("figures", "SupplementaryFigure*"),
+        ("figures", "GA*"),
+        ("tables", "Table*"),
+        ("tables", "AppendixTable*"),
+    )
+    allowed_suffixes = {".png", ".pdf", ".svg", ".csv", ".md"}
+    for directory_name, pattern in patterns:
+        surface_root = paper_root / directory_name
+        if not surface_root.exists():
+            continue
+        for candidate in sorted(surface_root.glob(pattern)):
+            if not candidate.is_file() or candidate.suffix.lower() not in allowed_suffixes:
+                continue
+            relpath = f"paper/{candidate.relative_to(paper_root).as_posix()}"
+            if relpath in referenced_paths:
+                continue
+            candidate.unlink()
+            deleted_paths.append(relpath)
+    return deleted_paths
+
+
 def is_planned_catalog_entry(entry: dict[str, Any]) -> bool:
     status = str(entry.get("status") or "").strip().lower()
     return status.startswith("planned")
@@ -270,6 +321,26 @@ def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return paper_root / "submission_minimal"
     return paper_root / "journal_submissions" / normalized_profile
+
+
+def build_submission_minimal_readme(*, publication_profile: str) -> str:
+    normalized_profile = normalize_publication_profile(publication_profile)
+    canonical_package_root = (
+        "paper/submission_minimal/"
+        if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
+        else f"paper/journal_submissions/{normalized_profile}/"
+    )
+    return (
+        "# Canonical Submission Package\n\n"
+        f"- Publication profile: `{normalized_profile}`\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- Canonical rendered assets: `paper/figures/generated/` and `paper/tables/generated/`\n"
+        f"- Canonical package root: `{canonical_package_root}`\n"
+        "- Human-facing delivery mirror refreshed from this package: `manuscript/final/`\n"
+        "- Auxiliary finalize/runtime evidence, when needed: `artifacts/`\n\n"
+        "Use this directory as the fixed paper-owned submission-package lookup path. "
+        "`manuscript/final/` is the only human-facing final-delivery mirror; `artifacts/` is reserved for auxiliary machine-generated evidence rather than duplicated figure/table lookup.\n"
+    )
 
 
 def resolve_override_path(env_name: str) -> Path | None:
@@ -518,6 +589,37 @@ def parse_top_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
+    pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^## |\Z)")
+    blocks: list[tuple[str, str]] = []
+    for match in pattern.finditer(text.strip()):
+        heading = match.group(1).strip()
+        body = match.group(2).strip()
+        blocks.append((heading, body))
+    return blocks
+
+
+def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str]]:
+    stripped = text.strip()
+    title_match = re.match(r"(?ms)^# ([^\n]+)\n+(.*)$", stripped)
+    if title_match is None:
+        return None, {}
+    title = title_match.group(1).strip()
+    if not title or title.lower() == "draft":
+        return None, {}
+    body = title_match.group(2).strip()
+    blocks = {heading: block_body for heading, block_body in parse_second_level_blocks(body)}
+    return title, blocks
+
+
+def first_nonempty_block(section_blocks: dict[str, str], *headings: str) -> str:
+    for heading in headings:
+        value = section_blocks.get(heading, "")
+        if value.strip():
+            return value.strip()
+    return ""
+
+
 def parse_figure_id_from_heading(heading: str) -> str | None:
     supplementary_match = re.match(r"^Supplementary Figure S(\d+)\b", heading.strip(), flags=re.IGNORECASE)
     if supplementary_match:
@@ -703,6 +805,7 @@ def build_general_medical_submission_markdown(
     main_tables = ""
     main_figures = ""
     figure_semantics_map: dict[str, dict[str, Any]] = {}
+    manuscript_title, manuscript_sections = parse_manuscript_shaped_draft(compiled_text)
 
     if compiled_text.lstrip().startswith("# Draft"):
         title = extract_block_between_markers(
@@ -747,6 +850,18 @@ def build_general_medical_submission_markdown(
             end_markers=[],
             label="Conclusion",
         )
+        bibliography_path = (paper_root / "references.bib").resolve()
+    elif compiled_markdown_path.name == "draft.md" and manuscript_title and manuscript_sections:
+        title = manuscript_title
+        abstract = first_nonempty_block(manuscript_sections, "Abstract")
+        introduction = first_nonempty_block(manuscript_sections, "Introduction")
+        methods = first_nonempty_block(manuscript_sections, "Methods", "Materials and Methods", "Materials & Methods")
+        results = first_nonempty_block(manuscript_sections, "Results")
+        discussion = first_nonempty_block(manuscript_sections, "Discussion")
+        conclusion = first_nonempty_block(manuscript_sections, "Conclusion", "Conclusions")
+        main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
+        main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figure Legends")
+        figure_semantics_map = load_figure_semantics_map(paper_root)
         bibliography_path = (paper_root / "references.bib").resolve()
     else:
         title = metadata.get("title", "Article Title")
@@ -995,6 +1110,7 @@ def create_submission_minimal_package(
     if submission_root.exists():
         shutil.rmtree(submission_root)
     submission_root.mkdir(parents=True, exist_ok=True)
+    readme_path = submission_root / "README.md"
     output_docx_path = submission_root / "manuscript.docx"
     output_pdf_path = submission_root / "paper.pdf"
     shutil.copy2(compiled_pdf_path, output_pdf_path)
@@ -1102,6 +1218,11 @@ def create_submission_minimal_package(
             }
         )
 
+    pruned_legacy_paths = prune_legacy_paper_surface_exports(
+        paper_root=paper_root,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    )
     submission_root_rel = relpath_from_workspace(submission_root, workspace_root)
     manifest: dict[str, Any] = {
         "schema_version": 1,
@@ -1122,6 +1243,8 @@ def create_submission_minimal_package(
         "figures": figure_entries,
         "tables": table_entries,
     }
+    if pruned_legacy_paths:
+        manifest["pruned_legacy_paths"] = pruned_legacy_paths
     if requested_publication_profile != resolved_publication_profile:
         manifest["requested_publication_profile"] = requested_publication_profile
     if profile_config.reference_doc_path is not None:
@@ -1142,13 +1265,24 @@ def create_submission_minimal_package(
             "reference_doc_path": str(profile_config.supplementary_reference_doc_path.resolve()),
         }
 
+    write_text(
+        readme_path,
+        build_submission_minimal_readme(publication_profile=resolved_publication_profile),
+    )
+    manifest["readme_path"] = relpath_from_workspace(readme_path, workspace_root)
     dump_json(submission_root / "submission_manifest.json", manifest)
+    delivery_sync_result: dict[str, Any] | None = None
     if study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
-        study_delivery_sync.sync_study_delivery(
+        delivery_sync_result = study_delivery_sync.sync_study_delivery(
             paper_root=paper_root,
             stage="submission_minimal",
             publication_profile=resolved_publication_profile,
         )
+    if delivery_sync_result is not None:
+        return {
+            **manifest,
+            "delivery_sync": delivery_sync_result,
+        }
     return manifest
 
 

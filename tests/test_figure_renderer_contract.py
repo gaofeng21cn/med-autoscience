@@ -11,6 +11,11 @@ def valid_contract(*, figure_semantics: str = "evidence", renderer_family: str =
         layout_qc_profile = "publication_illustration_flow"
         required_exports = ["png", "svg"]
         renderer_family = "python"
+    elif figure_semantics == "submission_companion":
+        template_id = "submission_graphical_abstract"
+        layout_qc_profile = "submission_graphical_abstract"
+        required_exports = ["png", "svg"]
+        renderer_family = "python"
     elif renderer_family == "python":
         template_id = "shap_summary_beeswarm"
         layout_qc_profile = "publication_shap_summary"
@@ -39,6 +44,7 @@ def test_allowed_renderer_families_follow_semantics_boundary() -> None:
 
     assert module.allowed_renderer_families("evidence") == ("python", "r_ggplot2")
     assert module.allowed_renderer_families("illustration") == ("python", "r_ggplot2", "html_svg")
+    assert module.allowed_renderer_families("submission_companion") == ("python", "r_ggplot2", "html_svg")
 
 
 def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
@@ -50,6 +56,9 @@ def test_validate_renderer_contract_accepts_allowed_pairs() -> None:
     ) == []
     assert module.validate_renderer_contract(
         valid_contract(figure_semantics="illustration", renderer_family="python")
+    ) == []
+    assert module.validate_renderer_contract(
+        valid_contract(figure_semantics="submission_companion", renderer_family="python")
     ) == []
 
 
