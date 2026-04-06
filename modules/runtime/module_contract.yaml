@@ -1,0 +1,16 @@
+module: runtime
+status: scaffold
+owns:
+  - quest execution truth
+  - session / worktree / artifact execution truth
+  - runtime escalation record
+consumes_refs:
+  - runtime-facing controller projection refs
+emits_refs:
+  - runtime status refs
+  - runtime artifact refs
+  - runtime escalation refs
+forbids:
+  - publication authority ownership
+  - controller truth mutation
+  - inline eval verdict authority

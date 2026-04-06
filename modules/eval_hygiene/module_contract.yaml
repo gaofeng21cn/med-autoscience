@@ -1,0 +1,17 @@
+module: eval_hygiene
+status: scaffold
+owns:
+  - verdict / gap / recommendation
+  - promotion / stop-loss / hygiene gate conclusions
+consumes_refs:
+  - controller refs
+  - runtime refs
+  - delivery-facing refs
+emits_refs:
+  - hygiene verdict refs
+  - promotion decision refs
+  - stop-loss recommendation refs
+forbids:
+  - controller truth mutation
+  - runtime truth mutation
+  - becoming a new controller

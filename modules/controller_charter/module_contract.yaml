@@ -1,0 +1,15 @@
+module: controller_charter
+status: scaffold
+owns:
+  - study / workspace controller truth
+  - study_charter compile logic
+  - route / policy / objective / trigger authority
+consumes_refs:
+  - none
+emits_refs:
+  - runtime-facing projection refs
+  - eval-consumable controller refs
+forbids:
+  - direct runtime private state mutation
+  - runtime event ownership
+  - eval verdict ownership
