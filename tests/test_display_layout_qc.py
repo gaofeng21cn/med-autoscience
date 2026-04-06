@@ -708,6 +708,120 @@ def test_run_display_layout_qc_flags_unreadable_risk_separation() -> None:
     assert any(issue["rule_id"] == "risk_separation_not_readable" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_flags_non_monotonic_grouped_risk_summary() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_risk_group_summary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.18, y0=0.92, x1=0.34, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+                make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.60, y0=0.92, x1=0.76, y1=0.97),
+                make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.50, y0=0.20, x1=0.54, y1=0.72),
+                make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.34, y1=0.15),
+                make_box("panel_right_title", "panel_title", x0=0.58, y0=0.11, x1=0.80, y1=0.15),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.55, y0=0.80, x1=0.58, y1=0.85),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+                make_box("panel_right", "panel", x0=0.54, y0=0.16, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "risk_group_summaries": [
+                    {
+                        "label": "Low risk",
+                        "sample_size": 80,
+                        "events_5y": 2,
+                        "mean_predicted_risk_5y": 0.04,
+                        "observed_km_risk_5y": 0.02,
+                    },
+                    {
+                        "label": "Intermediate risk",
+                        "sample_size": 80,
+                        "events_5y": 7,
+                        "mean_predicted_risk_5y": 0.11,
+                        "observed_km_risk_5y": 0.09,
+                    },
+                    {
+                        "label": "High risk",
+                        "sample_size": 80,
+                        "events_5y": 5,
+                        "mean_predicted_risk_5y": 0.10,
+                        "observed_km_risk_5y": 0.07,
+                    },
+                ],
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "predicted_risk_order_not_monotonic" for issue in result["issues"])
+    assert any(issue["rule_id"] == "observed_risk_order_not_monotonic" for issue in result["issues"])
+    assert any(issue["rule_id"] == "event_count_order_not_monotonic" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_flags_compressed_event_count_spread_for_grouped_risk_summary() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_risk_group_summary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.18, y0=0.92, x1=0.34, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+                make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.60, y0=0.92, x1=0.76, y1=0.97),
+                make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.50, y0=0.20, x1=0.54, y1=0.72),
+                make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.34, y1=0.15),
+                make_box("panel_right_title", "panel_title", x0=0.58, y0=0.11, x1=0.80, y1=0.15),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.55, y0=0.80, x1=0.58, y1=0.85),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+                make_box("panel_right", "panel", x0=0.54, y0=0.16, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "risk_group_summaries": [
+                    {
+                        "label": "Low risk",
+                        "sample_size": 60,
+                        "events_5y": 3,
+                        "mean_predicted_risk_5y": 0.04,
+                        "observed_km_risk_5y": 0.02,
+                    },
+                    {
+                        "label": "Intermediate risk",
+                        "sample_size": 60,
+                        "events_5y": 3,
+                        "mean_predicted_risk_5y": 0.06,
+                        "observed_km_risk_5y": 0.03,
+                    },
+                    {
+                        "label": "High risk",
+                        "sample_size": 60,
+                        "events_5y": 3,
+                        "mean_predicted_risk_5y": 0.08,
+                        "observed_km_risk_5y": 0.05,
+                    },
+                ],
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "event_count_spread_not_readable" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_decision_curve_series_lengths_mismatch() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
@@ -767,6 +881,91 @@ def test_run_display_layout_qc_fails_when_decision_curve_treated_fraction_panel_
 
     assert result["status"] == "fail"
     assert any(issue["rule_id"] == "treated_fraction_panel_missing" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_risk_group_summary_panel_labels_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_survival_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_risk_group_summary",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.18, y0=0.92, x1=0.34, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+                make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.60, y0=0.92, x1=0.76, y1=0.97),
+                make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.50, y0=0.20, x1=0.54, y1=0.72),
+                make_box("panel_left_title", "panel_title", x0=0.16, y0=0.11, x1=0.34, y1=0.15),
+                make_box("panel_right_title", "panel_title", x0=0.58, y0=0.11, x1=0.80, y1=0.15),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+                make_box("panel_right", "panel", x0=0.54, y0=0.16, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "risk_group_summaries": [
+                    {
+                        "label": "Low risk",
+                        "sample_size": 72,
+                        "events_5y": 4,
+                        "mean_predicted_risk_5y": 0.08,
+                        "observed_km_risk_5y": 0.06,
+                    },
+                    {
+                        "label": "High risk",
+                        "sample_size": 48,
+                        "events_5y": 19,
+                        "mean_predicted_risk_5y": 0.31,
+                        "observed_km_risk_5y": 0.35,
+                    },
+                ],
+            },
+            "render_context": {"readability_override": {}},
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "missing_panel_label" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_decision_curve_panel_label_anchor_drifts() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_decision_curve",
+        layout_sidecar={
+            "template_id": "time_to_event_decision_curve",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.10, y0=0.02, x1=0.60, y1=0.08),
+                make_box("x_axis_title", "x_axis_title", x0=0.16, y0=0.92, x1=0.34, y1=0.97),
+                make_box("y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.06, y1=0.72),
+                make_box("panel_right_x_axis_title", "subplot_x_axis_title", x0=0.62, y0=0.92, x1=0.80, y1=0.97),
+                make_box("panel_right_y_axis_title", "subplot_y_axis_title", x0=0.54, y0=0.20, x1=0.58, y1=0.72),
+                make_box("panel_left_title", "panel_title", x0=0.18, y0=0.11, x1=0.34, y1=0.15),
+                make_box("panel_right_title", "panel_title", x0=0.62, y0=0.11, x1=0.80, y1=0.15),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.80, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.74, y0=0.64, x1=0.77, y1=0.69),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.16, x1=0.44, y1=0.86),
+                make_box("panel_right", "panel", x0=0.56, y0=0.16, x1=0.90, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.34, y0=0.02, x1=0.66, y1=0.08),
+            ],
+            "metrics": {
+                "series": [{"label": "Model", "x": [0.5, 1.0, 2.0], "y": [0.03, 0.02, 0.01]}],
+                "reference_line": {"x": [0.5, 2.0], "y": [0.0, 0.0]},
+                "treated_fraction_series": {"label": "Model", "x": [0.5, 1.0, 2.0], "y": [40.0, 20.0, 5.0]},
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "panel_label_anchor_drift" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_fails_when_correlation_matrix_is_not_symmetric() -> None:
@@ -944,6 +1143,8 @@ def test_run_display_layout_qc_passes_for_center_support_generalizability_mode()
                         "bars": [{"label": "Urban", "count": 101}],
                     },
                 ],
+                "legend_title": "Split",
+                "legend_labels": ["Train", "Validation"],
             },
         },
     )
@@ -1058,6 +1259,153 @@ def test_run_display_layout_qc_fails_when_multicenter_panel_label_is_not_top_lef
 
     assert result["status"] == "fail"
     assert any(issue["rule_id"] == "panel_label_anchor_drift" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_multicenter_legend_intrudes_into_panel_band() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_multicenter_overview",
+        layout_sidecar={
+            "template_id": "multicenter_generalizability_overview",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.09, y0=0.47, x1=0.12, y1=0.51),
+                make_box("panel_label_B", "panel_label", x0=0.09, y0=0.89, x1=0.12, y1=0.93),
+                make_box("panel_label_C", "panel_label", x0=0.57, y0=0.89, x1=0.60, y1=0.93),
+                make_box("center_event_y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.05, y1=0.48),
+                make_box("coverage_y_axis_title", "y_axis_title", x0=0.02, y0=0.64, x1=0.05, y1=0.92),
+                make_box("center_event_bar_1", "center_event_bar", x0=0.10, y0=0.20, x1=0.12, y1=0.42),
+                make_box("coverage_bar_region_1", "coverage_bar", x0=0.08, y0=0.64, x1=0.16, y1=0.92),
+                make_box("coverage_bar_ns_1", "coverage_bar", x0=0.60, y0=0.64, x1=0.70, y1=0.78),
+                make_box("coverage_bar_ur_1", "coverage_bar", x0=0.60, y0=0.82, x1=0.70, y1=0.94),
+            ],
+            "panel_boxes": [
+                make_box("center_event_panel", "center_event_panel", x0=0.08, y0=0.14, x1=0.92, y1=0.52),
+                make_box("coverage_panel_wide_left", "coverage_panel", x0=0.08, y0=0.64, x1=0.44, y1=0.94),
+                make_box("coverage_panel_top_right", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.78),
+                make_box("coverage_panel_bottom_right", "coverage_panel", x0=0.56, y0=0.82, x1=0.92, y1=0.94),
+                make_box("coverage_panel_right_stack", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.94),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.40, y0=0.10, x1=0.62, y1=0.18),
+            ],
+            "metrics": {
+                "center_event_counts": [
+                    {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
+                    {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
+                    {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                ],
+                "coverage_panels": [
+                    {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}]},
+                    {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}]},
+                    {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}]},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "legend_footer_band_drift" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_multicenter_legend_semantics_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_multicenter_overview",
+        layout_sidecar={
+            "template_id": "multicenter_generalizability_overview",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.09, y0=0.47, x1=0.12, y1=0.51),
+                make_box("panel_label_B", "panel_label", x0=0.09, y0=0.89, x1=0.12, y1=0.93),
+                make_box("panel_label_C", "panel_label", x0=0.57, y0=0.89, x1=0.60, y1=0.93),
+                make_box("center_event_y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.05, y1=0.48),
+                make_box("coverage_y_axis_title", "y_axis_title", x0=0.02, y0=0.64, x1=0.05, y1=0.92),
+                make_box("center_event_bar_1", "center_event_bar", x0=0.10, y0=0.20, x1=0.12, y1=0.42),
+                make_box("coverage_bar_region_1", "coverage_bar", x0=0.08, y0=0.64, x1=0.16, y1=0.92),
+                make_box("coverage_bar_ns_1", "coverage_bar", x0=0.60, y0=0.64, x1=0.70, y1=0.78),
+                make_box("coverage_bar_ur_1", "coverage_bar", x0=0.60, y0=0.82, x1=0.70, y1=0.94),
+            ],
+            "panel_boxes": [
+                make_box("center_event_panel", "center_event_panel", x0=0.08, y0=0.14, x1=0.92, y1=0.52),
+                make_box("coverage_panel_wide_left", "coverage_panel", x0=0.08, y0=0.64, x1=0.44, y1=0.94),
+                make_box("coverage_panel_top_right", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.78),
+                make_box("coverage_panel_bottom_right", "coverage_panel", x0=0.56, y0=0.82, x1=0.92, y1=0.94),
+                make_box("coverage_panel_right_stack", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.94),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.40, y0=0.02, x1=0.62, y1=0.08),
+            ],
+            "metrics": {
+                "center_event_counts": [
+                    {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
+                    {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
+                    {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                ],
+                "coverage_panels": [
+                    {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}]},
+                    {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}]},
+                    {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}]},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "legend_title_invalid" for issue in result["issues"])
+    assert any(issue["rule_id"] == "legend_labels_missing" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_fails_when_multicenter_legend_labels_are_not_split_order() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_multicenter_overview",
+        layout_sidecar={
+            "template_id": "multicenter_generalizability_overview",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.09, y0=0.47, x1=0.12, y1=0.51),
+                make_box("panel_label_B", "panel_label", x0=0.09, y0=0.89, x1=0.12, y1=0.93),
+                make_box("panel_label_C", "panel_label", x0=0.57, y0=0.89, x1=0.60, y1=0.93),
+                make_box("center_event_y_axis_title", "y_axis_title", x0=0.02, y0=0.20, x1=0.05, y1=0.48),
+                make_box("coverage_y_axis_title", "y_axis_title", x0=0.02, y0=0.64, x1=0.05, y1=0.92),
+                make_box("center_event_bar_1", "center_event_bar", x0=0.10, y0=0.20, x1=0.12, y1=0.42),
+                make_box("coverage_bar_region_1", "coverage_bar", x0=0.08, y0=0.64, x1=0.16, y1=0.92),
+                make_box("coverage_bar_ns_1", "coverage_bar", x0=0.60, y0=0.64, x1=0.70, y1=0.78),
+                make_box("coverage_bar_ur_1", "coverage_bar", x0=0.60, y0=0.82, x1=0.70, y1=0.94),
+            ],
+            "panel_boxes": [
+                make_box("center_event_panel", "center_event_panel", x0=0.08, y0=0.14, x1=0.92, y1=0.52),
+                make_box("coverage_panel_wide_left", "coverage_panel", x0=0.08, y0=0.64, x1=0.44, y1=0.94),
+                make_box("coverage_panel_top_right", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.78),
+                make_box("coverage_panel_bottom_right", "coverage_panel", x0=0.56, y0=0.82, x1=0.92, y1=0.94),
+                make_box("coverage_panel_right_stack", "coverage_panel", x0=0.56, y0=0.58, x1=0.92, y1=0.94),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.40, y0=0.02, x1=0.62, y1=0.08),
+            ],
+            "metrics": {
+                "center_event_counts": [
+                    {"center_label": "Center 01", "split_bucket": "validation", "event_count": 2},
+                    {"center_label": "Center 02", "split_bucket": "validation", "event_count": 1},
+                    {"center_label": "Center 25", "split_bucket": "train", "event_count": 3},
+                ],
+                "coverage_panels": [
+                    {"panel_id": "region", "title": "Region coverage", "layout_role": "wide_left", "bars": [{"label": "Central", "count": 72}]},
+                    {"panel_id": "north_south", "title": "North vs South", "layout_role": "top_right", "bars": [{"label": "North", "count": 84}]},
+                    {"panel_id": "urban_rural", "title": "Urban/rural", "layout_role": "bottom_right", "bars": [{"label": "Urban", "count": 101}]},
+                ],
+                "legend_title": "Split",
+                "legend_labels": ["Validation", "Train"],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "legend_labels_invalid" for issue in result["issues"])
 
 
 def test_run_display_layout_qc_fails_when_binary_calibration_axis_window_is_missing() -> None:

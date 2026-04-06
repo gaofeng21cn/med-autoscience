@@ -1006,7 +1006,6 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
         "calibration_curve_binary",
         "decision_curve_binary",
         "time_dependent_roc_horizon",
-        "time_to_event_decision_curve",
     }:
         return {
             "template_id": template_id,
@@ -1056,6 +1055,10 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.20, "x1": 0.06, "y1": 0.72},
                 {"box_id": "panel_right_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.60, "y0": 0.92, "x1": 0.76, "y1": 0.97},
                 {"box_id": "panel_right_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.50, "y0": 0.20, "x1": 0.54, "y1": 0.72},
+                {"box_id": "panel_left_title", "box_type": "panel_title", "x0": 0.16, "y0": 0.11, "x1": 0.34, "y1": 0.15},
+                {"box_id": "panel_right_title", "box_type": "panel_title", "x0": 0.58, "y0": 0.11, "x1": 0.80, "y1": 0.15},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.11, "y0": 0.80, "x1": 0.14, "y1": 0.85},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.55, "y0": 0.80, "x1": 0.58, "y1": 0.85},
             ],
             "panel_boxes": [
                 {"box_id": "panel_left", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.44, "y1": 0.86},
@@ -1132,6 +1135,10 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.02, "y0": 0.20, "x1": 0.06, "y1": 0.72},
                 {"box_id": "panel_right_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.62, "y0": 0.92, "x1": 0.80, "y1": 0.97},
                 {"box_id": "panel_right_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.54, "y0": 0.20, "x1": 0.58, "y1": 0.72},
+                {"box_id": "panel_left_title", "box_type": "panel_title", "x0": 0.18, "y0": 0.11, "x1": 0.34, "y1": 0.15},
+                {"box_id": "panel_right_title", "box_type": "panel_title", "x0": 0.62, "y0": 0.11, "x1": 0.80, "y1": 0.15},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.11, "y0": 0.80, "x1": 0.14, "y1": 0.85},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.57, "y0": 0.80, "x1": 0.60, "y1": 0.85},
             ],
             "panel_boxes": [
                 {"box_id": "panel_left", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.44, "y1": 0.86},
@@ -1252,7 +1259,9 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "coverage_panel_bottom_right", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.82, "x1": 0.92, "y1": 0.94},
                 {"box_id": "coverage_panel_right_stack", "box_type": "coverage_panel", "x0": 0.56, "y0": 0.58, "x1": 0.92, "y1": 0.94},
             ],
-            "guide_boxes": [],
+            "guide_boxes": [
+                {"box_id": "legend", "box_type": "legend", "x0": 0.40, "y0": 0.02, "x1": 0.60, "y1": 0.08},
+            ],
             "metrics": {
                 "center_event_counts": [
                     {"center_label": "Center A", "split_bucket": "train", "event_count": 7},
@@ -1277,7 +1286,9 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                         "layout_role": "bottom_right",
                         "bars": [{"label": "Urban", "count": 101}, {"label": "Missing", "count": 34}],
                     },
-                ]
+                ],
+                "legend_title": "Split",
+                "legend_labels": ["Train", "Validation"],
             },
         }
     if template_id == "shap_summary_beeswarm":
@@ -3379,8 +3390,22 @@ def test_materialize_display_surface_omits_figure_title_and_legend_for_time_to_e
             encoding="utf-8"
         )
     )
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    panel_boxes = {item["box_id"]: item for item in layout_sidecar["panel_boxes"]}
     assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
     assert not any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+    assert {"panel_left_title", "panel_right_title", "panel_label_A", "panel_label_B"} <= set(layout_boxes)
+    for label_box_id, panel_box_id in {
+        "panel_label_A": "panel_left",
+        "panel_label_B": "panel_right",
+    }.items():
+        label_box = layout_boxes[label_box_id]
+        panel_box = panel_boxes[panel_box_id]
+        panel_width = panel_box["x1"] - panel_box["x0"]
+        panel_height = panel_box["y1"] - panel_box["y0"]
+        assert panel_box["x0"] <= label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
+        assert panel_box["y1"] - panel_height * 0.10 <= label_box["y1"] <= panel_box["y1"]
+        assert label_box["x1"] <= layout_boxes[f"{panel_box_id}_title"]["x0"]
 
 
 def test_materialize_display_surface_omits_figure_title_and_legend_for_time_to_event_decision_curve_by_default(
@@ -3446,8 +3471,22 @@ def test_materialize_display_surface_omits_figure_title_and_legend_for_time_to_e
             encoding="utf-8"
         )
     )
+    layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
+    panel_boxes = {item["box_id"]: item for item in layout_sidecar["panel_boxes"]}
     assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
     assert not any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+    assert {"panel_left_title", "panel_right_title", "panel_label_A", "panel_label_B"} <= set(layout_boxes)
+    for label_box_id, panel_box_id in {
+        "panel_label_A": "panel_left",
+        "panel_label_B": "panel_right",
+    }.items():
+        label_box = layout_boxes[label_box_id]
+        panel_box = panel_boxes[panel_box_id]
+        panel_width = panel_box["x1"] - panel_box["x0"]
+        panel_height = panel_box["y1"] - panel_box["y0"]
+        assert panel_box["x0"] <= label_box["x0"] <= panel_box["x0"] + panel_width * 0.08
+        assert panel_box["y1"] - panel_height * 0.10 <= label_box["y1"] <= panel_box["y1"]
+        assert label_box["x1"] <= layout_boxes[f"{panel_box_id}_title"]["x0"]
 
 
 def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_compacts_center_tick_labels(
@@ -3534,6 +3573,7 @@ def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_
     assert "coverage_panel_right_stack" in panel_box_ids
     layout_boxes = {item["box_id"]: item for item in layout_sidecar["layout_boxes"]}
     panel_boxes = {item["box_id"]: item for item in layout_sidecar["panel_boxes"]}
+    guide_boxes = {item["box_id"]: item for item in layout_sidecar["guide_boxes"]}
     for label_box_id, panel_box_id in {
         "panel_label_A": "center_event_panel",
         "panel_label_B": "coverage_panel_wide_left",
@@ -3548,6 +3588,12 @@ def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_
         assert (label_box["y1"] - label_box["y0"]) >= 0.014
     assert layout_sidecar["metrics"]["center_label_mode"] == "shared_prefix_compacted"
     assert layout_sidecar["metrics"]["center_tick_labels"] == ["01", "02", "25"]
+    assert layout_sidecar["metrics"]["center_axis_title"] == "Center ID"
+    assert layout_sidecar["metrics"]["legend_title"] == "Split"
+    assert layout_sidecar["metrics"]["legend_labels"] == ["Train", "Validation"]
+    legend_box = guide_boxes["legend"]
+    assert legend_box["y1"] <= min(panel["y0"] for panel in panel_boxes.values()) - 0.01
+    assert abs(((legend_box["x0"] + legend_box["x1"]) / 2.0) - 0.5) <= 0.08
     assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
     assert "manuscript-facing authority surface" in (paper_root / "README.md").read_text(encoding="utf-8")
     assert "figure_catalog.json" in (paper_root / "figures" / "README.md").read_text(encoding="utf-8")

@@ -7,7 +7,7 @@ import pytest
 from med_autoscience import display_registry
 
 
-def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() -> None:
+def test_registry_exposes_current_display_surface_inventory() -> None:
     module = importlib.import_module("med_autoscience.display_registry")
 
     evidence_specs = module.list_evidence_figure_specs()
@@ -39,7 +39,10 @@ def test_registry_exposes_phase2_time_to_event_and_generalizability_surface() ->
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
     }
-    assert {item.shell_id for item in illustration_specs} == {"cohort_flow_figure"}
+    assert {item.shell_id for item in illustration_specs} == {
+        "cohort_flow_figure",
+        "submission_graphical_abstract",
+    }
     assert {item.shell_id for item in table_specs} >= {
         "table1_baseline_characteristics",
         "table2_time_to_event_performance_summary",

@@ -117,6 +117,43 @@ def _render_input_schema_section() -> list[str]:
     return lines
 
 
+def _render_paper_proven_baseline_section() -> list[str]:
+    paper_families = ", ".join(
+        f"`{display_registry.get_paper_family_label(item)}`" for item in ("A", "B", "H")
+    )
+    audit_families = ", ".join(
+        f"`{item}`"
+        for item in (
+            "Clinical Utility",
+            "Time-to-Event",
+            "Generalizability",
+            "Publication Shells and Tables",
+        )
+    )
+    template_ids = ", ".join(
+        f"`{item}`"
+        for item in (
+            "binary_calibration_decision_curve_panel",
+            "time_to_event_discrimination_calibration_panel",
+            "time_to_event_risk_group_summary",
+            "time_to_event_decision_curve",
+            "multicenter_generalizability_overview",
+            "submission_graphical_abstract",
+        )
+    )
+    return [
+        "## Current Paper-Proven Baseline (001/003)",
+        "",
+        "The current audited inventory is broader than the subset already proven against real papers.",
+        "",
+        f"- Paper families: {paper_families}",
+        f"- Audit families: {audit_families}",
+        f"- Template instances: {template_ids}",
+        "- Cross-paper golden regression priority: title policy, annotation placement, panel-label/header-band anchoring, grouped-separation readability, landmark/time-slice semantics, graphical-abstract arrow lanes, calibration axis-window fit, and multicenter legend title/label + tick-label readability",
+        "",
+    ]
+
+
 def render_display_template_catalog_markdown() -> str:
     lines = [
         "# Medical Display Template Catalog",
@@ -137,6 +174,7 @@ def render_display_template_catalog_markdown() -> str:
         "- Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.",
         "",
     ]
+    lines.extend(_render_paper_proven_baseline_section())
     lines.extend(_render_template_class_section())
     lines.extend(_render_input_schema_section())
     return "\n".join(lines).rstrip() + "\n"

@@ -15,6 +15,15 @@ For the stable human-auditable overview, completion counts, and change protocol,
 - Canonical paper-owned packaging surface remains `paper/submission_minimal/`; `manuscript/` is the human-facing mirror, while `artifacts/` is auxiliary evidence only and should not replace that fixed lookup path.
 - Canonical rendered assets live under `paper/figures/generated/` and `paper/tables/generated/`; legacy top-level `paper/figures/Figure*.png|pdf|svg` / `paper/tables/Table*.csv|md` mirrors should be removed once they are no longer referenced by the active catalogs.
 
+## Current Paper-Proven Baseline (001/003)
+
+The current audited inventory is broader than the subset already proven against real papers.
+
+- Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
+- Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells and Tables`
+- Template instances: `binary_calibration_decision_curve_panel`, `time_to_event_discrimination_calibration_panel`, `time_to_event_risk_group_summary`, `time_to_event_decision_curve`, `multicenter_generalizability_overview`, `submission_graphical_abstract`
+- Cross-paper golden regression priority: title policy, annotation placement, panel-label/header-band anchoring, grouped-separation readability, landmark/time-slice semantics, graphical-abstract arrow lanes, calibration axis-window fit, and multicenter legend title/label + tick-label readability
+
 ## Template Classes
 
 ### Prediction Performance

@@ -479,9 +479,20 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
-    time_dependent_roc_horizon = list(series = display_payload$series, reference_line = display_payload$reference_line),
-    kaplan_meier_grouped = list(groups = display_payload$groups),
-    cumulative_incidence_grouped = list(groups = display_payload$groups),
+    time_dependent_roc_horizon = list(
+      series = display_payload$series,
+      reference_line = display_payload$reference_line,
+      title = trimws(as.character(display_payload$title %||% "")),
+      caption = trimws(as.character(display_payload$caption %||% ""))
+    ),
+    kaplan_meier_grouped = list(
+      groups = display_payload$groups,
+      annotation = trimws(as.character(display_payload$annotation %||% ""))
+    ),
+    cumulative_incidence_grouped = list(
+      groups = display_payload$groups,
+      annotation = trimws(as.character(display_payload$annotation %||% ""))
+    ),
     umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
@@ -6548,14 +6559,16 @@ def _render_python_time_to_event_risk_group_summary(
             ncol=2,
             frameon=False,
         )
-    left_axes.text(
-        -0.08,
-        1.04,
+    left_panel_label = left_axes.text(
+        0.02,
+        0.98,
         "A",
         transform=left_axes.transAxes,
         fontsize=panel_label_size,
         fontweight="bold",
         color=neutral_color,
+        ha="left",
+        va="top",
     )
 
     right_axes.bar(
@@ -6599,14 +6612,16 @@ def _render_python_time_to_event_risk_group_summary(
     right_axes.grid(axis="y", color=str(palette.get("light") or "#E7E1D8"), linewidth=0.8, linestyle=":")
     right_axes.grid(axis="x", visible=False)
     _apply_publication_axes_style(right_axes)
-    right_axes.text(
-        -0.08,
-        1.04,
+    right_panel_label = right_axes.text(
+        0.02,
+        0.98,
         "B",
         transform=right_axes.transAxes,
         fontsize=panel_label_size,
         fontweight="bold",
         color=neutral_color,
+        ha="left",
+        va="top",
     )
 
     fig.subplots_adjust(
@@ -6642,6 +6657,30 @@ def _render_python_time_to_event_risk_group_summary(
             bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
             box_id="panel_right_y_axis_title",
             box_type="subplot_y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_left_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_right_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_A",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_B",
+            box_type="panel_label",
         ),
     ]
     if title_artist is not None:
@@ -6814,7 +6853,17 @@ def _render_python_time_to_event_decision_curve(
     left_axes.set_ylabel(str(display_payload.get("y_label") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
     left_axes.set_title(str(display_payload.get("panel_a_title") or "").strip(), fontsize=axis_title_size, fontweight="bold", color=reference_color)
     _apply_publication_axes_style(left_axes)
-    left_axes.text(-0.08, 1.04, "A", transform=left_axes.transAxes, fontsize=panel_label_size, fontweight="bold", color=reference_color)
+    left_panel_label = left_axes.text(
+        0.02,
+        0.98,
+        "A",
+        transform=left_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=reference_color,
+        ha="left",
+        va="top",
+    )
 
     right_x_values = [float(value) for value in treated_fraction_series["x"]]
     right_y_values = [float(value) for value in treated_fraction_series["y"]]
@@ -6842,7 +6891,17 @@ def _render_python_time_to_event_decision_curve(
     right_axes.grid(axis="x", visible=False)
     right_axes.spines["top"].set_visible(False)
     right_axes.spines["right"].set_visible(False)
-    right_axes.text(-0.08, 1.04, "B", transform=right_axes.transAxes, fontsize=panel_label_size, fontweight="bold", color=reference_color)
+    right_panel_label = right_axes.text(
+        0.02,
+        0.98,
+        "B",
+        transform=right_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=reference_color,
+        ha="left",
+        va="top",
+    )
 
     handles, labels = left_axes.get_legend_handles_labels()
     legend_position = "none" if not show_legend else str(layout_override.get("legend_position") or "lower_center").strip().lower()
@@ -6890,6 +6949,30 @@ def _render_python_time_to_event_decision_curve(
             bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
             box_id="panel_right_y_axis_title",
             box_type="subplot_y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_left_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_right_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_A",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_B",
+            box_type="panel_label",
         ),
     ]
     if title_artist is not None:
@@ -7723,6 +7806,8 @@ def _render_python_multicenter_generalizability_overview(
                 "center_label_mode": center_label_mode,
                 "center_tick_labels": center_tick_labels,
                 "center_axis_title": center_axis_title,
+                "legend_title": "Split",
+                "legend_labels": ["Train", "Validation"],
             },
         },
     )

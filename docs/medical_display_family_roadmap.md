@@ -146,6 +146,39 @@ Every template instance should ultimately be mappable upward to both:
 - one or more paper families;
 - one audit family.
 
+## Current Paper-Proven Baseline (001/003)
+
+The current audited inventory is broader than the subset already proven against real papers.
+
+As of the `001/003` anchor-paper hardening line, the first paper-proven baseline is:
+
+- Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
+- Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells / Tables`
+- Template instances:
+  - `binary_calibration_decision_curve_panel`
+  - `time_to_event_discrimination_calibration_panel`
+  - `time_to_event_risk_group_summary`
+  - `time_to_event_decision_curve`
+  - `multicenter_generalizability_overview`
+  - `submission_graphical_abstract`
+
+This baseline is not “the whole platform,” but it is the first set of families that has survived all of the following together:
+
+- audited materialization and packaging;
+- focused regression coverage;
+- fresh paper-owned final figure QA.
+
+Therefore the first cross-paper golden regression lane should stay centered on the failure modes already exposed by those real papers:
+
+- title policy and no-title defaults;
+- annotation placement inside the intended panel blank zone;
+- panel-label and header-band anchoring;
+- grouped-separation monotonicity and spread readability for ordered risk summaries;
+- landmark/time-slice title, caption, and annotation semantics for horizon evidence;
+- graphical-abstract arrow-lane placement;
+- calibration axis-window fit;
+- legend title/label semantics and tick-label readability in multicenter/generalizability layouts.
+
 ## Roadmap Families
 
 The roadmap families below are the current top-level target model. This is the authoritative planning view for long-horizon display work.
@@ -176,7 +209,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `paper-proven core / expanding`
 
 Current audited anchors:
 
@@ -216,7 +249,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `paper-proven core / expanding`
 
 Current audited anchors:
 
@@ -230,7 +263,7 @@ Current audited anchors:
 
 Current gap direction:
 
-- stronger support for landmark/time-slice evidence
+- stronger regression locking for landmark/time-slice evidence semantics
 - richer survival calibration governance
 - stricter axis-window and grouped-separation QC for real paper outputs
 
@@ -293,7 +326,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `paper-proven core / expanding`
 
 Current audited anchors:
 
@@ -443,6 +476,7 @@ Current roadmap status:
 Current audited anchors:
 
 - `cohort_flow_figure`
+- `submission_graphical_abstract`
 - `table1_baseline_characteristics`
 - `table2_time_to_event_performance_summary`
 - `table3_clinical_interpretation_summary`

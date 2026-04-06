@@ -71,6 +71,24 @@ The audited source files are:
   - `artifacts/` = auxiliary runtime/finalization evidence only, not duplicated figure/table lookup.
   - legacy top-level exports such as `paper/figures/Figure*.png|pdf|svg` and `paper/tables/Table*.csv|md` should be pruned once the catalog points to `generated/`.
 
+## Current Paper-Proven Baseline (001/003)
+
+The audited inventory is intentionally broader than the subset already proven against real papers.
+
+Current paper-proven baseline:
+
+- Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
+- Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells / Tables`
+- Template instances:
+  - `binary_calibration_decision_curve_panel`
+  - `time_to_event_discrimination_calibration_panel`
+  - `time_to_event_risk_group_summary`
+  - `time_to_event_decision_curve`
+  - `multicenter_generalizability_overview`
+  - `submission_graphical_abstract`
+
+These are the first-priority cross-paper regression families because they have already exposed real paper-facing failure modes and then been reverified against `001/003` final figures.
+
 ## Current Audited Coverage
 
 Current implemented display inventory:
@@ -274,12 +292,16 @@ Authoritative contract:
 
 ## Publication Shell And Table Audit Map
 
-### Illustration Shell
+### Illustration Shells
 
 - `cohort_flow_figure`
   - Input schema: `cohort_flow_shell_inputs_v1`
   - Required exports: `png`, `svg`
   - Role: trial-style or cohort-entry audit figure
+- `submission_graphical_abstract`
+  - Input schema: `submission_graphical_abstract_inputs_v1`
+  - Required exports: `png`, `svg`
+  - Role: paper-facing graphical-abstract shell routed through the audited catalog and QC path
 
 ### Table Shells
 
@@ -299,6 +321,30 @@ Authoritative contract:
 - `grouped_risk_event_summary_table`
   - Input schema: `grouped_risk_event_summary_table_v1`
   - Required exports: `csv`, `md`
+
+## Cross-Paper Golden Regression Priority
+
+Phase 1 hardening should not start from abstract template counts. The first regression lane should stay anchored on the real-paper-used families already exercised by `001/003`.
+
+### A/B curve-panel families
+
+- `binary_calibration_decision_curve_panel`
+- `time_to_event_discrimination_calibration_panel`
+- `time_to_event_risk_group_summary`
+- `time_to_event_decision_curve`
+- lower-bound focus: title policy, blank-zone annotation placement, calibration axis-window fit, grouped-separation readability, and landmark/time-slice regression semantics
+
+### H generalizability and shell layer
+
+- `multicenter_generalizability_overview`
+- `submission_graphical_abstract`
+- lower-bound focus: panel-label anchoring, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
+
+### AI-first visual audit lane
+
+- deterministic QC keeps ownership of repeatable lower-bound failures;
+- AI-first visual critique remains mandatory for paper-facing issues that are still too context-sensitive to encode cleanly in deterministic rules;
+- `gate clear != final figure QA clear` remains the governing rule when deciding whether a family is mature enough for real-paper reuse.
 
 ## Input Schema Contract Rules
 

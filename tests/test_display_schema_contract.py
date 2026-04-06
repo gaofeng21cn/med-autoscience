@@ -409,3 +409,39 @@ def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() ->
 
     for display_class in evidence_classes:
         assert display_class.display_name in guide_text
+
+
+def test_checked_in_display_audit_guide_mentions_all_registered_publication_shells_and_tables() -> None:
+    registry_module = importlib.import_module("med_autoscience.display_registry")
+    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_audit_guide.md"
+
+    guide_text = guide_path.read_text(encoding="utf-8")
+
+    for shell in registry_module.list_illustration_shell_specs():
+        assert shell.shell_id in guide_text
+        assert shell.input_schema_id in guide_text
+
+    for table in registry_module.list_table_shell_specs():
+        assert table.shell_id in guide_text
+        assert table.input_schema_id in guide_text
+
+
+def test_display_platform_truth_docs_track_current_paper_proven_baseline() -> None:
+    docs_root = Path(__file__).resolve().parents[1] / "docs"
+    roadmap_text = (docs_root / "medical_display_family_roadmap.md").read_text(encoding="utf-8")
+    audit_text = (docs_root / "medical_display_audit_guide.md").read_text(encoding="utf-8")
+    catalog_text = (docs_root / "medical_display_template_catalog.md").read_text(encoding="utf-8")
+
+    expected_templates = (
+        "binary_calibration_decision_curve_panel",
+        "time_to_event_discrimination_calibration_panel",
+        "time_to_event_risk_group_summary",
+        "time_to_event_decision_curve",
+        "multicenter_generalizability_overview",
+        "submission_graphical_abstract",
+    )
+
+    for text in (roadmap_text, audit_text, catalog_text):
+        assert "Current Paper-Proven Baseline (001/003)" in text
+        for template_id in expected_templates:
+            assert template_id in text

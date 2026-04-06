@@ -569,10 +569,66 @@ def _check_curve_like_layout(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
             "subplot_x_axis_title",
             "subplot_y_axis_title",
             "panel_title",
+            "panel_label",
             "caption",
         }
     )
     issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
+    return issues
+
+
+def _check_composite_panel_label_anchors(
+    sidecar: LayoutSidecar,
+    *,
+    label_panel_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+
+    for label_box_id, panel_box_id in label_panel_map.items():
+        label_box = layout_boxes_by_id.get(label_box_id)
+        if label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="missing_panel_label",
+                    message="composite audited panels require explicit panel labels",
+                    target="layout_boxes",
+                    expected=label_box_id,
+                )
+            )
+            continue
+
+        parent_panel = panel_boxes_by_id.get(panel_box_id)
+        if parent_panel is None:
+            continue
+
+        if not _box_within_box(label_box, parent_panel):
+            issues.append(
+                _issue(
+                    rule_id="panel_label_out_of_panel",
+                    message="composite panel labels must stay within their declared panel region",
+                    target="panel_label",
+                    box_refs=(label_box.box_id, parent_panel.box_id),
+                )
+            )
+            continue
+
+        panel_width = max(parent_panel.x1 - parent_panel.x0, 1e-9)
+        panel_height = max(parent_panel.y1 - parent_panel.y0, 1e-9)
+        if (
+            label_box.x0 > parent_panel.x0 + panel_width * 0.08
+            or label_box.y1 < parent_panel.y1 - panel_height * 0.10
+        ):
+            issues.append(
+                _issue(
+                    rule_id="panel_label_anchor_drift",
+                    message="composite panel labels must stay near the parent panel top-left anchor",
+                    target="panel_label",
+                    box_refs=(label_box.box_id, parent_panel.box_id),
+                )
+            )
+
     return issues
 
 
@@ -711,6 +767,16 @@ def _check_publication_decision_curve(sidecar: LayoutSidecar) -> list[dict[str, 
                 observed={"count": len(sidecar.panel_boxes)},
             )
         )
+
+    issues.extend(
+        _check_composite_panel_label_anchors(
+            sidecar,
+            label_panel_map={
+                "panel_label_A": "panel_left",
+                "panel_label_B": "panel_right",
+            },
+        )
+    )
 
     treated_fraction_series = sidecar.metrics.get("treated_fraction_series")
     if not isinstance(treated_fraction_series, dict):
@@ -1177,6 +1243,15 @@ def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, 
                     observed={"count": len(sidecar.panel_boxes)},
                 )
             )
+        issues.extend(
+            _check_composite_panel_label_anchors(
+                sidecar,
+                label_panel_map={
+                    "panel_label_A": "panel_left",
+                    "panel_label_B": "panel_right",
+                },
+            )
+        )
         risk_group_summaries = sidecar.metrics.get("risk_group_summaries")
         if not isinstance(risk_group_summaries, list) or not risk_group_summaries:
             issues.append(
@@ -1697,6 +1772,62 @@ def _check_publication_multicenter_overview(sidecar: LayoutSidecar) -> list[dict
     issues.extend(_check_boxes_within_device(sidecar))
     issues.extend(_check_required_box_types(_all_boxes(sidecar), required_box_types=("y_axis_title", "coverage_bar")))
     issues.extend(_check_legend_panel_overlap(sidecar))
+    legend = _first_box_of_type(sidecar.guide_boxes, "legend")
+    if legend is None:
+        issues.append(
+            _issue(
+                rule_id="missing_legend",
+                message="multicenter overview requires a split legend in the footer band",
+                target="legend",
+                expected="present",
+            )
+        )
+    elif sidecar.panel_boxes:
+        footer_ceiling = min(panel_box.y0 for panel_box in sidecar.panel_boxes)
+        if legend.y1 > footer_ceiling - 0.005:
+            issues.append(
+                _issue(
+                    rule_id="legend_footer_band_drift",
+                    message="multicenter legend must stay below the panel band in the footer region",
+                    target="legend",
+                    box_refs=(legend.box_id,),
+                    observed={"legend_y1": legend.y1},
+                    expected={"maximum_y1": footer_ceiling - 0.005},
+                )
+            )
+    legend_title = str(sidecar.metrics.get("legend_title") or "").strip()
+    if legend_title != "Split":
+        issues.append(
+            _issue(
+                rule_id="legend_title_invalid",
+                message="multicenter overview legend title must stay `Split`",
+                target="metrics.legend_title",
+                observed=legend_title,
+                expected="Split",
+            )
+        )
+    legend_labels = sidecar.metrics.get("legend_labels")
+    if not isinstance(legend_labels, list) or not legend_labels:
+        issues.append(
+            _issue(
+                rule_id="legend_labels_missing",
+                message="multicenter overview requires explicit legend labels for split semantics",
+                target="metrics.legend_labels",
+                expected=["Train", "Validation"],
+            )
+        )
+    else:
+        normalized_labels = [str(item or "").strip() for item in legend_labels]
+        if normalized_labels != ["Train", "Validation"]:
+            issues.append(
+                _issue(
+                    rule_id="legend_labels_invalid",
+                    message="multicenter overview legend labels must stay in `Train`, `Validation` order",
+                    target="metrics.legend_labels",
+                    observed=normalized_labels,
+                    expected=["Train", "Validation"],
+                )
+            )
 
     center_event_panel = _first_box_of_type(sidecar.panel_boxes, "center_event_panel")
     if center_event_panel is None:
