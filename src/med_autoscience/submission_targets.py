@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -126,6 +127,16 @@ def _targets_from_payload(
     )
 
 
+def _load_json_dict(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def _profile_layer(profile: WorkspaceProfile | None) -> _TargetLayer:
     if profile is None:
         return _TargetLayer(mode="append", targets=tuple())
@@ -192,6 +203,28 @@ def _quest_layer(quest_root: Path | None, *, default_citation_style: str | None)
     )
 
 
+def _quest_paper_resolved_layer(quest_root: Path | None, *, default_citation_style: str | None) -> _TargetLayer:
+    if quest_root is None:
+        return _TargetLayer(mode="append", targets=tuple())
+    payload = _load_json_dict(quest_root / "paper" / "submission_targets.resolved.json")
+    primary_target = payload.get("primary_target")
+    if not isinstance(primary_target, dict):
+        return _TargetLayer(mode="append", targets=tuple())
+    resolution_status = str(primary_target.get("resolution_status") or "").strip().lower()
+    if resolution_status not in {"resolved", "resolved_profile"}:
+        return _TargetLayer(mode="append", targets=tuple())
+    normalized_target = dict(primary_target)
+    normalized_target["primary"] = True
+    return _TargetLayer(
+        mode="replace",
+        targets=_targets_from_payload(
+            [normalized_target],
+            source="quest_paper_resolved",
+            default_citation_style=default_citation_style,
+        ),
+    )
+
+
 def _apply_layer(current_targets: list[SubmissionTarget], layer: _TargetLayer) -> list[SubmissionTarget]:
     if layer.mode == "replace":
         current_targets = []
@@ -221,6 +254,7 @@ def resolve_submission_target_contract(
         _profile_layer(profile),
         _study_layer(study_root, default_citation_style=default_citation_style),
         _quest_layer(quest_root, default_citation_style=default_citation_style),
+        _quest_paper_resolved_layer(quest_root, default_citation_style=default_citation_style),
     ):
         targets = _apply_layer(targets, layer)
 

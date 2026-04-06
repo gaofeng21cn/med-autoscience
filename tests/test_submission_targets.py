@@ -9,6 +9,27 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def write_resolved_target(path: Path) -> None:
+    write_text(
+        path,
+        """{
+  "schema_version": 1,
+  "updated_at": "2026-04-06T00:00:00+00:00",
+  "primary_target": {
+    "journal_name": "Diabetes Research and Clinical Practice",
+    "publication_profile": "general_medical_journal",
+    "citation_style": "numeric_square_brackets",
+    "official_guidelines_url": "https://example.org/drcp-guide",
+    "package_required": true,
+    "story_surface": "clinical_diabetes_prognosis_internal_validation",
+    "resolution_status": "resolved"
+  },
+  "blocked_items": []
+}
+""",
+    )
+
+
 def write_profile(path: Path) -> None:
     path.write_text(
         "\n".join(
@@ -129,3 +150,39 @@ submission_targets:
 
     assert [target.publication_profile for target in contract.targets] == ["frontiers_family_harvard"]
     assert contract.export_publication_profiles == ("frontiers_family_harvard",)
+
+
+def test_resolve_submission_targets_uses_quest_paper_resolved_target(tmp_path: Path) -> None:
+    profiles = importlib.import_module("med_autoscience.profiles")
+    module = importlib.import_module("med_autoscience.submission_targets")
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-dm-cvd-mortality-risk-reentry-20260331"
+    write_profile(profile_path)
+    write_text(
+        study_root / "study.yaml",
+        "study_id: 001-dm-cvd-mortality-risk\n",
+    )
+    write_text(
+        quest_root / "quest.yaml",
+        """quest_id: 001-dm-cvd-mortality-risk-reentry-20260331
+startup_contract:
+  submission_targets: []
+""",
+    )
+    write_resolved_target(quest_root / "paper" / "submission_targets.resolved.json")
+
+    contract = module.resolve_submission_target_contract(
+        profile=profiles.load_profile(profile_path),
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert len(contract.targets) == 1
+    assert contract.primary_target.source == "quest_paper_resolved"
+    assert contract.primary_target.publication_profile == "general_medical_journal"
+    assert contract.primary_target.journal_name == "Diabetes Research and Clinical Practice"
+    assert contract.primary_target.official_guidelines_url == "https://example.org/drcp-guide"
+    assert contract.primary_target.citation_style == "numeric_square_brackets"
+    assert contract.unresolved_targets == ()
+    assert contract.export_publication_profiles == ("general_medical_journal",)

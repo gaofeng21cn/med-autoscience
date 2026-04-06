@@ -9,6 +9,27 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def write_resolved_target(path: Path) -> None:
+    write_text(
+        path,
+        """{
+  "schema_version": 1,
+  "updated_at": "2026-04-06T00:00:00+00:00",
+  "primary_target": {
+    "journal_name": "Diabetes Research and Clinical Practice",
+    "publication_profile": "general_medical_journal",
+    "citation_style": "numeric_square_brackets",
+    "official_guidelines_url": "https://example.org/drcp-guide",
+    "package_required": true,
+    "story_surface": "clinical_diabetes_prognosis_internal_validation",
+    "resolution_status": "resolved"
+  },
+  "blocked_items": []
+}
+""",
+    )
+
+
 def write_profile(path: Path, workspace_root: Path) -> None:
     path.write_text(
         "\n".join(
@@ -140,3 +161,33 @@ def test_export_submission_targets_exports_resolved_profiles_and_blocks_unresolv
         by_key["journal:journal of clinical endocrinology & metabolism"]["export_status"]
         == "blocked_needs_journal_resolution"
     )
+
+
+def test_resolve_submission_targets_controller_reads_quest_paper_resolved_target(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_targets")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "dm.local.toml"
+    study_root = workspace_root / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-dm-cvd-mortality-risk-reentry-20260331"
+    write_profile(profile_path, workspace_root)
+    write_text(study_root / "study.yaml", "study_id: 001-dm-cvd-mortality-risk\n")
+    write_text(
+        quest_root / "quest.yaml",
+        """quest_id: 001-dm-cvd-mortality-risk-reentry-20260331
+startup_contract:
+  submission_targets: []
+""",
+    )
+    write_resolved_target(quest_root / "paper" / "submission_targets.resolved.json")
+
+    result = module.resolve_submission_targets(
+        profile_path=profile_path,
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert result["primary_target"]["source"] == "quest_paper_resolved"
+    assert result["primary_target"]["journal_name"] == "Diabetes Research and Clinical Practice"
+    assert result["primary_target"]["official_guidelines_url"] == "https://example.org/drcp-guide"
+    assert result["primary_target"]["citation_style"] == "numeric_square_brackets"
+    assert result["unresolved_target_count"] == 0
