@@ -133,17 +133,7 @@ def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
 def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> list[Path]:
     candidates: list[Path] = []
     seen: set[Path] = set()
-
     generated_root = paper_root / "figures" / "generated"
-    if generated_root.exists():
-        for path in sorted(generated_root.rglob("*")):
-            if not path.is_file() or path.suffix.lower() not in TEXT_ASSET_SUFFIXES:
-                continue
-            resolved = path.resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
-            candidates.append(resolved)
 
     payload = load_json(figure_catalog_path, default={}) or {}
     for item in payload.get("figures", []) or []:
@@ -151,6 +141,7 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
             continue
         if str(item.get("paper_role") or "").strip() != "main_text":
             continue
+        figure_id = str(item.get("figure_id") or "").strip()
         for key in ("export_paths", "asset_paths"):
             values = item.get(key)
             if not isinstance(values, list):
@@ -165,6 +156,18 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
                     continue
                 seen.add(resolved)
                 candidates.append(resolved)
+        if not figure_id or not generated_root.exists():
+            continue
+        for path in sorted(generated_root.glob(f"{figure_id}*")):
+            if not path.is_file() or path.suffix.lower() not in TEXT_ASSET_SUFFIXES:
+                continue
+            if path.name.lower() == "readme.md" or path.name.endswith(".layout.json"):
+                continue
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            candidates.append(resolved)
     return candidates
 
 

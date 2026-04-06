@@ -1026,6 +1026,22 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
     assert report["top_hits"] == []
 
 
+def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    readme_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "generated" / "README.md"
+    readme_path.write_text(
+        "# Generated Figure Outputs\n\n"
+        "Any unreferenced stale generated files are pruned during `materialize-display-surface`.\n",
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert all(not hit["path"].endswith("paper/figures/generated/README.md") for hit in report["top_hits"])
+
+
 def test_build_report_blocks_when_introduction_does_not_follow_three_move_structure(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
