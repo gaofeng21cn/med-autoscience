@@ -62,6 +62,15 @@ def test_resolve_study_charter_ref_rejects_cross_repo_paths(tmp_path: Path) -> N
         module.resolve_study_charter_ref(study_root=study_root, ref=cross_repo_ref)
 
 
+def test_resolve_study_charter_ref_rejects_relative_repo_escape(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "repo-a" / "studies" / "001-risk"
+    escaped_ref = Path("..") / ".." / ".." / "repo-b" / "studies" / "001-risk" / "artifacts" / "controller" / "study_charter.json"
+
+    with pytest.raises(ValueError, match="stable controller artifact"):
+        module.resolve_study_charter_ref(study_root=study_root, ref=escaped_ref)
+
+
 def test_read_study_charter_rejects_non_object_payload(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
