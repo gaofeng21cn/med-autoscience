@@ -9,6 +9,10 @@
 3. 为什么论文交付仍然是顶层业务目标，但不再主导整个架构分层
 4. 这条主线接下来应按什么顺序推进
 
+如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
+
+- [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
+
 ## 一句话结论
 
 `Med Auto Science` 当前应被理解为：
