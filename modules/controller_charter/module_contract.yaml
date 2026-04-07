@@ -1,26 +1,27 @@
 module: controller_charter
 status: scaffold
 owns:
-  - study / workspace controller-owned authority truth
-  - study_charter and compiled charter logic
-  - route / policy / objective / trigger authority
+  - study_charter
+  - controller_policy
+  - route_trigger_authority
 consumes_refs:
-  - none
+  - workspace_profile
+  - study_metadata
+  - policy_surface
 emits_refs:
-  - runtime-facing projection refs
-  - eval-consumable controller refs
+  - runtime_startup_projection
+  - controller_summary_ref
 forbids:
-  - direct runtime private state mutation
-  - runtime event ownership
-  - eval verdict ownership
+  - runtime_private_state_mutation
+  - runtime_event_ownership
+  - eval_verdict_ownership
 communication_rules:
   allowed:
-    - explicit contract
-    - explicit artifact ref
-    - explicit typed output
-    - explicit typed summary
+    - explicit_contract
+    - explicit_artifact_ref
+    - explicit_typed_output
   forbidden:
-    - ad-hoc dict mixed-layer shortcut
-    - hidden import shortcut
-    - direct private-state mutation
-    - authority takeover via read-model
+    - ad_hoc_dict_shortcut
+    - hidden_import_shortcut
+    - direct_private_state_mutation
+    - authority_takeover_via_read_model

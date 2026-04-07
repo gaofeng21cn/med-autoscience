@@ -1,25 +1,28 @@
 module: runtime
 status: scaffold
 owns:
-  - quest execution truth
-  - session / worktree / artifact execution truth
-  - runtime escalation record and runtime status refs
+  - quest_execution_truth
+  - runtime_session_truth
+  - runtime_artifact_truth
+  - runtime_escalation_record
 consumes_refs:
-  - controller runtime-facing projections
+  - runtime_startup_projection
+  - runtime_policy_summary_ref
 emits_refs:
-  - runtime status / runtime artifact / escalation refs
+  - runtime_status_ref
+  - runtime_artifact_ref
+  - runtime_escalation_record_ref
 forbids:
-  - publication authority ownership
-  - controller authority truth mutation
-  - eval verdict as runtime authority
+  - publication_authority_ownership
+  - controller_truth_mutation
+  - eval_verdict_ownership
 communication_rules:
   allowed:
-    - explicit contract
-    - explicit artifact ref
-    - explicit typed output
-    - explicit typed summary
+    - explicit_contract
+    - explicit_artifact_ref
+    - explicit_typed_output
   forbidden:
-    - ad-hoc dict mixed-layer shortcut
-    - hidden import shortcut
-    - direct private-state mutation
-    - authority takeover via read-model
+    - ad_hoc_dict_shortcut
+    - hidden_import_shortcut
+    - direct_private_state_mutation
+    - authority_takeover_via_read_model
