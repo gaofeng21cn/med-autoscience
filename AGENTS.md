@@ -1,6 +1,8 @@
-# Med Autoscience Repository Agent Contract
+# Med Autoscience Project Entry Contract
 
-This root `AGENTS.md` is the repository-native contract for direct sessions that enter from the project root, including Codex App and plain Codex sessions.
+This root `AGENTS.md` is the project entry contract for direct sessions that enter from the project root, including Codex App and plain Codex sessions.
+
+It defines the default execution and collaboration rules at the repository root. It is the entry surface for this project, not the full project-truth contract by itself.
 
 If the repository is launched through OMX project-scope installation, OMX-specific orchestration lives in `.codex/AGENTS.md` and augments this file without replacing it.
 
@@ -26,4 +28,3 @@ Read that file first whenever repository-specific goals, architecture priorities
 
 - `.omx/` and `.codex/` are local tooling state and must remain untracked.
 - `.omx/local/AGENTS.local.md` is reserved for machine-specific private overlays.
-
