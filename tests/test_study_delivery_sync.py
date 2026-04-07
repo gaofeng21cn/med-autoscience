@@ -187,6 +187,16 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert not (study_root / "manuscript" / "submission_package" / "tables" / "README.md").exists()
     assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.pdf").exists()
     assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert delivery_manifest["surface_roles"] == {
+        "controller_authorized_paper_root": str(paper_root),
+        "controller_authorized_package_source_root": str(paper_root / "submission_minimal"),
+        "human_facing_delivery_root": str(study_root / "manuscript"),
+        "human_facing_submission_package_root": str(study_root / "manuscript" / "submission_package"),
+        "human_facing_submission_package_zip": str(study_root / "manuscript" / "submission_package.zip"),
+        "auxiliary_evidence_root": None,
+        "journal_submission_mirror_root": None,
+    }
 
 
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
@@ -225,6 +235,8 @@ def test_sync_study_delivery_for_finalize_copies_closeout_documents(tmp_path: Pa
     assert (study_root / "artifacts" / "final" / "compile_report.json").exists()
     assert not (study_root / "artifacts" / "final" / "figures").exists()
     assert not (study_root / "artifacts" / "final" / "tables").exists()
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert delivery_manifest["surface_roles"]["auxiliary_evidence_root"] == str(study_root / "artifacts" / "final")
 
 
 def test_sync_study_delivery_for_finalize_accepts_canonical_handoff_from_worktree(tmp_path: Path) -> None:
@@ -288,11 +300,23 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
     journal_package_root = (
         study_root / "manuscript" / "journal_packages" / "frontiers_family_harvard"
     )
+    delivery_manifest = json.loads((journal_package_root / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert (study_root / "manuscript" / "manuscript.docx").read_text(encoding="utf-8") == "existing generic package"
     assert (journal_package_root / "manuscript.docx").exists()
     assert (journal_package_root / "Supplementary_Material.docx").exists()
     assert (journal_package_root / "README.md").exists()
     assert (study_root / "manuscript" / "frontiers_family_harvard_submission_package.zip").exists()
+    assert delivery_manifest["surface_roles"] == {
+        "controller_authorized_paper_root": str(paper_root),
+        "controller_authorized_package_source_root": str(
+            paper_root / "journal_submissions" / "frontiers_family_harvard"
+        ),
+        "human_facing_delivery_root": str(study_root / "manuscript"),
+        "human_facing_submission_package_root": None,
+        "human_facing_submission_package_zip": None,
+        "auxiliary_evidence_root": None,
+        "journal_submission_mirror_root": None,
+    }
 
 
 def test_sync_study_delivery_can_promote_primary_journal_package_into_study_final(tmp_path: Path) -> None:

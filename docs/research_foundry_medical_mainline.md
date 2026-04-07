@@ -219,6 +219,7 @@ Human / Agent
 
 - 把 manuscript / reporting / submission / display 重新写成 harness OS 下的正式 delivery plane
 - 明确哪些是 publication shell，哪些是 domain-specific contract
+- repo-tracked canonical bridge 见 `docs/delivery_plane_contract_map.md`
 
 ### Phase 3. Real-Study Relaunch
 

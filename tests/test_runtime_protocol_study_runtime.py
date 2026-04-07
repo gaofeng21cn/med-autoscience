@@ -349,6 +349,68 @@ def test_write_runtime_escalation_record_persists_full_artifact_and_read_runtime
     )
 
 
+def test_write_study_decision_record_persists_study_local_artifact_and_latest_pointer(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    decision_module = importlib.import_module("med_autoscience.study_decision_record")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    written = module.write_study_decision_record(
+        study_root=study_root,
+        record=decision_module.StudyDecisionRecord(
+            schema_version=1,
+            decision_id="study-decision-001",
+            study_id="001-risk",
+            quest_id="quest-001",
+            emitted_at="2026-04-05T06:05:00+00:00",
+            decision_type="continue_same_line",
+            charter_ref=decision_module.StudyDecisionCharterRef(
+                charter_id="charter::001-risk::v1",
+                artifact_path=str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            ),
+            runtime_escalation_ref=module.RuntimeEscalationRecordRef(
+                record_id="runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::2026-04-05T06:00:00+00:00",
+                artifact_path=str(
+                    tmp_path
+                    / "workspace"
+                    / "ops"
+                    / "med-deepscientist"
+                    / "runtime"
+                    / "quests"
+                    / "quest-001"
+                    / "artifacts"
+                    / "reports"
+                    / "escalation"
+                    / "runtime_escalation_record.json"
+                ),
+                summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            ),
+            publication_eval_ref=decision_module.StudyDecisionPublicationEvalRef(
+                eval_id="publication-eval::001-risk::quest-001::2026-04-05T06:03:00+00:00",
+                artifact_path=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            ),
+            requires_human_confirmation=False,
+            controller_actions=(
+                decision_module.StudyDecisionControllerAction(
+                    action_type="ensure_study_runtime",
+                    payload_ref=str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                ),
+            ),
+            reason="Publication eval remains compatible with the current delivery line.",
+        ),
+    )
+
+    expected_path = study_root / "artifacts" / "controller_decisions" / "20260405T060500Z_study-decision-001.json"
+    payload = json.loads(expected_path.read_text(encoding="utf-8"))
+    latest_payload = json.loads((expected_path.parent / "latest.json").read_text(encoding="utf-8"))
+    assert written.artifact_path == str(expected_path)
+    assert payload == written.to_dict()
+    assert latest_payload == payload
+    assert written.ref().to_dict() == {
+        "decision_id": "study-decision-001",
+        "artifact_path": str(expected_path),
+    }
+
+
 def test_write_startup_hydration_report_persists_typed_protocol_surface(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"

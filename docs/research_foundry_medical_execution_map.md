@@ -117,6 +117,8 @@
 
 这里的核心不是“继续加模板”这么简单，而是把这些交付面重新写成 harness OS 下的正式 delivery plane。
 
+当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `docs/delivery_plane_contract_map.md`。
+
 ## 第 4 层：Real-Study Relaunch & Verify
 
 这一层解决的是“这些合同在真实课题里到底能不能稳定工作”。

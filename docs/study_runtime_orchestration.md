@@ -15,6 +15,10 @@
 
 - [`docs/study_runtime_control_surface.md`](./study_runtime_control_surface.md)
 
+与 `launch_report`、`runtime_escalation_record`、`publication_eval`、`study_decision_record` 以及 delivery/publication plane surface role 相关的 artifact 边界，现统一桥接到：
+
+- [`docs/delivery_plane_contract_map.md`](./delivery_plane_contract_map.md)
+
 ## 与 study charter / startup projection 的关系
 
 当前应按下面这条关系理解：

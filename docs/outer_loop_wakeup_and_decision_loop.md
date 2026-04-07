@@ -9,6 +9,10 @@
 
 - [`docs/study_runtime_control_surface.md`](./study_runtime_control_surface.md)
 
+与 `publication_eval`、`study_decision_record` 下游如何连接到 delivery/publication plane 的 artifact 边界，现统一桥接到：
+
+- [`docs/delivery_plane_contract_map.md`](./delivery_plane_contract_map.md)
+
 ## 一句话结论
 
 当前推荐机制不是：
