@@ -1,0 +1,5 @@
+pack_id = "fenggaolab.org.medical-display-core"
+version = "0.1.0"
+display_api_version = "1"
+default_execution_mode = "python_plugin"
+summary = "Minimal valid display pack fixture"
