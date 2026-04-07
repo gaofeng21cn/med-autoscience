@@ -1,0 +1,69 @@
+# 医学绘图军火库扩充历史
+
+## 文档定位
+
+本文记录绘图军火库是如何一步一步扩出来的，重点回答五个问题：
+
+1. 什么时间扩充了什么；
+2. 这次扩充是从哪篇论文、哪类图面、哪条真实需求学来的；
+3. 这次扩充提升了哪个论文家族；
+4. 具体落成了哪个模板、契约、质控或回归能力；
+5. 当前这次扩充处于什么状态。
+
+与 [medical_display_arsenal.md](./medical_display_arsenal.md) 的分工是：
+
+- `medical_display_arsenal.md` 记录“现在军火库里有什么”；
+- 本文记录“这些能力是怎么学会的、什么时候学会的”。
+
+## 记录口径
+
+本文按绘图主线的已验证里程碑记录，不按共享 `main` 当时是否已经完全吸收来记账。
+
+当前历史锚点以以下边界为准：
+
+- `acd5734`：锚点论文收口真相固化
+- `f32d7f7`：锚点论文收口吸收到主线
+- `6965385`：`A/B/H` 跨论文加固
+- `1b5b1bd` / `9a74154`：`G` 家族首个审计基线
+- `0891811`：`B` 家族分层累计发生率面板
+- `9209ebc`：`B` 家族多窗口 ROC 面板
+- `f8d2e0c`：复合面板 token 对齐加固
+- `474ee02`：性能热图
+- `3cc2a19`：冻结交棒收口
+
+## 正式落地的扩充时间线
+
+| 日期 | 里程碑 | 来源 | 学到并固化了什么 | 提升到的家族 / 模板 | 当前状态 |
+| --- | --- | --- | --- | --- | --- |
+| `2026-04-05` | 锚点论文收口真相固化 | 内部锚点论文 `001` 与 `003` | 明确 `paper/` 为长期 authority surface；回填 `figure_catalog`、`table_catalog`、`submission_minimal`；补齐 `003` 的两类表格壳层能力；把真实论文已经证明的图表面正式提升为审计真相 | `A/B/H` 论文实战基线；`binary_calibration_decision_curve_panel`、`time_to_event_discrimination_calibration_panel`、`time_to_event_risk_group_summary`、`time_to_event_decision_curve`、`multicenter_generalizability_overview`、`submission_graphical_abstract`、`performance_summary_table_generic`、`grouped_risk_event_summary_table` | 已成为锚点论文收口真相 |
+| `2026-04-06` | 锚点论文收口吸收到主线 | `medical-display-anchor-paper-closure` 收口成果 | 把锚点论文收口成果从独立工作线吸收到主线，为后续跨论文加固提供公共起点 | `A/B/H` 主线共同基座 | 已并入主线 |
+| `2026-04-06` | `A/B/H` 跨论文确定性加固 | `001/003` 真实论文暴露的失败模式 | 把标题策略、注释落位、`panel label` / `header band` 锚定、图形摘要箭头通道、坐标窗拟合、多中心图例可读性等问题从“论文现场修图经验”提升为可复用回归真相 | `A/B/H`；跨论文 golden regression 基线 | 已落成 `6965385` |
+| `2026-04-06` | `G` 家族首个专用审计基线 | 组学原生证据需求，不再允许隐式借用 `E` 家族热图 | 新增 `gsva_ssgsea_heatmap` 与专用输入契约，要求 `score_method`，把 `G` 从“被邻近热图顺带覆盖”升级为独立可审计能力 | `G` / `gsva_ssgsea_heatmap` | 已落成 `1b5b1bd`，clean baseline 锚点为 `9a74154` |
+| `2026-04-06` | `B` 家族分层累计发生率面板 | `HTN-AI` 图 3 | 把单一累计发生曲线提升为显式多面板、多分层累计发生率契约，并补齐 panel 级 schema、layout QC、readability 检查 | `B` / `time_to_event_stratified_cumulative_incidence_panel` | 已落成 `0891811` |
+| `2026-04-07` | `B` 家族多窗口 ROC 面板 | `Nature Medicine` 风险论文图 4a | 把单时间窗 ROC 升级为显式多窗口、多面板 ROC 契约，让时间窗语义从输入到渲染和质控全程可审计 | `A/B` / `time_dependent_roc_comparison_panel` | 已落成 `9209ebc` |
+| `2026-04-07` | 复合面板 token 对齐加固 | 前一轮多窗口 ROC 落地后的工程收口 | 统一 renderer 与 QC 对 `panel_label` 的 token 规则，防止空格或标点导致 sidecar、box id 与质控错配 | `B` 复合面板体系；`time_dependent_roc_comparison_panel`、`time_to_event_stratified_cumulative_incidence_panel` | 已落成 `f8d2e0c` |
+| `2026-04-07` | 性能热图正式入库 | `Nature Medicine` 风险论文图 4c | 把普通矩阵热图提升为有固定行列顺序、有指标语义、有数值边界的性能热图契约 | `B/E` / `performance_heatmap` | 已落成 `474ee02` |
+| `2026-04-07` | 主线冻结收口 | 绘图主线治理决策 | 同步 `F` 家族延期重开决策、固定冻结交棒边界、终止自动续跑，为未来显式重开保留干净入口 | 主线治理；不新增模板 | 已落成 `3cc2a19` |
+
+## 已观察、已记录、但尚未正式入库的学习素材
+
+以下素材已经进入绘图主线的视野，并且会影响未来显式重开时的优先级；但它们当前还不是正式军火库的一部分。
+
+| 日期 | 来源 | 看到了什么 | 可能提升的家族 / 模板方向 | 当前状态 |
+| --- | --- | --- | --- | --- |
+| `2026-04-06` | `Nature Medicine` `2025` 炎症图谱图 1 | 复合式图谱结构、细胞群嵌入、签名热图、跨层叙事组合 | `D/E/G`，尤其是 `celltype_signature_heatmap` 一类复合图式 | 已归档为高价值候选，未正式入库 |
+| `2026-04-06` | `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2 | 单细胞嵌入、谱系热图、空间表达与解释性联动 | `D/E/F/G` | 已归档为高价值候选，未正式入库 |
+| `2026-04-06` | `Cancer Cell` `2022` 肾脏图谱类图面 | 总体嵌入、主要细胞类型热图、空间上下文并置 | `D/E/G` | 已归档为高价值候选，未正式入库 |
+| `2026-04-06` | `Lancet Digital Health` 多癌种风险图 2 | 风险表达与泛化表达的稿件级组合方式 | `A/H` | 低优先级候选，暂未进入主执行线 |
+
+## 这份历史文档的使用方式
+
+后续每次扩库，建议按以下顺序补记：
+
+1. 写清楚这次扩库的日期；
+2. 写清楚来源是内部真实论文、外部高水平期刊，还是工程治理决策；
+3. 写清楚“学到的结构”是什么，而不是只写“新增了一个模板”；
+4. 写清楚提升到了哪个论文家族、哪个模板、哪个质控或哪个回归面；
+5. 写清楚当前状态是“已正式入库”“仅候选归档”还是“治理收口”。
+
+这样，军火库扩充就不会退化为零散提交历史，而能长期保留“为什么学、从哪学、学会了什么”的可审计脉络。
