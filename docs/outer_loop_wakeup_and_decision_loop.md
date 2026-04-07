@@ -169,19 +169,18 @@ runtime_escalation_ref:
 - 被定时器、automation 或上层 agent 周期调用
 - 作为 outer-loop wakeup 的默认执行外壳
 
-## 当前 still missing 的对象
+## 当前 P0 已落地的对象
 
-现在已经基本具备：
+当前主线已经具备这条 durable loop 的 4 个正式对象：
 
 - `study_charter`
 - `runtime_escalation_record`
 - `publication_eval`
-
-但 outer loop 真正要“继续往下跑”，还缺一个正式对象：
+- `study_decision_record`
 
 ## `study_decision_record`
 
-推荐新增一个 study-level durable decision artifact，例如：
+当前实现的 study-level durable decision artifact 形态为：
 
 ```text
 studies/<study_id>/artifacts/controller_decisions/<timestamp>_<decision_id>.json
@@ -286,18 +285,24 @@ reason: "..."
 
 ## Phase B. 新增 outer-loop supervisor controller
 
-推荐新增一个正式 controller，例如：
+当前实现中的正式 controller tick 为：
 
 - `study_outer_loop_tick(...)`
 
-它的输入至少包括：
+当前 P0 下它的显式输入包括：
 
 - `profile`
 - `study_id` 或 `study_root`
-- optional `force`
+- `charter_ref`
+- `publication_eval_ref`
+- `decision_type`
+- `requires_human_confirmation`
+- `controller_actions`
+- `reason`
 - optional `source`
+- optional `recorded_at`
 
-它的责任是：
+当前实现中它的责任是：
 
 1. 读取 `study_runtime_status`
 2. 判断是否存在 `runtime_escalation_ref`
@@ -305,7 +310,13 @@ reason: "..."
 4. 读取当前 `study_charter`
 5. 读取当前 `publication_eval`
 6. 写出 `study_decision_record`
-7. 如 decision 允许，调用下一步 controller action
+7. 执行 `controller_actions[0]` 指定的下一个 controller action
+
+当前 P0 明确保持：
+
+- `study_outer_loop_tick(...)` 只接受显式 `charter_ref` / `publication_eval_ref`
+- runtime escalation 必须从 `study_runtime_status(...).runtime_escalation_ref` 读到，并回读 full artifact 校验
+- 缺 ref、stable path 不匹配、或 escalation artifact 与 status ref 不一致时，直接 fail-closed
 
 ## Phase C. 把 wakeup 挂到稳定 poll surface
 

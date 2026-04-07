@@ -843,7 +843,7 @@ def test_update_quest_startup_context_patches_requested_baseline_ref_without_cre
     }
 
 
-def test_update_quest_startup_context_writes_locally_when_daemon_is_unreachable(
+def test_update_quest_startup_context_fails_closed_when_daemon_is_unreachable(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -861,20 +861,16 @@ def test_update_quest_startup_context_writes_locally_when_daemon_is_unreachable(
     monkeypatch.setattr(module, "_patch_json", fake_patch_json)
     monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
-    result = module.update_quest_startup_context(
-        runtime_root=runtime_root,
-        quest_id="001-risk",
-        startup_contract={"scope": "full_research"},
-    )
+    with pytest.raises(RuntimeError, match="startup-context request failed"):
+        module.update_quest_startup_context(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            startup_contract={"scope": "full_research"},
+        )
 
     quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
-
-    assert result["ok"] is True
-    assert result["sync_mode"] == "local_file"
-    assert result["snapshot"]["startup_contract"] == {"scope": "full_research"}
-    assert quest_payload["startup_contract"] == {"scope": "full_research"}
-    assert isinstance(quest_payload.get("updated_at"), str)
-    assert quest_payload["updated_at"]
+    assert quest_payload["startup_contract"] == {"scope": "scout"}
+    assert "updated_at" not in quest_payload
 
 
 def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
@@ -898,7 +894,7 @@ def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
         "source": "medautosci-test",
     }
 
-def test_pause_quest_writes_locally_when_daemon_is_unreachable_and_no_active_run_id(
+def test_pause_quest_fails_closed_when_daemon_is_unreachable_even_without_active_run_id(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -926,27 +922,20 @@ def test_pause_quest_writes_locally_when_daemon_is_unreachable_and_no_active_run
     monkeypatch.setattr(module, "_post_json", fake_post_json)
     monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
-    result = module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+    with pytest.raises(RuntimeError, match="Quest control request failed"):
+        module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
     runtime_state = module._load_json_dict(quest_root / ".ds" / "runtime_state.json")
     quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
-
-    assert result["ok"] is True
-    assert result["sync_mode"] == "local_file"
-    assert result["status"] == "paused"
-    assert result["snapshot"]["status"] == "paused"
-    assert runtime_state["status"] == "paused"
-    assert runtime_state["display_status"] == "paused"
+    assert runtime_state["status"] == "active"
+    assert runtime_state["display_status"] == "active"
     assert runtime_state["active_run_id"] is None
-    assert runtime_state["stop_reason"] == "user_pause"
-    assert isinstance(runtime_state.get("last_transition_at"), str)
-    assert runtime_state["last_transition_at"]
-    assert quest_payload["status"] == "paused"
-    assert isinstance(quest_payload.get("updated_at"), str)
-    assert quest_payload["updated_at"]
+    assert runtime_state["stop_reason"] is None
+    assert quest_payload["status"] == "active"
+    assert "updated_at" not in quest_payload
 
 
-def test_pause_quest_refuses_local_fallback_when_active_run_id_is_present(
+def test_pause_quest_fails_closed_when_daemon_is_unreachable_with_active_run_id_present(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -973,8 +962,42 @@ def test_pause_quest_refuses_local_fallback_when_active_run_id_is_present(
     monkeypatch.setattr(module, "_post_json", fake_post_json)
     monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
-    with pytest.raises(RuntimeError, match="active_run_id"):
+    with pytest.raises(RuntimeError, match="Quest control request failed"):
         module.pause_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
+
+    runtime_state = module._load_json_dict(quest_root / ".ds" / "runtime_state.json")
+    quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
+    assert runtime_state["status"] == "active"
+    assert runtime_state["display_status"] == "active"
+    assert runtime_state["active_run_id"] == "run-live"
+    assert quest_payload["status"] == "active"
+    assert quest_payload["active_run_id"] == "run-live"
+
+
+def test_stop_quest_fails_closed_when_daemon_is_unreachable(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    quest_root = runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstatus: active\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "active",
+                "display_status": "active",
+                "active_run_id": None,
+                "stop_reason": None,
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(module, "_post_json", lambda **kwargs: (_ for _ in ()).throw(error.URLError(ConnectionRefusedError(61, "Connection refused"))))
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+
+    with pytest.raises(RuntimeError, match="Quest control request failed"):
+        module.stop_quest(runtime_root=runtime_root, quest_id="001-risk", source="medautosci-test")
 
 
 def test_post_quest_control_rejects_missing_stable_control_contract(monkeypatch) -> None:
