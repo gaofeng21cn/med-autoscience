@@ -705,6 +705,34 @@ def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Pat
         "payload": {"startup_contract": {"scope": "full_research"}},
     }
 
+
+def test_update_quest_startup_context_rejects_unclassified_startup_contract_keys_before_patch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    handler = getattr(module, "update_quest_startup_context", None)
+
+    assert callable(handler)
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(
+        module,
+        "_patch_json",
+        lambda **kwargs: pytest.fail("startup-context patch should reject undeclared keys before transport"),
+    )
+
+    with pytest.raises(ValueError, match="unclassified startup contract keys: unexpected_field"):
+        handler(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            startup_contract={
+                "scope": "full_research",
+                "unexpected_field": {"should": "not-become-stable"},
+            },
+        )
+
+
 def test_update_quest_startup_context_rejects_missing_stable_contract(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -732,6 +760,39 @@ def test_update_quest_startup_context_rejects_missing_stable_contract(monkeypatc
 
     with pytest.raises(RuntimeError, match="missing stable startup-context contract"):
         handler(
+            runtime_root=runtime_root,
+            quest_id="001-risk",
+            startup_contract={"scope": "full_research"},
+        )
+
+
+def test_update_quest_startup_context_rejects_unclassified_roundtrip_keys(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "config" / "config.yaml",
+        "ui:\n  host: 127.0.0.1\n  port: 20999\n",
+    )
+
+    monkeypatch.setattr(
+        module.request,
+        "urlopen",
+        lambda http_request, timeout: type(
+            "FakeResponse",
+            (),
+            {
+                "__enter__": lambda self: self,
+                "__exit__": lambda self, exc_type, exc, tb: None,
+                "read": lambda self: (
+                    b'{"ok": true, "quest_id": "001-risk", "snapshot": {"quest_id": "001-risk", '
+                    b'"startup_contract": {"scope": "full_research", "unexpected_field": "should-fail"}}}'
+                ),
+            },
+        )(),
+    )
+
+    with pytest.raises(RuntimeError, match="unclassified startup contract keys: unexpected_field"):
+        module.update_quest_startup_context(
             runtime_root=runtime_root,
             quest_id="001-risk",
             startup_contract={"scope": "full_research"},

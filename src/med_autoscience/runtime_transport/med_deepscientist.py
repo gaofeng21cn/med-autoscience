@@ -11,6 +11,8 @@ from urllib.parse import quote
 
 import yaml
 
+from med_autoscience.startup_contract import stable_startup_contract
+
 
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
@@ -343,9 +345,19 @@ def _normalize_stable_startup_context_result(
         quest_id = str(snapshot.get("quest_id") or "").strip()
     if not quest_id:
         raise RuntimeError("missing stable startup-context contract")
-    if not isinstance(snapshot.get("startup_contract"), dict):
+    try:
+        startup_contract = _normalize_startup_contract_for_stable_transport(
+            startup_contract=snapshot.get("startup_contract")
+        )
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+    if not isinstance(startup_contract, dict):
         raise RuntimeError("missing stable startup-context contract")
-    return dict(payload)
+    normalized_snapshot = dict(snapshot)
+    normalized_snapshot["startup_contract"] = startup_contract
+    normalized_payload = dict(payload)
+    normalized_payload["snapshot"] = normalized_snapshot
+    return normalized_payload
 
 
 def _normalize_stable_quest_control_result(
@@ -769,6 +781,17 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
     )
 
 
+def _normalize_startup_contract_for_stable_transport(
+    *,
+    startup_contract: dict[str, Any] | None | object,
+) -> dict[str, Any] | None | object:
+    if startup_contract is _UNSET or startup_contract is None:
+        return startup_contract
+    if not isinstance(startup_contract, dict):
+        raise ValueError("startup_contract must be a mapping or null")
+    return stable_startup_contract(startup_contract)
+
+
 def update_quest_startup_context(
     *,
     runtime_root: Path,
@@ -776,9 +799,10 @@ def update_quest_startup_context(
     startup_contract: dict[str, Any] | None | object = _UNSET,
     requested_baseline_ref: dict[str, Any] | None | object = _UNSET,
 ) -> dict[str, Any]:
+    normalized_startup_contract = _normalize_startup_contract_for_stable_transport(startup_contract=startup_contract)
     payload: dict[str, Any] = {}
-    if startup_contract is not _UNSET:
-        payload["startup_contract"] = startup_contract
+    if normalized_startup_contract is not _UNSET:
+        payload["startup_contract"] = normalized_startup_contract
     if requested_baseline_ref is not _UNSET:
         payload["requested_baseline_ref"] = requested_baseline_ref
     if not payload:
@@ -799,6 +823,8 @@ def update_quest_startup_context(
     except (TimeoutError, OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"Quest startup-context request failed: {exc}") from exc
     snapshot = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
+    if normalized_startup_contract is not _UNSET and snapshot.get("startup_contract") != normalized_startup_contract:
+        raise RuntimeError("missing stable startup-context startup_contract roundtrip")
     if requested_baseline_ref is not _UNSET and snapshot.get("requested_baseline_ref") != requested_baseline_ref:
         raise RuntimeError("missing stable startup-context requested_baseline_ref roundtrip")
     return result

@@ -43,6 +43,16 @@ CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS: tuple[str, ...] = (
     "submission_targets",
 )
 
+_RUNTIME_OWNED_STARTUP_CONTRACT_KEY_SET = frozenset(RUNTIME_OWNED_STARTUP_CONTRACT_KEYS)
+_CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEY_SET = frozenset(CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS)
+
+
+def _raise_for_unclassified_keys(*, keys: set[str], allowed_keys: frozenset[str], error_prefix: str) -> None:
+    unclassified_keys = sorted(keys.difference(allowed_keys))
+    if not unclassified_keys:
+        return
+    raise ValueError(f"{error_prefix}: {', '.join(unclassified_keys)}")
+
 
 def runtime_owned_startup_contract(startup_contract: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(startup_contract, dict):
@@ -57,11 +67,25 @@ def runtime_owned_startup_contract(startup_contract: dict[str, Any] | None) -> d
 def controller_owned_startup_contract_extensions(startup_contract: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(startup_contract, dict):
         return {}
+    _raise_for_unclassified_keys(
+        keys=set(startup_contract),
+        allowed_keys=_RUNTIME_OWNED_STARTUP_CONTRACT_KEY_SET.union(_CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEY_SET),
+        error_prefix="unclassified startup contract keys",
+    )
     return {
-        key: deepcopy(value)
-        for key, value in startup_contract.items()
-        if key not in RUNTIME_OWNED_STARTUP_CONTRACT_KEYS
+        key: deepcopy(startup_contract[key])
+        for key in CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS
+        if key in startup_contract
     }
+
+
+def stable_startup_contract(startup_contract: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(startup_contract, dict):
+        return {}
+    return compose_startup_contract(
+        runtime_owned=runtime_owned_startup_contract(startup_contract),
+        controller_extensions=controller_owned_startup_contract_extensions(startup_contract),
+    )
 
 
 def compose_startup_contract(
@@ -73,4 +97,14 @@ def compose_startup_contract(
     if overlap:
         overlap_list = ", ".join(sorted(overlap))
         raise ValueError(f"startup contract ownership overlap: {overlap_list}")
+    _raise_for_unclassified_keys(
+        keys=set(runtime_owned),
+        allowed_keys=_RUNTIME_OWNED_STARTUP_CONTRACT_KEY_SET,
+        error_prefix="unclassified runtime-owned startup contract keys",
+    )
+    _raise_for_unclassified_keys(
+        keys=set(controller_extensions),
+        allowed_keys=_CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEY_SET,
+        error_prefix="unclassified controller-owned startup contract keys",
+    )
     return {**runtime_owned, **controller_extensions}
