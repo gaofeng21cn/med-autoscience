@@ -379,7 +379,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     assert seen["overlay_quest_root"] == protocol_quest_root
     assert seen["hydration_quest_root"] == protocol_quest_root
 
-def test_study_runtime_status_treats_stopped_quest_as_resumable(monkeypatch, tmp_path: Path) -> None:
+def test_study_runtime_status_blocks_stopped_quest_pending_explicit_rerun(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -414,8 +414,53 @@ def test_study_runtime_status_treats_stopped_quest_as_resumable(monkeypatch, tmp
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
-    assert result["decision"] == "resume"
-    assert result["reason"] == "quest_stopped"
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+
+
+def test_ensure_study_runtime_does_not_auto_resume_stopped_quest(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: pytest.fail("_resume_quest should not run for stopped quests under P1 rerun policy"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
     assert result["quest_status"] == "stopped"
 
 

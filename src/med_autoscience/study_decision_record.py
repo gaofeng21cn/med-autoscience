@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
@@ -29,6 +30,20 @@ _CONTROLLER_ACTION_ALLOWED_FIELDS = frozenset({"action_type", "payload_ref"})
 _RECORD_REF_ALLOWED_FIELDS = frozenset({"decision_id", "artifact_path"})
 
 
+class StudyDecisionType(StrEnum):
+    CONTINUE_SAME_LINE = "continue_same_line"
+    RELAUNCH_BRANCH = "relaunch_branch"
+    REROUTE_STUDY = "reroute_study"
+    STOP_LOSS = "stop_loss"
+    PROMOTE_TO_DELIVERY = "promote_to_delivery"
+
+
+class StudyDecisionActionType(StrEnum):
+    ENSURE_STUDY_RUNTIME = "ensure_study_runtime"
+    PAUSE_RUNTIME = "pause_runtime"
+    STOP_RUNTIME = "stop_runtime"
+
+
 def _reject_unknown_fields(label: str, payload: dict[str, Any], allowed_fields: frozenset[str]) -> None:
     unknown_fields = sorted(set(payload) - allowed_fields)
     if unknown_fields:
@@ -39,6 +54,22 @@ def _require_text(label: str, field_name: str, value: Any) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{label} {field_name} must be non-empty")
     return value.strip()
+
+
+def _normalize_decision_type(value: Any) -> StudyDecisionType:
+    normalized = _require_text("study decision record", "decision_type", value)
+    try:
+        return StudyDecisionType(normalized)
+    except ValueError as exc:
+        raise ValueError(f"unknown study decision type: {normalized}") from exc
+
+
+def _normalize_controller_action_type(value: Any) -> StudyDecisionActionType:
+    normalized = _require_text("study decision controller action", "action_type", value)
+    try:
+        return StudyDecisionActionType(normalized)
+    except ValueError as exc:
+        raise ValueError(f"unknown study decision controller action: {normalized}") from exc
 
 
 def _payload_text(payload: dict[str, Any], field_name: str, label: str) -> str:
@@ -142,16 +173,16 @@ class StudyDecisionPublicationEvalRef:
 
 @dataclass(frozen=True)
 class StudyDecisionControllerAction:
-    action_type: str
+    action_type: StudyDecisionActionType | str
     payload_ref: str
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "action_type", _require_text("study decision controller action", "action_type", self.action_type))
+        object.__setattr__(self, "action_type", _normalize_controller_action_type(self.action_type))
         object.__setattr__(self, "payload_ref", _require_text("study decision controller action", "payload_ref", self.payload_ref))
 
     def to_dict(self) -> dict[str, str]:
         return {
-            "action_type": self.action_type,
+            "action_type": self.action_type.value,
             "payload_ref": self.payload_ref,
         }
 
@@ -199,7 +230,7 @@ class StudyDecisionRecord:
     study_id: str
     quest_id: str
     emitted_at: str
-    decision_type: str
+    decision_type: StudyDecisionType | str
     charter_ref: StudyDecisionCharterRef
     runtime_escalation_ref: RuntimeEscalationRecordRef
     publication_eval_ref: StudyDecisionPublicationEvalRef
@@ -215,7 +246,7 @@ class StudyDecisionRecord:
         object.__setattr__(self, "study_id", _require_text("study decision record", "study_id", self.study_id))
         object.__setattr__(self, "quest_id", _require_text("study decision record", "quest_id", self.quest_id))
         object.__setattr__(self, "emitted_at", _require_text("study decision record", "emitted_at", self.emitted_at))
-        object.__setattr__(self, "decision_type", _require_text("study decision record", "decision_type", self.decision_type))
+        object.__setattr__(self, "decision_type", _normalize_decision_type(self.decision_type))
         object.__setattr__(
             self,
             "charter_ref",
@@ -282,7 +313,7 @@ class StudyDecisionRecord:
             "study_id": self.study_id,
             "quest_id": self.quest_id,
             "emitted_at": self.emitted_at,
-            "decision_type": self.decision_type,
+            "decision_type": self.decision_type.value,
             "charter_ref": self.charter_ref.to_dict(),
             "runtime_escalation_ref": self.runtime_escalation_ref.to_dict(),
             "publication_eval_ref": self.publication_eval_ref.to_dict(),
@@ -305,7 +336,7 @@ class StudyDecisionRecord:
             study_id=_payload_text(payload, "study_id", "study decision record"),
             quest_id=_payload_text(payload, "quest_id", "study decision record"),
             emitted_at=_payload_text(payload, "emitted_at", "study decision record"),
-            decision_type=_payload_text(payload, "decision_type", "study decision record"),
+            decision_type=_normalize_decision_type(_payload_text(payload, "decision_type", "study decision record")),
             charter_ref=StudyDecisionCharterRef.from_payload(
                 _payload_mapping(payload, "charter_ref", "study decision record")
             ),
