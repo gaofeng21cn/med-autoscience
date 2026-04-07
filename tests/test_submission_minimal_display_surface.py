@@ -4,7 +4,9 @@ import base64
 import importlib
 import json
 from pathlib import Path
+from typing import Any
 
+from med_autoscience import display_registry
 
 PNG_1X1_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8"
@@ -12,9 +14,43 @@ PNG_1X1_BASE64 = (
 )
 
 
+def _canonicalize_registry_id(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return normalized
+    if display_registry.is_evidence_figure_template(normalized):
+        return display_registry.get_evidence_figure_spec(normalized).template_id
+    if display_registry.is_illustration_shell(normalized):
+        return display_registry.get_illustration_shell_spec(normalized).shell_id
+    if display_registry.is_table_shell(normalized):
+        return display_registry.get_table_shell_spec(normalized).shell_id
+    return normalized
+
+
+def full_id(value: str) -> str:
+    return _canonicalize_registry_id(value)
+
+
+def _normalize_namespaced_ids(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        normalized: dict[str, Any] = {}
+        for key, value in payload.items():
+            normalized_value = _normalize_namespaced_ids(value)
+            if key in {"requirement_key", "template_id", "shell_id", "table_shell_id"} and isinstance(
+                normalized_value, str
+            ):
+                normalized_value = _canonicalize_registry_id(normalized_value)
+            normalized[key] = normalized_value
+        return normalized
+    if isinstance(payload, list):
+        return [_normalize_namespaced_ids(item) for item in payload]
+    return payload
+
+
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    normalized_payload = _normalize_namespaced_ids(payload)
+    path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def write_text(path: Path, text: str) -> None:
@@ -146,10 +182,12 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
         publication_profile="general_medical_journal",
     )
 
-    assert manifest["figures"][0]["template_id"] == "roc_curve_binary"
+    assert manifest["figures"][0]["template_id"] == full_id("roc_curve_binary")
+    assert manifest["figures"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert manifest["figures"][0]["renderer_family"] == "r_ggplot2"
     assert manifest["figures"][0]["qc_profile"] == "publication_evidence_curve"
-    assert manifest["tables"][0]["table_shell_id"] == "table1_baseline_characteristics"
+    assert manifest["tables"][0]["table_shell_id"] == full_id("table1_baseline_characteristics")
+    assert manifest["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert manifest["tables"][0]["qc_profile"] == "publication_table_baseline"
 
 
@@ -280,7 +318,7 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
     tables_by_id = {item["table_id"]: item for item in manifest["tables"]}
 
     assert set(figures_by_id) == {"F1", "F14", "F17"}
-    assert figures_by_id["F14"]["template_id"] == "time_to_event_discrimination_calibration_panel"
+    assert figures_by_id["F14"]["template_id"] == full_id("time_to_event_discrimination_calibration_panel")
     assert figures_by_id["F14"]["renderer_family"] == "python"
     assert figures_by_id["F14"]["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
     assert figures_by_id["F17"]["qc_profile"] == "publication_multicenter_overview"
@@ -289,9 +327,9 @@ def test_create_submission_minimal_package_preserves_second_stage_display_entrie
     assert all((workspace_root / output_path).exists() for output_path in figures_by_id["F17"]["output_paths"])
 
     assert set(tables_by_id) == {"T1", "T2", "T3"}
-    assert tables_by_id["T2"]["table_shell_id"] == "table2_time_to_event_performance_summary"
+    assert tables_by_id["T2"]["table_shell_id"] == full_id("table2_time_to_event_performance_summary")
     assert tables_by_id["T2"]["qc_profile"] == "publication_table_performance"
-    assert tables_by_id["T3"]["table_shell_id"] == "table3_clinical_interpretation_summary"
+    assert tables_by_id["T3"]["table_shell_id"] == full_id("table3_clinical_interpretation_summary")
     assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
     assert tables_by_id["T2"]["output_paths"][0].endswith(".md")
     assert tables_by_id["T3"]["output_paths"][0].endswith(".md")
@@ -450,14 +488,14 @@ def test_create_submission_minimal_package_preserves_001_direct_migration_displa
     manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     assert set(figures_by_id) == {"F1", "F2", "F3", "F4", "F5"}
-    assert figures_by_id["F1"]["template_id"] == "cohort_flow_figure"
-    assert figures_by_id["F5"]["template_id"] == "multicenter_generalizability_overview"
+    assert figures_by_id["F1"]["template_id"] == full_id("cohort_flow_figure")
+    assert figures_by_id["F5"]["template_id"] == full_id("multicenter_generalizability_overview")
     assert figures_by_id["F5"]["qc_profile"] == "publication_multicenter_overview"
     assert manifest_payload["naming_map"]["figures"]["F5"] == "Figure5"
     assert all((workspace_root / output_path).exists() for output_path in figures_by_id["F5"]["output_paths"])
 
     assert set(tables_by_id) == {"T1", "T2"}
-    assert tables_by_id["T2"]["table_shell_id"] == "table2_time_to_event_performance_summary"
+    assert tables_by_id["T2"]["table_shell_id"] == full_id("table2_time_to_event_performance_summary")
     assert tables_by_id["T2"]["qc_profile"] == "publication_table_performance"
     assert manifest_payload["naming_map"]["tables"]["T2"] == "Table2"
     assert (workspace_root / tables_by_id["T2"]["output_paths"][0]).exists()

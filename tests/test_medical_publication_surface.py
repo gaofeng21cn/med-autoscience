@@ -3,7 +3,9 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+from typing import Any
 
+from med_autoscience import display_registry
 
 TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
     {
@@ -51,9 +53,43 @@ TIME_TO_EVENT_DIRECT_MIGRATION_DISPLAY_PLAN = [
 ]
 
 
+def _canonicalize_registry_id(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return normalized
+    if display_registry.is_evidence_figure_template(normalized):
+        return display_registry.get_evidence_figure_spec(normalized).template_id
+    if display_registry.is_illustration_shell(normalized):
+        return display_registry.get_illustration_shell_spec(normalized).shell_id
+    if display_registry.is_table_shell(normalized):
+        return display_registry.get_table_shell_spec(normalized).shell_id
+    return normalized
+
+
+def full_id(value: str) -> str:
+    return _canonicalize_registry_id(value)
+
+
+def _normalize_namespaced_ids(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        normalized: dict[str, Any] = {}
+        for key, value in payload.items():
+            normalized_value = _normalize_namespaced_ids(value)
+            if key in {"requirement_key", "template_id", "shell_id", "table_shell_id"} and isinstance(
+                normalized_value, str
+            ):
+                normalized_value = _canonicalize_registry_id(normalized_value)
+            normalized[key] = normalized_value
+        return normalized
+    if isinstance(payload, list):
+        return [_normalize_namespaced_ids(item) for item in payload]
+    return payload
+
+
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    normalized_payload = _normalize_namespaced_ids(payload)
+    path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def make_quest(
@@ -1516,7 +1552,7 @@ def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_pa
     payload["tables"].append(
         {
             "table_id": "T3",
-            "table_shell_id": "table3_clinical_interpretation_summary",
+            "table_shell_id": full_id("table3_clinical_interpretation_summary"),
             "input_schema_id": "clinical_interpretation_summary_v1",
             "qc_profile": "publication_table_interpretation",
             "qc_result": {"status": "pass", "issues": []},
@@ -1526,7 +1562,7 @@ def test_build_report_blocks_when_table3_markdown_contains_forbidden_term(tmp_pa
             "asset_paths": ["paper/tables/T3_interpretation.md"],
         }
     )
-    table_catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dump_json(table_catalog_path, payload)
 
     report = module.build_surface_report(module.build_surface_state(quest_root))
 

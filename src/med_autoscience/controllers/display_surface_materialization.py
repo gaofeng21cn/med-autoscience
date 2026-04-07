@@ -24,6 +24,7 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 from matplotlib.textpath import TextPath  # noqa: E402
 
 from med_autoscience import display_layout_qc, display_registry, publication_display_contract  # noqa: E402
+from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id
 
 
 _INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
@@ -680,6 +681,15 @@ def _build_render_context(
     }
 
 
+def _require_namespaced_registry_id(identifier: str, *, label: str) -> tuple[str, str]:
+    try:
+        pack_id = get_pack_id(identifier)
+        short_id = get_template_short_id(identifier)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be namespaced as '<pack_id>::<template_id>'") from exc
+    return pack_id, short_id
+
+
 def _read_bool_override(mapping: dict[str, Any], key: str, default: bool) -> bool:
     value = mapping.get(key)
     if isinstance(value, bool):
@@ -1081,9 +1091,10 @@ def _validate_cohort_flow_payload(path: Path, payload: dict[str, Any]) -> dict[s
 
 
 def _validate_submission_graphical_abstract_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    expected_shell_id = display_registry.get_illustration_shell_spec("submission_graphical_abstract").shell_id
     shell_id = _require_non_empty_string(payload.get("shell_id"), label=f"{path.name} shell_id")
-    if shell_id != "submission_graphical_abstract":
-        raise ValueError(f"{path.name} shell_id must be `submission_graphical_abstract`")
+    if shell_id != expected_shell_id:
+        raise ValueError(f"{path.name} shell_id must be `{expected_shell_id}`")
     display_id = _require_non_empty_string(payload.get("display_id"), label=f"{path.name} display_id")
     catalog_id = _require_non_empty_string(payload.get("catalog_id"), label=f"{path.name} catalog_id")
     title = _require_non_empty_string(payload.get("title"), label=f"{path.name} title")
@@ -1605,7 +1616,11 @@ def _validate_binary_curve_display_payload(
         if time_horizon_months is not None
         else None
     )
-    if expected_template_id == "time_to_event_decision_curve":
+    _, expected_template_short_id = _require_namespaced_registry_id(
+        expected_template_id,
+        label=f"{path.name} display `{expected_display_id}` template_id",
+    )
+    if expected_template_short_id == "time_to_event_decision_curve":
         return {
             "display_id": expected_display_id,
             "template_id": expected_template_id,
@@ -2046,7 +2061,11 @@ def _validate_time_to_event_display_payload(
     title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
     x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
     y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
-    if expected_template_id == "time_to_event_risk_group_summary":
+    _, expected_template_short_id = _require_namespaced_registry_id(
+        expected_template_id,
+        label=f"{path.name} display `{expected_display_id}` template_id",
+    )
+    if expected_template_short_id == "time_to_event_risk_group_summary":
         summaries_payload = payload.get("risk_group_summaries")
         if not isinstance(summaries_payload, list) or not summaries_payload:
             raise ValueError(
@@ -5651,6 +5670,7 @@ def _render_r_evidence_figure(
     output_png_path.parent.mkdir(parents=True, exist_ok=True)
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
     layout_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    _, template_short_id = _require_namespaced_registry_id(template_id, label="template_id")
 
     with tempfile.TemporaryDirectory(prefix="medautosci-evidence-") as tmpdir:
         tmpdir_path = Path(tmpdir)
@@ -5662,7 +5682,7 @@ def _render_r_evidence_figure(
             [
                 rscript,
                 str(script_path),
-                template_id,
+                template_short_id,
                 str(payload_path),
                 str(output_png_path),
                 str(output_pdf_path),
@@ -8911,90 +8931,91 @@ def _render_python_evidence_figure(
     output_pdf_path: Path,
     layout_sidecar_path: Path,
 ) -> None:
-    if template_id == "binary_calibration_decision_curve_panel":
+    _, template_short_id = _require_namespaced_registry_id(template_id, label="template_id")
+    if template_short_id == "binary_calibration_decision_curve_panel":
         _render_python_binary_calibration_decision_curve_panel(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "model_complexity_audit_panel":
+    if template_short_id == "model_complexity_audit_panel":
         _render_python_model_complexity_audit_panel(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "risk_layering_monotonic_bars":
+    if template_short_id == "risk_layering_monotonic_bars":
         _render_python_risk_layering_monotonic_bars(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "shap_summary_beeswarm":
+    if template_short_id == "shap_summary_beeswarm":
         _render_python_shap_summary_beeswarm(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "time_dependent_roc_comparison_panel":
+    if template_short_id == "time_dependent_roc_comparison_panel":
         _render_python_time_dependent_roc_comparison_panel(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "time_to_event_stratified_cumulative_incidence_panel":
+    if template_short_id == "time_to_event_stratified_cumulative_incidence_panel":
         _render_python_time_to_event_stratified_cumulative_incidence_panel(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "time_to_event_risk_group_summary":
+    if template_short_id == "time_to_event_risk_group_summary":
         _render_python_time_to_event_risk_group_summary(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "time_to_event_decision_curve":
+    if template_short_id == "time_to_event_decision_curve":
         _render_python_time_to_event_decision_curve(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "time_to_event_discrimination_calibration_panel":
+    if template_short_id == "time_to_event_discrimination_calibration_panel":
         _render_python_time_to_event_discrimination_calibration_panel(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
             layout_sidecar_path=layout_sidecar_path,
         )
         return
-    if template_id == "multicenter_generalizability_overview":
+    if template_short_id == "multicenter_generalizability_overview":
         _render_python_multicenter_generalizability_overview(
-            template_id=template_id,
+            template_id=template_short_id,
             display_payload=display_payload,
             output_png_path=output_png_path,
             output_pdf_path=output_pdf_path,
@@ -9025,11 +9046,24 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         display_id = str(item.get("display_id") or "").strip()
         display_kind = str(item.get("display_kind") or "").strip()
         catalog_id = str(item.get("catalog_id") or "").strip()
+        requirement_short_id = ""
+        if display_kind == "figure":
+            if display_registry.is_illustration_shell(requirement_key):
+                requirement_short_id = get_template_short_id(
+                    display_registry.get_illustration_shell_spec(requirement_key).shell_id
+                )
+            elif display_registry.is_evidence_figure_template(requirement_key):
+                requirement_short_id = get_template_short_id(
+                    display_registry.get_evidence_figure_spec(requirement_key).template_id
+                )
+        elif display_kind == "table" and display_registry.is_table_shell(requirement_key):
+            requirement_short_id = get_template_short_id(display_registry.get_table_shell_spec(requirement_key).shell_id)
 
-        if requirement_key == "cohort_flow_figure":
+        if requirement_short_id == "cohort_flow_figure":
             if display_kind != "figure":
                 raise ValueError("cohort_flow_figure must be registered as a figure display")
-            spec = display_registry.get_illustration_shell_spec("cohort_flow_figure")
+            spec = display_registry.get_illustration_shell_spec(requirement_key)
+            pack_id, _ = _require_namespaced_registry_id(spec.shell_id, label="cohort_flow_figure shell_id")
             if style_profile is None:
                 style_profile = publication_display_contract.load_publication_style_profile(
                     resolved_paper_root / "publication_style_profile.json"
@@ -9064,6 +9098,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 render_context=render_context,
             )
             layout_sidecar = load_json(output_layout_path)
+            dump_json(output_layout_path, layout_sidecar)
             qc_result = display_layout_qc.run_display_layout_qc(
                 qc_profile=spec.shell_qc_profile,
                 layout_sidecar=layout_sidecar,
@@ -9073,6 +9108,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             entry = {
                 "figure_id": figure_id,
                 "template_id": spec.shell_id,
+                "pack_id": pack_id,
                 "renderer_family": spec.renderer_family,
                 "paper_role": spec.allowed_paper_roles[0],
                 "input_schema_id": spec.input_schema_id,
@@ -9100,10 +9136,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             figures_materialized.append(figure_id)
             continue
 
-        if requirement_key == "table1_baseline_characteristics":
+        if requirement_short_id == "table1_baseline_characteristics":
             if display_kind != "table":
                 raise ValueError("table1_baseline_characteristics must be registered as a table display")
-            spec = display_registry.get_table_shell_spec("table1_baseline_characteristics")
+            spec = display_registry.get_table_shell_spec(requirement_key)
+            pack_id, _ = _require_namespaced_registry_id(spec.shell_id, label="table1_baseline_characteristics shell_id")
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
             group_labels, rows = _validate_baseline_table_payload(payload_path, payload)
@@ -9123,6 +9160,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
+                "pack_id": pack_id,
                 "paper_role": spec.allowed_paper_roles[0],
                 "input_schema_id": spec.input_schema_id,
                 "qc_profile": spec.table_qc_profile,
@@ -9151,7 +9189,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             tables_materialized.append(table_id)
             continue
 
-        if requirement_key in {
+        if requirement_short_id in {
             "table2_time_to_event_performance_summary",
             "table3_clinical_interpretation_summary",
             "performance_summary_table_generic",
@@ -9160,11 +9198,12 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             if display_kind != "table":
                 raise ValueError(f"{requirement_key} must be registered as a table display")
             spec = display_registry.get_table_shell_spec(requirement_key)
+            pack_id, _ = _require_namespaced_registry_id(spec.shell_id, label=f"{requirement_key} shell_id")
             payload_path = _table_payload_path(paper_root=resolved_paper_root, input_schema_id=spec.input_schema_id)
             payload = load_json(payload_path)
             table_id = _resolve_table_catalog_id(display_id=display_id, catalog_id=catalog_id)
             output_csv_path: Path | None = None
-            if requirement_key == "table2_time_to_event_performance_summary":
+            if requirement_short_id == "table2_time_to_event_performance_summary":
                 column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = (
                     str(payload.get("title") or "Time-to-event model performance summary").strip()
@@ -9180,7 +9219,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     rows=rows,
                     stub_header=stub_header,
                 )
-            elif requirement_key == "table3_clinical_interpretation_summary":
+            elif requirement_short_id == "table3_clinical_interpretation_summary":
                 column_labels, rows = _validate_column_table_payload(payload_path, payload)
                 title = str(payload.get("title") or "Clinical interpretation summary").strip() or "Clinical interpretation summary"
                 output_md_path = resolved_paper_root / "tables" / "generated" / f"{table_id}_clinical_interpretation_summary.md"
@@ -9193,7 +9232,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     rows=rows,
                     stub_header=stub_header,
                 )
-            elif requirement_key == "performance_summary_table_generic":
+            elif requirement_short_id == "performance_summary_table_generic":
                 row_header_label, column_labels, rows = _validate_performance_summary_table_generic_payload(
                     payload_path,
                     payload,
@@ -9237,6 +9276,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
+                "pack_id": pack_id,
                 "paper_role": spec.allowed_paper_roles[0],
                 "input_schema_id": spec.input_schema_id,
                 "qc_profile": spec.table_qc_profile,
@@ -9271,6 +9311,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
 
         if display_kind == "figure" and display_registry.is_evidence_figure_template(requirement_key):
             spec = display_registry.get_evidence_figure_spec(requirement_key)
+            pack_id, template_short_id = _require_namespaced_registry_id(spec.template_id, label=f"{requirement_key} template_id")
             if style_profile is None:
                 style_profile = publication_display_contract.load_publication_style_profile(
                     resolved_paper_root / "publication_style_profile.json"
@@ -9293,9 +9334,9 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             )
             render_payload = dict(display_payload)
             render_payload["render_context"] = render_context
-            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.png"
-            output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.pdf"
-            layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{spec.template_id}.layout.json"
+            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.png"
+            output_pdf_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.pdf"
+            layout_sidecar_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{template_short_id}.layout.json"
             if spec.renderer_family == "r_ggplot2":
                 _render_r_evidence_figure(
                     template_id=spec.template_id,
@@ -9335,6 +9376,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             entry = {
                 "figure_id": figure_id,
                 "template_id": spec.template_id,
+                "pack_id": pack_id,
                 "renderer_family": spec.renderer_family,
                 "paper_role": paper_role,
                 "input_schema_id": spec.input_schema_id,
@@ -9364,6 +9406,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     submission_graphical_abstract_path = resolved_paper_root / "submission_graphical_abstract.json"
     if submission_graphical_abstract_path.exists():
         spec = display_registry.get_illustration_shell_spec("submission_graphical_abstract")
+        pack_id, _ = _require_namespaced_registry_id(spec.shell_id, label="submission_graphical_abstract shell_id")
         if style_profile is None:
             style_profile = publication_display_contract.load_publication_style_profile(
                 resolved_paper_root / "publication_style_profile.json"
@@ -9409,6 +9452,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         entry = {
             "figure_id": figure_id,
             "template_id": spec.shell_id,
+            "pack_id": pack_id,
             "renderer_family": spec.renderer_family,
             "paper_role": str(normalized_shell_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip(),
             "input_schema_id": spec.input_schema_id,

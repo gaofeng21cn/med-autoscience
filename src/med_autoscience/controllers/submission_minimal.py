@@ -14,6 +14,7 @@ from typing import Any
 from urllib import request
 
 from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.display_pack_resolver import get_pack_id
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
     GENERAL_MEDICAL_JOURNAL_PROFILE,
@@ -314,6 +315,19 @@ def prune_legacy_paper_surface_exports(
 def is_planned_catalog_entry(entry: dict[str, Any]) -> bool:
     status = str(entry.get("status") or "").strip().lower()
     return status.startswith("planned")
+
+
+def _resolve_pack_id(entry: dict[str, Any], *, id_field: str) -> str | None:
+    explicit_pack_id = str(entry.get("pack_id") or "").strip()
+    if explicit_pack_id:
+        return explicit_pack_id
+    identifier = str(entry.get(id_field) or "").strip()
+    if not identifier:
+        return None
+    try:
+        return get_pack_id(identifier)
+    except ValueError:
+        return None
 
 
 def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
@@ -1175,6 +1189,7 @@ def create_submission_minimal_package(
             {
                 "figure_id": entry["figure_id"],
                 "template_id": entry.get("template_id"),
+                "pack_id": _resolve_pack_id(entry, id_field="template_id"),
                 "renderer_family": entry.get("renderer_family"),
                 "paper_role": entry.get("paper_role"),
                 "input_schema_id": entry.get("input_schema_id"),
@@ -1209,6 +1224,7 @@ def create_submission_minimal_package(
             {
                 "table_id": entry["table_id"],
                 "table_shell_id": entry.get("table_shell_id"),
+                "pack_id": _resolve_pack_id(entry, id_field="table_shell_id"),
                 "paper_role": entry.get("paper_role"),
                 "input_schema_id": entry.get("input_schema_id"),
                 "qc_profile": entry.get("qc_profile"),

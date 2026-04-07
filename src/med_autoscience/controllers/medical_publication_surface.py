@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import display_registry
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, report_store as runtime_protocol_report_store, user_message
 from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
@@ -1029,7 +1030,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     for path in discover_table_text_assets(
         state.paper_root,
         state.table_catalog_path,
-        table_shell_ids={"table3_clinical_interpretation_summary"},
+        table_shell_ids={display_registry.get_table_shell_spec("table3_clinical_interpretation_summary").shell_id},
     ):
         forbidden_hits.extend(scan_markdown_table_body(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)

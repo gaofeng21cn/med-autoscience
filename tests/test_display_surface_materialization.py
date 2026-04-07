@@ -4,13 +4,51 @@ import importlib
 import json
 from pathlib import Path
 import re
+from typing import Any
 
 import pytest
+
+from med_autoscience import display_registry
+from med_autoscience.display_pack_resolver import get_template_short_id
+
+
+def _canonicalize_registry_id(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        return normalized
+    if display_registry.is_evidence_figure_template(normalized):
+        return display_registry.get_evidence_figure_spec(normalized).template_id
+    if display_registry.is_illustration_shell(normalized):
+        return display_registry.get_illustration_shell_spec(normalized).shell_id
+    if display_registry.is_table_shell(normalized):
+        return display_registry.get_table_shell_spec(normalized).shell_id
+    return normalized
+
+
+def full_id(value: str) -> str:
+    return _canonicalize_registry_id(value)
+
+
+def _normalize_namespaced_ids(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        normalized: dict[str, Any] = {}
+        for key, value in payload.items():
+            normalized_value = _normalize_namespaced_ids(value)
+            if key in {"requirement_key", "template_id", "shell_id", "table_shell_id"} and isinstance(
+                normalized_value, str
+            ):
+                normalized_value = _canonicalize_registry_id(normalized_value)
+            normalized[key] = normalized_value
+        return normalized
+    if isinstance(payload, list):
+        return [_normalize_namespaced_ids(item) for item in payload]
+    return payload
 
 
 def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    normalized_payload = _normalize_namespaced_ids(payload)
+    path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def extract_svg_font_size(svg_text: str, marker: str) -> float:
@@ -1002,7 +1040,8 @@ def build_display_surface_workspace(
 
 
 def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
-    if template_id in {
+    template_short_id = get_template_short_id(template_id) if "::" in template_id else template_id
+    if template_short_id in {
         "roc_curve_binary",
         "pr_curve_binary",
         "calibration_curve_binary",
@@ -1028,7 +1067,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0]},
             },
         }
-    if template_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
+    if template_short_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1047,7 +1086,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "groups": [{"label": "Low risk", "times": [0.0, 12.0], "values": [1.0, 0.78]}],
             },
         }
-    if template_id == "time_to_event_risk_group_summary":
+    if template_short_id == "time_to_event_risk_group_summary":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1088,7 +1127,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ],
             },
         }
-    if template_id == "time_to_event_discrimination_calibration_panel":
+    if template_short_id == "time_to_event_discrimination_calibration_panel":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1127,7 +1166,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "calibration_callout": {"group_label": "Decile 10", "predicted_risk_5y": 0.051, "observed_risk_5y": 0.074},
             },
         }
-    if template_id == "time_to_event_decision_curve":
+    if template_short_id == "time_to_event_decision_curve":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1155,7 +1194,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "treated_fraction_series": {"label": "Model", "x": [0.5, 1.0, 2.0], "y": [40.0, 20.0, 5.0]},
             },
         }
-    if template_id in {"umap_scatter_grouped", "pca_scatter_grouped", "tsne_scatter_grouped"}:
+    if template_short_id in {"umap_scatter_grouped", "pca_scatter_grouped", "tsne_scatter_grouped"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1177,7 +1216,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id in {"heatmap_group_comparison", "performance_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
+    if template_short_id in {"heatmap_group_comparison", "performance_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1193,11 +1232,11 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             ],
             "metrics": (
                 {"metric_name": "AUC", "matrix_cells": [{"x": "All participants", "y": "Integrated model", "value": 0.83}]}
-                if template_id == "performance_heatmap"
-                else {"score_method": "GSVA"} if template_id == "gsva_ssgsea_heatmap" else {}
+                if template_short_id == "performance_heatmap"
+                else {"score_method": "GSVA"} if template_short_id == "gsva_ssgsea_heatmap" else {}
             ),
         }
-    if template_id == "correlation_heatmap":
+    if template_short_id == "correlation_heatmap":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1220,7 +1259,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id in {"forest_effect_main", "subgroup_forest"}:
+    if template_short_id in {"forest_effect_main", "subgroup_forest"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1238,7 +1277,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "rows": [{"row_id": "1", "label": "Age >= 60", "lower": 0.90, "estimate": 1.05, "upper": 1.20}],
             },
         }
-    if template_id == "multicenter_generalizability_overview":
+    if template_short_id == "multicenter_generalizability_overview":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1297,7 +1336,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "legend_labels": ["Train", "Validation"],
             },
         }
-    if template_id == "shap_summary_beeswarm":
+    if template_short_id == "shap_summary_beeswarm":
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1346,13 +1385,15 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["figure_id"] == "F1"
-    assert figure_catalog["figures"][0]["template_id"] == "cohort_flow_figure"
+    assert figure_catalog["figures"][0]["template_id"] == full_id("cohort_flow_figure")
+    assert figure_catalog["figures"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figure_catalog["figures"][0]["renderer_family"] == "python"
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     assert table_catalog["tables"][0]["table_id"] == "T1"
-    assert table_catalog["tables"][0]["table_shell_id"] == "table1_baseline_characteristics"
+    assert table_catalog["tables"][0]["table_shell_id"] == full_id("table1_baseline_characteristics")
+    assert table_catalog["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
 
 
@@ -2235,20 +2276,21 @@ def test_materialize_display_surface_generates_registered_evidence_figures(tmp_p
     assert (paper_root / "figures" / "generated" / "F6_kaplan_meier_grouped.png").exists()
     assert (paper_root / "figures" / "generated" / "F6_kaplan_meier_grouped.pdf").exists()
     assert {item["template_id"] for item in render_calls} == {
-        "roc_curve_binary",
-        "pr_curve_binary",
-        "calibration_curve_binary",
-        "decision_curve_binary",
-        "kaplan_meier_grouped",
+        full_id("roc_curve_binary"),
+        full_id("pr_curve_binary"),
+        full_id("calibration_curve_binary"),
+        full_id("decision_curve_binary"),
+        full_id("kaplan_meier_grouped"),
     }
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
-    assert figures_by_id["F2"]["template_id"] == "roc_curve_binary"
+    assert figures_by_id["F2"]["template_id"] == full_id("roc_curve_binary")
+    assert figures_by_id["F2"]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figures_by_id["F2"]["renderer_family"] == "r_ggplot2"
     assert figures_by_id["F2"]["input_schema_id"] == "binary_prediction_curve_inputs_v1"
     assert figures_by_id["F5"]["qc_profile"] == "publication_evidence_curve"
-    assert figures_by_id["F6"]["template_id"] == "kaplan_meier_grouped"
+    assert figures_by_id["F6"]["template_id"] == full_id("kaplan_meier_grouped")
     assert figures_by_id["F6"]["input_schema_id"] == "time_to_event_grouped_inputs_v1"
 
 
@@ -2337,31 +2379,31 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert (paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").exists()
     assert (paper_root / "tables" / "generated" / "T3_clinical_interpretation_summary.md").exists()
     assert {template_id for template_id, _ in render_calls} == {
-        "roc_curve_binary",
-        "pr_curve_binary",
-        "calibration_curve_binary",
-        "decision_curve_binary",
-        "time_dependent_roc_horizon",
-        "kaplan_meier_grouped",
-        "cumulative_incidence_grouped",
-        "umap_scatter_grouped",
-        "pca_scatter_grouped",
-        "tsne_scatter_grouped",
-        "heatmap_group_comparison",
-        "correlation_heatmap",
-        "clustered_heatmap",
-        "forest_effect_main",
-        "subgroup_forest",
-        "shap_summary_beeswarm",
-        "time_to_event_discrimination_calibration_panel",
-        "time_to_event_risk_group_summary",
-        "time_to_event_decision_curve",
-        "multicenter_generalizability_overview",
+        full_id("roc_curve_binary"),
+        full_id("pr_curve_binary"),
+        full_id("calibration_curve_binary"),
+        full_id("decision_curve_binary"),
+        full_id("time_dependent_roc_horizon"),
+        full_id("kaplan_meier_grouped"),
+        full_id("cumulative_incidence_grouped"),
+        full_id("umap_scatter_grouped"),
+        full_id("pca_scatter_grouped"),
+        full_id("tsne_scatter_grouped"),
+        full_id("heatmap_group_comparison"),
+        full_id("correlation_heatmap"),
+        full_id("clustered_heatmap"),
+        full_id("forest_effect_main"),
+        full_id("subgroup_forest"),
+        full_id("shap_summary_beeswarm"),
+        full_id("time_to_event_discrimination_calibration_panel"),
+        full_id("time_to_event_risk_group_summary"),
+        full_id("time_to_event_decision_curve"),
+        full_id("multicenter_generalizability_overview"),
     }
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
-    assert figures_by_id["F7"]["template_id"] == "cumulative_incidence_grouped"
+    assert figures_by_id["F7"]["template_id"] == full_id("cumulative_incidence_grouped")
     assert figures_by_id["F8"]["input_schema_id"] == "embedding_grouped_inputs_v1"
     assert figures_by_id["F10"]["qc_profile"] == "publication_heatmap"
     assert figures_by_id["F12"]["qc_profile"] == "publication_forest_plot"
@@ -2371,21 +2413,21 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F15"]["qc_profile"] == "publication_survival_curve"
     assert figures_by_id["F16"]["qc_profile"] == "publication_decision_curve"
     assert figures_by_id["F17"]["qc_profile"] == "publication_multicenter_overview"
-    assert figures_by_id["F18"]["template_id"] == "time_dependent_roc_horizon"
+    assert figures_by_id["F18"]["template_id"] == full_id("time_dependent_roc_horizon")
     assert figures_by_id["F18"]["input_schema_id"] == "binary_prediction_curve_inputs_v1"
-    assert figures_by_id["F19"]["template_id"] == "tsne_scatter_grouped"
+    assert figures_by_id["F19"]["template_id"] == full_id("tsne_scatter_grouped")
     assert figures_by_id["F19"]["qc_profile"] == "publication_embedding_scatter"
-    assert figures_by_id["F20"]["template_id"] == "subgroup_forest"
+    assert figures_by_id["F20"]["template_id"] == full_id("subgroup_forest")
     assert figures_by_id["F20"]["qc_profile"] == "publication_forest_plot"
-    assert figures_by_id["F21"]["template_id"] == "clustered_heatmap"
+    assert figures_by_id["F21"]["template_id"] == full_id("clustered_heatmap")
     assert figures_by_id["F21"]["input_schema_id"] == "clustered_heatmap_inputs_v1"
     assert figures_by_id["F21"]["qc_profile"] == "publication_heatmap"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
-    assert tables_by_id["T2"]["table_shell_id"] == "table2_time_to_event_performance_summary"
+    assert tables_by_id["T2"]["table_shell_id"] == full_id("table2_time_to_event_performance_summary")
     assert tables_by_id["T2"]["qc_profile"] == "publication_table_performance"
-    assert tables_by_id["T3"]["table_shell_id"] == "table3_clinical_interpretation_summary"
+    assert tables_by_id["T3"]["table_shell_id"] == full_id("table3_clinical_interpretation_summary")
     assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
 
 
@@ -2441,7 +2483,8 @@ def test_materialize_display_surface_materializes_optional_submission_graphical_
     assert (paper_root / "figures" / "generated" / "GA1_graphical_abstract.png").exists()
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
-    assert figures_by_id["GA1"]["template_id"] == "submission_graphical_abstract"
+    assert figures_by_id["GA1"]["template_id"] == full_id("submission_graphical_abstract")
+    assert figures_by_id["GA1"]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figures_by_id["GA1"]["qc_profile"] == "submission_graphical_abstract"
     assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
 
@@ -2671,13 +2714,13 @@ def test_materialize_display_surface_supports_generic_anchor_table_shells(tmp_pa
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
-    assert tables_by_id["T2"]["table_shell_id"] == "performance_summary_table_generic"
+    assert tables_by_id["T2"]["table_shell_id"] == full_id("performance_summary_table_generic")
     assert tables_by_id["T2"]["input_schema_id"] == "performance_summary_table_generic_v1"
     assert tables_by_id["T2"]["asset_paths"] == [
         "paper/tables/generated/T2_performance_summary_table_generic.csv",
         "paper/tables/generated/T2_performance_summary_table_generic.md",
     ]
-    assert tables_by_id["T3"]["table_shell_id"] == "grouped_risk_event_summary_table"
+    assert tables_by_id["T3"]["table_shell_id"] == full_id("grouped_risk_event_summary_table")
     assert tables_by_id["T3"]["input_schema_id"] == "grouped_risk_event_summary_table_v1"
     assert tables_by_id["T3"]["asset_paths"] == [
         "paper/tables/generated/T3_grouped_risk_event_summary_table.csv",
@@ -2825,7 +2868,8 @@ def test_materialize_display_surface_generates_risk_layering_monotonic_bars(tmp_
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["figure_id"] == "F22"
-    assert figure_entry["template_id"] == "risk_layering_monotonic_bars"
+    assert figure_entry["template_id"] == full_id("risk_layering_monotonic_bars")
+    assert figure_entry["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "risk_layering_monotonic_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_risk_layering_bars"
@@ -2916,7 +2960,7 @@ def test_materialize_display_surface_generates_gsva_ssgsea_heatmap_baseline(tmp_
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["figure_id"] == "F23"
-    assert figure_entry["template_id"] == "gsva_ssgsea_heatmap"
+    assert figure_entry["template_id"] == full_id("gsva_ssgsea_heatmap")
     assert figure_entry["renderer_family"] == "r_ggplot2"
     assert figure_entry["input_schema_id"] == "gsva_ssgsea_heatmap_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_heatmap"
@@ -3008,7 +3052,7 @@ def test_materialize_display_surface_generates_performance_heatmap_baseline(tmp_
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["figure_id"] == "F25"
-    assert figure_entry["template_id"] == "performance_heatmap"
+    assert figure_entry["template_id"] == full_id("performance_heatmap")
     assert figure_entry["renderer_family"] == "r_ggplot2"
     assert figure_entry["input_schema_id"] == "performance_heatmap_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_heatmap"
@@ -3188,7 +3232,7 @@ def test_materialize_display_surface_generates_binary_calibration_decision_curve
     assert (paper_root / "figures" / "generated" / "F3_binary_calibration_decision_curve_panel.pdf").exists()
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
-    assert figure_entry["template_id"] == "binary_calibration_decision_curve_panel"
+    assert figure_entry["template_id"] == full_id("binary_calibration_decision_curve_panel")
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
@@ -3966,7 +4010,7 @@ def test_materialize_display_surface_generates_model_complexity_audit_panel(tmp_
     assert (paper_root / "figures" / "generated" / "F4_model_complexity_audit_panel.pdf").exists()
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
-    assert figure_entry["template_id"] == "model_complexity_audit_panel"
+    assert figure_entry["template_id"] == full_id("model_complexity_audit_panel")
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
@@ -4736,7 +4780,7 @@ def test_materialize_display_surface_generates_stratified_cumulative_incidence_p
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["figure_id"] == "F24"
-    assert figure_entry["template_id"] == "time_to_event_stratified_cumulative_incidence_panel"
+    assert figure_entry["template_id"] == full_id("time_to_event_stratified_cumulative_incidence_panel")
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "time_to_event_stratified_cumulative_incidence_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_survival_curve"
@@ -4858,7 +4902,7 @@ def test_materialize_display_surface_generates_time_dependent_roc_comparison_pan
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["figure_id"] == "F25"
-    assert figure_entry["template_id"] == "time_dependent_roc_comparison_panel"
+    assert figure_entry["template_id"] == full_id("time_dependent_roc_comparison_panel")
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "time_dependent_roc_comparison_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_evidence_curve"
