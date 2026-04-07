@@ -1,0 +1,13 @@
+template_id = "pca_scatter_grouped"
+full_template_id = "fenggaolab.org.medical-display-core::pca_scatter_grouped"
+kind = "evidence_figure"
+display_name = "PCA Scatter (Grouped)"
+paper_family_ids = ["D"]
+audit_family = "Data Geometry"
+renderer_family = "r_ggplot2"
+input_schema_ref = "embedding_grouped_inputs_v1"
+qc_profile_ref = "publication_embedding_scatter"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.pca_scatter_grouped:render"
+paper_proven = false

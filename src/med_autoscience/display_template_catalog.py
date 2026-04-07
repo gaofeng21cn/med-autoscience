@@ -5,6 +5,13 @@ from collections.abc import Mapping
 from med_autoscience import display_registry, display_schema_contract
 
 
+_CORE_PACK_ID = "fenggaolab.org.medical-display-core"
+
+
+def _full_id(short_id: str) -> str:
+    return f"{_CORE_PACK_ID}::{short_id}"
+
+
 def _template_metadata_by_id() -> dict[str, dict[str, str]]:
     metadata: dict[str, dict[str, str]] = {}
     for spec in display_registry.list_evidence_figure_specs():
@@ -133,12 +140,12 @@ def _render_paper_proven_baseline_section() -> list[str]:
     template_ids = ", ".join(
         f"`{item}`"
         for item in (
-            "binary_calibration_decision_curve_panel",
-            "time_to_event_discrimination_calibration_panel",
-            "time_to_event_risk_group_summary",
-            "time_to_event_decision_curve",
-            "multicenter_generalizability_overview",
-            "submission_graphical_abstract",
+            _full_id("binary_calibration_decision_curve_panel"),
+            _full_id("time_to_event_discrimination_calibration_panel"),
+            _full_id("time_to_event_risk_group_summary"),
+            _full_id("time_to_event_decision_curve"),
+            _full_id("multicenter_generalizability_overview"),
+            _full_id("submission_graphical_abstract"),
         )
     )
     return [

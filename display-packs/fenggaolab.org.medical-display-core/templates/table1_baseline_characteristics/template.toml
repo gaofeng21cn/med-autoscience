@@ -1,0 +1,13 @@
+template_id = "table1_baseline_characteristics"
+full_template_id = "fenggaolab.org.medical-display-core::table1_baseline_characteristics"
+kind = "table_shell"
+display_name = "Table 1 Baseline Characteristics"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "n/a"
+input_schema_ref = "baseline_characteristics_schema_v1"
+qc_profile_ref = "publication_table_baseline"
+required_exports = ["csv", "md"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.table1_baseline_characteristics:render"
+paper_proven = false

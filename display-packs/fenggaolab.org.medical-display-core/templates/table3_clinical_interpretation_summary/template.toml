@@ -1,0 +1,13 @@
+template_id = "table3_clinical_interpretation_summary"
+full_template_id = "fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary"
+kind = "table_shell"
+display_name = "Table 3 Clinical Interpretation Summary"
+paper_family_ids = ["A", "H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "n/a"
+input_schema_ref = "clinical_interpretation_summary_v1"
+qc_profile_ref = "publication_table_interpretation"
+required_exports = ["md"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.table3_clinical_interpretation_summary:render"
+paper_proven = false

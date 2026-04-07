@@ -1,0 +1,13 @@
+template_id = "model_complexity_audit_panel"
+full_template_id = "fenggaolab.org.medical-display-core::model_complexity_audit_panel"
+kind = "evidence_figure"
+display_name = "Model Complexity Audit Panel"
+paper_family_ids = ["F", "H"]
+audit_family = "Model Audit"
+renderer_family = "python"
+input_schema_ref = "model_complexity_audit_panel_inputs_v1"
+qc_profile_ref = "publication_model_complexity_audit"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.model_complexity_audit_panel:render"
+paper_proven = false

@@ -21,7 +21,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
 - Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells and Tables`
-- Template instances: `binary_calibration_decision_curve_panel`, `time_to_event_discrimination_calibration_panel`, `time_to_event_risk_group_summary`, `time_to_event_decision_curve`, `multicenter_generalizability_overview`, `submission_graphical_abstract`
+- Template instances: `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`, `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`, `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`, `fenggaolab.org.medical-display-core::time_to_event_decision_curve`, `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`, `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - Cross-paper golden regression priority: title policy, annotation placement, panel-label/header-band anchoring, grouped-separation readability, landmark/time-slice semantics, graphical-abstract arrow lanes, calibration axis-window fit, and multicenter legend title/label + tick-label readability
 
 ## Template Classes
@@ -30,85 +30,85 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `roc_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | ROC Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `pr_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Precision-Recall Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `calibration_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Calibration Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::roc_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | ROC Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::pr_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Precision-Recall Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::calibration_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Calibration Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 
 ### Clinical Utility
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `binary_calibration_decision_curve_panel` | `evidence_figure` | `A. Predictive Performance and Decision` | Binary Calibration and Decision Curve Panel | `python` | `binary_calibration_decision_curve_panel_inputs_v1` | `publication_binary_calibration_decision_curve` | `png`, `pdf` |
-| `time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `python` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel` | `evidence_figure` | `A. Predictive Performance and Decision` | Binary Calibration and Decision Curve Panel | `python` | `binary_calibration_decision_curve_panel_inputs_v1` | `publication_binary_calibration_decision_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `python` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` |
 
 ### Time-to-Event
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
-| `time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `time_dependent_roc_comparison_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC Comparison Panel | `python` | `time_dependent_roc_comparison_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
-| `cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
-| `time_to_event_stratified_cumulative_incidence_panel` | `evidence_figure` | `B. Survival and Time-to-Event` | Stratified Cumulative Incidence Panel | `python` | `time_to_event_stratified_cumulative_incidence_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
-| `time_to_event_discrimination_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Validation Discrimination and Grouped Calibration (Time-to-Event) | `python` | `time_to_event_discrimination_calibration_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
-| `time_to_event_risk_group_summary` | `evidence_figure` | `B. Survival and Time-to-Event` | Risk-Group Summary (Time-to-Event) | `python` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_dependent_roc_comparison_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC Comparison Panel | `python` | `time_dependent_roc_comparison_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_stratified_cumulative_incidence_panel` | `evidence_figure` | `B. Survival and Time-to-Event` | Stratified Cumulative Incidence Panel | `python` | `time_to_event_stratified_cumulative_incidence_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Validation Discrimination and Grouped Calibration (Time-to-Event) | `python` | `time_to_event_discrimination_calibration_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary` | `evidence_figure` | `B. Survival and Time-to-Event` | Risk-Group Summary (Time-to-Event) | `python` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 
 ### Data Geometry
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
-| `pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
-| `tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 
 ### Matrix Pattern
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `performance_heatmap` | `evidence_figure` | `B. Survival and Time-to-Event`, `E. Feature Pattern and Matrix` | Performance Heatmap | `r_ggplot2` | `performance_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `correlation_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
-| `gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::performance_heatmap` | `evidence_figure` | `B. Survival and Time-to-Event`, `E. Feature Pattern and Matrix` | Performance Heatmap | `r_ggplot2` | `performance_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::correlation_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 
 ### Effect Estimate
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
-| `subgroup_forest` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::subgroup_forest` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 
 ### Model Explanation
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `python` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `python` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` |
 
 ### Model Audit
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `model_complexity_audit_panel` | `evidence_figure` | `F. Model Explanation`, `H. Cohort and Study Design Evidence` | Model Complexity Audit Panel | `python` | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::model_complexity_audit_panel` | `evidence_figure` | `F. Model Explanation`, `H. Cohort and Study Design Evidence` | Model Complexity Audit Panel | `python` | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` | `png`, `pdf` |
 
 ### Generalizability
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `multicenter_generalizability_overview` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Multicenter Generalizability Overview | `python` | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::multicenter_generalizability_overview` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Multicenter Generalizability Overview | `python` | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` | `png`, `pdf` |
 
 ### Publication Shells and Tables
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
-| `submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
-| `table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
-| `table2_time_to_event_performance_summary` | `table_shell` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
-| `table3_clinical_interpretation_summary` | `table_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
-| `performance_summary_table_generic` | `table_shell` | `A. Predictive Performance and Decision` | Performance Summary Table (Generic) | `n/a` | `performance_summary_table_generic_v1` | `publication_table_performance` | `csv`, `md` |
-| `grouped_risk_event_summary_table` | `table_shell` | `B. Survival and Time-to-Event` | Grouped Risk Event Summary Table | `n/a` | `grouped_risk_event_summary_table_v1` | `publication_table_interpretation` | `csv`, `md` |
+| `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
+| `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary` | `table_shell` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
+| `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary` | `table_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
+| `fenggaolab.org.medical-display-core::performance_summary_table_generic` | `table_shell` | `A. Predictive Performance and Decision` | Performance Summary Table (Generic) | `n/a` | `performance_summary_table_generic_v1` | `publication_table_performance` | `csv`, `md` |
+| `fenggaolab.org.medical-display-core::grouped_risk_event_summary_table` | `table_shell` | `B. Survival and Time-to-Event` | Grouped Risk Event Summary Table | `n/a` | `grouped_risk_event_summary_table_v1` | `publication_table_interpretation` | `csv`, `md` |
 
 ## Input Schemas
 
@@ -116,7 +116,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Binary Prediction Curves
-- Templates: `roc_curve_binary`, `pr_curve_binary`, `calibration_curve_binary`, `decision_curve_binary`, `time_dependent_roc_horizon`
+- Templates: `fenggaolab.org.medical-display-core::roc_curve_binary`, `fenggaolab.org.medical-display-core::pr_curve_binary`, `fenggaolab.org.medical-display-core::calibration_curve_binary`, `fenggaolab.org.medical-display-core::decision_curve_binary`, `fenggaolab.org.medical-display-core::time_dependent_roc_horizon`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `series`
@@ -131,7 +131,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Monotonic Risk Layering Bars
-- Templates: `risk_layering_monotonic_bars`
+- Templates: `fenggaolab.org.medical-display-core::risk_layering_monotonic_bars`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `left_panel_title`, `left_x_label`, `left_bars`, `right_panel_title`, `right_x_label`, `right_bars`
@@ -146,7 +146,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Time-Dependent ROC Comparison Panel
-- Templates: `time_dependent_roc_comparison_panel`
+- Templates: `fenggaolab.org.medical-display-core::time_dependent_roc_comparison_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `panels`
@@ -161,7 +161,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Binary Calibration and Decision Curve Panel
-- Templates: `binary_calibration_decision_curve_panel`
+- Templates: `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `calibration_x_label`, `calibration_y_label`, `decision_x_label`, `decision_y_label`, `calibration_axis_window`, `calibration_series`, `decision_series`, `decision_reference_lines`, `decision_focus_window`
@@ -176,7 +176,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Model Complexity Audit Panel
-- Templates: `model_complexity_audit_panel`
+- Templates: `fenggaolab.org.medical-display-core::model_complexity_audit_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `metric_panels`, `audit_panels`
@@ -191,7 +191,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Time-to-Event Grouped Curves
-- Templates: `kaplan_meier_grouped`, `cumulative_incidence_grouped`, `time_to_event_risk_group_summary`
+- Templates: `fenggaolab.org.medical-display-core::kaplan_meier_grouped`, `fenggaolab.org.medical-display-core::cumulative_incidence_grouped`, `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`
@@ -206,7 +206,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Time-to-Event Stratified Cumulative Incidence Panel
-- Templates: `time_to_event_stratified_cumulative_incidence_panel`
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_stratified_cumulative_incidence_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `panels`
@@ -221,7 +221,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Time-to-Event Discrimination and Calibration Panel
-- Templates: `time_to_event_discrimination_calibration_panel`
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `panel_a_title`, `panel_b_title`, `discrimination_x_label`, `calibration_x_label`, `calibration_y_label`, `discrimination_points`, `calibration_summary`
@@ -236,7 +236,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Time-to-Event Decision Curves
-- Templates: `time_to_event_decision_curve`
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_decision_curve`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `panel_a_title`, `panel_b_title`, `x_label`, `y_label`, `treated_fraction_y_label`, `series`, `treated_fraction_series`
@@ -251,7 +251,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Grouped Embedding Scatter
-- Templates: `umap_scatter_grouped`, `pca_scatter_grouped`, `tsne_scatter_grouped`
+- Templates: `fenggaolab.org.medical-display-core::umap_scatter_grouped`, `fenggaolab.org.medical-display-core::pca_scatter_grouped`, `fenggaolab.org.medical-display-core::tsne_scatter_grouped`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `points`
@@ -266,7 +266,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Heatmap Group Comparison
-- Templates: `heatmap_group_comparison`
+- Templates: `fenggaolab.org.medical-display-core::heatmap_group_comparison`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `cells`
@@ -281,7 +281,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Performance Heatmap
-- Templates: `performance_heatmap`
+- Templates: `fenggaolab.org.medical-display-core::performance_heatmap`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `metric_name`, `row_order`, `column_order`, `cells`
@@ -296,7 +296,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Correlation Heatmap
-- Templates: `correlation_heatmap`
+- Templates: `fenggaolab.org.medical-display-core::correlation_heatmap`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `cells`
@@ -311,7 +311,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Clustered Heatmap
-- Templates: `clustered_heatmap`
+- Templates: `fenggaolab.org.medical-display-core::clustered_heatmap`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `row_order`, `column_order`, `cells`
@@ -326,7 +326,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: GSVA/ssGSEA Heatmap
-- Templates: `gsva_ssgsea_heatmap`
+- Templates: `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `score_method`, `row_order`, `column_order`, `cells`
@@ -341,7 +341,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Forest Effect Plot
-- Templates: `forest_effect_main`, `subgroup_forest`
+- Templates: `fenggaolab.org.medical-display-core::forest_effect_main`, `fenggaolab.org.medical-display-core::subgroup_forest`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `reference_value`, `rows`
@@ -356,7 +356,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: SHAP Summary Beeswarm
-- Templates: `shap_summary_beeswarm`
+- Templates: `fenggaolab.org.medical-display-core::shap_summary_beeswarm`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `rows`
@@ -371,7 +371,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `evidence_figure`
 - Display name: Multicenter Generalizability Overview
-- Templates: `multicenter_generalizability_overview`
+- Templates: `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `overview_mode`, `center_event_y_label`, `coverage_y_label`, `center_event_counts`, `coverage_panels`
@@ -386,7 +386,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `illustration_shell`
 - Display name: Cohort Flow Figure
-- Templates: `cohort_flow_figure`
+- Templates: `fenggaolab.org.medical-display-core::cohort_flow_figure`
 - Required top-level fields: `schema_version`, `shell_id`, `display_id`, `title`, `steps`
 - Optional top-level fields: `caption`, `exclusions`, `endpoint_inventory`, `design_panels`
 - Required display fields: None
@@ -401,7 +401,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `illustration_shell`
 - Display name: Submission Graphical Abstract
-- Templates: `submission_graphical_abstract`
+- Templates: `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - Required top-level fields: `schema_version`, `shell_id`, `display_id`, `catalog_id`, `title`, `caption`, `panels`
 - Optional top-level fields: `paper_role`, `footer_pills`
 - Required display fields: None
@@ -416,7 +416,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `table_shell`
 - Display name: Baseline Characteristics Table
-- Templates: `table1_baseline_characteristics`
+- Templates: `fenggaolab.org.medical-display-core::table1_baseline_characteristics`
 - Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `groups`, `variables`
 - Optional top-level fields: `caption`
 - Required display fields: None
@@ -431,7 +431,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `table_shell`
 - Display name: Time-to-Event Performance Summary Table
-- Templates: `table2_time_to_event_performance_summary`
+- Templates: `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary`
 - Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `columns`, `rows`
 - Optional top-level fields: `caption`
 - Required display fields: None
@@ -446,7 +446,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `table_shell`
 - Display name: Clinical Interpretation Summary Table
-- Templates: `table3_clinical_interpretation_summary`
+- Templates: `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary`
 - Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `columns`, `rows`
 - Optional top-level fields: `caption`
 - Required display fields: None
@@ -461,7 +461,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `table_shell`
 - Display name: Performance Summary Table (Generic)
-- Templates: `performance_summary_table_generic`
+- Templates: `fenggaolab.org.medical-display-core::performance_summary_table_generic`
 - Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `row_header_label`, `columns`, `rows`
 - Optional top-level fields: `caption`
 - Required display fields: None
@@ -476,7 +476,7 @@ The current audited inventory is broader than the subset already proven against 
 
 - Display kind: `table_shell`
 - Display name: Grouped Risk Event Summary Table
-- Templates: `grouped_risk_event_summary_table`
+- Templates: `fenggaolab.org.medical-display-core::grouped_risk_event_summary_table`
 - Required top-level fields: `schema_version`, `table_shell_id`, `display_id`, `title`, `surface_column_label`, `stratum_column_label`, `cases_column_label`, `events_column_label`, `risk_column_label`, `rows`
 - Optional top-level fields: `caption`
 - Required display fields: None

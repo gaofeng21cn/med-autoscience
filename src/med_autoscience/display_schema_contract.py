@@ -60,11 +60,22 @@ def _template_ids_for_evidence_class(evidence_class: str) -> tuple[str, ...]:
 
 
 def _template_ids_for_input_schema(input_schema_id: str) -> tuple[str, ...]:
-    return tuple(
+    evidence_template_ids = tuple(
         spec.template_id
         for spec in display_registry.list_evidence_figure_specs()
         if spec.input_schema_id == input_schema_id
     )
+    illustration_shell_ids = tuple(
+        spec.shell_id
+        for spec in display_registry.list_illustration_shell_specs()
+        if spec.input_schema_id == input_schema_id
+    )
+    table_shell_ids = tuple(
+        spec.shell_id
+        for spec in display_registry.list_table_shell_specs()
+        if spec.input_schema_id == input_schema_id
+    )
+    return evidence_template_ids + illustration_shell_ids + table_shell_ids
 
 
 _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
@@ -218,7 +229,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="time_dependent_roc_comparison_inputs_v1",
         display_kind="evidence_figure",
         display_name="Time-Dependent ROC Comparison Panel",
-        template_ids=("time_dependent_roc_comparison_panel",),
+        template_ids=_template_ids_for_input_schema("time_dependent_roc_comparison_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "y_label", "panels"),
         display_optional_fields=("paper_role",),
@@ -253,7 +264,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="binary_calibration_decision_curve_panel_inputs_v1",
         display_kind="evidence_figure",
         display_name="Binary Calibration and Decision Curve Panel",
-        template_ids=("binary_calibration_decision_curve_panel",),
+        template_ids=_template_ids_for_input_schema("binary_calibration_decision_curve_panel_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
             "display_id",
@@ -297,7 +308,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="model_complexity_audit_panel_inputs_v1",
         display_kind="evidence_figure",
         display_name="Model Complexity Audit Panel",
-        template_ids=("model_complexity_audit_panel",),
+        template_ids=_template_ids_for_input_schema("model_complexity_audit_panel_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=("display_id", "template_id", "title", "caption", "metric_panels", "audit_panels"),
         display_optional_fields=("paper_role",),
@@ -349,7 +360,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="time_to_event_stratified_cumulative_incidence_inputs_v1",
         display_kind="evidence_figure",
         display_name="Time-to-Event Stratified Cumulative Incidence Panel",
-        template_ids=("time_to_event_stratified_cumulative_incidence_panel",),
+        template_ids=_template_ids_for_input_schema("time_to_event_stratified_cumulative_incidence_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "y_label", "panels"),
         display_optional_fields=("paper_role",),
@@ -377,7 +388,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="time_to_event_discrimination_calibration_inputs_v1",
         display_kind="evidence_figure",
         display_name="Time-to-Event Discrimination and Calibration Panel",
-        template_ids=("time_to_event_discrimination_calibration_panel",),
+        template_ids=_template_ids_for_input_schema("time_to_event_discrimination_calibration_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
             "display_id",
@@ -424,7 +435,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="time_to_event_decision_curve_inputs_v1",
         display_kind="evidence_figure",
         display_name="Time-to-Event Decision Curves",
-        template_ids=("time_to_event_decision_curve",),
+        template_ids=_template_ids_for_input_schema("time_to_event_decision_curve_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
             "display_id",
@@ -647,7 +658,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="multicenter_generalizability_inputs_v1",
         display_kind="evidence_figure",
         display_name="Multicenter Generalizability Overview",
-        template_ids=("multicenter_generalizability_overview",),
+        template_ids=_template_ids_for_input_schema("multicenter_generalizability_inputs_v1"),
         required_top_level_fields=("schema_version", "input_schema_id", "displays"),
         display_required_fields=(
             "display_id",
@@ -682,7 +693,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="cohort_flow_shell_inputs_v1",
         display_kind="illustration_shell",
         display_name="Cohort Flow Figure",
-        template_ids=("cohort_flow_figure",),
+        template_ids=_template_ids_for_input_schema("cohort_flow_shell_inputs_v1"),
         required_top_level_fields=("schema_version", "shell_id", "display_id", "title", "steps"),
         optional_top_level_fields=("caption", "exclusions", "endpoint_inventory", "design_panels"),
         collection_required_fields={
@@ -717,7 +728,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="submission_graphical_abstract_inputs_v1",
         display_kind="illustration_shell",
         display_name="Submission Graphical Abstract",
-        template_ids=("submission_graphical_abstract",),
+        template_ids=_template_ids_for_input_schema("submission_graphical_abstract_inputs_v1"),
         required_top_level_fields=("schema_version", "shell_id", "display_id", "catalog_id", "title", "caption", "panels"),
         optional_top_level_fields=("paper_role", "footer_pills"),
         collection_required_fields={"panels": ("panel_id", "panel_label", "title", "subtitle", "rows")},
@@ -742,7 +753,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="baseline_characteristics_schema_v1",
         display_kind="table_shell",
         display_name="Baseline Characteristics Table",
-        template_ids=("table1_baseline_characteristics",),
+        template_ids=_template_ids_for_input_schema("baseline_characteristics_schema_v1"),
         required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "groups", "variables"),
         optional_top_level_fields=("caption",),
         collection_required_fields={
@@ -759,7 +770,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="time_to_event_performance_summary_v1",
         display_kind="table_shell",
         display_name="Time-to-Event Performance Summary Table",
-        template_ids=("table2_time_to_event_performance_summary",),
+        template_ids=_template_ids_for_input_schema("time_to_event_performance_summary_v1"),
         required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "columns", "rows"),
         optional_top_level_fields=("caption",),
         collection_required_fields={
@@ -776,7 +787,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="clinical_interpretation_summary_v1",
         display_kind="table_shell",
         display_name="Clinical Interpretation Summary Table",
-        template_ids=("table3_clinical_interpretation_summary",),
+        template_ids=_template_ids_for_input_schema("clinical_interpretation_summary_v1"),
         required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "columns", "rows"),
         optional_top_level_fields=("caption",),
         collection_required_fields={
@@ -793,7 +804,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="performance_summary_table_generic_v1",
         display_kind="table_shell",
         display_name="Performance Summary Table (Generic)",
-        template_ids=("performance_summary_table_generic",),
+        template_ids=_template_ids_for_input_schema("performance_summary_table_generic_v1"),
         required_top_level_fields=("schema_version", "table_shell_id", "display_id", "title", "row_header_label", "columns", "rows"),
         optional_top_level_fields=("caption",),
         collection_required_fields={
@@ -811,7 +822,7 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
         input_schema_id="grouped_risk_event_summary_table_v1",
         display_kind="table_shell",
         display_name="Grouped Risk Event Summary Table",
-        template_ids=("grouped_risk_event_summary_table",),
+        template_ids=_template_ids_for_input_schema("grouped_risk_event_summary_table_v1"),
         required_top_level_fields=(
             "schema_version",
             "table_shell_id",

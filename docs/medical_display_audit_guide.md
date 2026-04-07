@@ -80,12 +80,12 @@ Current paper-proven baseline:
 - Paper families: `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event`, `H. Cohort and Study Design Evidence`
 - Audit families: `Clinical Utility`, `Time-to-Event`, `Generalizability`, `Publication Shells / Tables`
 - Template instances:
-  - `binary_calibration_decision_curve_panel`
-  - `time_to_event_discrimination_calibration_panel`
-  - `time_to_event_risk_group_summary`
-  - `time_to_event_decision_curve`
-  - `multicenter_generalizability_overview`
-  - `submission_graphical_abstract`
+  - `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`
+  - `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`
+  - `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`
+  - `fenggaolab.org.medical-display-core::time_to_event_decision_curve`
+  - `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
+  - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 
 These are the first-priority cross-paper regression families because they have already exposed real paper-facing failure modes and then been reverified against `001/003` final figures.
 
@@ -298,31 +298,31 @@ Authoritative contract:
 
 ### Illustration Shells
 
-- `cohort_flow_figure`
+- `fenggaolab.org.medical-display-core::cohort_flow_figure`
   - Input schema: `cohort_flow_shell_inputs_v1`
   - Required exports: `png`, `svg`
   - Role: trial-style or cohort-entry audit figure
-- `submission_graphical_abstract`
+- `fenggaolab.org.medical-display-core::submission_graphical_abstract`
   - Input schema: `submission_graphical_abstract_inputs_v1`
   - Required exports: `png`, `svg`
   - Role: paper-facing graphical-abstract shell routed through the audited catalog and QC path
 
 ### Table Shells
 
-- `table1_baseline_characteristics`
+- `fenggaolab.org.medical-display-core::table1_baseline_characteristics`
   - Input schema: `baseline_characteristics_schema_v1`
   - Required exports: `csv`, `md`
-- `table2_time_to_event_performance_summary`
+- `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary`
   - Input schema: `time_to_event_performance_summary_v1`
   - Required exports: `md`
-- `table3_clinical_interpretation_summary`
+- `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary`
   - Input schema: `clinical_interpretation_summary_v1`
   - Required exports: `md`
   - Additional publication-surface rule: the markdown table body is scanned for forbidden engineering or tooling language, because interpretation text must be manuscript-safe even when the catalog title/caption is clean.
-- `performance_summary_table_generic`
+- `fenggaolab.org.medical-display-core::performance_summary_table_generic`
   - Input schema: `performance_summary_table_generic_v1`
   - Required exports: `csv`, `md`
-- `grouped_risk_event_summary_table`
+- `fenggaolab.org.medical-display-core::grouped_risk_event_summary_table`
   - Input schema: `grouped_risk_event_summary_table_v1`
   - Required exports: `csv`, `md`
 
@@ -332,16 +332,16 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 
 ### A/B curve-panel families
 
-- `binary_calibration_decision_curve_panel`
-- `time_to_event_discrimination_calibration_panel`
-- `time_to_event_risk_group_summary`
-- `time_to_event_decision_curve`
+- `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel`
+- `fenggaolab.org.medical-display-core::time_to_event_discrimination_calibration_panel`
+- `fenggaolab.org.medical-display-core::time_to_event_risk_group_summary`
+- `fenggaolab.org.medical-display-core::time_to_event_decision_curve`
 - lower-bound focus: title policy, blank-zone annotation placement, calibration axis-window fit, grouped-separation readability, and landmark/time-slice regression semantics
 
 ### H generalizability and shell layer
 
-- `multicenter_generalizability_overview`
-- `submission_graphical_abstract`
+- `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
+- `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - lower-bound focus: panel-label anchoring, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
 
 ### AI-first visual audit lane

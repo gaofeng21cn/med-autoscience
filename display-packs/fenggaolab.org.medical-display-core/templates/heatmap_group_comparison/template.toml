@@ -1,0 +1,13 @@
+template_id = "heatmap_group_comparison"
+full_template_id = "fenggaolab.org.medical-display-core::heatmap_group_comparison"
+kind = "evidence_figure"
+display_name = "Heatmap (Group Comparison)"
+paper_family_ids = ["E"]
+audit_family = "Matrix Pattern"
+renderer_family = "r_ggplot2"
+input_schema_ref = "heatmap_group_comparison_inputs_v1"
+qc_profile_ref = "publication_heatmap"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.heatmap_group_comparison:render"
+paper_proven = false

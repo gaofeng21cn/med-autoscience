@@ -1,0 +1,13 @@
+template_id = "risk_layering_monotonic_bars"
+full_template_id = "fenggaolab.org.medical-display-core::risk_layering_monotonic_bars"
+kind = "evidence_figure"
+display_name = "Monotonic Risk Layering Bars"
+paper_family_ids = ["B"]
+audit_family = "Time-to-Event"
+renderer_family = "python"
+input_schema_ref = "risk_layering_monotonic_inputs_v1"
+qc_profile_ref = "publication_risk_layering_bars"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.risk_layering_monotonic_bars:render"
+paper_proven = false

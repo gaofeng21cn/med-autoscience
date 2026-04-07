@@ -1,0 +1,13 @@
+template_id = "cumulative_incidence_grouped"
+full_template_id = "fenggaolab.org.medical-display-core::cumulative_incidence_grouped"
+kind = "evidence_figure"
+display_name = "Cumulative Incidence Curve (Grouped)"
+paper_family_ids = ["B"]
+audit_family = "Time-to-Event"
+renderer_family = "r_ggplot2"
+input_schema_ref = "time_to_event_grouped_inputs_v1"
+qc_profile_ref = "publication_survival_curve"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.cumulative_incidence_grouped:render"
+paper_proven = false

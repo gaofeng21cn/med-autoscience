@@ -1,0 +1,13 @@
+template_id = "multicenter_generalizability_overview"
+full_template_id = "fenggaolab.org.medical-display-core::multicenter_generalizability_overview"
+kind = "evidence_figure"
+display_name = "Multicenter Generalizability Overview"
+paper_family_ids = ["H"]
+audit_family = "Generalizability"
+renderer_family = "python"
+input_schema_ref = "multicenter_generalizability_inputs_v1"
+qc_profile_ref = "publication_multicenter_overview"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.multicenter_generalizability_overview:render"
+paper_proven = true

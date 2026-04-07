@@ -1,0 +1,13 @@
+template_id = "cohort_flow_figure"
+full_template_id = "fenggaolab.org.medical-display-core::cohort_flow_figure"
+kind = "illustration_shell"
+display_name = "Cohort Flow Figure"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "cohort_flow_shell_inputs_v1"
+qc_profile_ref = "publication_illustration_flow"
+required_exports = ["png", "svg"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.cohort_flow_figure:render"
+paper_proven = false

@@ -1,0 +1,10 @@
+pack_id = "fenggaolab.org.medical-display-core"
+version = "0.1.0"
+display_api_version = "1"
+default_execution_mode = "python_plugin"
+summary = "Built-in medical display core pack"
+maintainer = "FengGaoLab"
+license = "Internal Use Only"
+source = "repo-local"
+paper_family_coverage = ["A", "B", "C", "D", "E", "F", "G", "H"]
+recommended_templates = []

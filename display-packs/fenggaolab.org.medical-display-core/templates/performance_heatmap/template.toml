@@ -1,0 +1,13 @@
+template_id = "performance_heatmap"
+full_template_id = "fenggaolab.org.medical-display-core::performance_heatmap"
+kind = "evidence_figure"
+display_name = "Performance Heatmap"
+paper_family_ids = ["B", "E"]
+audit_family = "Matrix Pattern"
+renderer_family = "r_ggplot2"
+input_schema_ref = "performance_heatmap_inputs_v1"
+qc_profile_ref = "publication_heatmap"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.performance_heatmap:render"
+paper_proven = false

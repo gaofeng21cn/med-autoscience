@@ -4,6 +4,13 @@ import importlib
 from pathlib import Path
 
 
+_CORE_PACK_ID = "fenggaolab.org.medical-display-core"
+
+
+def _full_id(short_id: str) -> str:
+    return f"{_CORE_PACK_ID}::{short_id}"
+
+
 def test_schema_contract_exposes_phase2_top_level_display_classes() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -61,18 +68,18 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     model_audit_class = next(item for item in module.list_display_schema_classes() if item.class_id == "model_audit")
 
     assert binary.template_ids == (
-        "roc_curve_binary",
-        "pr_curve_binary",
-        "calibration_curve_binary",
-        "decision_curve_binary",
-        "time_dependent_roc_horizon",
+        _full_id("roc_curve_binary"),
+        _full_id("pr_curve_binary"),
+        _full_id("calibration_curve_binary"),
+        _full_id("decision_curve_binary"),
+        _full_id("time_dependent_roc_horizon"),
     )
     assert embedding.template_ids == (
-        "umap_scatter_grouped",
-        "pca_scatter_grouped",
-        "tsne_scatter_grouped",
+        _full_id("umap_scatter_grouped"),
+        _full_id("pca_scatter_grouped"),
+        _full_id("tsne_scatter_grouped"),
     )
-    assert clustered_heatmap.template_ids == ("clustered_heatmap",)
+    assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
     assert clustered_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -96,7 +103,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_column_labels_must_match_cell_columns",
         "declared_heatmap_grid_must_be_complete_and_unique",
     )
-    assert gsva_heatmap.template_ids == ("gsva_ssgsea_heatmap",)
+    assert gsva_heatmap.template_ids == (_full_id("gsva_ssgsea_heatmap"),)
     assert gsva_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -123,7 +130,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_heatmap_grid_must_be_complete_and_unique",
     )
 
-    assert correlation.template_ids == ("correlation_heatmap",)
+    assert correlation.template_ids == (_full_id("correlation_heatmap"),)
     assert correlation.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
     assert correlation.display_required_fields == (
         "display_id",
@@ -141,12 +148,12 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "matrix_must_be_symmetric",
     )
 
-    assert forest.template_ids == ("forest_effect_main", "subgroup_forest")
+    assert forest.template_ids == (_full_id("forest_effect_main"), _full_id("subgroup_forest"))
     assert forest.collection_required_fields["rows"] == ("label", "estimate", "lower", "upper")
-    assert shap.template_ids == ("shap_summary_beeswarm",)
+    assert shap.template_ids == (_full_id("shap_summary_beeswarm"),)
     assert shap.collection_required_fields["rows"] == ("feature", "points")
     assert shap.nested_collection_required_fields["rows.points"] == ("shap_value", "feature_value")
-    assert cohort_flow.template_ids == ("cohort_flow_figure",)
+    assert cohort_flow.template_ids == (_full_id("cohort_flow_figure"),)
     assert cohort_flow.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
     assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
     assert cohort_flow.collection_required_fields["steps"] == ("step_id", "label", "n")
@@ -157,19 +164,19 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "exclusion_ids_must_be_unique" in cohort_flow.additional_constraints
     assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
 
-    assert "time_dependent_roc_horizon" in time_to_event_class.template_ids
-    assert "time_dependent_roc_comparison_panel" in time_to_event_class.template_ids
+    assert _full_id("time_dependent_roc_horizon") in time_to_event_class.template_ids
+    assert _full_id("time_dependent_roc_comparison_panel") in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids
     assert "time_dependent_roc_comparison_inputs_v1" in time_to_event_class.input_schema_ids
-    assert "time_to_event_stratified_cumulative_incidence_panel" in time_to_event_class.template_ids
+    assert _full_id("time_to_event_stratified_cumulative_incidence_panel") in time_to_event_class.template_ids
     assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in time_to_event_class.input_schema_ids
-    assert "performance_heatmap" in next(
+    assert _full_id("performance_heatmap") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).template_ids
     assert "performance_heatmap_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).input_schema_ids
-    assert performance_heatmap.template_ids == ("performance_heatmap",)
+    assert performance_heatmap.template_ids == (_full_id("performance_heatmap"),)
     assert performance_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -196,7 +203,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_column_labels_must_match_cell_columns",
         "declared_heatmap_grid_must_be_complete_and_unique",
     )
-    assert time_to_event_panel.template_ids == ("time_to_event_discrimination_calibration_panel",)
+    assert time_to_event_panel.template_ids == (_full_id("time_to_event_discrimination_calibration_panel"),)
     assert time_to_event_panel.display_required_fields == (
         "display_id",
         "template_id",
@@ -220,9 +227,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "observed_risk_5y",
     )
     assert "calibration_callout" in time_to_event_panel.display_optional_fields
-    assert "binary_calibration_decision_curve_panel" in clinical_utility_class.template_ids
+    assert _full_id("binary_calibration_decision_curve_panel") in clinical_utility_class.template_ids
     assert "binary_calibration_decision_curve_panel_inputs_v1" in clinical_utility_class.input_schema_ids
-    assert binary_calibration_decision.template_ids == ("binary_calibration_decision_curve_panel",)
+    assert binary_calibration_decision.template_ids == (_full_id("binary_calibration_decision_curve_panel"),)
     assert binary_calibration_decision.display_required_fields == (
         "display_id",
         "template_id",
@@ -256,7 +263,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "calibration_axis_window_must_be_strictly_increasing" in binary_calibration_decision.additional_constraints
     assert "decision_focus_window_must_be_strictly_increasing" in binary_calibration_decision.additional_constraints
 
-    assert time_to_event_decision.template_ids == ("time_to_event_decision_curve",)
+    assert time_to_event_decision.template_ids == (_full_id("time_to_event_decision_curve"),)
     assert time_to_event_decision.display_required_fields == (
         "display_id",
         "template_id",
@@ -275,7 +282,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "publication_style_profile_required_at_materialization" in time_to_event_decision.additional_constraints
     assert "display_override_contract_may_adjust_layout_without_changing_data" in time_to_event_decision.additional_constraints
     assert "treated_fraction_series_x_y_lengths_must_match" in time_to_event_decision.additional_constraints
-    assert time_dependent_roc_comparison.template_ids == ("time_dependent_roc_comparison_panel",)
+    assert time_dependent_roc_comparison.template_ids == (_full_id("time_dependent_roc_comparison_panel"),)
     assert time_dependent_roc_comparison.display_required_fields == (
         "display_id",
         "template_id",
@@ -303,7 +310,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "panel_series_labels_must_be_unique_within_panel" in time_dependent_roc_comparison.additional_constraints
     assert "panel_series_label_sets_must_match_across_panels" in time_dependent_roc_comparison.additional_constraints
     assert "panel_time_horizon_months_must_be_positive_when_present" in time_dependent_roc_comparison.additional_constraints
-    assert time_to_event_stratified.template_ids == ("time_to_event_stratified_cumulative_incidence_panel",)
+    assert time_to_event_stratified.template_ids == (_full_id("time_to_event_stratified_cumulative_incidence_panel"),)
     assert time_to_event_stratified.display_required_fields == (
         "display_id",
         "template_id",
@@ -318,7 +325,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert time_to_event_stratified.nested_collection_required_fields["panels.groups"] == ("label", "times", "values")
     assert "panel_ids_must_be_unique" in time_to_event_stratified.additional_constraints
     assert "panel_group_values_must_be_monotonic_non_decreasing" in time_to_event_stratified.additional_constraints
-    assert generalizability.template_ids == ("multicenter_generalizability_overview",)
+    assert generalizability.template_ids == (_full_id("multicenter_generalizability_overview"),)
     assert generalizability.display_required_fields == (
         "display_id",
         "template_id",
@@ -343,7 +350,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     assert generalizability.nested_collection_required_fields["coverage_panels.bars"] == ("label", "count")
     assert "overview_mode_must_be_center_support_counts" in generalizability.additional_constraints
-    assert risk_layering.template_ids == ("risk_layering_monotonic_bars",)
+    assert risk_layering.template_ids == (_full_id("risk_layering_monotonic_bars"),)
     assert risk_layering.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
     assert risk_layering.display_required_fields == (
         "display_id",
@@ -363,7 +370,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "bar_events_must_not_exceed_cases" in risk_layering.additional_constraints
     assert "left_bars_risk_must_be_monotonic_non_decreasing" in risk_layering.additional_constraints
     assert "right_bars_risk_must_be_monotonic_non_decreasing" in risk_layering.additional_constraints
-    assert model_audit_class.template_ids == ("model_complexity_audit_panel",)
+    assert model_audit_class.template_ids == (_full_id("model_complexity_audit_panel"),)
     assert model_complexity_audit.display_required_fields == (
         "display_id",
         "template_id",
@@ -388,13 +395,13 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     assert model_complexity_audit.nested_collection_required_fields["metric_panels.rows"] == ("label", "value")
     assert model_complexity_audit.nested_collection_required_fields["audit_panels.rows"] == ("label", "value")
-    assert performance_table.template_ids == ("table2_time_to_event_performance_summary",)
+    assert performance_table.template_ids == (_full_id("table2_time_to_event_performance_summary"),)
     assert performance_table.collection_required_fields["rows"] == ("row_id", "label", "values")
-    assert interpretation_table.template_ids == ("table3_clinical_interpretation_summary",)
+    assert interpretation_table.template_ids == (_full_id("table3_clinical_interpretation_summary"),)
     assert interpretation_table.collection_required_fields["rows"] == ("row_id", "label", "values")
-    assert generic_performance_table.template_ids == ("performance_summary_table_generic",)
+    assert generic_performance_table.template_ids == (_full_id("performance_summary_table_generic"),)
     assert "row_header_label" in generic_performance_table.required_top_level_fields
-    assert grouped_risk_table.template_ids == ("grouped_risk_event_summary_table",)
+    assert grouped_risk_table.template_ids == (_full_id("grouped_risk_event_summary_table"),)
     assert grouped_risk_table.collection_required_fields["rows"] == (
         "row_id",
         "surface",
@@ -403,7 +410,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "events",
         "risk_display",
     )
-    assert submission_graphical_abstract.template_ids == ("submission_graphical_abstract",)
+    assert submission_graphical_abstract.template_ids == (_full_id("submission_graphical_abstract"),)
     assert submission_graphical_abstract.required_top_level_fields == (
         "schema_version",
         "shell_id",
@@ -469,32 +476,32 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "| Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |" in markdown
     assert "`A. Predictive Performance and Decision`" in markdown
     assert "`H. Cohort and Study Design Evidence`" in markdown
-    assert "roc_curve_binary" in markdown
+    assert _full_id("roc_curve_binary") in markdown
     assert "shap_summary_inputs_v1" in markdown
-    assert "cohort_flow_figure" in markdown
-    assert "table1_baseline_characteristics" in markdown
-    assert "time_dependent_roc_horizon" in markdown
-    assert "time_dependent_roc_comparison_panel" in markdown
+    assert _full_id("cohort_flow_figure") in markdown
+    assert _full_id("table1_baseline_characteristics") in markdown
+    assert _full_id("time_dependent_roc_horizon") in markdown
+    assert _full_id("time_dependent_roc_comparison_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
-    assert "time_to_event_stratified_cumulative_incidence_panel" in markdown
+    assert _full_id("time_to_event_stratified_cumulative_incidence_panel") in markdown
     assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in markdown
-    assert "tsne_scatter_grouped" in markdown
-    assert "performance_heatmap" in markdown
+    assert _full_id("tsne_scatter_grouped") in markdown
+    assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
-    assert "clustered_heatmap" in markdown
+    assert _full_id("clustered_heatmap") in markdown
     assert "clustered_heatmap_inputs_v1" in markdown
-    assert "gsva_ssgsea_heatmap" in markdown
+    assert _full_id("gsva_ssgsea_heatmap") in markdown
     assert "gsva_ssgsea_heatmap_inputs_v1" in markdown
-    assert "subgroup_forest" in markdown
-    assert "time_to_event_discrimination_calibration_panel" in markdown
+    assert _full_id("subgroup_forest") in markdown
+    assert _full_id("time_to_event_discrimination_calibration_panel") in markdown
     assert "time_to_event_decision_curve_inputs_v1" in markdown
-    assert "multicenter_generalizability_overview" in markdown
-    assert "risk_layering_monotonic_bars" in markdown
-    assert "binary_calibration_decision_curve_panel" in markdown
-    assert "model_complexity_audit_panel" in markdown
-    assert "table2_time_to_event_performance_summary" in markdown
-    assert "performance_summary_table_generic" in markdown
-    assert "grouped_risk_event_summary_table" in markdown
+    assert _full_id("multicenter_generalizability_overview") in markdown
+    assert _full_id("risk_layering_monotonic_bars") in markdown
+    assert _full_id("binary_calibration_decision_curve_panel") in markdown
+    assert _full_id("model_complexity_audit_panel") in markdown
+    assert _full_id("table2_time_to_event_performance_summary") in markdown
+    assert _full_id("performance_summary_table_generic") in markdown
+    assert _full_id("grouped_risk_event_summary_table") in markdown
 
 
 def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
@@ -552,7 +559,7 @@ def test_display_platform_truth_docs_track_current_paper_proven_baseline() -> No
     audit_text = (docs_root / "medical_display_audit_guide.md").read_text(encoding="utf-8")
     catalog_text = (docs_root / "medical_display_template_catalog.md").read_text(encoding="utf-8")
 
-    expected_templates = (
+    expected_short_templates = (
         "binary_calibration_decision_curve_panel",
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
@@ -563,5 +570,8 @@ def test_display_platform_truth_docs_track_current_paper_proven_baseline() -> No
 
     for text in (roadmap_text, audit_text, catalog_text):
         assert "Current Paper-Proven Baseline (001/003)" in text
-        for template_id in expected_templates:
-            assert template_id in text
+
+    for template_id in expected_short_templates:
+        assert template_id in roadmap_text
+        assert _full_id(template_id) in audit_text
+        assert _full_id(template_id) in catalog_text

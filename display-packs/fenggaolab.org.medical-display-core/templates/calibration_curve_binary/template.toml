@@ -1,0 +1,13 @@
+template_id = "calibration_curve_binary"
+full_template_id = "fenggaolab.org.medical-display-core::calibration_curve_binary"
+kind = "evidence_figure"
+display_name = "Calibration Curve (Binary Outcome)"
+paper_family_ids = ["A"]
+audit_family = "Prediction Performance"
+renderer_family = "r_ggplot2"
+input_schema_ref = "binary_prediction_curve_inputs_v1"
+qc_profile_ref = "publication_evidence_curve"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.calibration_curve_binary:render"
+paper_proven = false

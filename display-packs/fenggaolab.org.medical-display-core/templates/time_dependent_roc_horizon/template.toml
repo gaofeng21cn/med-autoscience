@@ -1,0 +1,13 @@
+template_id = "time_dependent_roc_horizon"
+full_template_id = "fenggaolab.org.medical-display-core::time_dependent_roc_horizon"
+kind = "evidence_figure"
+display_name = "Time-Dependent ROC (Horizon)"
+paper_family_ids = ["A", "B"]
+audit_family = "Time-to-Event"
+renderer_family = "r_ggplot2"
+input_schema_ref = "binary_prediction_curve_inputs_v1"
+qc_profile_ref = "publication_evidence_curve"
+required_exports = ["png", "pdf"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.time_dependent_roc_horizon:render"
+paper_proven = false

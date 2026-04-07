@@ -1,0 +1,13 @@
+template_id = "submission_graphical_abstract"
+full_template_id = "fenggaolab.org.medical-display-core::submission_graphical_abstract"
+kind = "illustration_shell"
+display_name = "Submission Graphical Abstract"
+paper_family_ids = ["A", "H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "submission_graphical_abstract_inputs_v1"
+qc_profile_ref = "submission_graphical_abstract"
+required_exports = ["png", "svg"]
+execution_mode = "python_plugin"
+entrypoint = "med_autoscience_pack_core.submission_graphical_abstract:render"
+paper_proven = true
