@@ -22,8 +22,8 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
 
-      - name: Install pandoc and graphviz
-        run: brew install pandoc graphviz
+      - name: Install pandoc, graphviz, and R
+        run: brew install pandoc graphviz r
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
