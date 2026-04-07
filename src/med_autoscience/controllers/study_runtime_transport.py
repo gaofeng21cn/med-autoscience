@@ -6,6 +6,8 @@ from typing import Any
 
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStartupContextSyncResult
 
+_UNSET = object()
+
 __all__ = [
     "_create_quest",
     "_inspect_quest_live_execution",
@@ -55,13 +57,17 @@ def _update_quest_startup_context(
     runtime_root: Path,
     quest_id: str,
     startup_contract: dict[str, Any],
+    requested_baseline_ref: dict[str, Any] | None | object = _UNSET,
 ) -> StudyRuntimeStartupContextSyncResult:
+    kwargs: dict[str, Any] = {
+        "runtime_root": runtime_root,
+        "quest_id": quest_id,
+        "startup_contract": startup_contract,
+    }
+    if requested_baseline_ref is not _UNSET:
+        kwargs["requested_baseline_ref"] = requested_baseline_ref
     return StudyRuntimeStartupContextSyncResult.from_payload(
-        _router_module().med_deepscientist_transport.update_quest_startup_context(
-            runtime_root=runtime_root,
-            quest_id=quest_id,
-            startup_contract=startup_contract,
-        )
+        _router_module().med_deepscientist_transport.update_quest_startup_context(**kwargs)
     )
 
 

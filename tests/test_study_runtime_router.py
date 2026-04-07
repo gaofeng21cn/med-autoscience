@@ -21,6 +21,20 @@ from .study_runtime_test_helpers import (
 )
 
 
+def _write_requested_baseline_ref(study_root: Path, requested_baseline_ref: dict[str, object] | None) -> None:
+    study_payload = yaml.safe_load(study_root.joinpath("study.yaml").read_text(encoding="utf-8"))
+    if not isinstance(study_payload, dict):
+        raise TypeError("study payload must be a mapping")
+    execution = study_payload.get("execution")
+    if not isinstance(execution, dict):
+        raise TypeError("study execution payload must be a mapping")
+    execution["requested_baseline_ref"] = requested_baseline_ref
+    write_text(
+        study_root / "study.yaml",
+        yaml.safe_dump(study_payload, allow_unicode=True, sort_keys=False),
+    )
+
+
 @pytest.fixture(autouse=True)
 def _patch_runtime_sidecars(monkeypatch):
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
@@ -111,6 +125,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
+    _write_requested_baseline_ref(study_root, {"baseline_id": "demo-baseline"})
     created: dict[str, object] = {}
     resumed: dict[str, object] = {}
 
@@ -160,6 +175,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert payload["quest_id"] == "001-risk"
     assert payload["auto_start"] is False
     assert payload["title"] == "Diabetes mortality risk paper"
+    assert "requested_baseline_ref" not in payload
     assert payload["startup_contract"]["custom_profile"] == "freeform"
     assert payload["startup_contract"]["scope"] == "full_research"
     assert payload["startup_contract"]["baseline_mode"] == "reuse_existing_only"
@@ -1528,13 +1544,14 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    write_study(
+    study_root = write_study(
         profile.workspace_root,
         "001-risk",
         study_archetype="clinical_classifier",
         endpoint_type="binary",
         manuscript_family="prediction_model",
     )
+    _write_requested_baseline_ref(study_root, {"baseline_id": "demo-baseline"})
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"created"}\n')
@@ -1583,9 +1600,16 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
         module.med_deepscientist_transport,
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
-            ("sync_startup_context", quest_id, startup_contract.get("scope"))
+            ("sync_startup_context", quest_id, startup_contract.get("scope"), requested_baseline_ref)
         )
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        or {
+            "ok": True,
+            "snapshot": {
+                "quest_id": quest_id,
+                "startup_contract": startup_contract,
+                "requested_baseline_ref": requested_baseline_ref,
+            },
+        },
         raising=False,
     )
 
@@ -1627,12 +1651,15 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
     assert "runtime_escalation_record" not in launch_report
     assert result["startup_context_sync"]["ok"] is True
     assert result["startup_context_sync"]["quest_id"] == "001-risk"
+    assert result["startup_context_sync"]["snapshot"]["requested_baseline_ref"] == {
+        "baseline_id": "demo-baseline"
+    }
     synced_contract = result["startup_context_sync"]["snapshot"]["startup_contract"]
     assert "runtime_escalation_record" not in synced_contract
     assert "runtime_escalation_ref" not in synced_contract
     assert calls == [
         ("prepare_overlay", quest_root),
-        ("sync_startup_context", "001-risk", "full_research"),
+        ("sync_startup_context", "001-risk", "full_research", {"baseline_id": "demo-baseline"}),
         ("hydrate", quest_root),
         ("validate", quest_root),
     ]
@@ -3163,6 +3190,86 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     ]
 
 
+def test_ensure_study_runtime_forwards_requested_baseline_ref_when_syncing_existing_quest(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    _write_requested_baseline_ref(study_root, {"baseline_id": "demo-baseline"})
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"idle"}\n')
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: (
+            seen.__setitem__("requested_baseline_ref", requested_baseline_ref)
+            or {
+                "ok": True,
+                "snapshot": {
+                    "quest_id": quest_id,
+                    "startup_contract": startup_contract,
+                    "requested_baseline_ref": requested_baseline_ref,
+                },
+            }
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "active"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert seen["requested_baseline_ref"] == {"baseline_id": "demo-baseline"}
+    assert result["startup_context_sync"]["snapshot"]["requested_baseline_ref"] == {"baseline_id": "demo-baseline"}
+
+
 def _write_runtime_escalation_record_for_status_test(
     *,
     protocol,
@@ -3384,6 +3491,7 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     study_root = profile.workspace_root / "studies" / "001-risk"
+    _write_requested_baseline_ref(study_root, {"baseline_id": "demo-baseline"})
     write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
     quest_root = profile.runtime_root / "001-risk-reentry"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk-reentry\n")
@@ -3427,9 +3535,16 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
         module.med_deepscientist_transport,
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
-            ("sync_startup_context", quest_id, startup_contract.get("scope"))
+            ("sync_startup_context", quest_id, startup_contract.get("scope"), requested_baseline_ref)
         )
-        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        or {
+            "ok": True,
+            "snapshot": {
+                "quest_id": quest_id,
+                "startup_contract": startup_contract,
+                "requested_baseline_ref": requested_baseline_ref,
+            },
+        },
         raising=False,
     )
     monkeypatch.setattr(
@@ -3446,8 +3561,11 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     assert result["quest_status"] == "active"
     assert result["startup_context_sync"]["ok"] is True
     assert result["startup_context_sync"]["quest_id"] == "001-risk-reentry"
+    assert result["startup_context_sync"]["snapshot"]["requested_baseline_ref"] == {
+        "baseline_id": "demo-baseline"
+    }
     assert calls == [
-        ("sync_startup_context", "001-risk-reentry", "full_research"),
+        ("sync_startup_context", "001-risk-reentry", "full_research", {"baseline_id": "demo-baseline"}),
         ("hydrate", profile.runtime_root / "001-risk-reentry"),
         ("validate", profile.runtime_root / "001-risk-reentry"),
         ("resume", "001-risk-reentry"),

@@ -301,12 +301,23 @@ def _sync_existing_quest_startup_context(
     runtime_root: Path,
     quest_id: str,
     create_payload: dict[str, Any],
+    execution: dict[str, Any] | None = None,
 ) -> StudyRuntimeStartupContextSyncResult:
     startup_contract = create_payload.get("startup_contract")
     if not isinstance(startup_contract, dict):
         raise ValueError("create payload missing startup_contract")
-    return _router_module()._update_quest_startup_context(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        startup_contract=dict(startup_contract),
-    )
+    if execution is not None and not isinstance(execution, dict):
+        raise TypeError("execution must be a mapping or None")
+    update_kwargs: dict[str, Any] = {
+        "runtime_root": runtime_root,
+        "quest_id": quest_id,
+        "startup_contract": dict(startup_contract),
+    }
+    if isinstance(execution, dict) and "requested_baseline_ref" in execution:
+        requested_baseline_ref = execution.get("requested_baseline_ref")
+        if requested_baseline_ref is not None and not isinstance(requested_baseline_ref, dict):
+            raise ValueError("execution.requested_baseline_ref must be a mapping or null")
+        update_kwargs["requested_baseline_ref"] = (
+            dict(requested_baseline_ref) if isinstance(requested_baseline_ref, dict) else None
+        )
+    return _router_module()._update_quest_startup_context(**update_kwargs)

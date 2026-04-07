@@ -429,6 +429,7 @@ def _execute_resume_runtime_decision(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         create_payload=create_payload,
+        execution=context.execution,
     )
     status.record_startup_context_sync(startup_context_sync)
     hydration_result, validation_result = router._run_startup_hydration(
@@ -494,6 +495,7 @@ def _execute_blocked_refresh_runtime_decision(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         create_payload=create_payload,
+        execution=context.execution,
     )
     status.record_startup_context_sync(startup_context_sync)
     hydration_result, validation_result = router._run_startup_hydration(

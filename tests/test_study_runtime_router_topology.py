@@ -272,3 +272,39 @@ def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -
     assert router._study_completion_state is completion._study_completion_state
     assert router._build_study_completion_request_message is completion._build_study_completion_request_message
     assert router._sync_study_completion is completion._sync_study_completion
+
+
+def test_study_runtime_router_sync_existing_startup_context_forwards_requested_baseline_ref(monkeypatch, tmp_path: Path) -> None:
+    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        router,
+        "_update_quest_startup_context",
+        lambda **kwargs: (
+            seen.__setitem__("kwargs", kwargs)
+            or router.StudyRuntimeStartupContextSyncResult.from_payload(
+                {
+                    "ok": True,
+                    "quest_id": kwargs["quest_id"],
+                    "snapshot": {
+                        "quest_id": kwargs["quest_id"],
+                        "startup_contract": kwargs["startup_contract"],
+                        "requested_baseline_ref": kwargs.get("requested_baseline_ref"),
+                    },
+                }
+            )
+        ),
+    )
+
+    result = router._sync_existing_quest_startup_context(
+        runtime_root=tmp_path / "runtime",
+        quest_id="quest-001",
+        create_payload={
+            "startup_contract": {"schema_version": 4},
+        },
+        execution={"requested_baseline_ref": {"baseline_id": "demo-baseline"}},
+    )
+
+    assert seen["kwargs"]["requested_baseline_ref"] == {"baseline_id": "demo-baseline"}
+    assert result.to_dict()["snapshot"]["requested_baseline_ref"] == {"baseline_id": "demo-baseline"}
