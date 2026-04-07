@@ -2,6 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from med_autoscience.display_pack_resolver import split_full_template_id
+
+
+_CORE_DISPLAY_PACK_ID = "fenggaolab.org.medical-display-core"
+
+
+def _full_id(short_id: str) -> str:
+    return f"{_CORE_DISPLAY_PACK_ID}::{short_id}"
+
+
+def _canonicalize_registry_id(identifier: str) -> str:
+    normalized = str(identifier or "").strip()
+    if not normalized:
+        return normalized
+    if "::" in normalized:
+        pack_id, short_id = split_full_template_id(normalized)
+        return f"{pack_id}::{short_id}"
+    return _full_id(normalized)
+
 
 @dataclass(frozen=True)
 class EvidenceFigureSpec:
@@ -53,7 +72,7 @@ _PAPER_FAMILY_LABELS: dict[str, str] = {
 
 _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
     EvidenceFigureSpec(
-        template_id="roc_curve_binary",
+        template_id=_full_id("roc_curve_binary"),
         display_name="ROC Curve (Binary Outcome)",
         evidence_class="prediction_performance",
         paper_family_ids=("A",),
@@ -63,7 +82,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="pr_curve_binary",
+        template_id=_full_id("pr_curve_binary"),
         display_name="Precision-Recall Curve (Binary Outcome)",
         evidence_class="prediction_performance",
         paper_family_ids=("A",),
@@ -73,7 +92,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="calibration_curve_binary",
+        template_id=_full_id("calibration_curve_binary"),
         display_name="Calibration Curve (Binary Outcome)",
         evidence_class="prediction_performance",
         paper_family_ids=("A",),
@@ -83,7 +102,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="decision_curve_binary",
+        template_id=_full_id("decision_curve_binary"),
         display_name="Decision Curve (Binary Outcome)",
         evidence_class="clinical_utility",
         paper_family_ids=("A",),
@@ -93,7 +112,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="risk_layering_monotonic_bars",
+        template_id=_full_id("risk_layering_monotonic_bars"),
         display_name="Monotonic Risk Layering Bars",
         evidence_class="time_to_event",
         paper_family_ids=("B",),
@@ -103,7 +122,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="binary_calibration_decision_curve_panel",
+        template_id=_full_id("binary_calibration_decision_curve_panel"),
         display_name="Binary Calibration and Decision Curve Panel",
         evidence_class="clinical_utility",
         paper_family_ids=("A",),
@@ -113,7 +132,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="model_complexity_audit_panel",
+        template_id=_full_id("model_complexity_audit_panel"),
         display_name="Model Complexity Audit Panel",
         evidence_class="model_audit",
         paper_family_ids=("F", "H"),
@@ -123,7 +142,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_dependent_roc_horizon",
+        template_id=_full_id("time_dependent_roc_horizon"),
         display_name="Time-Dependent ROC (Horizon)",
         evidence_class="time_to_event",
         paper_family_ids=("A", "B"),
@@ -133,7 +152,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_dependent_roc_comparison_panel",
+        template_id=_full_id("time_dependent_roc_comparison_panel"),
         display_name="Time-Dependent ROC Comparison Panel",
         evidence_class="time_to_event",
         paper_family_ids=("A", "B"),
@@ -143,7 +162,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="kaplan_meier_grouped",
+        template_id=_full_id("kaplan_meier_grouped"),
         display_name="Kaplan-Meier Curve (Grouped)",
         evidence_class="time_to_event",
         paper_family_ids=("B",),
@@ -153,7 +172,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="cumulative_incidence_grouped",
+        template_id=_full_id("cumulative_incidence_grouped"),
         display_name="Cumulative Incidence Curve (Grouped)",
         evidence_class="time_to_event",
         paper_family_ids=("B",),
@@ -163,7 +182,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_to_event_stratified_cumulative_incidence_panel",
+        template_id=_full_id("time_to_event_stratified_cumulative_incidence_panel"),
         display_name="Stratified Cumulative Incidence Panel",
         evidence_class="time_to_event",
         paper_family_ids=("B",),
@@ -173,7 +192,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="umap_scatter_grouped",
+        template_id=_full_id("umap_scatter_grouped"),
         display_name="UMAP Scatter (Grouped)",
         evidence_class="data_geometry",
         paper_family_ids=("D",),
@@ -183,7 +202,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="pca_scatter_grouped",
+        template_id=_full_id("pca_scatter_grouped"),
         display_name="PCA Scatter (Grouped)",
         evidence_class="data_geometry",
         paper_family_ids=("D",),
@@ -193,7 +212,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="tsne_scatter_grouped",
+        template_id=_full_id("tsne_scatter_grouped"),
         display_name="t-SNE Scatter (Grouped)",
         evidence_class="data_geometry",
         paper_family_ids=("D",),
@@ -203,7 +222,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="heatmap_group_comparison",
+        template_id=_full_id("heatmap_group_comparison"),
         display_name="Heatmap (Group Comparison)",
         evidence_class="matrix_pattern",
         paper_family_ids=("E",),
@@ -213,7 +232,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="performance_heatmap",
+        template_id=_full_id("performance_heatmap"),
         display_name="Performance Heatmap",
         evidence_class="matrix_pattern",
         paper_family_ids=("B", "E"),
@@ -223,7 +242,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="correlation_heatmap",
+        template_id=_full_id("correlation_heatmap"),
         display_name="Correlation Heatmap",
         evidence_class="matrix_pattern",
         paper_family_ids=("E",),
@@ -233,7 +252,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="clustered_heatmap",
+        template_id=_full_id("clustered_heatmap"),
         display_name="Clustered Heatmap (Precomputed Ordering)",
         evidence_class="matrix_pattern",
         paper_family_ids=("E",),
@@ -243,7 +262,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="gsva_ssgsea_heatmap",
+        template_id=_full_id("gsva_ssgsea_heatmap"),
         display_name="GSVA/ssGSEA Heatmap",
         evidence_class="matrix_pattern",
         paper_family_ids=("G",),
@@ -253,7 +272,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="forest_effect_main",
+        template_id=_full_id("forest_effect_main"),
         display_name="Forest Plot (Main Effects)",
         evidence_class="effect_estimate",
         paper_family_ids=("C",),
@@ -263,7 +282,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="subgroup_forest",
+        template_id=_full_id("subgroup_forest"),
         display_name="Forest Plot (Subgroup Effects)",
         evidence_class="effect_estimate",
         paper_family_ids=("C",),
@@ -273,7 +292,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="shap_summary_beeswarm",
+        template_id=_full_id("shap_summary_beeswarm"),
         display_name="SHAP Summary Beeswarm",
         evidence_class="model_explanation",
         paper_family_ids=("F",),
@@ -283,7 +302,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_to_event_discrimination_calibration_panel",
+        template_id=_full_id("time_to_event_discrimination_calibration_panel"),
         display_name="Validation Discrimination and Grouped Calibration (Time-to-Event)",
         evidence_class="time_to_event",
         paper_family_ids=("A", "B"),
@@ -293,7 +312,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_to_event_risk_group_summary",
+        template_id=_full_id("time_to_event_risk_group_summary"),
         display_name="Risk-Group Summary (Time-to-Event)",
         evidence_class="time_to_event",
         paper_family_ids=("B",),
@@ -303,7 +322,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="time_to_event_decision_curve",
+        template_id=_full_id("time_to_event_decision_curve"),
         display_name="Decision Curve (Time-to-Event Horizon)",
         evidence_class="clinical_utility",
         paper_family_ids=("A", "B"),
@@ -313,7 +332,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
         required_exports=("png", "pdf"),
     ),
     EvidenceFigureSpec(
-        template_id="multicenter_generalizability_overview",
+        template_id=_full_id("multicenter_generalizability_overview"),
         display_name="Multicenter Generalizability Overview",
         evidence_class="generalizability",
         paper_family_ids=("H",),
@@ -326,7 +345,7 @@ _EVIDENCE_FIGURE_SPECS: tuple[EvidenceFigureSpec, ...] = (
 
 _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
     IllustrationShellSpec(
-        shell_id="cohort_flow_figure",
+        shell_id=_full_id("cohort_flow_figure"),
         display_name="Cohort Flow Figure",
         paper_family_ids=("H",),
         renderer_family="python",
@@ -335,7 +354,7 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
         required_exports=("png", "svg"),
     ),
     IllustrationShellSpec(
-        shell_id="submission_graphical_abstract",
+        shell_id=_full_id("submission_graphical_abstract"),
         display_name="Submission Graphical Abstract",
         paper_family_ids=("A", "H"),
         renderer_family="python",
@@ -348,7 +367,7 @@ _ILLUSTRATION_SHELL_SPECS: tuple[IllustrationShellSpec, ...] = (
 
 _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
     TableShellSpec(
-        shell_id="table1_baseline_characteristics",
+        shell_id=_full_id("table1_baseline_characteristics"),
         display_name="Table 1 Baseline Characteristics",
         paper_family_ids=("H",),
         input_schema_id="baseline_characteristics_schema_v1",
@@ -356,7 +375,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         required_exports=("csv", "md"),
     ),
     TableShellSpec(
-        shell_id="table2_time_to_event_performance_summary",
+        shell_id=_full_id("table2_time_to_event_performance_summary"),
         display_name="Table 2 Time-to-Event Performance Summary",
         paper_family_ids=("A", "B"),
         input_schema_id="time_to_event_performance_summary_v1",
@@ -364,7 +383,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         required_exports=("md",),
     ),
     TableShellSpec(
-        shell_id="table3_clinical_interpretation_summary",
+        shell_id=_full_id("table3_clinical_interpretation_summary"),
         display_name="Table 3 Clinical Interpretation Summary",
         paper_family_ids=("A", "H"),
         input_schema_id="clinical_interpretation_summary_v1",
@@ -372,7 +391,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         required_exports=("md",),
     ),
     TableShellSpec(
-        shell_id="performance_summary_table_generic",
+        shell_id=_full_id("performance_summary_table_generic"),
         display_name="Performance Summary Table (Generic)",
         paper_family_ids=("A",),
         input_schema_id="performance_summary_table_generic_v1",
@@ -380,7 +399,7 @@ _TABLE_SHELL_SPECS: tuple[TableShellSpec, ...] = (
         required_exports=("csv", "md"),
     ),
     TableShellSpec(
-        shell_id="grouped_risk_event_summary_table",
+        shell_id=_full_id("grouped_risk_event_summary_table"),
         display_name="Grouped Risk Event Summary Table",
         paper_family_ids=("B",),
         input_schema_id="grouped_risk_event_summary_table_v1",
@@ -415,7 +434,7 @@ def get_paper_family_label(paper_family_id: str) -> str:
 
 
 def get_evidence_figure_spec(template_id: str) -> EvidenceFigureSpec:
-    normalized = str(template_id or "").strip()
+    normalized = _canonicalize_registry_id(template_id)
     try:
         return _EVIDENCE_BY_TEMPLATE[normalized]
     except KeyError as exc:
@@ -423,7 +442,7 @@ def get_evidence_figure_spec(template_id: str) -> EvidenceFigureSpec:
 
 
 def get_illustration_shell_spec(shell_id: str) -> IllustrationShellSpec:
-    normalized = str(shell_id or "").strip()
+    normalized = _canonicalize_registry_id(shell_id)
     try:
         return _ILLUSTRATION_BY_SHELL[normalized]
     except KeyError as exc:
@@ -431,7 +450,7 @@ def get_illustration_shell_spec(shell_id: str) -> IllustrationShellSpec:
 
 
 def get_table_shell_spec(shell_id: str) -> TableShellSpec:
-    normalized = str(shell_id or "").strip()
+    normalized = _canonicalize_registry_id(shell_id)
     try:
         return _TABLE_BY_SHELL[normalized]
     except KeyError as exc:
@@ -439,12 +458,12 @@ def get_table_shell_spec(shell_id: str) -> TableShellSpec:
 
 
 def is_evidence_figure_template(template_id: str) -> bool:
-    return str(template_id or "").strip() in _EVIDENCE_BY_TEMPLATE
+    return _canonicalize_registry_id(template_id) in _EVIDENCE_BY_TEMPLATE
 
 
 def is_illustration_shell(shell_id: str) -> bool:
-    return str(shell_id or "").strip() in _ILLUSTRATION_BY_SHELL
+    return _canonicalize_registry_id(shell_id) in _ILLUSTRATION_BY_SHELL
 
 
 def is_table_shell(shell_id: str) -> bool:
-    return str(shell_id or "").strip() in _TABLE_BY_SHELL
+    return _canonicalize_registry_id(shell_id) in _TABLE_BY_SHELL

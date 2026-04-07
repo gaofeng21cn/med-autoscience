@@ -7,6 +7,13 @@ import pytest
 from med_autoscience import display_registry
 
 
+_CORE_PACK_ID = "fenggaolab.org.medical-display-core"
+
+
+def _full_id(short_id: str) -> str:
+    return f"{_CORE_PACK_ID}::{short_id}"
+
+
 def test_registry_exposes_current_display_surface_inventory() -> None:
     module = importlib.import_module("med_autoscience.display_registry")
 
@@ -15,69 +22,87 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     table_specs = module.list_table_shell_specs()
 
     assert {item.template_id for item in evidence_specs} >= {
-        "roc_curve_binary",
-        "pr_curve_binary",
-        "calibration_curve_binary",
-        "decision_curve_binary",
-        "risk_layering_monotonic_bars",
-        "binary_calibration_decision_curve_panel",
-        "model_complexity_audit_panel",
-        "time_dependent_roc_horizon",
-        "time_dependent_roc_comparison_panel",
-        "kaplan_meier_grouped",
-        "cumulative_incidence_grouped",
-        "time_to_event_stratified_cumulative_incidence_panel",
-        "umap_scatter_grouped",
-        "pca_scatter_grouped",
-        "tsne_scatter_grouped",
-        "heatmap_group_comparison",
-        "performance_heatmap",
-        "correlation_heatmap",
-        "clustered_heatmap",
-        "gsva_ssgsea_heatmap",
-        "forest_effect_main",
-        "subgroup_forest",
-        "shap_summary_beeswarm",
-        "time_to_event_discrimination_calibration_panel",
-        "time_to_event_risk_group_summary",
-        "time_to_event_decision_curve",
-        "multicenter_generalizability_overview",
+        _full_id("roc_curve_binary"),
+        _full_id("pr_curve_binary"),
+        _full_id("calibration_curve_binary"),
+        _full_id("decision_curve_binary"),
+        _full_id("risk_layering_monotonic_bars"),
+        _full_id("binary_calibration_decision_curve_panel"),
+        _full_id("model_complexity_audit_panel"),
+        _full_id("time_dependent_roc_horizon"),
+        _full_id("time_dependent_roc_comparison_panel"),
+        _full_id("kaplan_meier_grouped"),
+        _full_id("cumulative_incidence_grouped"),
+        _full_id("time_to_event_stratified_cumulative_incidence_panel"),
+        _full_id("umap_scatter_grouped"),
+        _full_id("pca_scatter_grouped"),
+        _full_id("tsne_scatter_grouped"),
+        _full_id("heatmap_group_comparison"),
+        _full_id("performance_heatmap"),
+        _full_id("correlation_heatmap"),
+        _full_id("clustered_heatmap"),
+        _full_id("gsva_ssgsea_heatmap"),
+        _full_id("forest_effect_main"),
+        _full_id("subgroup_forest"),
+        _full_id("shap_summary_beeswarm"),
+        _full_id("time_to_event_discrimination_calibration_panel"),
+        _full_id("time_to_event_risk_group_summary"),
+        _full_id("time_to_event_decision_curve"),
+        _full_id("multicenter_generalizability_overview"),
     }
     assert {item.shell_id for item in illustration_specs} == {
-        "cohort_flow_figure",
-        "submission_graphical_abstract",
+        _full_id("cohort_flow_figure"),
+        _full_id("submission_graphical_abstract"),
     }
     assert {item.shell_id for item in table_specs} >= {
-        "table1_baseline_characteristics",
-        "table2_time_to_event_performance_summary",
-        "table3_clinical_interpretation_summary",
-        "performance_summary_table_generic",
-        "grouped_risk_event_summary_table",
+        _full_id("table1_baseline_characteristics"),
+        _full_id("table2_time_to_event_performance_summary"),
+        _full_id("table3_clinical_interpretation_summary"),
+        _full_id("performance_summary_table_generic"),
+        _full_id("grouped_risk_event_summary_table"),
     }
+
+
+def test_get_evidence_figure_spec_accepts_namespaced_template_id() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("roc_curve_binary"))
+    assert spec.template_id == _full_id("roc_curve_binary")
 
 
 def test_time_to_event_publication_surface_specs_are_registered() -> None:
-    figure7 = display_registry.get_evidence_figure_spec("time_dependent_roc_horizon")
-    figure8 = display_registry.get_evidence_figure_spec("time_dependent_roc_comparison_panel")
-    figure9 = display_registry.get_evidence_figure_spec("tsne_scatter_grouped")
-    figure10 = display_registry.get_evidence_figure_spec("performance_heatmap")
-    figure10b = display_registry.get_evidence_figure_spec("clustered_heatmap")
-    figure10c = display_registry.get_evidence_figure_spec("gsva_ssgsea_heatmap")
-    figure12 = display_registry.get_evidence_figure_spec("subgroup_forest")
-    figure14 = display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
-    figure15 = display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
-    figure16 = display_registry.get_evidence_figure_spec("time_to_event_decision_curve")
-    figure17 = display_registry.get_evidence_figure_spec("multicenter_generalizability_overview")
-    figure19 = display_registry.get_evidence_figure_spec("time_to_event_stratified_cumulative_incidence_panel")
-    figure22 = display_registry.get_evidence_figure_spec("risk_layering_monotonic_bars")
-    figure3 = display_registry.get_evidence_figure_spec("binary_calibration_decision_curve_panel")
-    figure4 = display_registry.get_evidence_figure_spec("model_complexity_audit_panel")
-    table2 = display_registry.get_table_shell_spec("table2_time_to_event_performance_summary")
-    table3 = display_registry.get_table_shell_spec("table3_clinical_interpretation_summary")
-    generic_performance = display_registry.get_table_shell_spec("performance_summary_table_generic")
-    grouped_risk = display_registry.get_table_shell_spec("grouped_risk_event_summary_table")
+    figure7 = display_registry.get_evidence_figure_spec(_full_id("time_dependent_roc_horizon"))
+    figure8 = display_registry.get_evidence_figure_spec(
+        _full_id("time_dependent_roc_comparison_panel")
+    )
+    figure9 = display_registry.get_evidence_figure_spec(_full_id("tsne_scatter_grouped"))
+    figure10 = display_registry.get_evidence_figure_spec(_full_id("performance_heatmap"))
+    figure10b = display_registry.get_evidence_figure_spec(_full_id("clustered_heatmap"))
+    figure10c = display_registry.get_evidence_figure_spec(_full_id("gsva_ssgsea_heatmap"))
+    figure12 = display_registry.get_evidence_figure_spec(_full_id("subgroup_forest"))
+    figure14 = display_registry.get_evidence_figure_spec(
+        _full_id("time_to_event_discrimination_calibration_panel")
+    )
+    figure15 = display_registry.get_evidence_figure_spec(_full_id("time_to_event_risk_group_summary"))
+    figure16 = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
+    figure17 = display_registry.get_evidence_figure_spec(
+        _full_id("multicenter_generalizability_overview")
+    )
+    figure19 = display_registry.get_evidence_figure_spec(
+        _full_id("time_to_event_stratified_cumulative_incidence_panel")
+    )
+    figure22 = display_registry.get_evidence_figure_spec(_full_id("risk_layering_monotonic_bars"))
+    figure3 = display_registry.get_evidence_figure_spec(
+        _full_id("binary_calibration_decision_curve_panel")
+    )
+    figure4 = display_registry.get_evidence_figure_spec(_full_id("model_complexity_audit_panel"))
+    table2 = display_registry.get_table_shell_spec(_full_id("table2_time_to_event_performance_summary"))
+    table3 = display_registry.get_table_shell_spec(_full_id("table3_clinical_interpretation_summary"))
+    generic_performance = display_registry.get_table_shell_spec(
+        _full_id("performance_summary_table_generic")
+    )
+    grouped_risk = display_registry.get_table_shell_spec(_full_id("grouped_risk_event_summary_table"))
 
     assert figure7.input_schema_id == "binary_prediction_curve_inputs_v1"
+    assert figure7.template_id == _full_id("time_dependent_roc_horizon")
     assert figure7.evidence_class == "time_to_event"
     assert figure8.renderer_family == "python"
     assert figure8.input_schema_id == "time_dependent_roc_comparison_inputs_v1"
@@ -114,11 +139,15 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure4.evidence_class == "model_audit"
     assert figure4.input_schema_id == "model_complexity_audit_panel_inputs_v1"
     assert figure4.layout_qc_profile == "publication_model_complexity_audit"
+    assert table2.shell_id == _full_id("table2_time_to_event_performance_summary")
     assert table2.required_exports == ("md",)
     assert table3.input_schema_id == "clinical_interpretation_summary_v1"
+    assert table3.shell_id == _full_id("table3_clinical_interpretation_summary")
     assert generic_performance.input_schema_id == "performance_summary_table_generic_v1"
+    assert generic_performance.shell_id == _full_id("performance_summary_table_generic")
     assert generic_performance.required_exports == ("csv", "md")
     assert grouped_risk.input_schema_id == "grouped_risk_event_summary_table_v1"
+    assert grouped_risk.shell_id == _full_id("grouped_risk_event_summary_table")
     assert grouped_risk.table_qc_profile == "publication_table_interpretation"
 
 
