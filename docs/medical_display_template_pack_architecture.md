@@ -25,6 +25,7 @@
 - 军火库扩充历史：[medical_display_arsenal_history.md](./medical_display_arsenal_history.md)
 - 当前模板目录：[medical_display_template_catalog.md](./medical_display_template_catalog.md)
 - 当前工程审计面：[medical_display_audit_guide.md](./medical_display_audit_guide.md)
+- 当前实施计划：[medical_display_template_pack_implementation_plan.md](./medical_display_template_pack_implementation_plan.md)
 
 ## 一句话结论
 
@@ -123,7 +124,7 @@
 第一阶段不追求以下事情：
 
 1. 不直接做完整的模板市场、评分系统或远端运营平台。
-2. 不要求第一阶段就把所有现有模板全部重写一遍。
+2. 不要求第一阶段就把所有现有模板的实现逻辑重写一遍，但迁移范围仍应是当前内置模板库的全量迁移。
 3. 不要求第一阶段就支持任意语言、任意执行环境。
 4. 不允许通过模板包重新引入静默修补、不可审计后处理或 heuristic 兜底。
 
@@ -487,8 +488,9 @@
 
 因此第一阶段就应：
 
-- 把现有内置模板归入 `fenggaolab.org` 命名空间；
+- 把当前内置模板库全量归入 `fenggaolab.org` 命名空间；
 - 把 catalog、tests、paper inputs、submission manifests 中的平面模板名升级为完整模板名；
+- 把 `001/003` 作为首轮强验收锚点，而不是作为迁移范围边界；
 - 提供一次性迁移工具，而不是维持长期别名系统。
 
 ## 分阶段落地方案
@@ -513,13 +515,14 @@
 目标：
 
 - 建立 `fenggaolab.org.medical-display-core`；
-- 把当前内置模板迁入该包；
-- 保持现有 A/B/H 真实论文基线可重新 materialize。
+- 把当前内置模板库全量迁入该包；
+- 保持现有 `001/003` 真实论文基线可重新 materialize，并作为首轮强验收锚点。
 
 产出：
 
 - 第一个内置官方模板包
 - 现有模板一次性命名空间迁移
+- 当前内置模板库的全量包化迁移完成
 
 ### Phase 3：Git 包与 Python 包支持
 
@@ -568,11 +571,12 @@
 1. 先定义 `display_pack.toml` / `template.toml` / repo-level / paper-level 配置格式；
 2. 实现本地目录包加载器；
 3. 新建内置核心包 `fenggaolab.org.medical-display-core`；
-4. 把当前内置模板迁到核心包；
+4. 把当前内置模板库全量迁到核心包；
 5. 一次性把现有模板标识切到完整包名；
 6. 让 `medical_display_template_catalog.md` 从活动模板包重新生成；
-7. 再补 Git 包与 Python 包接入；
-8. 最后再把论文级 lock 与 provenance 收严。
+7. 用 `001/003` 做首轮强验收，确认 materialize / submission / publication 相关链路重新跑通；
+8. 再补 Git 包与 Python 包接入；
+9. 最后再把论文级 lock 与 provenance 收严。
 
 换句话说，最快的路线不是先做模板市场，而是先把“一个内置核心包 + 一个本地目录包加载器”跑通。
 
@@ -592,7 +596,7 @@
 当前最正确的下一步，不是继续抽象讨论，而是直接进入 Phase 1：
 
 - 先做模板包最小骨架；
-- 先迁内置核心包；
+- 先完成内置核心包的全量迁移；
 - 先让完整命名空间模板名在现有 `001/003` 路径上重新跑通。
 
 做到这一步，这条线就真正从“概念上的模板包化”进入“可持续扩库的包生态起点”。
