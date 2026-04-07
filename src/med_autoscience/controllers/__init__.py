@@ -3,6 +3,7 @@ __all__ = [
     "data_asset_gate",
     "data_assets",
     "data_asset_updates",
+    "display_pack_surface_sync",
     "display_surface_materialization",
     "med_deepscientist_upgrade_check",
     "external_research",

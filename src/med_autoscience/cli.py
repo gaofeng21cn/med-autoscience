@@ -17,6 +17,7 @@ from med_autoscience.controllers import (
     data_asset_gate,
     data_assets,
     data_asset_updates as data_asset_updates_controller,
+    display_pack_surface_sync,
     display_surface_materialization,
     med_deepscientist_upgrade_check,
     external_research as external_research_controller,
@@ -183,6 +184,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     display_surface_parser = subparsers.add_parser("materialize-display-surface")
     display_surface_parser.add_argument("--paper-root", required=True)
+
+    display_pack_surface_sync_parser = subparsers.add_parser("sync-display-pack-surface")
+    display_pack_surface_sync_parser.add_argument("--paper-root", required=True)
 
     time_to_event_direct_migration_parser = subparsers.add_parser("time-to-event-direct-migration")
     time_to_event_direct_migration_parser.add_argument("--study-root", required=True)
@@ -523,6 +527,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "materialize-display-surface":
         result = display_surface_materialization.materialize_display_surface(
+            paper_root=Path(args.paper_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "sync-display-pack-surface":
+        result = display_pack_surface_sync.sync_display_pack_surface(
             paper_root=Path(args.paper_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
