@@ -90,6 +90,7 @@ class StudyRuntimeReason(StrEnum):
     )
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
+    QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN = "quest_stopped_requires_explicit_rerun"
     QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"
     QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED = "quest_paused_but_auto_resume_disabled"
     QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED = "quest_stopped_but_auto_resume_disabled"
@@ -146,7 +147,6 @@ _RESUMABLE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.PAUSED,
     StudyRuntimeQuestStatus.IDLE,
     StudyRuntimeQuestStatus.CREATED,
-    StudyRuntimeQuestStatus.STOPPED,
 }
 
 

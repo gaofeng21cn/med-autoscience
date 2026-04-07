@@ -11,6 +11,10 @@
 
 在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` `Domain Harness OS` 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
 
+与 `stop / rerun / requires_human_confirmation` 相关的 outer-loop control semantics，现统一桥接到：
+
+- [`docs/study_runtime_control_surface.md`](./study_runtime_control_surface.md)
+
 ## 与 study charter / startup projection 的关系
 
 当前应按下面这条关系理解：
@@ -287,6 +291,14 @@
   - quest 已 live 且所有 gate 允许继续运行
 - `COMPLETED`
   - 当前 study 已视为完成，不再需要新的 runtime 动作
+
+补充边界：
+
+- `stop` **不是** `StudyRuntimeDecision` 的一部分；它属于 outer-loop controller action surface，见 `docs/study_runtime_control_surface.md`
+- 一旦 quest 进入 `stopped`，当前 P1 contract 下：
+  - `study_runtime_status(...)` 必须返回 `BLOCKED`
+  - reason 固定为 `quest_stopped_requires_explicit_rerun`
+  - `ensure_study_runtime(...)` 不得自动把 stopped quest 当成 resumable 状态
 
 ## Preflight contract
 
