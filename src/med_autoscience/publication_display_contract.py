@@ -10,8 +10,10 @@ _REQUIRED_STYLE_ROLES_BY_TEMPLATE: dict[str, tuple[str, ...]] = {
     "binary_calibration_decision_curve_panel": ("model_curve", "comparator_curve", "reference_line"),
     "model_complexity_audit_panel": ("model_curve", "comparator_curve", "reference_line"),
     "risk_layering_monotonic_bars": ("model_curve", "comparator_curve"),
+    "time_dependent_roc_comparison_panel": ("model_curve", "comparator_curve", "reference_line"),
     "time_to_event_discrimination_calibration_panel": ("model_curve", "comparator_curve", "reference_line"),
     "time_to_event_risk_group_summary": ("model_curve", "comparator_curve", "reference_line"),
+    "time_to_event_stratified_cumulative_incidence_panel": ("model_curve", "comparator_curve", "reference_line"),
     "time_to_event_decision_curve": ("model_curve", "comparator_curve", "reference_line"),
     "cohort_flow_figure": (
         "flow_main_fill",

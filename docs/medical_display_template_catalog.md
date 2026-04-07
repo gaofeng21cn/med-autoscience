@@ -48,8 +48,10 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
 | `time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `time_dependent_roc_comparison_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC Comparison Panel | `python` | `time_dependent_roc_comparison_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
+| `time_to_event_stratified_cumulative_incidence_panel` | `evidence_figure` | `B. Survival and Time-to-Event` | Stratified Cumulative Incidence Panel | `python` | `time_to_event_stratified_cumulative_incidence_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `time_to_event_discrimination_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Validation Discrimination and Grouped Calibration (Time-to-Event) | `python` | `time_to_event_discrimination_calibration_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `time_to_event_risk_group_summary` | `evidence_figure` | `B. Survival and Time-to-Event` | Risk-Group Summary (Time-to-Event) | `python` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 
@@ -66,6 +68,7 @@ The current audited inventory is broader than the subset already proven against 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `heatmap_group_comparison` | `evidence_figure` | `E. Feature Pattern and Matrix` | Heatmap (Group Comparison) | `r_ggplot2` | `heatmap_group_comparison_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `performance_heatmap` | `evidence_figure` | `B. Survival and Time-to-Event`, `E. Feature Pattern and Matrix` | Performance Heatmap | `r_ggplot2` | `performance_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `correlation_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
@@ -117,12 +120,12 @@ The current audited inventory is broader than the subset already proven against 
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `series`
-- Optional display fields: `paper_role`, `reference_line`
+- Optional display fields: `paper_role`, `reference_line`, `time_horizon_months`
 - Required collection fields: `series` -> `label`, `x`, `y`
 - Optional collection fields: `series` -> `annotation`<br>`reference_line` -> `label`
 - Required nested collection fields: `reference_line` -> `x`, `y`
 - Optional nested collection fields: None
-- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`
+- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`, `time_dependent_roc_horizon_requires_positive_time_horizon_months_when_selected`
 
 ### `risk_layering_monotonic_inputs_v1`
 
@@ -138,6 +141,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `left_bars_must_be_non_empty`, `right_bars_must_be_non_empty`, `bar_cases_must_be_positive`, `bar_events_must_not_exceed_cases`, `bar_risk_must_be_finite_probability`, `bar_risk_must_match_events_over_cases`, `left_bars_risk_must_be_monotonic_non_decreasing`, `right_bars_risk_must_be_monotonic_non_decreasing`
+
+### `time_dependent_roc_comparison_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Time-Dependent ROC Comparison Panel
+- Templates: `time_dependent_roc_comparison_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `analysis_window_label`, `series`
+- Optional collection fields: `panels` -> `annotation`, `time_horizon_months`, `reference_line`
+- Required nested collection fields: `panels.series` -> `label`, `x`, `y`<br>`panels.reference_line` -> `x`, `y`
+- Optional nested collection fields: `panels.reference_line` -> `label`
+- Additional constraints: `time_dependent_roc_comparison_panels_must_be_non_empty`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_analysis_window_labels_must_be_non_empty`, `panel_series_must_be_non_empty`, `panel_series_labels_must_be_unique_within_panel`, `panel_series_label_sets_must_match_across_panels`, `panel_series_x_y_lengths_must_match`, `panel_series_values_must_be_finite`, `panel_reference_line_x_y_lengths_must_match_when_present`, `panel_time_horizon_months_must_be_positive_when_present`
 
 ### `binary_calibration_decision_curve_panel_inputs_v1`
 
@@ -182,7 +200,22 @@ The current audited inventory is broader than the subset already proven against 
 - Optional collection fields: `risk_group_summaries` -> `label`, `sample_size`, `events_5y`, `mean_predicted_risk_5y`, `observed_km_risk_5y`
 - Required nested collection fields: None
 - Optional nested collection fields: None
-- Additional constraints: `kaplan_meier_grouped_and_cumulative_incidence_grouped_require_non_empty_groups`, `group_times_values_lengths_must_match_when_groups_present`, `group_values_must_be_finite_when_groups_present`, `time_to_event_risk_group_summary_requires_non_empty_risk_group_summaries_when_selected`
+- Additional constraints: `kaplan_meier_grouped_and_cumulative_incidence_grouped_require_non_empty_groups`, `group_times_values_lengths_must_match_when_groups_present`, `group_values_must_be_finite_when_groups_present`, `time_to_event_risk_group_summary_requires_non_empty_risk_group_summaries_when_selected`, `risk_group_summary_events_must_not_exceed_sample_size`
+
+### `time_to_event_stratified_cumulative_incidence_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Time-to-Event Stratified Cumulative Incidence Panel
+- Templates: `time_to_event_stratified_cumulative_incidence_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `groups`
+- Optional collection fields: `panels` -> `annotation`
+- Required nested collection fields: `panels.groups` -> `label`, `times`, `values`
+- Optional nested collection fields: None
+- Additional constraints: `stratified_cumulative_incidence_panels_must_be_non_empty`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_group_labels_must_be_unique_within_panel`, `panel_group_times_values_lengths_must_match`, `panel_group_times_must_be_strictly_increasing`, `panel_group_values_must_be_finite_probability`, `panel_group_values_must_be_monotonic_non_decreasing`
 
 ### `time_to_event_discrimination_calibration_inputs_v1`
 
@@ -197,7 +230,7 @@ The current audited inventory is broader than the subset already proven against 
 - Optional collection fields: `discrimination_points` -> `annotation`
 - Required nested collection fields: `calibration_callout` -> `group_label`, `predicted_risk_5y`, `observed_risk_5y`
 - Optional nested collection fields: `calibration_callout` -> `events_5y`, `n`
-- Additional constraints: `discrimination_points_must_be_non_empty`, `discrimination_points_must_be_finite_c_index`, `calibration_summary_must_be_non_empty`, `calibration_group_order_must_be_strictly_increasing`, `calibration_summary_risks_must_be_finite_probability`, `calibration_callout_must_reference_group_label_when_present`
+- Additional constraints: `discrimination_points_must_be_non_empty`, `discrimination_points_must_be_finite_c_index`, `calibration_summary_must_be_non_empty`, `calibration_group_order_must_be_strictly_increasing`, `calibration_summary_risks_must_be_finite_probability`, `calibration_summary_events_must_not_exceed_group_size`, `calibration_callout_must_reference_group_label_when_present`, `calibration_callout_must_match_referenced_group_when_present`
 
 ### `time_to_event_decision_curve_inputs_v1`
 
@@ -207,12 +240,12 @@ The current audited inventory is broader than the subset already proven against 
 - Required top-level fields: `schema_version`, `input_schema_id`, `displays`
 - Optional top-level fields: None
 - Required display fields: `display_id`, `template_id`, `title`, `caption`, `panel_a_title`, `panel_b_title`, `x_label`, `y_label`, `treated_fraction_y_label`, `series`, `treated_fraction_series`
-- Optional display fields: `paper_role`, `reference_line`
+- Optional display fields: `paper_role`, `reference_line`, `time_horizon_months`
 - Required collection fields: `series` -> `label`, `x`, `y`<br>`treated_fraction_series` -> `label`, `x`, `y`
 - Optional collection fields: `series` -> `annotation`<br>`reference_line` -> `label`
 - Required nested collection fields: `reference_line` -> `x`, `y`
 - Optional nested collection fields: None
-- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`, `treated_fraction_series_x_y_lengths_must_match`, `treated_fraction_values_must_be_finite`, `publication_style_profile_required_at_materialization`, `display_override_contract_may_adjust_layout_without_changing_data`
+- Additional constraints: `series_must_be_non_empty`, `series_x_y_lengths_must_match`, `series_values_must_be_finite`, `reference_line_x_y_lengths_must_match_when_present`, `treated_fraction_series_x_y_lengths_must_match`, `treated_fraction_values_must_be_finite`, `publication_style_profile_required_at_materialization`, `display_override_contract_may_adjust_layout_without_changing_data`, `time_horizon_months_must_be_positive_when_declared`
 
 ### `embedding_grouped_inputs_v1`
 
@@ -243,6 +276,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`
+
+### `performance_heatmap_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Performance Heatmap
+- Templates: `performance_heatmap`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `metric_name`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`
+- Required collection fields: `row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `metric_name_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `performance_values_must_be_finite_probability`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_heatmap_grid_must_be_complete_and_unique`
 
 ### `correlation_heatmap_inputs_v1`
 

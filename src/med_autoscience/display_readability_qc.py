@@ -8,6 +8,9 @@ DEFAULT_MIN_TERMINAL_SEPARATION = 0.01
 DEFAULT_MIN_OBSERVED_RISK_SPREAD = 0.01
 DEFAULT_MIN_PREDICTED_RISK_SPREAD = 0.005
 DEFAULT_MIN_EVENT_COUNT_SPREAD = 1.0
+DEFAULT_MIN_SHAP_FEATURE_ROW_HEIGHT_INCHES = 0.5
+DEFAULT_MIN_SHAP_FEATURE_ROW_GAP_INCHES = 0.08
+DEFAULT_MIN_SHAP_FEATURE_LABEL_PANEL_GAP_INCHES = 0.08
 
 
 def _issue(
@@ -106,6 +109,50 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
                     expected={"minimum_terminal_separation": minimum_terminal_separation},
                 )
             )
+
+    panels = metrics.get("panels")
+    if isinstance(panels, list):
+        minimum_terminal_separation = _resolve_threshold(
+            override,
+            field_name="minimum_terminal_separation",
+            default_value=DEFAULT_MIN_TERMINAL_SEPARATION,
+        )
+        for panel_index, panel in enumerate(panels):
+            panel_mapping = _require_mapping(panel, label=f"layout_sidecar.metrics.panels[{panel_index}]")
+            panel_groups = panel_mapping.get("groups")
+            if not isinstance(panel_groups, list) or len(panel_groups) < 2:
+                continue
+            terminal_values = []
+            for group_index, group in enumerate(panel_groups):
+                group_mapping = _require_mapping(
+                    group,
+                    label=f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}]",
+                )
+                values = group_mapping.get("values")
+                if not isinstance(values, list) or not values:
+                    raise ValueError(
+                        f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}].values must be a non-empty list"
+                    )
+                terminal_values.append(
+                    _require_numeric(
+                        values[-1],
+                        label=f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}].values[-1]",
+                    )
+                )
+            terminal_spread = max(terminal_values) - min(terminal_values)
+            if terminal_spread < minimum_terminal_separation:
+                issues.append(
+                    _issue(
+                        rule_id="risk_separation_not_readable",
+                        message="stratified cumulative-incidence panel is too compressed to convey the intended separation",
+                        target=f"metrics.panels[{panel_index}].groups",
+                        observed={
+                            "panel_label": str(panel_mapping.get("panel_label") or ""),
+                            "terminal_spread": terminal_spread,
+                        },
+                        expected={"minimum_terminal_separation": minimum_terminal_separation},
+                    )
+                )
 
     risk_group_summaries = metrics.get("risk_group_summaries")
     if isinstance(risk_group_summaries, list) and len(risk_group_summaries) >= 2:
@@ -226,8 +273,140 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
     return issues
 
 
+def _check_shap_summary_readability(layout_sidecar: dict[str, object]) -> list[dict[str, Any]]:
+    metrics = _require_mapping(layout_sidecar.get("metrics"), label="layout_sidecar.metrics")
+    override = _readability_override(layout_sidecar)
+    figure_height_inches = _require_numeric(
+        metrics.get("figure_height_inches"),
+        label="layout_sidecar.metrics.figure_height_inches",
+    )
+    figure_width_inches = _require_numeric(
+        metrics.get("figure_width_inches"),
+        label="layout_sidecar.metrics.figure_width_inches",
+    )
+    if figure_height_inches <= 0:
+        raise ValueError("layout_sidecar.metrics.figure_height_inches must be > 0")
+    if figure_width_inches <= 0:
+        raise ValueError("layout_sidecar.metrics.figure_width_inches must be > 0")
+    minimum_feature_row_height_inches = _resolve_threshold(
+        override,
+        field_name="minimum_feature_row_height_inches",
+        default_value=DEFAULT_MIN_SHAP_FEATURE_ROW_HEIGHT_INCHES,
+    )
+    minimum_feature_row_gap_inches = _resolve_threshold(
+        override,
+        field_name="minimum_feature_row_gap_inches",
+        default_value=DEFAULT_MIN_SHAP_FEATURE_ROW_GAP_INCHES,
+    )
+    minimum_feature_label_panel_gap_inches = _resolve_threshold(
+        override,
+        field_name="minimum_feature_label_panel_gap_inches",
+        default_value=DEFAULT_MIN_SHAP_FEATURE_LABEL_PANEL_GAP_INCHES,
+    )
+
+    raw_layout_boxes = layout_sidecar.get("layout_boxes")
+    if not isinstance(raw_layout_boxes, list):
+        raise ValueError("layout_sidecar.layout_boxes must be a list")
+    raw_panel_boxes = layout_sidecar.get("panel_boxes")
+    if not isinstance(raw_panel_boxes, list):
+        raise ValueError("layout_sidecar.panel_boxes must be a list")
+
+    feature_rows: list[dict[str, float | str]] = []
+    feature_labels: dict[str, dict[str, float | str]] = {}
+    for index, item in enumerate(raw_layout_boxes):
+        box = _require_mapping(item, label=f"layout_sidecar.layout_boxes[{index}]")
+        box_type = str(box.get("box_type") or "").strip()
+        y0 = _require_numeric(box.get("y0"), label=f"layout_sidecar.layout_boxes[{index}].y0")
+        y1 = _require_numeric(box.get("y1"), label=f"layout_sidecar.layout_boxes[{index}].y1")
+        if y1 < y0:
+            raise ValueError(f"layout_sidecar.layout_boxes[{index}] must satisfy y1 >= y0")
+        if box_type == "feature_row":
+            feature_rows.append(
+                {
+                    "box_id": str(box.get("box_id") or f"feature_row_{index}").strip(),
+                    "y0": y0,
+                    "y1": y1,
+                }
+            )
+            continue
+        if box_type == "feature_label":
+            x0 = _require_numeric(box.get("x0"), label=f"layout_sidecar.layout_boxes[{index}].x0")
+            x1 = _require_numeric(box.get("x1"), label=f"layout_sidecar.layout_boxes[{index}].x1")
+            if x1 < x0:
+                raise ValueError(f"layout_sidecar.layout_boxes[{index}] must satisfy x1 >= x0")
+            feature_labels[str(box.get("box_id") or f"feature_label_{index}").strip()] = {
+                "x0": x0,
+                "x1": x1,
+            }
+
+    primary_panel = _require_mapping(raw_panel_boxes[0], label="layout_sidecar.panel_boxes[0]") if raw_panel_boxes else None
+    panel_x0 = None
+    if primary_panel is not None:
+        panel_x0 = _require_numeric(primary_panel.get("x0"), label="layout_sidecar.panel_boxes[0].x0")
+
+    issues: list[dict[str, Any]] = []
+    for row in feature_rows:
+        row_height_inches = (float(row["y1"]) - float(row["y0"])) * figure_height_inches
+        if row_height_inches < minimum_feature_row_height_inches:
+            issues.append(
+                _issue(
+                    rule_id="feature_row_height_not_readable",
+                    message="feature row height is too small for manuscript-facing SHAP readability",
+                    target=f"layout_boxes.{row['box_id']}",
+                    observed={"feature_row_height_inches": row_height_inches},
+                    expected={"minimum_feature_row_height_inches": minimum_feature_row_height_inches},
+                )
+            )
+
+    sorted_rows = sorted(feature_rows, key=lambda item: float(item["y0"]))
+    for previous_row, current_row in zip(sorted_rows, sorted_rows[1:]):
+        row_gap_inches = (float(current_row["y0"]) - float(previous_row["y1"])) * figure_height_inches
+        if row_gap_inches < minimum_feature_row_gap_inches:
+            issues.append(
+                _issue(
+                    rule_id="feature_row_gap_not_readable",
+                    message="feature-row gap is too small for manuscript-facing SHAP readability",
+                    target=f"layout_boxes.{previous_row['box_id']}->{current_row['box_id']}",
+                    observed={"feature_row_gap_inches": row_gap_inches},
+                    expected={"minimum_feature_row_gap_inches": minimum_feature_row_gap_inches},
+                )
+            )
+
+    raw_feature_labels = metrics.get("feature_labels")
+    if raw_feature_labels is None:
+        raw_feature_labels = []
+    if not isinstance(raw_feature_labels, list):
+        raise ValueError("layout_sidecar.metrics.feature_labels must be a list when present")
+    if panel_x0 is not None:
+        for index, item in enumerate(raw_feature_labels):
+            entry = _require_mapping(item, label=f"layout_sidecar.metrics.feature_labels[{index}]")
+            label_box_id = str(entry.get("label_box_id") or "").strip()
+            if not label_box_id:
+                raise ValueError(
+                    f"layout_sidecar.metrics.feature_labels[{index}].label_box_id must be non-empty"
+                )
+            label_box = feature_labels.get(label_box_id)
+            if label_box is None:
+                continue
+            label_panel_gap_inches = (panel_x0 - float(label_box["x1"])) * figure_width_inches
+            if label_panel_gap_inches < minimum_feature_label_panel_gap_inches:
+                issues.append(
+                    _issue(
+                        rule_id="feature_label_panel_gap_not_readable",
+                        message="feature-label gap to the shap panel is too small for manuscript-facing readability",
+                        target=f"layout_boxes.{label_box_id}",
+                        observed={"feature_label_panel_gap_inches": label_panel_gap_inches},
+                        expected={"minimum_feature_label_panel_gap_inches": minimum_feature_label_panel_gap_inches},
+                    )
+                )
+
+    return issues
+
+
 def run_readability_qc(*, qc_profile: str, layout_sidecar: dict[str, object]) -> list[dict[str, Any]]:
     normalized_profile = str(qc_profile or "").strip()
     if normalized_profile == "publication_survival_curve":
         return _check_survival_group_readability(layout_sidecar)
+    if normalized_profile == "publication_shap_summary":
+        return _check_shap_summary_readability(layout_sidecar)
     return []
