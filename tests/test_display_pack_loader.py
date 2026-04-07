@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from med_autoscience.display_pack_loader import load_enabled_local_display_packs
 
 
@@ -75,3 +77,19 @@ def test_load_enabled_local_display_packs_uses_repo_root_for_source_path(
     manifests = load_enabled_local_display_packs(repo_root)
 
     assert manifests[0].version == "0.1.0"
+
+
+def test_load_enabled_local_display_packs_fails_on_pack_id_mismatch(
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    _write_display_pack_config(repo_root)
+
+    _write_pack_manifest(
+        repo_root / "display-packs" / "fenggaolab.org.medical-display-core",
+        pack_id="fenggaolab.org.other-pack",
+    )
+
+    with pytest.raises(ValueError, match="pack_id mismatch"):
+        load_enabled_local_display_packs(repo_root)

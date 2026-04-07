@@ -25,6 +25,11 @@ def load_enabled_local_display_packs(repo_root: Path) -> list[DisplayPackManifes
             continue
 
         pack_root = repo_root / source["path"]
-        manifests.append(load_display_pack_manifest(pack_root / "display_pack.toml"))
+        manifest = load_display_pack_manifest(pack_root / "display_pack.toml")
+        if manifest.pack_id != pack_id:
+            raise ValueError(
+                f"pack_id mismatch: source={pack_id!r}, manifest={manifest.pack_id!r}"
+            )
+        manifests.append(manifest)
 
     return manifests
