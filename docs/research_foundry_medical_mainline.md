@@ -2,12 +2,13 @@
 
 这份文档把 `Med Auto Science` 当前真正的主线固定下来。
 
-它回答四个问题：
+它回答五个问题：
 
 1. `Med Auto Science` 现在到底在做什么
 2. `Research Foundry`、`domain gateway`、`Domain Harness OS` 三者是什么关系
 3. 为什么论文交付仍然是顶层业务目标，但不再主导整个架构分层
-4. 在 `real-study relaunch` 已 absorbed 到 `main` 之后，接下来必须按什么顺序继续推进
+4. 当前 absorbed position 到了哪里
+5. 这条主线接下来应按什么顺序推进
 
 如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
 
@@ -18,7 +19,7 @@
 
 `Med Auto Science` 当前应被理解为：
 
-- `Research Foundry` 在医学场景上的首个成熟实现
+- `Research Foundry` 在医学场景上的成熟实现
 - 对外承担医学 `Research Ops` 的 `domain gateway`
 - 对内承担医学自动科研的 `Domain Harness OS`
 
@@ -103,15 +104,7 @@ Human / Agent
 - 持有 authority artifact、runtime artifact、verdict artifact 与 delivery artifact 的边界
 - 维持研究推进、审核、停止、promotion、publication hygiene 与 submission delivery
 
-未来 monorepo 内部的：
-
-- `controller_charter`
-- `runtime`
-- `eval_hygiene`
-
-都应被理解为这个 harness OS 的内部主模块。
-
-与此同时，outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
+outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 - `MedDeepScientist` 作为常驻 inner runtime
 - `Med Auto Science` 作为 tick-driven outer controller
@@ -135,81 +128,38 @@ Human / Agent
 
 它们仍然是平台对医学用户最直观、最关键的交付面。
 
-只是它们应该建立在稳定底座上：
+## 2026-04-07 / 当前 absorbed position
 
-- `study_charter`
-- `startup projection`
-- `runtime escalation`
-- `publication eval`
-- `medical reporting contract`
-- `display template contract`
+截至 `2026-04-07`，repo-tracked truth 应按下面这条事实理解：
 
-## 当前 absorbed position / 2026-04-07
+1. `authority / outer-loop / delivery plane` 三层 contract 已完成并 absorbed 到 `main`
+2. `real-study relaunch and verify` 已在真实 anchor 上完成验证，并把 remaining blocker 收敛为 external workspace-side truth gap
+3. 当前 repo-side 下一棒不是重开 relaunch，而是进入 `Phase 6 / Integration Harness And Cutover Readiness`
+4. 当前最小 repo-tracked tranche 固定为：
+   - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 
-截至 `2026-04-07`，当前主线已经依次完成并 absorbed 到 `main`：
+这条 activation package 只负责：
 
-1. outer-loop durable decision loop
-2. formal runtime control surface (`pause / stop / rerun / requires_human_confirmation`)
-3. delivery plane contract map and artifact-surface freeze
-4. real-study relaunch and verify
-
-当前 authoritative real-study closeout 见：
-
-- [Real-Study Relaunch Verification](./real_study_relaunch_verification.md)
-
-因此，当前 repo-side 真正的下一阶段不是再回头争论 authority foundation，而是：
-
-- `Phase 6 / Integration Harness And Cutover Readiness`
-
-## 当前 active phase 的正式理解
-
-当前 active phase 只应被理解为：
-
-- 在已 absorbed 的 real-study truth 之上，继续把 `controller / runtime / eval / delivery` chain 收紧成可持续复跑的 integration baseline
-- 同时明确 `merge gate` 与 `runtime cutover gate` 仍然是两道不同的门
-
-这并不等于：
-
-- `end-to-end study harness` 已打开
-- `cutover` 已打开
-- `behavior-equivalence` 已通过
-- external workspace-side blocker 已经消失
-
-当前 phase 的 repo-tracked canonical bridge 见：
-
-- [Integration Harness Activation Package](./integration_harness_activation_package.md)
-
-## 固定推进顺序
-
-从当前节点开始，推荐固定按下面顺序推进：
-
-1. `Phase 6 / Integration Harness And Cutover Readiness`
-   - 先冻结 activation package
-   - 再维持最小 repo-native harness baseline
-   - 继续保持 `end-to-end harness / cutover / behavior-equivalence` 关闭，直到单独门控放行
-2. `Phase 7 / Vocabulary And Contract Freeze`
-3. `Phase 8 / Open Research Foundry Validation`
-
-当前不允许反过来做：
-
-- 不能因为 real-study 已有 anchor 验证，就跳过 integration harness baseline
-- 不能因为要更快进入 cutover，就把 `merge gate` 与 `runtime cutover gate` 混成一个门
-- 不能因为 external workspace-side blocker 存在，就回退 repo-side fail-closed contract
+- 冻结 `controller -> runtime -> eval -> delivery` chain 的当前 baseline
+- 诚实写清 `cutover readiness`、residual risks 与 external surface requirement
+- 不把 `end-to-end study harness`、cutover、`med-deepscientist` 写入、cross-repo write 偷渡进来
 
 ## 当前 immediate next step
 
-当前最自然的 immediate next step 是：
+当前真正的 immediate next step 是：
 
-1. 把 repo-tracked mainline docs 从 pre-relaunch 叙事同步到 post-relaunch absorbed truth
-2. 把 `runtime_watch -> publication_gate -> study_delivery_sync` 这一段 proof surface 编入 repo-native preflight baseline
-3. 以 targeted regression + broader regression 证明当前最小 tranche 已收口
+1. 冻结 `integration harness activation package`
+2. 把 `runtime_watch / publication_gate / study_delivery_sync` 与上游 runtime / outer-loop artifact 的关系压成稳定 bridge
+3. 诚实冻结 `cutover readiness` 仍未放行的外部 gate
 
-而不是：
+## 固定推进顺序
 
-- 打开 `end-to-end study harness`
-- 打开 `cutover`
-- 直接改 external workspace truth
-- 把开发控制面的 baseline 误写成产品 runtime 成熟度
+从当前 absorbed 起点开始，推荐固定按下面顺序推进：
+
+1. authority / outer-loop / delivery plane convergence（已完成）
+2. real-study relaunch and verify（已完成）
+3. integration harness activation baseline（当前 active）
+4. only-then `end-to-end harness / cutover readiness`
 
 ## 非目标
 
@@ -217,17 +167,15 @@ Human / Agent
 
 - 把 `Med Auto Science` 重新降级成“论文工具箱”
 - 把 `display / paper` 误当成边缘能力
-- 因为要 monorepo 就提前做大规模代码搬迁
-- 因为要开放化就提前把医学语义抹平
+- 因为要 cutover 就提前做越权写入
+- 因为要自动推进就跳过 fail-closed 边界
 - 把 `Research Foundry` 现在就做成新的物理主仓库
-- 在 repo-tracked contract 未显式授权前做 `med-deepscientist` 写入或 `cross-repo write`
 
 ## 正式判断
 
 因此，当前 `med-autoscience` 仓库的正式主线应写成：
 
-> `Med Auto Science` is the medical implementation of `Research Foundry`, operating as a medical `domain gateway + Domain Harness OS`, with publication-grade paper delivery as the business north star.
-
-对应中文可稳定表述为：
-
-> `Med Auto Science` 是 `Research Foundry` 的医学实现；对外是医学 `Research Ops` 的 `domain gateway`，对内是医学自动科研的 `Domain Harness OS`；其业务北极星始终是把研究稳定推进到发表级论文交付。当前已完成 delivery-plane 与 real-study relaunch 收口，下一正式阶段是 `Phase 6 / Integration Harness And Cutover Readiness`，但仍未打开 `end-to-end harness` 与 `cutover`。
+- 先完成 authority / outer-loop / delivery plane convergence
+- 再完成 real-study relaunch and verify
+- 再把 `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package absorb 到 `main`
+- 只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续往更大 harness / cutover 推进

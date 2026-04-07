@@ -2,8 +2,8 @@
 
 这份文档定义两件事：
 
-- 什么时候当前这条 `MedDeepScientist` 迁移主线可以并回 `main`
-- 什么时候一个正在运行中的医学项目可以平滑迁到新框架
+- 什么时候当前 repo-side baseline 可以吸收到 `main`
+- 什么时候一个正在运行中的医学项目可以平滑迁到更大的 integration harness / cutover surface
 
 它不讨论“是否值得做 `med-deepscientist`”；这个决策已经做完。这里讨论的是何时可以安全收口。
 
@@ -12,85 +12,65 @@
 要分清两个不同的门：
 
 1. `merge gate`
-   - 判断代码分支能不能进 `main`
+   - 判断当前 repo-side tranche 能不能进 `main`
 2. `runtime cutover gate`
-   - 判断现网项目能不能把真实运行面切到这套新边界
+   - 判断真实运行面能不能把 study 切到更大的 harness / cutover surface
 
 `merge gate` 通过，不自动意味着 `runtime cutover gate` 通过。
 
-## 当前与 Phase 6 activation package 的关系
+## 2026-04-07 / 当前 absorbed position
 
-截至 `2026-04-07`，当前 repo-side 只允许把 `Phase 6 / Integration Harness And Cutover Readiness` 冻结到 activation package 级别：
+截至 `2026-04-07`，当前已知事实应按下面这条顺序理解：
 
-- controller-runtime baseline 已在 `main`
-- runtime-eval / delivery shell baseline 已在 `main`
-- 当前只允许吸收 repo-tracked activation package、proof surface 与 residual-risk map
-
-对应 canonical bridge 见：
-
-- [`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
-
-这一步依然不等于：
-
-- `end-to-end study harness` 已开启
-- runtime cutover gate 已通过
-- behavior-equivalence 已成立
-- `med-deepscientist` 已获得写授权
+1. `P0` / `P1` / `P2` 与 `real-study relaunch and verify` 已 absorbed 到 `main`
+2. `real-study` 已经提供了真实 anchor 上的 managed entry / watch / gate / delivery mirror 证据
+3. 当前 repo-side 下一棒是 `integration harness activation package`，不是宣称 cutover 已经 ready
+4. 因此，当前要做的是把 cutover readiness 仍依赖的 gate 诚实冻结，而不是越过这些 gate
 
 ## Merge Gate
 
-`med-autoscience` 当前 tranche 只有在下面条件全部满足时，才应该并回 `main`：
+当前 repo-side tranche 只有在下面条件全部满足时，才应该并回 `main`：
 
-### 1. 控制路径不再依赖 adapter 真相
+### 1. 当前 write-set 与 tranche 边界一致
 
 必须满足：
 
-- production controller 不再直接 import `adapters.deepscientist.*`
-- runtime 文件真相全部落在 `runtime_protocol`
-- daemon transport 真相全部落在 `runtime_transport`
-- `adapters/deepscientist/*` 已经从正式主链移除
+- 当前 tranche 只落在 repo-tracked activation package 允许的 docs / tests / preflight / reports 范围
+- 不把 `end-to-end study harness`、cutover、`med-deepscientist` 写入、cross-repo write 偷渡进来
+- 不把 display-pack 独立线混入 runtime 主线
 
-### 2. worktree 模式完全成立
+### 2. worktree 模式成立
 
 必须满足：
 
 - 主仓根目录保持在 `main`
-- 所有未合并开发只发生在 `.worktree/...`
-- `python_environment_contract` 在 worktree 下能正确解析主仓 `.venv`
+- 当前 tracked 实现发生在独立 `.worktrees/...` worktree
+- root checkout 继续只承接 control-plane / absorb 动作
 
-### 3. 回归锁住新边界
+### 3. 当前 baseline proof 通过
 
 至少要有：
 
-- 针对 `runtime_protocol.quest_state`
-- 针对 `runtime_protocol.paper_artifacts`
-- 针对 `runtime_protocol.user_message`
-- 针对 `runtime_transport.med_deepscientist`
-- 针对“production code 不再 import `adapters.deepscientist`”的架构测试
+- `tests/test_runtime_watch.py`
+- `tests/test_study_delivery_sync.py`
+- `tests/test_publication_gate.py`
+- `tests/test_integration_harness_activation_package.py`
+- `tests/test_dev_preflight_contract.py`
+- `tests/test_dev_preflight.py`
 
-### 4. 全量测试稳定
-
-必须在迁移 worktree 中跑过：
-
-```bash
-PYTHONPATH=src pytest -q
-```
-
-并且通过。
-
-### 5. intake 流程已固化
+### 4. wording / artifact / preflight audit 一致
 
 必须满足：
 
-- `med-autoscience` 有稳定的上游 intake 规范
-- `med-deepscientist` 也有对应规范
-- 后续吸收 upstream 不依赖会话记忆，而依赖文档化流程
+- repo-tracked docs 对当前 absorbed position 与 active tranche 的表述一致
+- preflight contract 已收口当前 integration harness surface
+- manual-test package 与 reports 可追溯到 fresh evidence
 
 ## Runtime Cutover Gate
 
-正在运行的项目只有在下面条件全部满足时，才建议平滑切到新框架。
+正在运行的项目只有在下面条件全部满足时，才建议平滑切到更大的 harness / cutover surface。
 
-### 1. controlled fork 已经固定
+### 1. controlled fork 已固定
 
 必须满足：
 
@@ -141,27 +121,30 @@ PYTHONPATH=src pytest -q
 
 以 `2026-04-07` 这个时间点看：
 
-- repo-side `merge gate` 已经足够支持 activation package 收口与吸收到 `main`
-- `runtime cutover gate` 仍没有完成
+- repo-side `merge gate` 对当前 activation baseline 来说可以继续推进
+- `runtime cutover gate` 还没有完成
 
 原因是：
 
-- 代码与 contract 层已经完成 `controller -> runtime -> eval -> delivery` 的最小桥接收敛
-- 但真实项目是否能切，仍取决于 controlled fork 固定、behavior equivalence gate、真实 workspace 热身与外部 paper/writer truth
+- repo-side contract 已完成 authority / delivery / real-study 的收口，并开始冻结 integration harness baseline
+- 但真实运行面的切换，仍取决于 controlled fork 固定、behavior equivalence gate 放行，以及 external runtime / workspace surface
 
-## 我的建议
+## 当前建议
 
-### 何时可以继续吸收到 main
+### 何时可以 absorb 当前 tranche
 
-只要当前 tranche 的 targeted regression / broader regression / wording audit 通过，就应尽快把 repo-side activation package 吸收到 `main`，而不是让它继续停在漂浮状态。
+当下面这些条件一起满足时，应直接 absorb：
 
-### 何时可以推进真实 cutover
+1. 当前 activation package docs / tests / preflight / reports 一致
+2. targeted regression 与 broader regression 通过
+3. manual-test package 已刷新并有 fresh evidence
+4. `git diff --check` clean
 
-我会把“可以平滑迁”定义成下面这个标准：
+### 何时可以继续往更大 cutover 推进
+
+只有当下面这些条件一起满足时，才建议继续：
 
 - controlled fork 固定
 - `behavior_equivalence_gate.yaml` 放行
 - 至少 1 个真实项目完成 create/resume/pause + controller 落盘 + paper 交付热身
-- 连续一段观察期内没有回退到 site-packages 私补丁
-
-只有这几项全满足，才应建议把正在跑的项目正式切到新框架。
+- external workspace-side blocker 不再要求 repo 继续越权 widening

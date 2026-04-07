@@ -15,7 +15,7 @@
 - 改了 README、Codex plugin 文档、安装脚本
 - 改了 display contract、publication gate、display guide
 - 改了 runtime contract、router、runtime transport、runtime protocol
-- 改了 `runtime_watch`、`study_delivery_sync`、mainline execution map、integration harness activation package
+- 改了 integration harness activation package、cutover readiness、相关 preflight contract
 - 改了 workflow、打包和 release 相关文件
 
 ## 命令入口
@@ -53,8 +53,8 @@ preflight 不是启发式脚本。
 - `workflow_surface`
 - `codex_plugin_docs_surface`
 - `display_publication_surface`
-- `integration_harness_surface`
 - `runtime_contract_surface`
+- `integration_harness_surface`
 
 如果你的改动不在当前 contract 覆盖范围内，结果会显式返回 `unclassified_changes`。
 
@@ -62,30 +62,6 @@ preflight 不是启发式脚本。
 
 - 当前改动面还没有正式纳入 preflight contract
 - 不能把“未检查”伪装成“已检查”
-
-## 当前 integration harness preflight contract
-
-`integration_harness_surface` 当前只覆盖 `Phase 6` 最小 repo-native baseline：
-
-- `runtime_watch`
-- `study_delivery_sync`
-- `publication_gate`
-- integration-harness activation docs / execution map / merge-cutover bridge / agent runtime entry docs
-- preflight contract 自身与其测试
-
-当前命令固定为：
-
-```bash
-uv run pytest tests/test_dev_preflight_contract.py -q
-uv run pytest tests/test_runtime_watch.py -q
-uv run pytest tests/test_study_delivery_sync.py -q
-uv run pytest tests/test_publication_gate.py -q
-```
-
-这里的含义是：
-
-- 它是开发控制面的 integration baseline
-- 不是 `end-to-end study harness` 或 `cutover` 已放行的声明
 
 ## 遇到 `unclassified_changes` 时怎么做
 
