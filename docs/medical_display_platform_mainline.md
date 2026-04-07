@@ -19,6 +19,8 @@ For the generated template inventory, see [medical_display_template_catalog.md](
 
 For the paper-facing visual review discipline above deterministic contracts, see [medical_display_visual_audit_protocol.md](./medical_display_visual_audit_protocol.md).
 
+For the package architecture that separates template-library evolution from host-platform development, see [medical_display_template_pack_architecture.md](./medical_display_template_pack_architecture.md).
+
 ## North Star
 
 The display mainline exists to make `med-autoscience` a stable paper-facing platform for medical figures and tables.

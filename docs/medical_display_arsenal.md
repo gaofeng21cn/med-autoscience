@@ -15,6 +15,7 @@
 - 论文问题层的长期路线，以 [medical_display_family_roadmap.md](./medical_display_family_roadmap.md) 为准。
 - 工程审计层的严格真相，以 [medical_display_audit_guide.md](./medical_display_audit_guide.md) 为准。
 - 军火库扩充时间线，以 [medical_display_arsenal_history.md](./medical_display_arsenal_history.md) 为准。
+- 模板包化与军火库独立演进架构，以 [medical_display_template_pack_architecture.md](./medical_display_template_pack_architecture.md) 为准。
 
 ## 统计口径
 
