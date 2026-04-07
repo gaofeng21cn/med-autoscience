@@ -23,7 +23,7 @@ from matplotlib.font_manager import FontProperties  # noqa: E402
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 from matplotlib.textpath import TextPath  # noqa: E402
 
-from med_autoscience import display_layout_qc, display_registry, publication_display_contract  # noqa: E402
+from med_autoscience import display_layout_qc, display_pack_lock, display_registry, publication_display_contract  # noqa: E402
 from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id
 
 
@@ -9494,10 +9494,15 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         readme_paths.append(str(path))
     dump_json(resolved_paper_root / "figures" / "figure_catalog.json", figure_catalog)
     dump_json(resolved_paper_root / "tables" / "table_catalog.json", table_catalog)
+    display_pack_lock_path = display_pack_lock.write_display_pack_lock(
+        paper_root=resolved_paper_root,
+        repo_root=Path(__file__).resolve().parents[3],
+    )
     written_files.extend(
         [
             str(resolved_paper_root / "figures" / "figure_catalog.json"),
             str(resolved_paper_root / "tables" / "table_catalog.json"),
+            str(display_pack_lock_path),
             *readme_paths,
         ]
     )

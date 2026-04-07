@@ -1397,6 +1397,16 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_writes_display_pack_lock(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    lock_payload = json.loads((paper_root / "build" / "display_pack_lock.json").read_text(encoding="utf-8"))
+    assert lock_payload["enabled_packs"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
+
+
 def test_materialize_display_surface_uses_catalog_ids_for_semantic_shell_display_ids(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
