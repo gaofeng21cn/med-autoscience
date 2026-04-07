@@ -5,7 +5,7 @@
 它回答四个问题：
 
 1. `Med Auto Science` 现在到底在做什么
-2. `Research Foundry`、`domain gateway`、`domain harness OS` 三者是什么关系
+2. `Research Foundry`、`domain gateway`、`Domain Harness OS` 三者是什么关系
 3. 为什么论文交付仍然是顶层业务目标，但不再主导整个架构分层
 4. 这条主线接下来应按什么顺序推进
 
@@ -19,7 +19,7 @@
 
 - `Research Foundry` 在医学场景上的首个成熟实现
 - 对外承担医学 `Research Ops` 的 `domain gateway`
-- 对内承担医学自动科研的 `domain harness OS`
+- 对内承担医学自动科研的 `Domain Harness OS`
 
 而它的业务北极星始终不变：
 
@@ -48,7 +48,7 @@
 为了让这些交付能力稳定存在，系统本体必须先收紧成：
 
 - 对外稳定的 `domain gateway`
-- 对内清晰的 `domain harness OS`
+- 对内清晰的 `Domain Harness OS`
 - 明确的 `controller / runtime / eval / delivery` authority boundary
 
 因此：
@@ -96,7 +96,7 @@ Human / Agent
 
 ### Domain Harness OS
 
-`Med Auto Science` 作为 `domain harness OS`，负责：
+`Med Auto Science` 作为 `Domain Harness OS`，负责：
 
 - 组织 controller、runtime、eval、delivery 为同一条长期运行链
 - 持有 authority artifact、runtime artifact、verdict artifact 与 delivery artifact 的边界
@@ -151,7 +151,7 @@ Human / Agent
 
 ### 顶层主线
 
-`Research Foundry medical implementation / domain harness OS convergence`
+`Research Foundry medical implementation / Domain Harness OS convergence`
 
 ### 主线下的正式子线
 
@@ -257,8 +257,8 @@ Human / Agent
 
 因此，当前 `med-autoscience` 仓库的正式主线应写成：
 
-> `Med Auto Science` is the medical implementation of `Research Foundry`, operating as a medical `domain gateway + domain harness OS`, with publication-grade paper delivery as the business north star.
+> `Med Auto Science` is the medical implementation of `Research Foundry`, operating as a medical `domain gateway + Domain Harness OS`, with publication-grade paper delivery as the business north star.
 
 对应中文可稳定表述为：
 
-> `Med Auto Science` 是 `Research Foundry` 的医学实现；对外是医学 `Research Ops` 的 `domain gateway`，对内是医学自动科研的 `domain harness OS`；其业务北极星始终是把研究稳定推进到发表级论文交付。
+> `Med Auto Science` 是 `Research Foundry` 的医学实现；对外是医学 `Research Ops` 的 `domain gateway`，对内是医学自动科研的 `Domain Harness OS`；其业务北极星始终是把研究稳定推进到发表级论文交付。

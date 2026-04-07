@@ -23,7 +23,7 @@
 今天这个仓库的正式定位已经不是“医学脚本集合”，而是：
 
 - 对外：`Research Ops` 的 `domain gateway`
-- 对内：医学自动科研的 `domain harness OS`
+- 对内：医学自动科研的 `Domain Harness OS`
 
 这意味着它本来就有两层：
 

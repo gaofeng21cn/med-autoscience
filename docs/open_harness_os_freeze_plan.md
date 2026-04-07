@@ -57,7 +57,7 @@
 ### 当前冻结内容
 
 - `MedAutoScience` 继续是 `Research Ops` 的 `domain gateway`
-- `MedAutoScience` 对内继续是 `medical domain harness OS`
+- `MedAutoScience` 对内继续是 `medical Domain Harness OS`
 - future 开放路线不是“把医学语义原样推广”，而是：
   - `Harness OS core + domain packs`
 - `MedAutoScience` 继续承担：

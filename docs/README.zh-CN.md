@@ -1,25 +1,26 @@
-# Docs
+# 文档索引
 
 [English](./README.md) | **中文**
 
-这里是 `Med Auto Science` 的双语文档索引。
+这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。
+内容与项目定位保持一致：该仓库在共享 `Unified Harness Engineering Substrate` 上支撑医学 `Research Ops` 的领域承载操作系统（Domain Harness OS），本地执行呈现为 Codex 默认 host-agent runtime 的形态。
 
-公开口径统一按下面这条理解：
+## 统一文档治理
 
-- 对外：`Med Auto Science` 是 `Research Foundry` 主线中的首个成熟医学实现
-- 在运行层：它承担医学 `Research Ops` gateway 与 domain harness OS
-- 在联邦层：当前公开链路是 `One Person Lab -> Research Foundry -> Med Auto Science`
+- 所有对外文档都必须同时提供英文 `.md` 与中文 `.zh-CN.md`，并保持同步更新。
+- 内部设计、技术、规划与备忘文档默认使用中文，除非明确提升到双语公开面。
+- 术语可以保留英文，但应避免无意义的中英混写，确保语句保持通顺。
+- `docs/README*` 应保持统一结构与措辞，清晰区分双语公开入口与内部内容。
+- 详情可参考 [文档治理规则](documentation-governance.md)。
 
 ## 默认对外双语公开面
 
 - [仓库首页](../README.zh-CN.md)
 
-这份双语索引和仓库首页一起构成默认 GitHub 公开面。
-任何要提升到这个公开面的正文文档，都必须同时具备英文 `.md` 与中文 `.zh-CN.md` 镜像，并保持同步更新。
+这份索引与仓库首页共同构成默认的 GitHub 双语公开面。
+任何需要对外公开的文档，都必须进入这个公开面并配备英文与中文镜像。
 
 ## 仓库跟踪的内部操作文档
-
-下面这些文档仍然会继续保留在仓库里，但默认属于内部操作文档，因此当前按中文维护；除非被显式提升到双语公开面，否则不作为 GitHub 默认公开正文。
 
 ### 面向医学操作同事
 
@@ -27,37 +28,39 @@
 - [医学展示面审计指南](medical_display_audit_guide.md)
 - [医学展示面模板目录](medical_display_template_catalog.md)
 
-### 面向技术同事 / AI 执行者
+### 面向技术 / AI 执行同事
 
-- [Agent Runtime Interface](agent_runtime_interface.md)
-- [Agent Entry Modes](agent_entry_modes.md)
+- [Unified Substrate 下的 Domain Harness OS 定位](domain-harness-os-positioning.md)
+- [Agent 运行接口](agent_runtime_interface.md)
+- [Agent 入口模式](agent_entry_modes.md)
 - [Open Harness OS 架构边界](open_harness_os_architecture.md)
 - [Outer-Loop 唤醒与决策循环](outer_loop_wakeup_and_decision_loop.md)
 - [Open Harness OS 冻结计划](open_harness_os_freeze_plan.md)
 - [主线集成与清理节奏](mainline_integration_and_cleanup.md)
-- [Research Foundry 医学主线执行地图](research_foundry_medical_execution_map.md)
-- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
+- [Research Foundry 医学执行地图](research_foundry_medical_execution_map.md)
+- [Research Foundry 医学主线](research_foundry_medical_mainline.md)
 - [Research Foundry 定位](research_foundry_positioning.md)
-- [Research Foundry 与 Med Auto Science 的 repo 拆分边界](repo_split_between_research_foundry_and_med_autoscience.md)
-- [Runtime Boundary](runtime_boundary.md)
-- [Workspace Architecture](workspace_architecture.md)
-- [Upstream Intake Guide](upstream_intake.md)
-- [Repository CI Preflight](repository_ci_preflight.md)
-- [Codex plugin 接入](codex_plugin.md)
-- [Codex plugin 发布说明](codex_plugin_release.md)
+- [Research Foundry 与 Med Auto Science 的仓库拆分边界](repo_split_between_research_foundry_and_med_autoscience.md)
+- [运行边界](runtime_boundary.md)
+- [工作区架构](workspace_architecture.md)
+- [上游 Intake 指南](upstream_intake.md)
+- [仓库 CI 预检](repository_ci_preflight.md)
+- [Codex Plugin 接入](codex_plugin.md)
+- [Codex Plugin 发布指南](codex_plugin_release.md)
+- [文档治理规则](documentation-governance.md)
 
 ## 稳定内部规则
 
-- [Policies 索引](policies/README.md)
-- [运行模型 Policy](policies/platform_operating_model.md)
-- [数据资产策略](policies/data_asset_management.md)
-- [默认研究场景](policies/study_archetypes.md)
-- [研究路线偏置](policies/research_route_bias_policy.md)
-- [Publication Gate Policy](policies/publication_gate_policy.md)
+- [内部规则索引](policies/README.md)
+- [运行模型规则](policies/platform_operating_model.md)
+- [数据资产管理](policies/data_asset_management.md)
+- [研究场景类型](policies/study_archetypes.md)
+- [研究路线偏置规则](policies/research_route_bias_policy.md)
+- [发表门控规则](policies/publication_gate_policy.md)
 
 ## 文档边界
 
-- `README*` 与 `docs/README*`：默认对外双语公开面
-- `bootstrap/`、`controllers/` 与详细 `docs/*.md`：默认仓库跟踪的内部操作文档
-- `docs/policies/`：默认仓库跟踪的稳定内部规则
-- `docs/superpowers/`：本地 AI / Superpowers 的计划、草稿与过程产物，保持未跟踪
+- `README*` 与 `docs/README*`：默认对外双语公开面。
+- `bootstrap/`、`controllers/`、详细 `docs/*.md`：默认内部操作文档，中文优先，除非明确推广。
+- `docs/policies/`：稳定内部规则，默认中文维护。
+- `docs/superpowers/`：本地 AI/Superpowers 的计划、草稿与过程产物，应保持未跟踪。

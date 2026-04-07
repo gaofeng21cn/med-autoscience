@@ -2,7 +2,7 @@
 
 这份文档回答一个当前主线里必须明确的问题：
 
-`MedAutoScience` 作为 `domain harness OS` 的 outer loop controller，不是常驻 runtime daemon。  
+`MedAutoScience` 作为 `Domain Harness OS` 的 outer loop controller，不是常驻 runtime daemon。
 那么当 `MedDeepScientist` 内环跑到“不能再把当前情况当作本地迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒，并继续往下推进？
 
 ## 一句话结论

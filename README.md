@@ -19,7 +19,7 @@
     </td>
     <td width="33%" valign="top">
       <strong>Public Role</strong><br/>
-      Research Ops gateway and domain harness OS for agent-first medical research execution
+      Medical `Research Ops` gateway and `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`
     </td>
     <td width="33%" valign="top">
       <strong>Position In The Federation</strong><br/>
@@ -32,7 +32,7 @@
   <img src="assets/branding/medautoscience-hero.png" alt="Med Auto Science hero" width="100%" />
 </p>
 
-> Publicly, `Med Auto Science` is the medical `Research Ops` gateway in the `Research Foundry` line. Internally, it runs as an `Agent-first, human-auditable` medical research harness OS.
+> Publicly, `Med Auto Science` is the medical `Research Ops` gateway in the `Research Foundry` line. Internally, it is the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`.
 
 ## Product Position
 
@@ -46,12 +46,14 @@ Its current role is:
 
 - the first mature medical implementation on the `Research Foundry` line
 - the active medical carrier for `Research Ops`
+- it owns medical `Research Ops` contracts and delivery expectations
 - the domain gateway that organizes medical studies, evidence packages, and submission delivery
-- the harness-based runtime surface above `MedDeepScientist`
+- the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`
+- the harness-based runtime surface above a controlled `MedDeepScientist` execution surface, while `MedDeepScientist` itself is not the system body
 
 The public chain is:
 
-`User / Agent -> OPL Gateway (optional) -> Research Foundry -> Med Auto Science -> Medical Research Harness OS -> MedDeepScientist`
+`User / Agent -> OPL Gateway (optional) -> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Controlled MedDeepScientist surface`
 
 ## What It Helps You Do
 
@@ -70,6 +72,23 @@ Many automated research systems are good at executing steps but weak at controll
 - organize work around clinical meaning, reporting logic, and evidence chains
 - preserve human-auditable state instead of hiding decisions inside transient chat context
 - keep agents as operators while leaving critical go/stop judgment to humans
+
+## Current Runtime Shape
+
+The default local execution mode is `Codex-default host-agent runtime`.
+On this runtime, medical study progression is executed through a controlled `MedDeepScientist` surface.
+This means:
+
+- `Med Auto Science` remains the `Domain Harness OS` and contract owner
+- `MedDeepScientist` remains an execution surface under control, not the full system identity
+
+## What Stays Stable Over Time
+
+As runtime hosting evolves (including a future managed web runtime on the same substrate), the core domain contracts stay stable:
+
+- human-auditable state and decision trace
+- medical domain contracts for data, study progression, and submission delivery
+- controlled runtime surface boundaries between domain logic and execution engine
 
 ## Publication Display Templates
 
@@ -116,7 +135,7 @@ When a study is worth continuing, the platform is designed to deliver:
 
 ## Fast Start Through Your Agent
 
-For most medical users, the fastest path is not to learn low-level commands first. The better entry is to hand your goal, data, and constraints to your own agent, then let it run `Med Auto Science`.
+For most medical users, the fastest path is to give your goal, data, and constraints to your agent, then let it run `Med Auto Science`.
 
 Typical three-step start:
 
@@ -126,7 +145,7 @@ Typical three-step start:
 
 You can give your agent an instruction like this:
 
-> Read the data and documentation in this study workspace first. Step 1: clean and register them into machine-readable, auditable research assets, and make the variable definitions, endpoints, and usable scope explicit. Step 2: use Med Auto Science (`https://github.com/gaofeng21cn/med-autoscience`) as the medical Research Ops gateway and harness implementation in the Research Foundry line. The goal is to turn these assets into a publication-grade study with an evidence chain, figures and tables, manuscript surfaces, and submission delivery materials. If I provide reference papers, target venues, inclusion rules, endpoints, subgroup requirements, or other constraints, carry all of them into the runtime contract. Prioritize deciding whether the study is worth continuing; if the direction is weak, stop, reframe, or add the right sidecar instead of pushing a weak line to the end.
+> Read the data and documentation in this study workspace first. Step 1: clean and register them into machine-readable, auditable research assets, and make variable definitions, endpoints, and usable scope explicit. Step 2: use Med Auto Science (`https://github.com/gaofeng21cn/med-autoscience`) as the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`. Run the study through the controlled MedDeepScientist surface, and produce a publication-grade evidence chain with figures, tables, manuscript surfaces, and submission materials. Carry my journal targets, endpoint priorities, subgroup rules, and other constraints into the runtime contract. Prioritize deciding whether this study should continue; if the direction is weak, stop, reframe, or add a proper sidecar.
 
 ## Documentation
 

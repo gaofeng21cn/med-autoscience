@@ -6,13 +6,20 @@
 
 ## 项目定位
 
-- 这个仓库的默认定位是 `Agent-first, human-auditable` 的 `Research Ops` domain gateway 与 `domain harness OS`，不是给医学用户手工操作的底层工具箱。
+- 这个仓库的默认定位是共享 `Unified Harness Engineering Substrate` 上、`Agent-first, human-auditable` 的医学 `Research Ops` domain gateway 与 `Domain Harness OS`，不是给医学用户手工操作的底层工具箱。
 - 人类主要负责提出研究目标、提供数据、审核结果、做继续/停止决策。
 - Agent 主要负责读取状态、调用平台接口、推进研究执行、组织论文交付。
 - 平台本身负责提供稳定、可验证、可审计的 gateway 入口，而不是要求人直接维护底层状态文件。
 - 在这个仓库中工作时，优先通过稳定的 `workspace / profile / controller / overlay / adapter` 契约推进任务，不要把仓库重新退化成临时脚本集合。
 - 在 `OPL` 顶层语义里，这个仓库仍然必须保留独立的 `Research Ops` domain gateway 角色，而不是被顶层 gateway 取代。
-- 在内部架构上，应把 `controller_charter / runtime / eval_hygiene` 视为 future `domain harness OS` 的主模块，而不是把它们误写成对外 gateway 本体。
+- 在内部架构上，应把 `controller_charter / runtime / eval_hygiene` 视为 future `Domain Harness OS` 的主模块，而不是把它们误写成对外 gateway 本体。
+
+## Unified Substrate 继承与托管兼容性
+
+- 本项目继承 `Unified Harness Engineering Substrate` 的共享硬约束：`policy -> controller -> overlay -> adapter` 主链路、contract-first 接口面、可审计 mutation、显式错误与可追踪落盘结果。
+- 当前默认本地执行形态是 `Codex-default host-agent runtime`；新增能力时不要把关键 contract 绑定到本机交互习惯、临时路径或不可迁移脚本语义。
+- 运行推进通过受控 `MedDeepScientist` surface 完成；`MedDeepScientist` 是执行 surface，不是本仓库的系统本体。
+- 未来迁移到同一底座上的 managed web runtime 时，必须保持领域 contract、artifact schema、决策审计链与升级/退出边界兼容；允许变化的仅是 host 生命周期与调度托管方式。
 
 ## 设计与实现优先级
 
@@ -38,10 +45,12 @@
 ## 文档分层
 
 - `README.md` / `README.zh-CN.md` 与 `docs/README.md` / `docs/README.zh-CN.md` 构成默认对外双语公开面。
+- `docs/documentation-governance.md` 是仓库文档治理规则的中文真相说明。
 - 任何要提升到对外公开面的文档，必须同时提供英文 `.md` 与中文 `.zh-CN.md` 镜像，并保持同步更新。
 - `bootstrap/`、`controllers/`、`docs/*.md` 与 `docs/policies/*.md` 默认视为仓库跟踪的内部操作文档，可只保留中文；除非被显式提升到双语公开面，否则不要把它们写成 GitHub 默认公开入口。
 - `docs/superpowers/` 只放本地 AI / Superpowers 的设计稿、spec、plan 和工作过程产物，并保持未跟踪。
 - 不要再引入独立的 `guides/` 或仓库根级 `policies/` 作为公开入口；统一通过 `docs/README*` 维护文档入口。
+- 中文内部文档优先使用完整中文叙述；英文仅保留给固定术语、路径、命令、schema 与代码标识符，避免无意义中英混写。
 
 ## 数据与状态变更
 

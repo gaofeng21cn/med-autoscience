@@ -3,7 +3,7 @@
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
 对外，它是 `Research Ops` 的 `domain gateway`。
-对内，它是承载 controller、runtime、eval、delivery 的医学自动科研 `domain harness OS`。
+对内，它是承载 controller、runtime、eval、delivery 的医学自动科研 `Domain Harness OS`。
 
 这不是一句 README 口号，而是平台级操作约束：
 
@@ -13,7 +13,7 @@
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
 
-`Human / Agent -> OPL Gateway -> MedAutoScience domain gateway -> MedAutoScience domain harness OS -> runtime / eval / delivery surfaces`
+`Human / Agent -> OPL Gateway -> MedAutoScience domain gateway -> MedAutoScience Domain Harness OS -> runtime / eval / delivery surfaces`
 
 这意味着：
 

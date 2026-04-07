@@ -4,7 +4,7 @@
 
 在顶层定位上，应始终按下面这条理解：
 
-- `MedAutoScience` = `Research Ops` 的 `domain gateway + domain harness OS`
+- `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`
 - `MedDeepScientist` = 当前由 `MedAutoScience` harness OS 控制的底层研究执行 runtime substrate
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
 

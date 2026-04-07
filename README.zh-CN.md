@@ -19,7 +19,7 @@
     </td>
     <td width="33%" valign="top">
       <strong>对外角色</strong><br/>
-      面向 Agent 的医学 Research Ops gateway 与 domain harness OS
+      共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` gateway 与 `Domain Harness OS`
     </td>
     <td width="33%" valign="top">
       <strong>在联邦中的位置</strong><br/>
@@ -32,7 +32,7 @@
   <img src="assets/branding/medautoscience-hero.png" alt="Med Auto Science 主示意图" width="100%" />
 </p>
 
-> 对外，`Med Auto Science` 是 `Research Foundry` 主线中的医学 `Research Ops` gateway；对内，它由一套 `Agent-first, human-auditable` 的医学自动科研 harness OS 驱动。
+> 对外，`Med Auto Science` 是 `Research Foundry` 主线中的医学 `Research Ops` gateway；对内，它是共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` `Domain Harness OS`。
 
 ## 对外一句话理解
 
@@ -46,12 +46,14 @@
 
 - `Research Foundry` 主线上的首个成熟医学实现
 - `Research Ops` 在医学场景下的 active carrier
+- 负责医学 `Research Ops` 的领域合同与交付要求
 - 负责组织医学课题、证据包与投稿交付的 domain gateway
-- 位于 `MedDeepScientist` 之上的 harness 化运行面
+- 共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` `Domain Harness OS`
+- 位于受控 `MedDeepScientist` 执行 surface 之上的 harness 化运行面，但不把 `MedDeepScientist` 视为系统本体
 
 公开链路可以概括为：
 
-`User / Agent -> OPL Gateway（可选顶层）-> Research Foundry -> Med Auto Science -> Medical Research Harness OS -> MedDeepScientist`
+`User / Agent -> OPL Gateway（可选顶层）-> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> 受控 MedDeepScientist surface`
 
 ## 它能帮你做什么
 
@@ -70,6 +72,22 @@
 - 先围绕临床意义、报告逻辑和证据链组织研究
 - 先把关键状态落到可审计表面，而不是藏在瞬时会话里
 - 让 Agent 负责执行，把关键继续/停止判断保留给人类
+
+## 当前默认运行形态
+
+当前默认是本地 `Codex-default host-agent runtime`。
+在该形态下，运行由受控 `MedDeepScientist` surface 推进，这意味着：
+
+- `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner
+- `MedDeepScientist` 是执行 surface，不是系统本体
+
+## 未来托管形态下的不变项
+
+即使未来迁移到同一底座上的 managed web runtime，下列核心口径保持不变：
+
+- 人类可审计的状态与决策链
+- 医学领域合同（数据、课题推进、证据组织、投稿交付）
+- 领域层与执行引擎之间的受控边界
 
 ## 医学论文展示面已经进入正式模板化阶段
 
@@ -116,7 +134,7 @@
 
 ## 最快开始方式：通过你的 Agent
 
-对大多数医学用户来说，最快的使用方式不是先学习底层命令，而是先把研究目标、数据和约束交给自己的 Agent，再让它调用 `Med Auto Science`。
+对大多数医学用户来说，最快的方式是先把目标、数据和约束交给 Agent，再让它调用 `Med Auto Science`。
 
 通常只需要三步：
 
@@ -126,7 +144,7 @@
 
 你可以直接把下面这段话发给 Agent：
 
-> 请先读取我放在这个研究目录中的数据和数据说明文档。第一步，把这些数据清洗、整理成适合机读、可审计、可继续研究推进的形式，并明确变量定义、终点定义和可用范围。第二步，使用 Med Auto Science（`https://github.com/gaofeng21cn/med-autoscience`）作为 `Research Foundry` 主线中的医学 `Research Ops` gateway / harness 实现，目标是围绕这些数据形成发表级研究路线、证据链、图表与表格、稿件表面和投稿交付材料。如果我提供了参考文章、目标期刊、纳排标准、重点终点、亚组要求或其他约束，请一并带入运行 contract。请优先判断课题是否值得继续投入；如果方向偏弱，请及时止损、改题或补充合适的 sidecar，而不是机械地把弱路线做到底。
+> 请先读取我放在这个研究目录中的数据和说明文档。第一步，把数据清洗并登记为机读、可审计的研究资产，明确变量定义、终点定义和可用范围。第二步，使用 Med Auto Science（`https://github.com/gaofeng21cn/med-autoscience`）作为共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` `Domain Harness OS`，通过受控 MedDeepScientist surface 推进课题，形成发表级证据链、图表表格、稿件表面和投稿材料。请把我提供的目标期刊、终点优先级、亚组要求和其他约束一并带入运行 contract。优先判断课题是否值得继续投入；若方向偏弱，请止损、改题或补充合适 sidecar。
 
 ## 文档入口
 

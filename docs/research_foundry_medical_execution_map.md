@@ -12,7 +12,7 @@
 `Med Auto Science` 当前不是在做一组彼此分散的局部优化，而是在沿同一条主线收敛：
 
 - 业务上：把医学研究稳定推进到发表级论文交付
-- 架构上：把仓库收敛成 `Research Foundry` 的医学实现，即医学 `domain gateway + domain harness OS`
+- 架构上：把仓库收敛成 `Research Foundry` 的医学实现，即医学 `domain gateway + Domain Harness OS`
 
 因此，当前所有执行都应被理解为：为了最终稳定地产出 paper-facing delivery，先把长期运行所需的 authority、delivery 与 real-study adoption 三层逐次收紧。
 

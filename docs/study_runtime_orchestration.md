@@ -9,7 +9,7 @@
 - 哪些 typed surface 可以视为稳定机器接口
 - 哪些内容仍属于实现细节，不应被其他模块或 Agent 当成正式 contract
 
-在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` domain harness OS 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
+在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` `Domain Harness OS` 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
 
 ## 与 study charter / startup projection 的关系
 

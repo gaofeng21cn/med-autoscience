@@ -3,13 +3,13 @@
 这份文档把 `MedAutoScience` 当前更准确的定位固定下来：
 
 - 对外：它是 `Research Ops` 的 `domain gateway`
-- 对内：它是承载医学自动科研控制、执行、治理与交付的 `domain harness OS`
+- 对内：它是承载医学自动科研控制、执行、治理与交付的 `Domain Harness OS`
 
 这不是一句宣传口号，而是后续架构、monorepo 迁移、runtime 边界与公开文档都必须遵守的定位约束。
 
 ## 一句话定义
 
-`MedAutoScience` 是 `OPL` 体系下 `Research Ops` 的正式 domain gateway；它对外暴露稳定入口、领域合同与可审计控制面，对内由一个 domain harness OS 驱动，把 controller、runtime、eval、delivery 组织成同一条医学研究运行链。
+`MedAutoScience` 是 `OPL` 体系下 `Research Ops` 的正式 domain gateway；它对外暴露稳定入口、领域合同与可审计控制面，对内由一个 `Domain Harness OS` 驱动，把 controller、runtime、eval、delivery 组织成同一条医学研究运行链。
 
 ## 在 OPL 联邦里的位置
 
@@ -48,7 +48,7 @@ Human / Agent
 
 ## Domain Harness OS 负责什么
 
-作为 `domain harness OS`，`MedAutoScience` 负责：
+作为 `Domain Harness OS`，`MedAutoScience` 负责：
 
 - 执行 domain work，而不是只做文档路由
 - 持久化关键状态、authority artifact、评估结论与交付结果
@@ -82,7 +82,7 @@ Human / Agent
 
 - `domain gateway`
   - 解决正式入口、公开定位、稳定接口、可审计 handoff
-- `domain harness OS`
+- `Domain Harness OS`
   - 解决执行、记录、治理、评估、交付的长期运行能力
 
 ## 对 monorepo 迁移的约束
@@ -99,7 +99,7 @@ Human / Agent
 - `runtime`
 - `eval_hygiene`
 
-应被理解为 `domain harness OS` 的内部主模块。
+应被理解为 `Domain Harness OS` 的内部主模块。
 
 与此同时，仓库级别仍然要保留：
 
@@ -132,7 +132,7 @@ Human / Agent
 
 - `MedAutoScience`
   - 已经是正式的 `Research Ops` domain gateway
-  - 正在把内部能力收敛成更清晰的 domain harness OS
+  - 正在把内部能力收敛成更清晰的 `Domain Harness OS`
 - `MedDeepScientist`
   - 当前仍是最核心的 runtime execution substrate
   - 但未来会被更系统地收进 `MedAutoScience` harness OS 的 monorepo 拓扑中

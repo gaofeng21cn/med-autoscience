@@ -2,62 +2,65 @@
 
 **English** | [中文](./README.zh-CN.md)
 
-This file is the bilingual documentation index for `Med Auto Science`.
+This bilingual index is the default public surface for `Med Auto Science`.
+It stays aligned with the project truth that the repository is the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`, with a `Codex-default host-agent runtime` as the current local execution shape.
 
-Public interpretation:
+## Unified Documentation Governance
 
-- Externally, `Med Auto Science` is the first mature medical implementation in the `Research Foundry` line.
-- Operationally, it is the medical `Research Ops` gateway and domain harness OS.
-- In federation terms, the current public chain is `One Person Lab -> Research Foundry -> Med Auto Science`.
+- External documents must ship as paired English `.md` and Chinese `.zh-CN.md` files that stay synchronized.
+- Internal design, technical, planning, and memo documents default to Chinese unless a page is explicitly promoted into the bilingual surface.
+- Terminology may stay in English when it is part of stable domain language, but avoid unnecessary mixed-language prose.
+- `docs/README*` should consistently show which pages are public bilingual entry points and which remain internal holdings.
+- For more detail, see [Documentation Governance](documentation-governance.md) (Chinese only).
 
 ## External Bilingual Surface
 
-- [Repository Home](../README.md)
+- [Repository home](../README.md)
 
-This bilingual index and the repository home are the default GitHub-facing public surface.
-Any document promoted into that surface must ship with synchronized English `.md` and Chinese `.zh-CN.md` mirrors.
+This index together with the repository home defines the default GitHub-facing bilingual surface.
+Any page that the public should read must live under this surface with fully mirrored English and Chinese variants.
 
 ## Repo-Tracked Internal Operator Docs
 
-These documents remain tracked in the repository, but they are internal operator references by default and currently stay Chinese-only unless explicitly promoted.
+### Medical operators
 
-### For Medical Operators
+- [Disease workspace quickstart](disease_workspace_quickstart.md)
+- [Medical display audit guide](medical_display_audit_guide.md)
+- [Medical display template catalog](medical_display_template_catalog.md)
 
-- [Disease Workspace Quickstart](disease_workspace_quickstart.md) (Chinese only)
-- [Medical Display Audit Guide](medical_display_audit_guide.md) (Chinese only)
-- [Medical Display Template Catalog](medical_display_template_catalog.md) (Chinese only)
+### Technical operators / agent executors
 
-### For Technical Operators / AI Executors
-
-- [Agent Runtime Interface](agent_runtime_interface.md) (Chinese only)
-- [Agent Entry Modes](agent_entry_modes.md) (Chinese only)
-- [Open Harness OS Architecture Boundary](open_harness_os_architecture.md) (Chinese only)
-- [Outer-Loop Wakeup And Decision Loop](outer_loop_wakeup_and_decision_loop.md) (Chinese only)
-- [Open Harness OS Freeze Plan](open_harness_os_freeze_plan.md) (Chinese only)
-- [Mainline Integration And Cleanup Cadence](mainline_integration_and_cleanup.md) (Chinese only)
-- [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md) (Chinese only)
-- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md) (Chinese only)
-- [Research Foundry Positioning](research_foundry_positioning.md) (Chinese only)
-- [Repo Split Between Research Foundry and Med Auto Science](repo_split_between_research_foundry_and_med_autoscience.md) (Chinese only)
-- [Runtime Boundary](runtime_boundary.md) (Chinese only)
-- [Workspace Architecture](workspace_architecture.md) (Chinese only)
-- [Upstream Intake Guide](upstream_intake.md) (Chinese only)
-- [Repository CI Preflight](repository_ci_preflight.md) (Chinese only)
-- [Codex Plugin Integration](codex_plugin.md) (Chinese only)
-- [Codex Plugin Release Guide](codex_plugin_release.md) (Chinese only)
+- [Domain Harness OS Positioning On Unified Substrate](domain-harness-os-positioning.md)
+- [Agent runtime interface](agent_runtime_interface.md)
+- [Agent entry modes](agent_entry_modes.md)
+- [Open Harness OS Architecture Boundary](open_harness_os_architecture.md)
+- [Outer-Loop Wakeup And Decision Loop](outer_loop_wakeup_and_decision_loop.md)
+- [Open Harness OS Freeze Plan](open_harness_os_freeze_plan.md)
+- [Mainline Integration And Cleanup Cadence](mainline_integration_and_cleanup.md)
+- [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md)
+- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
+- [Research Foundry Positioning](research_foundry_positioning.md)
+- [Repository Split Between Research Foundry And Med Auto Science](repo_split_between_research_foundry_and_med_autoscience.md)
+- [Runtime Boundary](runtime_boundary.md)
+- [Workspace Architecture](workspace_architecture.md)
+- [Upstream Intake Guide](upstream_intake.md)
+- [Repository CI Preflight](repository_ci_preflight.md)
+- [Codex Plugin Integration](codex_plugin.md)
+- [Codex Plugin Release Guide](codex_plugin_release.md)
+- [Documentation Governance](documentation-governance.md) (Chinese only)
 
 ## Stable Internal Rules
 
-- [Policies Index](policies/README.md) (Chinese only)
-- [Platform Operating Model](policies/platform_operating_model.md) (Chinese only)
-- [Data Asset Management](policies/data_asset_management.md) (Chinese only)
-- [Study Archetypes](policies/study_archetypes.md) (Chinese only)
-- [Research Route Bias Policy](policies/research_route_bias_policy.md) (Chinese only)
-- [Publication Gate Policy](policies/publication_gate_policy.md) (Chinese only)
+- [Policies index](policies/README.md)
+- [Platform operating model](policies/platform_operating_model.md)
+- [Data asset management](policies/data_asset_management.md)
+- [Study archetypes](policies/study_archetypes.md)
+- [Research route bias policy](policies/research_route_bias_policy.md)
+- [Publication gate policy](policies/publication_gate_policy.md)
 
 ## Documentation Boundary
 
-- `README*` and `docs/README*`: the default external bilingual public surface
-- `bootstrap/`, `controllers/`, and detailed `docs/*.md`: repo-tracked internal operator docs by default
-- `docs/policies/`: repo-tracked internal stable rules by default
-- `docs/superpowers/`: local AI / Superpowers plans, drafts, and process artifacts; keep untracked
+- `README*` and `docs/README*`: default bilingual public surface.
+- `bootstrap/`, `controllers/`, and detailed `docs/*.md`: internal operator references, Chinese by default unless explicitly promoted.
+- `docs/policies/`: stable internal rules, Chinese by default.
+- `docs/superpowers/`: local AI / Superpowers plans, drafts, and process artifacts; keep them untracked.
