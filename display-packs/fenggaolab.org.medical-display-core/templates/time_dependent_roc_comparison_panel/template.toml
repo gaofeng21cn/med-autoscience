@@ -9,5 +9,5 @@ input_schema_ref = "time_dependent_roc_comparison_inputs_v1"
 qc_profile_ref = "publication_evidence_curve"
 required_exports = ["png", "pdf"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience_pack_core.time_dependent_roc_comparison_panel:render"
+entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = false

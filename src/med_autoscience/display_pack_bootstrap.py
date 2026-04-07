@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import shutil
 
 from med_autoscience import display_registry, display_schema_contract
 from med_autoscience.display_pack_resolver import split_full_template_id
@@ -10,6 +9,7 @@ from med_autoscience.display_pack_resolver import split_full_template_id
 
 CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 _DEFAULT_EXECUTION_MODE = "python_plugin"
+_UNIFIED_ENTRYPOINT = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 _PUBLICATION_SHELL_CLASS_ID = "publication_shells_and_tables"
 _PAPER_PROVEN_TEMPLATE_IDS = frozenset(
     (
@@ -74,7 +74,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.layout_qc_profile,
                 required_exports=spec.required_exports,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=f"med_autoscience_pack_core.{short_id}:render",
+                entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.template_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )
@@ -94,7 +94,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.shell_qc_profile,
                 required_exports=spec.required_exports,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=f"med_autoscience_pack_core.{short_id}:render",
+                entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )
@@ -114,7 +114,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 qc_profile_ref=spec.table_qc_profile,
                 required_exports=spec.required_exports,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=f"med_autoscience_pack_core.{short_id}:render",
+                entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )
@@ -153,11 +153,6 @@ def export_core_pack_template_manifests(pack_root: Path) -> None:
     records = _build_manifest_records()
     templates_root = pack_root / "templates"
     templates_root.mkdir(parents=True, exist_ok=True)
-
-    expected_short_ids = {record.template_id for record in records}
-    for child in templates_root.iterdir():
-        if child.is_dir() and child.name not in expected_short_ids:
-            shutil.rmtree(child)
 
     for record in records:
         template_dir = templates_root / record.template_id

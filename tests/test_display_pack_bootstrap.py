@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 import tomllib
 
@@ -70,3 +71,33 @@ def test_export_core_pack_template_manifests_writes_registry_aligned_payloads(tm
         assert payload["input_schema_ref"] == spec.input_schema_id
         assert payload["qc_profile_ref"] == spec.table_qc_profile
         assert payload["required_exports"] == list(spec.required_exports)
+
+
+def _load_entrypoint(entrypoint: str) -> object:
+    module_name, function_name = entrypoint.split(":", 1)
+    module = importlib.import_module(module_name)
+    return getattr(module, function_name)
+
+
+def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+    payload = tomllib.loads(
+        (tmp_path / "templates" / "roc_curve_binary" / "template.toml").read_text(encoding="utf-8")
+    )
+
+    entrypoint = payload["entrypoint"]
+    target = _load_entrypoint(entrypoint)
+
+    assert entrypoint == "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
+    assert callable(target)
+
+
+def test_export_does_not_delete_unrelated_template_directories(tmp_path: Path) -> None:
+    extra_dir = tmp_path / "templates" / "local_custom_template"
+    extra_dir.mkdir(parents=True)
+    marker_path = extra_dir / "keep.txt"
+    marker_path.write_text("do-not-delete", encoding="utf-8")
+
+    export_core_pack_template_manifests(tmp_path)
+
+    assert marker_path.read_text(encoding="utf-8") == "do-not-delete"

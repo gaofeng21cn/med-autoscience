@@ -9,5 +9,5 @@ input_schema_ref = "grouped_risk_event_summary_table_v1"
 qc_profile_ref = "publication_table_interpretation"
 required_exports = ["csv", "md"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience_pack_core.grouped_risk_event_summary_table:render"
+entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = false

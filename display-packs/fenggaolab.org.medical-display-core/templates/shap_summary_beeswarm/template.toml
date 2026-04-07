@@ -9,5 +9,5 @@ input_schema_ref = "shap_summary_inputs_v1"
 qc_profile_ref = "publication_shap_summary"
 required_exports = ["png", "pdf"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience_pack_core.shap_summary_beeswarm:render"
+entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = false

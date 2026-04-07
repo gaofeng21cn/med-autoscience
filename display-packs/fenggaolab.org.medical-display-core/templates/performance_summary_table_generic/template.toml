@@ -9,5 +9,5 @@ input_schema_ref = "performance_summary_table_generic_v1"
 qc_profile_ref = "publication_table_performance"
 required_exports = ["csv", "md"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience_pack_core.performance_summary_table_generic:render"
+entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = false

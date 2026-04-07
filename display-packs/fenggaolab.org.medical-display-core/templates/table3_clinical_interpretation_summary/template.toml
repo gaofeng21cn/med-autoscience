@@ -9,5 +9,5 @@ input_schema_ref = "clinical_interpretation_summary_v1"
 qc_profile_ref = "publication_table_interpretation"
 required_exports = ["md"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience_pack_core.table3_clinical_interpretation_summary:render"
+entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = false
