@@ -18,9 +18,28 @@
 
 `merge gate` 通过，不自动意味着 `runtime cutover gate` 通过。
 
+## 当前与 Phase 6 activation package 的关系
+
+截至 `2026-04-07`，当前 repo-side 只允许把 `Phase 6 / Integration Harness And Cutover Readiness` 冻结到 activation package 级别：
+
+- controller-runtime baseline 已在 `main`
+- runtime-eval / delivery shell baseline 已在 `main`
+- 当前只允许吸收 repo-tracked activation package、proof surface 与 residual-risk map
+
+对应 canonical bridge 见：
+
+- [`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
+
+这一步依然不等于：
+
+- `end-to-end study harness` 已开启
+- runtime cutover gate 已通过
+- behavior-equivalence 已成立
+- `med-deepscientist` 已获得写授权
+
 ## Merge Gate
 
-`med-autoscience` 这条迁移 worktree 只有在下面条件全部满足时，才应该并回 `main`：
+`med-autoscience` 当前 tranche 只有在下面条件全部满足时，才应该并回 `main`：
 
 ### 1. 控制路径不再依赖 adapter 真相
 
@@ -120,28 +139,23 @@ PYTHONPATH=src pytest -q
 
 ## 当前判断
 
-以 `2026-03-31` 这个时间点看：
+以 `2026-04-07` 这个时间点看：
 
-- `merge gate` 已经非常接近完成
-- `runtime cutover gate` 还没有完成
+- repo-side `merge gate` 已经足够支持 activation package 收口与吸收到 `main`
+- `runtime cutover gate` 仍没有完成
 
 原因是：
 
-- 代码结构上，`med-autoscience` 已基本完成 `controller -> runtime_protocol/runtime_transport` 收口
-- 但真实项目是否能切，仍取决于 controlled fork 固定、behavior equivalence gate 放行，以及至少一个真实 workspace 的热身验证
+- 代码与 contract 层已经完成 `controller -> runtime -> eval -> delivery` 的最小桥接收敛
+- 但真实项目是否能切，仍取决于 controlled fork 固定、behavior equivalence gate、真实 workspace 热身与外部 paper/writer truth
 
 ## 我的建议
 
-### 何时可以并回 main
+### 何时可以继续吸收到 main
 
-如果接下来两项完成，我会建议尽快并回 `main`：
+只要当前 tranche 的 targeted regression / broader regression / wording audit 通过，就应尽快把 repo-side activation package 吸收到 `main`，而不是让它继续停在漂浮状态。
 
-1. 再做一次基于真实 workspace 的 smoke 验证
-2. 确认没有隐藏的 CLI / automation 还依赖旧 adapter 路径
-
-这两项通过后，这条 worktree 就不该继续长期漂着。
-
-### 何时可以迁真实项目
+### 何时可以推进真实 cutover
 
 我会把“可以平滑迁”定义成下面这个标准：
 
@@ -150,4 +164,4 @@ PYTHONPATH=src pytest -q
 - 至少 1 个真实项目完成 create/resume/pause + controller 落盘 + paper 交付热身
 - 连续一段观察期内没有回退到 site-packages 私补丁
 
-只有这几项全满足，我才会建议把正在跑的项目正式切到新框架。
+只有这几项全满足，才应建议把正在跑的项目正式切到新框架。

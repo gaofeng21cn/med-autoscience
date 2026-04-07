@@ -14,170 +14,105 @@
 - 业务上：把医学研究稳定推进到发表级论文交付
 - 架构上：把仓库收敛成 `Research Foundry` 的医学实现，即医学 `domain gateway + Domain Harness OS`
 
-因此，当前所有执行都应被理解为：为了最终稳定地产出 paper-facing delivery，先把长期运行所需的 authority、delivery 与 real-study adoption 三层逐次收紧。
+因此，当前所有执行都应被理解为：在 authority / delivery / real-study 都已 absorbed 的前提下，继续把 integration harness 与 cutover readiness 收紧到真实门槛，而不是提前宣布 runtime 已稳定切换。
 
-## 四层执行图
+## 六段执行图
 
 ```text
-第 1 层：Authority Foundation
-  已完成
+第 1 段：Authority Foundation
+  已完成并 absorbed
   - study charter artifact carrier
   - runtime escalation record
   - publication eval minimal schema
   - outer-loop wakeup and decision loop
 
-第 2 层：Parameterized Authority Inputs
-  进行中
-  - charter-parameterized input contract
-  - 目标：让 eval / outer-loop / delivery 通过同一套 fail-closed charter projection 拿到稳定输入
+第 2 段：Formal Runtime Control Surface
+  已完成并 absorbed
+  - pause / stop / rerun / human-confirmation semantics
+  - fail-closed control-action surface
 
-第 3 层：Delivery / Publication Plane
-  待进入
+第 3 段：Delivery / Publication Plane
+  已完成并 absorbed
   - delivery plane contract map
-  - manuscript / reporting / submission / display / figure / table contract
+  - artifact-surface freeze
+  - publication gate / delivery sync authority boundary
 
-第 4 层：Real-Study Relaunch & Verify
-  已有真实 anchor 验证证据，当前仍停在 external workspace-side blocker 收口前
-  - anchor-study relaunch
-  - real-study relaunch and verify
-  - 当前 repo-tracked verification note：`docs/real_study_relaunch_verification.md`
-  - 最新锚点：`001-dm-cvd-mortality-risk`，已验证 managed entry / runtime watch / publication gate / study delivery sync；当前 blocker 已被收敛到 external workspace-side publication surface
-  - 目标：验证新的 contract 是否真正支撑 paper-owned truth surface
+第 4 段：Real-Study Relaunch & Verify
+  已完成并 absorbed
+  - real-study anchor relaunch
+  - runtime watch coherence closeout
+  - external workspace-side blocker classification
+  - repo-tracked verification note：docs/real_study_relaunch_verification.md
 
-后置门：Monorepo Scaffold Gate
-  禁止提前进入
-  - 只有前四层收紧后，才允许考虑 scaffold / cutover
+第 5 段：Integration Harness And Cutover Readiness
+  当前 active
+  - 已有 absorbed baseline：controller-runtime seam
+  - 当前最小 tranche：runtime-eval / delivery-report repo-native baseline
+  - 当前保持关闭：end-to-end study harness / cutover / behavior-equivalence / cross-repo write / med-deepscientist write
+  - 当前 canonical bridge：docs/integration_harness_activation_package.md
+
+第 6 段：Vocabulary And Contract Freeze / Open Research Foundry Validation
+  后置 pending
+  - vocabulary / schema / package freeze
+  - core-candidate extraction audit
+  - second-domain readiness contract
 ```
 
 ## 当前所在位置
 
-当前唯一活跃子线是：
+当前唯一 active tranche 是：
 
-- `charter-parameterized input contract`
-
-因此，当前 OMX 正在覆盖的是第 2 层，而不是整个主线的全部。
+- `Phase 6 / Integration Harness And Cutover Readiness`
+- 当前最窄 write scope：`runtime-eval / delivery-report repo-native baseline`
 
 这意味着：
 
-- 它现在不是在直接做真实课题重跑
-- 也不是在做完整 delivery plane 收口
-- 它在做的是 delivery 与 real-study 重跑之前必须先稳定下来的输入合同层
+- 它不是重新打开 delivery plane 主体实现
+- 它不是重新打开 real-study external workspace writer
+- 它也不是把 `end-to-end harness` 或 `cutover` 偷渡进 repo-side next step
 
-## 每一层解决什么问题
+## 当前 tranche 解决什么问题
 
-## 第 1 层：Authority Foundation
+当前 tranche 解决的是：
 
-这一层解决的是“关键对象是否存在、归谁负责、以什么 durable artifact 形式存在”。
+1. repo-tracked mainline docs 仍然停留在 pre-relaunch 阶段叙事的问题
+2. `runtime_watch -> publication_gate -> study_delivery_sync` 这条 runtime-eval / delivery-report seam 尚未进入 repo-native preflight contract 的问题
+3. 当前 integration baseline 容易被误读成“产品 runtime 成熟度”的问题
 
-已经完成的对象包括：
+因此本轮要做的不是“加更多功能”，而是：
 
-- `study_charter`
-- `runtime_escalation_record`
-- `publication_eval_record`
-- `study_decision_record`
-- `study_outer_loop_tick(...)`
-
-它们的意义是：
-
-- 运行中的 `MedDeepScientist` 不再越权决定 study-level 走向
-- `Med Auto Science` 具备 outer-loop controller 能力
-- 研究推进、升级、评估、裁决都不再只停留在 prompt 层
-
-## 第 2 层：Parameterized Authority Inputs
-
-这一层解决的是“下游模块到底怎么从 `study_charter` 拿到稳定输入”。
-
-当前要收紧的是：
-
-- charter -> eval
-- charter -> outer-loop
-- charter -> delivery
-
-这一层的目标不是重新定义 authority object，而是形成 compact、可复用、fail-closed 的参数化 projection。
-
-只有这一层稳了，后面才不会在：
-
-- `publication_eval`
-- `study_outer_loop_tick(...)`
-- manuscript / reporting / submission / display
-
-之间重复散落参数逻辑、字段解释与 prompt 补丁。
-
-## 第 3 层：Delivery / Publication Plane
-
-这一层解决的是“论文交付面本身的正式 contract map”。
-
-重点包括：
-
-- manuscript surface
-- reporting contract
-- publication gate
-- submission companion
-- graphical abstract / companion artifact
-- figure / table contract
-- display template catalog
-
-这里的核心不是“继续加模板”这么简单，而是把这些交付面重新写成 harness OS 下的正式 delivery plane。
-
-当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `docs/delivery_plane_contract_map.md`。
-
-## 第 4 层：Real-Study Relaunch & Verify
-
-这一层解决的是“这些合同在真实课题里到底能不能稳定工作”。
-
-重点不是 demo，而是：
-
-- 真实课题重跑
-- 真实论文交付重跑
-- anchor paper closure / relaunch
-- 验证 paper-owned truth surface 是否稳定
-
-也就是说，这一层是对前面三层 contract 的真实世界检验。
+- 把当前 absorbed truth 与下一 phase activation package 用 canonical docs 收紧
+- 把最小 runtime-eval proof surface 编进开发控制面的 preflight / regression baseline
+- 明确 residual risks 与 external surfaces
 
 ## 固定推进顺序
 
 从当前节点开始，推荐固定按下面顺序推进：
 
-1. `charter-parameterized input contract`
-2. `delivery plane contract map`
-3. `real-study relaunch and verify`
-4. `only-then monorepo scaffold gate`
+1. 冻结 `Phase 6` activation package
+2. 维持 repo-native runtime-eval / delivery-report baseline 可持续复跑
+3. 只有在新的 repo-tracked gate 放行后，才允许讨论 `end-to-end study harness`
+4. 只有在 `Phase 6` 真正 closeout 后，才允许进入 `Phase 7 / Vocabulary And Contract Freeze`
+5. 再之后才是 `Open Research Foundry Validation`
 
 当前不允许反过来做：
 
-- 不能因为想更快看到论文表面，就跳过第 2 层
-- 不能因为想做更大重构，就提前进入 monorepo scaffold
-- 不能因为某条历史 worktree 里还有归档 mailbox，就回头重开旧子线
+- 不能因为 real-study anchor 已验证，就跳过 integration harness baseline
+- 不能因为 delivery plane 已冻结，就直接宣称 cutover readiness 已完成
+- 不能因为 external workspace-side blocker 存在，就把它误写成 repo-side runtime contract 未成熟
 
 ## OMX 当前应该怎么理解自己的工作
 
-当前 OMX 不是在做“整个项目”，而是在做“整个项目当前最正确的下一层”。
+当前 OMX 不是在做“整个项目已经结束”，而是在做“已 absorbed real-study truth 之后，当前最正确的下一条 repo-side tranche”。
 
 更具体地说：
 
-- OMX 当前覆盖：第 2 层
-- OMX 接下来应自动推进：第 3 层
-- OMX 再之后应自动推进：第 4 层
-
-但前提是：
-
-- 每一层都必须先完成 contract convergence
-- 无 hard blocker 时再进入 clean worktree 最小实现验证
-- 每层完成后更新 reports，再进入下一固定子线
+- OMX 当前覆盖：`Phase 6` 最小 repo-native baseline
+- OMX 当前不得覆盖：external workspace writer、end-to-end study harness、cutover、behavior-equivalence
+- OMX 当前的收口标准：docs / tests / reports / control plane 同口径，且 targeted + broader regression fresh 通过
 
 ## 当前正式执行口径
 
 今后统一按下面这条口径理解：
 
-`Med Auto Science` 的当前主线是一条四层收敛路线：
-
-1. 先立 authority foundation
-2. 再收紧 parameterized authority inputs
-3. 再收紧 delivery / publication plane
-4. 再用真实课题 relaunch 验证整条链是否成立
-
-只有在这四层都稳定后，才允许讨论更大的 monorepo scaffold/cutover。
-
-与这条四层路线配套的固定收尾纪律，见：
-
-- [Mainline Integration And Cleanup Cadence](./mainline_integration_and_cleanup.md)
+`Med Auto Science` 的当前主线已经完成 authority、control surface、delivery plane 与 real-study relaunch 四段 absorbed 收口；当前正式 active 的是 `Phase 6 / Integration Harness And Cutover Readiness`，其最小 tranche 是 repo-native runtime-eval / delivery-report baseline，而不是 `end-to-end study harness` 或 `cutover`。

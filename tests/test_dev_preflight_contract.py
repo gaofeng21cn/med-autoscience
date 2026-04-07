@@ -52,3 +52,32 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
 
     assert commands.count("uv run pytest tests/test_release_workflow.py -q") == 1
     assert "uv run pytest tests/test_codex_plugin.py -q" in commands
+
+
+def test_classify_changed_files_matches_integration_harness_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "docs/agent_runtime_interface.md",
+            "docs/merge_and_cutover_gates.md",
+            "src/med_autoscience/controllers/runtime_watch.py",
+            "docs/integration_harness_activation_package.md",
+        ]
+    )
+
+    assert result.matched_categories == ("integration_harness_surface",)
+    assert result.unclassified_changes == ()
+
+
+def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proof() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("integration_harness_surface",))
+
+    assert commands == [
+        "uv run pytest tests/test_dev_preflight_contract.py -q",
+        "uv run pytest tests/test_runtime_watch.py -q",
+        "uv run pytest tests/test_study_delivery_sync.py -q",
+        "uv run pytest tests/test_publication_gate.py -q",
+    ]

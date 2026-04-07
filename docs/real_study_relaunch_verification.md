@@ -123,3 +123,15 @@ uv run --python 3.14 python -m med_autoscience.cli sync-study-delivery --paper-r
 - repo-side runtime_watch coherence gap 已补齐
 - 当前 remaining blocker 已被严格收敛为 external workspace-side truth gap
 - 本轮不自动继续写 external workspace，也不把它误写成 repo-side runtime 未成熟
+
+## 8. Handoff after absorb
+
+`real-study relaunch and verify` absorbed 到 `main` 之后，当前 repo-side 唯一合法下一棒是：
+
+- [`docs/integration_harness_activation_package.md`](./integration_harness_activation_package.md) 所定义的 `Phase 6 / Integration Harness And Cutover Readiness`
+
+其含义是：
+
+1. repo 继续只做 integration harness 的 activation package 与最小 repo-native baseline
+2. external workspace-side blocker 继续保持 external 分类，不得混写成 repo-side runtime contract 回退
+3. `end-to-end study harness`、`cutover`、`behavior-equivalence` 仍需单独门控，不因 real-study absorbed 而自动打开

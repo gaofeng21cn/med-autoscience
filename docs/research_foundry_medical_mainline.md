@@ -7,11 +7,12 @@
 1. `Med Auto Science` 现在到底在做什么
 2. `Research Foundry`、`domain gateway`、`Domain Harness OS` 三者是什么关系
 3. 为什么论文交付仍然是顶层业务目标，但不再主导整个架构分层
-4. 这条主线接下来应按什么顺序推进
+4. 在 `real-study relaunch` 已 absorbed 到 `main` 之后，接下来必须按什么顺序继续推进
 
 如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
+- [Integration Harness Activation Package](./integration_harness_activation_package.md)
 
 ## 一句话结论
 
@@ -136,113 +137,79 @@ Human / Agent
 
 只是它们应该建立在稳定底座上：
 
-- `study charter`
+- `study_charter`
 - `startup projection`
 - `runtime escalation`
 - `publication eval`
 - `medical reporting contract`
 - `display template contract`
 
-这些内部 contract 如果不先收紧，图表和稿件表面就会不断被局部问题牵着走。
+## 当前 absorbed position / 2026-04-07
 
-## 主线与子线的正确关系
+截至 `2026-04-07`，当前主线已经依次完成并 absorbed 到 `main`：
 
-从今天开始，推荐把整个仓库的推进理解为：
+1. outer-loop durable decision loop
+2. formal runtime control surface (`pause / stop / rerun / requires_human_confirmation`)
+3. delivery plane contract map and artifact-surface freeze
+4. real-study relaunch and verify
 
-### 顶层主线
+当前 authoritative real-study closeout 见：
 
-`Research Foundry medical implementation / Domain Harness OS convergence`
+- [Real-Study Relaunch Verification](./real_study_relaunch_verification.md)
 
-### 主线下的正式子线
+因此，当前 repo-side 真正的下一阶段不是再回头争论 authority foundation，而是：
 
-#### A. Authority Convergence
+- `Phase 6 / Integration Harness And Cutover Readiness`
 
-包括：
+## 当前 active phase 的正式理解
 
-- `study charter artifact carrier`
-- `startup projection`
-- `runtime escalation record`
-- `publication eval minimal schema`
-- `charter-parameterized input contract`
+当前 active phase 只应被理解为：
 
-#### B. Delivery / Publication Plane
+- 在已 absorbed 的 real-study truth 之上，继续把 `controller / runtime / eval / delivery` chain 收紧成可持续复跑的 integration baseline
+- 同时明确 `merge gate` 与 `runtime cutover gate` 仍然是两道不同的门
 
-包括：
+这并不等于：
 
-- manuscript surface
-- reporting contract
-- publication gate
-- submission companion
-- graphical abstract / companion artifacts
-- figure / table contract
-- display template catalog
+- `end-to-end study harness` 已打开
+- `cutover` 已打开
+- `behavior-equivalence` 已通过
+- external workspace-side blocker 已经消失
 
-#### C. Real-Study Adoption
+当前 phase 的 repo-tracked canonical bridge 见：
 
-包括：
+- [Integration Harness Activation Package](./integration_harness_activation_package.md)
 
-- 真实课题重绘
-- 真实稿件重交付
-- anchor paper closure
-- 真实 paper-owned truth surface 对齐
+## 固定推进顺序
 
-### 这意味着什么
+从当前节点开始，推荐固定按下面顺序推进：
 
-这意味着：
+1. `Phase 6 / Integration Harness And Cutover Readiness`
+   - 先冻结 activation package
+   - 再维持最小 repo-native harness baseline
+   - 继续保持 `end-to-end harness / cutover / behavior-equivalence` 关闭，直到单独门控放行
+2. `Phase 7 / Vocabulary And Contract Freeze`
+3. `Phase 8 / Open Research Foundry Validation`
 
-- `display / paper` 继续做
-- 而且必须持续做
-- 但它们作为 `delivery plane` 进入主线，而不是与系统本体竞争定义权
+当前不允许反过来做：
 
-## 推荐 phase 顺序
-
-### Phase 0. Program Truth Reset
-
-目标：
-
-- 把旧的 display program、monorepo program、当前 mainline 统一成同一个 north star
-- 清掉过时 prompt、过时 CURRENT_PROGRAM 和 stale report 叙事
-
-### Phase 1. Harness Authority Convergence
-
-目标：
-
-- 固定 `controller / runtime / eval / delivery` 的 authority boundary
-- 先固定当前唯一活跃子线 `publication eval minimal schema`
-- 在它之后按顺序继续：
-  - `charter-parameterized input contract`
-  - `delivery plane contract map`
-
-### Phase 2. Delivery Plane Convergence
-
-目标：
-
-- 把 manuscript / reporting / submission / display 重新写成 harness OS 下的正式 delivery plane
-- 明确哪些是 publication shell，哪些是 domain-specific contract
-- repo-tracked canonical bridge 见 `docs/delivery_plane_contract_map.md`
-
-### Phase 3. Real-Study Relaunch
-
-目标：
-
-- 用新的 delivery plane 与 authority contract 重跑真实锚点课题
-- 不再只追求“模板能画”，而是追求“study-owned paper surface 真正稳定”
-
-### Phase 4. Monorepo Scaffold Gate
-
-目标：
-
-- 只有在前面 contract 收敛足够后，才考虑 monorepo scaffold 与 cutover
-- scaffold 永远不是先手动作
+- 不能因为 real-study 已有 anchor 验证，就跳过 integration harness baseline
+- 不能因为要更快进入 cutover，就把 `merge gate` 与 `runtime cutover gate` 混成一个门
+- 不能因为 external workspace-side blocker 存在，就回退 repo-side fail-closed contract
 
 ## 当前 immediate next step
 
-当前最自然的 immediate next step 不是重新讨论大而空的架构，而是：
+当前最自然的 immediate next step 是：
 
-1. 继续把 `study_charter` 收紧成稳定的 `charter-parameterized input contract`
-2. 在它之后继续：
-   - `delivery plane contract map`
-   - `real-study relaunch`
+1. 把 repo-tracked mainline docs 从 pre-relaunch 叙事同步到 post-relaunch absorbed truth
+2. 把 `runtime_watch -> publication_gate -> study_delivery_sync` 这一段 proof surface 编入 repo-native preflight baseline
+3. 以 targeted regression + broader regression 证明当前最小 tranche 已收口
+
+而不是：
+
+- 打开 `end-to-end study harness`
+- 打开 `cutover`
+- 直接改 external workspace truth
+- 把开发控制面的 baseline 误写成产品 runtime 成熟度
 
 ## 非目标
 
@@ -253,6 +220,7 @@ Human / Agent
 - 因为要 monorepo 就提前做大规模代码搬迁
 - 因为要开放化就提前把医学语义抹平
 - 把 `Research Foundry` 现在就做成新的物理主仓库
+- 在 repo-tracked contract 未显式授权前做 `med-deepscientist` 写入或 `cross-repo write`
 
 ## 正式判断
 
@@ -262,4 +230,4 @@ Human / Agent
 
 对应中文可稳定表述为：
 
-> `Med Auto Science` 是 `Research Foundry` 的医学实现；对外是医学 `Research Ops` 的 `domain gateway`，对内是医学自动科研的 `Domain Harness OS`；其业务北极星始终是把研究稳定推进到发表级论文交付。
+> `Med Auto Science` 是 `Research Foundry` 的医学实现；对外是医学 `Research Ops` 的 `domain gateway`，对内是医学自动科研的 `Domain Harness OS`；其业务北极星始终是把研究稳定推进到发表级论文交付。当前已完成 delivery-plane 与 real-study relaunch 收口，下一正式阶段是 `Phase 6 / Integration Harness And Cutover Readiness`，但仍未打开 `end-to-end harness` 与 `cutover`。
