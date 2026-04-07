@@ -37,9 +37,11 @@
   - manuscript / reporting / submission / display / figure / table contract
 
 第 4 层：Real-Study Relaunch & Verify
-  待进入
+  已有真实 anchor 验证证据，当前仍停在 external workspace-side blocker 收口前
   - anchor-study relaunch
   - real-study relaunch and verify
+  - 当前 repo-tracked verification note：`docs/real_study_relaunch_verification.md`
+  - 最新锚点：`001-dm-cvd-mortality-risk`，已验证 managed entry / runtime watch / publication gate / study delivery sync；当前 blocker 已被收敛到 external workspace-side publication surface
   - 目标：验证新的 contract 是否真正支撑 paper-owned truth surface
 
 后置门：Monorepo Scaffold Gate

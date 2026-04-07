@@ -169,6 +169,65 @@ def test_runtime_watch_registers_medical_runtime_audits() -> None:
     assert "medical_reporting_audit" in runners
 
 
+def test_runtime_watch_orders_publication_surface_before_gate(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[tuple[str, bool]] = []
+    state = {"surface_blocked": False}
+
+    def fake_medical_publication_surface(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(("medical_publication_surface", apply))
+        if apply:
+            state["surface_blocked"] = True
+        return {
+            "status": "blocked",
+            "blockers": ["methods_section_structure_missing_or_incomplete"],
+            "report_json": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.md"),
+            "top_hits": [
+                {
+                    "path": "paper/draft.md",
+                    "location": "line 33",
+                    "phrase": "Methods",
+                }
+            ],
+            "intervention_enqueued": apply,
+        }
+
+    def fake_publication_gate(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(("publication_gate", apply))
+        blocked = state["surface_blocked"]
+        return {
+            "status": "blocked" if blocked else "clear",
+            "blockers": ["medical_publication_surface_blocked"] if blocked else [],
+            "allow_write": not blocked,
+            "missing_non_scalar_deliverables": [],
+            "submission_minimal_present": True,
+            "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            "intervention_enqueued": apply,
+        }
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": fake_publication_gate,
+            "medical_publication_surface": fake_medical_publication_surface,
+        },
+        apply=True,
+    )
+
+    assert result["controllers"]["medical_publication_surface"]["status"] == "blocked"
+    assert result["controllers"]["publication_gate"]["status"] == "blocked"
+    assert result["controllers"]["publication_gate"]["blockers"] == ["medical_publication_surface_blocked"]
+    assert calls == [
+        ("medical_publication_surface", False),
+        ("medical_publication_surface", True),
+        ("publication_gate", False),
+        ("publication_gate", True),
+    ]
+
+
 def test_suppresses_duplicate_blocker(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
@@ -456,7 +515,6 @@ def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path
     study_root = profile.studies_root / "001-risk"
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
-    seen: list[str] = []
 
     monkeypatch.setattr(
         module.study_runtime_router,

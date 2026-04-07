@@ -93,6 +93,7 @@
    - `publication_gate` 看 `paper/` / `paper_bundle_manifest` / `submission_minimal`
    - `study_delivery_sync` 把 `paper/` package materialize 到 `manuscript/`
 8. `runtime_watch` 作为 poll shell 聚合 controller reports 与 managed study actions，但不升格成 authority root；当前它仍是 **poll/report shell**，不是已经直接内建 `study_outer_loop_tick(...)` dispatch 的 owner
+   - 在同一扫描内，`runtime_watch` 必须先评估 `medical_publication_surface`，再评估 `publication_gate`；不能让同一扫描里的 gate verdict 忽略刚暴露出的 publication-surface blocker
 
 ## 4. Fail-closed rules
 
