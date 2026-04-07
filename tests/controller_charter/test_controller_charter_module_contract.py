@@ -5,32 +5,54 @@ from pathlib import Path
 import yaml
 
 
-MODULE_CONTRACT_PATH = (
-    Path(__file__).resolve().parents[2] / "modules" / "controller_charter" / "module_contract.yaml"
-)
+def _load_contract() -> dict[str, object]:
+    path = Path(__file__).resolve().parents[2] / "modules" / "controller_charter" / "module_contract.yaml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def load_module_contract() -> dict[str, object]:
-    return yaml.safe_load(MODULE_CONTRACT_PATH.read_text(encoding="utf-8")) or {}
+def test_controller_charter_contract_declares_controller_authority_boundary() -> None:
+    contract = _load_contract()
 
-
-def test_controller_charter_contract_declares_expected_fields() -> None:
-    contract = load_module_contract()
-
+    assert set(contract) == {
+        "module",
+        "status",
+        "owns",
+        "consumes_refs",
+        "emits_refs",
+        "forbids",
+        "communication_rules",
+    }
     assert contract["module"] == "controller_charter"
     assert contract["status"] == "scaffold"
     assert contract["owns"] == [
-        "study / workspace controller truth",
-        "study_charter compile logic",
-        "route / policy / objective / trigger authority",
+        "study_charter",
+        "controller_policy",
+        "route_trigger_authority",
     ]
-    assert contract["consumes_refs"] == ["none"]
+    assert contract["consumes_refs"] == [
+        "workspace_profile",
+        "study_metadata",
+        "policy_surface",
+    ]
     assert contract["emits_refs"] == [
-        "runtime-facing projection refs",
-        "eval-consumable controller refs",
+        "runtime_startup_projection",
+        "controller_summary_ref",
     ]
     assert contract["forbids"] == [
-        "direct runtime private state mutation",
-        "runtime event ownership",
-        "eval verdict ownership",
+        "runtime_private_state_mutation",
+        "runtime_event_ownership",
+        "eval_verdict_ownership",
     ]
+    assert contract["communication_rules"] == {
+        "allowed": [
+            "explicit_contract",
+            "explicit_artifact_ref",
+            "explicit_typed_output",
+        ],
+        "forbidden": [
+            "ad_hoc_dict_shortcut",
+            "hidden_import_shortcut",
+            "direct_private_state_mutation",
+            "authority_takeover_via_read_model",
+        ],
+    }
