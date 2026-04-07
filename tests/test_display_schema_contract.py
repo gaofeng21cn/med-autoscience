@@ -28,6 +28,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
 
     binary = module.get_input_schema_contract("binary_prediction_curve_inputs_v1")
     embedding = module.get_input_schema_contract("embedding_grouped_inputs_v1")
+    performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
@@ -36,6 +37,10 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     cohort_flow = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     time_to_event_panel = module.get_input_schema_contract("time_to_event_discrimination_calibration_inputs_v1")
     time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
+    time_dependent_roc_comparison = module.get_input_schema_contract("time_dependent_roc_comparison_inputs_v1")
+    time_to_event_stratified = module.get_input_schema_contract(
+        "time_to_event_stratified_cumulative_incidence_inputs_v1"
+    )
     generalizability = module.get_input_schema_contract("multicenter_generalizability_inputs_v1")
     risk_layering = module.get_input_schema_contract("risk_layering_monotonic_inputs_v1")
     binary_calibration_decision = module.get_input_schema_contract(
@@ -153,7 +158,44 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "design_panel_lines_must_be_non_empty" in cohort_flow.additional_constraints
 
     assert "time_dependent_roc_horizon" in time_to_event_class.template_ids
+    assert "time_dependent_roc_comparison_panel" in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids
+    assert "time_dependent_roc_comparison_inputs_v1" in time_to_event_class.input_schema_ids
+    assert "time_to_event_stratified_cumulative_incidence_panel" in time_to_event_class.template_ids
+    assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in time_to_event_class.input_schema_ids
+    assert "performance_heatmap" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).template_ids
+    assert "performance_heatmap_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).input_schema_ids
+    assert performance_heatmap.template_ids == ("performance_heatmap",)
+    assert performance_heatmap.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "metric_name",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert performance_heatmap.collection_required_fields["row_order"] == ("label",)
+    assert performance_heatmap.collection_required_fields["column_order"] == ("label",)
+    assert performance_heatmap.additional_constraints == (
+        "metric_name_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "performance_values_must_be_finite_probability",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+    )
     assert time_to_event_panel.template_ids == ("time_to_event_discrimination_calibration_panel",)
     assert time_to_event_panel.display_required_fields == (
         "display_id",
@@ -233,6 +275,49 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "publication_style_profile_required_at_materialization" in time_to_event_decision.additional_constraints
     assert "display_override_contract_may_adjust_layout_without_changing_data" in time_to_event_decision.additional_constraints
     assert "treated_fraction_series_x_y_lengths_must_match" in time_to_event_decision.additional_constraints
+    assert time_dependent_roc_comparison.template_ids == ("time_dependent_roc_comparison_panel",)
+    assert time_dependent_roc_comparison.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "panels",
+    )
+    assert time_dependent_roc_comparison.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "analysis_window_label",
+        "series",
+    )
+    assert time_dependent_roc_comparison.collection_optional_fields["panels"] == (
+        "annotation",
+        "time_horizon_months",
+        "reference_line",
+    )
+    assert time_dependent_roc_comparison.nested_collection_required_fields["panels.series"] == ("label", "x", "y")
+    assert time_dependent_roc_comparison.nested_collection_required_fields["panels.reference_line"] == ("x", "y")
+    assert time_dependent_roc_comparison.nested_collection_optional_fields["panels.reference_line"] == ("label",)
+    assert "panel_series_labels_must_be_unique_within_panel" in time_dependent_roc_comparison.additional_constraints
+    assert "panel_series_label_sets_must_match_across_panels" in time_dependent_roc_comparison.additional_constraints
+    assert "panel_time_horizon_months_must_be_positive_when_present" in time_dependent_roc_comparison.additional_constraints
+    assert time_to_event_stratified.template_ids == ("time_to_event_stratified_cumulative_incidence_panel",)
+    assert time_to_event_stratified.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "panels",
+    )
+    assert time_to_event_stratified.collection_required_fields["panels"] == ("panel_id", "panel_label", "title", "groups")
+    assert time_to_event_stratified.collection_optional_fields["panels"] == ("annotation",)
+    assert time_to_event_stratified.nested_collection_required_fields["panels.groups"] == ("label", "times", "values")
+    assert "panel_ids_must_be_unique" in time_to_event_stratified.additional_constraints
+    assert "panel_group_values_must_be_monotonic_non_decreasing" in time_to_event_stratified.additional_constraints
     assert generalizability.template_ids == ("multicenter_generalizability_overview",)
     assert generalizability.display_required_fields == (
         "display_id",
@@ -389,7 +474,13 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "cohort_flow_figure" in markdown
     assert "table1_baseline_characteristics" in markdown
     assert "time_dependent_roc_horizon" in markdown
+    assert "time_dependent_roc_comparison_panel" in markdown
+    assert "time_dependent_roc_comparison_inputs_v1" in markdown
+    assert "time_to_event_stratified_cumulative_incidence_panel" in markdown
+    assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in markdown
     assert "tsne_scatter_grouped" in markdown
+    assert "performance_heatmap" in markdown
+    assert "performance_heatmap_inputs_v1" in markdown
     assert "clustered_heatmap" in markdown
     assert "clustered_heatmap_inputs_v1" in markdown
     assert "gsva_ssgsea_heatmap" in markdown

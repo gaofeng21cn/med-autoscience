@@ -439,6 +439,7 @@ def build_display_surface_workspace(
                         "template_id": "time_dependent_roc_horizon",
                         "title": "Time-dependent ROC at 24 months",
                         "caption": "Horizon-specific discrimination of the locked survival model at 24 months.",
+                        "time_horizon_months": 24,
                         "x_label": "1 - Specificity",
                         "y_label": "Sensitivity",
                         "reference_line": {"x": [0.0, 1.0], "y": [0.0, 1.0], "label": "Chance"},
@@ -817,6 +818,7 @@ def build_display_surface_workspace(
                             "template_id": "time_to_event_decision_curve",
                             "title": "Time-to-event decision curve at 24 months",
                             "caption": "Net benefit for the survival model at the 24-month clinical decision horizon.",
+                            "time_horizon_months": 24,
                             "panel_a_title": "Decision-curve net benefit",
                             "panel_b_title": "Model-treated fraction",
                             "x_label": "Threshold probability",
@@ -1175,7 +1177,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_id in {"heatmap_group_comparison", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
+    if template_id in {"heatmap_group_comparison", "performance_heatmap", "clustered_heatmap", "gsva_ssgsea_heatmap"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1189,7 +1191,11 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "guide_boxes": [
                 {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.80, "y0": 0.22, "x1": 0.90, "y1": 0.80},
             ],
-            "metrics": {"score_method": "GSVA"} if template_id == "gsva_ssgsea_heatmap" else {},
+            "metrics": (
+                {"metric_name": "AUC", "matrix_cells": [{"x": "All participants", "y": "Integrated model", "value": 0.83}]}
+                if template_id == "performance_heatmap"
+                else {"score_method": "GSVA"} if template_id == "gsva_ssgsea_heatmap" else {}
+            ),
         }
     if template_id == "correlation_heatmap":
         return {
@@ -1298,6 +1304,8 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
             "layout_boxes": [
                 {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.56, "y1": 0.08},
                 {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.62, "y1": 0.97},
+                {"box_id": "feature_label_Age", "box_type": "feature_label", "x0": 0.03, "y0": 0.25, "x1": 0.12, "y1": 0.31},
+                {"box_id": "feature_label_Ki-67", "box_type": "feature_label", "x0": 0.03, "y0": 0.43, "x1": 0.12, "y1": 0.49},
                 {"box_id": "feature_row_Age", "box_type": "feature_row", "x0": 0.14, "y0": 0.24, "x1": 0.76, "y1": 0.36},
                 {"box_id": "feature_row_Ki-67", "box_type": "feature_row", "x0": 0.14, "y0": 0.40, "x1": 0.76, "y1": 0.52},
             ],
@@ -1309,10 +1317,16 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 {"box_id": "colorbar", "box_type": "colorbar", "x0": 0.82, "y0": 0.22, "x1": 0.90, "y1": 0.80},
             ],
             "metrics": {
+                "figure_height_inches": 4.8,
+                "figure_width_inches": 7.2,
                 "points": [
                     {"row_box_id": "feature_row_Age", "x": 0.42, "y": 0.28},
                     {"row_box_id": "feature_row_Ki-67", "x": 0.58, "y": 0.46},
-                ]
+                ],
+                "feature_labels": [
+                    {"feature": "Age", "row_box_id": "feature_row_Age", "label_box_id": "feature_label_Age"},
+                    {"feature": "Ki-67", "row_box_id": "feature_row_Ki-67", "label_box_id": "feature_label_Ki-67"},
+                ],
             },
         }
     raise ValueError(f"unsupported template_id `{template_id}` in test layout sidecar helper")
@@ -2909,6 +2923,98 @@ def test_materialize_display_surface_generates_gsva_ssgsea_heatmap_baseline(tmp_
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_generates_performance_heatmap_baseline(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "display_kind": "figure",
+                    "requirement_key": "performance_heatmap",
+                    "catalog_id": "F25",
+                    "shell_path": "paper/figures/Figure25.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "template_id": "performance_heatmap",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "performance_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "performance_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "template_id": "performance_heatmap",
+                    "title": "AUC heatmap across APOE4 subgroups and predictor sets",
+                    "caption": "Random-forest discrimination remains strongest for the integrated model across APOE4-stratified analyses.",
+                    "x_label": "Analytic subgroup",
+                    "y_label": "Predictor set",
+                    "metric_name": "AUC",
+                    "row_order": [
+                        {"label": "Clinical baseline"},
+                        {"label": "Integrated model"},
+                    ],
+                    "column_order": [
+                        {"label": "All participants"},
+                        {"label": "APOE4 carriers"},
+                    ],
+                    "cells": [
+                        {"x": "All participants", "y": "Clinical baseline", "value": 0.71},
+                        {"x": "APOE4 carriers", "y": "Clinical baseline", "value": 0.68},
+                        {"x": "All participants", "y": "Integrated model", "value": 0.83},
+                        {"x": "APOE4 carriers", "y": "Integrated model", "value": 0.79},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F25"]
+    assert (paper_root / "figures" / "generated" / "F25_performance_heatmap.png").exists()
+    assert (paper_root / "figures" / "generated" / "F25_performance_heatmap.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F25_performance_heatmap.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["metric_name"] == "AUC"
+    assert layout_sidecar["metrics"]["matrix_cells"][0]["value"] == 0.71
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F25"
+    assert figure_entry["template_id"] == "performance_heatmap"
+    assert figure_entry["renderer_family"] == "r_ggplot2"
+    assert figure_entry["input_schema_id"] == "performance_heatmap_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_heatmap"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_wraps_long_risk_layering_title_within_device(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -3334,6 +3440,24 @@ def test_materialize_display_surface_omits_figure_title_for_time_to_event_discri
         )
     )
     assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+
+
+def test_materialize_display_surface_omits_figure_title_for_shap_summary_by_default(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F13_shap_summary_beeswarm.layout.json").read_text(encoding="utf-8")
+    )
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = next(item for item in figure_catalog["figures"] if item["figure_id"] == "F13")
+
+    assert figure_entry["title"] == "SHAP summary beeswarm"
+    assert not any(item["box_type"] == "title" for item in layout_sidecar["layout_boxes"])
+    assert layout_sidecar["render_context"]["layout_override"].get("show_figure_title") is not True
 
 
 def test_materialize_display_surface_places_time_to_event_callout_in_right_upper_blank_zone(
@@ -3995,13 +4119,29 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
         layout_sidecar_path=layout_sidecar_path,
     )
 
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
     qc_result = qc_module.run_display_layout_qc(
         qc_profile=spec.layout_qc_profile,
-        layout_sidecar=json.loads(layout_sidecar_path.read_text(encoding="utf-8")),
+        layout_sidecar=layout_sidecar,
     )
 
     assert qc_result["status"] == "pass", qc_result
     assert qc_result["issues"] == []
+    if template_id == "shap_summary_beeswarm":
+        assert layout_sidecar["metrics"]["figure_height_inches"] > 0
+        assert layout_sidecar["metrics"]["figure_width_inches"] > 0
+        assert len(layout_sidecar["metrics"]["feature_labels"]) == 2
+        feature_label_boxes = [box for box in layout_sidecar["layout_boxes"] if box["box_type"] == "feature_label"]
+        feature_row_boxes = [box for box in layout_sidecar["layout_boxes"] if box["box_type"] == "feature_row"]
+        assert len(feature_label_boxes) == 2
+        assert len(feature_row_boxes) == 2
+        assert all(box["x1"] <= layout_sidecar["panel_boxes"][0]["x0"] for box in feature_label_boxes)
+        zero_line_box = next(box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "zero_line")
+        panel_box = layout_sidecar["panel_boxes"][0]
+        assert panel_box["y0"] <= zero_line_box["y0"] <= panel_box["y1"]
+        assert panel_box["y0"] <= zero_line_box["y1"] <= panel_box["y1"]
+        assert all(panel_box["y0"] <= box["y0"] <= panel_box["y1"] for box in feature_row_boxes)
+        assert all(panel_box["y0"] <= box["y1"] <= panel_box["y1"] for box in feature_row_boxes)
 
 
 def test_materialize_display_surface_applies_publication_style_and_display_override(tmp_path: Path, monkeypatch) -> None:
@@ -4191,3 +4331,535 @@ def test_load_evidence_display_payload_rejects_gsva_heatmap_without_score_method
             spec=spec,
             display_id="Figure23",
         )
+
+
+def test_load_evidence_display_payload_rejects_performance_heatmap_value_outside_unit_interval(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "performance_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "performance_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "template_id": "performance_heatmap",
+                    "title": "AUC heatmap across APOE4 subgroups and predictor sets",
+                    "caption": "Random-forest discrimination remains strongest for the integrated model across APOE4-stratified analyses.",
+                    "x_label": "Analytic subgroup",
+                    "y_label": "Predictor set",
+                    "metric_name": "AUC",
+                    "row_order": [
+                        {"label": "Clinical baseline"},
+                        {"label": "Integrated model"},
+                    ],
+                    "column_order": [
+                        {"label": "All participants"},
+                        {"label": "APOE4 carriers"},
+                    ],
+                    "cells": [
+                        {"x": "All participants", "y": "Clinical baseline", "value": 0.71},
+                        {"x": "APOE4 carriers", "y": "Clinical baseline", "value": 1.07},
+                        {"x": "All participants", "y": "Integrated model", "value": 0.83},
+                        {"x": "APOE4 carriers", "y": "Integrated model", "value": 0.79},
+                    ],
+                }
+            ],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("performance_heatmap")
+
+    with pytest.raises(ValueError, match="must stay within \\[0, 1\\]"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure25",
+        )
+
+
+def test_load_evidence_display_payload_rejects_grouped_risk_summary_when_events_exceed_sample_size(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    payload_path = paper_root / "time_to_event_grouped_inputs.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    display = next(item for item in payload["displays"] if item["display_id"] == "Figure15")
+    display["risk_group_summaries"][1]["events_5y"] = display["risk_group_summaries"][1]["sample_size"] + 1
+    dump_json(payload_path, payload)
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
+
+    with pytest.raises(ValueError, match="events_5y must not exceed \\.sample_size"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure15",
+        )
+
+
+def test_load_evidence_display_payload_rejects_time_to_event_calibration_when_events_exceed_group_size(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    payload_path = paper_root / "time_to_event_discrimination_calibration_inputs.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    display = next(item for item in payload["displays"] if item["display_id"] == "Figure14")
+    display["calibration_summary"][0]["events_5y"] = display["calibration_summary"][0]["n"] + 1
+    dump_json(payload_path, payload)
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
+
+    with pytest.raises(ValueError, match="events_5y must not exceed \\.n"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure14",
+        )
+
+
+def test_load_evidence_display_payload_rejects_time_to_event_calibration_when_callout_drifts_from_group_summary(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    payload_path = paper_root / "time_to_event_discrimination_calibration_inputs.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    display = next(item for item in payload["displays"] if item["display_id"] == "Figure14")
+    display["calibration_callout"]["predicted_risk_5y"] = 0.999
+    dump_json(payload_path, payload)
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
+
+    with pytest.raises(ValueError, match="calibration_callout must match the referenced calibration_summary row"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure14",
+        )
+
+
+def test_materialize_display_surface_preserves_structured_time_horizon_metrics_for_b_templates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+
+    grouped_payload = json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
+    decision_display = next(item for item in grouped_payload["displays"] if item["display_id"] == "Figure16")
+    decision_display["time_horizon_months"] = 24
+    dump_json(paper_root / "time_to_event_decision_curve_inputs.json", grouped_payload)
+
+    curve_payload = json.loads((paper_root / "binary_prediction_curve_inputs.json").read_text(encoding="utf-8"))
+    roc_display = next(item for item in curve_payload["displays"] if item["display_id"] == "Figure18")
+    roc_display["time_horizon_months"] = 24
+    dump_json(paper_root / "binary_prediction_curve_inputs.json", curve_payload)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    f16_layout = json.loads(
+        (paper_root / "figures" / "generated" / "F16_time_to_event_decision_curve.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    f18_layout = json.loads(
+        (paper_root / "figures" / "generated" / "F18_time_dependent_roc_horizon.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert f16_layout["metrics"]["time_horizon_months"] == 24
+    assert f18_layout["metrics"]["time_horizon_months"] == 24
+
+
+def _make_stratified_cumulative_incidence_display(display_id: str = "Figure24") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "time_to_event_stratified_cumulative_incidence_panel",
+        "title": "HTN-AI cumulative incidence of all-cause mortality across risk strata",
+        "caption": (
+            "Cumulative incidence curves stratified by baseline hypertension status, age band, and HTN-AI quintile."
+        ),
+        "x_label": "Years from index ECG",
+        "y_label": "Cumulative incidence of all-cause mortality",
+        "panels": [
+            {
+                "panel_id": "baseline_htn",
+                "panel_label": "A",
+                "title": "Baseline hypertension status",
+                "annotation": "Gray test P < .001",
+                "groups": [
+                    {
+                        "label": "HTN-AI+",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.04, 0.08, 0.13, 0.18],
+                    },
+                    {
+                        "label": "HTN-AI−",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.02, 0.04, 0.06, 0.09],
+                    },
+                ],
+            },
+            {
+                "panel_id": "age_band",
+                "panel_label": "B",
+                "title": "Age band",
+                "annotation": "Gray test P < .001",
+                "groups": [
+                    {
+                        "label": "Older",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.05, 0.10, 0.16, 0.22],
+                    },
+                    {
+                        "label": "Younger",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.01, 0.03, 0.05, 0.07],
+                    },
+                ],
+            },
+            {
+                "panel_id": "htn_ai_quintile",
+                "panel_label": "C",
+                "title": "HTN-AI quintile",
+                "annotation": "Gray test P < .001",
+                "groups": [
+                    {
+                        "label": "Q1",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.01, 0.02, 0.03, 0.05],
+                    },
+                    {
+                        "label": "Q2",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.015, 0.03, 0.045, 0.06],
+                    },
+                    {
+                        "label": "Q3",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.02, 0.04, 0.06, 0.09],
+                    },
+                    {
+                        "label": "Q4",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.03, 0.06, 0.10, 0.14],
+                    },
+                    {
+                        "label": "Q5",
+                        "times": [0.0, 1.0, 2.0, 3.0, 4.0],
+                        "values": [0.00, 0.05, 0.10, 0.16, 0.23],
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def _make_time_dependent_roc_comparison_panel_display(display_id: str = "Figure25") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "time_dependent_roc_comparison_panel",
+        "title": "Time-dependent ROC analyses for dementia risk across follow-up windows",
+        "caption": (
+            "Panelized time-dependent ROC analyses comparing overall follow-up with the first 15 years of follow-up."
+        ),
+        "x_label": "False-positive rate",
+        "y_label": "True-positive rate",
+        "panels": [
+            {
+                "panel_id": "overall_followup",
+                "panel_label": "A",
+                "title": "Overall follow-up",
+                "analysis_window_label": "Overall follow-up",
+                "annotation": "AUC = 0.84",
+                "series": [
+                    {
+                        "label": "Locked dementia-risk model",
+                        "x": [0.0, 0.08, 0.18, 0.33, 1.0],
+                        "y": [0.0, 0.56, 0.72, 0.86, 1.0],
+                    },
+                    {
+                        "label": "Clinical baseline",
+                        "x": [0.0, 0.10, 0.24, 0.40, 1.0],
+                        "y": [0.0, 0.48, 0.65, 0.79, 1.0],
+                    },
+                ],
+                "reference_line": {
+                    "label": "Chance",
+                    "x": [0.0, 1.0],
+                    "y": [0.0, 1.0],
+                },
+            },
+            {
+                "panel_id": "first_15_years",
+                "panel_label": "B",
+                "title": "First 15 years of follow-up",
+                "analysis_window_label": "First 15 years of follow-up",
+                "time_horizon_months": 180,
+                "annotation": "AUC = 0.88",
+                "series": [
+                    {
+                        "label": "Locked dementia-risk model",
+                        "x": [0.0, 0.05, 0.14, 0.30, 1.0],
+                        "y": [0.0, 0.60, 0.79, 0.90, 1.0],
+                    },
+                    {
+                        "label": "Clinical baseline",
+                        "x": [0.0, 0.09, 0.22, 0.39, 1.0],
+                        "y": [0.0, 0.50, 0.68, 0.80, 1.0],
+                    },
+                ],
+                "reference_line": {
+                    "label": "Chance",
+                    "x": [0.0, 1.0],
+                    "y": [0.0, 1.0],
+                },
+            },
+        ],
+    }
+
+
+def test_load_evidence_display_payload_rejects_non_monotonic_stratified_cumulative_incidence_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_stratified_cumulative_incidence_display()
+    display_payload["panels"][2]["groups"][4]["values"][3] = 0.08
+    dump_json(
+        paper_root / "time_to_event_stratified_cumulative_incidence_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_stratified_cumulative_incidence_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_stratified_cumulative_incidence_panel")
+
+    with pytest.raises(ValueError, match="values must be monotonic non-decreasing"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure24",
+        )
+
+
+def test_load_evidence_display_payload_rejects_duplicate_panel_labels_for_stratified_cumulative_incidence_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_stratified_cumulative_incidence_display()
+    display_payload["panels"][1]["panel_label"] = "A"
+    dump_json(
+        paper_root / "time_to_event_stratified_cumulative_incidence_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_stratified_cumulative_incidence_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_stratified_cumulative_incidence_panel")
+
+    with pytest.raises(ValueError, match="panel_label must be unique"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure24",
+        )
+
+
+def test_materialize_display_surface_generates_stratified_cumulative_incidence_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure24",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_stratified_cumulative_incidence_panel",
+                    "catalog_id": "F24",
+                    "shell_path": "paper/figures/Figure24.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure24",
+                    "template_id": "time_to_event_stratified_cumulative_incidence_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_to_event_stratified_cumulative_incidence_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_stratified_cumulative_incidence_inputs_v1",
+            "displays": [_make_stratified_cumulative_incidence_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F24"]
+    assert (paper_root / "figures" / "generated" / "F24_time_to_event_stratified_cumulative_incidence_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F24_time_to_event_stratified_cumulative_incidence_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F24_time_to_event_stratified_cumulative_incidence_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert [item["panel_label"] for item in layout_sidecar["metrics"]["panels"]] == ["A", "B", "C"]
+    assert layout_sidecar["metrics"]["panels"][2]["groups"][-1]["label"] == "Q5"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F24"
+    assert figure_entry["template_id"] == "time_to_event_stratified_cumulative_incidence_panel"
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "time_to_event_stratified_cumulative_incidence_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_survival_curve"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_non_positive_panel_horizon_for_time_dependent_roc_comparison_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_dependent_roc_comparison_panel_display()
+    display_payload["panels"][1]["time_horizon_months"] = 0
+    dump_json(
+        paper_root / "time_dependent_roc_comparison_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_dependent_roc_comparison_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_dependent_roc_comparison_panel")
+
+    with pytest.raises(ValueError, match="time_horizon_months must be >= 1"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure25",
+        )
+
+
+def test_load_evidence_display_payload_rejects_mismatched_panel_series_labels_for_time_dependent_roc_comparison_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_dependent_roc_comparison_panel_display()
+    display_payload["panels"][1]["series"][1]["label"] = "Alternative baseline"
+    dump_json(
+        paper_root / "time_dependent_roc_comparison_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_dependent_roc_comparison_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_dependent_roc_comparison_panel")
+
+    with pytest.raises(ValueError, match="series labels must match the first panel"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure25",
+        )
+
+
+def test_materialize_display_surface_generates_time_dependent_roc_comparison_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "display_kind": "figure",
+                    "requirement_key": "time_dependent_roc_comparison_panel",
+                    "catalog_id": "F25",
+                    "shell_path": "paper/figures/Figure25.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure25",
+                    "template_id": "time_dependent_roc_comparison_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_dependent_roc_comparison_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_dependent_roc_comparison_inputs_v1",
+            "displays": [_make_time_dependent_roc_comparison_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F25"]
+    assert (paper_root / "figures" / "generated" / "F25_time_dependent_roc_comparison_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F25_time_dependent_roc_comparison_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F25_time_dependent_roc_comparison_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert [item["panel_label"] for item in layout_sidecar["metrics"]["panels"]] == ["A", "B"]
+    assert layout_sidecar["metrics"]["panels"][1]["time_horizon_months"] == 180
+    assert layout_sidecar["metrics"]["panels"][1]["analysis_window_label"] == "First 15 years of follow-up"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F25"
+    assert figure_entry["template_id"] == "time_dependent_roc_comparison_panel"
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "time_dependent_roc_comparison_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_evidence_curve"
+    assert figure_entry["qc_result"]["status"] == "pass"

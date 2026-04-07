@@ -23,12 +23,15 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         "binary_calibration_decision_curve_panel",
         "model_complexity_audit_panel",
         "time_dependent_roc_horizon",
+        "time_dependent_roc_comparison_panel",
         "kaplan_meier_grouped",
         "cumulative_incidence_grouped",
+        "time_to_event_stratified_cumulative_incidence_panel",
         "umap_scatter_grouped",
         "pca_scatter_grouped",
         "tsne_scatter_grouped",
         "heatmap_group_comparison",
+        "performance_heatmap",
         "correlation_heatmap",
         "clustered_heatmap",
         "gsva_ssgsea_heatmap",
@@ -55,14 +58,17 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
 
 def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure7 = display_registry.get_evidence_figure_spec("time_dependent_roc_horizon")
+    figure8 = display_registry.get_evidence_figure_spec("time_dependent_roc_comparison_panel")
     figure9 = display_registry.get_evidence_figure_spec("tsne_scatter_grouped")
-    figure10 = display_registry.get_evidence_figure_spec("clustered_heatmap")
-    figure10b = display_registry.get_evidence_figure_spec("gsva_ssgsea_heatmap")
+    figure10 = display_registry.get_evidence_figure_spec("performance_heatmap")
+    figure10b = display_registry.get_evidence_figure_spec("clustered_heatmap")
+    figure10c = display_registry.get_evidence_figure_spec("gsva_ssgsea_heatmap")
     figure12 = display_registry.get_evidence_figure_spec("subgroup_forest")
     figure14 = display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel")
     figure15 = display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
     figure16 = display_registry.get_evidence_figure_spec("time_to_event_decision_curve")
     figure17 = display_registry.get_evidence_figure_spec("multicenter_generalizability_overview")
+    figure19 = display_registry.get_evidence_figure_spec("time_to_event_stratified_cumulative_incidence_panel")
     figure22 = display_registry.get_evidence_figure_spec("risk_layering_monotonic_bars")
     figure3 = display_registry.get_evidence_figure_spec("binary_calibration_decision_curve_panel")
     figure4 = display_registry.get_evidence_figure_spec("model_complexity_audit_panel")
@@ -73,13 +79,20 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
 
     assert figure7.input_schema_id == "binary_prediction_curve_inputs_v1"
     assert figure7.evidence_class == "time_to_event"
+    assert figure8.renderer_family == "python"
+    assert figure8.input_schema_id == "time_dependent_roc_comparison_inputs_v1"
+    assert figure8.layout_qc_profile == "publication_evidence_curve"
     assert figure9.layout_qc_profile == "publication_embedding_scatter"
-    assert figure10.input_schema_id == "clustered_heatmap_inputs_v1"
+    assert figure10.input_schema_id == "performance_heatmap_inputs_v1"
     assert figure10.layout_qc_profile == "publication_heatmap"
-    assert figure10b.paper_family_ids == ("G",)
-    assert figure10b.evidence_class == "matrix_pattern"
-    assert figure10b.input_schema_id == "gsva_ssgsea_heatmap_inputs_v1"
+    assert figure10.paper_family_ids == ("B", "E")
+    assert figure10.renderer_family == "r_ggplot2"
+    assert figure10b.input_schema_id == "clustered_heatmap_inputs_v1"
     assert figure10b.layout_qc_profile == "publication_heatmap"
+    assert figure10c.paper_family_ids == ("G",)
+    assert figure10c.evidence_class == "matrix_pattern"
+    assert figure10c.input_schema_id == "gsva_ssgsea_heatmap_inputs_v1"
+    assert figure10c.layout_qc_profile == "publication_heatmap"
     assert figure12.input_schema_id == "forest_effect_inputs_v1"
     assert figure12.layout_qc_profile == "publication_forest_plot"
     assert figure14.renderer_family == "python"
@@ -89,6 +102,9 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure16.layout_qc_profile == "publication_decision_curve"
     assert figure17.allowed_paper_roles == ("main_text", "supplementary")
     assert figure17.evidence_class == "generalizability"
+    assert figure19.renderer_family == "python"
+    assert figure19.input_schema_id == "time_to_event_stratified_cumulative_incidence_inputs_v1"
+    assert figure19.layout_qc_profile == "publication_survival_curve"
     assert figure22.renderer_family == "python"
     assert figure22.input_schema_id == "risk_layering_monotonic_inputs_v1"
     assert figure22.layout_qc_profile == "publication_risk_layering_bars"

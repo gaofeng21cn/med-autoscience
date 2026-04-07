@@ -255,3 +255,38 @@ def test_resolve_style_roles_rejects_missing_required_decision_curve_roles(tmp_p
         assert "comparator_curve" in str(exc)
     else:
         raise AssertionError("expected missing decision-curve style role to be rejected")
+
+
+def test_resolve_style_roles_rejects_missing_required_time_dependent_roc_panel_roles(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.publication_display_contract")
+    path = tmp_path / "publication_style_profile.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "style_profile_id": "paper_neutral_clinical_v1",
+                "palette": {
+                    "primary": "#5F766B",
+                    "secondary": "#B9AD9C",
+                    "neutral": "#7B8794",
+                },
+                "semantic_roles": {
+                    "model_curve": "primary",
+                    "comparator_curve": "secondary",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    style_profile = module.load_publication_style_profile(path)
+
+    try:
+        module.resolve_style_roles(
+            style_profile=style_profile,
+            template_id="time_dependent_roc_comparison_panel",
+        )
+    except ValueError as exc:
+        assert "reference_line" in str(exc)
+    else:
+        raise AssertionError("expected missing time-dependent ROC panel style role to be rejected")

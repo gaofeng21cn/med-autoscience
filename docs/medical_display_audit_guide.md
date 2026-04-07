@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `24`
+- Implemented evidence figure templates: `27`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `31`
+- Total implemented display templates: `34`
 
 ### Evidence Classes
 
@@ -105,9 +105,9 @@ Current implemented display inventory:
 | --- | ---: | --- | --- |
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
 | Clinical Utility | 3 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve` |
-| Time-to-Event | 6 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve` |
+| Time-to-Event | 8 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve` |
 | Data Geometry | 3 | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` |
-| Matrix Pattern | 4 | `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
+| Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
 | Model Explanation | 1 | `shap_summary_inputs_v1` | `publication_shap_summary` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
@@ -176,16 +176,18 @@ Templates:
 - `kaplan_meier_grouped`
 - `cumulative_incidence_grouped`
 - `time_dependent_roc_horizon`
+- `time_dependent_roc_comparison_panel`
+- `time_to_event_stratified_cumulative_incidence_panel`
 - `time_to_event_discrimination_calibration_panel`
 - `time_to_event_risk_group_summary`
 
 Audit purpose:
 
-- Risk-layer stratification, grouped survival separation, event accumulation, fixed-horizon discrimination, grouped calibration, and risk-group summary views.
+- Risk-layer stratification, grouped survival separation, event accumulation, fixed-horizon discrimination, multi-window ROC comparison, stratified cumulative-incidence panels, grouped calibration, and risk-group summary views.
 
 Authoritative contract:
 
-- Input schemas: `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
+- Input schemas: `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
 - QC: `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`
 
@@ -212,17 +214,18 @@ Authoritative contract:
 Templates:
 
 - `heatmap_group_comparison`
+- `performance_heatmap`
 - `correlation_heatmap`
 - `clustered_heatmap`
 - `gsva_ssgsea_heatmap`
 
 Audit purpose:
 
-- Group contrast matrices, symmetric correlation structure, externally fixed clustered ordering, and omics-native GSVA/ssGSEA program heatmaps.
+- Group contrast matrices, audited performance grids, symmetric correlation structure, externally fixed clustered ordering, and omics-native GSVA/ssGSEA program heatmaps.
 
 Authoritative contract:
 
-- Input schemas: `heatmap_group_comparison_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`
+- Input schemas: `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`
 - Renderer family: `r_ggplot2`
 - QC: `publication_heatmap`
 

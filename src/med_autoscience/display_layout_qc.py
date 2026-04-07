@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import math
+import re
 from typing import Any
 
 from med_autoscience import display_readability_qc
@@ -632,6 +633,10 @@ def _check_composite_panel_label_anchors(
     return issues
 
 
+def _panel_label_token(panel_label: str) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", str(panel_label)) or "panel"
+
+
 def _check_publication_evidence_curve(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues = _check_curve_like_layout(sidecar)
     if not _layout_override_flag(sidecar, "show_figure_title", False):
@@ -747,8 +752,36 @@ def _check_publication_evidence_curve(sidecar: LayoutSidecar) -> list[dict[str, 
                 )
         return issues
 
+    if sidecar.template_id == "time_dependent_roc_comparison_panel":
+        issues.extend(_check_time_dependent_roc_comparison_panel_metrics(sidecar))
+        return issues
+
     issues.extend(_check_curve_metrics(sidecar.metrics))
     issues.extend(_check_reference_line_within_device(sidecar))
+    if sidecar.template_id == "time_dependent_roc_horizon":
+        time_horizon_months = sidecar.metrics.get("time_horizon_months")
+        if time_horizon_months is None:
+            issues.append(
+                _issue(
+                    rule_id="time_horizon_months_missing",
+                    message="time-dependent ROC horizon outputs must carry structured time_horizon_months semantics",
+                    target="metrics.time_horizon_months",
+                )
+            )
+        else:
+            normalized_time_horizon_months = _require_numeric(
+                time_horizon_months,
+                label="layout_sidecar.metrics.time_horizon_months",
+            )
+            if not float(normalized_time_horizon_months).is_integer() or int(normalized_time_horizon_months) <= 0:
+                issues.append(
+                    _issue(
+                        rule_id="time_horizon_months_invalid",
+                        message="time_horizon_months must be a positive integer",
+                        target="metrics.time_horizon_months",
+                        observed=time_horizon_months,
+                    )
+                )
     return issues
 
 
@@ -862,6 +895,150 @@ def _check_curve_series_collection(series: object, *, target: str) -> list[dict[
                 )
             )
             break
+    return issues
+
+
+def _check_time_dependent_roc_comparison_panel_metrics(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    panel_metrics = sidecar.metrics.get("panels")
+    if not isinstance(panel_metrics, list) or not panel_metrics:
+        issues.append(
+            _issue(
+                rule_id="panel_metrics_missing",
+                message="time-dependent ROC comparison qc requires non-empty panel metrics",
+                target="metrics.panels",
+            )
+        )
+        return issues
+
+    if len(sidecar.panel_boxes) != len(panel_metrics):
+        issues.append(
+            _issue(
+                rule_id="composite_panels_missing",
+                message="time-dependent ROC comparison qc requires one panel box per declared panel",
+                target="panel_boxes",
+                expected={"count": len(panel_metrics)},
+                observed={"count": len(sidecar.panel_boxes)},
+            )
+        )
+
+    label_panel_map: dict[str, str] = {}
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    seen_panel_labels: set[str] = set()
+    baseline_series_labels: tuple[str, ...] | None = None
+    for panel_index, panel in enumerate(panel_metrics):
+        if not isinstance(panel, dict):
+            raise ValueError(f"layout_sidecar.metrics.panels[{panel_index}] must be an object")
+        panel_label = str(panel.get("panel_label") or "").strip()
+        if not panel_label:
+            issues.append(
+                _issue(
+                    rule_id="panel_label_missing",
+                    message="time-dependent ROC comparison panels require non-empty panel_label metrics",
+                    target=f"metrics.panels[{panel_index}].panel_label",
+                )
+            )
+            continue
+        if panel_label in seen_panel_labels:
+            issues.append(
+                _issue(
+                    rule_id="duplicate_panel_label",
+                    message="time-dependent ROC comparison panel labels must be unique",
+                    target="metrics.panels",
+                    observed=panel_label,
+                )
+            )
+            continue
+        seen_panel_labels.add(panel_label)
+        panel_label_token = _panel_label_token(panel_label)
+        label_panel_map[f"panel_label_{panel_label_token}"] = f"panel_{panel_label_token}"
+        if f"panel_title_{panel_label_token}" not in layout_boxes_by_id:
+            issues.append(
+                _issue(
+                    rule_id="missing_panel_title",
+                    message="time-dependent ROC comparison panels require explicit panel titles",
+                    target="layout_boxes",
+                    expected=f"panel_title_{panel_label_token}",
+                )
+            )
+        analysis_window_label = str(panel.get("analysis_window_label") or "").strip()
+        if not analysis_window_label:
+            issues.append(
+                _issue(
+                    rule_id="analysis_window_label_missing",
+                    message="time-dependent ROC comparison panels require non-empty analysis_window_label semantics",
+                    target=f"metrics.panels[{panel_index}].analysis_window_label",
+                )
+            )
+        time_horizon_months = panel.get("time_horizon_months")
+        if time_horizon_months is not None:
+            normalized_time_horizon_months = _require_numeric(
+                time_horizon_months,
+                label=f"layout_sidecar.metrics.panels[{panel_index}].time_horizon_months",
+            )
+            if not float(normalized_time_horizon_months).is_integer() or int(normalized_time_horizon_months) <= 0:
+                issues.append(
+                    _issue(
+                        rule_id="panel_time_horizon_months_invalid",
+                        message="time-dependent ROC comparison panel time_horizon_months must be a positive integer",
+                        target=f"metrics.panels[{panel_index}].time_horizon_months",
+                        observed=time_horizon_months,
+                    )
+                )
+
+        panel_series = panel.get("series")
+        issues.extend(
+            _check_curve_series_collection(
+                panel_series,
+                target=f"metrics.panels[{panel_index}].series",
+            )
+        )
+        if isinstance(panel_series, list):
+            seen_series_labels: set[str] = set()
+            panel_series_labels: list[str] = []
+            for series in panel_series:
+                if not isinstance(series, dict):
+                    continue
+                series_label = str(series.get("label") or "").strip()
+                if not series_label:
+                    continue
+                if series_label in seen_series_labels:
+                    issues.append(
+                        _issue(
+                            rule_id="duplicate_series_label",
+                            message="time-dependent ROC comparison series labels must be unique within each panel",
+                            target=f"metrics.panels[{panel_index}].series",
+                            observed=series_label,
+                        )
+                    )
+                    break
+                seen_series_labels.add(series_label)
+                panel_series_labels.append(series_label)
+            normalized_panel_series_labels = tuple(panel_series_labels)
+            if baseline_series_labels is None:
+                baseline_series_labels = normalized_panel_series_labels
+            elif normalized_panel_series_labels != baseline_series_labels:
+                issues.append(
+                    _issue(
+                        rule_id="panel_series_label_set_mismatch",
+                        message="time-dependent ROC comparison panels must compare the same ordered series labels",
+                        target=f"metrics.panels[{panel_index}].series",
+                        observed={"series_labels": list(normalized_panel_series_labels)},
+                        expected={"series_labels": list(baseline_series_labels)},
+                    )
+                )
+
+        reference_line = panel.get("reference_line")
+        if reference_line is not None:
+            issues.extend(
+                _check_reference_line_collection_within_device(
+                    [reference_line],
+                    sidecar=sidecar,
+                    target=f"metrics.panels[{panel_index}].reference_line",
+                )
+            )
+
+    issues.extend(_check_composite_panel_label_anchors(sidecar, label_panel_map=label_panel_map))
     return issues
 
 
@@ -1316,6 +1493,159 @@ def _check_publication_survival_curve(sidecar: LayoutSidecar) -> list[dict[str, 
                 )
         return issues
 
+    if sidecar.template_id == "time_to_event_stratified_cumulative_incidence_panel":
+        panel_metrics = sidecar.metrics.get("panels")
+        if not isinstance(panel_metrics, list) or not panel_metrics:
+            issues.append(
+                _issue(
+                    rule_id="panel_metrics_missing",
+                    message="stratified cumulative-incidence qc requires non-empty panel metrics",
+                    target="metrics.panels",
+                )
+            )
+            return issues
+        if len(sidecar.panel_boxes) != len(panel_metrics):
+            issues.append(
+                _issue(
+                    rule_id="composite_panels_missing",
+                    message="stratified cumulative-incidence qc requires one panel box per declared panel",
+                    target="panel_boxes",
+                    expected={"count": len(panel_metrics)},
+                    observed={"count": len(sidecar.panel_boxes)},
+                )
+            )
+        label_panel_map: dict[str, str] = {}
+        layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+        seen_panel_labels: set[str] = set()
+        for panel_index, panel in enumerate(panel_metrics):
+            if not isinstance(panel, dict):
+                raise ValueError(f"layout_sidecar.metrics.panels[{panel_index}] must be an object")
+            panel_label = str(panel.get("panel_label") or "").strip()
+            if not panel_label:
+                issues.append(
+                    _issue(
+                        rule_id="panel_label_missing",
+                        message="stratified cumulative-incidence panels require non-empty panel_label metrics",
+                        target=f"metrics.panels[{panel_index}].panel_label",
+                    )
+                )
+                continue
+            if panel_label in seen_panel_labels:
+                issues.append(
+                    _issue(
+                        rule_id="duplicate_panel_label",
+                        message="stratified cumulative-incidence panel labels must be unique",
+                        target="metrics.panels",
+                        observed=panel_label,
+                    )
+                )
+                continue
+            seen_panel_labels.add(panel_label)
+            panel_label_token = _panel_label_token(panel_label)
+            label_panel_map[f"panel_label_{panel_label_token}"] = f"panel_{panel_label_token}"
+            if f"panel_title_{panel_label_token}" not in layout_boxes_by_id:
+                issues.append(
+                    _issue(
+                        rule_id="missing_panel_title",
+                        message="stratified cumulative-incidence panels require explicit panel titles",
+                        target="layout_boxes",
+                        expected=f"panel_title_{panel_label_token}",
+                    )
+                )
+            groups = panel.get("groups")
+            if not isinstance(groups, list) or not groups:
+                issues.append(
+                    _issue(
+                        rule_id="groups_missing",
+                        message="stratified cumulative-incidence panel requires non-empty groups",
+                        target=f"metrics.panels[{panel_index}].groups",
+                    )
+                )
+                continue
+            seen_group_labels: set[str] = set()
+            for group_index, group in enumerate(groups):
+                if not isinstance(group, dict):
+                    raise ValueError(f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}] must be an object")
+                group_label = str(group.get("label") or "").strip()
+                if not group_label:
+                    issues.append(
+                        _issue(
+                            rule_id="group_label_missing",
+                            message="panel group labels must be non-empty",
+                            target=f"metrics.panels[{panel_index}].groups[{group_index}].label",
+                        )
+                    )
+                elif group_label in seen_group_labels:
+                    issues.append(
+                        _issue(
+                            rule_id="duplicate_group_label",
+                            message="panel group labels must be unique within each panel",
+                            target=f"metrics.panels[{panel_index}].groups",
+                            observed=group_label,
+                        )
+                    )
+                else:
+                    seen_group_labels.add(group_label)
+                times = group.get("times")
+                values = group.get("values")
+                if not isinstance(times, list) or not isinstance(values, list):
+                    raise ValueError(
+                        f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}] must contain times and values lists"
+                    )
+                if len(times) != len(values):
+                    issues.append(
+                        _issue(
+                            rule_id="group_length_mismatch",
+                            message="panel group times/values lengths must match",
+                            target=f"metrics.panels[{panel_index}].groups[{group_index}]",
+                            observed={"times": len(times), "values": len(values)},
+                        )
+                    )
+                    continue
+                previous_time: float | None = None
+                previous_value: float | None = None
+                for point_index, (time_value, probability_value) in enumerate(zip(times, values, strict=True)):
+                    time_numeric = _require_numeric(
+                        time_value,
+                        label=f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}].times[{point_index}]",
+                    )
+                    probability_numeric = _require_numeric(
+                        probability_value,
+                        label=f"layout_sidecar.metrics.panels[{panel_index}].groups[{group_index}].values[{point_index}]",
+                    )
+                    if previous_time is not None and time_numeric <= previous_time:
+                        issues.append(
+                            _issue(
+                                rule_id="group_times_not_strictly_increasing",
+                                message="panel group times must be strictly increasing",
+                                target=f"metrics.panels[{panel_index}].groups[{group_index}].times",
+                            )
+                        )
+                        break
+                    if probability_numeric < 0.0 or probability_numeric > 1.0:
+                        issues.append(
+                            _issue(
+                                rule_id="group_probability_out_of_range",
+                                message="panel group cumulative incidence must stay within [0, 1]",
+                                target=f"metrics.panels[{panel_index}].groups[{group_index}].values[{point_index}]",
+                                observed=probability_numeric,
+                            )
+                        )
+                        break
+                    if previous_value is not None and probability_numeric + 1e-12 < previous_value:
+                        issues.append(
+                            _issue(
+                                rule_id="group_values_not_monotonic",
+                                message="panel group cumulative incidence must be monotonic non-decreasing",
+                                target=f"metrics.panels[{panel_index}].groups[{group_index}].values",
+                            )
+                        )
+                        break
+                    previous_time = time_numeric
+                    previous_value = probability_numeric
+        issues.extend(_check_composite_panel_label_anchors(sidecar, label_panel_map=label_panel_map))
+        return issues
+
     groups = sidecar.metrics.get("groups")
     if not isinstance(groups, list) or not groups:
         issues.append(
@@ -1495,6 +1825,31 @@ def _check_publication_heatmap(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
                     box_refs=(annotation_box.box_id, tile_box.box_id),
                 )
             )
+
+    if sidecar.template_id == "performance_heatmap":
+        metric_name = str(sidecar.metrics.get("metric_name") or "").strip()
+        if not metric_name:
+            issues.append(
+                _issue(
+                    rule_id="metric_name_missing",
+                    message="performance heatmap qc requires a non-empty metric_name",
+                    target="metrics.metric_name",
+                )
+            )
+            return issues
+        cell_lookup = _matrix_cell_lookup(sidecar.metrics)
+        for (x_key, y_key), value in sorted(cell_lookup.items()):
+            if 0.0 <= value <= 1.0:
+                continue
+            issues.append(
+                _issue(
+                    rule_id="performance_value_out_of_range",
+                    message="performance heatmap values must stay within [0, 1]",
+                    target="metrics.matrix_cells",
+                    observed={"x": x_key, "y": y_key, "value": value},
+                )
+            )
+        return issues
 
     if sidecar.template_id != "correlation_heatmap":
         return issues
@@ -2024,15 +2379,44 @@ def _check_publication_shap_summary(sidecar: LayoutSidecar) -> list[dict[str, An
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
     issues.extend(_check_boxes_within_device(sidecar))
-    issues.extend(_check_required_box_types(all_boxes, required_box_types=("zero_line", "colorbar", "title", "x_axis_title", "feature_row")))
+    required_box_types = ["zero_line", "colorbar", "x_axis_title", "feature_row"]
+    if _layout_override_flag(sidecar, "show_figure_title", False):
+        required_box_types.insert(2, "title")
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=tuple(required_box_types)))
 
     row_boxes = _boxes_of_type(sidecar.layout_boxes + sidecar.panel_boxes, "feature_row")
     issues.extend(_check_pairwise_non_overlap(row_boxes, rule_id="feature_row_overlap", target="feature_row"))
+    feature_label_boxes = _boxes_of_type(sidecar.layout_boxes + sidecar.panel_boxes, "feature_label")
+    issues.extend(_check_pairwise_non_overlap(feature_label_boxes, rule_id="feature_label_overlap", target="feature_label"))
 
     critical_boxes = tuple(
         box for box in all_boxes if box.box_type in {"title", "x_axis_title", "colorbar"}
     )
     issues.extend(_check_pairwise_non_overlap(critical_boxes, rule_id="critical_box_overlap", target="critical_boxes"))
+    issues.extend(_check_colorbar_panel_overlap(sidecar))
+    panel = _primary_panel(sidecar)
+    zero_line = _first_box_of_type(sidecar.guide_boxes, "zero_line")
+    if panel is not None and zero_line is not None and not _box_within_box(zero_line, panel):
+        issues.append(
+            _issue(
+                rule_id="zero_line_outside_panel",
+                message="zero-reference guide must stay within the shap panel region",
+                target="guide_boxes.zero_line",
+                box_refs=(zero_line.box_id, panel.box_id),
+            )
+        )
+    if panel is not None:
+        for row_box in row_boxes:
+            if panel.y0 <= row_box.y0 <= panel.y1 and panel.y0 <= row_box.y1 <= panel.y1:
+                continue
+            issues.append(
+                _issue(
+                    rule_id="feature_row_outside_panel",
+                    message="feature-row band must stay within the shap panel region",
+                    target=f"layout_boxes.{row_box.box_id}",
+                    box_refs=(row_box.box_id, panel.box_id),
+                )
+            )
 
     row_box_by_id = {box.box_id: box for box in row_boxes}
     points = sidecar.metrics.get("points")
@@ -2060,6 +2444,74 @@ def _check_publication_shap_summary(sidecar: LayoutSidecar) -> list[dict[str, An
                 target=f"metrics.points[{index}]",
                 observed={"x": x_value, "y": y_value},
                 box_refs=(row_box.box_id,),
+            )
+        )
+
+    label_box_by_id = {box.box_id: box for box in feature_label_boxes}
+    raw_feature_labels = sidecar.metrics.get("feature_labels")
+    if raw_feature_labels is None:
+        raw_feature_labels = []
+    if not isinstance(raw_feature_labels, list):
+        raise ValueError("layout_sidecar.metrics.feature_labels must be a list when present")
+    label_entry_by_row_box_id: dict[str, dict[str, str]] = {}
+    for index, item in enumerate(raw_feature_labels):
+        if not isinstance(item, dict):
+            raise ValueError(f"layout_sidecar.metrics.feature_labels[{index}] must be an object")
+        row_box_id = str(item.get("row_box_id") or "").strip()
+        label_box_id = str(item.get("label_box_id") or "").strip()
+        if not row_box_id or not label_box_id:
+            raise ValueError(
+                f"layout_sidecar.metrics.feature_labels[{index}] must include row_box_id and label_box_id"
+            )
+        label_entry_by_row_box_id[row_box_id] = {
+            "label_box_id": label_box_id,
+            "feature": str(item.get("feature") or "").strip(),
+        }
+
+    for row_box in row_boxes:
+        label_entry = label_entry_by_row_box_id.get(row_box.box_id)
+        if label_entry is None:
+            issues.append(
+                _issue(
+                    rule_id="feature_label_missing",
+                    message="shap summary requires a feature label annotation for every feature row",
+                    target=f"metrics.feature_labels.{row_box.box_id}",
+                    box_refs=(row_box.box_id,),
+                )
+            )
+            continue
+        label_box = label_box_by_id.get(label_entry["label_box_id"])
+        if label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="feature_label_missing",
+                    message="feature label annotation must reference an existing feature_label box",
+                    target=f"metrics.feature_labels.{row_box.box_id}",
+                    observed={"label_box_id": label_entry["label_box_id"]},
+                    box_refs=(row_box.box_id,),
+                )
+            )
+            continue
+        if panel is not None and _boxes_overlap(label_box, panel):
+            issues.append(
+                _issue(
+                    rule_id="feature_label_panel_overlap",
+                    message="feature label annotation must stay outside the shap panel region",
+                    target=f"layout_boxes.{label_box.box_id}",
+                    box_refs=(row_box.box_id, label_box.box_id, panel.box_id),
+                )
+            )
+        label_center_y = (label_box.y0 + label_box.y1) / 2.0
+        if row_box.y0 <= label_center_y <= row_box.y1:
+            continue
+        issues.append(
+            _issue(
+                rule_id="feature_label_row_misaligned",
+                message="feature label annotation must stay vertically aligned to its feature row band",
+                target=f"layout_boxes.{label_box.box_id}",
+                observed={"label_center_y": label_center_y},
+                expected={"row_y0": row_box.y0, "row_y1": row_box.y1},
+                box_refs=(row_box.box_id, label_box.box_id),
             )
         )
     return issues
