@@ -168,3 +168,9 @@ def ensure_study_runtime(
         source=source,
     )
     return status.to_dict()
+
+
+def study_outer_loop_tick(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.controllers import study_outer_loop
+
+    return study_outer_loop.study_outer_loop_tick(**kwargs)

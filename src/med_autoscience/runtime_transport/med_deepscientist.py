@@ -757,13 +757,6 @@ def post_quest_control(
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"Quest control request failed with HTTP {exc.code}: {body}") from exc
     except error.URLError as exc:
-        if runtime_root is not None and action in {"pause", "stop"}:
-            return _update_quest_control_locally(
-                runtime_root=runtime_root,
-                quest_id=quest_id,
-                action=action,
-                source=source,
-            )
         raise RuntimeError(f"Quest control request failed: {exc}") from exc
 
 
@@ -798,108 +791,17 @@ def update_quest_startup_context(
                 payload=payload,
             )
         )
-        snapshot = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
-        if requested_baseline_ref is not _UNSET and snapshot.get("requested_baseline_ref") != requested_baseline_ref:
-            raise RuntimeError("missing stable startup-context requested_baseline_ref roundtrip")
-        return result
-    except error.URLError:
-        return _update_quest_startup_context_locally(
-            runtime_root=runtime_root,
-            quest_id=quest_id,
-            startup_contract=startup_contract,
-            requested_baseline_ref=requested_baseline_ref,
-        )
-
-
-def _update_quest_startup_context_locally(
-    *,
-    runtime_root: Path,
-    quest_id: str,
-    startup_contract: dict[str, Any] | None | object = _UNSET,
-    requested_baseline_ref: dict[str, Any] | None | object = _UNSET,
-) -> dict[str, Any]:
-    quest_yaml_path = Path(runtime_root).expanduser().resolve() / "quests" / quest_id / "quest.yaml"
-    if not quest_yaml_path.exists():
-        raise FileNotFoundError(f"Unknown quest `{quest_id}`.")
-    quest_data = _load_yaml_dict(quest_yaml_path)
-    changed = False
-
-    if requested_baseline_ref is not _UNSET:
-        normalized_requested = dict(requested_baseline_ref) if isinstance(requested_baseline_ref, dict) else None
-        if quest_data.get("requested_baseline_ref") != normalized_requested:
-            quest_data["requested_baseline_ref"] = normalized_requested
-            changed = True
-
-    if startup_contract is not _UNSET:
-        normalized_contract = dict(startup_contract) if isinstance(startup_contract, dict) else None
-        if quest_data.get("startup_contract") != normalized_contract:
-            quest_data["startup_contract"] = normalized_contract
-            changed = True
-
-    if changed:
-        quest_data["updated_at"] = _utc_now()
-        _write_yaml_dict(quest_yaml_path, quest_data)
-
-    return {
-        "ok": True,
-        "sync_mode": "local_file",
-        "snapshot": quest_data,
-    }
-
-
-def _update_quest_control_locally(
-    *,
-    runtime_root: Path,
-    quest_id: str,
-    action: str,
-    source: str,
-) -> dict[str, Any]:
-    if action not in {"pause", "stop"}:
-        raise ValueError(f"unsupported local quest control action `{action}`")
-    quest_root = Path(runtime_root).expanduser().resolve() / "quests" / quest_id
-    quest_yaml_path = quest_root / "quest.yaml"
-    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
-    if not quest_yaml_path.exists():
-        raise FileNotFoundError(f"Unknown quest `{quest_id}`.")
-
-    quest_data = _load_yaml_dict(quest_yaml_path)
-    runtime_state = _load_json_dict(runtime_state_path)
-    active_run_id = str(runtime_state.get("active_run_id") or quest_data.get("active_run_id") or "").strip()
-    if active_run_id:
-        raise RuntimeError(
-            "Quest control request failed and local fallback is unsafe while active_run_id is still set."
-        )
-
-    next_status = "paused" if action == "pause" else "stopped"
-    now = _utc_now()
-    if not runtime_state:
-        runtime_state = {"quest_id": quest_id}
-    runtime_state["quest_id"] = str(runtime_state.get("quest_id") or quest_id).strip() or quest_id
-    runtime_state["status"] = next_status
-    runtime_state["display_status"] = next_status
-    runtime_state["active_run_id"] = None
-    runtime_state["stop_reason"] = f"user_{action}"
-    runtime_state["last_transition_at"] = now
-    _write_json_dict(runtime_state_path, runtime_state)
-
-    quest_data["status"] = next_status
-    quest_data.pop("active_run_id", None)
-    quest_data["updated_at"] = now
-    _write_yaml_dict(quest_yaml_path, quest_data)
-
-    snapshot = dict(quest_data)
-    snapshot["status"] = runtime_state["status"]
-    snapshot["active_run_id"] = runtime_state["active_run_id"]
-    if "stop_reason" in runtime_state:
-        snapshot["stop_reason"] = runtime_state["stop_reason"]
-    return {
-        "ok": True,
-        "sync_mode": "local_file",
-        "action": action,
-        "source": source,
-        "status": next_status,
-        "snapshot": snapshot,
-    }
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Quest startup-context request failed with HTTP {exc.code}: {body}") from exc
+    except error.URLError as exc:
+        raise RuntimeError(f"Quest startup-context request failed: {exc}") from exc
+    except (TimeoutError, OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Quest startup-context request failed: {exc}") from exc
+    snapshot = result.get("snapshot") if isinstance(result.get("snapshot"), dict) else {}
+    if requested_baseline_ref is not _UNSET and snapshot.get("requested_baseline_ref") != requested_baseline_ref:
+        raise RuntimeError("missing stable startup-context requested_baseline_ref roundtrip")
+    return result
 
 
 def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:

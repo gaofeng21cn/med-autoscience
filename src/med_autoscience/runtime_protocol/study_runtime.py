@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +13,7 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecordRef,
     RuntimeEscalationTrigger,
 )
+from med_autoscience.study_decision_record import StudyDecisionRecord
 
 from .layout import build_workspace_runtime_layout_for_profile
 from .study_runtime_models import (
@@ -49,6 +52,30 @@ def _runtime_escalation_record_path(quest_root: Path) -> Path:
     )
 
 
+def _artifact_timestamp_slug(recorded_at: str) -> str:
+    normalized = recorded_at.strip()
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    return datetime.fromisoformat(normalized).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _safe_artifact_id(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-")
+    if not normalized:
+        raise ValueError("study decision record decision_id must produce a non-empty artifact filename")
+    return normalized
+
+
+def _study_decision_record_path(*, study_root: Path, record: StudyDecisionRecord) -> Path:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    return (
+        resolved_study_root
+        / "artifacts"
+        / "controller_decisions"
+        / f"{_artifact_timestamp_slug(record.emitted_at)}_{_safe_artifact_id(record.decision_id)}.json"
+    )
+
+
 def write_runtime_escalation_record(
     *,
     quest_root: Path,
@@ -72,6 +99,19 @@ def read_runtime_escalation_record_ref(
     if not isinstance(payload, dict):
         raise ValueError("runtime escalation record artifact must contain a mapping payload")
     return RuntimeEscalationRecord.from_payload(payload).ref()
+
+
+def write_study_decision_record(
+    *,
+    study_root: Path,
+    record: StudyDecisionRecord,
+) -> StudyDecisionRecord:
+    path = _study_decision_record_path(study_root=study_root, record=record)
+    persisted_record = record.with_artifact_path(str(path))
+    payload = persisted_record.to_dict()
+    _write_json(path, payload)
+    _write_json(path.parent / "latest.json", payload)
+    return StudyDecisionRecord.from_payload(payload)
 
 
 def _startup_hydration_report_path(quest_root: Path) -> Path:

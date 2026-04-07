@@ -54,6 +54,7 @@ from .study_runtime import (
     write_startup_hydration_report,
     write_startup_hydration_validation_report,
     write_startup_payload,
+    write_study_decision_record,
 )
 from .quest_state import (
     QuestRuntimeSnapshot,
@@ -126,4 +127,5 @@ __all__ = [
     "write_startup_hydration_report",
     "write_startup_hydration_validation_report",
     "write_startup_payload",
+    "write_study_decision_record",
 ]

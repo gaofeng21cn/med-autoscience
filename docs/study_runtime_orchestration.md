@@ -65,6 +65,13 @@
 - artifact completion success 至少返回 `ok + status + snapshot + summary_refresh`
 - bash session 列表项至少包含 `bash_id + status`
 
+对于会修改 runtime durable state 的 transport，当前主线额外固定：
+
+- `PATCH /api/quests/{id}/startup-context` 只允许 daemon 单一路径写入
+- `POST /api/quests/{id}/control` 的 `pause` / `stop` 只允许 daemon 单一路径写入
+- daemon 不可达时，这些写入口直接 fail-closed
+- 不再允许 controller 通过本地 quest YAML / runtime_state 文件做写旁路
+
 对 `startup_contract` 的 authoritative ownership 也已明确：
 
 - `MedDeepScientist` runtime-owned subset：
