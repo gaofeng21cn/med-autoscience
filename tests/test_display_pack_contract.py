@@ -23,6 +23,8 @@ def test_load_display_pack_manifest_parses_minimal_valid_pack() -> None:
     assert manifest.version == "0.1.0"
     assert manifest.display_api_version == "1"
     assert manifest.default_execution_mode == "python_plugin"
+    assert manifest.summary == "Minimal valid display pack fixture"
+    assert manifest.maintainer == ""
 
 
 def test_load_display_pack_manifest_rejects_non_namespaced_pack_id(tmp_path: Path) -> None:
@@ -44,6 +46,22 @@ def test_load_display_pack_manifest_rejects_non_string_type(tmp_path: Path) -> N
     )
 
     with pytest.raises(ValueError, match="pack_id"):
+        load_display_pack_manifest(manifest_path)
+
+
+def test_load_display_pack_manifest_rejects_non_semantic_version(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "display_pack.toml"
+    manifest_path.write_text(
+        (
+            'pack_id = "fenggaolab.org.medical-display-core"\n'
+            'version = "2026.04"\n'
+            'display_api_version = "1"\n'
+            'default_execution_mode = "python_plugin"\n'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="version"):
         load_display_pack_manifest(manifest_path)
 
 

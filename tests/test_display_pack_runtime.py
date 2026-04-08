@@ -19,21 +19,46 @@ default_enabled_packs = ["fenggaolab.org.medical-display-core"]
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-core"
 path = "display-packs/fenggaolab.org.medical-display-core"
+version = "0.1.0"
 """.strip()
         + "\n",
         encoding="utf-8",
     )
 
 
-def _write_demo_pack(repo_root: Path) -> Path:
-    pack_root = repo_root / "display-packs" / "fenggaolab.org.medical-display-core"
+def _write_paper_display_pack_config(paper_root: Path) -> None:
+    (paper_root / "display_packs.toml").write_text(
+        """
+inherit_repo_defaults = true
+enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "local_dir"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "paper-display-packs/fenggaolab.org.medical-display-core"
+version = "0.2.0"
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_demo_pack(
+    root: Path,
+    *,
+    pack_dir: str,
+    module_name: str,
+    version: str,
+    return_prefix: str,
+) -> Path:
+    pack_root = root / pack_dir
     (pack_root / "templates" / "time_to_event_risk_group_summary").mkdir(parents=True)
-    (pack_root / "src" / "demo_display_core").mkdir(parents=True)
+    (pack_root / "src" / module_name).mkdir(parents=True)
     (pack_root / "display_pack.toml").write_text(
         "\n".join(
             (
                 'pack_id = "fenggaolab.org.medical-display-core"',
-                'version = "0.1.0"',
+                f'version = "{version}"',
                 'display_api_version = "1"',
                 'default_execution_mode = "python_plugin"',
             )
@@ -55,15 +80,15 @@ def _write_demo_pack(repo_root: Path) -> Path:
                 'qc_profile_ref = "publication_risk_group_summary"',
                 'required_exports = ["png", "pdf"]',
                 'execution_mode = "python_plugin"',
-                'entrypoint = "demo_display_core.renderers:render_template"',
+                f'entrypoint = "{module_name}.renderers:render_template"',
                 "paper_proven = true",
             )
         )
         + "\n",
         encoding="utf-8",
     )
-    (pack_root / "src" / "demo_display_core" / "__init__.py").write_text("", encoding="utf-8")
-    (pack_root / "src" / "demo_display_core" / "renderers.py").write_text(
+    (pack_root / "src" / module_name / "__init__.py").write_text("", encoding="utf-8")
+    (pack_root / "src" / module_name / "renderers.py").write_text(
         "\n".join(
             (
                 "from __future__ import annotations",
@@ -71,7 +96,7 @@ def _write_demo_pack(repo_root: Path) -> Path:
                 "from pathlib import Path",
                 "",
                 "def render_template(*, template_id: str, display_payload: dict[str, object], output_png_path: Path, output_pdf_path: Path, layout_sidecar_path: Path) -> str:",
-                "    return template_id",
+                f'    return "{return_prefix}:" + template_id',
             )
         )
         + "\n",
@@ -84,7 +109,13 @@ def test_resolve_display_template_runtime_keeps_pack_root_and_manifest(tmp_path:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
-    pack_root = _write_demo_pack(repo_root)
+    pack_root = _write_demo_pack(
+        repo_root,
+        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        module_name="demo_display_core_repo",
+        version="0.1.0",
+        return_prefix="repo",
+    )
 
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
@@ -92,14 +123,20 @@ def test_resolve_display_template_runtime_keeps_pack_root_and_manifest(tmp_path:
     )
 
     assert runtime.pack_root == pack_root
-    assert runtime.template_manifest.entrypoint == "demo_display_core.renderers:render_template"
+    assert runtime.template_manifest.entrypoint == "demo_display_core_repo.renderers:render_template"
 
 
 def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
     _write_display_pack_config(repo_root)
-    _write_demo_pack(repo_root)
+    _write_demo_pack(
+        repo_root,
+        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        module_name="demo_display_core_repo",
+        version="0.1.0",
+        return_prefix="repo",
+    )
 
     target = load_python_plugin_callable(
         repo_root=repo_root,
@@ -115,5 +152,54 @@ def test_load_python_plugin_callable_imports_pack_local_src(tmp_path: Path) -> N
             output_pdf_path=Path("output.pdf"),
             layout_sidecar_path=Path("output.layout.json"),
         )
-        == "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+        == "repo:fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
+    )
+
+
+def test_paper_root_override_changes_runtime_resolution(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    _write_display_pack_config(repo_root)
+    repo_pack_root = _write_demo_pack(
+        repo_root,
+        pack_dir="display-packs/fenggaolab.org.medical-display-core",
+        module_name="demo_display_core_repo",
+        version="0.1.0",
+        return_prefix="repo",
+    )
+
+    paper_root = tmp_path / "paper"
+    paper_root.mkdir()
+    _write_paper_display_pack_config(paper_root)
+    paper_pack_root = _write_demo_pack(
+        paper_root,
+        pack_dir="paper-display-packs/fenggaolab.org.medical-display-core",
+        module_name="demo_display_core_paper",
+        version="0.2.0",
+        return_prefix="paper",
+    )
+
+    runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+    )
+    target = load_python_plugin_callable(
+        repo_root=repo_root,
+        paper_root=paper_root,
+        template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+    )
+
+    assert runtime.pack_root == paper_pack_root
+    assert runtime.pack_root != repo_pack_root
+    assert runtime.pack_manifest.version == "0.2.0"
+    assert (
+        target(
+            template_id="fenggaolab.org.medical-display-core::time_to_event_risk_group_summary",
+            display_payload={},
+            output_png_path=Path("output.png"),
+            output_pdf_path=Path("output.pdf"),
+            layout_sidecar_path=Path("output.layout.json"),
+        )
+        == "paper:fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
     )

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import tomllib
 
 
 _VALID_TEMPLATE_KINDS = frozenset(("evidence_figure", "illustration_shell", "table_shell"))
+_VALID_EXECUTION_MODES = frozenset(("python_plugin", "subprocess"))
+_SEMVER_PATTERN = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
 _DISPLAY_CLASS_ID_BY_AUDIT_FAMILY = {
     "Prediction Performance": "prediction_performance",
     "Clinical Utility": "clinical_utility",
@@ -26,6 +29,12 @@ class DisplayPackManifest:
     version: str
     display_api_version: str
     default_execution_mode: str
+    summary: str
+    maintainer: str
+    license: str
+    source: str
+    paper_family_coverage: tuple[str, ...]
+    recommended_templates: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -61,6 +70,15 @@ def _expect_bool(payload: dict[str, object], key: str) -> bool:
     return value
 
 
+def _optional_str(payload: dict[str, object], key: str) -> str:
+    value = payload.get(key)
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string")
+    return value
+
+
 def _expect_str_tuple(payload: dict[str, object], key: str) -> tuple[str, ...]:
     value = payload[key]
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
@@ -72,6 +90,20 @@ def _optional_str_tuple(payload: dict[str, object], key: str) -> tuple[str, ...]
     if key not in payload:
         return None
     return _expect_str_tuple(payload, key)
+
+
+def _expect_semver(payload: dict[str, object], key: str) -> str:
+    value = _expect_str(payload, key)
+    if not _SEMVER_PATTERN.match(value):
+        raise ValueError(f"{key} must use semantic version format")
+    return value
+
+
+def _expect_execution_mode(payload: dict[str, object], key: str) -> str:
+    value = _expect_str(payload, key)
+    if value not in _VALID_EXECUTION_MODES:
+        raise ValueError(f"{key} must be one of {sorted(_VALID_EXECUTION_MODES)!r}")
+    return value
 
 
 def _split_full_template_id(full_template_id: str) -> tuple[str, str]:
@@ -92,9 +124,15 @@ def load_display_pack_manifest(path: Path) -> DisplayPackManifest:
 
     return DisplayPackManifest(
         pack_id=pack_id,
-        version=_expect_str(payload, "version"),
+        version=_expect_semver(payload, "version"),
         display_api_version=_expect_str(payload, "display_api_version"),
-        default_execution_mode=_expect_str(payload, "default_execution_mode"),
+        default_execution_mode=_expect_execution_mode(payload, "default_execution_mode"),
+        summary=_optional_str(payload, "summary"),
+        maintainer=_optional_str(payload, "maintainer"),
+        license=_optional_str(payload, "license"),
+        source=_optional_str(payload, "source"),
+        paper_family_coverage=_optional_str_tuple(payload, "paper_family_coverage") or (),
+        recommended_templates=_optional_str_tuple(payload, "recommended_templates") or (),
     )
 
 
@@ -147,7 +185,7 @@ def load_display_template_manifest(
         qc_profile_ref=_expect_str(payload, "qc_profile_ref"),
         required_exports=_expect_str_tuple(payload, "required_exports"),
         allowed_paper_roles=allowed_paper_roles,
-        execution_mode=_expect_str(payload, "execution_mode"),
+        execution_mode=_expect_execution_mode(payload, "execution_mode"),
         entrypoint=_expect_str(payload, "entrypoint"),
         paper_proven=_expect_bool(payload, "paper_proven"),
     )

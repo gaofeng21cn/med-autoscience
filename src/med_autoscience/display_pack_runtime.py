@@ -19,28 +19,47 @@ UNIFIED_HOST_MATERIALIZATION_ENTRYPOINT = (
 
 
 @lru_cache(maxsize=None)
-def _template_runtime_index(repo_root: Path) -> dict[str, LoadedDisplayTemplate]:
+def _template_runtime_index(
+    repo_root: str,
+    paper_root: str | None,
+) -> dict[str, LoadedDisplayTemplate]:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
-    records = load_enabled_local_display_template_records(normalized_repo_root)
+    normalized_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
+    records = load_enabled_local_display_template_records(
+        normalized_repo_root,
+        paper_root=normalized_paper_root,
+    )
     return {
         record.template_manifest.full_template_id: record
         for record in records
     }
 
 
-def resolve_display_template_runtime(*, repo_root: Path, template_id: str) -> LoadedDisplayTemplate:
+def resolve_display_template_runtime(
+    *,
+    repo_root: Path,
+    template_id: str,
+    paper_root: Path | None = None,
+) -> LoadedDisplayTemplate:
     normalized_repo_root = Path(repo_root).expanduser().resolve()
+    normalized_paper_root = Path(paper_root).expanduser().resolve() if paper_root is not None else None
     normalized_template_id = str(template_id).strip()
     if "::" not in normalized_template_id:
         matches = [
             full_template_id
-            for full_template_id, record in _template_runtime_index(normalized_repo_root).items()
+            for full_template_id, record in _template_runtime_index(
+                str(normalized_repo_root),
+                str(normalized_paper_root) if normalized_paper_root is not None else None,
+            ).items()
             if record.template_manifest.template_id == normalized_template_id
         ]
         if len(matches) == 1:
             normalized_template_id = matches[0]
     try:
-        return _template_runtime_index(normalized_repo_root)[normalized_template_id]
+        return _template_runtime_index(
+            str(normalized_repo_root),
+            str(normalized_paper_root) if normalized_paper_root is not None else None,
+        )[normalized_template_id]
     except KeyError as exc:
         raise ValueError(f"unknown display template runtime `{template_id}`") from exc
 
@@ -71,8 +90,13 @@ def load_python_plugin_callable(
     *,
     repo_root: Path,
     template_id: str,
+    paper_root: Path | None = None,
 ) -> Callable[..., object]:
-    runtime = resolve_display_template_runtime(repo_root=repo_root, template_id=template_id)
+    runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        template_id=template_id,
+        paper_root=paper_root,
+    )
     if runtime.template_manifest.execution_mode != "python_plugin":
         raise ValueError(
             f"template `{template_id}` does not use python_plugin execution mode"
@@ -91,8 +115,17 @@ def resolve_python_plugin_callable(
     *,
     repo_root: Path,
     template_id: str,
+    paper_root: Path | None = None,
 ) -> Callable[..., object] | None:
-    runtime = resolve_display_template_runtime(repo_root=repo_root, template_id=template_id)
+    runtime = resolve_display_template_runtime(
+        repo_root=repo_root,
+        template_id=template_id,
+        paper_root=paper_root,
+    )
     if runtime.template_manifest.entrypoint == UNIFIED_HOST_MATERIALIZATION_ENTRYPOINT:
         return None
-    return load_python_plugin_callable(repo_root=repo_root, template_id=template_id)
+    return load_python_plugin_callable(
+        repo_root=repo_root,
+        template_id=template_id,
+        paper_root=paper_root,
+    )

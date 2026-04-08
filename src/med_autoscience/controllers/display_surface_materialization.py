@@ -4236,6 +4236,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.shell_id,
+                paper_root=resolved_paper_root,
             )
             render_result = dict(
                 render_callable(
@@ -4307,6 +4308,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.shell_id,
+                paper_root=resolved_paper_root,
             )
             render_result = dict(
                 render_callable(
@@ -4400,6 +4402,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.shell_id,
+                paper_root=resolved_paper_root,
             )
             render_result = dict(
                 render_callable(
@@ -4486,6 +4489,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_callable = display_pack_runtime.load_python_plugin_callable(
                 repo_root=_REPO_ROOT,
                 template_id=spec.template_id,
+                paper_root=resolved_paper_root,
             )
             render_callable(
                 template_id=spec.template_id,
@@ -4574,6 +4578,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         render_callable = display_pack_runtime.load_python_plugin_callable(
             repo_root=_REPO_ROOT,
             template_id=spec.shell_id,
+            paper_root=resolved_paper_root,
         )
         render_result = dict(
             render_callable(
