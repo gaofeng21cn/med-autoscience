@@ -28,6 +28,54 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _write_geodemography_support_csv(path: Path) -> None:
+    write_csv(
+        path,
+        [
+            "Sequnece",
+            "center",
+            "split_bucket",
+            "patient_region_raw",
+            "patient_south_flag_raw",
+            "patient_rural_flag_raw",
+        ],
+        [
+            {
+                "Sequnece": "1",
+                "center": "25",
+                "split_bucket": "train",
+                "patient_region_raw": "华中",
+                "patient_south_flag_raw": "1",
+                "patient_rural_flag_raw": "0",
+            },
+            {
+                "Sequnece": "2",
+                "center": "25",
+                "split_bucket": "train",
+                "patient_region_raw": "华东",
+                "patient_south_flag_raw": "1",
+                "patient_rural_flag_raw": "1",
+            },
+            {
+                "Sequnece": "3",
+                "center": "1",
+                "split_bucket": "validation",
+                "patient_region_raw": "华中",
+                "patient_south_flag_raw": "0",
+                "patient_rural_flag_raw": "",
+            },
+            {
+                "Sequnece": "4",
+                "center": "2",
+                "split_bucket": "validation",
+                "patient_region_raw": "华南",
+                "patient_south_flag_raw": "1",
+                "patient_rural_flag_raw": "0",
+            },
+        ],
+    )
+
+
 def _display_registry_payload() -> dict:
     return {
         "schema_version": 1,
@@ -201,19 +249,23 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
             {"center": "25", "split_bucket": "train", "n_total": "110", "n_allcause_events": "9", "n_cvd_events": "3"},
         ],
     )
+    _write_geodemography_support_csv(
+        study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "derived" / "formal_modeling_geodemography_support.csv"
+    )
 
     report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
 
     f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
     f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
     f4 = json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
+    f5 = json.loads((paper_root / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8"))
     t2 = json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8"))
     ga = json.loads((paper_root / "submission_graphical_abstract.json").read_text(encoding="utf-8"))
     registry_after = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
 
-    assert report["status"] == "blocked"
-    assert report["blockers"] == ["multicenter_generalizability_template_gap"]
-    assert len(report["written_files"]) == 7
+    assert report["status"] == "synced"
+    assert report["blockers"] == []
+    assert len(report["written_files"]) == 8
     assert report["authority_sync"]["status"] == "not_available"
     assert str(paper_root / "display_registry.json") in report["written_files"]
 
@@ -255,7 +307,49 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert registry_after["displays"][1]["requirement_key"] == "time_to_event_risk_group_summary"
 
-    assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
+    assert f5["input_schema_id"] == "multicenter_generalizability_inputs_v1"
+    assert f5["displays"][0]["display_id"] == "multicenter_generalizability"
+    assert f5["displays"][0]["template_id"] == (
+        display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id
+    )
+    assert f5["displays"][0]["overview_mode"] == "center_support_counts"
+    assert [item["center_label"] for item in f5["displays"][0]["center_event_counts"]] == [
+        "Center 25",
+        "Center 01",
+        "Center 02",
+        "Center 03",
+    ]
+    assert f5["displays"][0]["coverage_panels"] == [
+        {
+            "panel_id": "region",
+            "title": "Region coverage (n=4)",
+            "layout_role": "wide_left",
+            "bars": [
+                {"label": "Central China", "count": 2},
+                {"label": "East China", "count": 1},
+                {"label": "South China", "count": 1},
+            ],
+        },
+        {
+            "panel_id": "north_south",
+            "title": "North vs South coverage",
+            "layout_role": "top_right",
+            "bars": [
+                {"label": "South", "count": 3},
+                {"label": "North", "count": 1},
+            ],
+        },
+        {
+            "panel_id": "urban_rural",
+            "title": "Urban/rural coverage",
+            "layout_role": "bottom_right",
+            "bars": [
+                {"label": "Urban", "count": 2},
+                {"label": "Missing", "count": 1},
+                {"label": "Rural", "count": 1},
+            ],
+        },
+    ]
 
     assert t2["table_shell_id"] == (
         display_registry.get_table_shell_spec("table2_time_to_event_performance_summary").shell_id
@@ -458,12 +552,20 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
             {"center": "25", "split_bucket": "train", "n_total": "110", "n_allcause_events": "9", "n_cvd_events": "3"},
         ],
     )
+    _write_geodemography_support_csv(
+        study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "derived" / "formal_modeling_geodemography_support.csv"
+    )
 
     report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=runtime_paper_root)
 
     synced_style_profile = json.loads((runtime_paper_root / "publication_style_profile.json").read_text(encoding="utf-8"))
     synced_reporting_contract = json.loads((runtime_paper_root / "medical_reporting_contract.json").read_text(encoding="utf-8"))
+    synced_multicenter = json.loads(
+        (runtime_paper_root / "multicenter_generalizability_inputs.json").read_text(encoding="utf-8")
+    )
 
+    assert report["status"] == "synced"
+    assert report["blockers"] == []
     assert report["authority_sync"]["status"] == "synced"
     assert report["authority_sync"]["source_paper_root"] == str(authority_paper_root)
     assert str(runtime_paper_root / "publication_style_profile.json") in report["authority_sync"]["synced_files"]
@@ -474,6 +576,9 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
     assert (runtime_paper_root / "display_registry.json").exists()
     assert (runtime_paper_root / "cohort_flow.json").exists()
     assert (runtime_paper_root / "tables" / "table2_performance_summary.md").exists()
+    assert synced_multicenter["displays"][0]["template_id"] == (
+        display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id
+    )
 
 
 def test_run_time_to_event_direct_migration_rejects_missing_required_display_binding(tmp_path: Path) -> None:

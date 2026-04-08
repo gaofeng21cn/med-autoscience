@@ -38,6 +38,16 @@ _AUTHORITY_PAPER_SYNC_RELATIVE_PATHS = (
     "submission_graphical_abstract.json",
     "tables/table2_performance_summary.md",
 )
+_CENTER_SPLIT_BUCKET_ORDER = {"train": 0, "validation": 1}
+_REGION_LABEL_TRANSLATIONS = {
+    "华东": "East China",
+    "华南": "South China",
+    "华北": "North China",
+    "华中": "Central China",
+    "西北": "Northwest China",
+    "西南": "Southwest China",
+    "东北": "Northeast China",
+}
 
 
 def _utc_now() -> str:
@@ -186,6 +196,67 @@ def _slugify(value: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "_", value.strip().lower())
     normalized = normalized.strip("_")
     return normalized or "item"
+
+
+def _format_center_label(raw_value: object) -> str:
+    center_id = _parse_int(raw_value, label="center")
+    if center_id < 0:
+        raise ValueError(f"center must be non-negative: {raw_value!r}")
+    return f"Center {center_id:02d}"
+
+
+def _count_labels_preserving_first_seen_order(labels: list[str]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    first_seen_index: dict[str, int] = {}
+    for index, label in enumerate(labels):
+        if label not in counts:
+            counts[label] = 0
+            first_seen_index[label] = index
+        counts[label] += 1
+    return [
+        {"label": label, "count": count}
+        for label, count in sorted(counts.items(), key=lambda item: (-item[1], first_seen_index[item[0]]))
+    ]
+
+
+def _count_labels_in_fixed_order(labels: list[str], *, order: tuple[str, ...]) -> list[dict[str, Any]]:
+    counts = {label: 0 for label in order}
+    extras: dict[str, int] = {}
+    for label in labels:
+        if label in counts:
+            counts[label] += 1
+            continue
+        extras[label] = extras.get(label, 0) + 1
+    ordered = [{"label": label, "count": counts[label]} for label in order if counts[label] > 0]
+    ordered.extend({"label": label, "count": extras[label]} for label in extras)
+    return ordered
+
+
+def _normalized_region_label(raw_value: object) -> str:
+    raw_label = str(raw_value or "").strip()
+    if not raw_label:
+        return "Missing"
+    return _REGION_LABEL_TRANSLATIONS.get(raw_label, raw_label)
+
+
+def _normalized_north_south_label(raw_value: object) -> str:
+    normalized = str(raw_value or "").strip()
+    if normalized == "1":
+        return "South"
+    if normalized == "0":
+        return "North"
+    raise ValueError(f"patient_south_flag_raw must be `0` or `1`, got {raw_value!r}")
+
+
+def _normalized_urban_rural_label(raw_value: object) -> str:
+    normalized = str(raw_value or "").strip()
+    if normalized == "0":
+        return "Urban"
+    if normalized == "1":
+        return "Rural"
+    if normalized == "":
+        return "Missing"
+    raise ValueError(f"patient_rural_flag_raw must be `0`, `1`, or empty, got {raw_value!r}")
 
 
 def _load_markdown_table(path: Path) -> tuple[list[str], list[list[str]]]:
@@ -777,6 +848,85 @@ def _build_decision_curve_payload(
     }
 
 
+def _build_multicenter_generalizability_payload(
+    *,
+    center_rows: list[dict[str, str]],
+    geodemography_rows: list[dict[str, str]],
+    display_id: str,
+    catalog_id: str,
+) -> dict[str, Any]:
+    if not center_rows:
+        raise ValueError("multicenter generalizability requires non-empty center rows")
+    if not geodemography_rows:
+        raise ValueError("multicenter generalizability requires non-empty geodemography rows")
+
+    sorted_center_rows = sorted(
+        center_rows,
+        key=lambda row: (
+            _CENTER_SPLIT_BUCKET_ORDER.get(str(row.get("split_bucket") or "").strip(), 99),
+            _parse_int(row.get("center"), label="center"),
+        ),
+    )
+    center_event_counts: list[dict[str, Any]] = []
+    for row in sorted_center_rows:
+        split_bucket = str(row.get("split_bucket") or "").strip()
+        if split_bucket not in _CENTER_SPLIT_BUCKET_ORDER:
+            raise ValueError(
+                f"center_event_distribution split_bucket must be `train` or `validation`, got {split_bucket!r}"
+            )
+        center_event_counts.append(
+            {
+                "center_label": _format_center_label(row.get("center")),
+                "split_bucket": split_bucket,
+                "event_count": _parse_int(row.get("n_cvd_events"), label="n_cvd_events"),
+            }
+        )
+
+    region_labels = [_normalized_region_label(row.get("patient_region_raw")) for row in geodemography_rows]
+    north_south_labels = [_normalized_north_south_label(row.get("patient_south_flag_raw")) for row in geodemography_rows]
+    urban_rural_labels = [_normalized_urban_rural_label(row.get("patient_rural_flag_raw")) for row in geodemography_rows]
+
+    return {
+        "schema_version": 1,
+        "input_schema_id": "multicenter_generalizability_inputs_v1",
+        "source_contract_path": "paper/medical_reporting_contract.json",
+        "displays": [
+            {
+                "display_id": display_id,
+                "template_id": display_registry.get_evidence_figure_spec("multicenter_generalizability_overview").template_id,
+                "catalog_id": catalog_id,
+                "paper_role": "main_text",
+                "title": "Internal multicenter heterogeneity summary",
+                "caption": "Center-level event support with coverage context under the frozen split.",
+                "overview_mode": "center_support_counts",
+                "center_event_y_label": "5-year CVD events",
+                "coverage_y_label": "Patient count",
+                "center_event_counts": center_event_counts,
+                "coverage_panels": [
+                    {
+                        "panel_id": "region",
+                        "title": f"Region coverage (n={len(geodemography_rows)})",
+                        "layout_role": "wide_left",
+                        "bars": _count_labels_preserving_first_seen_order(region_labels),
+                    },
+                    {
+                        "panel_id": "north_south",
+                        "title": "North vs South coverage",
+                        "layout_role": "top_right",
+                        "bars": _count_labels_in_fixed_order(north_south_labels, order=("South", "North")),
+                    },
+                    {
+                        "panel_id": "urban_rural",
+                        "title": "Urban/rural coverage",
+                        "layout_role": "bottom_right",
+                        "bars": _count_labels_in_fixed_order(urban_rural_labels, order=("Urban", "Missing", "Rural")),
+                    },
+                ],
+            }
+        ],
+    }
+
+
 def _build_table2_payload(
     *,
     table_markdown_path: Path,
@@ -854,6 +1004,7 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     risk_group_rows = _load_csv_rows(primary_derived_root / "coxph_km_risk_groups_5y.csv")
     dca_rows = _load_csv_rows(primary_derived_root / "coxph_dca_5y.csv")
     center_rows = _load_csv_rows(entry_validation_root / "center_event_distribution.csv")
+    geodemography_rows = _load_csv_rows(entry_validation_root / "formal_modeling_geodemography_support.csv")
     if not center_rows:
         raise ValueError("center_event_distribution.csv must not be empty")
 
@@ -884,6 +1035,16 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     _write_json(decision_curve_path, decision_curve_payload)
     written_files.append(str(decision_curve_path))
 
+    multicenter_generalizability_payload = _build_multicenter_generalizability_payload(
+        center_rows=center_rows,
+        geodemography_rows=geodemography_rows,
+        display_id=bindings["multicenter_generalizability_overview"]["display_id"],
+        catalog_id=bindings["multicenter_generalizability_overview"]["catalog_id"],
+    )
+    multicenter_generalizability_path = resolved_paper_root / "multicenter_generalizability_inputs.json"
+    _write_json(multicenter_generalizability_path, multicenter_generalizability_payload)
+    written_files.append(str(multicenter_generalizability_path))
+
     table2_payload = _build_table2_payload(
         table_markdown_path=resolved_paper_root / "tables" / "table2_performance_summary.md",
         display_id=bindings["table2_time_to_event_performance_summary"]["display_id"],
@@ -903,7 +1064,6 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     _write_json(submission_graphical_abstract_path, submission_graphical_abstract_payload)
     written_files.append(str(submission_graphical_abstract_path))
 
-    blockers.append("multicenter_generalizability_template_gap")
     report_path = resolved_paper_root / "direct_migration" / "time_to_event_direct_migration_report.json"
     report = {
         "status": "blocked" if blockers else "synced",
@@ -919,16 +1079,13 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
             "coxph_km_risk_groups_5y": str(primary_derived_root / "coxph_km_risk_groups_5y.csv"),
             "decision_curve_csv": str(primary_derived_root / "coxph_dca_5y.csv"),
             "center_event_distribution": str(entry_validation_root / "center_event_distribution.csv"),
+            "formal_modeling_geodemography_support": str(
+                entry_validation_root / "formal_modeling_geodemography_support.csv"
+            ),
             "cohort_flow": str(resolved_paper_root / "cohort_flow.json"),
             "table2_markdown": str(resolved_paper_root / "tables" / "table2_performance_summary.md"),
         },
-        "notes": {
-            "multicenter_generalizability": (
-                "Current audited template expects per-center estimate/lower/upper intervals, but the study surface "
-                "currently exposes center event-count and geodemography coverage evidence instead of a compatible "
-                "interval-based generalizability payload."
-            )
-        },
+        "notes": {},
     }
     _write_json(report_path, report)
     written_files.append(str(report_path))

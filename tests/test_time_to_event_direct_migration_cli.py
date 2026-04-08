@@ -13,11 +13,11 @@ def test_cli_time_to_event_direct_migration_emits_result_json(tmp_path, monkeypa
 
     def fake_run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) -> dict[str, object]:
         return {
-            "status": "blocked",
+            "status": "synced",
             "study_root": str(study_root),
             "paper_root": str(paper_root),
             "written_files": ["a.json", "b.json"],
-            "blockers": ["multicenter_generalizability_template_gap"],
+            "blockers": [],
         }
 
     monkeypatch.setattr(
@@ -39,6 +39,6 @@ def test_cli_time_to_event_direct_migration_emits_result_json(tmp_path, monkeypa
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert exit_code == 0
-    assert payload["status"] == "blocked"
+    assert payload["status"] == "synced"
     assert payload["study_root"] == str(study_root)
     assert payload["paper_root"] == str(paper_root)
