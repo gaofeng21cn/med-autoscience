@@ -9,12 +9,10 @@ from med_autoscience.display_pack_resolver import split_full_template_id
 
 CORE_PACK_ID = "fenggaolab.org.medical-display-core"
 _DEFAULT_EXECUTION_MODE = "python_plugin"
-_UNIFIED_ENTRYPOINT = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
-_PACK_LOCAL_ENTRYPOINTS = {
-    f"{CORE_PACK_ID}::time_to_event_risk_group_summary": (
-        "fenggaolab_org_medical_display_core.evidence_figures:render_time_to_event_risk_group_summary"
-    )
-}
+_R_EVIDENCE_ENTRYPOINT = "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure"
+_PYTHON_EVIDENCE_ENTRYPOINT = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+_ILLUSTRATION_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+_TABLE_SHELL_ENTRYPOINT = "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
 _PUBLICATION_SHELL_CLASS_ID = "publication_shells_and_tables"
 _PAPER_PROVEN_TEMPLATE_IDS = frozenset(
     (
@@ -81,7 +79,11 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=_PACK_LOCAL_ENTRYPOINTS.get(spec.template_id, _UNIFIED_ENTRYPOINT),
+                entrypoint=(
+                    _R_EVIDENCE_ENTRYPOINT
+                    if spec.renderer_family == "r_ggplot2"
+                    else _PYTHON_EVIDENCE_ENTRYPOINT
+                ),
                 paper_proven=spec.template_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )
@@ -102,7 +104,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=_UNIFIED_ENTRYPOINT,
+                entrypoint=_ILLUSTRATION_SHELL_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )
@@ -123,7 +125,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 required_exports=spec.required_exports,
                 allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
-                entrypoint=_UNIFIED_ENTRYPOINT,
+                entrypoint=_TABLE_SHELL_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
             )
         )

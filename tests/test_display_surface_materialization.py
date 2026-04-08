@@ -51,6 +51,13 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _ensure_output_parents(*paths: Path | None) -> None:
+    for path in paths:
+        if path is None:
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+
 def extract_svg_font_size(svg_text: str, marker: str) -> float:
     match = re.search(rf"font-size: ([0-9.]+)px;[^>]*>{re.escape(marker)}<", svg_text)
     assert match is not None, f"missing svg text marker: {marker}"
@@ -1041,6 +1048,140 @@ def build_display_surface_workspace(
 
 def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
     template_short_id = get_template_short_id(template_id) if "::" in template_id else template_id
+    if template_short_id == "cohort_flow_figure":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.08, "y0": 0.125, "x1": 0.11, "y1": 0.155},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.52, "y0": 0.125, "x1": 0.55, "y1": 0.155},
+                {"box_id": "step_screened", "box_type": "main_step", "x0": 0.08, "y0": 0.40, "x1": 0.28, "y1": 0.50},
+                {"box_id": "step_included", "box_type": "main_step", "x0": 0.08, "y0": 0.24, "x1": 0.28, "y1": 0.34},
+                {"box_id": "exclusion_repeat", "box_type": "exclusion_box", "x0": 0.32, "y0": 0.30, "x1": 0.46, "y1": 0.38},
+            ],
+            "panel_boxes": [
+                {"box_id": "subfigure_panel_A", "box_type": "subfigure_panel", "x0": 0.06, "y0": 0.10, "x1": 0.48, "y1": 0.54},
+                {"box_id": "subfigure_panel_B", "box_type": "subfigure_panel", "x0": 0.52, "y0": 0.10, "x1": 0.94, "y1": 0.54},
+                {"box_id": "flow_panel", "box_type": "flow_panel", "x0": 0.08, "y0": 0.12, "x1": 0.46, "y1": 0.50},
+                {"box_id": "secondary_panel_validation", "box_type": "secondary_panel", "x0": 0.54, "y0": 0.42, "x1": 0.92, "y1": 0.52},
+                {"box_id": "secondary_panel_core", "box_type": "secondary_panel", "x0": 0.54, "y0": 0.28, "x1": 0.72, "y1": 0.38},
+                {"box_id": "secondary_panel_primary", "box_type": "secondary_panel", "x0": 0.74, "y0": 0.28, "x1": 0.92, "y1": 0.38},
+                {"box_id": "secondary_panel_audit", "box_type": "secondary_panel", "x0": 0.54, "y0": 0.14, "x1": 0.72, "y1": 0.24},
+                {"box_id": "secondary_panel_context", "box_type": "secondary_panel", "x0": 0.74, "y0": 0.14, "x1": 0.92, "y1": 0.24},
+            ],
+            "guide_boxes": [
+                {"box_id": "flow_spine_screened_to_included", "box_type": "flow_connector", "x0": 0.17, "y0": 0.34, "x1": 0.19, "y1": 0.40},
+                {"box_id": "flow_branch_repeat", "box_type": "flow_branch_connector", "x0": 0.19, "y0": 0.33, "x1": 0.32, "y1": 0.35},
+                {"box_id": "hierarchy_root_trunk", "box_type": "hierarchy_connector", "x0": 0.72, "y0": 0.38, "x1": 0.74, "y1": 0.42},
+                {"box_id": "hierarchy_root_branch", "box_type": "hierarchy_connector", "x0": 0.63, "y0": 0.36, "x1": 0.83, "y1": 0.38},
+                {"box_id": "hierarchy_connector_left_middle_to_left_bottom", "box_type": "hierarchy_connector", "x0": 0.63, "y0": 0.24, "x1": 0.65, "y1": 0.28},
+                {"box_id": "hierarchy_connector_right_middle_to_right_bottom", "box_type": "hierarchy_connector", "x0": 0.83, "y0": 0.24, "x1": 0.85, "y1": 0.28},
+            ],
+            "metrics": {
+                "steps": [
+                    {"step_id": "screened"},
+                    {"step_id": "included"},
+                ],
+                "exclusions": [
+                    {"exclusion_id": "repeat", "from_step_id": "screened"},
+                ],
+                "endpoint_inventory": [],
+                "design_panels": [
+                    {"panel_id": "validation", "layout_role": "wide_top"},
+                    {"panel_id": "core", "layout_role": "left_middle"},
+                    {"panel_id": "primary", "layout_role": "right_middle"},
+                    {"panel_id": "audit", "layout_role": "left_bottom"},
+                    {"panel_id": "context", "layout_role": "right_bottom"},
+                ],
+                "flow_nodes": [
+                    {
+                        "box_id": "step_screened",
+                        "box_type": "main_step",
+                        "line_count": 3,
+                        "max_line_chars": 24,
+                        "rendered_height_pt": 92.0,
+                        "rendered_width_pt": 218.0,
+                        "padding_pt": 9.0,
+                    },
+                    {
+                        "box_id": "step_included",
+                        "box_type": "main_step",
+                        "line_count": 3,
+                        "max_line_chars": 26,
+                        "rendered_height_pt": 92.0,
+                        "rendered_width_pt": 218.0,
+                        "padding_pt": 9.0,
+                    },
+                    {
+                        "box_id": "exclusion_repeat",
+                        "box_type": "exclusion_box",
+                        "line_count": 2,
+                        "max_line_chars": 20,
+                        "rendered_height_pt": 62.0,
+                        "rendered_width_pt": 176.0,
+                        "padding_pt": 8.0,
+                    },
+                ],
+            },
+        }
+    if template_short_id == "submission_graphical_abstract":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.02, "x1": 0.70, "y1": 0.08},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.05, "y0": 0.18, "x1": 0.08, "y1": 0.22},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.38, "y0": 0.18, "x1": 0.41, "y1": 0.22},
+                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.71, "y0": 0.18, "x1": 0.74, "y1": 0.22},
+                {"box_id": "panel_a_title", "box_type": "panel_title", "x0": 0.09, "y0": 0.12, "x1": 0.26, "y1": 0.16},
+                {"box_id": "panel_a_subtitle", "box_type": "panel_subtitle", "x0": 0.09, "y0": 0.16, "x1": 0.27, "y1": 0.18},
+                {"box_id": "panel_b_title", "box_type": "panel_title", "x0": 0.42, "y0": 0.12, "x1": 0.58, "y1": 0.16},
+                {"box_id": "panel_b_subtitle", "box_type": "panel_subtitle", "x0": 0.42, "y0": 0.16, "x1": 0.58, "y1": 0.18},
+                {"box_id": "panel_c_title", "box_type": "panel_title", "x0": 0.75, "y0": 0.12, "x1": 0.90, "y1": 0.16},
+                {"box_id": "panel_c_subtitle", "box_type": "panel_subtitle", "x0": 0.75, "y0": 0.16, "x1": 0.92, "y1": 0.18},
+                {"box_id": "panel_a_card_1", "box_type": "card_box", "x0": 0.08, "y0": 0.24, "x1": 0.28, "y1": 0.40},
+                {"box_id": "panel_a_card_2", "box_type": "card_box", "x0": 0.08, "y0": 0.44, "x1": 0.18, "y1": 0.58},
+                {"box_id": "panel_a_card_3", "box_type": "card_box", "x0": 0.19, "y0": 0.44, "x1": 0.28, "y1": 0.58},
+                {"box_id": "panel_b_card_1", "box_type": "card_box", "x0": 0.41, "y0": 0.24, "x1": 0.61, "y1": 0.40},
+                {"box_id": "panel_b_card_2", "box_type": "card_box", "x0": 0.41, "y0": 0.44, "x1": 0.61, "y1": 0.58},
+                {"box_id": "panel_c_card_1", "box_type": "card_box", "x0": 0.74, "y0": 0.24, "x1": 0.94, "y1": 0.40},
+                {"box_id": "panel_c_card_2", "box_type": "card_box", "x0": 0.74, "y0": 0.44, "x1": 0.83, "y1": 0.58},
+                {"box_id": "panel_c_card_3", "box_type": "card_box", "x0": 0.85, "y0": 0.44, "x1": 0.94, "y1": 0.58},
+                {"box_id": "panel_a_card_1_title", "box_type": "card_title", "x0": 0.10, "y0": 0.25, "x1": 0.22, "y1": 0.28},
+                {"box_id": "panel_a_card_1_value", "box_type": "card_value", "x0": 0.10, "y0": 0.30, "x1": 0.20, "y1": 0.36},
+                {"box_id": "panel_a_card_1_detail", "box_type": "card_detail", "x0": 0.10, "y0": 0.36, "x1": 0.24, "y1": 0.39},
+                {"box_id": "panel_b_card_1_title", "box_type": "card_title", "x0": 0.43, "y0": 0.25, "x1": 0.55, "y1": 0.28},
+                {"box_id": "panel_b_card_1_value", "box_type": "card_value", "x0": 0.43, "y0": 0.30, "x1": 0.52, "y1": 0.36},
+                {"box_id": "panel_b_card_1_detail", "box_type": "card_detail", "x0": 0.43, "y0": 0.36, "x1": 0.59, "y1": 0.39},
+                {"box_id": "panel_c_card_1_title", "box_type": "card_title", "x0": 0.76, "y0": 0.25, "x1": 0.90, "y1": 0.28},
+                {"box_id": "panel_c_card_1_value", "box_type": "card_value", "x0": 0.76, "y0": 0.30, "x1": 0.86, "y1": 0.36},
+                {"box_id": "panel_c_card_1_detail", "box_type": "card_detail", "x0": 0.76, "y0": 0.36, "x1": 0.92, "y1": 0.39},
+                {"box_id": "pill_a", "box_type": "footer_pill", "x0": 0.11, "y0": 0.84, "x1": 0.25, "y1": 0.89},
+                {"box_id": "pill_b", "box_type": "footer_pill", "x0": 0.44, "y0": 0.84, "x1": 0.58, "y1": 0.89},
+                {"box_id": "pill_c", "box_type": "footer_pill", "x0": 0.77, "y0": 0.84, "x1": 0.92, "y1": 0.89},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_cohort", "box_type": "panel", "x0": 0.04, "y0": 0.10, "x1": 0.30, "y1": 0.80},
+                {"box_id": "panel_primary", "box_type": "panel", "x0": 0.37, "y0": 0.10, "x1": 0.63, "y1": 0.80},
+                {"box_id": "panel_supportive", "box_type": "panel", "x0": 0.70, "y0": 0.10, "x1": 0.96, "y1": 0.80},
+            ],
+            "guide_boxes": [
+                {"box_id": "arrow_1", "box_type": "arrow_connector", "x0": 0.31, "y0": 0.46, "x1": 0.36, "y1": 0.54},
+                {"box_id": "arrow_2", "box_type": "arrow_connector", "x0": 0.64, "y0": 0.46, "x1": 0.69, "y1": 0.54},
+            ],
+            "metrics": {
+                "panels": [
+                    {"panel_id": "cohort_split"},
+                    {"panel_id": "primary_endpoint"},
+                    {"panel_id": "supportive_context"},
+                ],
+                "footer_pills": [
+                    {"pill_id": "p1"},
+                    {"pill_id": "p2"},
+                    {"pill_id": "p3"},
+                ],
+            },
+        }
     if template_short_id in {
         "roc_curve_binary",
         "pr_curve_binary",
@@ -1336,6 +1477,70 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "legend_labels": ["Train", "Validation"],
             },
         }
+    if template_short_id == "cohort_flow_figure":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.10, "y0": 0.92, "x1": 0.42, "y1": 0.98},
+                {"box_id": "step_screened", "box_type": "main_step", "x0": 0.24, "y0": 0.66, "x1": 0.48, "y1": 0.80},
+                {"box_id": "step_included", "box_type": "main_step", "x0": 0.24, "y0": 0.42, "x1": 0.48, "y1": 0.56},
+                {"box_id": "endpoint_primary", "box_type": "endpoint_panel", "x0": 0.56, "y0": 0.42, "x1": 0.86, "y1": 0.56},
+            ],
+            "panel_boxes": [
+                {"box_id": "flow_panel", "box_type": "panel", "x0": 0.18, "y0": 0.20, "x1": 0.52, "y1": 0.84},
+                {"box_id": "endpoint_panel", "box_type": "panel", "x0": 0.56, "y0": 0.20, "x1": 0.90, "y1": 0.66},
+            ],
+            "guide_boxes": [
+                {"box_id": "connector_1", "box_type": "connector", "x0": 0.36, "y0": 0.56, "x1": 0.36, "y1": 0.66},
+                {"box_id": "connector_2", "box_type": "connector", "x0": 0.48, "y0": 0.49, "x1": 0.56, "y1": 0.49},
+            ],
+            "metrics": {
+                "steps": [
+                    {"step_id": "screened", "label": "Screened", "n": 10},
+                    {"step_id": "included", "label": "Included", "n": 8},
+                ],
+                "exclusions": [{"label": "Excluded", "n": 2}],
+                "endpoint_inventory": [{"endpoint_id": "primary", "label": "Primary endpoint"}],
+                "design_panels": [{"panel_id": "primary", "layout_role": "wide_top", "label": "Primary endpoint"}],
+            },
+        }
+    if template_short_id == "submission_graphical_abstract":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "title", "box_type": "title", "x0": 0.08, "y0": 0.93, "x1": 0.40, "y1": 0.98},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.08, "y0": 0.74, "x1": 0.11, "y1": 0.78},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.39, "y0": 0.74, "x1": 0.42, "y1": 0.78},
+                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.70, "y0": 0.74, "x1": 0.73, "y1": 0.78},
+                {"box_id": "panel_A_card_1", "box_type": "card_box", "x0": 0.10, "y0": 0.40, "x1": 0.26, "y1": 0.66},
+                {"box_id": "panel_B_card_1", "box_type": "card_box", "x0": 0.41, "y0": 0.40, "x1": 0.57, "y1": 0.66},
+                {"box_id": "panel_C_card_1", "box_type": "card_box", "x0": 0.72, "y0": 0.40, "x1": 0.88, "y1": 0.66},
+                {"box_id": "footer_pill_train", "box_type": "footer_pill", "x0": 0.12, "y0": 0.08, "x1": 0.24, "y1": 0.14},
+                {"box_id": "footer_pill_validation", "box_type": "footer_pill", "x0": 0.43, "y0": 0.08, "x1": 0.60, "y1": 0.14},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_A", "box_type": "panel", "x0": 0.08, "y0": 0.18, "x1": 0.30, "y1": 0.82},
+                {"box_id": "panel_B", "box_type": "panel", "x0": 0.39, "y0": 0.18, "x1": 0.61, "y1": 0.82},
+                {"box_id": "panel_C", "box_type": "panel", "x0": 0.70, "y0": 0.18, "x1": 0.92, "y1": 0.82},
+            ],
+            "guide_boxes": [
+                {"box_id": "panel_arrow_1", "box_type": "arrow_connector", "x0": 0.30, "y0": 0.50, "x1": 0.39, "y1": 0.54},
+                {"box_id": "panel_arrow_2", "box_type": "arrow_connector", "x0": 0.61, "y0": 0.50, "x1": 0.70, "y1": 0.54},
+            ],
+            "metrics": {
+                "panels": [
+                    {"panel_id": "A", "panel_label": "A", "title": "Discovery", "subtitle": "Cohort definition"},
+                    {"panel_id": "B", "panel_label": "B", "title": "Modeling", "subtitle": "Risk estimation"},
+                    {"panel_id": "C", "panel_label": "C", "title": "Clinical use", "subtitle": "Deployment view"},
+                ],
+                "footer_pills": [
+                    {"pill_id": "train", "panel_id": "A", "label": "Train"},
+                    {"pill_id": "validation", "panel_id": "B", "label": "Validation"},
+                ],
+            },
+        }
     if template_short_id == "shap_summary_beeswarm":
         return {
             "template_id": template_id,
@@ -1395,6 +1600,137 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["table_shell_id"] == full_id("table1_baseline_characteristics")
     assert table_catalog["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_shell_renderer(
+        *,
+        template_id: str,
+        shell_payload: dict[str, object],
+        payload_path: Path | None = None,
+        render_context: dict[str, object],
+        output_svg_path: Path,
+        output_png_path: Path,
+        output_layout_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("cohort_flow_figure"):
+            return fake_shell_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    monkeypatch.setattr(
+        module,
+        "_render_cohort_flow_figure",
+        lambda **_: (_ for _ in ()).throw(AssertionError("host cohort-flow renderer should not be used")),
+        raising=False,
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("cohort_flow_figure")]
+    assert (paper_root / "figures" / "generated" / "F1_cohort_flow.svg").exists()
+
+
+def test_materialize_display_surface_uses_pack_runtime_for_r_evidence_template(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "roc_curve",
+                    "display_kind": "figure",
+                    "requirement_key": "roc_curve_binary",
+                    "catalog_id": "F2",
+                    "shell_path": "paper/figures/Figure2.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "binary_prediction_curve_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "binary_prediction_curve_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "roc_curve",
+                    "template_id": "roc_curve_binary",
+                    "title": "ROC curve",
+                    "caption": "Receiver operating characteristic curve.",
+                    "x_label": "1 - Specificity",
+                    "y_label": "Sensitivity",
+                    "series": [
+                        {
+                            "label": "Model",
+                            "x": [0.0, 0.2, 1.0],
+                            "y": [0.0, 0.8, 1.0],
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_evidence_renderer(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("roc_curve_binary"):
+            return fake_evidence_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    monkeypatch.setattr(
+        module,
+        "_render_r_evidence_figure",
+        lambda **_: (_ for _ in ()).throw(AssertionError("host R evidence renderer should not be used")),
+        raising=False,
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("roc_curve_binary")]
+    assert (paper_root / "figures" / "generated" / "F2_roc_curve_binary.png").exists()
 
 
 def test_materialize_display_surface_writes_display_pack_lock(tmp_path: Path) -> None:
@@ -2252,6 +2588,7 @@ def test_materialize_display_surface_generates_registered_evidence_figures(tmp_p
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_evidence=True)
     render_calls: list[dict[str, str]] = []
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
 
     def fake_render_r_evidence_figure(
         *,
@@ -2275,7 +2612,12 @@ def test_materialize_display_surface_generates_registered_evidence_figures(tmp_p
             }
         )
 
-    monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if display_registry.is_evidence_figure_template(template_id):
+            return fake_render_r_evidence_figure
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
@@ -2308,6 +2650,7 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
     render_calls: list[tuple[str, str]] = []
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
 
     def fake_render_r_evidence_figure(
         *,
@@ -2343,8 +2686,15 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         )
         render_calls.append((template_id, str(display_payload.get("display_id") or "")))
 
-    monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
-    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if display_registry.is_evidence_figure_template(template_id):
+            spec = display_registry.get_evidence_figure_spec(template_id)
+            if spec.renderer_family == "r_ggplot2":
+                return fake_render_r_evidence_figure
+            return fake_render_python_evidence_figure
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
@@ -2468,18 +2818,10 @@ def test_render_python_evidence_figure_prefers_pack_entrypoint_for_migrated_pyth
         )
         render_calls.append(str(display_payload["display_id"]))
 
-    def fail_legacy_renderer(**_: object) -> None:
-        raise AssertionError("legacy host renderer should not be used once pack entrypoint is active")
-
     monkeypatch.setattr(
         controller_module.display_pack_runtime,
         "resolve_python_plugin_callable",
         lambda *, repo_root, template_id: fake_external_renderer,
-    )
-    monkeypatch.setattr(
-        controller_module,
-        "_render_python_time_to_event_risk_group_summary",
-        fail_legacy_renderer,
     )
 
     controller_module._render_python_evidence_figure(
@@ -2505,7 +2847,7 @@ def test_render_python_evidence_figure_prefers_pack_entrypoint_for_migrated_pyth
     assert output_png_path.read_text(encoding="utf-8") == "PNG"
     assert output_pdf_path.read_text(encoding="utf-8") == "%PDF"
     layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
-    assert layout_sidecar["template_id"] == "time_to_event_risk_group_summary"
+    assert layout_sidecar["template_id"] == template_id
 
 
 def test_materialize_display_surface_materializes_optional_submission_graphical_abstract(tmp_path: Path) -> None:
@@ -2564,6 +2906,78 @@ def test_materialize_display_surface_materializes_optional_submission_graphical_
     assert figures_by_id["GA1"]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figures_by_id["GA1"]["qc_profile"] == "submission_graphical_abstract"
     assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_uses_pack_runtime_for_submission_graphical_abstract(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "submission_graphical_abstract.json",
+        {
+            "schema_version": 1,
+            "shell_id": "submission_graphical_abstract",
+            "display_id": "submission_graphical_abstract",
+            "catalog_id": "GA1",
+            "paper_role": "submission_companion",
+            "title": "Submission companion overview",
+            "caption": "A programmatic graphical abstract aligned to the audited paper-facing surface.",
+            "panels": [
+                {
+                    "panel_id": "cohort_split",
+                    "panel_label": "A",
+                    "title": "Cohort and split",
+                    "subtitle": "Locked analysis cohort",
+                    "rows": [{"cards": [{"card_id": "analytic", "title": "Analytic cohort", "value": "15,787"}]}],
+                }
+            ],
+            "footer_pills": [],
+        },
+    )
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_shell_renderer(
+        *,
+        template_id: str,
+        shell_payload: dict[str, object],
+        payload_path: Path | None = None,
+        render_context: dict[str, object],
+        output_svg_path: Path,
+        output_png_path: Path,
+        output_layout_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("submission_graphical_abstract"):
+            return fake_shell_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    monkeypatch.setattr(
+        module,
+        "_render_submission_graphical_abstract",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("host submission graphical abstract renderer should not be used")
+        ),
+        raising=False,
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("submission_graphical_abstract")]
+    assert (paper_root / "figures" / "generated" / "GA1_graphical_abstract.svg").exists()
 
 
 def test_choose_submission_graphical_abstract_arrow_lane_prefers_shared_blank_gap() -> None:
@@ -2805,9 +3219,57 @@ def test_materialize_display_surface_supports_generic_anchor_table_shells(tmp_pa
     ]
 
 
+def test_materialize_display_surface_uses_pack_runtime_for_baseline_table_shell(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_table_renderer(
+        *,
+        template_id: str,
+        payload_path: Path,
+        payload: dict[str, object],
+        output_md_path: Path,
+        output_csv_path: Path | None,
+    ) -> dict[str, str]:
+        _ensure_output_parents(output_md_path, output_csv_path)
+        output_md_path.write_text("| Characteristic | Overall |\n| --- | --- |\n| Age | 61 |\n", encoding="utf-8")
+        assert output_csv_path is not None
+        output_csv_path.write_text("Characteristic,Overall\nAge,61\n", encoding="utf-8")
+        render_calls.append(template_id)
+        return {
+            "title": "Baseline characteristics",
+            "caption": "Baseline characteristics across prespecified groups.",
+        }
+
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("table1_baseline_characteristics"):
+            return fake_table_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    monkeypatch.setattr(
+        module,
+        "_write_table_outputs",
+        lambda **_: (_ for _ in ()).throw(AssertionError("host table writer should not be used")),
+        raising=False,
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("table1_baseline_characteristics")]
+    assert (paper_root / "tables" / "generated" / "T1_baseline_characteristics.md").exists()
+
+
 def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
 
     def fake_render_r_evidence_figure(
         *,
@@ -2841,8 +3303,15 @@ def test_materialize_display_surface_writes_layout_sidecar_and_real_qc_result(tm
             encoding="utf-8",
         )
 
-    monkeypatch.setattr(module, "_render_r_evidence_figure", fake_render_r_evidence_figure, raising=False)
-    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if display_registry.is_evidence_figure_template(template_id):
+            spec = display_registry.get_evidence_figure_spec(template_id)
+            if spec.renderer_family == "r_ggplot2":
+                return fake_render_r_evidence_figure
+            return fake_render_python_evidence_figure
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
 
     module.materialize_display_surface(paper_root=paper_root)
 
@@ -4291,16 +4760,6 @@ def test_render_python_evidence_figure_uses_pack_entrypoint_for_time_to_event_ri
         },
     }
 
-    def fail_legacy_host_dispatch(**_: object) -> None:
-        raise AssertionError("legacy host dispatch should not be used once the pack entrypoint is active")
-
-    monkeypatch.setattr(
-        controller_module,
-        "_render_python_time_to_event_risk_group_summary",
-        fail_legacy_host_dispatch,
-        raising=False,
-    )
-
     output_png_path = tmp_path / "Figure15_pack_entrypoint.png"
     output_pdf_path = tmp_path / "Figure15_pack_entrypoint.pdf"
     layout_sidecar_path = tmp_path / "Figure15_pack_entrypoint.layout.json"
@@ -4316,6 +4775,197 @@ def test_render_python_evidence_figure_uses_pack_entrypoint_for_time_to_event_ri
     assert output_png_path.exists()
     assert output_pdf_path.exists()
     assert layout_sidecar_path.exists()
+
+
+def test_render_r_evidence_figure_uses_pack_entrypoint_for_r_template(tmp_path: Path, monkeypatch) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    render_calls: list[str] = []
+
+    def fake_external_renderer(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_png_path, output_pdf_path, layout_sidecar_path)
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    monkeypatch.setattr(
+        controller_module.display_pack_runtime,
+        "load_python_plugin_callable",
+        lambda *, repo_root, template_id: fake_external_renderer,
+    )
+
+    output_png_path = tmp_path / "Figure2_pack_entrypoint.png"
+    output_pdf_path = tmp_path / "Figure2_pack_entrypoint.pdf"
+    layout_sidecar_path = tmp_path / "Figure2_pack_entrypoint.layout.json"
+
+    controller_module._render_r_evidence_figure(
+        template_id=full_id("roc_curve_binary"),
+        display_payload={"display_id": "Figure2"},
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    assert render_calls == [full_id("roc_curve_binary")]
+    assert output_png_path.exists()
+    assert output_pdf_path.exists()
+    assert layout_sidecar_path.exists()
+
+
+def test_render_cohort_flow_figure_uses_pack_entrypoint(tmp_path: Path, monkeypatch) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    render_calls: list[str] = []
+
+    def fake_external_renderer(**kwargs: object) -> None:
+        output_svg_path = kwargs["output_svg_path"]
+        output_png_path = kwargs["output_png_path"]
+        output_layout_path = kwargs["output_layout_path"]
+        assert isinstance(output_svg_path, Path)
+        assert isinstance(output_png_path, Path)
+        assert isinstance(output_layout_path, Path)
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(json.dumps(_minimal_layout_sidecar_for_template(full_id("cohort_flow_figure"))), encoding="utf-8")
+        render_calls.append("cohort_flow_figure")
+
+    monkeypatch.setattr(
+        controller_module.display_pack_runtime,
+        "load_python_plugin_callable",
+        lambda *, repo_root, template_id: fake_external_renderer,
+    )
+    monkeypatch.setattr(
+        controller_module,
+        "_run_graphviz_layout",
+        lambda **_: (_ for _ in ()).throw(AssertionError("legacy cohort flow renderer should not run once pack entrypoint is active")),
+    )
+
+    controller_module._render_cohort_flow_figure(
+        output_svg_path=tmp_path / "flow.svg",
+        output_png_path=tmp_path / "flow.png",
+        output_layout_path=tmp_path / "flow.layout.json",
+        title="Cohort flow",
+        steps=[{"step_id": "screened", "label": "Screened", "n": 10}],
+        exclusions=[],
+        endpoint_inventory=[],
+        design_panels=[],
+        render_context={},
+    )
+
+    assert render_calls == ["cohort_flow_figure"]
+
+
+def test_render_submission_graphical_abstract_uses_pack_entrypoint(tmp_path: Path, monkeypatch) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    render_calls: list[str] = []
+
+    def fake_external_renderer(**kwargs: object) -> None:
+        output_svg_path = kwargs["output_svg_path"]
+        output_png_path = kwargs["output_png_path"]
+        output_layout_path = kwargs["output_layout_path"]
+        assert isinstance(output_svg_path, Path)
+        assert isinstance(output_png_path, Path)
+        assert isinstance(output_layout_path, Path)
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(full_id("submission_graphical_abstract")), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append("submission_graphical_abstract")
+
+    monkeypatch.setattr(
+        controller_module.display_pack_runtime,
+        "load_python_plugin_callable",
+        lambda *, repo_root, template_id: fake_external_renderer,
+    )
+    monkeypatch.setattr(
+        controller_module,
+        "_choose_shared_submission_graphical_abstract_arrow_lane",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("legacy graphical abstract renderer should not run once pack entrypoint is active")
+        ),
+    )
+
+    controller_module._render_submission_graphical_abstract(
+        output_svg_path=tmp_path / "ga.svg",
+        output_png_path=tmp_path / "ga.png",
+        output_layout_path=tmp_path / "ga.layout.json",
+        shell_payload={"title": "GA", "panels": [], "footer_pills": []},
+        render_context={},
+    )
+
+    assert render_calls == ["submission_graphical_abstract"]
+
+
+def test_materialize_display_surface_uses_pack_entrypoint_for_table_shell(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    render_calls: list[str] = []
+
+    def fake_table_renderer(
+        *,
+        template_id: str,
+        payload_path: Path,
+        payload: dict[str, object],
+        output_md_path: Path,
+        output_csv_path: Path | None = None,
+    ) -> dict[str, str]:
+        _ensure_output_parents(output_md_path, output_csv_path)
+        output_md_path.write_text(
+            "# Baseline characteristics\n\n| Characteristic | Overall |\n| --- | --- |\n| Age | 61 |\n",
+            encoding="utf-8",
+        )
+        if output_csv_path is not None:
+            output_csv_path.write_text("Characteristic,Overall\nAge,61\n", encoding="utf-8")
+        render_calls.append(template_id)
+        assert payload_path.name == "baseline_characteristics_schema.json"
+        assert payload["title"] == "Baseline characteristics"
+        return {
+            "title": "Baseline characteristics",
+            "caption": "Baseline characteristics across prespecified groups.",
+        }
+
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("table1_baseline_characteristics"):
+            return fake_table_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+    monkeypatch.setattr(
+        module,
+        "_write_table_outputs",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("legacy host table writer should not run once pack entrypoint is active")
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_write_rectangular_table_outputs",
+        lambda **_: (_ for _ in ()).throw(
+            AssertionError("legacy host table writer should not run once pack entrypoint is active")
+        ),
+        raising=False,
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("table1_baseline_characteristics")]
 
 
 def test_materialize_display_surface_applies_publication_style_and_display_override(tmp_path: Path, monkeypatch) -> None:
@@ -4391,6 +5041,7 @@ def test_materialize_display_surface_applies_publication_style_and_display_overr
     )
 
     render_contexts: list[dict[str, object]] = []
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
 
     def fake_render_python_evidence_figure(
         *,
@@ -4409,7 +5060,12 @@ def test_materialize_display_surface_applies_publication_style_and_display_overr
         )
         render_contexts.append(dict(display_payload.get("render_context") or {}))
 
-    monkeypatch.setattr(module, "_render_python_evidence_figure", fake_render_python_evidence_figure, raising=False)
+    def fake_loader(*, repo_root: Path, template_id: str):
+        if template_id == full_id("time_to_event_decision_curve"):
+            return fake_render_python_evidence_figure
+        return original_loader(repo_root=repo_root, template_id=template_id)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
 
     report = module.materialize_display_surface(paper_root=paper_root)
     catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
