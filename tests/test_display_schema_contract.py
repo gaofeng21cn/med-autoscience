@@ -35,12 +35,15 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
 
     binary = module.get_input_schema_contract("binary_prediction_curve_inputs_v1")
     embedding = module.get_input_schema_contract("embedding_grouped_inputs_v1")
+    celltype_signature = module.get_input_schema_contract("celltype_signature_heatmap_inputs_v1")
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
+    landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
+    shap_dependence = module.get_input_schema_contract("shap_dependence_panel_inputs_v1")
     cohort_flow = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     time_to_event_panel = module.get_input_schema_contract("time_to_event_discrimination_calibration_inputs_v1")
     time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
@@ -62,6 +65,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     time_to_event_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "time_to_event"
     )
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
     clinical_utility_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "clinical_utility"
     )
@@ -78,6 +84,48 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         _full_id("umap_scatter_grouped"),
         _full_id("pca_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
+    )
+    assert celltype_signature.template_ids == (_full_id("celltype_signature_heatmap"),)
+    assert celltype_signature.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "embedding_panel_title",
+        "embedding_x_label",
+        "embedding_y_label",
+        "embedding_points",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert celltype_signature.display_optional_fields == (
+        "paper_role",
+        "embedding_annotation",
+        "heatmap_annotation",
+    )
+    assert celltype_signature.collection_required_fields["embedding_points"] == ("x", "y", "group")
+    assert celltype_signature.collection_required_fields["row_order"] == ("label",)
+    assert celltype_signature.collection_required_fields["column_order"] == ("label",)
+    assert celltype_signature.collection_required_fields["cells"] == ("x", "y", "value")
+    assert celltype_signature.additional_constraints == (
+        "embedding_points_must_be_non_empty",
+        "embedding_point_coordinates_must_be_finite",
+        "embedding_point_group_must_be_non_empty",
+        "score_method_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_column_labels_must_match_embedding_groups",
+        "declared_heatmap_grid_must_be_complete_and_unique",
     )
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
     assert clustered_heatmap.display_required_fields == (
@@ -153,6 +201,39 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert shap.template_ids == (_full_id("shap_summary_beeswarm"),)
     assert shap.collection_required_fields["rows"] == ("feature", "points")
     assert shap.nested_collection_required_fields["rows.points"] == ("shap_value", "feature_value")
+    assert shap_dependence.template_ids == (_full_id("shap_dependence_panel"),)
+    assert shap_dependence.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "colorbar_label",
+        "panels",
+    )
+    assert shap_dependence.display_optional_fields == ("paper_role",)
+    assert shap_dependence.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "interaction_feature",
+        "points",
+    )
+    assert shap_dependence.nested_collection_required_fields["panels.points"] == (
+        "feature_value",
+        "shap_value",
+        "interaction_value",
+    )
+    assert shap_dependence.additional_constraints == (
+        "panels_must_be_non_empty",
+        "panel_ids_must_be_unique",
+        "panel_labels_must_be_unique",
+        "panel_features_must_be_unique",
+        "panel_points_must_be_non_empty",
+        "panel_point_values_must_be_finite",
+    )
     assert cohort_flow.template_ids == (_full_id("cohort_flow_figure"),)
     assert cohort_flow.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
     assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
@@ -168,8 +249,16 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("time_dependent_roc_comparison_panel") in time_to_event_class.template_ids
     assert "binary_prediction_curve_inputs_v1" in time_to_event_class.input_schema_ids
     assert "time_dependent_roc_comparison_inputs_v1" in time_to_event_class.input_schema_ids
+    assert _full_id("time_to_event_landmark_performance_panel") in time_to_event_class.template_ids
+    assert "time_to_event_landmark_performance_inputs_v1" in time_to_event_class.input_schema_ids
     assert _full_id("time_to_event_stratified_cumulative_incidence_panel") in time_to_event_class.template_ids
     assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in time_to_event_class.input_schema_ids
+    assert _full_id("celltype_signature_heatmap") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).template_ids
+    assert "celltype_signature_heatmap_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).input_schema_ids
     assert _full_id("performance_heatmap") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).template_ids
@@ -177,6 +266,10 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).input_schema_ids
     assert performance_heatmap.template_ids == (_full_id("performance_heatmap"),)
+    assert _full_id("shap_summary_beeswarm") in model_explanation_class.template_ids
+    assert _full_id("shap_dependence_panel") in model_explanation_class.template_ids
+    assert "shap_summary_inputs_v1" in model_explanation_class.input_schema_ids
+    assert "shap_dependence_panel_inputs_v1" in model_explanation_class.input_schema_ids
     assert performance_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -310,6 +403,41 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "panel_series_labels_must_be_unique_within_panel" in time_dependent_roc_comparison.additional_constraints
     assert "panel_series_label_sets_must_match_across_panels" in time_dependent_roc_comparison.additional_constraints
     assert "panel_time_horizon_months_must_be_positive_when_present" in time_dependent_roc_comparison.additional_constraints
+    assert landmark_performance.template_ids == (_full_id("time_to_event_landmark_performance_panel"),)
+    assert landmark_performance.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "discrimination_panel_title",
+        "discrimination_x_label",
+        "error_panel_title",
+        "error_x_label",
+        "calibration_panel_title",
+        "calibration_x_label",
+        "landmark_summaries",
+    )
+    assert landmark_performance.collection_required_fields["landmark_summaries"] == (
+        "window_label",
+        "analysis_window_label",
+        "landmark_months",
+        "prediction_months",
+        "c_index",
+        "brier_score",
+        "calibration_slope",
+    )
+    assert landmark_performance.collection_optional_fields["landmark_summaries"] == ("annotation",)
+    assert landmark_performance.additional_constraints == (
+        "landmark_summaries_must_be_non_empty",
+        "window_labels_must_be_unique",
+        "analysis_window_labels_must_be_unique",
+        "landmark_months_must_be_positive",
+        "prediction_months_must_be_positive",
+        "prediction_months_must_exceed_landmark_months",
+        "c_index_values_must_be_finite_probability",
+        "brier_score_values_must_be_finite_probability",
+        "calibration_slope_values_must_be_finite",
+    )
     assert time_to_event_stratified.template_ids == (_full_id("time_to_event_stratified_cumulative_incidence_panel"),)
     assert time_to_event_stratified.display_required_fields == (
         "display_id",
@@ -468,6 +596,102 @@ def test_schema_contract_covers_all_registered_display_surface_items() -> None:
     assert covered_templates >= expected
 
 
+def test_time_to_event_threshold_governance_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    threshold_governance = module.get_input_schema_contract("time_to_event_threshold_governance_inputs_v1")
+    clinical_utility_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "clinical_utility"
+    )
+
+    assert threshold_governance.template_ids == (_full_id("time_to_event_threshold_governance_panel"),)
+    assert threshold_governance.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "threshold_panel_title",
+        "calibration_panel_title",
+        "calibration_x_label",
+        "threshold_summaries",
+        "risk_group_summaries",
+    )
+    assert threshold_governance.display_optional_fields == ("paper_role",)
+    assert threshold_governance.collection_required_fields["threshold_summaries"] == (
+        "threshold_label",
+        "threshold",
+        "sensitivity",
+        "specificity",
+        "net_benefit",
+    )
+    assert threshold_governance.collection_required_fields["risk_group_summaries"] == (
+        "group_label",
+        "group_order",
+        "n",
+        "events",
+        "predicted_risk",
+        "observed_risk",
+    )
+    assert threshold_governance.additional_constraints == (
+        "threshold_summaries_must_be_non_empty",
+        "threshold_labels_must_be_unique",
+        "threshold_values_must_be_strictly_increasing_probability",
+        "threshold_metrics_must_be_finite",
+        "risk_group_summaries_must_be_non_empty",
+        "risk_group_order_must_be_strictly_increasing",
+        "risk_group_risks_must_be_finite_probability",
+        "risk_group_events_must_not_exceed_group_size",
+    )
+    assert _full_id("time_to_event_threshold_governance_panel") in clinical_utility_class.template_ids
+    assert "time_to_event_threshold_governance_inputs_v1" in clinical_utility_class.input_schema_ids
+
+
+def test_time_to_event_multihorizon_calibration_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    multihorizon = module.get_input_schema_contract("time_to_event_multihorizon_calibration_inputs_v1")
+    time_to_event_class = next(item for item in module.list_display_schema_classes() if item.class_id == "time_to_event")
+
+    assert multihorizon.template_ids == (_full_id("time_to_event_multihorizon_calibration_panel"),)
+    assert multihorizon.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "panels",
+    )
+    assert multihorizon.display_optional_fields == ("paper_role",)
+    assert multihorizon.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "time_horizon_months",
+        "calibration_summary",
+    )
+    assert multihorizon.nested_collection_required_fields["panels.calibration_summary"] == (
+        "group_label",
+        "group_order",
+        "n",
+        "events",
+        "predicted_risk",
+        "observed_risk",
+    )
+    assert multihorizon.additional_constraints == (
+        "multihorizon_calibration_panels_must_be_non_empty",
+        "panel_ids_must_be_unique",
+        "panel_labels_must_be_unique",
+        "panel_time_horizon_months_must_be_positive",
+        "panel_time_horizon_months_must_be_strictly_increasing",
+        "panel_calibration_summary_must_be_non_empty",
+        "panel_group_order_must_be_strictly_increasing",
+        "panel_group_risks_must_be_finite_probability",
+        "panel_group_events_must_not_exceed_group_size",
+    )
+    assert _full_id("time_to_event_multihorizon_calibration_panel") in time_to_event_class.template_ids
+    assert "time_to_event_multihorizon_calibration_inputs_v1" in time_to_event_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -483,9 +707,19 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("time_dependent_roc_horizon") in markdown
     assert _full_id("time_dependent_roc_comparison_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
+    assert _full_id("time_to_event_landmark_performance_panel") in markdown
+    assert "time_to_event_landmark_performance_inputs_v1" in markdown
+    assert _full_id("time_to_event_threshold_governance_panel") in markdown
+    assert "time_to_event_threshold_governance_inputs_v1" in markdown
+    assert _full_id("time_to_event_multihorizon_calibration_panel") in markdown
+    assert "time_to_event_multihorizon_calibration_inputs_v1" in markdown
     assert _full_id("time_to_event_stratified_cumulative_incidence_panel") in markdown
     assert "time_to_event_stratified_cumulative_incidence_inputs_v1" in markdown
     assert _full_id("tsne_scatter_grouped") in markdown
+    assert _full_id("celltype_signature_heatmap") in markdown
+    assert "celltype_signature_heatmap_inputs_v1" in markdown
+    assert _full_id("shap_dependence_panel") in markdown
+    assert "shap_dependence_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

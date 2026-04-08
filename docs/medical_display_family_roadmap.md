@@ -219,12 +219,15 @@ Current audited anchors:
 - `decision_curve_binary`
 - `binary_calibration_decision_curve_panel`
 - `time_to_event_decision_curve`
+- `time_to_event_landmark_performance_panel`
+- `time_to_event_threshold_governance_panel`
+- `time_to_event_multihorizon_calibration_panel`
 
 Current gap direction:
 
-- threshold-oriented summary displays
 - lift/gain style views
-- Brier/error-oriented evidence
+- denser threshold governance beyond the first audited threshold-summary + grouped-calibration slice
+- broader survival-calibration governance beyond the current grouped dumbbell + multi-horizon grouped-calibration slices
 - stronger presentation QC around title policy, annotation layout, and multi-panel semantics
 
 ### B. 生存与时间事件类
@@ -256,6 +259,10 @@ Current audited anchors:
 - `kaplan_meier_grouped`
 - `cumulative_incidence_grouped`
 - `time_dependent_roc_horizon`
+- `time_dependent_roc_comparison_panel`
+- `time_to_event_landmark_performance_panel`
+- `time_to_event_multihorizon_calibration_panel`
+- `time_to_event_threshold_governance_panel`
 - `time_to_event_discrimination_calibration_panel`
 - `time_to_event_risk_group_summary`
 - `risk_layering_monotonic_bars`
@@ -263,8 +270,8 @@ Current audited anchors:
 
 Current gap direction:
 
-- stronger regression locking for landmark/time-slice evidence semantics
-- richer survival calibration governance
+- richer survival calibration governance beyond the first grouped threshold-governance + multi-horizon calibration slices
+- broader time-slice variants beyond the current landmark summary panel
 - stricter axis-window and grouped-separation QC for real paper outputs
 
 ### C. 效应量与异质性类
@@ -333,12 +340,13 @@ Current audited anchors:
 - `umap_scatter_grouped`
 - `pca_scatter_grouped`
 - `tsne_scatter_grouped`
+- `celltype_signature_heatmap`
 
 Current gap direction:
 
-- PHATE and trajectory/manifold overlays
+- PHATE and trajectory/manifold overlays beyond the current embedding+signature composite baseline
 - richer density/coverage annotation
-- better crowding / labeling / legend QC for publication-facing embeddings
+- stronger crowding / labeling / legend QC for atlas-style publication-facing embeddings
 
 ### E. 特征模式与矩阵类
 
@@ -366,13 +374,16 @@ Current roadmap status:
 Current audited anchors:
 
 - `heatmap_group_comparison`
+- `performance_heatmap`
 - `correlation_heatmap`
 - `clustered_heatmap`
+- `celltype_signature_heatmap`
 
 Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
+- celltype/program composite matrices beyond the first embedding-coupled baseline
 - omics-oriented matrix surfaces with manuscript-facing annotation control
 
 ### F. 模型解释类
@@ -404,11 +415,12 @@ Current roadmap status:
 Current audited anchors:
 
 - `shap_summary_beeswarm`
+- `shap_dependence_panel`
 
 Current gap direction:
 
-- dependence and waterfall families
-- local explanation surfaces
+- waterfall families beyond the current dependence baseline
+- patient-level local explanation surfaces beyond multi-panel dependence
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类
@@ -441,11 +453,13 @@ Current roadmap status:
 Current audited anchors:
 
 - `gsva_ssgsea_heatmap`
+- `celltype_signature_heatmap`
 
 Current gap direction:
 
+- expand from GSVA-only heatmaps into structured celltype/program composite omics panels where real paper demand is already explicit
 - expand beyond the first omics-native baseline into volcano, enrichment, oncoplot, and mutation-landscape families as real paper demand appears
-- strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices without pretending shared neighboring templates already solve the whole family
+- strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 
 ### H. 队列与研究设计证据类
 

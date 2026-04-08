@@ -20,6 +20,7 @@ from .shared import (
     _build_python_shap_layout_sidecar,
     _centered_offsets,
     _data_box_to_layout_box,
+    _data_point_to_figure_xy,
     _normalize_reference_line_collection_to_device_space,
     _normalize_reference_line_to_device_space,
     _prepare_python_render_output_paths,
@@ -1777,6 +1778,318 @@ def _render_python_shap_summary_beeswarm(
     fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
 
+
+def _render_python_shap_dependence_panel(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    panels = list(display_payload.get("panels") or [])
+    if not panels:
+        raise RuntimeError(f"{template_id} requires non-empty panels")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = max(12.0, float(typography.get("panel_label_size") or 11.0))
+    marker_size = max(4.2, float(stroke.get("marker_size") or 4.5))
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    interaction_values = [float(point["interaction_value"]) for panel in panels for point in panel["points"]]
+    interaction_min = min(interaction_values)
+    interaction_max = max(interaction_values)
+    if interaction_max <= interaction_min:
+        interaction_max = interaction_min + 1.0
+    color_norm = matplotlib.colors.Normalize(vmin=interaction_min, vmax=interaction_max)
+    cmap = plt.get_cmap("coolwarm")
+
+    shap_values = [float(point["shap_value"]) for panel in panels for point in panel["points"]]
+    y_min = min(min(shap_values), 0.0)
+    y_max = max(max(shap_values), 0.0)
+    y_span = max(y_max - y_min, 1e-6)
+    y_padding = max(y_span * 0.16, 0.08)
+    y_lower = y_min - y_padding
+    y_upper = y_max + y_padding
+    if y_upper <= y_lower:
+        y_upper = y_lower + 0.25
+
+    figure_width = max(8.8, 3.7 * len(panels) + 1.8)
+    fig, axes = plt.subplots(1, len(panels), figsize=(figure_width, 4.9), squeeze=False)
+    axes_list = list(axes[0])
+    fig.patch.set_facecolor("white")
+
+    title_artist = None
+    title_line_count = 0
+    if show_figure_title:
+        wrapped_title, title_line_count = _wrap_figure_title_to_width(
+            str(display_payload.get("title") or "").strip(),
+            max_width_pt=fig.get_figwidth() * 72.0 * 0.88,
+            font_size=title_size,
+        )
+        title_artist = fig.suptitle(
+            wrapped_title,
+            fontsize=title_size,
+            fontweight="bold",
+            color="#13293d",
+            y=0.985,
+        )
+
+    panel_title_artists: list[Any] = []
+    for axes_item, panel in zip(axes_list, panels, strict=True):
+        feature_values = [float(point["feature_value"]) for point in panel["points"]]
+        x_min = min(feature_values)
+        x_max = max(feature_values)
+        x_span = x_max - x_min
+        if x_span <= 0.0:
+            x_padding = max(abs(x_min) * 0.15, 1.0)
+        else:
+            x_padding = max(x_span * 0.14, x_span * 0.06)
+        axes_item.scatter(
+            feature_values,
+            [float(point["shap_value"]) for point in panel["points"]],
+            c=[float(point["interaction_value"]) for point in panel["points"]],
+            cmap=cmap,
+            norm=color_norm,
+            s=marker_size**2,
+            alpha=0.94,
+            edgecolors="white",
+            linewidths=0.5,
+            zorder=3,
+        )
+        axes_item.axhline(0.0, color=neutral_color, linewidth=1.0, linestyle="--", zorder=1)
+        axes_item.set_xlim(x_min - x_padding, x_max + x_padding)
+        axes_item.set_ylim(y_lower, y_upper)
+        axes_item.set_xlabel(
+            str(panel["x_label"]),
+            fontsize=axis_title_size,
+            fontweight="bold",
+            color="#13293d",
+        )
+        axes_item.set_title(
+            str(panel["title"]),
+            fontsize=axis_title_size,
+            fontweight="bold",
+            color="#334155",
+            pad=10.0,
+        )
+        axes_item.tick_params(axis="both", labelsize=tick_size, colors="#2F3437")
+        axes_item.grid(axis="both", color="#e6edf2", linewidth=0.55, linestyle=":")
+        _apply_publication_axes_style(axes_item)
+        panel_title_artists.append(axes_item.title)
+
+    top_margin = 0.78 if show_figure_title else 0.86
+    top_margin = max(0.72, top_margin - 0.04 * max(title_line_count - 1, 0))
+    fig.subplots_adjust(left=0.11, right=0.88, top=top_margin, bottom=0.22, wspace=0.26)
+
+    y_axis_title_artist = fig.text(
+        0.035,
+        0.51,
+        str(display_payload.get("y_label") or "").strip(),
+        rotation=90,
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color="#13293d",
+        ha="center",
+        va="center",
+    )
+
+    scalar_mappable = plt.cm.ScalarMappable(norm=color_norm, cmap=cmap)
+    scalar_mappable.set_array([])
+    colorbar = fig.colorbar(scalar_mappable, ax=axes_list, fraction=0.048, pad=0.04)
+    colorbar.set_label(
+        str(display_payload.get("colorbar_label") or "").strip(),
+        fontsize=max(axis_title_size - 0.3, 9.8),
+        color="#13293d",
+    )
+    colorbar.ax.tick_params(labelsize=max(tick_size - 0.6, 8.4), colors="#2F3437")
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    def _add_panel_label(*, axes_item: Any, label: str) -> Any:
+        panel_bbox = axes_item.get_window_extent(renderer=renderer)
+        panel_x0, panel_y0 = fig.transFigure.inverted().transform((panel_bbox.x0, panel_bbox.y0))
+        panel_x1, panel_y1 = fig.transFigure.inverted().transform((panel_bbox.x1, panel_bbox.y1))
+        panel_width = float(panel_x1 - panel_x0)
+        panel_height = float(panel_y1 - panel_y0)
+        x_padding = min(max(panel_width * 0.012, 0.006), 0.014)
+        y_padding = min(max(panel_height * 0.028, 0.009), 0.017)
+        return fig.text(
+            panel_x0 + x_padding,
+            panel_y1 - y_padding,
+            label,
+            transform=fig.transFigure,
+            fontsize=max(panel_label_size + 1.6, 13.2),
+            fontweight="bold",
+            color="#2F3437",
+            ha="left",
+            va="top",
+        )
+
+    panel_label_artists = [
+        _add_panel_label(axes_item=axes_item, label=str(panel["panel_label"]))
+        for axes_item, panel in zip(axes_list, panels, strict=True)
+    ]
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes: list[dict[str, Any]] = []
+    if title_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            )
+        )
+    layout_boxes.append(
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=y_axis_title_artist.get_window_extent(renderer=renderer),
+            box_id="y_axis_title",
+            box_type="subplot_y_axis_title",
+        )
+    )
+
+    panel_boxes: list[dict[str, Any]] = []
+    guide_boxes: list[dict[str, Any]] = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=colorbar.ax.get_window_extent(renderer=renderer),
+            box_id="colorbar",
+            box_type="colorbar",
+        )
+    ]
+    normalized_panels: list[dict[str, Any]] = []
+
+    for axes_item, panel_title_artist, panel_label_artist, panel in zip(
+        axes_list,
+        panel_title_artists,
+        panel_label_artists,
+        panels,
+        strict=True,
+    ):
+        panel_token = str(panel["panel_label"])
+        layout_boxes.extend(
+            [
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=panel_title_artist.get_window_extent(renderer=renderer),
+                    box_id=f"panel_title_{panel_token}",
+                    box_type="panel_title",
+                ),
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=axes_item.xaxis.label.get_window_extent(renderer=renderer),
+                    box_id=f"x_axis_title_{panel_token}",
+                    box_type="subplot_x_axis_title",
+                ),
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=panel_label_artist.get_window_extent(renderer=renderer),
+                    box_id=f"panel_label_{panel_token}",
+                    box_type="panel_label",
+                ),
+            ]
+        )
+        panel_box = _bbox_to_layout_box(
+            figure=fig,
+            bbox=axes_item.get_window_extent(renderer=renderer),
+            box_id=f"panel_{panel_token}",
+            box_type="panel",
+        )
+        panel_boxes.append(panel_box)
+
+        x_lower, x_upper = axes_item.get_xlim()
+        y_thickness = max((axes_item.get_ylim()[1] - axes_item.get_ylim()[0]) * 0.012, 0.01)
+        zero_line_box = _data_box_to_layout_box(
+            axes=axes_item,
+            figure=fig,
+            x0=float(x_lower),
+            y0=-y_thickness / 2.0,
+            x1=float(x_upper),
+            y1=y_thickness / 2.0,
+            box_id=f"zero_line_{panel_token}",
+            box_type="zero_line",
+        )
+        zero_line_box["x0"] = float(panel_box["x0"])
+        zero_line_box["x1"] = float(panel_box["x1"])
+        zero_line_box["y0"] = max(float(panel_box["y0"]), float(zero_line_box["y0"]))
+        zero_line_box["y1"] = min(float(panel_box["y1"]), float(zero_line_box["y1"]))
+        guide_boxes.append(
+            zero_line_box
+        )
+
+        normalized_points: list[dict[str, Any]] = []
+        for point in panel["points"]:
+            point_x, point_y = _data_point_to_figure_xy(
+                axes=axes_item,
+                figure=fig,
+                x=float(point["feature_value"]),
+                y=float(point["shap_value"]),
+            )
+            normalized_points.append(
+                {
+                    "feature_value": float(point["feature_value"]),
+                    "shap_value": float(point["shap_value"]),
+                    "interaction_value": float(point["interaction_value"]),
+                    "x": point_x,
+                    "y": point_y,
+                }
+            )
+        normalized_panels.append(
+            {
+                "panel_id": str(panel["panel_id"]),
+                "panel_label": panel_token,
+                "title": str(panel["title"]),
+                "x_label": str(panel["x_label"]),
+                "feature": str(panel["feature"]),
+                "interaction_feature": str(panel["interaction_feature"]),
+                "points": normalized_points,
+            }
+        )
+
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "figure_height_inches": float(fig.get_figheight()),
+                "figure_width_inches": float(fig.get_figwidth()),
+                "colorbar_label": str(display_payload.get("colorbar_label") or "").strip(),
+                "panels": normalized_panels,
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
 def _render_python_time_dependent_roc_comparison_panel(
     *,
     template_id: str,
@@ -2107,6 +2420,377 @@ def _render_python_time_dependent_roc_comparison_panel(
     fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
 
+
+def _render_python_time_to_event_landmark_performance_panel(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    landmark_summaries = list(display_payload.get("landmark_summaries") or [])
+    if not landmark_summaries:
+        raise RuntimeError(f"{template_id} requires non-empty landmark_summaries")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    discrimination_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    error_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    reference_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    calibration_color = str(palette.get("primary") or discrimination_color).strip() or discrimination_color
+    discrimination_fill = str(palette.get("light") or "#eff6ff").strip() or "#eff6ff"
+    error_fill = str(palette.get("secondary_soft") or "#fee2e2").strip() or "#fee2e2"
+    calibration_fill = str(palette.get("primary_soft") or "#dbeafe").strip() or "#dbeafe"
+
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = max(11.0, float(typography.get("panel_label_size") or 11.0))
+    marker_size = max(4.2, float(stroke.get("marker_size") or 4.5))
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    def _build_metric_rows(metric_key: str) -> list[dict[str, Any]]:
+        normalized_rows: list[dict[str, Any]] = []
+        for item in landmark_summaries:
+            row = {
+                "label": str(item["window_label"]),
+                "analysis_window_label": str(item["analysis_window_label"]),
+                "landmark_months": int(item["landmark_months"]),
+                "prediction_months": int(item["prediction_months"]),
+                "value": float(item[metric_key]),
+            }
+            annotation = str(item.get("annotation") or "").strip()
+            if annotation:
+                row["annotation"] = annotation
+            normalized_rows.append(row)
+        return normalized_rows
+
+    metric_panels = [
+        {
+            "panel_id": "discrimination_panel",
+            "panel_label": "A",
+            "metric_kind": "c_index",
+            "title": str(display_payload.get("discrimination_panel_title") or "").strip(),
+            "x_label": str(display_payload.get("discrimination_x_label") or "").strip(),
+            "rows": _build_metric_rows("c_index"),
+        },
+        {
+            "panel_id": "error_panel",
+            "panel_label": "B",
+            "metric_kind": "brier_score",
+            "title": str(display_payload.get("error_panel_title") or "").strip(),
+            "x_label": str(display_payload.get("error_x_label") or "").strip(),
+            "rows": _build_metric_rows("brier_score"),
+        },
+        {
+            "panel_id": "calibration_panel",
+            "panel_label": "C",
+            "metric_kind": "calibration_slope",
+            "title": str(display_payload.get("calibration_panel_title") or "").strip(),
+            "x_label": str(display_payload.get("calibration_x_label") or "").strip(),
+            "reference_value": 1.0,
+            "rows": _build_metric_rows("calibration_slope"),
+        },
+    ]
+
+    def _panel_limits(
+        rows: list[dict[str, Any]],
+        *,
+        reference_value: float | None,
+        clamp_probability: bool,
+    ) -> tuple[float, float]:
+        values = [float(item["value"]) for item in rows]
+        if reference_value is not None:
+            values.append(float(reference_value))
+        minimum = min(values)
+        maximum = max(values)
+        span = maximum - minimum
+        padding = max(span * 0.20, 0.035 if clamp_probability else 0.08)
+        lower = minimum - padding
+        upper = maximum + padding
+        if clamp_probability:
+            lower = max(0.0, lower)
+            upper = min(1.0, upper)
+        if upper <= lower:
+            upper = lower + (0.10 if clamp_probability else 0.25)
+        return lower, upper
+
+    figure_height = max(4.8, 0.42 * len(landmark_summaries) + 3.4)
+    fig, axes = plt.subplots(1, 3, figsize=(12.4, figure_height))
+    axes_list = list(axes) if hasattr(axes, "__iter__") else [axes]
+    fig.patch.set_facecolor("white")
+
+    title_artist = None
+    title_line_count = 0
+    if show_figure_title:
+        wrapped_title, title_line_count = _wrap_figure_title_to_width(
+            str(display_payload.get("title") or "").strip(),
+            max_width_pt=fig.get_figwidth() * 72.0 * 0.88,
+            font_size=title_size,
+        )
+        title_artist = fig.suptitle(
+            wrapped_title,
+            fontsize=title_size,
+            fontweight="bold",
+            color="#13293d",
+            y=0.985,
+        )
+
+    panel_title_artists: list[Any] = []
+    reference_specs: list[tuple[Any, float, int]] = []
+
+    row_labels = [str(item["window_label"]) for item in landmark_summaries]
+    row_positions = list(range(len(row_labels)))
+    y_axis_title_artist = None
+    panel_style = (
+        (discrimination_color, discrimination_fill),
+        (error_color, error_fill),
+        (calibration_color, calibration_fill),
+    )
+
+    for panel_index, (axes_item, panel, style) in enumerate(zip(axes_list, metric_panels, panel_style, strict=True), start=1):
+        line_color, fill_color = style
+        rows = list(panel["rows"])
+        values = [float(item["value"]) for item in rows]
+        lower_limit, upper_limit = _panel_limits(
+            rows,
+            reference_value=float(panel["reference_value"]) if panel.get("reference_value") is not None else None,
+            clamp_probability=str(panel["metric_kind"]) in {"c_index", "brier_score"},
+        )
+
+        if panel.get("reference_value") is not None:
+            reference_specs.append((axes_item, float(panel["reference_value"]), len(rows)))
+            axes_item.axvline(
+                float(panel["reference_value"]),
+                color=reference_color,
+                linewidth=1.0,
+                linestyle="--",
+                zorder=1,
+            )
+
+        axes_item.hlines(
+            row_positions,
+            [lower_limit] * len(row_positions),
+            values,
+            color=matplotlib.colors.to_rgba(fill_color, alpha=0.96),
+            linewidth=2.2,
+            zorder=2,
+        )
+        axes_item.scatter(
+            values,
+            row_positions,
+            s=marker_size**2,
+            color=line_color,
+            edgecolors="white",
+            linewidths=0.9,
+            zorder=3,
+        )
+
+        axes_item.set_xlim(lower_limit, upper_limit)
+        axes_item.set_ylim(-0.6, len(rows) - 0.4)
+        axes_item.set_yticks(row_positions)
+        if panel_index == 1:
+            axes_item.set_yticklabels(row_labels, fontsize=max(tick_size - 1.0, 8.2), color="#2F3437")
+            axes_item.set_ylabel(
+                "Landmark window",
+                fontsize=axis_title_size,
+                fontweight="bold",
+                color="#13293d",
+                labelpad=16,
+            )
+            y_axis_title_artist = axes_item.yaxis.label
+        else:
+            axes_item.set_yticklabels([""] * len(row_labels))
+        axes_item.invert_yaxis()
+        axes_item.set_xlabel(
+            str(panel["x_label"]),
+            fontsize=axis_title_size,
+            fontweight="bold",
+            color="#13293d",
+        )
+        panel_title_artists.append(
+            axes_item.set_title(
+                str(panel["title"]),
+                fontsize=axis_title_size,
+                fontweight="bold",
+                color="#334155",
+                pad=10.0,
+            )
+        )
+        axes_item.tick_params(axis="x", labelsize=tick_size, colors="#2F3437")
+        axes_item.tick_params(axis="y", length=0, pad=6 if panel_index == 1 else 0)
+        axes_item.grid(axis="x", color="#e6edf2", linewidth=0.55, linestyle=":")
+        _apply_publication_axes_style(axes_item)
+
+    top_margin = 0.78 if show_figure_title else 0.88
+    top_margin = max(0.72, top_margin - 0.04 * max(title_line_count - 1, 0))
+    fig.subplots_adjust(left=0.22, right=0.985, top=top_margin, bottom=0.20, wspace=0.28)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    def _add_panel_label(*, axes_item: Any, label: str) -> Any:
+        panel_bbox = axes_item.get_window_extent(renderer=renderer)
+        panel_x0, panel_y0 = fig.transFigure.inverted().transform((panel_bbox.x0, panel_bbox.y0))
+        panel_x1, panel_y1 = fig.transFigure.inverted().transform((panel_bbox.x1, panel_bbox.y1))
+        panel_width = float(panel_x1 - panel_x0)
+        panel_height = float(panel_y1 - panel_y0)
+        x_padding = min(max(panel_width * 0.012, 0.006), 0.014)
+        y_padding = min(max(panel_height * 0.030, 0.010), 0.018)
+        return fig.text(
+            panel_x0 + x_padding,
+            panel_y1 - y_padding,
+            label,
+            transform=fig.transFigure,
+            fontsize=max(panel_label_size + 1.2, 12.8),
+            fontweight="bold",
+            color="#2F3437",
+            ha="left",
+            va="top",
+        )
+
+    panel_label_artists = [
+        _add_panel_label(axes_item=axes_list[0], label="A"),
+        _add_panel_label(axes_item=axes_list[1], label="B"),
+        _add_panel_label(axes_item=axes_list[2], label="C"),
+    ]
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes: list[dict[str, Any]] = []
+    if title_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            )
+        )
+
+    panel_boxes: list[dict[str, Any]] = []
+    guide_boxes: list[dict[str, Any]] = []
+    marker_index = 1
+
+    for panel_index, (axes_item, panel_title_artist, panel_label_artist, panel) in enumerate(
+        zip(axes_list, panel_title_artists, panel_label_artists, metric_panels, strict=True),
+        start=1,
+    ):
+        panel_token = str(panel["panel_label"])
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=panel_title_artist.get_window_extent(renderer=renderer),
+                box_id=f"panel_title_{panel_token}",
+                box_type="panel_title",
+            )
+        )
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=axes_item.xaxis.label.get_window_extent(renderer=renderer),
+                box_id=f"x_axis_title_{panel_token}",
+                box_type="subplot_x_axis_title",
+            )
+        )
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=panel_label_artist.get_window_extent(renderer=renderer),
+                box_id=f"panel_label_{panel_token}",
+                box_type="panel_label",
+            )
+        )
+        panel_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=axes_item.get_window_extent(renderer=renderer),
+                box_id=f"panel_{panel_token}",
+                box_type="metric_panel",
+            )
+        )
+        lower_limit, upper_limit = axes_item.get_xlim()
+        x_radius = max((upper_limit - lower_limit) * 0.018, 0.008)
+        for row_position, row in enumerate(panel["rows"]):
+            value = float(row["value"])
+            layout_boxes.append(
+                _data_box_to_layout_box(
+                    axes=axes_item,
+                    figure=fig,
+                    x0=value - x_radius,
+                    y0=float(row_position) - 0.18,
+                    x1=value + x_radius,
+                    y1=float(row_position) + 0.18,
+                    box_id=f"metric_marker_{marker_index}",
+                    box_type="metric_marker",
+                )
+            )
+            marker_index += 1
+
+    if y_axis_title_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=y_axis_title_artist.get_window_extent(renderer=renderer),
+                box_id="y_axis_title_A",
+                box_type="subplot_y_axis_title",
+            )
+        )
+
+    for index, (axes_item, reference_value, row_count) in enumerate(reference_specs, start=1):
+        lower_limit, upper_limit = axes_item.get_xlim()
+        x_radius = max((upper_limit - lower_limit) * 0.012, 0.006)
+        guide_boxes.append(
+            _data_box_to_layout_box(
+                axes=axes_item,
+                figure=fig,
+                x0=reference_value - x_radius,
+                y0=-0.45,
+                x1=reference_value + x_radius,
+                y1=float(max(row_count - 1, 0)) + 0.45,
+                box_id=f"reference_line_{index}",
+                box_type="reference_line",
+            )
+        )
+
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "metric_panels": metric_panels,
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
 def _render_python_time_to_event_stratified_cumulative_incidence_panel(
     *,
     template_id: str,
@@ -2395,6 +3079,663 @@ def _render_python_time_to_event_stratified_cumulative_incidence_panel(
     fig.savefig(output_png_path, format="png", dpi=320)
     fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
+
+
+def _render_python_time_to_event_threshold_governance_panel(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    threshold_summaries = list(display_payload.get("threshold_summaries") or [])
+    risk_group_summaries = list(display_payload.get("risk_group_summaries") or [])
+    if not threshold_summaries or not risk_group_summaries:
+        raise RuntimeError(f"{template_id} requires non-empty threshold_summaries and risk_group_summaries")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    observed_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    predicted_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    primary_color = str(palette.get("primary") or observed_color).strip() or observed_color
+    threshold_fill = str(palette.get("primary_soft") or "#EAF2F5").strip() or "#EAF2F5"
+    threshold_fill_alt = str(palette.get("secondary_soft") or "#F4EEE5").strip() or "#F4EEE5"
+    grid_color = str(palette.get("light") or "#E7E1D8").strip() or "#E7E1D8"
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = float(typography.get("panel_label_size") or 11.0)
+    marker_size = max(float(stroke.get("marker_size") or 4.2), 3.8)
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    figure_height = max(4.4, 3.2 + 0.34 * len(threshold_summaries))
+    fig, (left_axes, right_axes) = plt.subplots(1, 2, figsize=(11.2, figure_height))
+    fig.patch.set_facecolor("white")
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
+        )
+
+    left_axes.set_axis_off()
+    left_axes.set_xlim(0.0, 1.0)
+    left_axes.set_ylim(0.0, 1.0)
+    left_axes.set_title(
+        str(display_payload.get("threshold_panel_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+        pad=12.0,
+    )
+    left_panel_label = left_axes.text(
+        0.02,
+        0.98,
+        "A",
+        transform=left_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+        ha="left",
+        va="top",
+    )
+
+    card_top = 0.82
+    card_bottom = 0.10
+    card_gap = 0.05
+    card_x0 = 0.10
+    card_x1 = 0.92
+    available_height = card_top - card_bottom - card_gap * max(len(threshold_summaries) - 1, 0)
+    card_height = available_height / max(len(threshold_summaries), 1)
+    threshold_card_patches: list[tuple[str, Any]] = []
+    for index, item in enumerate(threshold_summaries, start=1):
+        y1 = card_top - (index - 1) * (card_height + card_gap)
+        y0 = y1 - card_height
+        fill_color = threshold_fill if index % 2 == 1 else threshold_fill_alt
+        card_patch = matplotlib.patches.FancyBboxPatch(
+            (card_x0, y0),
+            card_x1 - card_x0,
+            card_height,
+            boxstyle="round,pad=0.012,rounding_size=0.02",
+            transform=left_axes.transAxes,
+            linewidth=1.2,
+            facecolor=fill_color,
+            edgecolor=neutral_color,
+        )
+        left_axes.add_patch(card_patch)
+        accent_patch = matplotlib.patches.Rectangle(
+            (card_x0, y0),
+            0.022,
+            card_height,
+            transform=left_axes.transAxes,
+            linewidth=0,
+            facecolor=primary_color if index % 2 == 1 else predicted_color,
+        )
+        left_axes.add_patch(accent_patch)
+        left_axes.text(
+            card_x0 + 0.05,
+            y1 - card_height * 0.26,
+            str(item["threshold_label"]),
+            transform=left_axes.transAxes,
+            fontsize=tick_size + 0.2,
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="center",
+        )
+        left_axes.text(
+            card_x0 + 0.05,
+            y1 - card_height * 0.49,
+            f"Threshold {float(item['threshold']):.0%}",
+            transform=left_axes.transAxes,
+            fontsize=tick_size - 0.1,
+            color=neutral_color,
+            ha="left",
+            va="center",
+        )
+        left_axes.text(
+            card_x0 + 0.05,
+            y0 + card_height * 0.26,
+            f"Sens {float(item['sensitivity']):.0%} · Spec {float(item['specificity']):.0%}",
+            transform=left_axes.transAxes,
+            fontsize=tick_size - 0.4,
+            color=neutral_color,
+            ha="left",
+            va="center",
+        )
+        left_axes.text(
+            card_x1 - 0.04,
+            y0 + card_height * 0.26,
+            f"NB {float(item['net_benefit']):.3f}",
+            transform=left_axes.transAxes,
+            fontsize=tick_size - 0.2,
+            fontweight="bold",
+            color=neutral_color,
+            ha="right",
+            va="center",
+        )
+        threshold_card_patches.append((f"threshold_card_{index}", card_patch))
+
+    right_axes.set_title(
+        str(display_payload.get("calibration_panel_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+        pad=12.0,
+    )
+    right_axes.set_xlabel(
+        str(display_payload.get("calibration_x_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    group_labels = [str(item["group_label"]) for item in risk_group_summaries]
+    y_positions = [float(index) for index in range(1, len(risk_group_summaries) + 1)]
+    predicted_risks = [float(item["predicted_risk"]) for item in risk_group_summaries]
+    observed_risks = [float(item["observed_risk"]) for item in risk_group_summaries]
+    x_upper = max(max(predicted_risks), max(observed_risks))
+    x_upper = min(1.0, max(0.18, x_upper * 1.22 + 0.02))
+    right_axes.set_xlim(0.0, x_upper)
+    right_axes.set_ylim(0.5, len(risk_group_summaries) + 0.5)
+    right_axes.set_yticks(y_positions)
+    right_axes.set_yticklabels(group_labels, fontsize=tick_size, color=neutral_color)
+    right_axes.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1.0, decimals=0))
+    right_axes.tick_params(axis="x", labelsize=tick_size)
+    right_axes.tick_params(axis="y", length=0, pad=7)
+    right_axes.grid(axis="x", color=grid_color, linewidth=0.8, linestyle=":")
+    right_axes.grid(axis="y", visible=False)
+    _apply_publication_axes_style(right_axes)
+    right_panel_label = right_axes.text(
+        0.02,
+        0.98,
+        "B",
+        transform=right_axes.transAxes,
+        fontsize=panel_label_size,
+        fontweight="bold",
+        color=neutral_color,
+        ha="left",
+        va="top",
+    )
+
+    normalized_risk_group_summaries: list[dict[str, Any]] = []
+    for index, (item, y_value, predicted_risk, observed_risk) in enumerate(
+        zip(risk_group_summaries, y_positions, predicted_risks, observed_risks, strict=True),
+        start=1,
+    ):
+        right_axes.hlines(
+            y=y_value,
+            xmin=min(predicted_risk, observed_risk),
+            xmax=max(predicted_risk, observed_risk),
+            color=neutral_color,
+            linewidth=1.7,
+            zorder=1,
+        )
+        right_axes.scatter(
+            [predicted_risk],
+            [y_value],
+            s=marker_size * 18.0,
+            color=predicted_color,
+            label="Predicted" if index == 1 else None,
+            zorder=3,
+        )
+        right_axes.scatter(
+            [observed_risk],
+            [y_value],
+            s=marker_size * 18.0,
+            color=observed_color,
+            label="Observed" if index == 1 else None,
+            zorder=4,
+        )
+        predicted_x, point_y = _data_point_to_figure_xy(
+            axes=right_axes,
+            figure=fig,
+            x=predicted_risk,
+            y=y_value,
+        )
+        observed_x, _ = _data_point_to_figure_xy(
+            axes=right_axes,
+            figure=fig,
+            x=observed_risk,
+            y=y_value,
+        )
+        normalized_risk_group_summaries.append(
+            {
+                "group_label": str(item["group_label"]),
+                "group_order": int(item["group_order"]),
+                "n": int(item["n"]),
+                "events": int(item["events"]),
+                "predicted_risk": predicted_risk,
+                "observed_risk": observed_risk,
+                "predicted_x": predicted_x,
+                "observed_x": observed_x,
+                "y": point_y,
+            }
+        )
+
+    legend_handles, legend_labels = right_axes.get_legend_handles_labels()
+    legend = fig.legend(
+        legend_handles,
+        legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.72, 0.03),
+        ncol=min(2, max(1, len(legend_labels))),
+        frameon=False,
+        fontsize=tick_size - 0.2,
+    )
+
+    fig.subplots_adjust(
+        left=0.07,
+        right=0.98,
+        top=0.82 if show_figure_title else 0.90,
+        bottom=0.18,
+        wspace=0.20,
+    )
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_title_A",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.title.get_window_extent(renderer=renderer),
+            box_id="panel_title_B",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="x_axis_title_B",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_A",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_panel_label.get_window_extent(renderer=renderer),
+            box_id="panel_label_B",
+            box_type="panel_label",
+        ),
+    ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
+    normalized_threshold_summaries: list[dict[str, Any]] = []
+    for index, (card_box_id, card_patch) in enumerate(threshold_card_patches):
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=card_patch.get_window_extent(renderer=renderer),
+                box_id=card_box_id,
+                box_type="threshold_card",
+            )
+        )
+        threshold_item = threshold_summaries[index]
+        normalized_threshold_summaries.append(
+            {
+                "threshold_label": str(threshold_item["threshold_label"]),
+                "threshold": float(threshold_item["threshold"]),
+                "sensitivity": float(threshold_item["sensitivity"]),
+                "specificity": float(threshold_item["specificity"]),
+                "net_benefit": float(threshold_item["net_benefit"]),
+                "card_box_id": card_box_id,
+            }
+        )
+
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": [
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=left_axes.get_window_extent(renderer=renderer),
+                    box_id="threshold_panel",
+                    box_type="threshold_panel",
+                ),
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=right_axes.get_window_extent(renderer=renderer),
+                    box_id="calibration_panel",
+                    box_type="calibration_panel",
+                ),
+            ],
+            "guide_boxes": [
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=legend.get_window_extent(renderer=renderer),
+                    box_id="legend",
+                    box_type="legend",
+                )
+            ],
+            "metrics": {
+                "threshold_summaries": normalized_threshold_summaries,
+                "risk_group_summaries": normalized_risk_group_summaries,
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
+
+def _render_python_time_to_event_multihorizon_calibration_panel(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    panels = list(display_payload.get("panels") or [])
+    if not panels:
+        raise RuntimeError(f"{template_id} requires non-empty panels")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    render_context = dict(display_payload.get("render_context") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    palette = dict(render_context.get("palette") or {})
+    typography = dict(render_context.get("typography") or {})
+    stroke = dict(render_context.get("stroke") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    observed_color = _require_non_empty_string(
+        style_roles.get("model_curve"),
+        label=f"{template_id} render_context.style_roles.model_curve",
+    )
+    predicted_color = _require_non_empty_string(
+        style_roles.get("comparator_curve"),
+        label=f"{template_id} render_context.style_roles.comparator_curve",
+    )
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    grid_color = str(palette.get("light") or "#E7E1D8").strip() or "#E7E1D8"
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = float(typography.get("panel_label_size") or 11.0)
+    marker_size = max(float(stroke.get("marker_size") or 4.2), 3.8)
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    panel_count = len(panels)
+    figure_width = max(9.8, 4.1 * panel_count + 0.8)
+    fig, axes = plt.subplots(1, panel_count, figsize=(figure_width, 4.7))
+    axes_list = list(axes) if hasattr(axes, "__iter__") else [axes]
+    fig.patch.set_facecolor("white")
+
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
+        )
+    x_axis_artist = fig.text(
+        0.5,
+        0.06,
+        str(display_payload.get("x_label") or "").strip(),
+        ha="center",
+        va="center",
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    fig.subplots_adjust(
+        left=0.08,
+        right=0.99,
+        top=0.82 if show_figure_title else 0.90,
+        bottom=0.20,
+        wspace=0.28,
+    )
+
+    panel_label_artists: list[Any] = []
+    panel_title_artists: list[Any] = []
+    normalized_panels: list[dict[str, Any]] = []
+    for axes_index, (axes_item, panel) in enumerate(zip(axes_list, panels, strict=True), start=1):
+        calibration_summary = list(panel.get("calibration_summary") or [])
+        if not calibration_summary:
+            raise RuntimeError(f"{template_id} panel {axes_index} requires non-empty calibration_summary")
+        group_labels = [str(item["group_label"]) for item in calibration_summary]
+        y_positions = [float(index) for index in range(1, len(calibration_summary) + 1)]
+        predicted_risks = [float(item["predicted_risk"]) for item in calibration_summary]
+        observed_risks = [float(item["observed_risk"]) for item in calibration_summary]
+        x_upper = min(1.0, max(0.18, max(max(predicted_risks), max(observed_risks)) * 1.22 + 0.02))
+
+        axes_item.set_xlim(0.0, x_upper)
+        axes_item.set_ylim(0.5, len(calibration_summary) + 0.5)
+        axes_item.set_yticks(y_positions)
+        axes_item.set_yticklabels(group_labels, fontsize=tick_size, color=neutral_color)
+        axes_item.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1.0, decimals=0))
+        axes_item.tick_params(axis="x", labelsize=tick_size)
+        axes_item.tick_params(axis="y", length=0, pad=6)
+        axes_item.grid(axis="x", color=grid_color, linewidth=0.8, linestyle=":")
+        axes_item.grid(axis="y", visible=False)
+        _apply_publication_axes_style(axes_item)
+        axes_item.set_title(
+            str(panel.get("title") or "").strip(),
+            fontsize=axis_title_size,
+            fontweight="bold",
+            color=neutral_color,
+            pad=12.0,
+        )
+        panel_label_artists.append(
+            axes_item.text(
+                0.02,
+                0.98,
+                str(panel.get("panel_label") or "").strip(),
+                transform=axes_item.transAxes,
+                fontsize=panel_label_size,
+                fontweight="bold",
+                color=neutral_color,
+                ha="left",
+                va="top",
+            )
+        )
+        panel_title_artists.append(axes_item.title)
+
+        normalized_summary: list[dict[str, Any]] = []
+        for group_index, (item, y_value, predicted_risk, observed_risk) in enumerate(
+            zip(calibration_summary, y_positions, predicted_risks, observed_risks, strict=True),
+            start=1,
+        ):
+            axes_item.hlines(
+                y=y_value,
+                xmin=min(predicted_risk, observed_risk),
+                xmax=max(predicted_risk, observed_risk),
+                color=neutral_color,
+                linewidth=1.7,
+                zorder=1,
+            )
+            axes_item.scatter(
+                [predicted_risk],
+                [y_value],
+                s=marker_size * 18.0,
+                color=predicted_color,
+                label="Predicted" if axes_index == 1 and group_index == 1 else None,
+                zorder=3,
+            )
+            axes_item.scatter(
+                [observed_risk],
+                [y_value],
+                s=marker_size * 18.0,
+                color=observed_color,
+                label="Observed" if axes_index == 1 and group_index == 1 else None,
+                zorder=4,
+            )
+            predicted_x, point_y = _data_point_to_figure_xy(
+                axes=axes_item,
+                figure=fig,
+                x=predicted_risk,
+                y=y_value,
+            )
+            observed_x, _ = _data_point_to_figure_xy(
+                axes=axes_item,
+                figure=fig,
+                x=observed_risk,
+                y=y_value,
+            )
+            normalized_summary.append(
+                {
+                    "group_label": str(item["group_label"]),
+                    "group_order": int(item["group_order"]),
+                    "n": int(item["n"]),
+                    "events": int(item["events"]),
+                    "predicted_risk": predicted_risk,
+                    "observed_risk": observed_risk,
+                    "predicted_x": predicted_x,
+                    "observed_x": observed_x,
+                    "y": point_y,
+                }
+            )
+        normalized_panels.append(
+            {
+                "panel_id": str(panel["panel_id"]),
+                "panel_label": str(panel["panel_label"]),
+                "title": str(panel["title"]),
+                "time_horizon_months": int(panel["time_horizon_months"]),
+                "calibration_summary": normalized_summary,
+            }
+        )
+
+    legend_handles, legend_labels = axes_list[0].get_legend_handles_labels()
+    legend = fig.legend(
+        legend_handles,
+        legend_labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.02),
+        ncol=min(2, max(1, len(legend_labels))),
+        frameon=False,
+        fontsize=tick_size - 0.2,
+    )
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=x_axis_artist.get_window_extent(renderer=renderer),
+            box_id="x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+    ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
+
+    panel_boxes: list[dict[str, Any]] = []
+    for axes_item, panel, title_artist_item, label_artist_item in zip(
+        axes_list,
+        normalized_panels,
+        panel_title_artists,
+        panel_label_artists,
+        strict=True,
+    ):
+        panel_label_token = re.sub(r"[^A-Za-z0-9]+", "_", str(panel["panel_label"])) or "panel"
+        panel_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=axes_item.get_window_extent(renderer=renderer),
+                box_id=f"panel_{panel_label_token}",
+                box_type="calibration_panel",
+            )
+        )
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist_item.get_window_extent(renderer=renderer),
+                box_id=f"panel_title_{panel_label_token}",
+                box_type="panel_title",
+            )
+        )
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=label_artist_item.get_window_extent(renderer=renderer),
+                box_id=f"panel_label_{panel_label_token}",
+                box_type="panel_label",
+            )
+        )
+
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": [
+                _bbox_to_layout_box(
+                    figure=fig,
+                    bbox=legend.get_window_extent(renderer=renderer),
+                    box_id="legend",
+                    box_type="legend",
+                )
+            ],
+            "metrics": {
+                "panels": normalized_panels,
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
 
 def _render_python_time_to_event_risk_group_summary(
     *,
@@ -3764,12 +5105,385 @@ def _render_python_multicenter_generalizability_overview(
     fig.savefig(output_pdf_path, format="pdf")
     plt.close(fig)
 
+
+def _render_python_celltype_signature_heatmap(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    output_png_path: Path,
+    output_pdf_path: Path,
+    layout_sidecar_path: Path,
+) -> None:
+    embedding_points = list(display_payload.get("embedding_points") or [])
+    matrix_cells = list(display_payload.get("cells") or [])
+    row_order = list(display_payload.get("row_order") or [])
+    column_order = list(display_payload.get("column_order") or [])
+    if not embedding_points or not matrix_cells or not row_order or not column_order:
+        raise RuntimeError(f"{template_id} requires non-empty embedding_points, row_order, column_order, and cells")
+
+    _prepare_python_render_output_paths(
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    render_context = dict(display_payload.get("render_context") or {})
+    typography = dict(render_context.get("typography") or {})
+    palette = dict(render_context.get("palette") or {})
+    style_roles = dict(render_context.get("style_roles") or {})
+    layout_override = dict(render_context.get("layout_override") or {})
+
+    title_size = float(typography.get("title_size") or 12.5)
+    axis_title_size = float(typography.get("axis_title_size") or 11.0)
+    tick_size = float(typography.get("tick_size") or 10.0)
+    panel_label_size = max(12.0, float(typography.get("panel_label_size") or 11.0))
+    show_figure_title = _read_bool_override(layout_override, "show_figure_title", False)
+
+    neutral_color = _require_non_empty_string(
+        style_roles.get("reference_line"),
+        label=f"{template_id} render_context.style_roles.reference_line",
+    )
+    fallback_palette = [
+        _require_non_empty_string(
+            style_roles.get("model_curve"),
+            label=f"{template_id} render_context.style_roles.model_curve",
+        ),
+        _require_non_empty_string(
+            style_roles.get("comparator_curve"),
+            label=f"{template_id} render_context.style_roles.comparator_curve",
+        ),
+        str(palette.get("audit") or "#9467bd").strip() or "#9467bd",
+        str(palette.get("secondary_soft") or "#17becf").strip() or "#17becf",
+    ]
+    light_fill = str(palette.get("light") or "#eff6ff").strip() or "#eff6ff"
+
+    fig, (left_axes, right_axes) = plt.subplots(
+        1,
+        2,
+        figsize=(11.2, 4.8),
+        gridspec_kw={"width_ratios": [1.0, 0.92]},
+    )
+    fig.patch.set_facecolor("white")
+    title_artist = None
+    if show_figure_title:
+        title_artist = fig.suptitle(
+            str(display_payload.get("title") or "").strip(),
+            fontsize=title_size,
+            fontweight="bold",
+            color=neutral_color,
+        )
+
+    group_labels = [str(item["label"]) for item in column_order]
+    palette_lookup = {
+        label: fallback_palette[index % len(fallback_palette)] for index, label in enumerate(group_labels)
+    }
+    for group_label in group_labels:
+        group_points = [item for item in embedding_points if str(item["group"]) == group_label]
+        if not group_points:
+            continue
+        left_axes.scatter(
+            [float(item["x"]) for item in group_points],
+            [float(item["y"]) for item in group_points],
+            label=group_label,
+            s=38,
+            alpha=0.92,
+            color=palette_lookup[group_label],
+            edgecolors="white",
+            linewidths=0.4,
+        )
+    left_axes.set_title(
+        str(display_payload.get("embedding_panel_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.set_xlabel(
+        str(display_payload.get("embedding_x_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.set_ylabel(
+        str(display_payload.get("embedding_y_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    left_axes.tick_params(axis="both", labelsize=tick_size)
+    left_axes.grid(color=light_fill, linewidth=0.8, linestyle=":")
+    _apply_publication_axes_style(left_axes)
+
+    embedding_annotation = str(display_payload.get("embedding_annotation") or "").strip()
+    embedding_annotation_artist = None
+    if embedding_annotation:
+        embedding_annotation_artist = left_axes.text(
+            0.03,
+            0.05,
+            embedding_annotation,
+            transform=left_axes.transAxes,
+            fontsize=max(tick_size - 1.0, 8.0),
+            color=neutral_color,
+            ha="left",
+            va="bottom",
+        )
+
+    row_labels = [str(item["label"]) for item in row_order]
+    matrix_lookup = {(str(item["x"]), str(item["y"])): float(item["value"]) for item in matrix_cells}
+    matrix_rows = [[matrix_lookup[(column_label, row_label)] for column_label in group_labels] for row_label in row_labels]
+    vmax = max(abs(value) for value in matrix_lookup.values()) if matrix_lookup else 1.0
+    vmax = max(vmax, 1e-6)
+    heatmap_artist = right_axes.imshow(matrix_rows, aspect="auto", cmap="coolwarm", vmin=-vmax, vmax=vmax)
+    right_axes.set_title(
+        str(display_payload.get("heatmap_panel_title") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    right_axes.set_xlabel(
+        str(display_payload.get("heatmap_x_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    right_axes.set_ylabel(
+        str(display_payload.get("heatmap_y_label") or "").strip(),
+        fontsize=axis_title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    right_axes.set_xticks(range(len(group_labels)))
+    right_axes.set_xticklabels(group_labels, fontsize=tick_size, rotation=22, ha="right", color=neutral_color)
+    right_axes.set_yticks(range(len(row_labels)))
+    right_axes.set_yticklabels(row_labels, fontsize=tick_size, color=neutral_color)
+    right_axes.tick_params(axis="both", length=0)
+    _apply_publication_axes_style(right_axes)
+    for row_index, row_label in enumerate(row_labels):
+        for column_index, column_label in enumerate(group_labels):
+            value = matrix_lookup[(column_label, row_label)]
+            right_axes.text(
+                column_index,
+                row_index,
+                f"{value:.2f}",
+                ha="center",
+                va="center",
+                fontsize=max(tick_size - 1.4, 7.6),
+                color="#13293d",
+            )
+
+    heatmap_annotation = str(display_payload.get("heatmap_annotation") or "").strip()
+    heatmap_annotation_artist = None
+    if heatmap_annotation:
+        heatmap_annotation_artist = right_axes.text(
+            0.03,
+            0.05,
+            heatmap_annotation,
+            transform=right_axes.transAxes,
+            fontsize=max(tick_size - 1.0, 8.0),
+            color=neutral_color,
+            ha="left",
+            va="bottom",
+        )
+
+    fig.subplots_adjust(
+        left=0.08,
+        right=0.90,
+        top=0.76 if show_figure_title else 0.82,
+        bottom=0.24,
+        wspace=0.24,
+    )
+    legend_handles, legend_labels = left_axes.get_legend_handles_labels()
+    legend = fig.legend(
+        legend_handles,
+        legend_labels,
+        frameon=False,
+        loc="lower left",
+        bbox_to_anchor=(0.09, 0.02),
+        ncol=min(3, max(1, len(legend_labels))),
+    )
+    colorbar = fig.colorbar(heatmap_artist, ax=right_axes, fraction=0.050, pad=0.04)
+    colorbar.set_label(
+        str(display_payload.get("score_method") or "").strip(),
+        fontsize=max(axis_title_size - 0.5, 9.8),
+        color=neutral_color,
+    )
+    colorbar.ax.tick_params(labelsize=max(tick_size - 0.6, 8.6))
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    def _add_figure_panel_label(*, axes, label: str) -> Any:
+        panel_bbox = axes.get_window_extent(renderer=renderer)
+        panel_x0, panel_y0 = fig.transFigure.inverted().transform((panel_bbox.x0, panel_bbox.y0))
+        panel_x1, panel_y1 = fig.transFigure.inverted().transform((panel_bbox.x1, panel_bbox.y1))
+        panel_width = float(panel_x1 - panel_x0)
+        panel_height = float(panel_y1 - panel_y0)
+        x_padding = min(max(panel_width * 0.012, 0.006), 0.014)
+        y_padding = min(max(panel_height * 0.025, 0.008), 0.015)
+        return fig.text(
+            panel_x0 + x_padding,
+            panel_y1 - y_padding,
+            label,
+            transform=fig.transFigure,
+            fontsize=max(panel_label_size + 1.8, 13.6),
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+
+    panel_label_a = _add_figure_panel_label(axes=left_axes, label="A")
+    panel_label_b = _add_figure_panel_label(axes=right_axes, label="B")
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.title.get_window_extent(renderer=renderer),
+            box_id="embedding_panel_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="embedding_x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="embedding_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.title.get_window_extent(renderer=renderer),
+            box_id="heatmap_panel_title",
+            box_type="panel_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.xaxis.label.get_window_extent(renderer=renderer),
+            box_id="heatmap_x_axis_title",
+            box_type="subplot_x_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.yaxis.label.get_window_extent(renderer=renderer),
+            box_id="heatmap_y_axis_title",
+            box_type="subplot_y_axis_title",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=panel_label_a.get_window_extent(renderer=renderer),
+            box_id="panel_label_A",
+            box_type="panel_label",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=panel_label_b.get_window_extent(renderer=renderer),
+            box_id="panel_label_B",
+            box_type="panel_label",
+        ),
+    ]
+    if title_artist is not None:
+        layout_boxes.insert(
+            0,
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=title_artist.get_window_extent(renderer=renderer),
+                box_id="title",
+                box_type="title",
+            ),
+        )
+    if embedding_annotation_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=embedding_annotation_artist.get_window_extent(renderer=renderer),
+                box_id="embedding_annotation",
+                box_type="annotation_text",
+            )
+        )
+    if heatmap_annotation_artist is not None:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=heatmap_annotation_artist.get_window_extent(renderer=renderer),
+                box_id="heatmap_annotation",
+                box_type="annotation_text",
+            )
+        )
+
+    panel_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=left_axes.get_window_extent(renderer=renderer),
+            box_id="panel_left",
+            box_type="panel",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=right_axes.get_window_extent(renderer=renderer),
+            box_id="panel_right",
+            box_type="heatmap_tile_region",
+        ),
+    ]
+    guide_boxes = [
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=legend.get_window_extent(renderer=renderer),
+            box_id="legend",
+            box_type="legend",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=colorbar.ax.get_window_extent(renderer=renderer),
+            box_id="colorbar",
+            box_type="colorbar",
+        ),
+    ]
+
+    normalized_points = []
+    for item in embedding_points:
+        point_x, point_y = _data_point_to_figure_xy(
+            axes=left_axes,
+            figure=fig,
+            x=float(item["x"]),
+            y=float(item["y"]),
+        )
+        normalized_points.append({"x": point_x, "y": point_y, "group": str(item["group"])})
+
+    dump_json(
+        layout_sidecar_path,
+        {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "points": normalized_points,
+                "group_labels": group_labels,
+                "matrix_cells": matrix_cells,
+                "score_method": str(display_payload.get("score_method") or "").strip(),
+            },
+        },
+    )
+    fig.savefig(output_png_path, format="png", dpi=320)
+    fig.savefig(output_pdf_path, format="pdf")
+    plt.close(fig)
+
 _PYTHON_EVIDENCE_RENDERERS = {
     "binary_calibration_decision_curve_panel": _render_python_binary_calibration_decision_curve_panel,
+    "celltype_signature_heatmap": _render_python_celltype_signature_heatmap,
     "model_complexity_audit_panel": _render_python_model_complexity_audit_panel,
     "risk_layering_monotonic_bars": _render_python_risk_layering_monotonic_bars,
+    "shap_dependence_panel": _render_python_shap_dependence_panel,
     "shap_summary_beeswarm": _render_python_shap_summary_beeswarm,
     "time_dependent_roc_comparison_panel": _render_python_time_dependent_roc_comparison_panel,
+    "time_to_event_landmark_performance_panel": _render_python_time_to_event_landmark_performance_panel,
+    "time_to_event_multihorizon_calibration_panel": _render_python_time_to_event_multihorizon_calibration_panel,
+    "time_to_event_threshold_governance_panel": _render_python_time_to_event_threshold_governance_panel,
     "time_to_event_stratified_cumulative_incidence_panel": _render_python_time_to_event_stratified_cumulative_incidence_panel,
     "time_to_event_risk_group_summary": _render_python_time_to_event_risk_group_summary,
     "time_to_event_decision_curve": _render_python_time_to_event_decision_curve,

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 import html
 import json
+import math
 import re
 from pathlib import Path
 import shutil
@@ -2083,6 +2084,419 @@ def _validate_model_complexity_audit_display_payload(
     }
 
 
+def _validate_time_to_event_landmark_performance_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    summaries_payload = payload.get("landmark_summaries")
+    if not isinstance(summaries_payload, list) or not summaries_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty landmark_summaries list")
+
+    normalized_summaries: list[dict[str, Any]] = []
+    seen_window_labels: set[str] = set()
+    seen_analysis_window_labels: set[str] = set()
+    for index, item in enumerate(summaries_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` landmark_summaries[{index}] must be an object")
+        window_label = _require_non_empty_string(
+            item.get("window_label"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].window_label",
+        )
+        if window_label in seen_window_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].window_label must be unique"
+            )
+        analysis_window_label = _require_non_empty_string(
+            item.get("analysis_window_label"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].analysis_window_label",
+        )
+        if analysis_window_label in seen_analysis_window_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].analysis_window_label must be unique"
+            )
+        landmark_months = _require_non_negative_int(
+            item.get("landmark_months"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].landmark_months",
+            allow_zero=False,
+        )
+        prediction_months = _require_non_negative_int(
+            item.get("prediction_months"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].prediction_months",
+            allow_zero=False,
+        )
+        if prediction_months <= landmark_months:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].prediction_months must exceed landmark_months"
+            )
+        c_index = _require_numeric_value(
+            item.get("c_index"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].c_index",
+        )
+        if c_index < 0.0 or c_index > 1.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].c_index must stay within [0, 1]"
+            )
+        brier_score = _require_numeric_value(
+            item.get("brier_score"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].brier_score",
+        )
+        if brier_score < 0.0 or brier_score > 1.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].brier_score must stay within [0, 1]"
+            )
+        calibration_slope = _require_numeric_value(
+            item.get("calibration_slope"),
+            label=f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].calibration_slope",
+        )
+        if not math.isfinite(calibration_slope):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` landmark_summaries[{index}].calibration_slope must be finite"
+            )
+        seen_window_labels.add(window_label)
+        seen_analysis_window_labels.add(analysis_window_label)
+        normalized_summaries.append(
+            {
+                "window_label": window_label,
+                "analysis_window_label": analysis_window_label,
+                "landmark_months": landmark_months,
+                "prediction_months": prediction_months,
+                "c_index": c_index,
+                "brier_score": brier_score,
+                "calibration_slope": calibration_slope,
+                "annotation": str(item.get("annotation") or "").strip(),
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": _require_non_empty_string(
+            payload.get("title"),
+            label=f"{path.name} display `{expected_display_id}` title",
+        ),
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "discrimination_panel_title": _require_non_empty_string(
+            payload.get("discrimination_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` discrimination_panel_title",
+        ),
+        "discrimination_x_label": _require_non_empty_string(
+            payload.get("discrimination_x_label"),
+            label=f"{path.name} display `{expected_display_id}` discrimination_x_label",
+        ),
+        "error_panel_title": _require_non_empty_string(
+            payload.get("error_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` error_panel_title",
+        ),
+        "error_x_label": _require_non_empty_string(
+            payload.get("error_x_label"),
+            label=f"{path.name} display `{expected_display_id}` error_x_label",
+        ),
+        "calibration_panel_title": _require_non_empty_string(
+            payload.get("calibration_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` calibration_panel_title",
+        ),
+        "calibration_x_label": _require_non_empty_string(
+            payload.get("calibration_x_label"),
+            label=f"{path.name} display `{expected_display_id}` calibration_x_label",
+        ),
+        "landmark_summaries": normalized_summaries,
+    }
+
+
+def _validate_time_to_event_threshold_governance_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    threshold_summaries_payload = payload.get("threshold_summaries")
+    if not isinstance(threshold_summaries_payload, list) or not threshold_summaries_payload:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must contain a non-empty threshold_summaries list"
+        )
+    normalized_threshold_summaries: list[dict[str, Any]] = []
+    seen_threshold_labels: set[str] = set()
+    previous_threshold = -1.0
+    for index, item in enumerate(threshold_summaries_payload):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` threshold_summaries[{index}] must be an object"
+            )
+        threshold_label = _require_non_empty_string(
+            item.get("threshold_label"),
+            label=f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].threshold_label",
+        )
+        if threshold_label in seen_threshold_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].threshold_label must be unique"
+            )
+        threshold = _require_probability_value(
+            item.get("threshold"),
+            label=f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].threshold",
+        )
+        if threshold <= previous_threshold:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].threshold must be strictly increasing"
+            )
+        previous_threshold = threshold
+        seen_threshold_labels.add(threshold_label)
+        normalized_threshold_summaries.append(
+            {
+                "threshold_label": threshold_label,
+                "threshold": threshold,
+                "sensitivity": _require_probability_value(
+                    item.get("sensitivity"),
+                    label=f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].sensitivity",
+                ),
+                "specificity": _require_probability_value(
+                    item.get("specificity"),
+                    label=f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].specificity",
+                ),
+                "net_benefit": _require_numeric_value(
+                    item.get("net_benefit"),
+                    label=f"{path.name} display `{expected_display_id}` threshold_summaries[{index}].net_benefit",
+                ),
+            }
+        )
+
+    risk_group_summaries_payload = payload.get("risk_group_summaries")
+    if not isinstance(risk_group_summaries_payload, list) or not risk_group_summaries_payload:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must contain a non-empty risk_group_summaries list"
+        )
+    normalized_risk_group_summaries: list[dict[str, Any]] = []
+    previous_group_order = 0
+    for index, item in enumerate(risk_group_summaries_payload):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}] must be an object"
+            )
+        group_order = _require_non_negative_int(
+            item.get("group_order"),
+            label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].group_order",
+            allow_zero=False,
+        )
+        if group_order <= previous_group_order:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].group_order must be strictly increasing"
+            )
+        previous_group_order = group_order
+        n = _require_non_negative_int(
+            item.get("n"),
+            label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].n",
+            allow_zero=False,
+        )
+        events = _require_non_negative_int(
+            item.get("events"),
+            label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].events",
+        )
+        if events > n:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].events must not exceed .n"
+            )
+        normalized_risk_group_summaries.append(
+            {
+                "group_label": _require_non_empty_string(
+                    item.get("group_label"),
+                    label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].group_label",
+                ),
+                "group_order": group_order,
+                "n": n,
+                "events": events,
+                "predicted_risk": _require_probability_value(
+                    item.get("predicted_risk"),
+                    label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].predicted_risk",
+                ),
+                "observed_risk": _require_probability_value(
+                    item.get("observed_risk"),
+                    label=f"{path.name} display `{expected_display_id}` risk_group_summaries[{index}].observed_risk",
+                ),
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": _require_non_empty_string(
+            payload.get("title"),
+            label=f"{path.name} display `{expected_display_id}` title",
+        ),
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "threshold_panel_title": _require_non_empty_string(
+            payload.get("threshold_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` threshold_panel_title",
+        ),
+        "calibration_panel_title": _require_non_empty_string(
+            payload.get("calibration_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` calibration_panel_title",
+        ),
+        "calibration_x_label": _require_non_empty_string(
+            payload.get("calibration_x_label"),
+            label=f"{path.name} display `{expected_display_id}` calibration_x_label",
+        ),
+        "threshold_summaries": normalized_threshold_summaries,
+        "risk_group_summaries": normalized_risk_group_summaries,
+    }
+
+
+def _validate_time_to_event_multihorizon_calibration_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty panels list")
+
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    previous_time_horizon = 0
+    for panel_index, panel_payload in enumerate(panels_payload):
+        if not isinstance(panel_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel_payload.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id must be unique")
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            panel_payload.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        time_horizon_months = _require_non_negative_int(
+            panel_payload.get("time_horizon_months"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].time_horizon_months",
+            allow_zero=False,
+        )
+        if time_horizon_months <= previous_time_horizon:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].time_horizon_months must be strictly increasing"
+            )
+        previous_time_horizon = time_horizon_months
+
+        calibration_summary_payload = panel_payload.get("calibration_summary")
+        if not isinstance(calibration_summary_payload, list) or not calibration_summary_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary must be a non-empty list"
+            )
+        normalized_summary: list[dict[str, Any]] = []
+        previous_group_order = 0
+        for group_index, item in enumerate(calibration_summary_payload):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary[{group_index}] must be an object"
+                )
+            group_order = _require_non_negative_int(
+                item.get("group_order"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}]."
+                    f"calibration_summary[{group_index}].group_order"
+                ),
+                allow_zero=False,
+            )
+            if group_order <= previous_group_order:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary[{group_index}].group_order must be strictly increasing"
+                )
+            previous_group_order = group_order
+            n = _require_non_negative_int(
+                item.get("n"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary[{group_index}].n"
+                ),
+                allow_zero=False,
+            )
+            events = _require_non_negative_int(
+                item.get("events"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary[{group_index}].events"
+                ),
+            )
+            if events > n:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].calibration_summary[{group_index}].events must not exceed .n"
+                )
+            normalized_summary.append(
+                {
+                    "group_label": _require_non_empty_string(
+                        item.get("group_label"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` panels[{panel_index}]."
+                            f"calibration_summary[{group_index}].group_label"
+                        ),
+                    ),
+                    "group_order": group_order,
+                    "n": n,
+                    "events": events,
+                    "predicted_risk": _require_probability_value(
+                        item.get("predicted_risk"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` panels[{panel_index}]."
+                            f"calibration_summary[{group_index}].predicted_risk"
+                        ),
+                    ),
+                    "observed_risk": _require_probability_value(
+                        item.get("observed_risk"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` panels[{panel_index}]."
+                            f"calibration_summary[{group_index}].observed_risk"
+                        ),
+                    ),
+                }
+            )
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "title": _require_non_empty_string(
+                    panel_payload.get("title"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].title",
+                ),
+                "time_horizon_months": time_horizon_months,
+                "calibration_summary": normalized_summary,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": _require_non_empty_string(
+            payload.get("title"),
+            label=f"{path.name} display `{expected_display_id}` title",
+        ),
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": _require_non_empty_string(
+            payload.get("x_label"),
+            label=f"{path.name} display `{expected_display_id}` x_label",
+        ),
+        "panels": normalized_panels,
+    }
+
+
 def _validate_time_to_event_display_payload(
     *,
     path: Path,
@@ -2565,6 +2979,153 @@ def _validate_embedding_display_payload(
     }
 
 
+def _validate_celltype_signature_heatmap_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    embedding_panel_title = _require_non_empty_string(
+        payload.get("embedding_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` embedding_panel_title",
+    )
+    embedding_x_label = _require_non_empty_string(
+        payload.get("embedding_x_label"),
+        label=f"{path.name} display `{expected_display_id}` embedding_x_label",
+    )
+    embedding_y_label = _require_non_empty_string(
+        payload.get("embedding_y_label"),
+        label=f"{path.name} display `{expected_display_id}` embedding_y_label",
+    )
+    heatmap_panel_title = _require_non_empty_string(
+        payload.get("heatmap_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` heatmap_panel_title",
+    )
+    heatmap_x_label = _require_non_empty_string(
+        payload.get("heatmap_x_label"),
+        label=f"{path.name} display `{expected_display_id}` heatmap_x_label",
+    )
+    heatmap_y_label = _require_non_empty_string(
+        payload.get("heatmap_y_label"),
+        label=f"{path.name} display `{expected_display_id}` heatmap_y_label",
+    )
+    embedding_points = payload.get("embedding_points")
+    if not isinstance(embedding_points, list) or not embedding_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty embedding_points list")
+    normalized_embedding_points: list[dict[str, Any]] = []
+    observed_groups: set[str] = set()
+    for index, item in enumerate(embedding_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` embedding_points[{index}] must be an object")
+        group_label = _require_non_empty_string(
+            item.get("group"),
+            label=f"{path.name} display `{expected_display_id}` embedding_points[{index}].group",
+        )
+        observed_groups.add(group_label)
+        normalized_embedding_points.append(
+            {
+                "x": _require_numeric_value(
+                    item.get("x"),
+                    label=f"{path.name} display `{expected_display_id}` embedding_points[{index}].x",
+                ),
+                "y": _require_numeric_value(
+                    item.get("y"),
+                    label=f"{path.name} display `{expected_display_id}` embedding_points[{index}].y",
+                ),
+                "group": group_label,
+            }
+        )
+
+    row_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("row_order"),
+        label=f"display `{expected_display_id}` row_order",
+    )
+    column_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("column_order"),
+        label=f"display `{expected_display_id}` column_order",
+    )
+    cells = payload.get("cells")
+    if not isinstance(cells, list) or not cells:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty cells list")
+    normalized_cells: list[dict[str, Any]] = []
+    observed_rows: set[str] = set()
+    observed_columns: set[str] = set()
+    observed_coordinates: set[tuple[str, str]] = set()
+    for index, item in enumerate(cells):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` cells[{index}] must be an object")
+        column_label = _require_non_empty_string(
+            item.get("x"),
+            label=f"{path.name} display `{expected_display_id}` cells[{index}].x",
+        )
+        row_label = _require_non_empty_string(
+            item.get("y"),
+            label=f"{path.name} display `{expected_display_id}` cells[{index}].y",
+        )
+        coordinate = (column_label, row_label)
+        if coordinate in observed_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` must cover every declared row/column coordinate exactly once"
+            )
+        observed_coordinates.add(coordinate)
+        observed_columns.add(column_label)
+        observed_rows.add(row_label)
+        normalized_cells.append(
+            {
+                "x": column_label,
+                "y": row_label,
+                "value": _require_numeric_value(
+                    item.get("value"),
+                    label=f"{path.name} display `{expected_display_id}` cells[{index}].value",
+                ),
+            }
+        )
+
+    declared_rows = {item["label"] for item in row_order}
+    declared_columns = {item["label"] for item in column_order}
+    if observed_rows != declared_rows:
+        raise ValueError(f"{path.name} display `{expected_display_id}` row_order labels must match cell y labels")
+    if observed_columns != declared_columns:
+        raise ValueError(f"{path.name} display `{expected_display_id}` column_order labels must match cell x labels")
+    if observed_groups != declared_columns:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` column_order labels must match embedding point groups"
+        )
+    expected_coordinates = {(column["label"], row["label"]) for row in row_order for column in column_order}
+    if observed_coordinates != expected_coordinates:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must cover every declared row/column coordinate exactly once")
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "embedding_panel_title": embedding_panel_title,
+        "embedding_x_label": embedding_x_label,
+        "embedding_y_label": embedding_y_label,
+        "embedding_annotation": str(payload.get("embedding_annotation") or "").strip(),
+        "embedding_points": normalized_embedding_points,
+        "heatmap_panel_title": heatmap_panel_title,
+        "heatmap_x_label": heatmap_x_label,
+        "heatmap_y_label": heatmap_y_label,
+        "heatmap_annotation": str(payload.get("heatmap_annotation") or "").strip(),
+        "score_method": _require_non_empty_string(
+            payload.get("score_method"),
+            label=f"{path.name} display `{expected_display_id}` score_method",
+        ),
+        "row_order": row_order,
+        "column_order": column_order,
+        "cells": normalized_cells,
+    }
+
+
 def _validate_heatmap_display_payload(
     *,
     path: Path,
@@ -2884,6 +3445,137 @@ def _validate_shap_summary_display_payload(
     }
 
 
+def _validate_shap_dependence_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    colorbar_label = _require_non_empty_string(
+        payload.get("colorbar_label"),
+        label=f"{path.name} display `{expected_display_id}` colorbar_label",
+    )
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty panels list")
+
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    seen_features: set[str] = set()
+    for panel_index, panel_payload in enumerate(panels_payload):
+        if not isinstance(panel_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel_payload.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id must be unique"
+            )
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            panel_payload.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        feature = _require_non_empty_string(
+            panel_payload.get("feature"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].feature",
+        )
+        if feature in seen_features:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].feature must be unique"
+            )
+        seen_features.add(feature)
+
+        points_payload = panel_payload.get("points")
+        if not isinstance(points_payload, list) or not points_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].points must be a non-empty list"
+            )
+        normalized_points: list[dict[str, float]] = []
+        for point_index, point_payload in enumerate(points_payload):
+            if not isinstance(point_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].points[{point_index}] must be an object"
+                )
+            feature_value = _require_numeric_value(
+                point_payload.get("feature_value"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].points[{point_index}].feature_value"
+                ),
+            )
+            shap_value = _require_numeric_value(
+                point_payload.get("shap_value"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].points[{point_index}].shap_value"
+                ),
+            )
+            interaction_value = _require_numeric_value(
+                point_payload.get("interaction_value"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].points[{point_index}].interaction_value"
+                ),
+            )
+            if not all(math.isfinite(value) for value in (feature_value, shap_value, interaction_value)):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].points[{point_index}] point values must be finite"
+                )
+            normalized_points.append(
+                {
+                    "feature_value": feature_value,
+                    "shap_value": shap_value,
+                    "interaction_value": interaction_value,
+                }
+            )
+
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "title": _require_non_empty_string(
+                    panel_payload.get("title"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].title",
+                ),
+                "x_label": _require_non_empty_string(
+                    panel_payload.get("x_label"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].x_label",
+                ),
+                "feature": feature,
+                "interaction_feature": _require_non_empty_string(
+                    panel_payload.get("interaction_feature"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].interaction_feature",
+                ),
+                "points": normalized_points,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "y_label": y_label,
+        "colorbar_label": colorbar_label,
+        "panels": normalized_panels,
+    }
+
+
 def _validate_multicenter_generalizability_display_payload(
     *,
     path: Path,
@@ -3084,6 +3776,27 @@ def _load_evidence_display_payload(
             expected_template_id=spec.template_id,
             expected_display_id=display_id,
         )
+    if spec.input_schema_id == "time_to_event_landmark_performance_inputs_v1":
+        return payload_path, _validate_time_to_event_landmark_performance_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "time_to_event_threshold_governance_inputs_v1":
+        return payload_path, _validate_time_to_event_threshold_governance_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "time_to_event_multihorizon_calibration_inputs_v1":
+        return payload_path, _validate_time_to_event_multihorizon_calibration_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
     if spec.input_schema_id == "time_to_event_grouped_inputs_v1":
         return payload_path, _validate_time_to_event_display_payload(
             path=payload_path,
@@ -3114,6 +3827,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "embedding_grouped_inputs_v1":
         return payload_path, _validate_embedding_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "celltype_signature_heatmap_inputs_v1":
+        return payload_path, _validate_celltype_signature_heatmap_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,
@@ -3156,6 +3876,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_summary_inputs_v1":
         return payload_path, _validate_shap_summary_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_dependence_panel_inputs_v1":
+        return payload_path, _validate_shap_dependence_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

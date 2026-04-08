@@ -40,6 +40,7 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::decision_curve_binary` | `evidence_figure` | `A. Predictive Performance and Decision` | Decision Curve (Binary Outcome) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::binary_calibration_decision_curve_panel` | `evidence_figure` | `A. Predictive Performance and Decision` | Binary Calibration and Decision Curve Panel | `python` | `binary_calibration_decision_curve_panel_inputs_v1` | `publication_binary_calibration_decision_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_threshold_governance_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-to-Event Threshold Governance Panel | `python` | `time_to_event_threshold_governance_inputs_v1` | `publication_time_to_event_threshold_governance_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::time_to_event_decision_curve` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Decision Curve (Time-to-Event Horizon) | `python` | `time_to_event_decision_curve_inputs_v1` | `publication_decision_curve` | `png`, `pdf` |
 
 ### Time-to-Event
@@ -49,6 +50,8 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::risk_layering_monotonic_bars` | `evidence_figure` | `B. Survival and Time-to-Event` | Monotonic Risk Layering Bars | `python` | `risk_layering_monotonic_inputs_v1` | `publication_risk_layering_bars` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::time_dependent_roc_horizon` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC (Horizon) | `r_ggplot2` | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::time_dependent_roc_comparison_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Time-Dependent ROC Comparison Panel | `python` | `time_dependent_roc_comparison_inputs_v1` | `publication_evidence_curve` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_landmark_performance_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Landmark Performance Summary Panel (Time-to-Event) | `python` | `time_to_event_landmark_performance_inputs_v1` | `publication_landmark_performance_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::time_to_event_multihorizon_calibration_panel` | `evidence_figure` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Multi-Horizon Grouped Calibration Panel (Time-to-Event) | `python` | `time_to_event_multihorizon_calibration_inputs_v1` | `publication_time_to_event_multihorizon_calibration_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::kaplan_meier_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Kaplan-Meier Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::cumulative_incidence_grouped` | `evidence_figure` | `B. Survival and Time-to-Event` | Cumulative Incidence Curve (Grouped) | `r_ggplot2` | `time_to_event_grouped_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::time_to_event_stratified_cumulative_incidence_panel` | `evidence_figure` | `B. Survival and Time-to-Event` | Stratified Cumulative Incidence Panel | `python` | `time_to_event_stratified_cumulative_incidence_inputs_v1` | `publication_survival_curve` | `png`, `pdf` |
@@ -62,6 +65,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::umap_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | UMAP Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::celltype_signature_heatmap` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Embedding and Signature Heatmap | `python` | `celltype_signature_heatmap_inputs_v1` | `publication_celltype_signature_panel` | `png`, `pdf` |
 
 ### Matrix Pattern
 
@@ -85,6 +89,7 @@ The current audited inventory is broader than the subset already proven against 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `python` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::shap_dependence_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Dependence Panel | `python` | `shap_dependence_panel_inputs_v1` | `publication_shap_dependence_panel` | `png`, `pdf` |
 
 ### Model Audit
 
@@ -156,6 +161,51 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `panels.series` -> `label`, `x`, `y`<br>`panels.reference_line` -> `x`, `y`
 - Optional nested collection fields: `panels.reference_line` -> `label`
 - Additional constraints: `time_dependent_roc_comparison_panels_must_be_non_empty`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_analysis_window_labels_must_be_non_empty`, `panel_series_must_be_non_empty`, `panel_series_labels_must_be_unique_within_panel`, `panel_series_label_sets_must_match_across_panels`, `panel_series_x_y_lengths_must_match`, `panel_series_values_must_be_finite`, `panel_reference_line_x_y_lengths_must_match_when_present`, `panel_time_horizon_months_must_be_positive_when_present`
+
+### `time_to_event_landmark_performance_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Landmark Performance Summary Panel (Time-to-Event)
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_landmark_performance_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `discrimination_panel_title`, `discrimination_x_label`, `error_panel_title`, `error_x_label`, `calibration_panel_title`, `calibration_x_label`, `landmark_summaries`
+- Optional display fields: `paper_role`
+- Required collection fields: `landmark_summaries` -> `window_label`, `analysis_window_label`, `landmark_months`, `prediction_months`, `c_index`, `brier_score`, `calibration_slope`
+- Optional collection fields: `landmark_summaries` -> `annotation`
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `landmark_summaries_must_be_non_empty`, `window_labels_must_be_unique`, `analysis_window_labels_must_be_unique`, `landmark_months_must_be_positive`, `prediction_months_must_be_positive`, `prediction_months_must_exceed_landmark_months`, `c_index_values_must_be_finite_probability`, `brier_score_values_must_be_finite_probability`, `calibration_slope_values_must_be_finite`
+
+### `time_to_event_multihorizon_calibration_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Multi-Horizon Grouped Calibration Panel (Time-to-Event)
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_multihorizon_calibration_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `time_horizon_months`, `calibration_summary`
+- Optional collection fields: None
+- Required nested collection fields: `panels.calibration_summary` -> `group_label`, `group_order`, `n`, `events`, `predicted_risk`, `observed_risk`
+- Optional nested collection fields: None
+- Additional constraints: `multihorizon_calibration_panels_must_be_non_empty`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_time_horizon_months_must_be_positive`, `panel_time_horizon_months_must_be_strictly_increasing`, `panel_calibration_summary_must_be_non_empty`, `panel_group_order_must_be_strictly_increasing`, `panel_group_risks_must_be_finite_probability`, `panel_group_events_must_not_exceed_group_size`
+
+### `time_to_event_threshold_governance_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Time-to-Event Threshold Governance Panel
+- Templates: `fenggaolab.org.medical-display-core::time_to_event_threshold_governance_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `threshold_panel_title`, `calibration_panel_title`, `calibration_x_label`, `threshold_summaries`, `risk_group_summaries`
+- Optional display fields: `paper_role`
+- Required collection fields: `threshold_summaries` -> `threshold_label`, `threshold`, `sensitivity`, `specificity`, `net_benefit`<br>`risk_group_summaries` -> `group_label`, `group_order`, `n`, `events`, `predicted_risk`, `observed_risk`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `threshold_summaries_must_be_non_empty`, `threshold_labels_must_be_unique`, `threshold_values_must_be_strictly_increasing_probability`, `threshold_metrics_must_be_finite`, `risk_group_summaries_must_be_non_empty`, `risk_group_order_must_be_strictly_increasing`, `risk_group_risks_must_be_finite_probability`, `risk_group_events_must_not_exceed_group_size`
 
 ### `binary_calibration_decision_curve_panel_inputs_v1`
 
@@ -262,6 +312,21 @@ The current audited inventory is broader than the subset already proven against 
 - Optional nested collection fields: None
 - Additional constraints: `points_must_be_non_empty`, `point_coordinates_must_be_finite`, `point_group_must_be_non_empty`
 
+### `celltype_signature_heatmap_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Cell-Type Embedding and Signature Heatmap
+- Templates: `fenggaolab.org.medical-display-core::celltype_signature_heatmap`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `embedding_panel_title`, `embedding_x_label`, `embedding_y_label`, `embedding_points`, `heatmap_panel_title`, `heatmap_x_label`, `heatmap_y_label`, `score_method`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`, `embedding_annotation`, `heatmap_annotation`
+- Required collection fields: `embedding_points` -> `x`, `y`, `group`<br>`row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `embedding_points_must_be_non_empty`, `embedding_point_coordinates_must_be_finite`, `embedding_point_group_must_be_non_empty`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_embedding_groups`, `declared_heatmap_grid_must_be_complete_and_unique`
+
 ### `heatmap_group_comparison_inputs_v1`
 
 - Display kind: `evidence_figure`
@@ -366,6 +431,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `rows.points` -> `shap_value`, `feature_value`
 - Optional nested collection fields: None
 - Additional constraints: `rows_must_be_non_empty`, `row_feature_must_be_non_empty`, `row_points_must_be_non_empty`, `shap_values_must_be_finite`, `feature_values_must_be_finite`
+
+### `shap_dependence_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: SHAP Dependence Panel
+- Templates: `fenggaolab.org.medical-display-core::shap_dependence_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `colorbar_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `feature`, `interaction_feature`, `points`
+- Optional collection fields: None
+- Required nested collection fields: `panels.points` -> `feature_value`, `shap_value`, `interaction_value`
+- Optional nested collection fields: None
+- Additional constraints: `panels_must_be_non_empty`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_features_must_be_unique`, `panel_points_must_be_non_empty`, `panel_point_values_must_be_finite`
 
 ### `multicenter_generalizability_inputs_v1`
 

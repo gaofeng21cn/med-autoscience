@@ -3748,6 +3748,109 @@ def test_materialize_display_surface_generates_performance_heatmap_baseline(tmp_
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_generates_celltype_signature_heatmap_baseline(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "display_kind": "figure",
+                    "requirement_key": "celltype_signature_heatmap",
+                    "catalog_id": "F26",
+                    "shell_path": "paper/figures/Figure26.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "celltype_signature_heatmap",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "celltype_signature_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "celltype_signature_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "celltype_signature_heatmap",
+                    "title": "Cell-type embedding and signature activity atlas",
+                    "caption": "Cell-type clusters and pathway-signature activity remain aligned across the circulating immune atlas.",
+                    "embedding_panel_title": "Embedding by cell type",
+                    "embedding_x_label": "UMAP 1",
+                    "embedding_y_label": "UMAP 2",
+                    "embedding_points": [
+                        {"x": -2.1, "y": 1.0, "group": "T cells"},
+                        {"x": -1.8, "y": 0.8, "group": "T cells"},
+                        {"x": 1.4, "y": -0.6, "group": "Myeloid"},
+                        {"x": 1.8, "y": -0.9, "group": "Myeloid"},
+                    ],
+                    "heatmap_panel_title": "Signature activity",
+                    "heatmap_x_label": "Cell type",
+                    "heatmap_y_label": "Program",
+                    "score_method": "AUCell",
+                    "row_order": [
+                        {"label": "IFN response"},
+                        {"label": "TGF-beta signaling"},
+                    ],
+                    "column_order": [
+                        {"label": "T cells"},
+                        {"label": "Myeloid"},
+                    ],
+                    "cells": [
+                        {"x": "T cells", "y": "IFN response", "value": 0.78},
+                        {"x": "Myeloid", "y": "IFN response", "value": -0.22},
+                        {"x": "T cells", "y": "TGF-beta signaling", "value": -0.18},
+                        {"x": "Myeloid", "y": "TGF-beta signaling", "value": 0.61},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F26"]
+    assert (paper_root / "figures" / "generated" / "F26_celltype_signature_heatmap.png").exists()
+    assert (paper_root / "figures" / "generated" / "F26_celltype_signature_heatmap.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F26_celltype_signature_heatmap.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert layout_sidecar["metrics"]["score_method"] == "AUCell"
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} >= {"legend", "colorbar"}
+    assert any(box["box_type"] == "heatmap_tile_region" for box in layout_sidecar["panel_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F26"
+    assert figure_entry["template_id"] == full_id("celltype_signature_heatmap")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "celltype_signature_heatmap_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_celltype_signature_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_wraps_long_risk_layering_title_within_device(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -5352,6 +5455,54 @@ def test_load_evidence_display_payload_rejects_performance_heatmap_value_outside
         )
 
 
+def test_load_evidence_display_payload_rejects_celltype_signature_heatmap_when_embedding_groups_and_columns_diverge(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "celltype_signature_heatmap_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "celltype_signature_heatmap_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure26",
+                    "template_id": "celltype_signature_heatmap",
+                    "title": "Cell-type embedding and signature activity atlas",
+                    "caption": "Embedding groups must stay aligned with declared heatmap columns.",
+                    "embedding_panel_title": "Embedding by cell type",
+                    "embedding_x_label": "UMAP 1",
+                    "embedding_y_label": "UMAP 2",
+                    "embedding_points": [
+                        {"x": -2.1, "y": 1.0, "group": "T cells"},
+                        {"x": 1.4, "y": -0.6, "group": "Myeloid"},
+                    ],
+                    "heatmap_panel_title": "Signature activity",
+                    "heatmap_x_label": "Cell type",
+                    "heatmap_y_label": "Program",
+                    "score_method": "AUCell",
+                    "row_order": [{"label": "IFN response"}],
+                    "column_order": [{"label": "T cells"}, {"label": "B cells"}],
+                    "cells": [
+                        {"x": "T cells", "y": "IFN response", "value": 0.78},
+                        {"x": "B cells", "y": "IFN response", "value": -0.22},
+                    ],
+                }
+            ],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("celltype_signature_heatmap")
+
+    with pytest.raises(ValueError, match="column_order labels must match embedding point groups"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure26",
+        )
+
+
 def test_load_evidence_display_payload_rejects_grouped_risk_summary_when_events_exceed_sample_size(
     tmp_path: Path,
 ) -> None:
@@ -5590,6 +5741,54 @@ def _make_time_dependent_roc_comparison_panel_display(display_id: str = "Figure2
                     "x": [0.0, 1.0],
                     "y": [0.0, 1.0],
                 },
+            },
+        ],
+    }
+
+
+def _make_time_to_event_landmark_performance_panel_display(display_id: str = "Figure27") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "time_to_event_landmark_performance_panel",
+        "title": "Landmark survival performance summary across recurrence prediction windows",
+        "caption": (
+            "Discrimination, prediction error, and calibration slope were locked across forward landmark windows "
+            "for dynamic recurrence-risk evaluation."
+        ),
+        "discrimination_panel_title": "Discrimination",
+        "discrimination_x_label": "Validation C-index",
+        "error_panel_title": "Prediction error",
+        "error_x_label": "Brier score",
+        "calibration_panel_title": "Calibration",
+        "calibration_x_label": "Calibration slope",
+        "landmark_summaries": [
+            {
+                "window_label": "3→12 months",
+                "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+                "landmark_months": 3,
+                "prediction_months": 12,
+                "c_index": 0.78,
+                "brier_score": 0.18,
+                "calibration_slope": 1.06,
+                "annotation": "Baseline postoperative window",
+            },
+            {
+                "window_label": "6→15 months",
+                "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+                "landmark_months": 6,
+                "prediction_months": 15,
+                "c_index": 0.81,
+                "brier_score": 0.15,
+                "calibration_slope": 0.98,
+            },
+            {
+                "window_label": "9→18 months",
+                "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+                "landmark_months": 9,
+                "prediction_months": 18,
+                "c_index": 0.84,
+                "brier_score": 0.12,
+                "calibration_slope": 0.93,
             },
         ],
     }
@@ -5835,4 +6034,685 @@ def test_materialize_display_surface_generates_time_dependent_roc_comparison_pan
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "time_dependent_roc_comparison_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_evidence_curve"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_non_forward_prediction_window_for_landmark_performance_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_landmark_performance_panel_display()
+    display_payload["landmark_summaries"][1]["prediction_months"] = 6
+    dump_json(
+        paper_root / "time_to_event_landmark_performance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_landmark_performance_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_landmark_performance_panel")
+
+    with pytest.raises(ValueError, match="prediction_months must exceed landmark_months"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure27",
+        )
+
+
+def test_load_evidence_display_payload_rejects_brier_out_of_range_for_landmark_performance_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_landmark_performance_panel_display()
+    display_payload["landmark_summaries"][0]["brier_score"] = 1.2
+    dump_json(
+        paper_root / "time_to_event_landmark_performance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_landmark_performance_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_landmark_performance_panel")
+
+    with pytest.raises(ValueError, match="brier_score must stay within \\[0, 1\\]"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure27",
+        )
+
+
+def test_materialize_display_surface_generates_time_to_event_landmark_performance_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure27",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_landmark_performance_panel",
+                    "catalog_id": "F27",
+                    "shell_path": "paper/figures/Figure27.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure27",
+                    "template_id": "time_to_event_landmark_performance_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_to_event_landmark_performance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_landmark_performance_inputs_v1",
+            "displays": [_make_time_to_event_landmark_performance_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F27"]
+    assert (paper_root / "figures" / "generated" / "F27_time_to_event_landmark_performance_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F27_time_to_event_landmark_performance_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F27_time_to_event_landmark_performance_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert [item["metric_kind"] for item in layout_sidecar["metrics"]["metric_panels"]] == [
+        "c_index",
+        "brier_score",
+        "calibration_slope",
+    ]
+    assert layout_sidecar["metrics"]["metric_panels"][1]["rows"][0]["value"] == 0.18
+    assert layout_sidecar["metrics"]["metric_panels"][2]["reference_value"] == 1.0
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F27"
+    assert figure_entry["template_id"] == full_id("time_to_event_landmark_performance_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "time_to_event_landmark_performance_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_landmark_performance_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def _make_shap_dependence_panel_display(display_id: str = "Figure28") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_dependence_panel",
+        "title": "SHAP dependence panel for representative nonlinear feature effects",
+        "caption": (
+            "Feature-level SHAP dependence plots highlight nonlinear contribution structure and interaction patterns "
+            "across the audited explanation surface."
+        ),
+        "y_label": "SHAP value",
+        "colorbar_label": "Interaction feature value",
+        "panels": [
+            {
+                "panel_id": "age_panel",
+                "panel_label": "A",
+                "title": "Age",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "interaction_feature": "Albumin",
+                "points": [
+                    {"feature_value": 38.0, "shap_value": -0.22, "interaction_value": 3.1},
+                    {"feature_value": 55.0, "shap_value": 0.04, "interaction_value": 4.2},
+                    {"feature_value": 71.0, "shap_value": 0.31, "interaction_value": 4.8},
+                ],
+            },
+            {
+                "panel_id": "platelet_panel",
+                "panel_label": "B",
+                "title": "Platelet count",
+                "x_label": "Platelets (10^9/L)",
+                "feature": "Platelet count",
+                "interaction_feature": "Age",
+                "points": [
+                    {"feature_value": 85.0, "shap_value": 0.28, "interaction_value": 72.0},
+                    {"feature_value": 142.0, "shap_value": 0.02, "interaction_value": 59.0},
+                    {"feature_value": 210.0, "shap_value": -0.19, "interaction_value": 44.0},
+                ],
+            },
+        ],
+    }
+
+
+def test_load_evidence_display_payload_rejects_duplicate_panel_feature_for_shap_dependence_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_dependence_panel_display()
+    display_payload["panels"][1]["feature"] = "Age"
+    dump_json(
+        paper_root / "shap_dependence_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_dependence_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_dependence_panel")
+
+    with pytest.raises(ValueError, match="feature must be unique"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure28",
+        )
+
+
+def test_load_evidence_display_payload_rejects_non_finite_point_value_for_shap_dependence_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_dependence_panel_display()
+    display_payload["panels"][0]["points"][1]["interaction_value"] = float("nan")
+    dump_json(
+        paper_root / "shap_dependence_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_dependence_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_dependence_panel")
+
+    with pytest.raises(ValueError, match="point values must be finite"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure28",
+        )
+
+
+def test_materialize_display_surface_generates_shap_dependence_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure28",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_dependence_panel",
+                    "catalog_id": "F28",
+                    "shell_path": "paper/figures/Figure28.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure28",
+                    "template_id": "shap_dependence_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_dependence_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_dependence_panel_inputs_v1",
+            "displays": [_make_shap_dependence_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F28"]
+    assert (paper_root / "figures" / "generated" / "F28_shap_dependence_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F28_shap_dependence_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F28_shap_dependence_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "zero_line"]) == 2
+    assert any(item["box_type"] == "colorbar" for item in layout_sidecar["guide_boxes"])
+    assert layout_sidecar["metrics"]["colorbar_label"] == "Interaction feature value"
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Age", "Platelet count"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F28"
+    assert figure_entry["template_id"] == full_id("shap_dependence_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_dependence_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_dependence_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def _make_time_to_event_threshold_governance_panel_display(display_id: str = "Figure29") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "time_to_event_threshold_governance_panel",
+        "title": "Time-to-event threshold governance panel for deployment-facing operating review",
+        "caption": (
+            "Structured threshold summary and grouped calibration governance lock the manuscript-facing operating "
+            "threshold discussion to explicit audited inputs."
+        ),
+        "threshold_panel_title": "Operating thresholds",
+        "calibration_panel_title": "Grouped calibration at 5 years",
+        "calibration_x_label": "Predicted / observed 5-year risk",
+        "threshold_summaries": [
+            {
+                "threshold_label": "Rule-in",
+                "threshold": 0.10,
+                "sensitivity": 0.88,
+                "specificity": 0.52,
+                "net_benefit": 0.041,
+            },
+            {
+                "threshold_label": "Actionable",
+                "threshold": 0.15,
+                "sensitivity": 0.74,
+                "specificity": 0.67,
+                "net_benefit": 0.058,
+            },
+        ],
+        "risk_group_summaries": [
+            {
+                "group_label": "Low risk",
+                "group_order": 1,
+                "n": 182,
+                "events": 8,
+                "predicted_risk": 0.04,
+                "observed_risk": 0.05,
+            },
+            {
+                "group_label": "Intermediate risk",
+                "group_order": 2,
+                "n": 146,
+                "events": 19,
+                "predicted_risk": 0.13,
+                "observed_risk": 0.15,
+            },
+            {
+                "group_label": "High risk",
+                "group_order": 3,
+                "n": 88,
+                "events": 27,
+                "predicted_risk": 0.31,
+                "observed_risk": 0.29,
+            },
+        ],
+    }
+
+
+def _make_time_to_event_multihorizon_calibration_panel_display(display_id: str = "Figure30") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "time_to_event_multihorizon_calibration_panel",
+        "title": "Multi-horizon grouped survival calibration governance",
+        "caption": (
+            "Prespecified grouped calibration at 36 and 60 months is locked to explicit audited panel contracts "
+            "instead of manuscript-local freehand composition."
+        ),
+        "x_label": "Predicted / observed risk",
+        "panels": [
+            {
+                "panel_id": "h36",
+                "panel_label": "A",
+                "title": "36-month calibration",
+                "time_horizon_months": 36,
+                "calibration_summary": [
+                    {
+                        "group_label": "Low risk",
+                        "group_order": 1,
+                        "n": 182,
+                        "events": 5,
+                        "predicted_risk": 0.03,
+                        "observed_risk": 0.04,
+                    },
+                    {
+                        "group_label": "Intermediate risk",
+                        "group_order": 2,
+                        "n": 146,
+                        "events": 13,
+                        "predicted_risk": 0.11,
+                        "observed_risk": 0.13,
+                    },
+                    {
+                        "group_label": "High risk",
+                        "group_order": 3,
+                        "n": 88,
+                        "events": 22,
+                        "predicted_risk": 0.24,
+                        "observed_risk": 0.27,
+                    },
+                ],
+            },
+            {
+                "panel_id": "h60",
+                "panel_label": "B",
+                "title": "60-month calibration",
+                "time_horizon_months": 60,
+                "calibration_summary": [
+                    {
+                        "group_label": "Low risk",
+                        "group_order": 1,
+                        "n": 182,
+                        "events": 8,
+                        "predicted_risk": 0.04,
+                        "observed_risk": 0.05,
+                    },
+                    {
+                        "group_label": "Intermediate risk",
+                        "group_order": 2,
+                        "n": 146,
+                        "events": 19,
+                        "predicted_risk": 0.13,
+                        "observed_risk": 0.15,
+                    },
+                    {
+                        "group_label": "High risk",
+                        "group_order": 3,
+                        "n": 88,
+                        "events": 27,
+                        "predicted_risk": 0.31,
+                        "observed_risk": 0.29,
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def test_load_evidence_display_payload_rejects_duplicate_threshold_label_for_threshold_governance_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_threshold_governance_panel_display()
+    display_payload["threshold_summaries"][1]["threshold_label"] = "Rule-in"
+    dump_json(
+        paper_root / "time_to_event_threshold_governance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_threshold_governance_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_threshold_governance_panel")
+
+    with pytest.raises(ValueError, match="threshold_label must be unique"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure29",
+        )
+
+
+def test_load_evidence_display_payload_rejects_invalid_risk_probability_for_threshold_governance_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_threshold_governance_panel_display()
+    display_payload["risk_group_summaries"][1]["observed_risk"] = 1.4
+    dump_json(
+        paper_root / "time_to_event_threshold_governance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_threshold_governance_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_threshold_governance_panel")
+
+    with pytest.raises(ValueError, match="observed_risk"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure29",
+        )
+
+
+def test_materialize_display_surface_generates_time_to_event_threshold_governance_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure29",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_threshold_governance_panel",
+                    "catalog_id": "F29",
+                    "shell_path": "paper/figures/Figure29.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure29",
+                    "template_id": "time_to_event_threshold_governance_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_to_event_threshold_governance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_threshold_governance_inputs_v1",
+            "displays": [_make_time_to_event_threshold_governance_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F29"]
+    assert (paper_root / "figures" / "generated" / "F29_time_to_event_threshold_governance_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F29_time_to_event_threshold_governance_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F29_time_to_event_threshold_governance_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert len([item for item in layout_sidecar["layout_boxes"] if item["box_type"] == "threshold_card"]) == 2
+    assert any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+    assert [item["threshold"] for item in layout_sidecar["metrics"]["threshold_summaries"]] == [0.10, 0.15]
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["risk_group_summaries"]] == [
+        "Low risk",
+        "Intermediate risk",
+        "High risk",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F29"
+    assert figure_entry["template_id"] == full_id("time_to_event_threshold_governance_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "time_to_event_threshold_governance_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_time_to_event_threshold_governance_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_non_positive_panel_horizon_for_multihorizon_calibration_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_multihorizon_calibration_panel_display()
+    display_payload["panels"][0]["time_horizon_months"] = 0
+    dump_json(
+        paper_root / "time_to_event_multihorizon_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_multihorizon_calibration_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_multihorizon_calibration_panel")
+
+    with pytest.raises(ValueError, match="time_horizon_months"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure30",
+        )
+
+
+def test_load_evidence_display_payload_rejects_non_increasing_group_order_for_multihorizon_calibration_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_time_to_event_multihorizon_calibration_panel_display()
+    display_payload["panels"][0]["calibration_summary"][1]["group_order"] = 1
+    dump_json(
+        paper_root / "time_to_event_multihorizon_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_multihorizon_calibration_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("time_to_event_multihorizon_calibration_panel")
+
+    with pytest.raises(ValueError, match="group_order must be strictly increasing"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure30",
+        )
+
+
+def test_materialize_display_surface_generates_time_to_event_multihorizon_calibration_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "display_kind": "figure",
+                    "requirement_key": "time_to_event_multihorizon_calibration_panel",
+                    "catalog_id": "F30",
+                    "shell_path": "paper/figures/Figure30.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "template_id": "time_to_event_multihorizon_calibration_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "time_to_event_multihorizon_calibration_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "time_to_event_multihorizon_calibration_inputs_v1",
+            "displays": [_make_time_to_event_multihorizon_calibration_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F30"]
+    assert (paper_root / "figures" / "generated" / "F30_time_to_event_multihorizon_calibration_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F30_time_to_event_multihorizon_calibration_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F30_time_to_event_multihorizon_calibration_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert all(item["box_type"] == "calibration_panel" for item in layout_sidecar["panel_boxes"])
+    assert any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+    assert [item["time_horizon_months"] for item in layout_sidecar["metrics"]["panels"]] == [36, 60]
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["panels"][1]["calibration_summary"]] == [
+        "Low risk",
+        "Intermediate risk",
+        "High risk",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F30"
+    assert figure_entry["template_id"] == full_id("time_to_event_multihorizon_calibration_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "time_to_event_multihorizon_calibration_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_time_to_event_multihorizon_calibration_panel"
     assert figure_entry["qc_result"]["status"] == "pass"

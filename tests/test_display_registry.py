@@ -31,12 +31,16 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("model_complexity_audit_panel"),
         _full_id("time_dependent_roc_horizon"),
         _full_id("time_dependent_roc_comparison_panel"),
+        _full_id("time_to_event_landmark_performance_panel"),
+        _full_id("time_to_event_threshold_governance_panel"),
+        _full_id("time_to_event_multihorizon_calibration_panel"),
         _full_id("kaplan_meier_grouped"),
         _full_id("cumulative_incidence_grouped"),
         _full_id("time_to_event_stratified_cumulative_incidence_panel"),
         _full_id("umap_scatter_grouped"),
         _full_id("pca_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
+        _full_id("celltype_signature_heatmap"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
         _full_id("correlation_heatmap"),
@@ -45,6 +49,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("forest_effect_main"),
         _full_id("subgroup_forest"),
         _full_id("shap_summary_beeswarm"),
+        _full_id("shap_dependence_panel"),
         _full_id("time_to_event_discrimination_calibration_panel"),
         _full_id("time_to_event_risk_group_summary"),
         _full_id("time_to_event_decision_curve"),
@@ -68,6 +73,26 @@ def test_get_evidence_figure_spec_accepts_namespaced_template_id() -> None:
     assert spec.template_id == _full_id("roc_curve_binary")
 
 
+def test_time_to_event_threshold_governance_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_threshold_governance_panel"))
+
+    assert spec.paper_family_ids == ("A", "B")
+    assert spec.evidence_class == "clinical_utility"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "time_to_event_threshold_governance_inputs_v1"
+    assert spec.layout_qc_profile == "publication_time_to_event_threshold_governance_panel"
+
+
+def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_multihorizon_calibration_panel"))
+
+    assert spec.paper_family_ids == ("A", "B")
+    assert spec.evidence_class == "time_to_event"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "time_to_event_multihorizon_calibration_inputs_v1"
+    assert spec.layout_qc_profile == "publication_time_to_event_multihorizon_calibration_panel"
+
+
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
     evidence_spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
     shell_spec = display_registry.get_illustration_shell_spec(_full_id("submission_graphical_abstract"))
@@ -83,11 +108,16 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure8 = display_registry.get_evidence_figure_spec(
         _full_id("time_dependent_roc_comparison_panel")
     )
+    figure8b = display_registry.get_evidence_figure_spec(
+        _full_id("time_to_event_landmark_performance_panel")
+    )
     figure9 = display_registry.get_evidence_figure_spec(_full_id("tsne_scatter_grouped"))
+    figure9b = display_registry.get_evidence_figure_spec(_full_id("celltype_signature_heatmap"))
     figure10 = display_registry.get_evidence_figure_spec(_full_id("performance_heatmap"))
     figure10b = display_registry.get_evidence_figure_spec(_full_id("clustered_heatmap"))
     figure10c = display_registry.get_evidence_figure_spec(_full_id("gsva_ssgsea_heatmap"))
     figure12 = display_registry.get_evidence_figure_spec(_full_id("subgroup_forest"))
+    figure13 = display_registry.get_evidence_figure_spec(_full_id("shap_dependence_panel"))
     figure14 = display_registry.get_evidence_figure_spec(
         _full_id("time_to_event_discrimination_calibration_panel")
     )
@@ -117,7 +147,17 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure8.renderer_family == "python"
     assert figure8.input_schema_id == "time_dependent_roc_comparison_inputs_v1"
     assert figure8.layout_qc_profile == "publication_evidence_curve"
+    assert figure8b.paper_family_ids == ("A", "B")
+    assert figure8b.evidence_class == "time_to_event"
+    assert figure8b.renderer_family == "python"
+    assert figure8b.input_schema_id == "time_to_event_landmark_performance_inputs_v1"
+    assert figure8b.layout_qc_profile == "publication_landmark_performance_panel"
     assert figure9.layout_qc_profile == "publication_embedding_scatter"
+    assert figure9b.paper_family_ids == ("D", "E", "G")
+    assert figure9b.evidence_class == "data_geometry"
+    assert figure9b.renderer_family == "python"
+    assert figure9b.input_schema_id == "celltype_signature_heatmap_inputs_v1"
+    assert figure9b.layout_qc_profile == "publication_celltype_signature_panel"
     assert figure10.input_schema_id == "performance_heatmap_inputs_v1"
     assert figure10.layout_qc_profile == "publication_heatmap"
     assert figure10.paper_family_ids == ("B", "E")
@@ -130,6 +170,11 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure10c.layout_qc_profile == "publication_heatmap"
     assert figure12.input_schema_id == "forest_effect_inputs_v1"
     assert figure12.layout_qc_profile == "publication_forest_plot"
+    assert figure13.paper_family_ids == ("F",)
+    assert figure13.evidence_class == "model_explanation"
+    assert figure13.renderer_family == "python"
+    assert figure13.input_schema_id == "shap_dependence_panel_inputs_v1"
+    assert figure13.layout_qc_profile == "publication_shap_dependence_panel"
     assert figure14.renderer_family == "python"
     assert figure14.required_exports == ("png", "pdf")
     assert figure14.input_schema_id == "time_to_event_discrimination_calibration_inputs_v1"
