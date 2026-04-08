@@ -35,6 +35,7 @@ class _TemplateManifestRecord:
     input_schema_ref: str
     qc_profile_ref: str
     required_exports: tuple[str, ...]
+    allowed_paper_roles: tuple[str, ...]
     execution_mode: str
     entrypoint: str
     paper_proven: bool
@@ -73,6 +74,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 input_schema_ref=spec.input_schema_id,
                 qc_profile_ref=spec.layout_qc_profile,
                 required_exports=spec.required_exports,
+                allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
                 entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.template_id in _PAPER_PROVEN_TEMPLATE_IDS,
@@ -93,6 +95,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 input_schema_ref=spec.input_schema_id,
                 qc_profile_ref=spec.shell_qc_profile,
                 required_exports=spec.required_exports,
+                allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
                 entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
@@ -113,6 +116,7 @@ def _build_manifest_records() -> tuple[_TemplateManifestRecord, ...]:
                 input_schema_ref=spec.input_schema_id,
                 qc_profile_ref=spec.table_qc_profile,
                 required_exports=spec.required_exports,
+                allowed_paper_roles=spec.allowed_paper_roles,
                 execution_mode=_DEFAULT_EXECUTION_MODE,
                 entrypoint=_UNIFIED_ENTRYPOINT,
                 paper_proven=spec.shell_id in _PAPER_PROVEN_TEMPLATE_IDS,
@@ -142,6 +146,7 @@ def _render_template_manifest(record: _TemplateManifestRecord) -> str:
         f"input_schema_ref = {_quote(record.input_schema_ref)}",
         f"qc_profile_ref = {_quote(record.qc_profile_ref)}",
         f"required_exports = {_quote_list(record.required_exports)}",
+        f"allowed_paper_roles = {_quote_list(record.allowed_paper_roles)}",
         f"execution_mode = {_quote(record.execution_mode)}",
         f"entrypoint = {_quote(record.entrypoint)}",
         f"paper_proven = {'true' if record.paper_proven else 'false'}",

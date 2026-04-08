@@ -8,6 +8,7 @@ renderer_family = "python"
 input_schema_ref = "submission_graphical_abstract_inputs_v1"
 qc_profile_ref = "submission_graphical_abstract"
 required_exports = ["png", "svg"]
+allowed_paper_roles = ["submission_companion"]
 execution_mode = "python_plugin"
 entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
 paper_proven = true
