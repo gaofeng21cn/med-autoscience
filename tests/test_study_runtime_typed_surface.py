@@ -185,6 +185,50 @@ def make_publication_supervisor_state_payload(
     }
 
 
+def make_execution_owner_guard_payload(
+    *,
+    active_run_id: str | None = "run-live",
+    publication_gate_allows_direct_write: bool = False,
+) -> dict[str, object]:
+    return {
+        "owner": "managed_runtime",
+        "supervisor_only": True,
+        "guard_reason": "live_managed_runtime",
+        "active_run_id": active_run_id,
+        "current_required_action": "supervise_managed_runtime",
+        "allowed_actions": [
+            "read_runtime_status",
+            "notify_user_runtime_is_live",
+            "open_monitoring_entry",
+            "pause_runtime",
+            "resume_runtime",
+            "stop_runtime",
+            "record_user_decision",
+        ],
+        "forbidden_actions": [
+            "direct_study_execution",
+            "direct_runtime_owned_write",
+            "direct_paper_line_write",
+            "direct_bundle_build",
+            "direct_compiled_bundle_proofing",
+        ],
+        "runtime_owned_roots": [
+            "/tmp/runtime/quests/quest-001",
+            "/tmp/runtime/quests/quest-001/.ds",
+            "/tmp/runtime/quests/quest-001/paper",
+            "/tmp/runtime/quests/quest-001/release",
+            "/tmp/runtime/quests/quest-001/artifacts",
+        ],
+        "takeover_required": True,
+        "takeover_action": "pause_runtime_then_explicit_human_takeover",
+        "publication_gate_allows_direct_write": publication_gate_allows_direct_write,
+        "controller_stage_note": (
+            "live managed runtime owns study-local execution; the foreground agent must stay supervisor-only "
+            "until explicit takeover"
+        ),
+    }
+
+
 def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
@@ -204,6 +248,14 @@ def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
 
     assert typed_surface.StudyRuntimePublicationSupervisorState is status_surface.StudyRuntimePublicationSupervisorState
     assert typed_surface.StudyRuntimePublicationSupervisorState.__module__ == status_surface.__name__
+
+
+def test_study_runtime_types_reexports_execution_owner_guard_surface() -> None:
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+
+    assert typed_surface.StudyRuntimeExecutionOwnerGuard is status_surface.StudyRuntimeExecutionOwnerGuard
+    assert typed_surface.StudyRuntimeExecutionOwnerGuard.__module__ == status_surface.__name__
 
 
 def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
@@ -751,6 +803,18 @@ def test_study_runtime_status_records_autonomous_runtime_notice_payload() -> Non
         "monitoring_error": None,
         "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
     }
+
+
+def test_study_runtime_status_records_execution_owner_guard_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+
+    status.record_execution_owner_guard(make_execution_owner_guard_payload())
+
+    assert status.to_dict()["execution_owner_guard"] == make_execution_owner_guard_payload()
+    assert status.execution_owner_guard.owner == "managed_runtime"
+    assert status.execution_owner_guard.supervisor_only is True
+    assert status.execution_owner_guard.takeover_required is True
 
 
 def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:

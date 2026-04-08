@@ -84,3 +84,13 @@ def test_codex_plugin_release_guide_is_linked_from_readme_and_install_guide() ->
     assert "codex_plugin_release.md" in install_guide
     assert "用途" in release_guide
     assert "安装方式" in release_guide
+
+
+def test_codex_plugin_skill_and_guide_document_supervisor_only_runtime_guard() -> None:
+    skill = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
+    guide = GUIDE_PATH.read_text(encoding="utf-8")
+
+    assert "execution_owner_guard" in skill
+    assert "supervisor-only" in skill
+    assert "runtime-owned" in skill
+    assert "supervisor-only" in guide

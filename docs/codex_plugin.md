@@ -54,6 +54,16 @@ Compatibility note:
 - CLI: `medautosci overlay-status --profile <profile>`
 - CLI: `medautosci med-deepscientist-upgrade-check --profile <profile> --refresh`
 
+## Live Runtime Guard
+
+当 `study-runtime-status` 或 `ensure-study-runtime` 返回 `execution_owner_guard.supervisor_only = true` 时，Codex 前台必须切换成 supervisor-only 模式：
+
+- 只负责读取状态、通知用户、提供监督入口和接收 pause/resume/stop/takeover 决策
+- 不继续直接推进 study-local 写作、bundle、proofing、review 或编译链
+- 不直接写入 runtime-owned surface
+
+如果同时 `publication_supervisor_state.bundle_tasks_downstream_only = true`，则 bundle/build/proofing 在语义上仍属后续件，前台不得抢跑。
+
 ## 当前安装状态
 
 仓库里存在 plugin 文件，不等于 Codex 已经全局启用它。

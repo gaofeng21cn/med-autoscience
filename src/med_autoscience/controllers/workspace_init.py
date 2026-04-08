@@ -88,6 +88,9 @@ def _render_workspace_rules() -> str:
         "- 边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进。\n"
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
+        "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"
+        "- 不得直接写入 runtime-owned 的 study / quest / paper surface；如需人工接管，先显式暂停 runtime。\n"
+        "- 只要 `publication_supervisor_state.bundle_tasks_downstream_only = true`，就把 bundle/build/proofing 视为硬阻断，不得抢跑。\n"
         f"- {automation_ready_summary}\n"
     )
 

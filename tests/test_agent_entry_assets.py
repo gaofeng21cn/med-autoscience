@@ -84,6 +84,8 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
 
     assert "Do not enter `startup_boundary_gated_routes`" in guide
+    assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in guide
+    assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in guide
 
 
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])
@@ -116,6 +118,8 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
         assert _extract_contract_list(mode_block, "upgrade_triggers") == mode["upgrade_triggers"]
 
     assert "Do not enter `startup_boundary_gated_routes`" in prompt
+    assert "If `execution_owner_guard.supervisor_only = true`, stay in governance / monitoring mode" in prompt
+    assert "Treat `bundle_tasks_downstream_only = true` as a hard block on bundle/build/proofing actions." in prompt
 
 
 def _extract_mode_block(prompt: str, mode_id: str) -> str:

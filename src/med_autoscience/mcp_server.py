@@ -26,6 +26,13 @@ from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_NAME = "med-autoscience"
+_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION = (
+    "If `autonomous_runtime_notice.required = true` or "
+    "`execution_owner_guard.supervisor_only = true`, the caller must notify the user, "
+    "surface the monitoring entry, and switch into supervisor-only mode. Treat "
+    "`publication_supervisor_state.bundle_tasks_downstream_only = true` as a hard block "
+    "on bundle/build/proofing actions."
+)
 
 
 def _tool_text_result(text: str, *, structured: dict[str, Any] | None = None, is_error: bool = False) -> dict[str, Any]:
@@ -223,7 +230,10 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "study_runtime_status",
-            "description": "Read the current MedAutoScience study-runtime status for a bound study.",
+            "description": (
+                "Read the current MedAutoScience study-runtime status for a bound study. "
+                f"{_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -238,7 +248,10 @@ def list_tools() -> list[dict[str, Any]]:
         },
         {
             "name": "ensure_study_runtime",
-            "description": "Ensure a managed med-deepscientist runtime exists and is running for a study.",
+            "description": (
+                "Ensure a managed med-deepscientist runtime exists and is running for a study. "
+                f"{_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
+            ),
             "inputSchema": {
                 "type": "object",
                 "properties": {

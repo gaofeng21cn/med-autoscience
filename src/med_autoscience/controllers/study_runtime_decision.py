@@ -12,7 +12,9 @@ from med_autoscience.controllers import (
 )
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeAuditRecord,
+    StudyRuntimeAuditStatus,
     StudyRuntimeDecision,
+    StudyRuntimeExecutionOwnerGuard,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     StudyRuntimeStatus,
@@ -40,6 +42,23 @@ _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS = frozenset(
         "data_availability_statement",
         "acknowledgments",
     }
+)
+
+_SUPERVISOR_ONLY_ALLOWED_ACTIONS = (
+    "read_runtime_status",
+    "notify_user_runtime_is_live",
+    "open_monitoring_entry",
+    "pause_runtime",
+    "resume_runtime",
+    "stop_runtime",
+    "record_user_decision",
+)
+_SUPERVISOR_ONLY_FORBIDDEN_ACTIONS = (
+    "direct_study_execution",
+    "direct_runtime_owned_write",
+    "direct_paper_line_write",
+    "direct_bundle_build",
+    "direct_compiled_bundle_proofing",
 )
 
 
@@ -90,6 +109,66 @@ def _record_quest_runtime_audits(
     status.record_runtime_liveness_audit(runtime_liveness_audit)
     status.record_bash_session_audit(bash_session_audit)
     return quest_runtime.runtime_liveness_status
+
+
+def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:
+    try:
+        return not status.publication_supervisor_state.bundle_tasks_downstream_only
+    except KeyError:
+        return True
+
+
+def _runtime_owned_roots(quest_root: Path) -> tuple[str, ...]:
+    return (
+        str(quest_root),
+        str(quest_root / ".ds"),
+        str(quest_root / "paper"),
+        str(quest_root / "release"),
+        str(quest_root / "artifacts"),
+    )
+
+
+def _record_execution_owner_guard(
+    *,
+    status: StudyRuntimeStatus,
+    quest_root: Path,
+) -> None:
+    execution = status.execution
+    if str(execution.get("engine") or "").strip() != "med-deepscientist":
+        return
+    if str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent":
+        return
+    if not status.quest_exists or status.quest_status not in _LIVE_QUEST_STATUSES:
+        return
+    try:
+        runtime_liveness = status.runtime_liveness_audit_record
+    except KeyError:
+        return
+    if runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE:
+        return
+    try:
+        active_run_id = status.autonomous_runtime_notice.active_run_id
+    except KeyError:
+        active_run_id = str(runtime_liveness.payload.get("active_run_id") or "").strip() or None
+    publication_gate_allows_direct_write = _publication_gate_allows_direct_write(status)
+    payload = {
+        "owner": "managed_runtime",
+        "supervisor_only": True,
+        "guard_reason": "live_managed_runtime",
+        "active_run_id": active_run_id,
+        "current_required_action": "supervise_managed_runtime",
+        "allowed_actions": list(_SUPERVISOR_ONLY_ALLOWED_ACTIONS),
+        "forbidden_actions": list(_SUPERVISOR_ONLY_FORBIDDEN_ACTIONS),
+        "runtime_owned_roots": list(_runtime_owned_roots(quest_root)),
+        "takeover_required": True,
+        "takeover_action": "pause_runtime_then_explicit_human_takeover",
+        "publication_gate_allows_direct_write": publication_gate_allows_direct_write,
+        "controller_stage_note": (
+            "live managed runtime owns study-local execution; the foreground agent must stay supervisor-only "
+            "until explicit takeover"
+        ),
+    }
+    status.record_execution_owner_guard(StudyRuntimeExecutionOwnerGuard.from_payload(payload))
 
 
 def _status_state(
@@ -176,6 +255,7 @@ def _status_state(
             runtime_root=runtime_root,
             launch_report_path=launch_report_path,
         )
+        _record_execution_owner_guard(status=result, quest_root=quest_root)
         if not result.should_refresh_startup_hydration_while_blocked():
             result.extras.pop("runtime_escalation_ref", None)
             return result

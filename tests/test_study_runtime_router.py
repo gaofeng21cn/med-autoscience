@@ -2316,6 +2316,43 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
             profile.workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
         ),
     }
+    assert result["execution_owner_guard"] == {
+        "owner": "managed_runtime",
+        "supervisor_only": True,
+        "guard_reason": "live_managed_runtime",
+        "active_run_id": "run-live",
+        "current_required_action": "supervise_managed_runtime",
+        "allowed_actions": [
+            "read_runtime_status",
+            "notify_user_runtime_is_live",
+            "open_monitoring_entry",
+            "pause_runtime",
+            "resume_runtime",
+            "stop_runtime",
+            "record_user_decision",
+        ],
+        "forbidden_actions": [
+            "direct_study_execution",
+            "direct_runtime_owned_write",
+            "direct_paper_line_write",
+            "direct_bundle_build",
+            "direct_compiled_bundle_proofing",
+        ],
+        "runtime_owned_roots": [
+            str(quest_root),
+            str(quest_root / ".ds"),
+            str(quest_root / "paper"),
+            str(quest_root / "release"),
+            str(quest_root / "artifacts"),
+        ],
+        "takeover_required": True,
+        "takeover_action": "pause_runtime_then_explicit_human_takeover",
+        "publication_gate_allows_direct_write": False,
+        "controller_stage_note": (
+            "live managed runtime owns study-local execution; the foreground agent must stay supervisor-only "
+            "until explicit takeover"
+        ),
+    }
 
 
 def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_session(

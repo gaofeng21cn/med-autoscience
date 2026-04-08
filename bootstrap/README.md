@@ -168,6 +168,18 @@ PYTHONPATH=src python3 -m med_autoscience.cli bootstrap --profile profiles/my-di
 - 按 profile 中声明的 `medical_overlay_skills` 安装并校验医学 overlay
 - 通过 controller 统一刷新并汇总数据资产状态，包括 private release、public registry、study impact 和 startup data readiness
 
+### live managed runtime 边界
+
+一旦 `ensure-study-runtime` 或 `study-runtime-status` 检测到 live managed runtime，前台 Agent 必须立即切换到 `supervisor-only` 监管态。
+
+此时必须显式通知用户自动驾驶已在运行，并提供可监督入口，至少包括浏览器监控入口。
+
+当 `execution_owner_guard.supervisor_only = true` 时，不得直接写入 runtime-owned 的 study、quest、paper 等正式 surface；如需人工接管，必须先显式暂停 runtime。
+
+当 `publication_supervisor_state.bundle_tasks_downstream_only = true` 时，不得把 bundle、build、proofing 作为当前主执行路径。
+
+bootstrap 的目标是把 workspace 接入受管运行面，而不是绕过这些运行边界。
+
 这里的数据资产刷新是 workspace 级的：
 
 - private release 与 public registry 都是 workspace 级登记面

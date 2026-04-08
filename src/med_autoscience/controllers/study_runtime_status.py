@@ -22,6 +22,7 @@ __all__ = [
     "StudyRuntimeBindingAction",
     "StudyRuntimeDaemonStep",
     "StudyRuntimeDecision",
+    "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeOverlayAudit",
     "StudyRuntimeOverlayResult",
     "StudyRuntimePartialQuestRecoveryResult",
@@ -250,6 +251,80 @@ class StudyRuntimeAutonomousRuntimeNotice:
             monitoring_available=bool(payload.get("monitoring_available")),
             monitoring_error=str(payload.get("monitoring_error") or "").strip() or None,
             launch_report_path=str(payload.get("launch_report_path") or ""),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeExecutionOwnerGuard:
+    owner: str
+    supervisor_only: bool
+    guard_reason: str
+    active_run_id: str | None
+    current_required_action: str
+    allowed_actions: tuple[str, ...]
+    forbidden_actions: tuple[str, ...]
+    runtime_owned_roots: tuple[str, ...]
+    takeover_required: bool
+    takeover_action: str
+    publication_gate_allows_direct_write: bool
+    controller_stage_note: str
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        for field_name in ("owner", "guard_reason", "current_required_action", "takeover_action", "controller_stage_note"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime execution owner guard {field_name} must be non-empty str")
+        if not isinstance(self.supervisor_only, bool):
+            raise TypeError("study runtime execution owner guard supervisor_only must be bool")
+        if self.active_run_id is not None and not isinstance(self.active_run_id, str):
+            raise TypeError("study runtime execution owner guard active_run_id must be str or None")
+        if not isinstance(self.takeover_required, bool):
+            raise TypeError("study runtime execution owner guard takeover_required must be bool")
+        if not isinstance(self.publication_gate_allows_direct_write, bool):
+            raise TypeError(
+                "study runtime execution owner guard publication_gate_allows_direct_write must be bool"
+            )
+        object.__setattr__(self, "allowed_actions", tuple(str(item) for item in self.allowed_actions))
+        object.__setattr__(self, "forbidden_actions", tuple(str(item) for item in self.forbidden_actions))
+        object.__setattr__(self, "runtime_owned_roots", tuple(str(item) for item in self.runtime_owned_roots))
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeExecutionOwnerGuard":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime execution owner guard payload must be a mapping")
+        allowed_actions = payload.get("allowed_actions")
+        if not isinstance(allowed_actions, list):
+            raise ValueError("study runtime execution owner guard allowed_actions must be a list")
+        forbidden_actions = payload.get("forbidden_actions")
+        if not isinstance(forbidden_actions, list):
+            raise ValueError("study runtime execution owner guard forbidden_actions must be a list")
+        runtime_owned_roots = payload.get("runtime_owned_roots")
+        if not isinstance(runtime_owned_roots, list):
+            raise ValueError("study runtime execution owner guard runtime_owned_roots must be a list")
+        publication_gate_allows_direct_write = payload.get("publication_gate_allows_direct_write")
+        if not isinstance(publication_gate_allows_direct_write, bool):
+            raise TypeError(
+                "study runtime execution owner guard publication_gate_allows_direct_write must be bool"
+            )
+        return cls(
+            owner=str(payload.get("owner") or ""),
+            supervisor_only=bool(payload.get("supervisor_only")),
+            guard_reason=str(payload.get("guard_reason") or ""),
+            active_run_id=str(payload.get("active_run_id") or "").strip() or None,
+            current_required_action=str(payload.get("current_required_action") or ""),
+            allowed_actions=tuple(str(item) for item in allowed_actions),
+            forbidden_actions=tuple(str(item) for item in forbidden_actions),
+            runtime_owned_roots=tuple(str(item) for item in runtime_owned_roots),
+            takeover_required=bool(payload.get("takeover_required")),
+            takeover_action=str(payload.get("takeover_action") or ""),
+            publication_gate_allows_direct_write=publication_gate_allows_direct_write,
+            controller_stage_note=str(payload.get("controller_stage_note") or ""),
+            payload=dict(payload),
         )
 
 
@@ -1099,6 +1174,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("autonomous_runtime_notice")
         return StudyRuntimeAutonomousRuntimeNotice.from_payload(payload)
 
+    @property
+    def execution_owner_guard(self) -> StudyRuntimeExecutionOwnerGuard:
+        payload = self.extras.get("execution_owner_guard")
+        if not isinstance(payload, dict):
+            raise KeyError("execution_owner_guard")
+        return StudyRuntimeExecutionOwnerGuard.from_payload(payload)
+
     def record_completion_sync(
         self,
         value: dict[str, Any] | StudyCompletionSyncResult,
@@ -1136,6 +1218,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimeAutonomousRuntimeNotice.from_payload(value)
         )
         self._record_dict_extra("autonomous_runtime_notice", autonomous_runtime_notice.to_dict())
+
+    def record_execution_owner_guard(
+        self,
+        value: dict[str, Any] | StudyRuntimeExecutionOwnerGuard,
+    ) -> None:
+        execution_owner_guard = (
+            value
+            if isinstance(value, StudyRuntimeExecutionOwnerGuard)
+            else StudyRuntimeExecutionOwnerGuard.from_payload(value)
+        )
+        self._record_dict_extra("execution_owner_guard", execution_owner_guard.to_dict())
 
     def record_runtime_artifacts(
         self,

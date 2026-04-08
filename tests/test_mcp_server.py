@@ -63,6 +63,22 @@ def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
     assert "medical_literature_audit" in tool_names
 
 
+def test_mcp_server_documents_live_runtime_guard_on_study_runtime_tools() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    descriptions = {tool["name"]: tool["description"] for tool in module.build_tool_manifest()}
+
+    status_description = descriptions["study_runtime_status"]
+    ensure_description = descriptions["ensure_study_runtime"]
+
+    for description in (status_description, ensure_description):
+        assert "autonomous_runtime_notice.required = true" in description
+        assert "execution_owner_guard.supervisor_only = true" in description
+        assert "notify the user" in description
+        assert "supervisor-only" in description
+        assert "bundle_tasks_downstream_only = true" in description
+        assert "bundle/build/proofing" in description
+
+
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
