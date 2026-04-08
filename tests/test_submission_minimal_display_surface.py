@@ -176,6 +176,23 @@ Caption.
 def test_create_submission_minimal_package_preserves_display_surface_metadata(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_workspace(tmp_path)
+    dump_json(
+        paper_root / "build" / "display_pack_lock.json",
+        {
+            "schema_version": 2,
+            "enabled_packs": [
+                {
+                    "pack_id": "fenggaolab.org.medical-display-core",
+                    "version": "0.2.0",
+                    "requested_version": "0.2.0",
+                    "source_kind": "git_repo",
+                    "declared_in": "repo",
+                    "manifest_sha256": "a" * 64,
+                    "source_path": "../display-core-git",
+                }
+            ],
+        },
+    )
 
     manifest = module.create_submission_minimal_package(
         paper_root=paper_root,
@@ -184,11 +201,17 @@ def test_create_submission_minimal_package_preserves_display_surface_metadata(tm
 
     assert manifest["figures"][0]["template_id"] == full_id("roc_curve_binary")
     assert manifest["figures"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
+    assert manifest["figures"][0]["pack_version"] == "0.2.0"
+    assert manifest["figures"][0]["pack_source_kind"] == "git_repo"
     assert manifest["figures"][0]["renderer_family"] == "r_ggplot2"
     assert manifest["figures"][0]["qc_profile"] == "publication_evidence_curve"
     assert manifest["tables"][0]["table_shell_id"] == full_id("table1_baseline_characteristics")
     assert manifest["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
+    assert manifest["tables"][0]["pack_manifest_sha256"] == "a" * 64
     assert manifest["tables"][0]["qc_profile"] == "publication_table_baseline"
+    assert manifest["display_pack_lock_path"] == "paper/build/display_pack_lock.json"
+    assert manifest["enabled_display_packs"][0]["version"] == "0.2.0"
+    assert manifest["enabled_display_packs"][0]["source_kind"] == "git_repo"
 
 
 def test_create_submission_minimal_package_prunes_legacy_top_level_figure_and_table_exports(tmp_path: Path) -> None:

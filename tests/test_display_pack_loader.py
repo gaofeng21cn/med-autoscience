@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -30,11 +31,6 @@ version = "{version}"
 kind = "local_dir"
 pack_id = "fenggaolab.org.medical-display-extra"
 path = "display-packs/fenggaolab.org.medical-display-extra"
-
-[[sources]]
-kind = "git"
-pack_id = "fenggaolab.org.medical-display-remote"
-path = "display-packs/fenggaolab.org.medical-display-remote"
 """.strip()
         + "\n",
         encoding="utf-8",
@@ -75,6 +71,16 @@ def _write_pack_manifest(pack_root: Path, *, pack_id: str, version: str = "0.1.0
         ),
         encoding="utf-8",
     )
+
+
+def _git(cwd: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(cwd), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
 
 def _write_template_manifest(
@@ -239,3 +245,48 @@ def test_paper_display_pack_config_can_disable_repo_defaults(tmp_path: Path) -> 
 
     assert selection.inherit_repo_defaults is False
     assert selection.enabled_pack_ids == ("fenggaolab.org.medical-display-core",)
+
+
+def test_load_enabled_local_display_pack_records_reads_git_repo_source(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    git_repo_root = tmp_path / "display-core-git"
+    git_repo_root.mkdir()
+    config_dir = repo_root / "config"
+    config_dir.mkdir()
+    (config_dir / "display_packs.toml").write_text(
+        """
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../display-core-git"
+pack_subdir = "packs/core"
+version = "0.2.0"
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    pack_root = git_repo_root / "packs" / "core"
+    _write_pack_manifest(
+        pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.2.0",
+    )
+    _write_template_manifest(pack_root)
+
+    _git(git_repo_root, "init", "-b", "main")
+    _git(git_repo_root, "config", "user.name", "Test User")
+    _git(git_repo_root, "config", "user.email", "test@example.com")
+    _git(git_repo_root, "add", ".")
+    _git(git_repo_root, "commit", "-m", "Initial display pack")
+
+    records = load_enabled_local_display_pack_records(repo_root)
+
+    assert len(records) == 1
+    assert records[0].pack_root == pack_root
+    assert records[0].source_config.kind == "git_repo"
+    assert records[0].source_config.pack_subdir == "packs/core"
+    assert records[0].source_config.resolved_source_root == git_repo_root.resolve()

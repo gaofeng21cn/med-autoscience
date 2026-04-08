@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import importlib.util
 from pathlib import Path
 import tomllib
 
@@ -11,15 +12,20 @@ from med_autoscience.display_pack_contract import (
     load_display_template_manifest,
 )
 
+_VALID_SOURCE_KINDS = frozenset(("local_dir", "git_repo", "python_package"))
+
 
 @dataclass(frozen=True)
 class DisplayPackSourceConfig:
     pack_id: str
     kind: str
-    path: str
+    path: str | None
+    package: str | None
+    pack_subdir: str
     version: str | None
     declared_in: str
     config_path: Path
+    resolved_source_root: Path
     resolved_root: Path
 
 
@@ -43,6 +49,7 @@ class LoadedDisplayPack:
 @dataclass(frozen=True)
 class LoadedDisplayTemplate:
     pack_root: Path
+    template_path: Path
     pack_manifest: DisplayPackManifest
     template_manifest: DisplayTemplateManifest
     source_config: DisplayPackSourceConfig
@@ -111,6 +118,34 @@ def _load_toml_payload(path: Path) -> dict[str, object]:
     return payload
 
 
+def _expect_source_kind(payload: dict[str, object]) -> str:
+    kind = _expect_str(payload, "kind")
+    if kind not in _VALID_SOURCE_KINDS:
+        raise ValueError(f"kind must be one of {sorted(_VALID_SOURCE_KINDS)!r}")
+    return kind
+
+
+def _normalize_pack_subdir(value: str | None) -> str:
+    normalized = "." if value is None else value.strip()
+    if not normalized:
+        return "."
+    subdir = Path(normalized)
+    if subdir.is_absolute():
+        raise ValueError("pack_subdir must be relative")
+    return subdir.as_posix()
+
+
+def _resolve_python_package_root(package_name: str) -> Path:
+    spec = importlib.util.find_spec(package_name)
+    if spec is None:
+        raise ValueError(f"python package `{package_name}` is not importable")
+    if spec.submodule_search_locations:
+        return Path(next(iter(spec.submodule_search_locations))).resolve()
+    if spec.origin is not None:
+        return Path(spec.origin).resolve().parent
+    raise ValueError(f"python package `{package_name}` does not expose a filesystem location")
+
+
 def _parse_source_configs(
     payload: dict[str, object],
     *,
@@ -131,15 +166,38 @@ def _parse_source_configs(
         pack_id = _expect_str(raw_source, "pack_id")
         if pack_id in sources_by_pack_id:
             raise ValueError(f"duplicate source for pack_id `{pack_id}`")
-        raw_path = _expect_str(raw_source, "path")
+        kind = _expect_source_kind(raw_source)
+        pack_subdir = _normalize_pack_subdir(_optional_str(raw_source, "pack_subdir"))
+        raw_path: str | None = None
+        package_name: str | None = None
+        if kind == "local_dir":
+            raw_path = _expect_str(raw_source, "path")
+            if pack_subdir != ".":
+                raise ValueError("local_dir sources must not set pack_subdir")
+            resolved_source_root = (anchor_root / raw_path).expanduser().resolve()
+            resolved_root = resolved_source_root
+        elif kind == "git_repo":
+            raw_path = _expect_str(raw_source, "path")
+            resolved_source_root = (anchor_root / raw_path).expanduser().resolve()
+            git_dir = resolved_source_root / ".git"
+            if not git_dir.exists():
+                raise ValueError(f"git_repo source `{raw_path}` must point to a git checkout root")
+            resolved_root = (resolved_source_root / pack_subdir).resolve()
+        else:
+            package_name = _expect_str(raw_source, "package")
+            resolved_source_root = _resolve_python_package_root(package_name)
+            resolved_root = (resolved_source_root / pack_subdir).resolve()
         sources_by_pack_id[pack_id] = DisplayPackSourceConfig(
             pack_id=pack_id,
-            kind=_expect_str(raw_source, "kind"),
+            kind=kind,
             path=raw_path,
+            package=package_name,
+            pack_subdir=pack_subdir,
             version=_optional_str(raw_source, "version"),
             declared_in=declared_in,
             config_path=config_path,
-            resolved_root=(anchor_root / raw_path).expanduser().resolve(),
+            resolved_source_root=resolved_source_root,
+            resolved_root=resolved_root,
         )
     return sources_by_pack_id
 
@@ -214,10 +272,6 @@ def load_enabled_local_display_pack_records(
     records: list[LoadedDisplayPack] = []
 
     for source_config in resolution.source_configs:
-        if source_config.kind != "local_dir":
-            raise ValueError(
-                f"unsupported enabled pack source kind `{source_config.kind}` for `{source_config.pack_id}`"
-            )
         manifest = load_display_pack_manifest(source_config.resolved_root / "display_pack.toml")
         if manifest.pack_id != source_config.pack_id:
             raise ValueError(
@@ -260,6 +314,7 @@ def load_enabled_local_display_template_records(
             records.append(
                 LoadedDisplayTemplate(
                     pack_root=loaded_pack.pack_root,
+                    template_path=template_path,
                     pack_manifest=loaded_pack.pack_manifest,
                     template_manifest=load_display_template_manifest(
                         template_path,

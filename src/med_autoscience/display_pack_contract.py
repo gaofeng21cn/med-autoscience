@@ -51,6 +51,8 @@ class DisplayTemplateManifest:
     qc_profile_ref: str
     required_exports: tuple[str, ...]
     allowed_paper_roles: tuple[str, ...]
+    golden_case_paths: tuple[str, ...]
+    exemplar_refs: tuple[str, ...]
     execution_mode: str
     entrypoint: str
     paper_proven: bool
@@ -90,6 +92,28 @@ def _optional_str_tuple(payload: dict[str, object], key: str) -> tuple[str, ...]
     if key not in payload:
         return None
     return _expect_str_tuple(payload, key)
+
+
+def _optional_existing_relative_file_tuple(
+    payload: dict[str, object],
+    key: str,
+    *,
+    anchor_dir: Path,
+) -> tuple[str, ...]:
+    values = _optional_str_tuple(payload, key) or ()
+    normalized_anchor_dir = anchor_dir.resolve()
+    for value in values:
+        candidate = Path(value)
+        if candidate.is_absolute():
+            raise ValueError(f"{key} entries must be relative to the template directory")
+        resolved_path = (normalized_anchor_dir / candidate).resolve()
+        try:
+            resolved_path.relative_to(normalized_anchor_dir)
+        except ValueError as exc:
+            raise ValueError(f"{key} entries must stay inside the template directory") from exc
+        if not resolved_path.is_file():
+            raise ValueError(f"{key} entry `{value}` must reference an existing file")
+    return values
 
 
 def _expect_semver(payload: dict[str, object], key: str) -> str:
@@ -142,6 +166,7 @@ def load_display_template_manifest(
     expected_pack_id: str,
 ) -> DisplayTemplateManifest:
     payload = tomllib.loads(path.read_text(encoding="utf-8"))
+    template_root = path.parent
 
     template_id = _expect_str(payload, "template_id")
     full_template_id = _expect_str(payload, "full_template_id")
@@ -185,6 +210,12 @@ def load_display_template_manifest(
         qc_profile_ref=_expect_str(payload, "qc_profile_ref"),
         required_exports=_expect_str_tuple(payload, "required_exports"),
         allowed_paper_roles=allowed_paper_roles,
+        golden_case_paths=_optional_existing_relative_file_tuple(
+            payload,
+            "golden_case_paths",
+            anchor_dir=template_root,
+        ),
+        exemplar_refs=_optional_str_tuple(payload, "exemplar_refs") or (),
         execution_mode=_expect_execution_mode(payload, "execution_mode"),
         entrypoint=_expect_str(payload, "entrypoint"),
         paper_proven=_expect_bool(payload, "paper_proven"),

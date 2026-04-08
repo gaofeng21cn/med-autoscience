@@ -91,6 +91,45 @@ def test_load_display_template_manifest_parses_minimal_valid_template() -> None:
     assert manifest.paper_proven is False
 
 
+def test_load_display_template_manifest_parses_optional_asset_metadata(tmp_path: Path) -> None:
+    template_root = tmp_path / "roc_curve_binary"
+    (template_root / "goldens").mkdir(parents=True)
+    (template_root / "goldens" / "main.png").write_text("png", encoding="utf-8")
+    template_path = template_root / "template.toml"
+    template_path.write_text(
+        "\n".join(
+            (
+                'template_id = "roc_curve_binary"',
+                'full_template_id = "fenggaolab.org.medical-display-core::roc_curve_binary"',
+                'kind = "evidence_figure"',
+                'display_name = "ROC Curve (Binary Outcome)"',
+                'paper_family_ids = ["A"]',
+                'audit_family = "Prediction Performance"',
+                'renderer_family = "r_ggplot2"',
+                'input_schema_ref = "binary_prediction_curve_inputs_v1"',
+                'qc_profile_ref = "publication_evidence_curve"',
+                'required_exports = ["png", "pdf"]',
+                'golden_case_paths = ["goldens/main.png"]',
+                'exemplar_refs = ["Nature Medicine 2025 Figure 2"]',
+                'execution_mode = "python_plugin"',
+                'entrypoint = "pkg.module:render"',
+                "paper_proven = true",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    manifest = load_display_template_manifest(
+        template_path,
+        expected_pack_id="fenggaolab.org.medical-display-core",
+    )
+
+    assert manifest.golden_case_paths == ("goldens/main.png",)
+    assert manifest.exemplar_refs == ("Nature Medicine 2025 Figure 2",)
+    assert manifest.paper_proven is True
+
+
 def test_load_display_template_manifest_rejects_unknown_audit_family(tmp_path: Path) -> None:
     template_path = tmp_path / "template.toml"
     template_path.write_text(
