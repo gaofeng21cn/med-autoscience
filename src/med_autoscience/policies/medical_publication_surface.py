@@ -52,6 +52,7 @@ FIGURE_SEMANTICS_MANIFEST_BASENAME = "figure_semantics_manifest.json"
 DERIVED_ANALYSIS_MANIFEST_BASENAME = "derived_analysis_manifest.json"
 REPRODUCIBILITY_SUPPLEMENT_BASENAME = "manuscript_safe_reproducibility_supplement.json"
 ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
+CLAIM_EVIDENCE_MAP_BASENAME = "claim_evidence_map.json"
 RESULTS_NARRATION_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("figure shows", "Figure 1 shows", r"\bFigure\s+\d+[A-Za-z]?\s+shows\b", re.IGNORECASE),
     ("figure illustrates", "Figure 1 illustrates", r"\bFigure\s+\d+[A-Za-z]?\s+illustrates\b", re.IGNORECASE),
@@ -287,6 +288,38 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
         renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
         if renderer_contract_errors:
             return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
+    return []
+
+
+def validate_claim_evidence_map(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return ["payload must be a JSON object"]
+    claims = payload.get("claims")
+    if not isinstance(claims, list) or not claims:
+        return ["claims must contain at least one claim entry"]
+    required_fields = (
+        "claim_id",
+        "statement",
+        "status",
+        "paper_role",
+        "display_bindings",
+        "sections",
+        "evidence_items",
+    )
+    evidence_item_fields = ("item_id", "support_level", "source_paths")
+    for index, claim in enumerate(claims):
+        missing_fields = _missing_required_fields(claim, required_fields)
+        if missing_fields:
+            return [f"missing claims[{index}] fields: {', '.join(missing_fields)}"]
+        evidence_items = claim.get("evidence_items")
+        if not isinstance(evidence_items, list) or not evidence_items:
+            return [f"claims[{index}].evidence_items must contain at least one evidence item"]
+        for evidence_index, evidence_item in enumerate(evidence_items):
+            missing_evidence_fields = _missing_required_fields(evidence_item, evidence_item_fields)
+            if missing_evidence_fields:
+                return [
+                    f"missing claims[{index}].evidence_items[{evidence_index}] fields: {', '.join(missing_evidence_fields)}"
+                ]
     return []
 
 

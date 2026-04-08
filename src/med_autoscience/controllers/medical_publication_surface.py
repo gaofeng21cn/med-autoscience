@@ -29,6 +29,7 @@ class SurfaceState:
     methods_implementation_manifest_path: Path
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
+    claim_evidence_map_path: Path
     derived_analysis_manifest_path: Path
     reproducibility_supplement_path: Path
     endpoint_provenance_note_path: Path
@@ -81,6 +82,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
+        claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
         derived_analysis_manifest_path=paper_root / medical_surface_policy.DERIVED_ANALYSIS_MANIFEST_BASENAME,
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
         endpoint_provenance_note_path=paper_root / medical_surface_policy.ENDPOINT_PROVENANCE_NOTE_BASENAME,
@@ -519,6 +521,43 @@ def inspect_figure_semantics_coverage(
                 "excerpt": f"Main-text figure `{figure_id}` is present in the figure catalog but missing from the figure semantics manifest.",
             }
         )
+    return hits
+
+
+def inspect_claim_evidence_display_bindings(
+    *,
+    path: Path,
+    payload: object,
+    known_display_items: set[str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    hits: list[dict[str, Any]] = []
+    for index, claim in enumerate(payload.get("claims", []) or []):
+        if not isinstance(claim, dict):
+            continue
+        paper_role = str(claim.get("paper_role") or "").strip()
+        status = str(claim.get("status") or "").strip().lower()
+        if paper_role != "main_text":
+            continue
+        if status.startswith("unsupported") or status.startswith("deferred"):
+            continue
+        for item in claim.get("display_bindings", []) or []:
+            display_item = str(item or "").strip()
+            if not display_item or display_item in known_display_items:
+                continue
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": f"claims[{index}].display_bindings",
+                    "pattern_id": "claim_evidence_map_missing_display_binding",
+                    "phrase": display_item,
+                    "excerpt": (
+                        f"Main-text claim `{str(claim.get('claim_id') or index)}` still binds display item "
+                        f"`{display_item}`, but that item is not materialized in the current figure/table catalog."
+                    ),
+                }
+            )
     return hits
 
 
@@ -1059,6 +1098,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="figure_semantics_manifest",
         label="figure semantics manifest",
     )
+    claim_evidence_map_valid, claim_evidence_map_hits = inspect_required_json_contract(
+        path=state.claim_evidence_map_path,
+        validator=medical_surface_policy.validate_claim_evidence_map,
+        pattern_id="claim_evidence_map",
+        label="claim evidence map",
+    )
     derived_analysis_valid, derived_analysis_hits = inspect_required_json_contract(
         path=state.derived_analysis_manifest_path,
         validator=medical_surface_policy.validate_derived_analysis_manifest,
@@ -1113,6 +1158,15 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     if figure_semantics_renderer_alignment_hits:
         figure_semantics_valid = False
         figure_semantics_hits.extend(figure_semantics_renderer_alignment_hits)
+    claim_evidence_map_payload = load_json(state.claim_evidence_map_path, default=None)
+    claim_evidence_display_hits = inspect_claim_evidence_display_bindings(
+        path=state.claim_evidence_map_path,
+        payload=claim_evidence_map_payload,
+        known_display_items=figure_ids | table_ids,
+    )
+    if claim_evidence_display_hits:
+        claim_evidence_map_valid = False
+        claim_evidence_map_hits.extend(claim_evidence_display_hits)
     methods_manifest_payload = load_json(state.methods_implementation_manifest_path, default=None)
     derived_analysis_payload = load_json(state.derived_analysis_manifest_path, default=None)
     reproducibility_payload = load_json(state.reproducibility_supplement_path, default=None)
@@ -1186,6 +1240,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(methods_manifest_hits)
     hits.extend(results_narrative_hits)
     hits.extend(figure_semantics_hits)
+    hits.extend(claim_evidence_map_hits)
     hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
     hits.extend(missing_data_policy_hits)
@@ -1224,6 +1279,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("results_section_structure_missing_or_incomplete")
     if not figure_semantics_valid:
         blockers.append("figure_semantics_manifest_missing_or_incomplete")
+    if not claim_evidence_map_valid:
+        blockers.append("claim_evidence_map_missing_or_incomplete")
     if not derived_analysis_valid:
         blockers.append("derived_analysis_manifest_missing_or_incomplete")
     if not reproducibility_valid:
@@ -1277,6 +1334,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
         "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
         "figure_semantics_manifest_valid": figure_semantics_valid,
+        "claim_evidence_map_path": str(state.claim_evidence_map_path),
+        "claim_evidence_map_present": state.claim_evidence_map_path.exists(),
+        "claim_evidence_map_valid": claim_evidence_map_valid,
         "derived_analysis_manifest_path": str(state.derived_analysis_manifest_path),
         "derived_analysis_manifest_present": state.derived_analysis_manifest_path.exists(),
         "derived_analysis_manifest_valid": derived_analysis_valid,
@@ -1325,6 +1385,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- results_narrative_map_valid: `{report['results_narrative_map_valid']}`",
         f"- figure_semantics_manifest_present: `{report['figure_semantics_manifest_present']}`",
         f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
+        f"- claim_evidence_map_present: `{report.get('claim_evidence_map_present', False)}`",
+        f"- claim_evidence_map_valid: `{report.get('claim_evidence_map_valid', False)}`",
         f"- derived_analysis_manifest_present: `{report['derived_analysis_manifest_present']}`",
         f"- derived_analysis_manifest_valid: `{report['derived_analysis_manifest_valid']}`",
         f"- reproducibility_supplement_present: `{report['reproducibility_supplement_present']}`",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 
 
@@ -18,6 +19,8 @@ def make_quest(
     runtime_status: str = "running",
     include_unmanaged_submission_surface: bool = False,
     archive_legacy_submission_surface: bool = False,
+    include_current_medical_publication_surface_report: bool = False,
+    medical_publication_surface_status: str = "clear",
     manuscript_files: dict[str, str] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
@@ -104,6 +107,14 @@ def make_quest(
                 else {}
             ),
         )
+    if include_current_medical_publication_surface_report:
+        dump_json(
+            quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json",
+            {
+                "status": medical_publication_surface_status,
+                "blockers": [] if medical_publication_surface_status == "clear" else ["claim_evidence_map_missing_or_incomplete"],
+            },
+        )
     if manuscript_files:
         for relpath, body in manuscript_files.items():
             target = worktree_root / "paper" / relpath
@@ -151,6 +162,7 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
         include_submission_minimal=True,
         include_main_result=False,
         runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
     )
 
     state = module.build_gate_state(quest_root)
@@ -173,6 +185,48 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["supervisor_phase"] == "bundle_stage_ready"
     assert report["bundle_tasks_downstream_only"] is False
     assert report["phase_owner"] == "publication_gate"
+
+
+def test_build_gate_report_blocks_finalize_only_bundle_without_current_surface_report(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "paper_bundle"
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert "missing_current_medical_publication_surface_report" in report["blockers"]
+    assert report["supervisor_phase"] == "bundle_stage_blocked"
+    assert report["current_required_action"] == "complete_bundle_stage"
+
+
+def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_stale(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    report_path = quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    bundle_manifest_path = (
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
+    )
+    os.utime(report_path, (bundle_manifest_path.stat().st_mtime - 10, bundle_manifest_path.stat().st_mtime - 10))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "missing_current_medical_publication_surface_report" in report["blockers"]
 
 
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:
@@ -271,6 +325,7 @@ def test_build_gate_report_accepts_archived_reference_only_legacy_submission_sur
         runtime_status="waiting_for_user",
         include_unmanaged_submission_surface=True,
         archive_legacy_submission_surface=True,
+        include_current_medical_publication_surface_report=True,
     )
 
     state = module.build_gate_state(quest_root)

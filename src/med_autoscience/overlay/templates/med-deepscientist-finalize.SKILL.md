@@ -218,6 +218,18 @@ If the recommendation is submission-ready (including stop-and-publish), require 
 If any item above is missing or failed, do not label the quest submission-ready.
 Record a blocked finalize state and route through `decision` with the missing gate clearly named.
 
+### 4.2 Manuscript-adequacy hard gate
+
+If the recommendation would ask for explicit quest-completion approval, require all of:
+
+- `paper/claim_evidence_map.json` exists and every non-deferred main-text claim's `display_bindings` are materialized in the current figure/table catalogs
+- `paper/results_narrative_map.json` and `paper/figure_semantics_manifest.json` remain aligned with the materialized display package; do not accept a bundle that silently drops a still-bound main-text figure
+- appendix-only displays do not compensate for missing main-text claim surfaces
+- a frozen bundle is described as `package complete` only when that is all you know; do not translate package completeness into manuscript adequacy without the checks above
+
+If any item above fails, do not request completion approval.
+Route back to `write` or `decision` with the manuscript-adequacy blocker named explicitly.
+
 ### 5. Build a resume or handoff packet
 
 If the quest may continue later, leave behind a compact restart packet that answers:

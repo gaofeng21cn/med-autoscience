@@ -101,6 +101,7 @@ def make_quest(
     include_methods_manifest: bool | None = None,
     include_results_narrative_map: bool | None = None,
     include_figure_semantics_manifest: bool | None = None,
+    include_claim_evidence_map: bool | None = None,
     include_derived_analysis_manifest: bool | None = None,
     figure_led_results: bool | None = None,
     include_reproducibility_supplement: bool | None = None,
@@ -127,6 +128,8 @@ def make_quest(
         include_results_narrative_map = medicalized
     if include_figure_semantics_manifest is None:
         include_figure_semantics_manifest = medicalized
+    if include_claim_evidence_map is None:
+        include_claim_evidence_map = medicalized
     if include_derived_analysis_manifest is None:
         include_derived_analysis_manifest = medicalized
     if figure_led_results is None:
@@ -602,6 +605,32 @@ def make_quest(
                         "stratification_basis": "Risk groups were formed for display and are not prespecified clinical categories.",
                         "recommendation_boundary": "No formal recommendation threshold is proposed from this figure.",
                         "renderer_contract": renderer_contract,
+                    }
+                ],
+            },
+        )
+
+    if include_claim_evidence_map:
+        dump_json(
+            paper_root / "claim_evidence_map.json",
+            {
+                "schema_version": 1,
+                "claims": [
+                    {
+                        "claim_id": "C1",
+                        "statement": "The main manuscript route is supported by the threshold interpretation figure and the baseline table.",
+                        "status": "supported_main_text",
+                        "paper_role": "main_text",
+                        "display_bindings": ["F4", "T1"],
+                        "sections": ["results", "discussion"],
+                        "evidence_items": [
+                            {
+                                "item_id": "EXP-001",
+                                "support_level": "primary",
+                                "source_paths": ["paper/results_narrative_map.json"],
+                            }
+                        ],
+                        "limitations": ["Illustrative threshold interpretation only."],
                     }
                 ],
             },
@@ -1332,6 +1361,25 @@ def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_p
         hit["pattern_id"] == "required_display_catalog_item_missing" and hit["phrase"] == "F5"
         for hit in report["top_hits"]
     )
+
+
+def test_build_report_blocks_when_main_text_claim_binding_is_missing_from_catalog(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    claim_map_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "claim_evidence_map.json"
+    payload = json.loads(claim_map_path.read_text(encoding="utf-8"))
+    payload["claims"][0]["display_bindings"] = ["F5", "T1"]
+    claim_map_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "claim_evidence_map_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "claim_evidence_map_missing_display_binding" for hit in report["top_hits"])
 
 
 def test_build_report_accepts_complete_required_display_catalog_coverage(tmp_path: Path) -> None:

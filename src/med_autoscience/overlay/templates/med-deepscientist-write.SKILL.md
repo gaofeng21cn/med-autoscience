@@ -130,6 +130,7 @@ Language redlines under this profile:
 - Underclaim in prose and overdeliver in evidence.
 - A figure or table is an argument, not decoration.
 - Draft-ready is not submission-ready, and submission-ready is not quest completion.
+- Bundle-complete is not manuscript-adequate. Do not freeze a reduced display package as if that alone proved the paper is ready to close.
 - If the cleanest next move is to gather evidence rather than to write harder, route back explicitly.
 - Organize for the reader's understanding, not the author's implementation chronology.
 - Assume a reviewer may form the first judgment from a fast scan rather than a full patient reading.
@@ -610,6 +611,7 @@ Before step 1, durably establish the writing-surface contract:
 - `writing_profile = general_medical_journal` unless explicitly overridden
 - `submission_minimal_required = true`
 - terminology redline for body text, figure titles, and captions (no internal engineering terms, no internal model names)
+- `paper/claim_evidence_map.json`, `paper/results_narrative_map.json`, and `paper/figure_semantics_manifest.json` must agree on the main-text display obligations before you treat a bundle as closure-capable
 
 1. consolidate evidence and literature
 2. activate or create the dedicated `paper/*` branch/worktree derived from the source run branch before durable outline selection or drafting
@@ -619,6 +621,7 @@ Before step 1, durably establish the writing-surface contract:
 6. create or refresh `paper/paper_experiment_matrix.md` and `paper/paper_experiment_matrix.json` before stabilizing the experiments section
 7. if the selected outline or matrix still exposes evidence gaps, launch an outline-bound and matrix-bound `artifact.create_analysis_campaign(...)` before drafting the experiments section as if it were settled
 8. plan and generate decisive figures or tables
+   do not silently drop a main-text claim-bound figure from the current package just to get a smaller bundle through compile/proofing
 9. draft sections directly from the evidence and the current working outline; do not force extra outline rounds when direct drafting is clearer and safer
 10. run harsh review and revision cycles
 11. proof, package, submit `artifact.submit_paper_bundle(...)` when the bundle is ready, and then pass to `finalize`

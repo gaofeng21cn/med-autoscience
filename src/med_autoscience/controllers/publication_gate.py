@@ -207,6 +207,16 @@ def gate_allows_write(
     return bool(latest_gate.get("allow_write"))
 
 
+def medical_publication_surface_report_current(
+    *,
+    latest_surface_path: Path | None,
+    anchor_path: Path,
+) -> bool:
+    if latest_surface_path is None or not latest_surface_path.exists():
+        return False
+    return latest_surface_path.stat().st_mtime >= anchor_path.stat().st_mtime
+
+
 def resolve_compile_report_path(
     *,
     paper_bundle_manifest_path: Path | None,
@@ -349,6 +359,10 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     latest_gate_up_to_date = (
         state.latest_gate_path is not None and state.latest_gate_path.stat().st_mtime >= state.anchor_path.stat().st_mtime
     )
+    medical_publication_surface_current = medical_publication_surface_report_current(
+        latest_surface_path=state.latest_medical_publication_surface_path,
+        anchor_path=state.anchor_path,
+    )
     blockers: list[str] = []
     if state.anchor_kind == "main_result":
         allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
@@ -374,6 +388,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             or not state.submission_minimal_pdf_present
         ):
             blockers.append("missing_submission_minimal")
+        if not medical_publication_surface_current:
+            blockers.append("missing_current_medical_publication_surface_report")
     else:
         allow_write = False
         blockers.append("missing_publication_anchor")
@@ -422,6 +438,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "medical_publication_surface_report_path": (
             str(state.latest_medical_publication_surface_path) if state.latest_medical_publication_surface_path else None
         ),
+        "medical_publication_surface_current": medical_publication_surface_current,
         "allow_write": allow_write,
         "recommended_action": (
             publication_gate_policy.BLOCKED_RECOMMENDED_ACTION
@@ -574,6 +591,7 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
             f"- `medical_publication_surface_report_path`: `{report.get('medical_publication_surface_report_path')}`",
             f"- `medical_publication_surface_status`: `{report.get('medical_publication_surface_status')}`",
+            f"- `medical_publication_surface_current`: `{str(report.get('medical_publication_surface_current')).lower()}`",
         ]
     )
     unmanaged_roots = report.get("unmanaged_submission_surface_roots") or []
