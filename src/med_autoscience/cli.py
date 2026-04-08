@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -12,40 +14,64 @@ from med_autoscience.doctor import (
     render_profile,
 )
 from med_autoscience import dev_preflight
-from med_autoscience.controllers import (
-    aris_sidecar as aris_sidecar_controller,
-    data_asset_gate,
-    data_assets,
-    data_asset_updates as data_asset_updates_controller,
-    display_pack_surface_sync,
-    display_surface_materialization,
-    med_deepscientist_upgrade_check,
-    external_research as external_research_controller,
-    figure_loop_guard,
-    journal_shortlist as journal_shortlist_controller,
-    medical_literature_audit,
-    medical_publication_surface,
-    medical_reporting_audit,
-    portfolio_memory as portfolio_memory_controller,
-    publication_gate,
-    reference_papers as reference_papers_controller,
-    runtime_watch,
-    sidecar_provider as sidecar_provider_controller,
-    startup_data_readiness as startup_data_readiness_controller,
-    study_runtime_router,
-    study_delivery_sync,
-    submission_minimal,
-    submission_targets as submission_targets_controller,
-    time_to_event_direct_migration,
-    workspace_init as workspace_init_controller,
-)
-from med_autoscience.adapters import tooluniverse as tooluniverse_adapter
 from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.figure_routes import supported_required_route_help
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
-from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
+
+
+@lru_cache(maxsize=None)
+def _load_module(module_name: str) -> Any:
+    return importlib.import_module(module_name)
+
+
+def _load_controller(module_name: str) -> Any:
+    return _load_module(f"med_autoscience.controllers.{module_name}")
+
+
+def _load_adapter(module_name: str) -> Any:
+    return _load_module(f"med_autoscience.adapters.{module_name}")
+
+
+def _load_analysis_bundle_controller() -> Any:
+    return _load_module("med_autoscience.study_runtime_analysis_bundle")
+
+
+class _LazyModuleProxy:
+    def __init__(self, loader) -> None:
+        object.__setattr__(self, "_loader", loader)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(object.__getattribute__(self, "_loader")(), name)
+
+
+aris_sidecar_controller = _LazyModuleProxy(lambda: _load_controller("aris_sidecar"))
+data_asset_gate = _LazyModuleProxy(lambda: _load_controller("data_asset_gate"))
+data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
+data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_asset_updates"))
+display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
+display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
+med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
+external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
+figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
+journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
+medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
+medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
+medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
+portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
+publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
+reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
+runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
+sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
+startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
+study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
+submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
+submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
+time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
+tooluniverse_adapter = _LazyModuleProxy(lambda: _load_adapter("tooluniverse"))
+workspace_init_controller = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
+analysis_bundle_controller = _LazyModuleProxy(_load_analysis_bundle_controller)
 
 
 def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
@@ -92,11 +118,12 @@ def _parse_key_value_pairs(values: list[str]) -> dict[str, str]:
     return parsed
 
 
-def _serialize_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
-    if isinstance(result, StudyRuntimeStatus):
-        return result.to_dict()
+def _serialize_study_runtime_result(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
+    study_runtime_types = _load_controller("study_runtime_types")
+    if isinstance(result, study_runtime_types.StudyRuntimeStatus):
+        return result.to_dict()
     raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
 
 

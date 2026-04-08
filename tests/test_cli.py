@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import builtins
 import importlib
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -135,6 +137,33 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     assert payload["policy"]["research_route_bias_policy"] == "high_plasticity_medical"
     assert payload["archetype"]["preferred_study_archetypes"][0] == "clinical_classifier"
     assert "autofigure" not in json.dumps(payload, ensure_ascii=False).lower()
+
+
+def test_show_profile_does_not_require_display_surface_dependencies(tmp_path: Path, monkeypatch, capsys) -> None:
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+
+    sys.modules.pop("med_autoscience.cli", None)
+    sys.modules.pop("med_autoscience.controllers.display_surface_materialization", None)
+
+    real_import = builtins.__import__
+    blocked_modules = ("matplotlib", "packaging", "pandas")
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if any(name == module_name or name.startswith(f"{module_name}.") for module_name in blocked_modules):
+            root_name = name.split(".", 1)[0]
+            raise ModuleNotFoundError(f"No module named '{root_name}'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["show-profile", "--profile", str(profile_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "name: nfpitnet" in captured.out
 
 
 def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
