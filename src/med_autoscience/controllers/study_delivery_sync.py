@@ -220,6 +220,31 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
     )
 
 
+def build_delivery_surface_roles(
+    *,
+    paper_root: Path,
+    source_root: Path,
+    manuscript_root: Path | None = None,
+    submission_package_root: Path | None = None,
+    submission_package_zip: Path | None = None,
+    auxiliary_evidence_root: Path | None = None,
+    journal_submission_mirror_root: Path | None = None,
+) -> dict[str, str | None]:
+    return {
+        "controller_authorized_paper_root": str(paper_root),
+        "controller_authorized_package_source_root": str(source_root),
+        "human_facing_delivery_root": str(manuscript_root) if manuscript_root is not None else None,
+        "human_facing_submission_package_root": (
+            str(submission_package_root) if submission_package_root is not None else None
+        ),
+        "human_facing_submission_package_zip": str(submission_package_zip) if submission_package_zip is not None else None,
+        "auxiliary_evidence_root": str(auxiliary_evidence_root) if auxiliary_evidence_root is not None else None,
+        "journal_submission_mirror_root": (
+            str(journal_submission_mirror_root) if journal_submission_mirror_root is not None else None
+        ),
+    }
+
+
 def build_promoted_delivery_readme(*, study_id: str, publication_profile: str) -> str:
     return (
         f"# Study Final Delivery\n\n"
@@ -451,6 +476,14 @@ def sync_general_delivery(
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
         },
+        "surface_roles": build_delivery_surface_roles(
+            paper_root=paper_root,
+            source_root=source_root,
+            manuscript_root=manuscript_root,
+            submission_package_root=submission_package_root,
+            submission_package_zip=submission_package_zip,
+            auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
+        ),
         "targets": targets,
         "copied_files": copied_files,
         "generated_files": generated_files,
@@ -557,6 +590,12 @@ def sync_journal_specific_delivery(
             "worktree_root": str(worktree_root),
             "package_source_root": str(source_root),
         },
+        "surface_roles": build_delivery_surface_roles(
+            paper_root=paper_root,
+            source_root=source_root,
+            manuscript_root=manuscript_root,
+            auxiliary_evidence_root=None,
+        ),
         "targets": {
             "study_root": str(study_root),
             "manuscript_root": str(manuscript_root),
@@ -780,6 +819,11 @@ def sync_promoted_journal_delivery(
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
         },
+        "surface_roles": build_delivery_surface_roles(
+            paper_root=paper_root,
+            source_root=source_root,
+            journal_submission_mirror_root=mirror_root,
+        ),
         "targets": {
             "study_root": str(study_root),
             "journal_package_root": str(mirror_root),
@@ -814,6 +858,15 @@ def sync_promoted_journal_delivery(
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
         },
+        "surface_roles": build_delivery_surface_roles(
+            paper_root=paper_root,
+            source_root=source_root,
+            manuscript_root=manuscript_root,
+            submission_package_root=submission_package_root,
+            submission_package_zip=submission_package_zip,
+            auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
+            journal_submission_mirror_root=mirror_root,
+        ),
         "targets": targets,
         "copied_files": [
             item

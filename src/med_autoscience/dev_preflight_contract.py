@@ -105,6 +105,28 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "uv run pytest tests/test_runtime_protocol_runtime_watch.py -q",
         ),
     ),
+    PreflightCategorySpec(
+        category_id="integration_harness_surface",
+        exact_paths=(
+            "docs/agent_runtime_interface.md",
+            "docs/integration_harness_activation_package.md",
+            "docs/merge_and_cutover_gates.md",
+            "docs/repository_ci_preflight.md",
+            "docs/research_foundry_medical_execution_map.md",
+            "docs/research_foundry_medical_mainline.md",
+            "src/med_autoscience/dev_preflight_contract.py",
+            "tests/test_dev_preflight.py",
+            "tests/test_dev_preflight_contract.py",
+            "tests/test_integration_harness_activation_package.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            "uv run pytest tests/test_dev_preflight_contract.py -q",
+            "uv run pytest tests/test_dev_preflight.py -q",
+            "uv run pytest tests/test_integration_harness_activation_package.py -q",
+            "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q",
+        ),
+    ),
 )
 
 

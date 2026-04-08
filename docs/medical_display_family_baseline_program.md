@@ -17,11 +17,11 @@ For the strict audited engineering truth, see [medical_display_audit_guide.md](.
 
 ## Program Target
 
-The current long-horizon completion target is:
+The milestone defined by this document is:
 
 **every `A-H` paper family should have at least one end-to-end audited baseline.**
 
-This is the active program goal for long-run autonomous execution.
+That milestone is already complete.
 
 It is intentionally:
 
@@ -80,18 +80,26 @@ In other words:
 - current completion score is `8 / 8`;
 - every `A-H` family now has a first audited baseline.
 
+## Current Operating Implication
+
+Because the milestone is already complete:
+
+- this document is now baseline-completion provenance;
+- the active display program should be understood as rolling hardening, visual audit, and paper-driven strengthening;
+- the first-baseline scoreboard remains the lower coverage floor, not the current stopping rule.
+
 ## Execution Strategy
 
 The user-approved execution strategy is:
 
-1. keep `A-H` first-baseline coverage as the long-run completion target;
+1. keep `A-H` first-baseline coverage as the minimum coverage floor;
 2. keep real paper demand as the default source of truth for what to build next;
 3. do not reduce the program to a mechanical checklist;
 4. but if a family remains completely missing and no higher-priority paper blocker is active, OMX should proactively onboard that missing family instead of parking.
 
 This means:
 
-- `B` is the completion target;
+- the old `A-H` coverage target remains the completed milestone floor;
 - real-paper priority is still the execution policy.
 
 ## Default Continuation Order
@@ -171,11 +179,11 @@ If none of those are true, OMX should keep moving:
 
 ## Stop Conditions
 
-The current long-run program should only stop when at least one of the following is true:
+The current rolling-hardening program should only stop when at least one of the following is true:
 
-1. all `A-H` families have a first audited baseline and no immediate hardening baton is active;
-2. a hard blocker prevents reliable continuation;
-3. the next family or paper demand requires a user priority decision that cannot be inferred from current truth.
+1. a hard blocker prevents reliable continuation;
+2. the next family or paper demand requires a user priority decision that cannot be inferred from current truth;
+3. current truth surfaces conflict and cannot be reconciled locally.
 
 ## Governance Rule
 

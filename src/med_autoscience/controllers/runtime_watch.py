@@ -24,6 +24,15 @@ from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_prot
 
 ControllerRunner = Callable[..., dict[str, Any]]
 
+DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
+    "data_asset_gate",
+    "medical_publication_surface",
+    "publication_gate",
+    "medical_literature_audit",
+    "medical_reporting_audit",
+    "figure_loop_guard",
+)
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -32,12 +41,27 @@ def utc_now() -> str:
 def build_default_controller_runners() -> dict[str, ControllerRunner]:
     return {
         "data_asset_gate": data_asset_gate.run_controller,
-        "publication_gate": publication_gate.run_controller,
         "medical_publication_surface": medical_publication_surface.run_controller,
+        "publication_gate": publication_gate.run_controller,
         "medical_literature_audit": medical_literature_audit.run_controller,
         "medical_reporting_audit": medical_reporting_audit.run_controller,
         "figure_loop_guard": figure_loop_guard.run_controller,
     }
+
+
+def iter_ordered_controller_runners(
+    controller_runners: dict[str, ControllerRunner],
+) -> list[tuple[str, ControllerRunner]]:
+    priority = {name: index for index, name in enumerate(DEFAULT_CONTROLLER_ORDER)}
+    ordered_known: list[tuple[int, tuple[str, ControllerRunner]]] = []
+    ordered_unknown: list[tuple[str, ControllerRunner]] = []
+    for name, runner in controller_runners.items():
+        entry = (name, runner)
+        if name in priority:
+            ordered_known.append((priority[name], entry))
+        else:
+            ordered_unknown.append(entry)
+    return [entry for _, entry in sorted(ordered_known, key=lambda item: item[0])] + ordered_unknown
 
 
 def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
@@ -188,7 +212,7 @@ def run_watch_for_quest(
         "controllers": {},
     }
 
-    for name, runner in controller_runners.items():
+    for name, runner in iter_ordered_controller_runners(controller_runners):
         dry_run_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=False)
         fingerprint = build_fingerprint(name, dry_run_result)
         previous = controller_state.get(name) or runtime_watch_protocol.RuntimeWatchControllerState()

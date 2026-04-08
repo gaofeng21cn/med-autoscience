@@ -21,6 +21,7 @@
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
+- `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
 - `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)

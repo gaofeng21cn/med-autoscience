@@ -111,3 +111,26 @@ def test_study_decision_record_requires_non_empty_controller_actions() -> None:
 
     with pytest.raises(ValueError, match="study decision record controller_actions must not be empty"):
         module.StudyDecisionRecord.from_payload(payload)
+
+
+def test_study_decision_record_rejects_unsupported_rerun_decision_type() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["decision_type"] = "rerun_same_line"
+
+    with pytest.raises(ValueError, match="unknown study decision type"):
+        module.StudyDecisionRecord.from_payload(payload)
+
+
+def test_study_decision_record_rejects_unsupported_stop_after_current_step_action() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["controller_actions"] = [
+        {
+            "action_type": "stop_after_current_step",
+            "payload_ref": "/tmp/workspace/studies/001-risk/artifacts/controller_decisions/latest.json",
+        }
+    ]
+
+    with pytest.raises(ValueError, match="unknown study decision controller action"):
+        module.StudyDecisionRecord.from_payload(payload)

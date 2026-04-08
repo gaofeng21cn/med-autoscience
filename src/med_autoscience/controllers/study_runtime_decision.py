@@ -367,6 +367,13 @@ def _status_state(
             )
         return _finalize_result()
 
+    if quest_status == StudyRuntimeQuestStatus.STOPPED:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
+        )
+        return _finalize_result()
+
     if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
         if _waiting_submission_metadata_only(quest_root):
             if execution.get("auto_resume") is True:

@@ -5,6 +5,14 @@
 `MedAutoScience` 作为 `Domain Harness OS` 的 outer loop controller，不是常驻 runtime daemon。
 那么当 `MedDeepScientist` 内环跑到“不能再把当前情况当作本地迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒，并继续往下推进？
 
+与 `stop / rerun / requires_human_confirmation` 相关的正式控制语义，现统一收口到：
+
+- [`docs/study_runtime_control_surface.md`](./study_runtime_control_surface.md)
+
+与 `publication_eval`、`study_decision_record` 下游如何连接到 delivery/publication plane 的 artifact 边界，现统一桥接到：
+
+- [`docs/delivery_plane_contract_map.md`](./delivery_plane_contract_map.md)
+
 ## 一句话结论
 
 当前推荐机制不是：
@@ -310,7 +318,8 @@ reason: "..."
 4. 读取当前 `study_charter`
 5. 读取当前 `publication_eval`
 6. 写出 `study_decision_record`
-7. 执行 `controller_actions[0]` 指定的下一个 controller action
+7. 若 `requires_human_confirmation=false`，才执行 `controller_actions[0]` 指定的下一个 controller action
+8. 若 `requires_human_confirmation=true`，只写 artifact，不 dispatch side effect
 
 当前 P0 明确保持：
 

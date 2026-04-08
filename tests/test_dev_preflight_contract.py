@@ -43,6 +43,20 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
     assert result.unclassified_changes == ("src/med_autoscience/controllers/workspace_init.py",)
 
 
+def test_classify_changed_files_matches_integration_harness_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "docs/integration_harness_activation_package.md",
+            "tests/test_integration_harness_activation_package.py",
+        ]
+    )
+
+    assert result.matched_categories == ("integration_harness_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_plan_commands_for_categories_deduplicates_results() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -52,3 +66,16 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
 
     assert commands.count("uv run pytest tests/test_release_workflow.py -q") == 1
     assert "uv run pytest tests/test_codex_plugin.py -q" in commands
+
+
+def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proofs() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("integration_harness_surface",))
+
+    assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
+    assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
+    assert (
+        "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q"
+        in commands
+    )

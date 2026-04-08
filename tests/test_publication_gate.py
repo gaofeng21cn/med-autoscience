@@ -120,8 +120,11 @@ def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_pa
     state = module.build_gate_state(quest_root)
     report = module.build_gate_report(state)
 
+    assert report["paper_root"].endswith("/paper")
     assert report["paper_bundle_manifest_path"].endswith("paper/paper_bundle_manifest.json")
     assert report["submission_minimal_manifest_path"].endswith("paper/submission_minimal/submission_manifest.json")
+    assert report["paper_bundle_manifest_path"].startswith(report["paper_root"])
+    assert report["submission_minimal_manifest_path"].startswith(report["paper_root"])
     assert report["submission_minimal_present"] is True
     assert report["submission_minimal_docx_present"] is True
     assert report["submission_minimal_pdf_present"] is True
@@ -156,8 +159,11 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["anchor_kind"] == "paper_bundle"
     assert report["status"] == "clear"
     assert report["allow_write"] is True
+    assert report["paper_root"].endswith("/paper")
     assert report["paper_bundle_manifest_path"].endswith("paper/paper_bundle_manifest.json")
     assert report["submission_minimal_manifest_path"].endswith("paper/submission_minimal/submission_manifest.json")
+    assert report["paper_bundle_manifest_path"].startswith(report["paper_root"])
+    assert report["submission_minimal_manifest_path"].startswith(report["paper_root"])
     assert report["submission_minimal_present"] is True
     assert report["submission_minimal_docx_present"] is True
     assert report["submission_minimal_pdf_present"] is True
