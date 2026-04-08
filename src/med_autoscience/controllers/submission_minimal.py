@@ -330,6 +330,68 @@ def _resolve_pack_id(entry: dict[str, Any], *, id_field: str) -> str | None:
         return None
 
 
+def _load_display_pack_lock_payload(*, paper_root: Path) -> tuple[Path, dict[str, Any]] | None:
+    lock_path = paper_root / "build" / "display_pack_lock.json"
+    if not lock_path.exists():
+        return None
+    payload = load_json(lock_path)
+    if not isinstance(payload, dict):
+        raise ValueError("display_pack_lock.json must contain an object")
+    return lock_path, payload
+
+
+def _build_display_pack_summary_by_id(
+    lock_payload: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    enabled_packs = lock_payload.get("enabled_packs")
+    if enabled_packs is None:
+        return {}
+    if not isinstance(enabled_packs, list):
+        raise ValueError("display_pack_lock.json enabled_packs must be a list")
+
+    summaries: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(enabled_packs):
+        if not isinstance(item, dict):
+            raise ValueError(f"display_pack_lock.json enabled_packs[{index}] must be an object")
+        pack_id = str(item.get("pack_id") or "").strip()
+        if not pack_id:
+            raise ValueError(f"display_pack_lock.json enabled_packs[{index}] is missing pack_id")
+        summary = {
+            "pack_id": pack_id,
+            "version": item.get("version"),
+            "requested_version": item.get("requested_version"),
+            "source_kind": item.get("source_kind"),
+            "declared_in": item.get("declared_in"),
+            "manifest_sha256": item.get("manifest_sha256"),
+        }
+        source_path = item.get("source_path")
+        source_package = item.get("source_package")
+        if source_path:
+            summary["source_path"] = source_path
+        if source_package:
+            summary["source_package"] = source_package
+        summaries[pack_id] = summary
+    return summaries
+
+
+def _attach_pack_provenance(
+    entry: dict[str, Any],
+    *,
+    pack_id: str | None,
+    pack_summary_by_id: dict[str, dict[str, Any]],
+) -> None:
+    if pack_id is None:
+        return
+    summary = pack_summary_by_id.get(pack_id)
+    if summary is None:
+        return
+    entry["pack_version"] = summary.get("version")
+    entry["pack_requested_version"] = summary.get("requested_version")
+    entry["pack_source_kind"] = summary.get("source_kind")
+    entry["pack_declared_in"] = summary.get("declared_in")
+    entry["pack_manifest_sha256"] = summary.get("manifest_sha256")
+
+
 def resolve_output_root(*, paper_root: Path, publication_profile: str) -> Path:
     normalized_profile = normalize_publication_profile(publication_profile)
     if normalized_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
@@ -1104,6 +1166,11 @@ def create_submission_minimal_package(
     compile_report = load_json(compile_report_path)
     figure_catalog = load_json(figure_catalog_path)
     table_catalog = load_json(table_catalog_path)
+    pack_lock_payload = _load_display_pack_lock_payload(paper_root=paper_root)
+    pack_lock_path, pack_summary_by_id = (
+        pack_lock_payload[0],
+        _build_display_pack_summary_by_id(pack_lock_payload[1]),
+    ) if pack_lock_payload is not None else (None, {})
 
     compiled_markdown_path = resolve_compiled_markdown_path(
         workspace_root=workspace_root,
@@ -1185,20 +1252,25 @@ def create_submission_minimal_package(
             basename=basename,
         )
         figure_naming_map[str(entry["figure_id"])] = basename
-        figure_entries.append(
-            {
-                "figure_id": entry["figure_id"],
-                "template_id": entry.get("template_id"),
-                "pack_id": _resolve_pack_id(entry, id_field="template_id"),
-                "renderer_family": entry.get("renderer_family"),
-                "paper_role": entry.get("paper_role"),
-                "input_schema_id": entry.get("input_schema_id"),
-                "qc_profile": entry.get("qc_profile"),
-                "qc_result": entry.get("qc_result"),
-                "source_paths": export_paths,
-                "output_paths": output_paths,
-            }
+        pack_id = _resolve_pack_id(entry, id_field="template_id")
+        figure_entry = {
+            "figure_id": entry["figure_id"],
+            "template_id": entry.get("template_id"),
+            "pack_id": pack_id,
+            "renderer_family": entry.get("renderer_family"),
+            "paper_role": entry.get("paper_role"),
+            "input_schema_id": entry.get("input_schema_id"),
+            "qc_profile": entry.get("qc_profile"),
+            "qc_result": entry.get("qc_result"),
+            "source_paths": export_paths,
+            "output_paths": output_paths,
+        }
+        _attach_pack_provenance(
+            figure_entry,
+            pack_id=pack_id,
+            pack_summary_by_id=pack_summary_by_id,
         )
+        figure_entries.append(figure_entry)
 
     table_entries: list[dict[str, Any]] = []
     table_naming_map: dict[str, str] = {}
@@ -1220,19 +1292,24 @@ def create_submission_minimal_package(
             basename=basename,
         )
         table_naming_map[str(entry["table_id"])] = basename
-        table_entries.append(
-            {
-                "table_id": entry["table_id"],
-                "table_shell_id": entry.get("table_shell_id"),
-                "pack_id": _resolve_pack_id(entry, id_field="table_shell_id"),
-                "paper_role": entry.get("paper_role"),
-                "input_schema_id": entry.get("input_schema_id"),
-                "qc_profile": entry.get("qc_profile"),
-                "qc_result": entry.get("qc_result"),
-                "source_paths": asset_paths,
-                "output_paths": output_paths,
-            }
+        pack_id = _resolve_pack_id(entry, id_field="table_shell_id")
+        table_entry = {
+            "table_id": entry["table_id"],
+            "table_shell_id": entry.get("table_shell_id"),
+            "pack_id": pack_id,
+            "paper_role": entry.get("paper_role"),
+            "input_schema_id": entry.get("input_schema_id"),
+            "qc_profile": entry.get("qc_profile"),
+            "qc_result": entry.get("qc_result"),
+            "source_paths": asset_paths,
+            "output_paths": output_paths,
+        }
+        _attach_pack_provenance(
+            table_entry,
+            pack_id=pack_id,
+            pack_summary_by_id=pack_summary_by_id,
         )
+        table_entries.append(table_entry)
 
     pruned_legacy_paths = prune_legacy_paper_surface_exports(
         paper_root=paper_root,
@@ -1259,6 +1336,9 @@ def create_submission_minimal_package(
         "figures": figure_entries,
         "tables": table_entries,
     }
+    if pack_lock_path is not None:
+        manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
+        manifest["enabled_display_packs"] = list(pack_summary_by_id.values())
     if pruned_legacy_paths:
         manifest["pruned_legacy_paths"] = pruned_legacy_paths
     if requested_publication_profile != resolved_publication_profile:

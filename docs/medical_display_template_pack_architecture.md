@@ -47,6 +47,37 @@
 - 外部高水平论文范例吸收；
 - 视觉审计记录与版本迭代。
 
+## 当前真实阶段
+
+截至 `2026-04-08`，这条模板包化主线已经不再停留在“只有概念图”的阶段。
+
+当前真实状态应理解为：
+
+- `Phase 1` 已完成：
+  - 包级清单、模板级清单、本地目录包装载、命名空间模板标识已经落地；
+- `Phase 2` 已完成：
+  - 当前内置模板库已整体迁入 `fenggaolab.org.medical-display-core`；
+- `Phase 3` 已完成第一轮正式落地：
+  - `local_dir`、`git_repo`、`python_package` 三类 source 已进入正式 contract；
+  - 论文级 `display_pack_lock.json` 已记录 source kind、requested/resolved version、manifest hash、Git commit、模板资产面；
+- `Phase 4` 的核心执行切换已完成一大半：
+  - 实际绘图与表格执行代码已经迁到 pack-local modules；
+  - 宿主控制器主要保留调度、catalog、QC、publication surface 等平台职责；
+- `Phase 4` 的 provenance 也已继续往前推进：
+  - submission-facing `submission_manifest.json` 现已可携带 pack version / source kind / manifest hash / lock path 摘要；
+- 当前唯一活跃缺口，不再是“能不能包化”，而是：
+  - 外部 source 的安装/获取机制仍未独立成完整分发链；
+  - pack 内 `examples / goldens / exemplars / audit` 资产仍需继续真实充实，而不只是 contract 已落地；
+  - 更广的 submission/manuscript-facing pack provenance 对账还可以继续扩展。
+
+因此，这条线当前所处的位置，不是 `Phase 1`，也不是“还在讨论是否要做模板包”。
+
+更准确地说：
+
+- 模板包化骨架已建立；
+- 内置核心包已真实接管执行；
+- 当前已经跨过 `pack/versioning contract hardening` 的第一轮主收口，正向“可独立运转的 pack 生态治理”继续推进。
+
 ## 为什么现在必须拆
 
 当前模板真相主要仍然嵌在代码里：
@@ -268,6 +299,74 @@
 - 作为可审计 provenance；
 - 用于复现和对账。
 
+## 当前版本化 contract
+
+为了避免模板包依赖继续停留在“代码里碰巧这样工作”的状态，当前先固定一版严格、简单、可审计的 versioning contract。
+
+### 1. 先只支持精确版本钉住
+
+当前不做模糊范围匹配，不做 `^1.2`、`~1.2`、`>=1.2,<2.0` 这类解析。
+
+原因很直接：
+
+- 这条线当前首先要解决的是论文级可审计性；
+- 不是先做复杂包管理器；
+- 精确版本钉住更容易对账、复现、回溯与排错。
+
+因此当前配置层只接受：
+
+- `version = "0.1.0"` 这种精确版本声明；
+- 包清单本身也要求显式语义化版本号。
+
+### 2. 仓库级与论文级配置分别锚定不同路径基准
+
+为避免路径解释混乱，当前明确采用：
+
+- `config/display_packs.toml`
+  - 路径相对于仓库根目录解析；
+- `paper/display_packs.toml`
+  - 路径相对于论文 `paper_root` 解析。
+
+这样做的目的，是让：
+
+- 宿主默认军火库保持 repo-level 稳定；
+- 论文局部 override 能显式指向 paper-local 或 paper-adjacent 的 pack source；
+- 不需要靠隐式 cwd 猜测路径。
+
+### 3. 论文级配置可以 override 同一个 pack_id 的来源与版本
+
+当前允许论文级 `display_packs.toml` 针对同一个 `pack_id`：
+
+- 覆盖 repo-level source；
+- 覆盖 repo-level exact version；
+- 追加或禁用启用列表。
+
+但当前这一步的目标仍然是“让现有 pack id 的来源/版本/lock 真相变严谨”，而不是一次性做完任意新 pack 的全链路生态扩展。
+
+### 4. lock 文件必须记录“请求了什么”与“实际解析到了什么”
+
+`paper/build/display_pack_lock.json` 当前至少要记录：
+
+- repo config 路径；
+- paper config 路径；
+- 是否启用了 paper-level override；
+- `enabled_pack_ids`；
+- 每个 pack 的：
+  - `requested_version`
+  - `resolved version`
+  - `declared_in`（来自 repo 还是 paper）
+  - `config_path`
+  - `source_kind`
+  - `source_path`
+  - `resolved_pack_root`
+  - `manifest_path`
+  - `manifest_sha256`
+
+这一步的意义在于：
+
+- 不再只知道“启用了哪个 pack”；
+- 还知道“为什么启用、从哪里解析、版本是否一致、这次真正用到的是哪份 manifest”。
+
 ## 包目录结构
 
 第一阶段建议采用如下原生目录布局：
@@ -328,7 +427,7 @@
 | 字段 | 含义 |
 | --- | --- |
 | `pack_id` | 完整包名，例如 `fenggaolab.org.medical-display-core` |
-| `version` | 包版本 |
+| `version` | 包版本；当前要求显式语义化版本号 |
 | `display_api_version` | 兼容的宿主平台模板包 API 版本 |
 | `summary` | 包简介 |
 | `maintainer` | 维护者 |
@@ -538,6 +637,17 @@
 - `paper/display_packs.toml`
 - `paper/build/display_pack_lock.json`
 
+当前实际推进口径：
+
+- `config/display_packs.toml` 已存在；
+- `paper/display_packs.toml` 与 `paper/build/display_pack_lock.json` 已进入正式 contract；
+- 当前正式支持三类 source：
+  - `local_dir`
+  - `git_repo`
+  - `python_package`
+- 当前版本治理已固定为“精确版本钉住”，不做模糊范围解析；
+- 当前尚未做的是更广义的获取/安装链，例如远端拉取、缓存、分发和升级策略。
+
 ### Phase 4：执行模型全面打通
 
 目标：
@@ -550,6 +660,13 @@
 - 统一执行适配层
 - 统一 provenance 落盘
 - 包级 execution contract
+
+当前实际推进口径：
+
+- 内置核心包的 pack-local execution 已经打通；
+- versioning / source override / paper-level lock 已与执行链保持一致；
+- build lock 不再只停留在 materialize 阶段，而已继续进入 submission manifest handoff 面；
+- 也就是说，当前并不是“还没开始执行模型打通”，而是已经进入执行模型后的治理与生态化阶段。
 
 ### Phase 5：军火库线正式独立运转
 
@@ -590,6 +707,22 @@
 4. 至少支持一个本地目录包和一个 Git 包；
 5. 包版本和来源能进入 paper-level provenance；
 6. 军火库扩库不再默认等价于主仓库内核升级。
+
+## 距离理想目标还差什么
+
+离“未来可独立发布、可共享、可扩库的模板包生态”这个理想目标，当前已经跨过最难的第一道坎，但还没有到完成态。
+
+还差的核心几步主要是：
+
+1. 把 `repo/paper` 两层来源与版本 contract 继续扩展到更广的安装形态：
+   - 远端 Git 获取；
+   - Python 分发与安装；
+   - 可审计缓存与升级策略。
+2. 让更多 paper-local / pack-local provenance 进入 submission-facing / manuscript-facing 对账面，而不只停留在 build lock 与 submission manifest 摘要。
+3. 继续把“扩库线”和“宿主内核线”彻底分层：
+   - 常规模板扩充尽量只改 pack；
+   - 主仓只在需要新宿主 API 或新统一 contract 时才升级。
+4. 让 pack 级 golden / exemplar / audit 资产也真正成为长期维护面，而不只是一套目录约定。
 
 ## 当前建议
 
