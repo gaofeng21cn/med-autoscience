@@ -49,6 +49,7 @@ def test_apply_data_asset_update_upserts_public_dataset_and_writes_mutation_log(
 
     registry = load_json(workspace_root / "portfolio" / "data_assets" / "public" / "registry.json")
     assert registry["schema_version"] == 2
+    assert registry["discovery"]["status"] == "not_started"
     assert registry["datasets"][0]["dataset_id"] == "geo-gse000001"
     assert registry["datasets"][0]["validation"]["is_valid"] is True
     assert result["status"] == "applied"
@@ -68,6 +69,12 @@ def test_apply_data_asset_update_updates_public_dataset_status_and_appends_note(
         json.dumps(
             {
                 "schema_version": 2,
+                "discovery": {
+                    "status": "not_started",
+                    "last_scouted_on": None,
+                    "scope": "route_selection",
+                    "notes": [],
+                },
                 "datasets": [
                     {
                         "dataset_id": "geo-gse000001",
@@ -108,6 +115,33 @@ def test_apply_data_asset_update_updates_public_dataset_status_and_appends_note(
     assert dataset["notes"] == ["initial import", "screened by codex"]
     assert result["mutation"]["dataset_id"] == "geo-gse000001"
     assert result["refresh"]["public_validation"]["dataset_count"] == 1
+
+
+def test_apply_data_asset_update_records_completed_public_dataset_discovery(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
+    workspace_root = tmp_path / "workspace"
+
+    result = module.apply_data_asset_update(
+        workspace_root=workspace_root,
+        payload={
+            "action": "record_public_dataset_discovery",
+            "status": "completed",
+            "last_scouted_on": "2026-04-08",
+            "scope": "route_selection",
+            "notes": ["searched GEO, Dryad, Figshare, and PubMed-linked resources"],
+        },
+    )
+
+    registry = load_json(workspace_root / "portfolio" / "data_assets" / "public" / "registry.json")
+    assert registry["discovery"] == {
+        "status": "completed",
+        "last_scouted_on": "2026-04-08",
+        "scope": "route_selection",
+        "notes": ["searched GEO, Dryad, Figshare, and PubMed-linked resources"],
+    }
+    assert registry["datasets"] == []
+    assert result["mutation"]["kind"] == "public_registry_discovery_update"
+    assert result["refresh"]["public_validation"]["dataset_count"] == 0
 
 
 def test_apply_data_asset_update_upserts_private_release_manifest(tmp_path: Path) -> None:

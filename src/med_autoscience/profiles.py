@@ -20,6 +20,9 @@ SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES = (
     "audit_only",
     "allow_with_decision",
 )
+SUPPORTED_PUBLIC_DATA_DISCOVERY_POLICIES = (
+    "required_for_scout_route_selection",
+)
 SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS = (
     "paper_framing",
     "journal_shortlist",
@@ -47,6 +50,7 @@ class WorkspaceProfile:
     medical_overlay_bootstrap_mode: str = "ensure_ready"
     default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
     legacy_code_execution_policy: str = "forbid_without_user_approval"
+    public_data_discovery_policy: str = "required_for_scout_route_selection"
     startup_boundary_requirements: tuple[str, ...] = SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS
 
 
@@ -112,6 +116,18 @@ def _optional_legacy_code_execution_policy(payload: dict[str, object]) -> str:
     if policy not in SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES:
         supported = ", ".join(SUPPORTED_LEGACY_CODE_EXECUTION_POLICIES)
         raise TypeError(f"legacy_code_execution_policy must be one of: {supported}")
+    return policy
+
+
+def _optional_public_data_discovery_policy(payload: dict[str, object]) -> str:
+    policy = _optional_string_with_default(
+        payload,
+        "public_data_discovery_policy",
+        default="required_for_scout_route_selection",
+    )
+    if policy not in SUPPORTED_PUBLIC_DATA_DISCOVERY_POLICIES:
+        supported = ", ".join(SUPPORTED_PUBLIC_DATA_DISCOVERY_POLICIES)
+        raise TypeError(f"public_data_discovery_policy must be one of: {supported}")
     return policy
 
 
@@ -212,6 +228,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         medical_overlay_bootstrap_mode=_optional_overlay_bootstrap_mode(payload),
         default_startup_anchor_policy=_optional_startup_anchor_policy(payload),
         legacy_code_execution_policy=_optional_legacy_code_execution_policy(payload),
+        public_data_discovery_policy=_optional_public_data_discovery_policy(payload),
         startup_boundary_requirements=_optional_startup_boundary_requirements(payload),
     )
 
@@ -241,6 +258,7 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
             "research_route_bias_policy": profile.research_route_bias_policy,
             "default_startup_anchor_policy": profile.default_startup_anchor_policy,
             "legacy_code_execution_policy": profile.legacy_code_execution_policy,
+            "public_data_discovery_policy": profile.public_data_discovery_policy,
             "startup_boundary_requirements": list(profile.startup_boundary_requirements),
         },
         "archetype": {

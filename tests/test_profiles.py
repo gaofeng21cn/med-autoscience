@@ -22,6 +22,7 @@ PROFILE_LINES = [
     'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
     'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
     'legacy_code_execution_policy = "forbid_without_user_approval"',
+    'public_data_discovery_policy = "required_for_scout_route_selection"',
     'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
     "",
     "[[default_submission_targets]]",
@@ -71,6 +72,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     )
     assert profile.default_startup_anchor_policy == "scout_first_for_continue_existing_state"
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
+    assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
     assert len(profile.default_submission_targets) == 1
     assert profile.default_submission_targets[0]["publication_profile"] == "frontiers_family_harvard"
@@ -128,6 +130,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     )
     assert profile.default_startup_anchor_policy == "scout_first_for_continue_existing_state"
     assert profile.legacy_code_execution_policy == "forbid_without_user_approval"
+    assert profile.public_data_discovery_policy == "required_for_scout_route_selection"
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
 
 
@@ -173,6 +176,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert policy["research_route_bias_policy"] == profile.research_route_bias_policy
     assert policy["default_startup_anchor_policy"] == profile.default_startup_anchor_policy
     assert policy["legacy_code_execution_policy"] == profile.legacy_code_execution_policy
+    assert policy["public_data_discovery_policy"] == profile.public_data_discovery_policy
     assert policy["startup_boundary_requirements"] == list(profile.startup_boundary_requirements)
 
     archetype = contract["archetype"]

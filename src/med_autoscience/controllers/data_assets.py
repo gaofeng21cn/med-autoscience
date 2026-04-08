@@ -23,6 +23,10 @@ PUBLIC_DATASET_ALLOWED_STATUSES = {
     "accepted",
     "rejected",
 }
+PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES = {
+    "not_started",
+    "completed",
+}
 
 
 def _data_assets_root(workspace_root: Path) -> Path:
@@ -206,6 +210,19 @@ def _normalize_public_dataset_entry(item: object) -> dict[str, object]:
     return normalized
 
 
+def _normalize_public_registry_discovery(value: object) -> dict[str, object]:
+    payload = _normalize_dict(value)
+    status = payload.get("status") if isinstance(payload.get("status"), str) else "not_started"
+    last_scouted_on = payload.get("last_scouted_on") if isinstance(payload.get("last_scouted_on"), str) else None
+    scope = payload.get("scope") if isinstance(payload.get("scope"), str) and payload.get("scope").strip() else "route_selection"
+    return {
+        "status": status if status in PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES else "not_started",
+        "last_scouted_on": last_scouted_on,
+        "scope": scope,
+        "notes": _normalize_string_list(payload.get("notes")),
+    }
+
+
 def _normalize_public_registry_payload(payload: dict) -> dict[str, object]:
     datasets_value = payload.get("datasets")
     datasets: list[dict[str, object]] = []
@@ -213,13 +230,21 @@ def _normalize_public_registry_payload(payload: dict) -> dict[str, object]:
         datasets = [_normalize_public_dataset_entry(item) for item in datasets_value]
     return {
         "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
+        "discovery": _normalize_public_registry_discovery(payload.get("discovery")),
         "datasets": datasets,
     }
 
 
 def _load_public_registry(workspace_root: Path) -> dict[str, object]:
     public_path = _public_registry_path(workspace_root)
-    payload = _load_json(public_path, default={"schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION, "datasets": []})
+    payload = _load_json(
+        public_path,
+        default={
+            "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
+            "discovery": _normalize_public_registry_discovery({}),
+            "datasets": [],
+        },
+    )
     normalized = _normalize_public_registry_payload(payload)
     if payload != normalized:
         _write_json(public_path, normalized)
@@ -236,6 +261,7 @@ def validate_public_registry(*, workspace_root: Path) -> dict[str, object]:
         "schema_version": PUBLIC_REGISTRY_SCHEMA_VERSION,
         "workspace_root": str(workspace_root),
         "registry_path": str(_public_registry_path(workspace_root)),
+        "discovery": payload["discovery"],
         "dataset_count": len(datasets),
         "valid_dataset_count": valid_dataset_count,
         "invalid_dataset_count": invalid_dataset_count,
@@ -425,6 +451,7 @@ def init_data_assets(*, workspace_root: Path) -> dict[str, object]:
         },
         "public": {
             "registry_path": str(public_path),
+            "discovery": public_payload["discovery"],
             "dataset_count": len(public_payload["datasets"]),
             "valid_dataset_count": sum(
                 1 for item in public_payload["datasets"] if item.get("validation", {}).get("is_valid")
@@ -461,6 +488,7 @@ def data_assets_status(*, workspace_root: Path) -> dict[str, object]:
             "registry_exists": public_path.exists(),
             "dataset_count": len(public_payload["datasets"]),
             "schema_version": public_payload["schema_version"],
+            "discovery": public_payload["discovery"],
             "valid_dataset_count": sum(
                 1 for item in public_payload["datasets"] if item.get("validation", {}).get("is_valid")
             ),
@@ -596,8 +624,11 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                 release_index=release_index,
                 dataset_version_index=dataset_version_index,
             )
+            public_registry_backed = item.get("source") == "portfolio_public_registry"
             latest_version = latest_versions.get(family_id) if family_id is not None else None
-            if family_id is None or version_id is None:
+            if public_registry_backed:
+                private_status = "public_registry_backed"
+            elif family_id is None or version_id is None:
                 private_status = "unversioned_path"
             elif latest_version is None:
                 private_status = "family_not_registered"
@@ -606,7 +637,9 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
             else:
                 private_status = "older_than_latest"
                 overall_status = "review_needed"
-            if family_id is None or version_id is None:
+            if public_registry_backed:
+                private_contract_status = "public_registry_backed"
+            elif family_id is None or version_id is None:
                 private_contract_status = None
             elif bound_release is None:
                 private_contract_status = "release_not_registered"

@@ -155,6 +155,40 @@ def _update_public_dataset_status(*, workspace_root: Path, payload: dict[str, An
     }
 
 
+def _record_public_dataset_discovery(*, workspace_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    status = payload.get("status")
+    if not isinstance(status, str) or status not in data_assets.PUBLIC_DATASET_DISCOVERY_ALLOWED_STATUSES:
+        raise ValueError("record_public_dataset_discovery requires a valid status")
+    last_scouted_on = payload.get("last_scouted_on")
+    if last_scouted_on is not None and not isinstance(last_scouted_on, str):
+        raise ValueError("record_public_dataset_discovery requires last_scouted_on to be a string when provided")
+    scope = payload.get("scope")
+    if not isinstance(scope, str) or not scope.strip():
+        raise ValueError("record_public_dataset_discovery requires scope")
+    notes = payload.get("notes")
+    if notes is not None:
+        if not isinstance(notes, list) or any(not isinstance(item, str) for item in notes):
+            raise ValueError("record_public_dataset_discovery requires notes to be a list of strings when provided")
+
+    registry = _load_public_registry_for_mutation(workspace_root)
+    discovery = data_assets._normalize_public_registry_discovery(
+        {
+            "status": status,
+            "last_scouted_on": last_scouted_on,
+            "scope": scope,
+            "notes": notes or [],
+        }
+    )
+    registry["discovery"] = discovery
+    normalized = data_assets._normalize_public_registry_payload(registry)
+    data_assets._write_json(data_assets._public_registry_path(workspace_root), normalized)
+    return {
+        "kind": "public_registry_discovery_update",
+        "discovery": normalized["discovery"],
+        "registry_path": str(data_assets._public_registry_path(workspace_root)),
+    }
+
+
 def _upsert_private_release_manifest(*, workspace_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     family_id = payload.get("family_id")
     version_id = payload.get("version_id")
@@ -216,6 +250,8 @@ def _apply_mutation(*, workspace_root: Path, payload: dict[str, Any]) -> dict[st
         return _upsert_public_dataset(workspace_root=workspace_root, payload=payload)
     if action == "update_public_dataset_status":
         return _update_public_dataset_status(workspace_root=workspace_root, payload=payload)
+    if action == "record_public_dataset_discovery":
+        return _record_public_dataset_discovery(workspace_root=workspace_root, payload=payload)
     if action == "upsert_private_release_manifest":
         return _upsert_private_release_manifest(workspace_root=workspace_root, payload=payload)
     raise ValueError(f"Unsupported data-asset update action: {action}")

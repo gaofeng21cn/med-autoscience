@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from med_autoscience import startup_literature
 from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
     RuntimeEscalationRecordRef,
@@ -209,6 +210,7 @@ def build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, obje
         "medical_analysis_contract": dict(medical_analysis_contract),
         "medical_reporting_contract": dict(medical_reporting_contract),
         "entry_state_summary": entry_state_summary.strip(),
+        "literature_records": startup_literature.resolve_startup_literature_records(startup_contract=startup_contract),
     }
 
 

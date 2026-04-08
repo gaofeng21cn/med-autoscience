@@ -259,6 +259,10 @@ def render_boundary_custom_brief(
                 "If venue targeting is still unsettled, resolve the shortlist evidence first via `resolve-journal-shortlist`; do not jump directly to submission-target or journal-resolution flows.",
             ]
         )
+        if required_first_anchor == "scout":
+            sections.append(
+                "Check `portfolio/data_assets/public/registry.json` before route lock. If bounded public-data discovery for the current route-selection scope has not been recorded yet, complete that scouting pass first and record the result through `apply-data-asset-update`."
+            )
         if missing_requirements:
             sections.append(f"Missing startup requirements: {', '.join(str(item) for item in missing_requirements)}.")
     if legacy_code_execution_allowed:

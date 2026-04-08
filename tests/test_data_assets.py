@@ -73,7 +73,16 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     public_registry = json.loads(
         (workspace_root / "portfolio" / "data_assets" / "public" / "registry.json").read_text(encoding="utf-8")
     )
-    assert public_registry == {"schema_version": 2, "datasets": []}
+    assert public_registry == {
+        "schema_version": 2,
+        "discovery": {
+            "status": "not_started",
+            "last_scouted_on": None,
+            "scope": "route_selection",
+            "notes": [],
+        },
+        "datasets": [],
+    }
 
 
 def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_public_support(tmp_path: Path) -> None:
@@ -154,6 +163,12 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
         json.dumps(
             {
                 "schema_version": 2,
+                "discovery": {
+                    "status": "completed",
+                    "last_scouted_on": "2026-04-08",
+                    "scope": "route_selection",
+                    "notes": ["screened and rejected"],
+                },
                 "datasets": [
                     {
                         "dataset_id": "geo-gse000009",
@@ -182,6 +197,25 @@ def test_assess_data_asset_impact_ignores_rejected_public_datasets(tmp_path: Pat
     dataset = study["dataset_inputs"][0]
     assert dataset["public_support_count"] == 0
     assert dataset["public_support_dataset_ids"] == []
+
+
+def test_validate_public_registry_normalizes_discovery_metadata_defaults(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(
+        json.dumps({"schema_version": 2, "datasets": []}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.validate_public_registry(workspace_root=workspace_root)
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+
+    assert result["schema_version"] == 2
+    assert registry["discovery"]["status"] == "not_started"
+    assert registry["discovery"]["scope"] == "route_selection"
+    assert registry["datasets"] == []
 
 
 def test_assess_data_asset_impact_supports_locked_inputs_manifest_shape(tmp_path: Path) -> None:

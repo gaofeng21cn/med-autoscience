@@ -2786,6 +2786,8 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
     assert "Only when the platform does not already provide a stable controller" in contract["controller_first_policy_summary"]
     assert "when a study boundary is explicit and startup-ready" in contract["automation_ready_summary"]
     assert "Do not enter baseline, experiment, or analysis-campaign" in contract["custom_brief"]
+    assert "Check `portfolio/data_assets/public/registry.json` before route lock" in contract["custom_brief"]
+    assert "record the result through `apply-data-asset-update`" in contract["custom_brief"]
     assert "Do not execute legacy implementation code" in contract["custom_brief"]
     assert "prefer mature MedAutoScience controllers before freeform external execution" in contract["custom_brief"]
 

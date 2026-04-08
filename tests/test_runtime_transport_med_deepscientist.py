@@ -148,6 +148,79 @@ def test_ensure_managed_daemon_restarts_stale_launcher_state(monkeypatch, tmp_pa
     ]
 
 
+def test_ensure_managed_daemon_recovers_from_truncated_launcher_status_using_runtime_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    launcher_path = tmp_path / "bin" / "ds.js"
+    write_text(
+        runtime_root.parent / "config.env",
+        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+    )
+    write_text(launcher_path, "#!/usr/bin/env bash\nexit 0\n")
+    launcher_path.chmod(0o755)
+    write_text(
+        runtime_root / "runtime" / "daemon.json",
+        json.dumps(
+            {
+                "pid": 77838,
+                "host": "0.0.0.0",
+                "port": 21001,
+                "url": "http://127.0.0.1:21001",
+                "bind_url": "http://0.0.0.0:21001",
+                "log_path": str(runtime_root / "logs" / "daemon.log"),
+                "started_at": "2026-04-08T00:00:00.000Z",
+                "home": str(runtime_root),
+                "daemon_id": "daemon-001",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run_launcher(*, runtime_root: Path, args: tuple[str, ...], timeout: int = 120):
+        calls.append(args)
+        assert args == ("--status",)
+        return subprocess.CompletedProcess(
+            [str(launcher_path), "--home", str(runtime_root), *args],
+            0,
+            '{"healthy": true, "identity_match": true, "managed": true, "home": "/tmp/truncated',
+            "",
+        )
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"status": "ok", "home": str(runtime_root.resolve()), "daemon_id": "daemon-001"}
+            ).encode("utf-8")
+
+    def fake_urlopen(http_request, timeout: int):
+        assert http_request.full_url == "http://127.0.0.1:21001/api/health"
+        return FakeResponse()
+
+    monkeypatch.setattr(module, "_run_launcher", fake_run_launcher)
+    monkeypatch.setattr(module.request, "urlopen", fake_urlopen)
+
+    result = module.ensure_managed_daemon(runtime_root=runtime_root)
+
+    assert result["healthy"] is True
+    assert result["identity_match"] is True
+    assert result["url"] == "http://127.0.0.1:21001"
+    assert result["daemon"]["daemon_id"] == "daemon-001"
+    assert result["health"]["daemon_id"] == "daemon-001"
+    assert calls == [("--status",)]
+
+
 def test_create_quest_posts_payload_to_daemon(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"

@@ -16,6 +16,7 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     assert "resolve-submission-targets" in text
     assert "apply-data-asset-update" in text
     assert "optional enrichment" in text
+    assert "scout-first route selection" in text
     assert "Only when the platform does not already provide a stable controller" in text
 
 

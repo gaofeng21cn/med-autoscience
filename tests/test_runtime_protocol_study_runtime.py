@@ -289,7 +289,31 @@ def test_build_hydration_payload_returns_protocol_surface() -> None:
         "medical_analysis_contract": {"study_archetype": "clinical_classifier"},
         "medical_reporting_contract": {"reporting_guideline_family": "TRIPOD"},
         "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
+        "literature_records": [],
     }
+
+
+def test_build_hydration_payload_includes_startup_literature_records(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    monkeypatch.setattr(
+        module.startup_literature,
+        "resolve_startup_literature_records",
+        lambda *, startup_contract: [{"record_id": "pmid:12345", "title": "Anchor paper"}],
+    )
+
+    payload = module.build_hydration_payload(
+        create_payload={
+            "startup_contract": {
+                "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
+                "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
+                "paper_urls": ["https://pubmed.ncbi.nlm.nih.gov/12345/"],
+            }
+        }
+    )
+
+    assert payload["literature_records"] == [{"record_id": "pmid:12345", "title": "Anchor paper"}]
 
 
 def test_runtime_escalation_record_path_resolves_to_stable_quest_local_artifact(tmp_path: Path) -> None:

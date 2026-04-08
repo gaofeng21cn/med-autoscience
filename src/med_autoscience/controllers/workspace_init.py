@@ -144,6 +144,7 @@ def _render_workspace_profile(
         'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]\n'
         'default_startup_anchor_policy = "scout_first_for_continue_existing_state"\n'
         'legacy_code_execution_policy = "forbid_without_user_approval"\n'
+        'public_data_discovery_policy = "required_for_scout_route_selection"\n'
         'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]\n'
     )
 

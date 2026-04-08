@@ -129,11 +129,81 @@ def _parse_launcher_status(
     return payload
 
 
+def _daemon_state_path(runtime_root: Path) -> Path:
+    return Path(runtime_root).expanduser().resolve() / "runtime" / "daemon.json"
+
+
+def _normalize_health_home(health: dict[str, Any]) -> Path | None:
+    raw_home = str(health.get("home") or "").strip()
+    if not raw_home:
+        return None
+    try:
+        return Path(raw_home).expanduser().resolve()
+    except OSError:
+        return None
+
+
+def _health_matches_runtime_state(
+    *,
+    runtime_root: Path,
+    state: dict[str, Any],
+    health: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(health, dict):
+        return False
+    if str(health.get("status") or "").strip().lower() != "ok":
+        return False
+    if _normalize_health_home(health) != Path(runtime_root).expanduser().resolve():
+        return False
+    state_daemon_id = str(state.get("daemon_id") or "").strip()
+    health_daemon_id = str(health.get("daemon_id") or "").strip()
+    if state_daemon_id and health_daemon_id:
+        return state_daemon_id == health_daemon_id
+    return not state_daemon_id and not health_daemon_id
+
+
+def _recover_launcher_status_from_runtime_state(*, runtime_root: Path) -> dict[str, Any] | None:
+    resolved_runtime_root = Path(runtime_root).expanduser().resolve()
+    state = _load_json_dict(_daemon_state_path(resolved_runtime_root))
+    if not state:
+        return None
+    url = str(state.get("url") or "").strip().rstrip("/")
+    if not url:
+        return None
+    try:
+        health = _get_json(url=f"{url}/api/health")
+    except (error.HTTPError, error.URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError):
+        health = None
+    if health is not None and not isinstance(health, dict):
+        health = None
+    healthy = isinstance(health, dict) and str(health.get("status") or "").strip().lower() == "ok"
+    identity_match = _health_matches_runtime_state(
+        runtime_root=resolved_runtime_root,
+        state=state,
+        health=health if isinstance(health, dict) else None,
+    )
+    return {
+        "healthy": healthy,
+        "identity_match": identity_match,
+        "managed": True,
+        "home": str(resolved_runtime_root),
+        "url": url,
+        "daemon": state,
+        "health": health,
+    }
+
+
 def ensure_managed_daemon(*, runtime_root: Path) -> dict[str, Any]:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     try:
         status_result = _run_launcher(runtime_root=resolved_runtime_root, args=("--status",))
-        status_payload = _parse_launcher_status(result=status_result, runtime_root=resolved_runtime_root)
+        try:
+            status_payload = _parse_launcher_status(result=status_result, runtime_root=resolved_runtime_root)
+        except RuntimeError:
+            recovered_status_payload = _recover_launcher_status_from_runtime_state(runtime_root=resolved_runtime_root)
+            if recovered_status_payload is None:
+                raise
+            status_payload = recovered_status_payload
         if (
             status_result.returncode == 0
             and bool(status_payload.get("healthy"))

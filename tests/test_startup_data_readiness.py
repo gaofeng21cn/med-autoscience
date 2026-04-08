@@ -243,6 +243,83 @@ def test_startup_data_readiness_flags_unresolved_private_contracts(tmp_path: Pat
     assert result["recommendations"] == ["repair_study_dataset_contracts"]
 
 
+def test_startup_data_readiness_accepts_public_registry_backed_locked_inputs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    release_root = workspace_root / "datasets" / "master" / "v2026-03-30"
+    release_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        release_root / "dataset_manifest.yaml",
+        dataset_id="dm_cvd_master",
+        version="v2026-03-30",
+        raw_snapshot="baseline",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (release_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+
+    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.parent.mkdir(parents=True, exist_ok=True)
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "discovery": {
+                    "status": "not_started",
+                    "last_scouted_on": None,
+                    "scope": "route_selection",
+                    "notes": [],
+                },
+                "datasets": [
+                    {
+                        "dataset_id": "nhanes-public-use-linked-mortality-2019",
+                        "source_type": "CDC",
+                        "roles": ["cohort_extension", "external_validation"],
+                        "target_dataset_ids": ["dm_cvd_master"],
+                        "target_study_archetypes": ["clinical_classifier", "external_validation_model_update"],
+                        "status": "candidate",
+                        "validation": {"is_valid": True},
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    manifest_path = workspace_root / "studies" / "002-transport" / "data_input" / "dataset_manifest.yaml"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        yaml.safe_dump(
+            {
+                "study_id": "002-transport",
+                "locked_inputs": [
+                    {
+                        "dataset_id": "dm_cvd_master",
+                        "version": "v2026-03-30",
+                    },
+                    {
+                        "dataset_id": "nhanes-public-use-linked-mortality-2019",
+                        "source": "portfolio_public_registry",
+                    },
+                ],
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["study_summary"]["clear_study_ids"] == ["002-transport"]
+    assert result["study_summary"]["unresolved_contract_study_ids"] == []
+    assert result["study_summary"]["public_extension_study_ids"] == ["002-transport"]
+
+
 def test_startup_data_readiness_includes_study_yaml_dataset_inputs_when_manifest_is_absent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
