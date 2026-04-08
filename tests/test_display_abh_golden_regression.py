@@ -18,6 +18,7 @@ def _load_materialization_test_support():
 _SUPPORT = _load_materialization_test_support()
 build_display_surface_workspace = _SUPPORT.build_display_surface_workspace
 dump_json = _SUPPORT.dump_json
+get_template_short_id = _SUPPORT.get_template_short_id
 write_default_publication_display_contracts = _SUPPORT.write_default_publication_display_contracts
 
 
@@ -495,18 +496,25 @@ def test_materialize_display_surface_preserves_ab_adjacent_grouped_and_time_slic
         output_png_path.parent.mkdir(parents=True, exist_ok=True)
         output_png_path.write_text(f"PNG:{template_id}", encoding="utf-8")
         output_pdf_path.write_text("%PDF", encoding="utf-8")
+        template_short_id = get_template_short_id(template_id) if "::" in template_id else template_id
         layout_boxes = [
             {"box_id": "x_axis_title", "box_type": "x_axis_title", "x0": 0.30, "y0": 0.92, "x1": 0.62, "y1": 0.97},
             {"box_id": "y_axis_title", "box_type": "y_axis_title", "x0": 0.01, "y0": 0.24, "x1": 0.05, "y1": 0.70},
         ]
         panel_boxes = [{"box_id": "panel", "box_type": "panel", "x0": 0.10, "y0": 0.16, "x1": 0.74, "y1": 0.86}]
         guide_boxes = [{"box_id": "legend", "box_type": "legend", "x0": 0.80, "y0": 0.30, "x1": 0.96, "y1": 0.44}]
-        if template_id == "time_dependent_roc_horizon":
+        if template_short_id in {
+            "roc_curve_binary",
+            "pr_curve_binary",
+            "calibration_curve_binary",
+            "decision_curve_binary",
+            "time_dependent_roc_horizon",
+        }:
             metrics = {
                 "series": list(display_payload["series"]),
                 "reference_line": dict(display_payload["reference_line"]),
-                "title": str(display_payload["title"]),
-                "caption": str(display_payload["caption"]),
+                "title": str(display_payload.get("title") or ""),
+                "caption": str(display_payload.get("caption") or ""),
             }
         else:
             metrics = {
