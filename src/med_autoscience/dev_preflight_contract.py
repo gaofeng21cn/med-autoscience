@@ -106,6 +106,31 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="external_runtime_dependency_surface",
+        exact_paths=(
+            "docs/agent_runtime_interface.md",
+            "docs/external_runtime_dependency_gate.md",
+            "docs/merge_and_cutover_gates.md",
+            "docs/runtime_boundary.md",
+            "docs/upstream_intake.md",
+            "src/med_autoscience/controllers/med_deepscientist_upgrade_check.py",
+            "src/med_autoscience/doctor.py",
+            "src/med_autoscience/med_deepscientist_repo_manifest.py",
+            "src/med_autoscience/workspace_contracts.py",
+            "tests/test_deepscientist_upgrade_check.py",
+            "tests/test_external_runtime_dependency_gate.py",
+            "tests/test_med_deepscientist_repo_manifest.py",
+            "tests/test_workspace_contracts.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q",
+            "uv run pytest tests/test_workspace_contracts.py -q",
+            "uv run pytest tests/test_deepscientist_upgrade_check.py -q",
+            "uv run pytest tests/test_external_runtime_dependency_gate.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="integration_harness_surface",
         exact_paths=(
             "docs/agent_runtime_interface.md",

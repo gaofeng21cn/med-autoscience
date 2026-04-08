@@ -14,6 +14,7 @@
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
+- [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
 
 ## 一句话结论
 
@@ -181,9 +182,13 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 ## 当前 immediate next step
 
-当前 repo 内已经没有新的合法 same-repo immediate next step 可自动打开。
+当前 repo 内已经没有新的产品级 same-repo tranche 可自动打开。
 
-当前真正的 next step 应理解为：
+当前 repo-side 唯一仍可合法继续收紧的动作，是把 external blocker 本身冻结成可审计的 canonical package，见：
+
+- [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
+
+在该 package 收口完成后，当前真正的 next step 应理解为：
 
 1. 先在 external runtime / cutover surface 上清掉真实 blocker
 2. 等 external gate 放行后，再回到本仓继续推进更大的 `end-to-end harness / cutover readiness`

@@ -43,6 +43,20 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
     assert result.unclassified_changes == ("src/med_autoscience/controllers/workspace_init.py",)
 
 
+def test_classify_changed_files_matches_external_runtime_dependency_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "docs/external_runtime_dependency_gate.md",
+            "src/med_autoscience/workspace_contracts.py",
+        ]
+    )
+
+    assert result.matched_categories == ("external_runtime_dependency_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_files_matches_integration_harness_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -66,6 +80,17 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
 
     assert commands.count("uv run pytest tests/test_release_workflow.py -q") == 1
     assert "uv run pytest tests/test_codex_plugin.py -q" in commands
+
+
+def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proofs() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("external_runtime_dependency_surface",))
+
+    assert "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q" in commands
+    assert "uv run pytest tests/test_workspace_contracts.py -q" in commands
+    assert "uv run pytest tests/test_deepscientist_upgrade_check.py -q" in commands
+    assert "uv run pytest tests/test_external_runtime_dependency_gate.py -q" in commands
 
 
 def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proofs() -> None:

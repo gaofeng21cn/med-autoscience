@@ -2,6 +2,9 @@
 
 这份文档定义两件事：
 
+另见：[`docs/external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md)，用于把当前 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 收口成 repo-side canonical blocker package。
+
+
 - 什么时候当前 repo-side baseline 可以吸收到 `main`
 - 什么时候一个正在运行中的医学项目可以平滑迁到更大的 integration harness / cutover surface
 
@@ -23,8 +26,8 @@
 截至 `2026-04-07`，当前已知事实应按下面这条顺序理解：
 
 1. `P0` / `P1` / `P2` 与 `real-study relaunch and verify` 已 absorbed 到 `main`
-2. `real-study` 已经提供了真实 anchor 上的 managed entry / watch / gate / delivery mirror 证据
-3. 当前 repo-side 下一棒是 `integration harness activation package`，不是宣称 cutover 已经 ready
+2. `integration harness activation package` 也已 absorbed 到 `main`
+3. 当前 repo-side 唯一仍可合法继续收口的 same-repo 动作，是把 external blocker 固定成 canonical package
 4. 因此，当前要做的是把 cutover readiness 仍依赖的 gate 诚实冻结，而不是越过这些 gate
 
 ## Merge Gate
@@ -121,8 +124,9 @@
 
 以 `2026-04-07` 这个时间点看：
 
-- repo-side `merge gate` 对当前 activation baseline 来说可以继续推进
+- repo-side `merge gate` 对当前 activation baseline 与 external blocker package 来说都可以继续推进
 - `runtime cutover gate` 还没有完成
+- 当前 external blocker 的 repo-side canonical package 见 `docs/external_runtime_dependency_gate.md`
 
 原因是：
 

@@ -51,6 +51,34 @@ def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) ->
     assert result.results[0].stdout == "ok\n"
 
 
+def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+
+        class Result:
+            returncode = 0
+            stdout = "ok\n"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_preflight(
+        changed_files=["docs/external_runtime_dependency_gate.md"],
+        repo_root=tmp_path,
+    )
+
+    assert result.ok is True
+    assert result.matched_categories == ("external_runtime_dependency_surface",)
+    assert result.unclassified_changes == ()
+    assert "uv run pytest tests/test_external_runtime_dependency_gate.py -q" in result.planned_commands
+    assert calls[0] == ["uv", "run", "pytest", "tests/test_med_deepscientist_repo_manifest.py", "-q"]
+
+
 def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []

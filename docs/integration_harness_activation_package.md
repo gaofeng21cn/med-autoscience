@@ -165,4 +165,5 @@ study_runtime_status / ensure_study_runtime
 
 1. 承认这条 activation package / baseline 已 absorb 到 `main`
 2. 把后续更大推进诚实地停在 external dependency gate 前
-3. 不在 repo 内伪造新的 same-repo tranche 来代替 external readiness 清理
+3. 通过 [`docs/external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md) 把 blocker 固定为 repo-tracked canonical audit package
+4. 不在 repo 内伪造新的 same-repo tranche 来代替 external readiness 清理

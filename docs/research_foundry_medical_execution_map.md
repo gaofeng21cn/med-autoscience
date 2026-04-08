@@ -11,6 +11,7 @@
 
 - [Real-Study Relaunch Verification](./real_study_relaunch_verification.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
+- [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
 
 ## 一句话结论
 
@@ -80,6 +81,7 @@
 - 也不是在 repo 内继续凭空打开 `end-to-end study harness`
 - 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
 - 当前终态应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+- 对应的 blocker package 见 `docs/external_runtime_dependency_gate.md`
 
 ## 每一层解决什么问题
 
@@ -124,8 +126,9 @@
 1. authority / parameterized inputs（已完成）
 2. delivery / publication plane（已完成）
 3. real-study relaunch and verify（已完成）
-4. integration harness activation package（当前 active）
-5. only-then `end-to-end harness / cutover readiness`
+4. integration harness activation package（已完成并 absorbed）
+5. external runtime dependency gate package（当前 canonical blocker）
+6. only-then `end-to-end harness / cutover readiness`
 
 ## OMX 当前应该怎么理解自己的工作
 
@@ -135,7 +138,7 @@
 
 - OMX 当前最新完成层：第 5 层
 - OMX 当前已经完成：activation baseline absorb
-- OMX 当前之后不应在 repo 内伪造新 tranche；应等待 external runtime gate 是否允许继续
+- OMX 当前之后不应在 repo 内伪造新 tranche；应先把 external blocker 收口成 canonical package，再等待 external runtime gate 是否允许继续
 
 ## 当前正式执行口径
 
