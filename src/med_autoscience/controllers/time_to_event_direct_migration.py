@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import display_registry
 from med_autoscience.policies import medical_reporting_contract as medical_reporting_contract_policy
 
 
@@ -366,7 +367,9 @@ def _build_discrimination_payload(
         "displays": [
             {
                 "display_id": display_id,
-                "template_id": "time_to_event_discrimination_calibration_panel",
+                "template_id": display_registry.get_evidence_figure_spec(
+                    "time_to_event_discrimination_calibration_panel"
+                ).template_id,
                 "title": "Validation discrimination and grouped calibration for 5-year cardiovascular mortality",
                 "caption": (
                     "Validation discrimination remained strong, and grouped 5-year calibration showed "
@@ -431,7 +434,9 @@ def _build_risk_group_summary_payload(
         "displays": [
             {
                 "display_id": display_id,
-                "template_id": "time_to_event_risk_group_summary",
+                "template_id": display_registry.get_evidence_figure_spec(
+                    "time_to_event_risk_group_summary"
+                ).template_id,
                 "title": "Tertile-based 5-year cardiovascular risk stratification",
                 "caption": (
                     "Predicted versus observed 5-year cardiovascular risk and observed event concentration "
@@ -545,7 +550,7 @@ def _build_submission_graphical_abstract_payload(
 
     return {
         "schema_version": 1,
-        "shell_id": "submission_graphical_abstract",
+        "shell_id": display_registry.get_illustration_shell_spec("submission_graphical_abstract").shell_id,
         "display_id": "submission_graphical_abstract",
         "catalog_id": "GA1",
         "paper_role": "submission_companion",
@@ -737,7 +742,7 @@ def _build_decision_curve_payload(
         "displays": [
             {
                 "display_id": display_id,
-                "template_id": "time_to_event_decision_curve",
+                "template_id": display_registry.get_evidence_figure_spec("time_to_event_decision_curve").template_id,
                 "title": "Five-year decision curve",
                 "caption": "Net-benefit comparison across the prespecified low-threshold clinical decision range.",
                 "panel_a_title": "Decision-curve net benefit",
@@ -800,7 +805,7 @@ def _build_table2_payload(
         )
     return {
         "schema_version": 1,
-        "table_shell_id": "table2_time_to_event_performance_summary",
+        "table_shell_id": display_registry.get_table_shell_spec("table2_time_to_event_performance_summary").shell_id,
         "display_id": display_id,
         "title": "Fixed-horizon performance summary",
         "columns": columns,

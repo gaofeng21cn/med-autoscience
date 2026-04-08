@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience import display_registry
+
 
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -217,6 +219,9 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert f2["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
     assert f2["displays"][0]["display_id"] == "discrimination_calibration"
+    assert f2["displays"][0]["template_id"] == (
+        display_registry.get_evidence_figure_spec("time_to_event_discrimination_calibration_panel").template_id
+    )
     assert f2["displays"][0]["panel_a_title"] == "Validation discrimination"
     assert [item["label"] for item in f2["displays"][0]["discrimination_points"]] == ["CoxPH", "LassoCox"]
     assert [item["group_order"] for item in f2["displays"][0]["calibration_summary"]] == [1, 5, 10]
@@ -224,7 +229,9 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert f3["input_schema_id"] == "time_to_event_grouped_inputs_v1"
     assert f3["displays"][0]["display_id"] == "km_risk_stratification"
-    assert f3["displays"][0]["template_id"] == "time_to_event_risk_group_summary"
+    assert f3["displays"][0]["template_id"] == (
+        display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary").template_id
+    )
     assert [item["label"] for item in f3["displays"][0]["risk_group_summaries"]] == [
         "Low risk",
         "Intermediate risk",
@@ -233,10 +240,15 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert f4["input_schema_id"] == "time_to_event_decision_curve_inputs_v1"
     assert f4["displays"][0]["display_id"] == "decision_curve"
+    assert f4["displays"][0]["template_id"] == (
+        display_registry.get_evidence_figure_spec("time_to_event_decision_curve").template_id
+    )
     assert [item["label"] for item in f4["displays"][0]["series"]] == ["Model", "Treat all"]
     assert f4["displays"][0]["reference_line"]["label"] == "Treat none"
 
-    assert ga["shell_id"] == "submission_graphical_abstract"
+    assert ga["shell_id"] == (
+        display_registry.get_illustration_shell_spec("submission_graphical_abstract").shell_id
+    )
     assert ga["catalog_id"] == "GA1"
     assert [item["panel_label"] for item in ga["panels"]] == ["A", "B", "C"]
     assert len(ga["footer_pills"]) == 3
@@ -245,7 +257,9 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
 
-    assert t2["table_shell_id"] == "table2_time_to_event_performance_summary"
+    assert t2["table_shell_id"] == (
+        display_registry.get_table_shell_spec("table2_time_to_event_performance_summary").shell_id
+    )
     assert t2["display_id"] == "time_to_event_performance_summary"
     assert [item["label"] for item in t2["columns"]] == ["C-index", "Stratification / utility"]
     assert [item["label"] for item in t2["rows"]] == ["Cardiovascular mortality", "All-cause mortality"]
