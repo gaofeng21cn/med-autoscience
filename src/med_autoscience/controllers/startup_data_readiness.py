@@ -227,7 +227,7 @@ def _recommendations(*, private_release_count: int, study_summary: dict[str, Any
     if study_summary["outdated_private_release_study_ids"]:
         recommendations.append("reassess_studies_against_latest_private_release")
     if valid_public_dataset_count > 0:
-        recommendations.append("screen_valid_public_datasets_for_extension")
+        recommendations.append("screen_and_materialize_valid_public_datasets_for_extension")
     if not recommendations:
         recommendations.append("startup_data_ready")
     return recommendations

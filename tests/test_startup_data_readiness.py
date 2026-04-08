@@ -160,7 +160,7 @@ def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_
     ]
     assert result["recommendations"] == [
         "reassess_studies_against_latest_private_release",
-        "screen_valid_public_datasets_for_extension",
+        "screen_and_materialize_valid_public_datasets_for_extension",
     ]
     assert Path(result["report_path"]).exists()
 

@@ -17,6 +17,8 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     assert "apply-data-asset-update" in text
     assert "optional enrichment" in text
     assert "scout-first route selection" in text
+    assert "proactive public-data discovery pass" in text
+    assert "immediate download or materialization follow-through" in text
     assert "Only when the platform does not already provide a stable controller" in text
 
 

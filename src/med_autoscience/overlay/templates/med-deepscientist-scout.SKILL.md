@@ -53,6 +53,8 @@ If one of these layers is still missing, say so explicitly.
 - Before broad external search, check quest/global memory first with `memory.list_recent(...)` and `memory.search(...)`.
 - When search tools are available, actively use them.
   Prefer web search for paper discovery, usually targeting arXiv first, then expand with benchmark docs, official repos, and broader web search for provenance.
+- For scout-first or paper-bound routes, default to one proactive public-data discovery pass even when the user did not explicitly ask for it, unless the study contract explicitly waives public sidecars.
+  Write every retain / reject decision back into the public registry through `apply-data-asset-update`, and when a dataset is retained and immediately reachable, start download or materialization follow-through instead of stopping at recommendation-only notes.
 - When a specific arXiv paper must be read or summarized, use `artifact.arxiv(paper_id=..., full_text=False)` instead of defaulting to a raw PDF.
   Keep discovery in web search; use `artifact.arxiv(...)` only for actual paper reading, and set `full_text=True` only when needed.
 - Avoid repeating the same wide search from scratch.

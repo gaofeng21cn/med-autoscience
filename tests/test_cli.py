@@ -1524,7 +1524,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
             "impact_report": {"study_count": 2, "report_path": "/tmp/impact.json"},
             "startup_data_readiness": {
                 "status": "attention_needed",
-                "recommendations": ["screen_valid_public_datasets_for_extension"],
+                "recommendations": ["screen_and_materialize_valid_public_datasets_for_extension"],
             },
         }
 
