@@ -243,6 +243,17 @@
 
 在这之前，不建议做物理级 repo 改造。
 
+### 这不等于 monorepo 目标取消
+
+这里需要把顺序讲清楚：
+
+- 当前四仓统一 program 先做的是 contract convergence 与 behavior convergence
+- `MedAutoScience` 自己的 `monorepo / runtime core ingest / controlled cutover` 仍然保留为 domain-internal 长线
+- 前者解决的是跨仓共享 substrate contract 是否已经冻结
+- 后者解决的是 `MedAutoScience` 单域内部 topology、runtime core 与 cutover 的物理整合
+
+因此，当前不提前做 physical migration，不是放弃 monorepo，而是先把未来迁移必须依赖的边界和 contract 冻结干净。
+
 ## 对 GitHub repo 的具体建议
 
 ### 现在

@@ -50,3 +50,24 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
 
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index_zh
+
+
+def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
+    project_truth = _read("contracts/project-truth/AGENTS.md")
+    runtime_interface = _read("docs/agent_runtime_interface.md")
+    positioning = _read("docs/research_foundry_positioning.md")
+
+    for doc in [project_truth, runtime_interface, positioning]:
+        assert "monorepo / runtime core ingest / controlled cutover" in doc
+
+    assert "external runtime gate" in project_truth
+    assert "external runtime gate" in runtime_interface
+    assert "controller_charter" in runtime_interface
+    assert "eval_hygiene" in runtime_interface
+    assert "physical migration" in runtime_interface
+    assert "cross-repo refactor" in runtime_interface
+
+    assert "contract convergence" in positioning
+    assert "behavior convergence" in positioning
+    assert "domain-internal 长线" in positioning
+    assert "不是放弃 monorepo" in positioning

@@ -27,6 +27,25 @@
 - `controller` 属于内部控制面，不与 `CLI`、`MCP` 并列作为对外 formal entry
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate
 
+## 当前主线与 monorepo 长线的关系
+
+当前这条 repo-tracked 主线，优先级仍然是：
+
+- 保持 `MedAutoScience -> MedDeepScientist` runtime contract 稳定
+- 保持 execution handle、durable surface 与 fail-closed gate semantics 不漂移
+- 在 external runtime gate 清除前，以手工测试驱动稳定化，而不是重开新的大架构 tranche
+
+这不等于 monorepo 目标取消。
+
+`monorepo / runtime core ingest / controlled cutover` 仍然是 `MedAutoScience` 的明确长线，目标仍是把系统按三块主模块收进同一 repo：
+
+- `controller_charter`
+- `runtime`
+- `eval_hygiene`
+
+但这条长线当前不属于四仓统一 `Phase C` 的直接交付。
+在 external runtime gate、对象边界、报告边界与 `controller_charter / runtime / eval_hygiene` 防火墙继续稳定前，不应提前进入 physical migration、cross-repo refactor 或 scaffold cutover。
+
 ## Execution Handle 与 Durable Surface
 
 当前主线下，Agent 不应把所有运行身份混写成一个“run id”。
