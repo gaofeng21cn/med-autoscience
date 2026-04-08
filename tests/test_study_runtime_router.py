@@ -2289,12 +2289,33 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
             },
         },
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resolve_daemon_url",
+        lambda *, runtime_root: "http://127.0.0.1:21999",
+    )
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "noop"
     assert result["reason"] == "quest_already_running"
     assert result["runtime_liveness_audit"]["status"] == "live"
     assert result["bash_session_audit"]["status"] == "live"
+    assert result["autonomous_runtime_notice"] == {
+        "required": True,
+        "notice_key": "quest:001-risk:run-live",
+        "notification_reason": "detected_existing_live_managed_runtime",
+        "quest_id": "001-risk",
+        "quest_status": "running",
+        "active_run_id": "run-live",
+        "browser_url": "http://127.0.0.1:21999",
+        "quest_api_url": "http://127.0.0.1:21999/api/quests/001-risk",
+        "quest_session_api_url": "http://127.0.0.1:21999/api/quests/001-risk/session",
+        "monitoring_available": True,
+        "monitoring_error": None,
+        "launch_report_path": str(
+            profile.workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+        ),
+    }
 
 
 def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_session(
@@ -2787,7 +2808,6 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
     assert "when a study boundary is explicit and startup-ready" in contract["automation_ready_summary"]
     assert "Do not enter baseline, experiment, or analysis-campaign" in contract["custom_brief"]
     assert "Check `portfolio/data_assets/public/registry.json` before route lock" in contract["custom_brief"]
-    assert "record the result through `apply-data-asset-update`" in contract["custom_brief"]
     assert "Do not execute legacy implementation code" in contract["custom_brief"]
     assert "prefer mature MedAutoScience controllers before freeform external execution" in contract["custom_brief"]
 

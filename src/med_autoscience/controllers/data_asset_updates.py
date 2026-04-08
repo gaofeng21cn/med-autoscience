@@ -141,7 +141,8 @@ def _update_public_dataset_status(*, workspace_root: Path, payload: dict[str, An
             if isinstance(item, str):
                 notes.append(item)
         matched["notes"] = notes
-    normalized = data_assets._normalize_public_registry_payload({"datasets": datasets})
+    registry["datasets"] = datasets
+    normalized = data_assets._normalize_public_registry_payload(registry)
     data_assets._write_json(data_assets._public_registry_path(workspace_root), normalized)
     written_dataset = next(
         item for item in normalized["datasets"] if isinstance(item, dict) and item.get("dataset_id") == dataset_id

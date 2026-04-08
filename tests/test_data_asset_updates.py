@@ -117,6 +117,62 @@ def test_apply_data_asset_update_updates_public_dataset_status_and_appends_note(
     assert result["refresh"]["public_validation"]["dataset_count"] == 1
 
 
+def test_apply_data_asset_update_preserves_public_dataset_discovery_when_updating_status(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
+    workspace_root = tmp_path / "workspace"
+    public_registry_path = workspace_root / "portfolio" / "data_assets" / "public" / "registry.json"
+    public_registry_path.parent.mkdir(parents=True, exist_ok=True)
+    public_registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "discovery": {
+                    "status": "completed",
+                    "last_scouted_on": "2026-04-08",
+                    "scope": "route_selection",
+                    "notes": ["seeded from prior scout"],
+                },
+                "datasets": [
+                    {
+                        "dataset_id": "geo-gse000001",
+                        "source_type": "GEO",
+                        "accession": "GSE000001",
+                        "roles": ["external_validation"],
+                        "target_families": ["master"],
+                        "target_study_archetypes": ["clinical_classifier"],
+                        "status": "candidate",
+                        "rationale": "Candidate cohort.",
+                        "notes": ["initial import"],
+                        "validation": {"is_valid": True, "errors": []},
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    module.apply_data_asset_update(
+        workspace_root=workspace_root,
+        payload={
+            "action": "update_public_dataset_status",
+            "dataset_id": "geo-gse000001",
+            "status": "accepted",
+            "append_notes": ["promoted after audit"],
+        },
+    )
+
+    registry = load_json(public_registry_path)
+    assert registry["discovery"] == {
+        "status": "completed",
+        "last_scouted_on": "2026-04-08",
+        "scope": "route_selection",
+        "notes": ["seeded from prior scout"],
+    }
+
+
 def test_apply_data_asset_update_records_completed_public_dataset_discovery(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_updates")
     workspace_root = tmp_path / "workspace"

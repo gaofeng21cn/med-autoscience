@@ -137,6 +137,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_rules_text = workspace_rules.read_text(encoding="utf-8")
     assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
     assert "边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进" in workspace_rules_text
+    assert "必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口" in workspace_rules_text
     assert "portfolio-memory-status" in workspace_rules_text
     assert "prepare-external-research" in workspace_rules_text
 

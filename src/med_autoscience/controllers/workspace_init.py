@@ -87,6 +87,7 @@ def _render_workspace_rules() -> str:
         "## Automation-Ready Default\n\n"
         "- 边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进。\n"
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
+        "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         f"- {automation_ready_summary}\n"
     )
 

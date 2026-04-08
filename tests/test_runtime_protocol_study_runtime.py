@@ -123,6 +123,54 @@ def test_write_launch_report_records_runtime_payload(tmp_path: Path) -> None:
     assert payload["daemon_result"] == {"resume": {"ok": True, "status": "running"}}
 
 
+def test_write_launch_report_persists_autonomous_runtime_notice_payload(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    report_path = tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+
+    module.write_launch_report(
+        launch_report_path=report_path,
+        status={
+            "decision": "noop",
+            "quest_status": "running",
+            "autonomous_runtime_notice": {
+                "required": True,
+                "notice_key": "quest:001-risk:run-live",
+                "notification_reason": "detected_existing_live_managed_runtime",
+                "quest_id": "001-risk",
+                "quest_status": "running",
+                "active_run_id": "run-live",
+                "browser_url": "http://127.0.0.1:20999",
+                "quest_api_url": "http://127.0.0.1:20999/api/quests/001-risk",
+                "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+                "monitoring_available": True,
+                "monitoring_error": None,
+                "launch_report_path": str(report_path),
+            },
+        },
+        source="test-source",
+        force=False,
+        startup_payload_path=None,
+        daemon_result=None,
+        recorded_at="2026-04-02T12:00:00+00:00",
+    )
+
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["autonomous_runtime_notice"] == {
+        "required": True,
+        "notice_key": "quest:001-risk:run-live",
+        "notification_reason": "detected_existing_live_managed_runtime",
+        "quest_id": "001-risk",
+        "quest_status": "running",
+        "active_run_id": "run-live",
+        "browser_url": "http://127.0.0.1:20999",
+        "quest_api_url": "http://127.0.0.1:20999/api/quests/001-risk",
+        "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+        "monitoring_available": True,
+        "monitoring_error": None,
+        "launch_report_path": str(report_path),
+    }
+
+
 def test_write_startup_payload_writes_create_payload_and_returns_written_path(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     startup_payload_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"

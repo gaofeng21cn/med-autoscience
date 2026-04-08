@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
@@ -12,6 +13,7 @@ from med_autoscience.study_completion import StudyCompletionState
 
 from .study_runtime_status import (
     StudyCompletionSyncResult,
+    StudyRuntimeAutonomousRuntimeNotice,
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,
@@ -35,6 +37,7 @@ __all__ = [
     "_execute_resume_runtime_decision",
     "_execute_runtime_decision",
     "_persist_runtime_artifacts",
+    "_record_autonomous_runtime_notice_if_required",
     "_run_runtime_preflight",
 ]
 
@@ -154,6 +157,21 @@ class StudyRuntimeExecutionOutcome:
         if self.binding_last_action == StudyRuntimeBindingAction.PAUSE:
             return self.daemon_step(StudyRuntimeDaemonStep.PAUSE)
         return dict(daemon_result)
+
+    def active_run_id(self) -> str | None:
+        daemon_result = self.daemon_result
+        if not isinstance(daemon_result, dict):
+            return None
+        for step in (StudyRuntimeDaemonStep.RESUME, StudyRuntimeDaemonStep.CREATE):
+            payload = self.daemon_step(step)
+            snapshot = payload.get("snapshot")
+            snapshot_run_id = str(snapshot.get("active_run_id") or "").strip() if isinstance(snapshot, dict) else ""
+            payload_run_id = str(payload.get("active_run_id") or "").strip()
+            if snapshot_run_id:
+                return snapshot_run_id
+            if payload_run_id:
+                return payload_run_id
+        return None
 
     @staticmethod
     def _normalize_binding_last_action(
@@ -599,6 +617,76 @@ def _execute_runtime_decision(
     raise ValueError(f"unsupported study runtime decision: {status.decision}")
 
 
+def _managed_runtime_notice_reason(
+    *,
+    status: StudyRuntimeStatus,
+    binding_last_action: StudyRuntimeBindingAction | None,
+) -> str:
+    if binding_last_action is StudyRuntimeBindingAction.CREATE_AND_START:
+        return "managed_runtime_started"
+    if binding_last_action is StudyRuntimeBindingAction.RESUME:
+        return "managed_runtime_resumed"
+    return "detected_existing_live_managed_runtime"
+
+
+def _should_record_autonomous_runtime_notice(status: StudyRuntimeStatus) -> bool:
+    execution_engine = str(status.execution.get("engine") or "").strip()
+    auto_entry = str(status.execution.get("auto_entry") or "").strip()
+    return (
+        execution_engine == "med-deepscientist"
+        and auto_entry == "on_managed_research_intent"
+        and status.quest_exists
+        and status.quest_status in _LIVE_QUEST_STATUSES
+    )
+
+
+def _record_autonomous_runtime_notice_if_required(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_root: Path,
+    launch_report_path: Path,
+    binding_last_action: StudyRuntimeBindingAction | None = None,
+    active_run_id: str | None = None,
+) -> None:
+    if not _should_record_autonomous_runtime_notice(status):
+        return
+    router = _router_module()
+    browser_url: str | None = None
+    monitoring_error: str | None = None
+    try:
+        browser_url = router.med_deepscientist_transport.resolve_daemon_url(runtime_root=runtime_root)
+    except (RuntimeError, OSError, ValueError) as exc:
+        monitoring_error = str(exc)
+    resolved_active_run_id = str(active_run_id or "").strip() or None
+    if resolved_active_run_id is None:
+        payload = status.extras.get("runtime_liveness_audit")
+        if isinstance(payload, dict):
+            resolved_active_run_id = str(payload.get("active_run_id") or "").strip() or None
+    quest_status = status.quest_status.value if status.quest_status is not None else "unknown"
+    encoded_quest_id = quote(status.quest_id, safe="")
+    status.record_autonomous_runtime_notice(
+        StudyRuntimeAutonomousRuntimeNotice(
+            required=True,
+            notice_key=f"quest:{status.quest_id}:{resolved_active_run_id or quest_status}",
+            notification_reason=_managed_runtime_notice_reason(
+                status=status,
+                binding_last_action=binding_last_action,
+            ),
+            quest_id=status.quest_id,
+            quest_status=quest_status,
+            active_run_id=resolved_active_run_id,
+            browser_url=browser_url,
+            quest_api_url=f"{browser_url}/api/quests/{encoded_quest_id}" if browser_url is not None else None,
+            quest_session_api_url=(
+                f"{browser_url}/api/quests/{encoded_quest_id}/session" if browser_url is not None else None
+            ),
+            monitoring_available=browser_url is not None,
+            monitoring_error=monitoring_error,
+            launch_report_path=str(launch_report_path),
+        )
+    )
+
+
 def _runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:
     if reason in {
         StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
@@ -683,6 +771,13 @@ def _persist_runtime_artifacts(
     source: str,
 ) -> None:
     router = _router_module()
+    _record_autonomous_runtime_notice_if_required(
+        status=status,
+        runtime_root=context.runtime_root,
+        launch_report_path=context.launch_report_path,
+        binding_last_action=outcome.binding_last_action,
+        active_run_id=outcome.active_run_id(),
+    )
     artifact_paths = router.study_runtime_protocol.persist_runtime_artifacts(
         runtime_binding_path=context.runtime_binding_path,
         launch_report_path=context.launch_report_path,

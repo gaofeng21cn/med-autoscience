@@ -18,6 +18,7 @@ def render_automation_ready_block() -> str:
         "- prefer `create_and_start` for a missing quest",
         "- prefer `resume` for paused, idle, or created quest states that are safe to continue",
         "- continue until durable outputs requiring human selection are produced",
+        "- when a live managed runtime is started or detected, explicitly notify the user and provide the monitoring entry",
         "",
         "Human escalation remains appropriate only for blocked credentials, true user-value decisions, or explicit safety/governance boundaries.",
     ]
@@ -28,5 +29,6 @@ def render_automation_ready_summary() -> str:
     return (
         "Automation-ready rule: when a study boundary is explicit and startup-ready, prefer autonomous managed runtime "
         "execution over repeated clarification. In that state, the system should choose `create_and_start` or `resume` "
-        "as appropriate and continue until durable outputs requiring human selection are produced."
+        "as appropriate and continue until durable outputs requiring human selection are produced. When a live managed "
+        "runtime is started or detected, the agent must explicitly notify the user and provide the monitoring entry."
     )
