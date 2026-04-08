@@ -72,14 +72,17 @@
 
 - profile
   - 定义 workspace、runtime、publication profile、overlay scope、研究偏置和默认 archetype
-- controller / CLI
-  - 提供稳定、可测试、可组合的调用面
+- formal-entry matrix
+  - `CLI`：默认 formal entry
+  - `MCP`：supported protocol layer
+  - `controller`：internal control surface
 - overlay
   - 把医学前验约束前移到 `MedDeepScientist` 的关键 stage
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
 这些操作面属于 `MedAutoScience` 的 domain gateway 对外控制表面；它们驱动的 controller、runtime、eval、delivery 链条，则属于内部 harness OS 的运行表面。
+当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
 
 对 workspace 的状态 mutation，默认遵循以下原则：
 

@@ -76,6 +76,9 @@ Many automated research systems are good at executing steps but weak at controll
 ## Current Runtime Shape
 
 The default local execution mode is `Codex-default host-agent runtime`.
+Its formal-entry matrix is fixed as: default formal entry `CLI`, supported protocol layer `MCP`, internal control surface `controller`.
+That matrix describes how agents enter the runtime; it does not mean the public product is a human CLI toolbox.
+The current repo-tracked product mainline is `Auto-only`; any future `Human-in-the-loop` product should reuse the same substrate as a compatible sibling or upper-layer product rather than split this repository into same-repo dual-mode logic.
 On this runtime, medical study progression is executed through a controlled `MedDeepScientist` surface.
 This means:
 

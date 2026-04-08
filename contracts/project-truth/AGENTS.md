@@ -18,12 +18,18 @@
 
 - 本项目继承 `Unified Harness Engineering Substrate` 的共享硬约束：`policy -> controller -> overlay -> adapter` 主链路、contract-first 接口面、可审计 mutation、显式错误与可追踪落盘结果。
 - 当前默认本地执行形态是 `Codex-default host-agent runtime`；新增能力时不要把关键 contract 绑定到本机交互习惯、临时路径或不可迁移脚本语义。
+- 当前 formal-entry matrix 固定为：
+  - `default_formal_entry`：`CLI`
+  - `supported_protocol_layer`：`MCP`
+  - `internal_controller_surface`：`controller`
+- 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做高判断密度 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate contract，而不是把当前仓强行改成同仓双模。
 - 运行推进通过受控 `MedDeepScientist` surface 完成；`MedDeepScientist` 是执行 surface，不是本仓库的系统本体。
 - 未来迁移到同一底座上的 managed web runtime 时，必须保持领域 contract、artifact schema、决策审计链与升级/退出边界兼容；允许变化的仅是 host 生命周期与调度托管方式。
 
 ## 设计与实现优先级
 
 - 优先保持这个 repo 作为 `MedAutoScience` 顶层 `Research Ops` domain gateway 与 harness OS 公共控制面；不要把主要工作流重新设计成“用户手工敲 CLI”。
+- `CLI-first` 指的是 Agent runtime 的默认正式入口，不是把公开产品重新定义成“给医学用户手工敲命令”的工具箱。
 - 优先通过 `policy -> controller -> overlay -> adapter` 这条链路表达能力，而不是散落脚本或临时旁路。
 - 不要把 `OPL` 顶层 gateway 写成对本仓库 gateway 的替代物；两层应是上下层关系，而不是替换关系。
 - 不要把底层 runtime executor、future monorepo 内部模块或单一 controller 文件误写成整个 `MedAutoScience` 本体；仓库级定位仍是 domain gateway + harness OS。

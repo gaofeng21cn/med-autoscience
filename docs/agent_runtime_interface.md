@@ -12,6 +12,19 @@
 - Agent 负责调用稳定接口，推进数据治理、研究执行和论文交付组织
 - 平台负责提供可验证、可审计、可重复调用的 gateway 入口，而不是要求医学用户手工维护底层状态
 
+当前 formal-entry matrix 继续固定为：
+
+- `default_formal_entry`：`CLI`
+- `supported_protocol_layer`：`MCP`
+- `internal_controller_surface`：`controller`
+
+其中：
+
+- `CLI-first` 指的是 Agent runtime 的默认正式入口
+- `MCP` 是兼容的协议层，不改写 `CLI-first` 的默认入口语义
+- `controller` 属于内部控制面，不与 `CLI`、`MCP` 并列作为对外 formal entry
+- 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate
+
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。
 
 ## 技术入口路径

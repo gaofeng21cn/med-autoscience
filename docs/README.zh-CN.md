@@ -3,7 +3,7 @@
 [English](./README.md) | **中文**
 
 这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。
-内容与项目定位保持一致：该仓库在共享 `Unified Harness Engineering Substrate` 上支撑医学 `Research Ops` 的领域承载操作系统（Domain Harness OS），本地执行呈现为 Codex 默认 host-agent runtime 的形态。
+内容与项目定位保持一致：该仓库在共享 `Unified Harness Engineering Substrate` 上支撑医学 `Research Ops` 的领域承载操作系统（Domain Harness OS），本地执行呈现为 Codex 默认 host-agent runtime 的形态；其 formal-entry matrix 固定为默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`，当前仓库主线按 `Auto-only` 理解。
 
 ## 统一文档治理
 

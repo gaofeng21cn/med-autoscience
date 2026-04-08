@@ -76,6 +76,9 @@
 ## 当前默认运行形态
 
 当前默认是本地 `Codex-default host-agent runtime`。
+其 formal-entry matrix 已固定为：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`。
+这套矩阵描述的是 Agent 如何进入 runtime，并不意味着公开产品被重新定义成“给医学用户手工敲命令”的工具箱。
+当前 repo-tracked 产品主线按 `Auto-only` 理解；未来如果要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
 在该形态下，运行由受控 `MedDeepScientist` surface 推进，这意味着：
 
 - `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner

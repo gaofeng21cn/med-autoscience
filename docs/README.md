@@ -3,7 +3,7 @@
 **English** | [中文](./README.zh-CN.md)
 
 This bilingual index is the default public surface for `Med Auto Science`.
-It stays aligned with the project truth that the repository is the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`, with a `Codex-default host-agent runtime` as the current local execution shape.
+It stays aligned with the project truth that the repository is the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`, with a `Codex-default host-agent runtime` as the current local execution shape. Its formal-entry matrix is `CLI` as default formal entry, `MCP` as supported protocol layer, and `controller` as internal control surface. The current repository mainline is `Auto-only`.
 
 ## Unified Documentation Governance
 

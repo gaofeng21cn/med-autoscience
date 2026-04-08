@@ -43,7 +43,11 @@ Human / Agent
 
 - workspace / study / portfolio 结构
 - profile 与 policy
-- controller / MCP / CLI / adapter 入口
+- formal-entry matrix：
+  - `CLI` 作为默认 formal entry
+  - `MCP` 作为 supported protocol layer
+  - `controller` 作为 internal control surface
+- adapter 入口
 - project-truth contract 与公开技术文档
 
 ## Domain Harness OS 负责什么
@@ -133,9 +137,12 @@ Human / Agent
 - `MedAutoScience`
   - 已经是正式的 `Research Ops` domain gateway
   - 正在把内部能力收敛成更清晰的 `Domain Harness OS`
+  - 当前 repo-tracked 产品主线按 `Auto-only` 理解
 - `MedDeepScientist`
   - 当前仍是最核心的 runtime execution substrate
   - 但未来会被更系统地收进 `MedAutoScience` harness OS 的 monorepo 拓扑中
+
+如果未来要做高判断密度的 `Human-in-the-loop` 产品，更合理的形态是建立在这些稳定 contract 与执行模块之上的 sibling 或 upper-layer product，而不是把当前仓改造成同仓双模。
 
 所以当前主线不是“再造一个新系统”，而是：
 
