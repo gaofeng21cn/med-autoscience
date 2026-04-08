@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import importlib
 from pathlib import Path
+import sys
 import tomllib
 
 from med_autoscience import display_registry
@@ -9,6 +11,9 @@ from med_autoscience.display_pack_bootstrap import (
     CORE_PACK_ID,
     export_core_pack_template_manifests,
 )
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _short_id(full_template_id: str) -> str:
@@ -75,21 +80,71 @@ def test_export_core_pack_template_manifests_writes_registry_aligned_payloads(tm
 
 def _load_entrypoint(entrypoint: str) -> object:
     module_name, function_name = entrypoint.split(":", 1)
+    importlib.invalidate_caches()
     module = importlib.import_module(module_name)
     return getattr(module, function_name)
 
 
+@contextmanager
+def _core_pack_src_on_sys_path():
+    src_root = REPO_ROOT / "display-packs" / CORE_PACK_ID / "src"
+    src_root_str = str(src_root)
+    already_present = src_root_str in sys.path
+    if not already_present:
+        sys.path.insert(0, src_root_str)
+        importlib.invalidate_caches()
+    try:
+        yield
+    finally:
+        if not already_present:
+            sys.path.remove(src_root_str)
+
+
 def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None:
     export_core_pack_template_manifests(tmp_path)
-    payload = tomllib.loads(
-        (tmp_path / "templates" / "roc_curve_binary" / "template.toml").read_text(encoding="utf-8")
-    )
+    representative_entrypoints = {
+        "roc_curve_binary": "fenggaolab_org_medical_display_core.evidence_figures:render_r_evidence_figure",
+        "time_to_event_risk_group_summary": (
+            "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+        ),
+        "cohort_flow_figure": "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell",
+        "table1_baseline_characteristics": "fenggaolab_org_medical_display_core.table_shells:render_table_shell",
+    }
 
-    entrypoint = payload["entrypoint"]
-    target = _load_entrypoint(entrypoint)
+    with _core_pack_src_on_sys_path():
+        for template_short_id, expected_entrypoint in representative_entrypoints.items():
+            payload = tomllib.loads(
+                (tmp_path / "templates" / template_short_id / "template.toml").read_text(encoding="utf-8")
+            )
+            entrypoint = payload["entrypoint"]
+            target = _load_entrypoint(entrypoint)
+            assert entrypoint == expected_entrypoint
+            assert callable(target)
 
-    assert entrypoint == "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
-    assert callable(target)
+
+def test_exported_manifests_do_not_reference_host_materialization_entrypoint(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+    manifest_paths = sorted(tmp_path.glob("templates/*/template.toml"))
+
+    assert manifest_paths
+    for manifest_path in manifest_paths:
+        payload = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+        assert payload["entrypoint"] != (
+            "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
+        )
+
+
+def test_exported_manifests_move_all_figure_execution_into_pack_local_modules(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+
+    for spec in (
+        *display_registry.list_evidence_figure_specs(),
+        *display_registry.list_illustration_shell_specs(),
+        *display_registry.list_table_shell_specs(),
+    ):
+        short_id = _short_id(spec.template_id if hasattr(spec, "template_id") else spec.shell_id)
+        payload = tomllib.loads((tmp_path / "templates" / short_id / "template.toml").read_text(encoding="utf-8"))
+        assert payload["entrypoint"].startswith("fenggaolab_org_medical_display_core.")
 
 
 def test_export_does_not_delete_unrelated_template_directories(tmp_path: Path) -> None:

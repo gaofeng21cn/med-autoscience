@@ -68,6 +68,16 @@ def test_get_evidence_figure_spec_accepts_namespaced_template_id() -> None:
     assert spec.template_id == _full_id("roc_curve_binary")
 
 
+def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
+    evidence_spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
+    shell_spec = display_registry.get_illustration_shell_spec(_full_id("submission_graphical_abstract"))
+    table_spec = display_registry.get_table_shell_spec(_full_id("table2_time_to_event_performance_summary"))
+
+    assert evidence_spec.paper_proven is True
+    assert shell_spec.paper_proven is True
+    assert table_spec.paper_proven is False
+
+
 def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure7 = display_registry.get_evidence_figure_spec(_full_id("time_dependent_roc_horizon"))
     figure8 = display_registry.get_evidence_figure_spec(
