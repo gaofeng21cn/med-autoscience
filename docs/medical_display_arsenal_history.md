@@ -50,6 +50,11 @@
 | `2026-04-07` | 复合面板 token 对齐加固 | 前一轮多窗口 ROC 落地后的工程收口 | 统一 renderer 与 QC 对 `panel_label` 的 token 规则，防止空格或标点导致 sidecar、box id 与质控错配 | `B` 复合面板体系；`time_dependent_roc_comparison_panel`、`time_to_event_stratified_cumulative_incidence_panel` | 已落成 `f8d2e0c` |
 | `2026-04-07` | 性能热图正式入库 | `Nature Medicine` 风险论文图 4c | 把普通矩阵热图提升为有固定行列顺序、有指标语义、有数值边界的性能热图契约 | `B/E` / `performance_heatmap` | 已落成 `474ee02` |
 | `2026-04-07` | 主线冻结收口 | 绘图主线治理决策 | 同步 `F` 家族延期重开决策、固定冻结交棒边界、终止自动续跑，为未来显式重开保留干净入口 | 主线治理；不新增模板 | 已落成 `3cc2a19` |
+| `2026-04-08` | `D/E/G` 细胞类型-签名复合热图正式入库 | 真实论文复合图谱交付需求 + `Nature Medicine` `2025` 炎症图谱图 1 + `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2/3/7 | 把单独的 embedding scatter 与程序/签名热图组合，提升为正式 `celltype/program` 复合模板；固定 `score_method`、embedding group ↔ heatmap column 对齐、完整行列网格、legend/colorbar 锚定，并补齐 python renderer、layout QC 与 golden regression | `D/E/G` / `celltype_signature_heatmap` | 已正式入库，作为 post-baseline rolling expansion 的首个复合图谱切片 |
+| `2026-04-08` | `A/B` landmark performance + Brier/error 三联治理正式入库 | 真实时间事件论文交付需求 + `Nature Communications` `2021` ctDNA 动态复发风险研究 | 把 forward landmark windows 的 discrimination、Brier score 与 calibration slope 从稿件现场自由拼图提升为统一的三联 summary 模板；同时补齐输入契约、python renderer、layout QC 与 A/B golden regression 锁定 | `A/B` / `time_to_event_landmark_performance_panel` | 已正式入库，作为 post-baseline rolling expansion 的第二个 capability cluster |
+| `2026-04-08` | `F` 家族 SHAP dependence 面板正式入库 | 真实解释型论文交付需求 + `npj Digital Medicine` `2025` SHAP dependence exemplar | 把单一 summary beeswarm 之外的局部 dependence explanation 提升为正式多 panel 模板；固定 panel feature 唯一性、point finite contract、shared colorbar label、zero-line guide 与 F 家族 golden regression 锁定 | `F` / `shap_dependence_panel` | 已正式入库，作为 post-baseline rolling expansion 的第三个 capability cluster |
+| `2026-04-08` | `A/B` threshold summary + grouped survival calibration governance 正式入库 | 真实 deployment-facing 生存论文交付需求 + `Nature Medicine` `2025` 结直肠手术 AI 决策支持论文图 4a-d + `npj Digital Medicine` `2025` RCC / 胃癌预后论文图 2/5 | 把 threshold summary cards 与 grouped survival calibration governance 从稿件现场组合图提升为统一的 pack 模板；固定 threshold label 唯一性、threshold strict order、risk-group finite probability、card/panel anchoring、calibration point fail-closed，并补齐 python renderer、layout QC 与 A/B golden regression 锁定 | `A/B` / `time_to_event_threshold_governance_panel` | 已正式入库，作为 post-baseline rolling expansion 的第四个 capability cluster |
+| `2026-04-08` | `A/B` multi-horizon grouped calibration governance 正式入库 | 真实 deployment-facing 生存论文交付需求 + `Nature Medicine` `2025` 结直肠手术 AI 决策支持论文图 4a-d + `npj Digital Medicine` `2025` RCC / 胃癌预后论文图 2/5 | 把 `3/5-year` 并列 grouped calibration governance 从单 horizon dumbbell / 阈值组合图内嵌能力提升为正式多 panel 模板；固定 horizon strict order、panel label/id 唯一性、panel 内 group_order 递增、risk finite probability 与 calibration point fail-closed，并补齐 python renderer、layout QC 与 A/B golden regression 锁定 | `A/B` / `time_to_event_multihorizon_calibration_panel` | 已正式入库，作为 post-baseline rolling expansion 的第五个 capability cluster |
 
 ## 已观察、已记录、但尚未正式入库的学习素材
 
@@ -57,8 +62,8 @@
 
 | 日期 | 来源 | 看到了什么 | 可能提升的家族 / 模板方向 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| `2026-04-06` | `Nature Medicine` `2025` 炎症图谱图 1 | 复合式图谱结构、细胞群嵌入、签名热图、跨层叙事组合 | `D/E/G`，尤其是 `celltype_signature_heatmap` 一类复合图式 | 已归档为高价值候选，未正式入库 |
-| `2026-04-06` | `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2 | 单细胞嵌入、谱系热图、空间表达与解释性联动 | `D/E/F/G` | 已归档为高价值候选，未正式入库 |
+| `2026-04-06` | `Nature Medicine` `2025` 炎症图谱图 1 | 复合式图谱结构、细胞群嵌入、签名热图、跨层叙事组合 | `D/E/G`，尤其是 `celltype_signature_heatmap` 一类复合图式 | 其中 `embedding + signature heatmap` 子能力已于 `2026-04-08` 正式入库；更大 atlas/trajectory 变体仍为候选 |
+| `2026-04-06` | `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2 | 单细胞嵌入、谱系热图、空间表达与解释性联动 | `D/E/F/G` | 其中 `celltype/program` 复合热图与 SHAP dependence 子能力已于 `2026-04-08` 正式入库；空间/更深解释联动仍为候选 |
 | `2026-04-06` | `Cancer Cell` `2022` 肾脏图谱类图面 | 总体嵌入、主要细胞类型热图、空间上下文并置 | `D/E/G` | 已归档为高价值候选，未正式入库 |
 | `2026-04-06` | `Lancet Digital Health` 多癌种风险图 2 | 风险表达与泛化表达的稿件级组合方式 | `A/H` | 低优先级候选，暂未进入主执行线 |
 

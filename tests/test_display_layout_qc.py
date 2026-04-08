@@ -1596,6 +1596,52 @@ def test_run_display_layout_qc_fails_when_performance_heatmap_value_is_out_of_ra
     assert any(issue["rule_id"] == "performance_value_out_of_range" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_fails_when_celltype_signature_panel_is_missing_colorbar() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_celltype_signature_panel",
+        layout_sidecar={
+            "template_id": "celltype_signature_heatmap",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("embedding_panel_title", "panel_title", x0=0.12, y0=0.12, x1=0.32, y1=0.16),
+                make_box("heatmap_panel_title", "panel_title", x0=0.52, y0=0.12, x1=0.82, y1=0.16),
+                make_box("embedding_x_axis_title", "subplot_x_axis_title", x0=0.16, y0=0.92, x1=0.30, y1=0.96),
+                make_box("embedding_y_axis_title", "subplot_y_axis_title", x0=0.04, y0=0.24, x1=0.07, y1=0.74),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.58, y0=0.92, x1=0.76, y1=0.96),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.46, y0=0.24, x1=0.49, y1=0.74),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.82, x1=0.13, y1=0.86),
+                make_box("panel_label_B", "panel_label", x0=0.50, y0=0.82, x1=0.53, y1=0.86),
+            ],
+            "panel_boxes": [
+                make_box("panel_left", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.86),
+                make_box("panel_right", "heatmap_tile_region", x0=0.50, y0=0.18, x1=0.82, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.14, y0=0.02, x1=0.34, y1=0.08),
+            ],
+            "metrics": {
+                "points": [
+                    {"x": 0.18, "y": 0.70, "group": "T cells"},
+                    {"x": 0.34, "y": 0.30, "group": "Myeloid"},
+                ],
+                "group_labels": ["T cells", "Myeloid"],
+                "matrix_cells": [
+                    {"x": "T cells", "y": "IFN response", "value": 0.72},
+                    {"x": "Myeloid", "y": "IFN response", "value": -0.18},
+                    {"x": "T cells", "y": "TGF-beta", "value": -0.21},
+                    {"x": "Myeloid", "y": "TGF-beta", "value": 0.64},
+                ],
+                "score_method": "AUCell",
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "missing_box" and issue["target"] == "colorbar" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_forest_marker_is_outside_interval() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
@@ -2555,6 +2601,502 @@ def test_run_display_layout_qc_fails_when_shap_feature_label_leaves_its_row_band
     assert any(issue["rule_id"] == "feature_label_row_misaligned" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_dependence_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_dependence_panel",
+        layout_sidecar={
+            "template_id": "shap_dependence_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.14, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.46, y0=0.86, x1=0.64, y1=0.89),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.18, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.50, y0=0.10, x1=0.64, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.06, y0=0.30, x1=0.08, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.14, y0=0.80, x1=0.16, y1=0.83),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.80, x1=0.48, y1=0.83),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.44, y0=0.18, x1=0.68, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("zero_line_A", "zero_line", x0=0.12, y0=0.48, x1=0.34, y1=0.49),
+                make_box("zero_line_B", "zero_line", x0=0.44, y0=0.48, x1=0.68, y1=0.49),
+                make_box("colorbar", "colorbar", x0=0.78, y0=0.22, x1=0.84, y1=0.80),
+            ],
+            "metrics": {
+                "colorbar_label": "Interaction feature value",
+                "panels": [
+                    {
+                        "panel_id": "age_panel",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "interaction_feature": "Albumin",
+                        "points": [
+                            {"feature_value": 38.0, "shap_value": -0.22, "interaction_value": 3.1, "x": 0.18, "y": 0.34},
+                            {"feature_value": 55.0, "shap_value": 0.04, "interaction_value": 4.2, "x": 0.24, "y": 0.52},
+                            {"feature_value": 71.0, "shap_value": 0.31, "interaction_value": 4.8, "x": 0.30, "y": 0.70},
+                        ],
+                    },
+                    {
+                        "panel_id": "platelet_panel",
+                        "panel_label": "B",
+                        "title": "Platelet count",
+                        "x_label": "Platelets (10^9/L)",
+                        "feature": "Platelet count",
+                        "interaction_feature": "Age",
+                        "points": [
+                            {"feature_value": 85.0, "shap_value": 0.28, "interaction_value": 72.0, "x": 0.50, "y": 0.68},
+                            {"feature_value": 142.0, "shap_value": 0.02, "interaction_value": 59.0, "x": 0.58, "y": 0.52},
+                            {"feature_value": 210.0, "shap_value": -0.19, "interaction_value": 44.0, "x": 0.64, "y": 0.32},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_shap_dependence_point_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_dependence_panel",
+        layout_sidecar={
+            "template_id": "shap_dependence_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.14, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.46, y0=0.86, x1=0.64, y1=0.89),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.18, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.50, y0=0.10, x1=0.64, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.06, y0=0.30, x1=0.08, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.14, y0=0.80, x1=0.16, y1=0.83),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.80, x1=0.48, y1=0.83),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.44, y0=0.18, x1=0.68, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("zero_line_A", "zero_line", x0=0.12, y0=0.48, x1=0.34, y1=0.49),
+                make_box("zero_line_B", "zero_line", x0=0.44, y0=0.48, x1=0.68, y1=0.49),
+                make_box("colorbar", "colorbar", x0=0.78, y0=0.22, x1=0.84, y1=0.80),
+            ],
+            "metrics": {
+                "colorbar_label": "Interaction feature value",
+                "panels": [
+                    {
+                        "panel_id": "age_panel",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "interaction_feature": "Albumin",
+                        "points": [
+                            {"feature_value": 38.0, "shap_value": -0.22, "interaction_value": 3.1, "x": 0.18, "y": 0.34},
+                        ],
+                    },
+                    {
+                        "panel_id": "platelet_panel",
+                        "panel_label": "B",
+                        "title": "Platelet count",
+                        "x_label": "Platelets (10^9/L)",
+                        "feature": "Platelet count",
+                        "interaction_feature": "Age",
+                        "points": [
+                            {"feature_value": 85.0, "shap_value": 0.28, "interaction_value": 72.0, "x": 0.73, "y": 0.68},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "point_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_time_to_event_threshold_governance_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_time_to_event_threshold_governance_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_threshold_governance_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.15, y0=0.86, x1=0.31, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.54, y0=0.86, x1=0.72, y1=0.89),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.54, y0=0.10, x1=0.72, y1=0.13),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.79, x1=0.14, y1=0.82),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.79, x1=0.48, y1=0.82),
+                make_box("threshold_card_1", "threshold_card", x0=0.14, y0=0.50, x1=0.34, y1=0.70),
+                make_box("threshold_card_2", "threshold_card", x0=0.14, y0=0.24, x1=0.34, y1=0.44),
+            ],
+            "panel_boxes": [
+                make_box("threshold_panel", "threshold_panel", x0=0.10, y0=0.18, x1=0.38, y1=0.82),
+                make_box("calibration_panel", "calibration_panel", x0=0.46, y0=0.18, x1=0.82, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.57, y0=0.03, x1=0.79, y1=0.10),
+            ],
+            "metrics": {
+                "threshold_summaries": [
+                    {
+                        "threshold_label": "Rule-in",
+                        "threshold": 0.10,
+                        "sensitivity": 0.88,
+                        "specificity": 0.52,
+                        "net_benefit": 0.041,
+                        "card_box_id": "threshold_card_1",
+                    },
+                    {
+                        "threshold_label": "Actionable",
+                        "threshold": 0.15,
+                        "sensitivity": 0.74,
+                        "specificity": 0.67,
+                        "net_benefit": 0.058,
+                        "card_box_id": "threshold_card_2",
+                    },
+                ],
+                "risk_group_summaries": [
+                    {
+                        "group_label": "Low risk",
+                        "group_order": 1,
+                        "n": 182,
+                        "events": 8,
+                        "predicted_risk": 0.04,
+                        "observed_risk": 0.05,
+                        "predicted_x": 0.52,
+                        "observed_x": 0.55,
+                        "y": 0.30,
+                    },
+                    {
+                        "group_label": "Intermediate risk",
+                        "group_order": 2,
+                        "n": 146,
+                        "events": 19,
+                        "predicted_risk": 0.13,
+                        "observed_risk": 0.15,
+                        "predicted_x": 0.61,
+                        "observed_x": 0.65,
+                        "y": 0.50,
+                    },
+                    {
+                        "group_label": "High risk",
+                        "group_order": 3,
+                        "n": 88,
+                        "events": 27,
+                        "predicted_risk": 0.31,
+                        "observed_risk": 0.29,
+                        "predicted_x": 0.76,
+                        "observed_x": 0.73,
+                        "y": 0.70,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_threshold_governance_point_leaves_calibration_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_time_to_event_threshold_governance_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_threshold_governance_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.15, y0=0.86, x1=0.31, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.54, y0=0.86, x1=0.72, y1=0.89),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.54, y0=0.10, x1=0.72, y1=0.13),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.79, x1=0.14, y1=0.82),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.79, x1=0.48, y1=0.82),
+                make_box("threshold_card_1", "threshold_card", x0=0.14, y0=0.50, x1=0.34, y1=0.70),
+                make_box("threshold_card_2", "threshold_card", x0=0.14, y0=0.24, x1=0.34, y1=0.44),
+            ],
+            "panel_boxes": [
+                make_box("threshold_panel", "threshold_panel", x0=0.10, y0=0.18, x1=0.38, y1=0.82),
+                make_box("calibration_panel", "calibration_panel", x0=0.46, y0=0.18, x1=0.82, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.57, y0=0.03, x1=0.79, y1=0.10),
+            ],
+            "metrics": {
+                "threshold_summaries": [
+                    {
+                        "threshold_label": "Rule-in",
+                        "threshold": 0.10,
+                        "sensitivity": 0.88,
+                        "specificity": 0.52,
+                        "net_benefit": 0.041,
+                        "card_box_id": "threshold_card_1",
+                    },
+                    {
+                        "threshold_label": "Actionable",
+                        "threshold": 0.15,
+                        "sensitivity": 0.74,
+                        "specificity": 0.67,
+                        "net_benefit": 0.058,
+                        "card_box_id": "threshold_card_2",
+                    },
+                ],
+                "risk_group_summaries": [
+                    {
+                        "group_label": "Low risk",
+                        "group_order": 1,
+                        "n": 182,
+                        "events": 8,
+                        "predicted_risk": 0.04,
+                        "observed_risk": 0.05,
+                        "predicted_x": 0.52,
+                        "observed_x": 0.55,
+                        "y": 0.30,
+                    },
+                    {
+                        "group_label": "Intermediate risk",
+                        "group_order": 2,
+                        "n": 146,
+                        "events": 19,
+                        "predicted_risk": 0.13,
+                        "observed_risk": 0.15,
+                        "predicted_x": 0.61,
+                        "observed_x": 0.89,
+                        "y": 0.50,
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "calibration_point_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_time_to_event_multihorizon_calibration_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_time_to_event_multihorizon_calibration_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_multihorizon_calibration_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("x_axis_title", "subplot_x_axis_title", x0=0.34, y0=0.08, x1=0.58, y1=0.12),
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.86, x1=0.34, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.57, y0=0.86, x1=0.76, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.79, x1=0.14, y1=0.82),
+                make_box("panel_label_B", "panel_label", x0=0.53, y0=0.79, x1=0.55, y1=0.82),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "calibration_panel", x0=0.10, y0=0.18, x1=0.42, y1=0.82),
+                make_box("panel_B", "calibration_panel", x0=0.51, y0=0.18, x1=0.83, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.33, y0=0.02, x1=0.60, y1=0.08),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "h36",
+                        "panel_label": "A",
+                        "title": "36-month calibration",
+                        "time_horizon_months": 36,
+                        "calibration_summary": [
+                            {
+                                "group_label": "Low risk",
+                                "group_order": 1,
+                                "n": 182,
+                                "events": 5,
+                                "predicted_risk": 0.03,
+                                "observed_risk": 0.04,
+                                "predicted_x": 0.16,
+                                "observed_x": 0.18,
+                                "y": 0.30,
+                            },
+                            {
+                                "group_label": "Intermediate risk",
+                                "group_order": 2,
+                                "n": 146,
+                                "events": 13,
+                                "predicted_risk": 0.11,
+                                "observed_risk": 0.13,
+                                "predicted_x": 0.24,
+                                "observed_x": 0.27,
+                                "y": 0.50,
+                            },
+                            {
+                                "group_label": "High risk",
+                                "group_order": 3,
+                                "n": 88,
+                                "events": 22,
+                                "predicted_risk": 0.24,
+                                "observed_risk": 0.27,
+                                "predicted_x": 0.35,
+                                "observed_x": 0.38,
+                                "y": 0.70,
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "h60",
+                        "panel_label": "B",
+                        "title": "60-month calibration",
+                        "time_horizon_months": 60,
+                        "calibration_summary": [
+                            {
+                                "group_label": "Low risk",
+                                "group_order": 1,
+                                "n": 182,
+                                "events": 8,
+                                "predicted_risk": 0.04,
+                                "observed_risk": 0.05,
+                                "predicted_x": 0.57,
+                                "observed_x": 0.60,
+                                "y": 0.30,
+                            },
+                            {
+                                "group_label": "Intermediate risk",
+                                "group_order": 2,
+                                "n": 146,
+                                "events": 19,
+                                "predicted_risk": 0.13,
+                                "observed_risk": 0.15,
+                                "predicted_x": 0.66,
+                                "observed_x": 0.69,
+                                "y": 0.50,
+                            },
+                            {
+                                "group_label": "High risk",
+                                "group_order": 3,
+                                "n": 88,
+                                "events": 27,
+                                "predicted_risk": 0.31,
+                                "observed_risk": 0.29,
+                                "predicted_x": 0.77,
+                                "observed_x": 0.74,
+                                "y": 0.70,
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_multihorizon_calibration_point_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_time_to_event_multihorizon_calibration_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_multihorizon_calibration_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "subplot_x_axis_title", x0=0.34, y0=0.08, x1=0.58, y1=0.12),
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.86, x1=0.34, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.57, y0=0.86, x1=0.76, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.79, x1=0.14, y1=0.82),
+                make_box("panel_label_B", "panel_label", x0=0.53, y0=0.79, x1=0.55, y1=0.82),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "calibration_panel", x0=0.10, y0=0.18, x1=0.42, y1=0.82),
+                make_box("panel_B", "calibration_panel", x0=0.51, y0=0.18, x1=0.83, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.33, y0=0.02, x1=0.60, y1=0.08),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "h36",
+                        "panel_label": "A",
+                        "title": "36-month calibration",
+                        "time_horizon_months": 36,
+                        "calibration_summary": [
+                            {
+                                "group_label": "Low risk",
+                                "group_order": 1,
+                                "n": 182,
+                                "events": 5,
+                                "predicted_risk": 0.03,
+                                "observed_risk": 0.04,
+                                "predicted_x": 0.16,
+                                "observed_x": 0.18,
+                                "y": 0.30,
+                            },
+                            {
+                                "group_label": "Intermediate risk",
+                                "group_order": 2,
+                                "n": 146,
+                                "events": 13,
+                                "predicted_risk": 0.11,
+                                "observed_risk": 0.13,
+                                "predicted_x": 0.24,
+                                "observed_x": 0.27,
+                                "y": 0.50,
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "h60",
+                        "panel_label": "B",
+                        "title": "60-month calibration",
+                        "time_horizon_months": 60,
+                        "calibration_summary": [
+                            {
+                                "group_label": "Low risk",
+                                "group_order": 1,
+                                "n": 182,
+                                "events": 8,
+                                "predicted_risk": 0.04,
+                                "observed_risk": 0.05,
+                                "predicted_x": 0.57,
+                                "observed_x": 0.60,
+                                "y": 0.30,
+                            },
+                            {
+                                "group_label": "Intermediate risk",
+                                "group_order": 2,
+                                "n": 146,
+                                "events": 19,
+                                "predicted_risk": 0.13,
+                                "observed_risk": 0.15,
+                                "predicted_x": 0.66,
+                                "observed_x": 0.89,
+                                "y": 0.50,
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "calibration_point_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_binary_calibration_focus_window_leaves_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
@@ -2702,3 +3244,234 @@ def test_run_display_layout_qc_passes_for_model_complexity_audit_panel() -> None
 
     assert result["status"] == "pass"
     assert result["issues"] == []
+
+
+def test_run_display_layout_qc_passes_for_time_to_event_landmark_performance_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_landmark_performance_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_landmark_performance_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.08, y0=0.95, x1=0.92, y1=0.985),
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.28, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.40, y0=0.86, x1=0.56, y1=0.89),
+                make_box("panel_title_C", "panel_title", x0=0.68, y0=0.86, x1=0.84, y1=0.89),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.08, x1=0.28, y1=0.11),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.42, y0=0.08, x1=0.56, y1=0.11),
+                make_box("x_axis_title_C", "subplot_x_axis_title", x0=0.70, y0=0.08, x1=0.84, y1=0.11),
+                make_box("y_axis_title_A", "subplot_y_axis_title", x0=0.06, y0=0.34, x1=0.08, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.82, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.40, y0=0.82, x1=0.42, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+                make_box("metric_marker_1", "metric_marker", x0=0.22, y0=0.72, x1=0.24, y1=0.74),
+                make_box("metric_marker_2", "metric_marker", x0=0.24, y0=0.52, x1=0.26, y1=0.54),
+                make_box("metric_marker_3", "metric_marker", x0=0.26, y0=0.32, x1=0.28, y1=0.34),
+                make_box("metric_marker_4", "metric_marker", x0=0.48, y0=0.72, x1=0.50, y1=0.74),
+                make_box("metric_marker_5", "metric_marker", x0=0.46, y0=0.52, x1=0.48, y1=0.54),
+                make_box("metric_marker_6", "metric_marker", x0=0.44, y0=0.32, x1=0.46, y1=0.34),
+                make_box("metric_marker_7", "metric_marker", x0=0.78, y0=0.72, x1=0.80, y1=0.74),
+                make_box("metric_marker_8", "metric_marker", x0=0.76, y0=0.52, x1=0.78, y1=0.54),
+                make_box("metric_marker_9", "metric_marker", x0=0.74, y0=0.32, x1=0.76, y1=0.34),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "metric_panel", x0=0.10, y0=0.20, x1=0.30, y1=0.84),
+                make_box("panel_B", "metric_panel", x0=0.38, y0=0.20, x1=0.58, y1=0.84),
+                make_box("panel_C", "metric_panel", x0=0.66, y0=0.20, x1=0.86, y1=0.84),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_1", "reference_line", x0=0.77, y0=0.20, x1=0.78, y1=0.84),
+            ],
+            "metrics": {
+                "metric_panels": [
+                    {
+                        "panel_id": "discrimination_panel",
+                        "panel_label": "A",
+                        "metric_kind": "c_index",
+                        "title": "Discrimination",
+                        "x_label": "Validation C-index",
+                        "rows": [
+                            {
+                                "label": "3→12 months",
+                                "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+                                "landmark_months": 3,
+                                "prediction_months": 12,
+                                "value": 0.78,
+                            },
+                            {
+                                "label": "6→15 months",
+                                "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+                                "landmark_months": 6,
+                                "prediction_months": 15,
+                                "value": 0.81,
+                            },
+                            {
+                                "label": "9→18 months",
+                                "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+                                "landmark_months": 9,
+                                "prediction_months": 18,
+                                "value": 0.84,
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "error_panel",
+                        "panel_label": "B",
+                        "metric_kind": "brier_score",
+                        "title": "Prediction error",
+                        "x_label": "Brier score",
+                        "rows": [
+                            {
+                                "label": "3→12 months",
+                                "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+                                "landmark_months": 3,
+                                "prediction_months": 12,
+                                "value": 0.18,
+                            },
+                            {
+                                "label": "6→15 months",
+                                "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+                                "landmark_months": 6,
+                                "prediction_months": 15,
+                                "value": 0.15,
+                            },
+                            {
+                                "label": "9→18 months",
+                                "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+                                "landmark_months": 9,
+                                "prediction_months": 18,
+                                "value": 0.12,
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "calibration_panel",
+                        "panel_label": "C",
+                        "metric_kind": "calibration_slope",
+                        "title": "Calibration",
+                        "x_label": "Calibration slope",
+                        "reference_value": 1.0,
+                        "rows": [
+                            {
+                                "label": "3→12 months",
+                                "analysis_window_label": "3-month landmark predicting 12-month recurrence",
+                                "landmark_months": 3,
+                                "prediction_months": 12,
+                                "value": 1.06,
+                            },
+                            {
+                                "label": "6→15 months",
+                                "analysis_window_label": "6-month landmark predicting 15-month recurrence",
+                                "landmark_months": 6,
+                                "prediction_months": 15,
+                                "value": 0.98,
+                            },
+                            {
+                                "label": "9→18 months",
+                                "analysis_window_label": "9-month landmark predicting 18-month recurrence",
+                                "landmark_months": 9,
+                                "prediction_months": 18,
+                                "value": 0.93,
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_landmark_panel_window_is_not_forward() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_landmark_performance_panel",
+        layout_sidecar={
+            "template_id": "time_to_event_landmark_performance_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.28, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.40, y0=0.86, x1=0.56, y1=0.89),
+                make_box("panel_title_C", "panel_title", x0=0.68, y0=0.86, x1=0.84, y1=0.89),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.08, x1=0.28, y1=0.11),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.42, y0=0.08, x1=0.56, y1=0.11),
+                make_box("x_axis_title_C", "subplot_x_axis_title", x0=0.70, y0=0.08, x1=0.84, y1=0.11),
+                make_box("y_axis_title_A", "subplot_y_axis_title", x0=0.06, y0=0.34, x1=0.08, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.82, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.40, y0=0.82, x1=0.42, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+                make_box("metric_marker_1", "metric_marker", x0=0.22, y0=0.72, x1=0.24, y1=0.74),
+                make_box("metric_marker_2", "metric_marker", x0=0.48, y0=0.72, x1=0.50, y1=0.74),
+                make_box("metric_marker_3", "metric_marker", x0=0.78, y0=0.72, x1=0.80, y1=0.74),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "metric_panel", x0=0.10, y0=0.20, x1=0.30, y1=0.84),
+                make_box("panel_B", "metric_panel", x0=0.38, y0=0.20, x1=0.58, y1=0.84),
+                make_box("panel_C", "metric_panel", x0=0.66, y0=0.20, x1=0.86, y1=0.84),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_1", "reference_line", x0=0.77, y0=0.20, x1=0.78, y1=0.84),
+            ],
+            "metrics": {
+                "metric_panels": [
+                    {
+                        "panel_id": "discrimination_panel",
+                        "panel_label": "A",
+                        "metric_kind": "c_index",
+                        "title": "Discrimination",
+                        "x_label": "Validation C-index",
+                        "rows": [
+                            {
+                                "label": "8→8 months",
+                                "analysis_window_label": "8-month landmark predicting 8-month recurrence",
+                                "landmark_months": 8,
+                                "prediction_months": 8,
+                                "value": 0.78,
+                            }
+                        ],
+                    },
+                    {
+                        "panel_id": "error_panel",
+                        "panel_label": "B",
+                        "metric_kind": "brier_score",
+                        "title": "Prediction error",
+                        "x_label": "Brier score",
+                        "rows": [
+                            {
+                                "label": "8→8 months",
+                                "analysis_window_label": "8-month landmark predicting 8-month recurrence",
+                                "landmark_months": 8,
+                                "prediction_months": 8,
+                                "value": 0.18,
+                            }
+                        ],
+                    },
+                    {
+                        "panel_id": "calibration_panel",
+                        "panel_label": "C",
+                        "metric_kind": "calibration_slope",
+                        "title": "Calibration",
+                        "x_label": "Calibration slope",
+                        "reference_value": 1.0,
+                        "rows": [
+                            {
+                                "label": "8→8 months",
+                                "analysis_window_label": "8-month landmark predicting 8-month recurrence",
+                                "landmark_months": 8,
+                                "prediction_months": 8,
+                                "value": 0.97,
+                            }
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "prediction_window_not_forward" for issue in result["issues"])

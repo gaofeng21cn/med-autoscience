@@ -94,22 +94,22 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `27`
+- Implemented evidence figure templates: `32`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `34`
+- Total implemented display templates: `39`
 
 ### Evidence Classes
 
 | Class | Implemented Templates | Input Schemas | Primary QC Profiles |
 | --- | ---: | --- | --- |
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
-| Clinical Utility | 3 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve` |
-| Time-to-Event | 8 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve` |
-| Data Geometry | 3 | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` |
+| Clinical Utility | 4 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
+| Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
+| Data Geometry | 4 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel` |
 | Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
-| Model Explanation | 1 | `shap_summary_inputs_v1` | `publication_shap_summary` |
+| Model Explanation | 2 | `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_dependence_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
 | Generalizability | 1 | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` |
 
@@ -156,17 +156,18 @@ Templates:
 
 - `decision_curve_binary`
 - `binary_calibration_decision_curve_panel`
+- `time_to_event_threshold_governance_panel`
 - `time_to_event_decision_curve`
 
 Audit purpose:
 
-- Clinical decision-threshold evidence for binary and time-to-event settings.
+- Clinical decision-threshold evidence for binary and time-to-event settings, including structured threshold cards and grouped survival-calibration governance.
 
 Authoritative contract:
 
-- Input schemas: `binary_prediction_curve_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1`, `time_to_event_decision_curve_inputs_v1`
+- Input schemas: `binary_prediction_curve_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `time_to_event_decision_curve_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`
+- QC: `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel`
 
 ### 3. Time-to-Event
 
@@ -177,19 +178,21 @@ Templates:
 - `cumulative_incidence_grouped`
 - `time_dependent_roc_horizon`
 - `time_dependent_roc_comparison_panel`
+- `time_to_event_landmark_performance_panel`
+- `time_to_event_multihorizon_calibration_panel`
 - `time_to_event_stratified_cumulative_incidence_panel`
 - `time_to_event_discrimination_calibration_panel`
 - `time_to_event_risk_group_summary`
 
 Audit purpose:
 
-- Risk-layer stratification, grouped survival separation, event accumulation, fixed-horizon discrimination, multi-window ROC comparison, stratified cumulative-incidence panels, grouped calibration, and risk-group summary views.
+- Risk-layer stratification, grouped survival separation, event accumulation, fixed-horizon discrimination, landmark/time-slice performance governance, multi-window ROC comparison, stratified cumulative-incidence panels, grouped calibration at one or multiple horizons, and risk-group summary views.
 
 Authoritative contract:
 
-- Input schemas: `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
+- Input schemas: `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`
+- QC: `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel`
 
 ### 4. Data Geometry
 
@@ -198,16 +201,17 @@ Templates:
 - `umap_scatter_grouped`
 - `pca_scatter_grouped`
 - `tsne_scatter_grouped`
+- `celltype_signature_heatmap`
 
 Audit purpose:
 
-- Structured latent-space or embedding evidence under grouped labeling.
+- Structured latent-space or embedding evidence under grouped labeling, including composite atlas panels that must keep embedding groups, declared heatmap columns, and score-grid completeness fail-closed together.
 
 Authoritative contract:
 
-- Input schema: `embedding_grouped_inputs_v1`
-- Renderer family: `r_ggplot2`
-- QC: `publication_embedding_scatter`
+- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`
+- Renderer families: `r_ggplot2`, `python`
+- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`
 
 ### 5. Matrix Pattern
 
@@ -251,16 +255,17 @@ Authoritative contract:
 Templates:
 
 - `shap_summary_beeswarm`
+- `shap_dependence_panel`
 
 Audit purpose:
 
-- Ranked feature-attribution summary under controlled row and point geometry.
+- Ranked feature-attribution summary plus multi-panel dependence explanation under controlled point geometry, shared colorbar governance, and explicit zero-reference guides.
 
 Authoritative contract:
 
-- Input schema: `shap_summary_inputs_v1`
+- Input schemas: `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1`
 - Renderer family: `python`
-- QC: `publication_shap_summary`
+- QC: `publication_shap_summary`, `publication_shap_dependence_panel`
 
 ### 8. Model Audit
 
@@ -343,6 +348,16 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 - `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
 - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - lower-bound focus: panel-label anchoring, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
+
+### D/E/G composite atlas lane
+
+- `fenggaolab.org.medical-display-core::celltype_signature_heatmap`
+- lower-bound focus: embedding-group and declared heatmap-column alignment, complete row/column coverage without duplicate coordinates, explicit score-method provenance, and stable legend/colorbar anchoring for the composite panel
+
+### F local explanation lane
+
+- `fenggaolab.org.medical-display-core::shap_dependence_panel`
+- lower-bound focus: panel-feature uniqueness, finite point coordinates, zero-line containment, shared colorbar governance, and panel-label anchoring for manuscript-facing local explanation panels
 
 ### AI-first visual audit lane
 

@@ -161,22 +161,29 @@ def _check_survival_group_readability(layout_sidecar: dict[str, object]) -> list
         event_counts: list[float] = []
         for index, item in enumerate(risk_group_summaries):
             summary = _require_mapping(item, label=f"layout_sidecar.metrics.risk_group_summaries[{index}]")
+            observed_key = (
+                "observed_km_risk_5y" if "observed_km_risk_5y" in summary else "observed_risk"
+            )
+            predicted_key = (
+                "mean_predicted_risk_5y" if "mean_predicted_risk_5y" in summary else "predicted_risk"
+            )
+            event_key = "events_5y" if "events_5y" in summary else "events"
             observed_risks.append(
                 _require_numeric(
-                    summary.get("observed_km_risk_5y"),
-                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].observed_km_risk_5y",
+                    summary.get(observed_key),
+                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{observed_key}",
                 )
             )
             predicted_risks.append(
                 _require_numeric(
-                    summary.get("mean_predicted_risk_5y"),
-                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].mean_predicted_risk_5y",
+                    summary.get(predicted_key),
+                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{predicted_key}",
                 )
             )
             event_counts.append(
                 _require_numeric(
-                    summary.get("events_5y"),
-                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].events_5y",
+                    summary.get(event_key),
+                    label=f"layout_sidecar.metrics.risk_group_summaries[{index}].{event_key}",
                 )
             )
         minimum_observed_risk_spread = _resolve_threshold(
@@ -405,7 +412,7 @@ def _check_shap_summary_readability(layout_sidecar: dict[str, object]) -> list[d
 
 def run_readability_qc(*, qc_profile: str, layout_sidecar: dict[str, object]) -> list[dict[str, Any]]:
     normalized_profile = str(qc_profile or "").strip()
-    if normalized_profile == "publication_survival_curve":
+    if normalized_profile in {"publication_survival_curve", "publication_time_to_event_threshold_governance_panel"}:
         return _check_survival_group_readability(layout_sidecar)
     if normalized_profile == "publication_shap_summary":
         return _check_shap_summary_readability(layout_sidecar)
