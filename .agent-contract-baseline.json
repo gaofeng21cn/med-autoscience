@@ -1,18 +1,17 @@
 {
-  "baseline_name": "agent-contract-baseline",
-  "baseline_version": "0.2.0",
+  "baseline_name": "omx-project-installer",
+  "baseline_version": "0.5.2",
   "contract_layout": "single-project-truth",
   "scope": "project",
   "display_name": "Med Autoscience",
   "project_truth_path": "contracts/project-truth/AGENTS.md",
   "managed_files": [
     "AGENTS.md",
-    "README.md",
     ".gitignore",
     "contracts/project-truth/AGENTS.md",
     ".codex/AGENTS.md"
   ],
-  "updated_at": "2026-04-05T01:47:59.966004+00:00",
+  "updated_at": "2026-04-08T02:03:03.007832+00:00",
   "preserved_existing_root": {
     "backed_up": false,
     "backup_path": "",
@@ -24,31 +23,54 @@
     "removed_legacy_source": false
   },
   "legacy_cleanup": {
-    "removed": [
-      "contracts/dev-hosts/README.md",
-      "contracts/dev-hosts/omx-cli.md",
-      "contracts/dev-hosts/codex-app.md"
-    ]
+    "removed": []
   },
-  "gitignore_updated": false,
-  "readme_updated": true,
+  "gitignore_updated": true,
+  "update_policies": {
+    "root_agents": "auto",
+    "project_config": "auto"
+  },
+  "root_agents_state": {
+    "policy": "auto",
+    "source": "pre-setup-snapshot",
+    "sha256": "dd35f0fc8488472c0d4b1dc3e4332302ff290590790891b9e04889e473e1f204"
+  },
   "config_reconcile": {
     "applied": false,
     "user_config_present": true,
-    "project_config_present": false,
+    "project_config_present": true,
     "keys_synced": [],
-    "tables_synced": []
+    "tables_synced": [],
+    "managed_keys_synced": [],
+    "managed_tables_synced": [],
+    "restore_applied": true,
+    "restore_source": "pre-setup-snapshot",
+    "policy": "auto"
   },
   "legacy_alias_repair": {
     "repaired": [
       "analyze",
       "build-fix",
-      "tdd"
-    ],
-    "skipped": [
+      "tdd",
       "ecomode",
       "ultraqa",
       "swarm"
+    ],
+    "skipped": []
+  },
+  "continuous_program_scaffold": {
+    "enabled_by_default": true,
+    "program_id": "med-autoscience-mainline",
+    "report_dir": ".omx/reports/med-autoscience-mainline",
+    "created": [],
+    "preserved": [
+      "existing-custom-scaffold"
     ]
+  },
+  "program_pack": {
+    "id": "",
+    "description": "",
+    "created": [],
+    "preserved": []
   }
 }
