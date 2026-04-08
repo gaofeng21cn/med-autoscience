@@ -25,6 +25,19 @@
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做高判断密度 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate contract，而不是把当前仓强行改成同仓双模。
 - 运行推进通过受控 `MedDeepScientist` surface 完成；`MedDeepScientist` 是执行 surface，不是本仓库的系统本体。
 - 未来迁移到同一底座上的 managed web runtime 时，必须保持领域 contract、artifact schema、决策审计链与升级/退出边界兼容；允许变化的仅是 host 生命周期与调度托管方式。
+- 当前 execution handle contract 继续固定为：
+  - `program_id`：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针；本地 handoff 默认落在 `.omx/context/CURRENT_PROGRAM.md` 与 `.omx/reports/<program_id>/`
+  - `study_id`：study 聚合根身份，持久落在 `studies/<study_id>/`
+  - `quest_id`：受控 `MedDeepScientist` managed quest 的正式运行句柄，持久落在 `ops/med-deepscientist/runtime/quests/<quest_id>/`
+  - `active_run_id`：当前 live daemon run 的细粒度执行句柄；不能替代 `program_id`、`study_id` 或 `quest_id`
+- 当前 canonical durable surface contract 继续固定为：
+  - `study_runtime_status`
+  - `runtime_watch`
+  - `studies/<study_id>/artifacts/publication_eval/latest.json`
+  - `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+  - `studies/<study_id>/artifacts/controller_decisions/latest.json`
+  - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
+- gate semantics 必须继续保持 fail-closed：`study_runtime_status -> runtime_escalation_record -> publication_eval/latest.json -> controller_decisions/latest.json -> controller action`
 
 ## 设计与实现优先级
 
@@ -36,6 +49,7 @@
 - 优先通过 profile、overlay、controller 影响 `MedDeepScientist` / `DeepScientist` runtime，避免直接修改 runtime core。
 - 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到操作文档或控制器说明，而不是让首页退化成命令手册。
 - 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。
+- 不得把 live daemon `active_run_id` 混写成 study / quest 主身份，也不得把 `.omx/` 本地 handoff surface 冒充成 repo-tracked 产品 runtime truth。
 - `upstream intake` 是周期性、按价值触发的维护动作；不要因为 upstream 多了一个 commit，就默认把它升级成当前主线工作。
 - 只有当某个上游变更对 runtime 稳定性、兼容性或真实迁移成本有明确价值时，才应启动独立的 intake 审计与吸收流程。
 - 涉及第三方 Agent 接入时，优先遵循已经文档化的入口模式与稳定接口面，而不是新增一套私有、不可审计的入口规则。

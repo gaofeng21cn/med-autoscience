@@ -41,11 +41,42 @@
 
 在该形态下：
 
+- formal-entry matrix 固定为：
+  - `default_formal_entry = CLI`
+  - `supported_protocol_layer = MCP`
+  - `internal_controller_surface = controller`
+- 当前 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
 - 运行推进通过受控 `MedDeepScientist` surface 完成
 - `Med Auto Science` 作为 `Domain Harness OS`，负责控制面、合同面和审计面
 - `MedDeepScientist` 作为执行面，不被表述为系统本体
 
-## 5) 未来 managed web runtime（同一底座）下的不变项
+## 5) 当前 execution handle contract
+
+当前主线至少要区分四层身份：
+
+- `program_id`
+  - 当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针
+- `study_id`
+  - 医学 study 的持久聚合根身份
+- `quest_id`
+  - 受控 `MedDeepScientist` managed quest 的正式运行句柄
+- `active_run_id`
+  - 当前 live daemon run 的细粒度执行句柄
+
+这四者不能互相替代，尤其不能把 `active_run_id` 或 `quest_id` 倒灌成上层 study / control-plane 身份。
+
+## 6) 当前 durable surface contract
+
+当前主线下，至少以下表面必须继续被理解为 canonical durable surface：
+
+- `study_runtime_status`
+- `runtime_watch`
+- `studies/<study_id>/artifacts/publication_eval/latest.json`
+- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `studies/<study_id>/artifacts/controller_decisions/latest.json`
+- `studies/<study_id>/artifacts/runtime/last_launch_report.json`
+
+## 7) 未来 managed web runtime（同一底座）下的不变项
 
 如果迁移到同一 `Unified Harness Engineering Substrate` 上的 managed web runtime，下列内容保持不变：
 
@@ -60,7 +91,7 @@
 - 调度与权限托管方式
 - 运行入口的部署形态（本地/托管）
 
-## 6) 边界声明
+## 8) 边界声明
 
 - 不把当前表述夸大为“已经形成独立公共代码框架”
 - 不把 `MedDeepScientist` 等同为 `Med Auto Science` 本体

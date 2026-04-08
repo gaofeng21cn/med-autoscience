@@ -32,6 +32,7 @@ Any page that the public should read must live under this surface with fully mir
 
 - [Domain Harness OS Positioning On Unified Substrate](domain-harness-os-positioning.md)
 - [Agent runtime interface](agent_runtime_interface.md)
+- [Runtime Handle And Durable Surface Contract](runtime_handle_and_durable_surface_contract.md)
 - [Agent entry modes](agent_entry_modes.md)
 - [Open Harness OS Architecture Boundary](open_harness_os_architecture.md)
 - [Outer-Loop Wakeup And Decision Loop](outer_loop_wakeup_and_decision_loop.md)

@@ -85,6 +85,15 @@ This means:
 - `Med Auto Science` remains the `Domain Harness OS` and contract owner
 - `MedDeepScientist` remains an execution surface under control, not the full system identity
 
+## Execution Handle And Durable Surfaces
+
+- `study_id` is the durable aggregate-root identity for a medical study.
+- `quest_id` is the formal managed runtime handle for the controlled `MedDeepScientist` quest bound to that study.
+- `active_run_id` is the live daemon run handle inside the current quest when execution is active; it must not replace `study_id` or `quest_id`.
+- `program_id` is the control-plane and report-routing pointer for the active `research-foundry-medical-mainline`.
+- Current canonical durable status, audit, and decision surfaces are `study_runtime_status`, `runtime_watch`, `artifacts/publication_eval/latest.json`, `artifacts/reports/escalation/runtime_escalation_record.json`, `artifacts/controller_decisions/latest.json`, and `artifacts/runtime/last_launch_report.json`.
+- Repo-tracked runtime truth and local operator handoff surfaces stay separate: the former owns the product/runtime contract, while the latter carries machine-local resume and continuation state.
+
 ## What Stays Stable Over Time
 
 As runtime hosting evolves (including a future managed web runtime on the same substrate), the core domain contracts stay stable:

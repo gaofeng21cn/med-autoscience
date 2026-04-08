@@ -84,6 +84,15 @@
 - `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner
 - `MedDeepScientist` 是执行 surface，不是系统本体
 
+## 运行句柄与持久表面
+
+- `study_id`：医学 study 的持久聚合根身份。
+- `quest_id`：绑定到该 study 的受控 `MedDeepScientist` managed quest 正式运行句柄。
+- `active_run_id`：当前 quest 内 live daemon run 的细粒度执行句柄；它不能取代 `study_id` 或 `quest_id`。
+- `program_id`：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针。
+- 当前 canonical durable status / audit / decision surface：`study_runtime_status`、`runtime_watch`、`artifacts/publication_eval/latest.json`、`artifacts/reports/escalation/runtime_escalation_record.json`、`artifacts/controller_decisions/latest.json`、`artifacts/runtime/last_launch_report.json`。
+- repo-tracked runtime truth 与本地 operator handoff surface 必须分开：前者负责产品/runtime 合同，后者只负责机器本地恢复与 continuation 状态。
+
 ## 未来托管形态下的不变项
 
 即使未来迁移到同一底座上的 managed web runtime，下列核心口径保持不变：

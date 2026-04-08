@@ -12,6 +12,8 @@
 - Agent 负责调用稳定接口，推进数据治理、研究执行和论文交付组织
 - 平台负责提供可验证、可审计、可重复调用的 gateway 入口，而不是要求医学用户手工维护底层状态
 
+当前默认本地执行形态仍是 `Codex-default host-agent runtime`。
+
 当前 formal-entry matrix 继续固定为：
 
 - `default_formal_entry`：`CLI`
@@ -25,6 +27,41 @@
 - `controller` 属于内部控制面，不与 `CLI`、`MCP` 并列作为对外 formal entry
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate
 
+## Execution Handle 与 Durable Surface
+
+当前主线下，Agent 不应把所有运行身份混写成一个“run id”。
+
+必须至少区分：
+
+- `program_id`
+  - 当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针
+  - 默认回写到 `.omx/context/CURRENT_PROGRAM.md` 与 `.omx/reports/<program_id>/`
+- `study_id`
+  - study 聚合根身份
+  - 对应 `studies/<study_id>/`
+- `quest_id`
+  - 受控 `MedDeepScientist` managed quest 的正式运行句柄
+  - 对应 `ops/med-deepscientist/runtime/quests/<quest_id>/`
+- `active_run_id`
+  - 当前 live daemon run 的细粒度执行句柄
+  - 只在 live execution / runtime audit 场景里出现
+
+当前 canonical durable surface 至少包括：
+
+- `study_runtime_status`
+- `runtime_watch`
+- `studies/<study_id>/artifacts/publication_eval/latest.json`
+- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `studies/<study_id>/artifacts/controller_decisions/latest.json`
+- `studies/<study_id>/artifacts/runtime/last_launch_report.json`
+
+这意味着：
+
+- `publication_eval` 必须继续落在 study-owned latest surface，而不是回写到 runtime 临时目录
+- `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
+- `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
+- `.omx/` 继续只承载机器本地 handoff，不替代 repo-tracked runtime truth
+
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。
 
 ## 技术入口路径
@@ -37,6 +74,7 @@
 - external runtime blocker package：[`external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md)
 - `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
 - `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
+- 运行句柄与持久表面合同：[`runtime_handle_and_durable_surface_contract.md`](./runtime_handle_and_durable_surface_contract.md)
 - managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
 - 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
