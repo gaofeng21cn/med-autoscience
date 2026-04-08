@@ -9,5 +9,5 @@ input_schema_ref = "time_to_event_grouped_inputs_v1"
 qc_profile_ref = "publication_survival_curve"
 required_exports = ["png", "pdf"]
 execution_mode = "python_plugin"
-entrypoint = "med_autoscience.controllers.display_surface_materialization:materialize_display_surface"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_time_to_event_risk_group_summary"
 paper_proven = true

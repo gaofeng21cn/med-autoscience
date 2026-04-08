@@ -2441,6 +2441,73 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert tables_by_id["T3"]["qc_profile"] == "publication_table_interpretation"
 
 
+def test_render_python_evidence_figure_prefers_pack_entrypoint_for_migrated_python_template(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    output_png_path = tmp_path / "output.png"
+    output_pdf_path = tmp_path / "output.pdf"
+    layout_sidecar_path = tmp_path / "output.layout.json"
+    template_id = full_id("time_to_event_risk_group_summary")
+    render_calls: list[str] = []
+
+    def fake_external_renderer(
+        *,
+        template_id: str,
+        display_payload: dict[str, object],
+        output_png_path: Path,
+        output_pdf_path: Path,
+        layout_sidecar_path: Path,
+    ) -> None:
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_pdf_path.write_text("%PDF", encoding="utf-8")
+        layout_sidecar_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(str(display_payload["display_id"]))
+
+    def fail_legacy_renderer(**_: object) -> None:
+        raise AssertionError("legacy host renderer should not be used once pack entrypoint is active")
+
+    monkeypatch.setattr(
+        controller_module.display_pack_runtime,
+        "resolve_python_plugin_callable",
+        lambda *, repo_root, template_id: fake_external_renderer,
+    )
+    monkeypatch.setattr(
+        controller_module,
+        "_render_python_time_to_event_risk_group_summary",
+        fail_legacy_renderer,
+    )
+
+    controller_module._render_python_evidence_figure(
+        template_id=template_id,
+        display_payload={
+            "display_id": "F3",
+            "risk_group_summaries": [
+                {
+                    "label": "Low risk",
+                    "sample_size": 72,
+                    "events_5y": 4,
+                    "mean_predicted_risk_5y": 0.08,
+                    "observed_km_risk_5y": 0.06,
+                }
+            ],
+        },
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    assert render_calls == ["F3"]
+    assert output_png_path.read_text(encoding="utf-8") == "PNG"
+    assert output_pdf_path.read_text(encoding="utf-8") == "%PDF"
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert layout_sidecar["template_id"] == "time_to_event_risk_group_summary"
+
+
 def test_materialize_display_surface_materializes_optional_submission_graphical_abstract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -4196,6 +4263,59 @@ def test_render_python_evidence_figure_emits_qc_passable_layout_sidecar(
         assert panel_box["y0"] <= zero_line_box["y1"] <= panel_box["y1"]
         assert all(panel_box["y0"] <= box["y0"] <= panel_box["y1"] for box in feature_row_boxes)
         assert all(panel_box["y0"] <= box["y1"] <= panel_box["y1"] for box in feature_row_boxes)
+
+
+def test_render_python_evidence_figure_uses_pack_entrypoint_for_time_to_event_risk_group_summary(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    spec = controller_module.display_registry.get_evidence_figure_spec("time_to_event_risk_group_summary")
+    _, display_payload = controller_module._load_evidence_display_payload(
+        paper_root=paper_root,
+        spec=spec,
+        display_id="Figure15",
+    )
+    display_payload = {
+        **display_payload,
+        "render_context": {
+            "style_profile_id": "paper_neutral_clinical_v1",
+            "style_roles": {
+                "model_curve": "#245A6B",
+                "comparator_curve": "#B89A6D",
+                "reference_line": "#6B7280",
+            },
+            "layout_override": {},
+            "readability_override": {},
+        },
+    }
+
+    def fail_legacy_host_dispatch(**_: object) -> None:
+        raise AssertionError("legacy host dispatch should not be used once the pack entrypoint is active")
+
+    monkeypatch.setattr(
+        controller_module,
+        "_render_python_time_to_event_risk_group_summary",
+        fail_legacy_host_dispatch,
+        raising=False,
+    )
+
+    output_png_path = tmp_path / "Figure15_pack_entrypoint.png"
+    output_pdf_path = tmp_path / "Figure15_pack_entrypoint.pdf"
+    layout_sidecar_path = tmp_path / "Figure15_pack_entrypoint.layout.json"
+
+    controller_module._render_python_evidence_figure(
+        template_id=spec.template_id,
+        display_payload=display_payload,
+        output_png_path=output_png_path,
+        output_pdf_path=output_pdf_path,
+        layout_sidecar_path=layout_sidecar_path,
+    )
+
+    assert output_png_path.exists()
+    assert output_pdf_path.exists()
+    assert layout_sidecar_path.exists()
 
 
 def test_materialize_display_surface_applies_publication_style_and_display_override(tmp_path: Path, monkeypatch) -> None:

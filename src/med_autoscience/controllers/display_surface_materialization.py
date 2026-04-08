@@ -23,13 +23,14 @@ from matplotlib.font_manager import FontProperties  # noqa: E402
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 from matplotlib.textpath import TextPath  # noqa: E402
 
-from med_autoscience import display_layout_qc, display_pack_lock, display_registry, publication_display_contract  # noqa: E402
-from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID, TABLE_INPUT_FILENAME_BY_SCHEMA_ID
-from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id
+from med_autoscience import display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, publication_display_contract  # noqa: E402
+from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID, TABLE_INPUT_FILENAME_BY_SCHEMA_ID  # noqa: E402
+from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id  # noqa: E402
 
 
 _INPUT_FILENAME_BY_SCHEMA_ID = INPUT_FILENAME_BY_SCHEMA_ID
 _TABLE_INPUT_FILENAME_BY_SCHEMA_ID = TABLE_INPUT_FILENAME_BY_SCHEMA_ID
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -8908,6 +8909,20 @@ def _render_python_evidence_figure(
     layout_sidecar_path: Path,
 ) -> None:
     _, template_short_id = _require_namespaced_registry_id(template_id, label="template_id")
+    render_callable = display_pack_runtime.resolve_python_plugin_callable(
+        repo_root=_REPO_ROOT,
+        template_id=template_id,
+    )
+    if render_callable is not None:
+        render_callable(
+            template_id=template_short_id,
+            display_payload=display_payload,
+            output_png_path=output_png_path,
+            output_pdf_path=output_pdf_path,
+            layout_sidecar_path=layout_sidecar_path,
+        )
+        return
+
     if template_short_id == "binary_calibration_decision_curve_panel":
         _render_python_binary_calibration_decision_curve_panel(
             template_id=template_short_id,

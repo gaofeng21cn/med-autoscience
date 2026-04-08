@@ -92,6 +92,17 @@ def test_exported_entrypoint_is_real_importable_callable(tmp_path: Path) -> None
     assert callable(target)
 
 
+def test_exported_manifest_keeps_pack_local_entrypoint_for_migrated_python_template(tmp_path: Path) -> None:
+    export_core_pack_template_manifests(tmp_path)
+    payload = tomllib.loads(
+        (tmp_path / "templates" / "time_to_event_risk_group_summary" / "template.toml").read_text(encoding="utf-8")
+    )
+
+    assert payload["entrypoint"] == (
+        "fenggaolab_org_medical_display_core.evidence_figures:render_time_to_event_risk_group_summary"
+    )
+
+
 def test_export_does_not_delete_unrelated_template_directories(tmp_path: Path) -> None:
     extra_dir = tmp_path / "templates" / "local_custom_template"
     extra_dir.mkdir(parents=True)
