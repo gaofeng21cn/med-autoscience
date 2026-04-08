@@ -167,6 +167,24 @@ def make_partial_quest_recovery_payload(*, quest_id: str = "quest-001") -> dict[
     }
 
 
+def make_publication_supervisor_state_payload(
+    *,
+    supervisor_phase: str = "scientific_anchor_missing",
+    current_required_action: str = "return_to_publishability_gate",
+    bundle_tasks_downstream_only: bool = True,
+    upstream_scientific_anchor_ready: bool = False,
+) -> dict[str, object]:
+    return {
+        "supervisor_phase": supervisor_phase,
+        "phase_owner": "publication_gate",
+        "upstream_scientific_anchor_ready": upstream_scientific_anchor_ready,
+        "bundle_tasks_downstream_only": bundle_tasks_downstream_only,
+        "current_required_action": current_required_action,
+        "deferred_downstream_actions": [],
+        "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+    }
+
+
 def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
@@ -178,6 +196,14 @@ def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_
     assert typed_surface.StudyRuntimeStatus.__module__ == status_surface.__name__
     assert typed_surface.StudyRuntimeExecutionContext.__module__ == execution_surface.__name__
     assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_surface.__name__
+
+
+def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+
+    assert typed_surface.StudyRuntimePublicationSupervisorState is status_surface.StudyRuntimePublicationSupervisorState
+    assert typed_surface.StudyRuntimePublicationSupervisorState.__module__ == status_surface.__name__
 
 
 def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
@@ -523,6 +549,32 @@ def test_study_runtime_status_records_typed_preflight_and_recovery_extras() -> N
     assert status.partial_quest_recovery_result.archived_root.endswith("20260403T000000Z")
 
 
+def test_study_runtime_status_records_typed_publication_supervisor_state() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = make_status_payload(
+        execution={"quest_id": "quest-001"},
+        publication_supervisor_state=make_publication_supervisor_state_payload(),
+    )
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+    status.record_publication_supervisor_state(
+        module.StudyRuntimePublicationSupervisorState.from_payload(
+            make_publication_supervisor_state_payload(
+                supervisor_phase="publishability_gate_blocked",
+                upstream_scientific_anchor_ready=True,
+            )
+        )
+    )
+
+    assert status.to_dict()["publication_supervisor_state"] == make_publication_supervisor_state_payload(
+        supervisor_phase="publishability_gate_blocked",
+        upstream_scientific_anchor_ready=True,
+    )
+    assert status.publication_supervisor_state.supervisor_phase == "publishability_gate_blocked"
+    assert status.publication_supervisor_state.phase_owner == "publication_gate"
+    assert status.publication_supervisor_state.upstream_scientific_anchor_ready is True
+
+
 def test_startup_context_sync_result_requires_echoed_startup_contract() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
 
@@ -662,6 +714,43 @@ def test_study_runtime_status_records_runtime_artifacts_with_binding_existence(t
     assert payload["runtime_binding_exists"] is False
     assert payload["launch_report_path"] == str(launch_report_path)
     assert payload["startup_payload_path"] == str(startup_payload_path)
+
+
+def test_study_runtime_status_records_autonomous_runtime_notice_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+
+    status.record_autonomous_runtime_notice(
+        {
+            "required": True,
+            "notice_key": "quest:001-risk:run-live",
+            "notification_reason": "detected_existing_live_managed_runtime",
+            "quest_id": "001-risk",
+            "quest_status": "running",
+            "active_run_id": "run-live",
+            "browser_url": "http://127.0.0.1:20999",
+            "quest_api_url": "http://127.0.0.1:20999/api/quests/001-risk",
+            "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+            "monitoring_available": True,
+            "monitoring_error": None,
+            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+        }
+    )
+
+    assert status.to_dict()["autonomous_runtime_notice"] == {
+        "required": True,
+        "notice_key": "quest:001-risk:run-live",
+        "notification_reason": "detected_existing_live_managed_runtime",
+        "quest_id": "001-risk",
+        "quest_status": "running",
+        "active_run_id": "run-live",
+        "browser_url": "http://127.0.0.1:20999",
+        "quest_api_url": "http://127.0.0.1:20999/api/quests/001-risk",
+        "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
+        "monitoring_available": True,
+        "monitoring_error": None,
+        "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+    }
 
 
 def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:

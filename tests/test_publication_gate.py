@@ -170,6 +170,59 @@ def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_resu
     assert report["run_id"] is None
     assert report["headline_metrics"] == {}
     assert report["results_summary"] == "compile report summary"
+    assert report["supervisor_phase"] == "bundle_stage_ready"
+    assert report["bundle_tasks_downstream_only"] is False
+    assert report["phase_owner"] == "publication_gate"
+
+
+def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="running",
+    )
+    paper_bundle_manifest_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "paper"
+        / "paper_bundle_manifest.json"
+    )
+    paper_bundle_manifest_path.unlink()
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "missing"
+    assert report["allow_write"] is False
+    assert "missing_publication_anchor" in report["blockers"]
+    assert report["supervisor_phase"] == "scientific_anchor_missing"
+    assert report["phase_owner"] == "publication_gate"
+    assert report["upstream_scientific_anchor_ready"] is False
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
+    assert report["deferred_downstream_actions"] == []
+
+
+def test_build_gate_report_marks_bundle_tasks_downstream_when_post_main_gate_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "main_result"
+    assert report["allow_write"] is False
+    assert "missing_post_main_publishability_gate" in report["blockers"]
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["phase_owner"] == "publication_gate"
+    assert report["upstream_scientific_anchor_ready"] is True
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
+    assert report["deferred_downstream_actions"] == []
 
 
 def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metrics(tmp_path: Path) -> None:

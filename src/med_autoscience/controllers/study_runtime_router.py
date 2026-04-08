@@ -28,6 +28,7 @@ from med_autoscience.controllers.study_runtime_decision import (
     _status_state,
 )
 from med_autoscience.controllers.study_runtime_execution import (
+    _record_autonomous_runtime_notice_if_required,
     _build_context_create_payload,
     _build_execution_context,
     _execute_blocked_refresh_runtime_decision,
@@ -75,6 +76,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeOverlayAudit,
     StudyRuntimeOverlayResult,
     StudyRuntimePartialQuestRecoveryResult,
+    StudyRuntimePublicationSupervisorState,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     StudyRuntimeReentryGate,

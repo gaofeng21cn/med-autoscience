@@ -15,6 +15,7 @@ from med_autoscience.study_completion import (
 
 __all__ = [
     "StudyCompletionSyncResult",
+    "StudyRuntimeAutonomousRuntimeNotice",
     "StudyRuntimeAnalysisBundleResult",
     "StudyRuntimeAuditRecord",
     "StudyRuntimeAuditStatus",
@@ -24,6 +25,7 @@ __all__ = [
     "StudyRuntimeOverlayAudit",
     "StudyRuntimeOverlayResult",
     "StudyRuntimePartialQuestRecoveryResult",
+    "StudyRuntimePublicationSupervisorState",
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
     "StudyRuntimeReentryGate",
@@ -184,6 +186,71 @@ class StudyRuntimeAuditRecord:
         if normalized == StudyRuntimeAuditStatus.UNKNOWN.value:
             return StudyRuntimeAuditStatus.UNKNOWN
         return StudyRuntimeAuditStatus.OTHER
+
+
+@dataclass(frozen=True)
+class StudyRuntimeAutonomousRuntimeNotice:
+    required: bool
+    notice_key: str
+    notification_reason: str
+    quest_id: str
+    quest_status: str
+    active_run_id: str | None
+    browser_url: str | None
+    quest_api_url: str | None
+    quest_session_api_url: str | None
+    monitoring_available: bool
+    monitoring_error: str | None
+    launch_report_path: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.required, bool):
+            raise TypeError("study runtime autonomous notice required must be bool")
+        if not isinstance(self.monitoring_available, bool):
+            raise TypeError("study runtime autonomous notice monitoring_available must be bool")
+        for field_name in ("notice_key", "notification_reason", "quest_id", "quest_status", "launch_report_path"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime autonomous notice {field_name} must be non-empty str")
+        for field_name in ("active_run_id", "browser_url", "quest_api_url", "quest_session_api_url", "monitoring_error"):
+            value = getattr(self, field_name)
+            if value is not None and not isinstance(value, str):
+                raise TypeError(f"study runtime autonomous notice {field_name} must be str or None")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "required": self.required,
+            "notice_key": self.notice_key,
+            "notification_reason": self.notification_reason,
+            "quest_id": self.quest_id,
+            "quest_status": self.quest_status,
+            "active_run_id": self.active_run_id,
+            "browser_url": self.browser_url,
+            "quest_api_url": self.quest_api_url,
+            "quest_session_api_url": self.quest_session_api_url,
+            "monitoring_available": self.monitoring_available,
+            "monitoring_error": self.monitoring_error,
+            "launch_report_path": self.launch_report_path,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeAutonomousRuntimeNotice":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime autonomous notice payload must be a mapping")
+        return cls(
+            required=bool(payload.get("required")),
+            notice_key=str(payload.get("notice_key") or ""),
+            notification_reason=str(payload.get("notification_reason") or ""),
+            quest_id=str(payload.get("quest_id") or ""),
+            quest_status=str(payload.get("quest_status") or ""),
+            active_run_id=str(payload.get("active_run_id") or "").strip() or None,
+            browser_url=str(payload.get("browser_url") or "").strip() or None,
+            quest_api_url=str(payload.get("quest_api_url") or "").strip() or None,
+            quest_session_api_url=str(payload.get("quest_session_api_url") or "").strip() or None,
+            monitoring_available=bool(payload.get("monitoring_available")),
+            monitoring_error=str(payload.get("monitoring_error") or "").strip() or None,
+            launch_report_path=str(payload.get("launch_report_path") or ""),
+        )
 
 
 @dataclass(frozen=True)
@@ -492,6 +559,67 @@ class StudyRuntimeReentryGate:
             allow_runtime_entry=allow_runtime_entry,
             require_startup_hydration=require_startup_hydration,
             require_managed_skill_audit=require_managed_skill_audit,
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimePublicationSupervisorState:
+    supervisor_phase: str
+    phase_owner: str
+    upstream_scientific_anchor_ready: bool
+    bundle_tasks_downstream_only: bool
+    current_required_action: str
+    deferred_downstream_actions: tuple[str, ...]
+    controller_stage_note: str
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        for field_name in ("supervisor_phase", "phase_owner", "current_required_action", "controller_stage_note"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime publication supervisor {field_name} must be non-empty str")
+        if not isinstance(self.upstream_scientific_anchor_ready, bool):
+            raise TypeError(
+                "study runtime publication supervisor upstream_scientific_anchor_ready must be bool"
+            )
+        if not isinstance(self.bundle_tasks_downstream_only, bool):
+            raise TypeError("study runtime publication supervisor bundle_tasks_downstream_only must be bool")
+        object.__setattr__(
+            self,
+            "deferred_downstream_actions",
+            tuple(str(item) for item in self.deferred_downstream_actions),
+        )
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimePublicationSupervisorState":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime publication supervisor payload must be a mapping")
+        upstream_scientific_anchor_ready = payload.get("upstream_scientific_anchor_ready")
+        if not isinstance(upstream_scientific_anchor_ready, bool):
+            raise TypeError(
+                "study runtime publication supervisor upstream_scientific_anchor_ready must be bool"
+            )
+        bundle_tasks_downstream_only = payload.get("bundle_tasks_downstream_only")
+        if not isinstance(bundle_tasks_downstream_only, bool):
+            raise TypeError("study runtime publication supervisor bundle_tasks_downstream_only must be bool")
+        deferred_downstream_actions = payload.get("deferred_downstream_actions")
+        if not isinstance(deferred_downstream_actions, list):
+            raise ValueError(
+                "study runtime publication supervisor deferred_downstream_actions must be a list"
+            )
+        return cls(
+            supervisor_phase=str(payload.get("supervisor_phase") or ""),
+            phase_owner=str(payload.get("phase_owner") or ""),
+            upstream_scientific_anchor_ready=upstream_scientific_anchor_ready,
+            bundle_tasks_downstream_only=bundle_tasks_downstream_only,
+            current_required_action=str(payload.get("current_required_action") or ""),
+            deferred_downstream_actions=tuple(str(item) for item in deferred_downstream_actions),
+            controller_stage_note=str(payload.get("controller_stage_note") or ""),
             payload=dict(payload),
         )
 
@@ -881,6 +1009,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("startup_context_sync")
         return StudyRuntimeStartupContextSyncResult.from_payload(payload)
 
+    @property
+    def publication_supervisor_state(self) -> StudyRuntimePublicationSupervisorState:
+        payload = self.extras.get("publication_supervisor_state")
+        if not isinstance(payload, dict):
+            raise KeyError("publication_supervisor_state")
+        return StudyRuntimePublicationSupervisorState.from_payload(payload)
+
     def record_partial_quest_recovery(
         self,
         value: dict[str, Any] | StudyRuntimePartialQuestRecoveryResult,
@@ -902,6 +1037,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimeStartupContextSyncResult.from_payload(value)
         )
         self._record_dict_extra("startup_context_sync", startup_context_sync.to_dict())
+
+    def record_publication_supervisor_state(
+        self,
+        value: dict[str, Any] | StudyRuntimePublicationSupervisorState,
+    ) -> None:
+        publication_supervisor_state = (
+            value
+            if isinstance(value, StudyRuntimePublicationSupervisorState)
+            else StudyRuntimePublicationSupervisorState.from_payload(value)
+        )
+        self._record_dict_extra("publication_supervisor_state", publication_supervisor_state.to_dict())
 
     def record_startup_hydration(
         self,
@@ -946,6 +1092,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("runtime_liveness_audit")
         return StudyRuntimeAuditRecord.from_payload(payload)
 
+    @property
+    def autonomous_runtime_notice(self) -> StudyRuntimeAutonomousRuntimeNotice:
+        payload = self.extras.get("autonomous_runtime_notice")
+        if not isinstance(payload, dict):
+            raise KeyError("autonomous_runtime_notice")
+        return StudyRuntimeAutonomousRuntimeNotice.from_payload(payload)
+
     def record_completion_sync(
         self,
         value: dict[str, Any] | StudyCompletionSyncResult,
@@ -972,6 +1125,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             value if isinstance(value, StudyRuntimeAuditRecord) else StudyRuntimeAuditRecord.from_payload(value)
         )
         self._record_dict_extra("runtime_liveness_audit", runtime_liveness_audit.to_dict())
+
+    def record_autonomous_runtime_notice(
+        self,
+        value: dict[str, Any] | StudyRuntimeAutonomousRuntimeNotice,
+    ) -> None:
+        autonomous_runtime_notice = (
+            value
+            if isinstance(value, StudyRuntimeAutonomousRuntimeNotice)
+            else StudyRuntimeAutonomousRuntimeNotice.from_payload(value)
+        )
+        self._record_dict_extra("autonomous_runtime_notice", autonomous_runtime_notice.to_dict())
 
     def record_runtime_artifacts(
         self,

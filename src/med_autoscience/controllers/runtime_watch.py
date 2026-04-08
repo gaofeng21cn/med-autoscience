@@ -72,6 +72,13 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
             "blockers": result.get("blockers") or [],
             "missing_non_scalar_deliverables": result.get("missing_non_scalar_deliverables") or [],
             "submission_minimal_present": result.get("submission_minimal_present"),
+            "supervisor_phase": result.get("supervisor_phase"),
+            "phase_owner": result.get("phase_owner"),
+            "upstream_scientific_anchor_ready": result.get("upstream_scientific_anchor_ready"),
+            "bundle_tasks_downstream_only": result.get("bundle_tasks_downstream_only"),
+            "current_required_action": result.get("current_required_action"),
+            "deferred_downstream_actions": result.get("deferred_downstream_actions") or [],
+            "controller_stage_note": result.get("controller_stage_note"),
         }
     elif controller_name == "medical_publication_surface":
         top_hits = result.get("top_hits") or []
@@ -184,6 +191,21 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
                 "",
             ]
         )
+        if name == "publication_gate" and item.get("supervisor_phase"):
+            lines.extend(
+                [
+                    "#### Publication Supervisor",
+                    "",
+                    f"- supervisor_phase: `{item.get('supervisor_phase')}`",
+                    f"- phase_owner: `{item.get('phase_owner')}`",
+                    f"- upstream_scientific_anchor_ready: `{str(item.get('upstream_scientific_anchor_ready')).lower()}`",
+                    f"- bundle_tasks_downstream_only: `{str(item.get('bundle_tasks_downstream_only')).lower()}`",
+                    f"- current_required_action: `{item.get('current_required_action')}`",
+                    f"- deferred_downstream_actions: `{', '.join(item.get('deferred_downstream_actions') or ['none'])}`",
+                    f"- controller_stage_note: `{item.get('controller_stage_note')}`",
+                    "",
+                ]
+            )
     return "\n".join(lines)
 
 
@@ -242,6 +264,18 @@ def run_watch_for_quest(
             "report_markdown": final_result.get("report_markdown"),
             "suppression_reason": suppression_reason,
         }
+        if name == "publication_gate":
+            report["controllers"][name].update(
+                {
+                    "supervisor_phase": dry_run_result.get("supervisor_phase"),
+                    "phase_owner": dry_run_result.get("phase_owner"),
+                    "upstream_scientific_anchor_ready": dry_run_result.get("upstream_scientific_anchor_ready"),
+                    "bundle_tasks_downstream_only": dry_run_result.get("bundle_tasks_downstream_only"),
+                    "current_required_action": dry_run_result.get("current_required_action"),
+                    "deferred_downstream_actions": dry_run_result.get("deferred_downstream_actions") or [],
+                    "controller_stage_note": dry_run_result.get("controller_stage_note"),
+                }
+            )
 
     runtime_watch_protocol.save_watch_state(
         quest_root=quest_root,

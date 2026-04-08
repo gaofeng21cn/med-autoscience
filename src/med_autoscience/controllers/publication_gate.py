@@ -12,6 +12,16 @@ from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
+PUBLICATION_SUPERVISOR_KEYS: tuple[str, ...] = (
+    "supervisor_phase",
+    "phase_owner",
+    "upstream_scientific_anchor_ready",
+    "bundle_tasks_downstream_only",
+    "current_required_action",
+    "deferred_downstream_actions",
+    "controller_stage_note",
+)
+
 
 @dataclass
 class GateState:
@@ -387,6 +397,10 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     if state.manuscript_terminology_violations:
         blockers.append("forbidden_manuscript_terminology")
     allow_write = allow_write and not blockers
+    supervisor_state = build_publication_supervisor_state(
+        anchor_kind=state.anchor_kind,
+        allow_write=allow_write,
+    )
 
     return {
         "schema_version": 1,
@@ -439,7 +453,67 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "results_summary": results_summary,
         "conclusion": conclusion,
         "controller_note": publication_gate_policy.CONTROLLER_NOTE,
+        **supervisor_state,
     }
+
+
+def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool) -> dict[str, Any]:
+    deferred_downstream_actions: list[str] = []
+    if anchor_kind == "missing":
+        return {
+            "supervisor_phase": "scientific_anchor_missing",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": deferred_downstream_actions,
+            "controller_stage_note": (
+                "bundle suggestions are downstream-only until the publication gate allows write"
+            ),
+        }
+    if anchor_kind == "main_result":
+        if allow_write:
+            return {
+                "supervisor_phase": "write_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_write_stage",
+                "deferred_downstream_actions": deferred_downstream_actions,
+                "controller_stage_note": "the publication gate allows write; writing-stage work is now on the critical path",
+            }
+        return {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": deferred_downstream_actions,
+            "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+        }
+    if allow_write:
+        return {
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": deferred_downstream_actions,
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        }
+    return {
+        "supervisor_phase": "bundle_stage_blocked",
+        "phase_owner": "publication_gate",
+        "upstream_scientific_anchor_ready": True,
+        "bundle_tasks_downstream_only": False,
+        "current_required_action": "complete_bundle_stage",
+        "deferred_downstream_actions": deferred_downstream_actions,
+        "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+    }
+
+
+def extract_publication_supervisor_state(report: dict[str, Any]) -> dict[str, Any]:
+    return {key: report[key] for key in PUBLICATION_SUPERVISOR_KEYS}
 
 
 def render_gate_markdown(report: dict[str, Any]) -> str:
@@ -625,6 +699,7 @@ def run_controller(
         "intervention_enqueued": bool(intervention),
         "message_id": intervention.get("message_id") if intervention else None,
         "source": source,
+        **extract_publication_supervisor_state(report),
     }
 
 

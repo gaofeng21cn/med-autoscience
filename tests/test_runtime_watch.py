@@ -155,6 +155,43 @@ def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
 
+def test_runtime_watch_preserves_publication_supervisor_summary(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "blocked",
+                "blockers": ["missing_post_main_publishability_gate"],
+                "allow_write": False,
+                "missing_non_scalar_deliverables": [],
+                "submission_minimal_present": True,
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+    )
+
+    controller = result["controllers"]["publication_gate"]
+    assert controller["supervisor_phase"] == "publishability_gate_blocked"
+    assert controller["phase_owner"] == "publication_gate"
+    assert controller["upstream_scientific_anchor_ready"] is True
+    assert controller["bundle_tasks_downstream_only"] is True
+    assert controller["current_required_action"] == "return_to_publishability_gate"
+    assert controller["deferred_downstream_actions"] == []
+    assert "downstream-only" in controller["controller_stage_note"]
+
+
 def test_build_default_controller_runners_includes_figure_loop_guard() -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     runners = module.build_default_controller_runners()

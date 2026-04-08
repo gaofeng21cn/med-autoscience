@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import (
+    publication_gate as publication_gate_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
@@ -112,6 +113,7 @@ def _status_state(
     runtime_root = runtime_context.runtime_root
     quest_root = runtime_context.quest_root
     runtime_binding_path = runtime_context.runtime_binding_path
+    launch_report_path = runtime_context.launch_report_path
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
@@ -162,6 +164,18 @@ def _status_state(
     )
 
     def _finalize_result() -> StudyRuntimeStatus:
+        if quest_exists:
+            publication_gate_report = publication_gate_controller.build_gate_report(
+                publication_gate_controller.build_gate_state(quest_root)
+            )
+            result.record_publication_supervisor_state(
+                publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
+            )
+        router._record_autonomous_runtime_notice_if_required(
+            status=result,
+            runtime_root=runtime_root,
+            launch_report_path=launch_report_path,
+        )
         if not result.should_refresh_startup_hydration_while_blocked():
             result.extras.pop("runtime_escalation_ref", None)
             return result
