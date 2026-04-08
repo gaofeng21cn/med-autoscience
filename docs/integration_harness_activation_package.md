@@ -2,6 +2,10 @@
 
 这份文档把 `real-study relaunch and verify` 已 absorbed 到 `main` 之后，`Phase 6 / Integration Harness And Cutover Readiness` 当前允许打开的 **最小 repo-tracked activation package** 固定下来。
 
+状态更新：截至 `2026-04-08`，这条 activation package 已完成并 absorbed 到 `main`。当前 repo-side 正式停车终态是：
+
+- `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+
 它不是：
 
 - `end-to-end study harness` 已开启的声明
@@ -23,9 +27,13 @@
 - root `main` commit：`f5e909b0f6db64489f63aa70f6e1bfe38ec362a6`
 - real-study verification note：[`docs/real_study_relaunch_verification.md`](./real_study_relaunch_verification.md)
 
-因此，当前 repo-side 下一棒不再是重做 `real-study relaunch`，而是：
+因此，这份文档当前承担的是“已完成 activation package 的 repo-tracked closeout truth”，而不是“尚未 absorb 的 active tranche 说明”。
+
+此前 repo-side 的下一棒是：
 
 - 把 `controller -> runtime -> eval -> delivery` chain 与 `cutover readiness` 收敛成稳定、repo-tracked、可审计的 activation package
+
+而截至当前状态，这一棒已经完成并 absorbed。
 
 ## 2. 当前冻结的 controller-authorized chain
 
@@ -155,5 +163,6 @@ study_runtime_status / ensure_study_runtime
 
 因此，当前 repo 内的正确动作是：
 
-1. 先 absorb 这条 activation package / baseline
-2. 再把后续更大推进诚实地停在 external dependency gate 前
+1. 承认这条 activation package / baseline 已 absorb 到 `main`
+2. 把后续更大推进诚实地停在 external dependency gate 前
+3. 不在 repo 内伪造新的 same-repo tranche 来代替 external readiness 清理

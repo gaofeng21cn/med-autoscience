@@ -92,7 +92,7 @@ As runtime hosting evolves (including a future managed web runtime on the same s
 
 ## Publication Display Templates
 
-The publication display surface is now formally templated.
+The publication display surface is now a stable templated publication-facing layer.
 
 The current medical display system is designed to protect the lower bound of paper figures and tables without capping the upper bound of study-specific presentation. It constrains layout, field organization, export boundaries, and quality checks so that low-level problems such as text overlap, annotation overflow, or unreadable composite panels are caught as contract issues rather than left to ad-hoc repair.
 

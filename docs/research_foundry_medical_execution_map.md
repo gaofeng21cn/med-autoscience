@@ -21,6 +21,12 @@
 
 因此，当前所有执行都应被理解为：为了最终稳定地产出 paper-facing delivery，先完成 authority / delivery / real-study 收口，再把 `controller -> runtime -> eval -> delivery` 这条链压成可持续复跑的 activation baseline。
 
+这里同样必须区分：
+
+- 长线目标：稳定地产出发表级 paper-facing delivery，并最终走到更大的 `end-to-end harness / cutover readiness`
+- 当前 absorbed 位置：repo-side 已经把哪一层压成稳定 baseline
+- 当前停车终态：现在是否被 external runtime readiness 阻塞
+
 ## 五层执行图
 
 ```text
@@ -50,29 +56,30 @@
   - 已验证 managed entry / runtime watch / publication gate / study delivery sync；remaining blocker 已被收敛到 external workspace-side publication surface
 
 第 5 层：Integration Harness Activation & Baseline
-  当前 active
+  已完成并 absorbed 到 main
   - 当前 repo-tracked bridge：`docs/integration_harness_activation_package.md`
   - 目标：冻结 `controller -> runtime -> eval -> delivery` chain、cutover readiness、residual risk、external surface requirement
   - 当前最小 baseline：`runtime_watch` / `publication_gate` / `study_delivery_sync`
 
 后置门：End-to-End Harness / Cutover Readiness
-  继续关闭
+  当前 blocked on external runtime readiness
   - 只有第 5 层 absorb 之后，且 external runtime surface 真正放行，才允许继续
 ```
 
 ## 当前所在位置
 
-当前唯一活跃子线是：
+当前 repo-side 最新 absorbed 子线是：
 
 - `Phase 6 / integration harness activation package`
 
-因此，当前 OMX 正在覆盖的是第 5 层，而不是重新回到 authority / delivery / real-study 的旧 tranche。
+因此，当前 repo-side 已经完成第 5 层最小 baseline，而不是仍停在第 5 层未 absorb 状态。
 
 这意味着：
 
-- 它现在不是在重做 `real-study relaunch`
-- 也不是在打开 `end-to-end study harness`
-- 它在做的是 `real-study` absorbed 之后的最小 repo-side activation baseline
+- 它不是在重做 `real-study relaunch`
+- 也不是在 repo 内继续凭空打开 `end-to-end study harness`
+- 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
+- 当前终态应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 
 ## 每一层解决什么问题
 
@@ -126,9 +133,9 @@
 
 更具体地说：
 
-- OMX 当前覆盖：第 5 层
-- OMX 当前目标：先 absorb activation baseline
-- OMX 再之后才允许看 external runtime gate 是否允许继续
+- OMX 当前最新完成层：第 5 层
+- OMX 当前已经完成：activation baseline absorb
+- OMX 当前之后不应在 repo 内伪造新 tranche；应等待 external runtime gate 是否允许继续
 
 ## 当前正式执行口径
 
@@ -142,4 +149,8 @@
 4. 再用真实课题 relaunch 验证整条链是否成立
 5. 再把 integration harness activation baseline 压成稳定 repo-tracked bridge
 
-只有在这五层都稳定后，才允许讨论更大的 `end-to-end harness / cutover readiness`。
+当前这五层已经在 repo-side 收口完成；当前正式停车终态是：
+
+- `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+
+只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续讨论更大的 `end-to-end harness / cutover readiness`。

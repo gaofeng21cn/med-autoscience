@@ -9,7 +9,7 @@ Use this file when the question is:
 - how current paper work, platform hardening, and future family expansion should relate;
 - when an OMX lane should continue, hand off, or stop.
 
-For the current completion program across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+For the current baseline-completion provenance across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
 
 For the top-level evidence roadmap, see [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
 
@@ -36,21 +36,23 @@ The goal is not "draw more figures."
 
 The goal is "deliver publishable medical paper displays through a stable, extensible platform."
 
-## Current Completion Program
+## Current Operating Reality
 
-The current long-run completion target is not "full maturity everywhere."
+The current long-run operating reality is not "full maturity everywhere."
 
 It is:
 
-- get every `A-H` paper family over the line with at least one first audited baseline;
-- then keep hardening the weaker families without losing the paper-driven operating model.
+- the first audited-baseline coverage across `A-H` is already complete;
+- the display mainline should now stay in rolling hardening, visual audit, and paper-driven strengthening;
+- historical baseline-completion milestones remain provenance, not the current program identity.
 
-The authoritative completion-program details live in [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+The authoritative baseline-completion provenance lives in [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
 
-That means the mainline now has two simultaneous truths:
+That means the mainline now has three distinct layers of truth:
 
 1. a permanent platform north star;
-2. a current completion program that OMX should pursue automatically.
+2. a current rolling-hardening operating mode;
+3. historical baseline-completion provenance across `A-H`.
 
 ## Stable Operating Model
 
@@ -205,9 +207,10 @@ Default mode:
 
 - `team` only when write sets are clearly non-overlapping.
 
-## Phase Map
+## Operating Modes
 
-The mainline should progress through the following phases.
+The mainline may move through the following recurring operating modes.
+They are routing modes for continuous execution, not the long-run identity of the platform.
 
 ### Phase 0: Truth Intake And Routing
 
@@ -222,8 +225,8 @@ Required outputs:
 
 - active owner lane identified;
 - current truth surfaces identified;
-- current phase identified;
-- `NEXT_BATON` refreshed.
+- current operating mode identified;
+- next highest-value continuation path refreshed.
 
 ### Phase 1: Paper-Proven Baseline Harvest
 
@@ -305,13 +308,13 @@ Required outputs:
 - integration evidence;
 - clean handoff notes;
 - updated mainline reports;
-- explicit statement of the next active phase.
+- explicit statement of the next active operating mode or blocker state.
 
 ## Autonomous Routing Priority
 
 When multiple reasonable next actions exist, the default priority order is:
 
-1. finish the currently active baton cleanly;
+1. finish the currently active hardening or audit round cleanly;
 2. finish required integration and merge-back;
 3. perform visual audit if freshly integrated outputs still need formal paper-facing review;
 4. if any `A-H` family still lacks a first audited baseline, onboard that missing family next;
@@ -363,8 +366,8 @@ The mainline should only stop when at least one of the following is true:
 
 1. a real truth conflict exists:
    - paper-owned inputs, study truth, reports, or rendered outputs disagree in a way that cannot be resolved locally;
-2. the current phase is fully landed and the next phase requires a human scope decision;
-3. the current owner lane has reached a clean integration boundary and the next baton has already been written down.
+2. the next continuation path requires a genuine human priority or scope decision;
+3. an external blocker prevents truthful continuation even though the current round has already been integrated.
 
 Stopping because "one round of figures passed" is not enough.
 

@@ -27,6 +27,32 @@
 
 - 把医学研究从数据资产稳定推进到可投稿论文
 
+## 长线目标与当前阶段必须分开理解
+
+这里必须严格区分：
+
+- 长线目标
+- 当前阶段
+- 当前停车终态
+
+长线目标始终是：
+
+- 把医学研究稳定推进到发表级证据链、稿件、图表表格与投稿交付
+- 把 `Med Auto Science` 收敛成稳定、可审计、publication-grade 的医学 `Research Ops` domain gateway + `Domain Harness OS`
+
+当前阶段只是：
+
+- 当前 repo-tracked absorbed position 已推进到哪一层
+- 当前 repo-side 还允许继续冻结什么
+- 当前是 repo 内继续推进，还是已经被 external runtime readiness 阻塞
+
+因此：
+
+- 长线目标不等于当前 `Phase 6`
+- 长线目标也不等于当前这一轮 activation package
+- 当前 absorbed tranche 完成后，默认不应回到“等人工逐棒点名”
+- 只有当 external runtime gate、cutover gate 或更高层产品判断阻塞时，才应诚实停车
+
 ## 两层主线必须分开理解
 
 ### 1. 业务北极星
@@ -128,17 +154,26 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 它们仍然是平台对医学用户最直观、最关键的交付面。
 
-## 2026-04-07 / 当前 absorbed position
+## 2026-04-08 / 当前 absorbed position
 
-截至 `2026-04-07`，repo-tracked truth 应按下面这条事实理解：
+截至 `2026-04-08`，repo-tracked truth 应按下面这条事实理解：
 
 1. `authority / outer-loop / delivery plane` 三层 contract 已完成并 absorbed 到 `main`
 2. `real-study relaunch and verify` 已在真实 anchor 上完成验证，并把 remaining blocker 收敛为 external workspace-side truth gap
-3. 当前 repo-side 下一棒不是重开 relaunch，而是进入 `Phase 6 / Integration Harness And Cutover Readiness`
-4. 当前最小 repo-tracked tranche 固定为：
+3. `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package 已完成并 absorbed 到 `main`
+4. 当前 repo-side 终态不是“没有下一步”，而是：
+   - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+5. 当前最小 repo-tracked activation artifact 仍固定为：
    - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 
-这条 activation package 只负责：
+这意味着：
+
+- repo 内已经完成了当前 truth 允许冻结的最小 `controller -> runtime -> eval -> delivery` baseline
+- 当前不应回退去重做 `real-study relaunch`
+- 当前也不应把 repo-side 已完成部分误写成 `end-to-end harness / cutover readiness` 已放行
+- 真正阻塞继续前进的是 external runtime / cutover readiness 依赖，而不是当前 repo-side baseline 仍未 absorb
+
+这条 activation package 负责的始终只是：
 
 - 冻结 `controller -> runtime -> eval -> delivery` chain 的当前 baseline
 - 诚实写清 `cutover readiness`、residual risks 与 external surface requirement
@@ -146,11 +181,13 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 ## 当前 immediate next step
 
-当前真正的 immediate next step 是：
+当前 repo 内已经没有新的合法 same-repo immediate next step 可自动打开。
 
-1. 冻结 `integration harness activation package`
-2. 把 `runtime_watch / publication_gate / study_delivery_sync` 与上游 runtime / outer-loop artifact 的关系压成稳定 bridge
-3. 诚实冻结 `cutover readiness` 仍未放行的外部 gate
+当前真正的 next step 应理解为：
+
+1. 先在 external runtime / cutover surface 上清掉真实 blocker
+2. 等 external gate 放行后，再回到本仓继续推进更大的 `end-to-end harness / cutover readiness`
+3. 在此之前，不重开 repo-side tranche 来伪造“继续推进”
 
 ## 固定推进顺序
 
@@ -158,8 +195,9 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 1. authority / outer-loop / delivery plane convergence（已完成）
 2. real-study relaunch and verify（已完成）
-3. integration harness activation baseline（当前 active）
-4. only-then `end-to-end harness / cutover readiness`
+3. integration harness activation baseline（已完成并 absorbed）
+4. external runtime / cutover readiness blocker 清理（当前阻塞）
+5. only-then `end-to-end harness / cutover readiness`
 
 ## 非目标
 
@@ -178,4 +216,5 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 - 先完成 authority / outer-loop / delivery plane convergence
 - 再完成 real-study relaunch and verify
 - 再把 `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package absorb 到 `main`
+- 当前停车终态应诚实写成 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 - 只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续往更大 harness / cutover 推进
