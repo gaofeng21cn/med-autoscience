@@ -41,6 +41,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("pca_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
         _full_id("celltype_signature_heatmap"),
+        _full_id("single_cell_atlas_overview_panel"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
         _full_id("correlation_heatmap"),
@@ -91,6 +92,16 @@ def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "time_to_event_multihorizon_calibration_inputs_v1"
     assert spec.layout_qc_profile == "publication_time_to_event_multihorizon_calibration_panel"
+
+
+def test_single_cell_atlas_overview_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("single_cell_atlas_overview_panel"))
+
+    assert spec.paper_family_ids == ("D", "E", "G")
+    assert spec.evidence_class == "data_geometry"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "single_cell_atlas_overview_inputs_v1"
+    assert spec.layout_qc_profile == "publication_single_cell_atlas_overview_panel"
 
 
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:

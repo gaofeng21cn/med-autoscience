@@ -16,6 +16,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "model_complexity_audit_panel_inputs_v1": "model_complexity_audit_panel_inputs.json",
     "embedding_grouped_inputs_v1": "embedding_grouped_inputs.json",
     "celltype_signature_heatmap_inputs_v1": "celltype_signature_heatmap_inputs.json",
+    "single_cell_atlas_overview_inputs_v1": "single_cell_atlas_overview_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "performance_heatmap_inputs_v1": "performance_heatmap_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",

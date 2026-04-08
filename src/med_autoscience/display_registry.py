@@ -41,6 +41,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "pca_scatter_grouped",
         "tsne_scatter_grouped",
         "celltype_signature_heatmap",
+        "single_cell_atlas_overview_panel",
         "heatmap_group_comparison",
         "performance_heatmap",
         "correlation_heatmap",

@@ -3851,6 +3851,168 @@ def test_materialize_display_surface_generates_celltype_signature_heatmap_baseli
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def _make_single_cell_atlas_overview_display(display_id: str = "Figure27") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "single_cell_atlas_overview_panel",
+        "title": "Single-cell atlas occupancy, composition, and marker program overview",
+        "caption": (
+            "Embedding occupancy, group-wise state composition, and marker-program definition remain bound "
+            "inside one audited atlas overview contract."
+        ),
+        "embedding_panel_title": "Atlas occupancy",
+        "embedding_x_label": "UMAP 1",
+        "embedding_y_label": "UMAP 2",
+        "embedding_points": [
+            {"x": -2.0, "y": 1.1, "state_label": "T cells", "group_label": "Tumor"},
+            {"x": -1.7, "y": 0.8, "state_label": "T cells", "group_label": "Adjacent"},
+            {"x": 1.4, "y": -0.5, "state_label": "Myeloid", "group_label": "Tumor"},
+            {"x": 1.9, "y": -0.8, "state_label": "Myeloid", "group_label": "Adjacent"},
+        ],
+        "composition_panel_title": "Group-wise composition",
+        "composition_x_label": "Cell-state composition",
+        "composition_y_label": "Group",
+        "composition_groups": [
+            {
+                "group_label": "Tumor",
+                "group_order": 1,
+                "state_proportions": [
+                    {"state_label": "T cells", "proportion": 0.58},
+                    {"state_label": "Myeloid", "proportion": 0.42},
+                ],
+            },
+            {
+                "group_label": "Adjacent",
+                "group_order": 2,
+                "state_proportions": [
+                    {"state_label": "T cells", "proportion": 0.37},
+                    {"state_label": "Myeloid", "proportion": 0.63},
+                ],
+            },
+        ],
+        "heatmap_panel_title": "Marker-program definition",
+        "heatmap_x_label": "Cell state",
+        "heatmap_y_label": "Marker / program",
+        "score_method": "AUCell",
+        "row_order": [
+            {"label": "IFN response"},
+            {"label": "TGF-beta signaling"},
+        ],
+        "column_order": [
+            {"label": "T cells"},
+            {"label": "Myeloid"},
+        ],
+        "cells": [
+            {"x": "T cells", "y": "IFN response", "value": 0.81},
+            {"x": "Myeloid", "y": "IFN response", "value": -0.22},
+            {"x": "T cells", "y": "TGF-beta signaling", "value": -0.18},
+            {"x": "Myeloid", "y": "TGF-beta signaling", "value": 0.64},
+        ],
+    }
+
+
+def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_single_cell_atlas_overview_display()
+    display_payload["composition_groups"][1]["state_proportions"] = [
+        {"state_label": "T cells", "proportion": 0.37},
+    ]
+    dump_json(
+        paper_root / "single_cell_atlas_overview_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "single_cell_atlas_overview_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("single_cell_atlas_overview_panel")
+
+    with pytest.raises(ValueError, match="composition_groups.*must cover the declared state labels exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure27",
+        )
+
+
+def test_materialize_display_surface_generates_single_cell_atlas_overview_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure27",
+                    "display_kind": "figure",
+                    "requirement_key": "single_cell_atlas_overview_panel",
+                    "catalog_id": "F27",
+                    "shell_path": "paper/figures/Figure27.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure27",
+                    "template_id": "single_cell_atlas_overview_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "single_cell_atlas_overview_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "single_cell_atlas_overview_inputs_v1",
+            "displays": [_make_single_cell_atlas_overview_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F27"]
+    assert (paper_root / "figures" / "generated" / "F27_single_cell_atlas_overview_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F27_single_cell_atlas_overview_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F27_single_cell_atlas_overview_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_embedding",
+        "panel_composition",
+        "panel_heatmap",
+    ]
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} >= {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["score_method"] == "AUCell"
+    assert sorted(layout_sidecar["metrics"]["state_labels"]) == ["Myeloid", "T cells"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F27"
+    assert figure_entry["template_id"] == full_id("single_cell_atlas_overview_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "single_cell_atlas_overview_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_single_cell_atlas_overview_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def test_materialize_display_surface_wraps_long_risk_layering_title_within_device(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

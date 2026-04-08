@@ -341,11 +341,12 @@ Current audited anchors:
 - `pca_scatter_grouped`
 - `tsne_scatter_grouped`
 - `celltype_signature_heatmap`
+- `single_cell_atlas_overview_panel`
 
 Current gap direction:
 
-- PHATE and trajectory/manifold overlays beyond the current embedding+signature composite baseline
-- richer density/coverage annotation
+- PHATE and trajectory/manifold overlays beyond the current atlas-overview baseline
+- richer density/coverage annotation beyond occupancy + composition + marker/program overview
 - stronger crowding / labeling / legend QC for atlas-style publication-facing embeddings
 
 ### E. 特征模式与矩阵类
@@ -369,7 +370,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `partial / expanding`
 
 Current audited anchors:
 
@@ -378,12 +379,13 @@ Current audited anchors:
 - `correlation_heatmap`
 - `clustered_heatmap`
 - `celltype_signature_heatmap`
+- `single_cell_atlas_overview_panel`
 
 Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
-- celltype/program composite matrices beyond the first embedding-coupled baseline
+- celltype/program composite matrices beyond the current atlas-overview baseline
 - omics-oriented matrix surfaces with manuscript-facing annotation control
 
 ### F. 模型解释类
@@ -410,7 +412,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `partial / expanding`
 
 Current audited anchors:
 
@@ -454,10 +456,12 @@ Current audited anchors:
 
 - `gsva_ssgsea_heatmap`
 - `celltype_signature_heatmap`
+- `single_cell_atlas_overview_panel`
 
 Current gap direction:
 
 - expand from GSVA-only heatmaps into structured celltype/program composite omics panels where real paper demand is already explicit
+- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program; spatial and trajectory omics composites remain follow-on slices
 - expand beyond the first omics-native baseline into volcano, enrichment, oncoplot, and mutation-landscape families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 

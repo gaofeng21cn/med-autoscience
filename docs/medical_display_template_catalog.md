@@ -66,6 +66,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::pca_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | PCA Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::tsne_scatter_grouped` | `evidence_figure` | `D. Representation Structure and Data Geometry` | t-SNE Scatter (Grouped) | `r_ggplot2` | `embedding_grouped_inputs_v1` | `publication_embedding_scatter` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::celltype_signature_heatmap` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Embedding and Signature Heatmap | `python` | `celltype_signature_heatmap_inputs_v1` | `publication_celltype_signature_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::single_cell_atlas_overview_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Single-Cell Atlas Overview Panel | `python` | `single_cell_atlas_overview_inputs_v1` | `publication_single_cell_atlas_overview_panel` | `png`, `pdf` |
 
 ### Matrix Pattern
 
@@ -326,6 +327,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `embedding_points_must_be_non_empty`, `embedding_point_coordinates_must_be_finite`, `embedding_point_group_must_be_non_empty`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_embedding_groups`, `declared_heatmap_grid_must_be_complete_and_unique`
+
+### `single_cell_atlas_overview_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Single-Cell Atlas Overview Panel
+- Templates: `fenggaolab.org.medical-display-core::single_cell_atlas_overview_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `embedding_panel_title`, `embedding_x_label`, `embedding_y_label`, `embedding_points`, `composition_panel_title`, `composition_x_label`, `composition_y_label`, `composition_groups`, `heatmap_panel_title`, `heatmap_x_label`, `heatmap_y_label`, `score_method`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`, `embedding_annotation`, `composition_annotation`, `heatmap_annotation`
+- Required collection fields: `embedding_points` -> `x`, `y`, `state_label`<br>`composition_groups` -> `group_label`, `group_order`, `state_proportions`<br>`row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: `embedding_points` -> `group_label`
+- Required nested collection fields: `composition_groups.state_proportions` -> `state_label`, `proportion`
+- Optional nested collection fields: None
+- Additional constraints: `embedding_points_must_be_non_empty`, `embedding_point_coordinates_must_be_finite`, `embedding_point_state_label_must_be_non_empty`, `composition_groups_must_be_non_empty`, `composition_group_labels_must_be_unique`, `composition_group_order_must_be_strictly_increasing`, `composition_group_state_proportions_must_be_non_empty`, `composition_group_state_labels_must_match_declared_columns`, `composition_group_proportions_must_be_finite_probability`, `composition_group_proportions_must_sum_to_one`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_embedding_states`, `declared_heatmap_grid_must_be_complete_and_unique`
 
 ### `heatmap_group_comparison_inputs_v1`
 

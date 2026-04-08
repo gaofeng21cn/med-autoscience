@@ -36,6 +36,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     binary = module.get_input_schema_contract("binary_prediction_curve_inputs_v1")
     embedding = module.get_input_schema_contract("embedding_grouped_inputs_v1")
     celltype_signature = module.get_input_schema_contract("celltype_signature_heatmap_inputs_v1")
+    atlas_overview = module.get_input_schema_contract("single_cell_atlas_overview_inputs_v1")
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
@@ -125,6 +126,70 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_row_labels_must_match_cell_rows",
         "declared_column_labels_must_match_cell_columns",
         "declared_column_labels_must_match_embedding_groups",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert atlas_overview.template_ids == (_full_id("single_cell_atlas_overview_panel"),)
+    assert atlas_overview.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "embedding_panel_title",
+        "embedding_x_label",
+        "embedding_y_label",
+        "embedding_points",
+        "composition_panel_title",
+        "composition_x_label",
+        "composition_y_label",
+        "composition_groups",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert atlas_overview.display_optional_fields == (
+        "paper_role",
+        "embedding_annotation",
+        "composition_annotation",
+        "heatmap_annotation",
+    )
+    assert atlas_overview.collection_required_fields["embedding_points"] == ("x", "y", "state_label")
+    assert atlas_overview.collection_optional_fields["embedding_points"] == ("group_label",)
+    assert atlas_overview.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "state_proportions",
+    )
+    assert atlas_overview.nested_collection_required_fields["composition_groups.state_proportions"] == (
+        "state_label",
+        "proportion",
+    )
+    assert atlas_overview.collection_required_fields["row_order"] == ("label",)
+    assert atlas_overview.collection_required_fields["column_order"] == ("label",)
+    assert atlas_overview.collection_required_fields["cells"] == ("x", "y", "value")
+    assert atlas_overview.additional_constraints == (
+        "embedding_points_must_be_non_empty",
+        "embedding_point_coordinates_must_be_finite",
+        "embedding_point_state_label_must_be_non_empty",
+        "composition_groups_must_be_non_empty",
+        "composition_group_labels_must_be_unique",
+        "composition_group_order_must_be_strictly_increasing",
+        "composition_group_state_proportions_must_be_non_empty",
+        "composition_group_state_labels_must_match_declared_columns",
+        "composition_group_proportions_must_be_finite_probability",
+        "composition_group_proportions_must_sum_to_one",
+        "score_method_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_column_labels_must_match_embedding_states",
         "declared_heatmap_grid_must_be_complete_and_unique",
     )
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
@@ -256,7 +321,13 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("celltype_signature_heatmap") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).template_ids
+    assert _full_id("single_cell_atlas_overview_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).template_ids
     assert "celltype_signature_heatmap_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).input_schema_ids
+    assert "single_cell_atlas_overview_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).input_schema_ids
     assert _full_id("performance_heatmap") in next(
@@ -692,6 +763,29 @@ def test_time_to_event_multihorizon_calibration_schema_contract_is_registered() 
     assert "time_to_event_multihorizon_calibration_inputs_v1" in time_to_event_class.input_schema_ids
 
 
+def test_single_cell_atlas_overview_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    atlas_overview = module.get_input_schema_contract("single_cell_atlas_overview_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert atlas_overview.template_ids == (_full_id("single_cell_atlas_overview_panel"),)
+    assert atlas_overview.display_name == "Single-Cell Atlas Overview Panel"
+    assert atlas_overview.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "state_proportions",
+    )
+    assert atlas_overview.nested_collection_required_fields["composition_groups.state_proportions"] == (
+        "state_label",
+        "proportion",
+    )
+    assert "composition_group_proportions_must_sum_to_one" in atlas_overview.additional_constraints
+    assert "declared_column_labels_must_match_embedding_states" in atlas_overview.additional_constraints
+    assert _full_id("single_cell_atlas_overview_panel") in data_geometry_class.template_ids
+    assert "single_cell_atlas_overview_inputs_v1" in data_geometry_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -706,7 +800,9 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("table1_baseline_characteristics") in markdown
     assert _full_id("time_dependent_roc_horizon") in markdown
     assert _full_id("time_dependent_roc_comparison_panel") in markdown
+    assert _full_id("single_cell_atlas_overview_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
+    assert "single_cell_atlas_overview_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown
     assert _full_id("time_to_event_threshold_governance_panel") in markdown
