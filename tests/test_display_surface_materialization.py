@@ -6566,6 +6566,177 @@ def test_materialize_display_surface_generates_shap_dependence_panel(tmp_path: P
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
+def _make_shap_waterfall_local_explanation_panel_display(display_id: str = "Figure33") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_waterfall_local_explanation_panel",
+        "title": "SHAP waterfall local explanation panel for representative patient-level risk calls",
+        "caption": (
+            "Ordered case-level SHAP contributions show how the audited model output moves from baseline "
+            "expectation to the final patient-level prediction."
+        ),
+        "x_label": "Predicted 1-year mortality probability",
+        "panels": [
+            {
+                "panel_id": "case_a",
+                "panel_label": "A",
+                "title": "Representative high-risk case",
+                "case_label": "Case 1 · 1-year mortality",
+                "baseline_value": 0.18,
+                "predicted_value": 0.39,
+                "contributions": [
+                    {"feature": "Age", "feature_value_text": "74 years", "shap_value": 0.12},
+                    {"feature": "Albumin", "feature_value_text": "3.1 g/dL", "shap_value": 0.08},
+                    {"feature": "Platelets", "feature_value_text": "210 ×10^9/L", "shap_value": -0.03},
+                    {"feature": "Tumor size", "feature_value_text": "9.4 cm", "shap_value": 0.04},
+                ],
+            },
+            {
+                "panel_id": "case_b",
+                "panel_label": "B",
+                "title": "Representative lower-risk case",
+                "case_label": "Case 2 · 1-year mortality",
+                "baseline_value": 0.42,
+                "predicted_value": 0.28,
+                "contributions": [
+                    {"feature": "Age", "feature_value_text": "49 years", "shap_value": -0.11},
+                    {"feature": "Albumin", "feature_value_text": "4.5 g/dL", "shap_value": -0.07},
+                    {"feature": "Tumor stage", "feature_value_text": "Stage II", "shap_value": 0.04},
+                ],
+            },
+        ],
+    }
+
+
+def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_waterfall_local_explanation_panel_display()
+    display_payload["panels"][0]["predicted_value"] = 0.5
+    dump_json(
+        paper_root / "shap_waterfall_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_waterfall_local_explanation_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_waterfall_local_explanation_panel")
+
+    with pytest.raises(ValueError, match="predicted_value must equal baseline_value plus contribution sum"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure33",
+        )
+
+
+def test_load_evidence_display_payload_rejects_zero_contribution_for_shap_waterfall_local_explanation_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_waterfall_local_explanation_panel_display()
+    display_payload["panels"][1]["contributions"][1]["shap_value"] = 0.0
+    dump_json(
+        paper_root / "shap_waterfall_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_waterfall_local_explanation_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_waterfall_local_explanation_panel")
+
+    with pytest.raises(ValueError, match="contributions\\[1\\]\\.shap_value must be finite and non-zero"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure33",
+        )
+
+
+def test_materialize_display_surface_generates_shap_waterfall_local_explanation_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure33",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_waterfall_local_explanation_panel",
+                    "catalog_id": "F33",
+                    "shell_path": "paper/figures/Figure33.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure33",
+                    "template_id": "shap_waterfall_local_explanation_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_waterfall_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_waterfall_local_explanation_panel_inputs_v1",
+            "displays": [_make_shap_waterfall_local_explanation_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F33"]
+    assert (paper_root / "figures" / "generated" / "F33_shap_waterfall_local_explanation_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F33_shap_waterfall_local_explanation_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F33_shap_waterfall_local_explanation_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "baseline_marker"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "prediction_marker"]) == 2
+    assert [item["case_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Case 1 · 1-year mortality",
+        "Case 2 · 1-year mortality",
+    ]
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][0]["feature"] == "Age"
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][0]["feature_value_text"] == "74 years"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F33"
+    assert figure_entry["template_id"] == full_id("shap_waterfall_local_explanation_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_waterfall_local_explanation_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_waterfall_local_explanation_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
 def _make_time_to_event_threshold_governance_panel_display(display_id: str = "Figure29") -> dict[str, object]:
     return {
         "display_id": display_id,
