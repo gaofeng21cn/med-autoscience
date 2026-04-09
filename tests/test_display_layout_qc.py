@@ -2868,6 +2868,173 @@ def test_run_display_layout_qc_fails_when_shap_dependence_point_leaves_panel() -
     assert any(issue["rule_id"] == "point_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_waterfall_local_explanation_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_waterfall_local_explanation_panel",
+        layout_sidecar={
+            "template_id": "shap_waterfall_local_explanation_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.87, x1=0.29, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.46, y0=0.87, x1=0.67, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.82, x1=0.12, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.82, x1=0.48, y1=0.85),
+                make_box("case_label_A", "case_label", x0=0.14, y0=0.82, x1=0.28, y1=0.85),
+                make_box("case_label_B", "case_label", x0=0.50, y0=0.82, x1=0.66, y1=0.85),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.31, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.50, y0=0.10, x1=0.68, y1=0.13),
+                make_box("baseline_label_A", "baseline_label", x0=0.14, y0=0.75, x1=0.20, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.26, y0=0.75, x1=0.33, y1=0.78),
+                make_box("baseline_label_B", "baseline_label", x0=0.48, y0=0.75, x1=0.54, y1=0.78),
+                make_box("prediction_label_B", "prediction_label", x0=0.60, y0=0.75, x1=0.68, y1=0.78),
+                make_box("feature_label_A_1", "feature_label", x0=0.05, y0=0.63, x1=0.12, y1=0.68),
+                make_box("feature_label_A_2", "feature_label", x0=0.05, y0=0.48, x1=0.12, y1=0.53),
+                make_box("feature_label_B_1", "feature_label", x0=0.40, y0=0.63, x1=0.47, y1=0.68),
+                make_box("feature_label_B_2", "feature_label", x0=0.40, y0=0.48, x1=0.47, y1=0.53),
+                make_box("contribution_bar_A_1", "contribution_bar", x0=0.16, y0=0.62, x1=0.24, y1=0.68),
+                make_box("contribution_bar_A_2", "contribution_bar", x0=0.24, y0=0.47, x1=0.29, y1=0.53),
+                make_box("contribution_bar_B_1", "contribution_bar", x0=0.52, y0=0.62, x1=0.60, y1=0.68),
+                make_box("contribution_bar_B_2", "contribution_bar", x0=0.60, y0=0.47, x1=0.64, y1=0.53),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.13, y0=0.18, x1=0.34, y1=0.80),
+                make_box("panel_B", "panel", x0=0.48, y0=0.18, x1=0.70, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("baseline_marker_A", "baseline_marker", x0=0.16, y0=0.18, x1=0.161, y1=0.80),
+                make_box("prediction_marker_A", "prediction_marker", x0=0.30, y0=0.18, x1=0.301, y1=0.80),
+                make_box("baseline_marker_B", "baseline_marker", x0=0.52, y0=0.18, x1=0.521, y1=0.80),
+                make_box("prediction_marker_B", "prediction_marker", x0=0.66, y0=0.18, x1=0.661, y1=0.80),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "case_a",
+                        "panel_label": "A",
+                        "title": "Representative high-risk case",
+                        "case_label": "Case 1",
+                        "baseline_value": 0.18,
+                        "predicted_value": 0.31,
+                        "panel_box_id": "panel_A",
+                        "baseline_marker_box_id": "baseline_marker_A",
+                        "prediction_marker_box_id": "prediction_marker_A",
+                        "contributions": [
+                            {
+                                "feature": "Age",
+                                "shap_value": 0.10,
+                                "start_value": 0.18,
+                                "end_value": 0.28,
+                                "bar_box_id": "contribution_bar_A_1",
+                                "label_box_id": "feature_label_A_1",
+                            },
+                            {
+                                "feature": "Albumin",
+                                "shap_value": 0.03,
+                                "start_value": 0.28,
+                                "end_value": 0.31,
+                                "bar_box_id": "contribution_bar_A_2",
+                                "label_box_id": "feature_label_A_2",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "case_b",
+                        "panel_label": "B",
+                        "title": "Representative lower-risk case",
+                        "case_label": "Case 2",
+                        "baseline_value": 0.42,
+                        "predicted_value": 0.35,
+                        "panel_box_id": "panel_B",
+                        "baseline_marker_box_id": "baseline_marker_B",
+                        "prediction_marker_box_id": "prediction_marker_B",
+                        "contributions": [
+                            {
+                                "feature": "Age",
+                                "shap_value": -0.08,
+                                "start_value": 0.42,
+                                "end_value": 0.34,
+                                "bar_box_id": "contribution_bar_B_1",
+                                "label_box_id": "feature_label_B_1",
+                            },
+                            {
+                                "feature": "Albumin",
+                                "shap_value": 0.01,
+                                "start_value": 0.34,
+                                "end_value": 0.35,
+                                "bar_box_id": "contribution_bar_B_2",
+                                "label_box_id": "feature_label_B_2",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_shap_waterfall_contribution_bar_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_waterfall_local_explanation_panel",
+        layout_sidecar={
+            "template_id": "shap_waterfall_local_explanation_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.87, x1=0.29, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.82, x1=0.12, y1=0.85),
+                make_box("case_label_A", "case_label", x0=0.14, y0=0.82, x1=0.28, y1=0.85),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.31, y1=0.13),
+                make_box("baseline_label_A", "baseline_label", x0=0.14, y0=0.75, x1=0.20, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.26, y0=0.75, x1=0.33, y1=0.78),
+                make_box("feature_label_A_1", "feature_label", x0=0.05, y0=0.63, x1=0.12, y1=0.68),
+                make_box("contribution_bar_A_1", "contribution_bar", x0=0.16, y0=0.62, x1=0.38, y1=0.68),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.13, y0=0.18, x1=0.34, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("baseline_marker_A", "baseline_marker", x0=0.16, y0=0.18, x1=0.161, y1=0.80),
+                make_box("prediction_marker_A", "prediction_marker", x0=0.30, y0=0.18, x1=0.301, y1=0.80),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "case_a",
+                        "panel_label": "A",
+                        "title": "Representative high-risk case",
+                        "case_label": "Case 1",
+                        "baseline_value": 0.18,
+                        "predicted_value": 0.31,
+                        "panel_box_id": "panel_A",
+                        "baseline_marker_box_id": "baseline_marker_A",
+                        "prediction_marker_box_id": "prediction_marker_A",
+                        "contributions": [
+                            {
+                                "feature": "Age",
+                                "shap_value": 0.13,
+                                "start_value": 0.18,
+                                "end_value": 0.31,
+                                "bar_box_id": "contribution_bar_A_1",
+                                "label_box_id": "feature_label_A_1",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "contribution_bar_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_time_to_event_threshold_governance_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

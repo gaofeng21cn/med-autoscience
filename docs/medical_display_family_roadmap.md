@@ -418,11 +418,13 @@ Current audited anchors:
 
 - `shap_summary_beeswarm`
 - `shap_dependence_panel`
+- `shap_waterfall_local_explanation_panel`
 
 Current gap direction:
 
-- waterfall families beyond the current dependence baseline
-- patient-level local explanation surfaces beyond multi-panel dependence
+- force-like summary families beyond the current waterfall baseline
+- PDP
+- ICE
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类

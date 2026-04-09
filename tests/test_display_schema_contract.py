@@ -45,6 +45,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
     shap_dependence = module.get_input_schema_contract("shap_dependence_panel_inputs_v1")
+    shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
     cohort_flow = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     time_to_event_panel = module.get_input_schema_contract("time_to_event_discrimination_calibration_inputs_v1")
     time_to_event_decision = module.get_input_schema_contract("time_to_event_decision_curve_inputs_v1")
@@ -299,6 +300,39 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "panel_points_must_be_non_empty",
         "panel_point_values_must_be_finite",
     )
+    assert shap_waterfall.template_ids == (_full_id("shap_waterfall_local_explanation_panel"),)
+    assert shap_waterfall.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "panels",
+    )
+    assert shap_waterfall.display_optional_fields == ("paper_role",)
+    assert shap_waterfall.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "case_label",
+        "baseline_value",
+        "predicted_value",
+        "contributions",
+    )
+    assert shap_waterfall.nested_collection_required_fields["panels.contributions"] == ("feature", "shap_value")
+    assert shap_waterfall.nested_collection_optional_fields["panels.contributions"] == ("feature_value_text",)
+    assert shap_waterfall.additional_constraints == (
+        "panels_must_be_non_empty",
+        "panel_count_must_not_exceed_three",
+        "panel_ids_must_be_unique",
+        "panel_labels_must_be_unique",
+        "panel_case_labels_must_be_unique",
+        "panel_values_must_be_finite",
+        "panel_contributions_must_be_non_empty",
+        "panel_contribution_features_must_be_unique_within_panel",
+        "panel_contribution_values_must_be_finite_and_non_zero",
+        "panel_prediction_value_must_equal_baseline_plus_contributions",
+    )
     assert cohort_flow.template_ids == (_full_id("cohort_flow_figure"),)
     assert cohort_flow.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
     assert cohort_flow.optional_top_level_fields == ("caption", "exclusions", "endpoint_inventory", "design_panels")
@@ -339,8 +373,10 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert performance_heatmap.template_ids == (_full_id("performance_heatmap"),)
     assert _full_id("shap_summary_beeswarm") in model_explanation_class.template_ids
     assert _full_id("shap_dependence_panel") in model_explanation_class.template_ids
+    assert _full_id("shap_waterfall_local_explanation_panel") in model_explanation_class.template_ids
     assert "shap_summary_inputs_v1" in model_explanation_class.input_schema_ids
     assert "shap_dependence_panel_inputs_v1" in model_explanation_class.input_schema_ids
+    assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
     assert performance_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -786,6 +822,33 @@ def test_single_cell_atlas_overview_schema_contract_is_registered() -> None:
     assert "single_cell_atlas_overview_inputs_v1" in data_geometry_class.input_schema_ids
 
 
+def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert shap_waterfall.template_ids == (_full_id("shap_waterfall_local_explanation_panel"),)
+    assert shap_waterfall.display_name == "SHAP Waterfall Local Explanation Panel"
+    assert shap_waterfall.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "case_label",
+        "baseline_value",
+        "predicted_value",
+        "contributions",
+    )
+    assert shap_waterfall.nested_collection_required_fields["panels.contributions"] == ("feature", "shap_value")
+    assert shap_waterfall.nested_collection_optional_fields["panels.contributions"] == ("feature_value_text",)
+    assert "panel_count_must_not_exceed_three" in shap_waterfall.additional_constraints
+    assert "panel_prediction_value_must_equal_baseline_plus_contributions" in shap_waterfall.additional_constraints
+    assert _full_id("shap_waterfall_local_explanation_panel") in model_explanation_class.template_ids
+    assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -816,6 +879,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "celltype_signature_heatmap_inputs_v1" in markdown
     assert _full_id("shap_dependence_panel") in markdown
     assert "shap_dependence_panel_inputs_v1" in markdown
+    assert _full_id("shap_waterfall_local_explanation_panel") in markdown
+    assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

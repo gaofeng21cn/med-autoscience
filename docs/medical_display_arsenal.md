@@ -39,18 +39,19 @@
   - 证据型图模板 `24`
   - 插图壳层模板 `2`
   - 表格壳层模板 `5`
-- 当前 strict registry / template catalog 工程口径统一为 `40`：
-  - 证据型图模板 `33`
+- 当前 strict registry / template catalog 工程口径统一为 `41`：
+  - 证据型图模板 `34`
   - 插图壳层模板 `2`
   - 表格壳层模板 `5`
-- `2026-04-08` 的 rolling expansion 已在冻结基线上正式收口六个 evidence capability cluster：
+- 截至 `2026-04-09`，post-baseline rolling expansion 已在冻结基线上正式收口七个 evidence capability cluster：
   - `celltype_signature_heatmap`：把 `D/E/G` 从“仅候选复合图式”推进到第一个 pack 化 `embedding + signature heatmap` 复合模板；
   - `time_to_event_landmark_performance_panel`：把 `A/B` 从“已有 horizon ROC / grouped calibration 组件”推进到正式的 landmark/time-slice discrimination + Brier error + calibration slope 治理模板；
   - `shap_dependence_panel`：把 `F` 从“只会 SHAP summary”推进到正式多 panel dependence + shared colorbar + zero-line governance 的本地解释模板；
   - `time_to_event_threshold_governance_panel`：把 `A/B` 从“已有 decision curve / grouped calibration 组件”推进到正式的 threshold summary cards + grouped survival calibration governance 组合模板；
   - `time_to_event_multihorizon_calibration_panel`：把 `A/B` 从“已有单 horizon grouped calibration / threshold-governance 内嵌校准 panel”推进到正式的 `3/5-year` multi-horizon grouped calibration governance 模板；
-  - `single_cell_atlas_overview_panel`：把 `D/E/G` 从“已有 embedding + signature heatmap”继续推进到正式的 atlas overview baseline，并把 `embedding occupancy + group-wise composition shift + marker/program definition` 一并固化为单一复合模板。
-- 此前文档里沿用过的 `34` 只是 freeze-baseline 之后早期 rolling headline，不再代表当前严格工程库存；从本轮起统一以 registry / template catalog 真相口径为准。
+  - `single_cell_atlas_overview_panel`：把 `D/E/G` 从“已有 embedding + signature heatmap”继续推进到正式的 atlas overview baseline，并把 `embedding occupancy + group-wise composition shift + marker/program definition` 一并固化为单一复合模板；
+  - `shap_waterfall_local_explanation_panel`：把 `F` 从“已有 summary + dependence”继续推进到正式 patient-level local explanation baseline，并把 `baseline -> ordered feature contributions -> final prediction` 的 additive path 固化为单一 bounded 模板。
+- 此前文档里沿用过的早期 rolling headline，不再代表当前严格工程库存；从本轮起统一以 registry / template catalog 真相口径为准。
 - 真实由锚点论文 `001/003` 证明过的核心家族是 `A`、`B`、`H`。
 - 当前主线状态不应再被理解成“默认停车、显式重开才继续”。
 - 更准确的理解是：
@@ -99,7 +100,7 @@
 | `C. 效应量与异质性` | 主效应与亚组效应的区间估计表达 | `forest_effect_main`、`subgroup_forest` | 已具备首个审计基线，但尚未经历更强的真实论文驱动扩展 | 既有森林图契约沉淀 |
 | `D. 表征结构与数据几何` | 嵌入空间、分群结构与低维投影表达 | `umap_scatter_grouped`、`pca_scatter_grouped`、`tsne_scatter_grouped`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel` | 已具备首个审计基线，并把 atlas baseline 从 `embedding + signature heatmap` 扩到 `embedding occupancy + composition + marker/program` overview | 既有散点与嵌入契约 + `Nature Medicine` `2025` 炎症图谱图 1 + `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2/3/7 + `Genome Research` `2021` / `Nature Communications` `2023` atlas overview exemplar |
 | `E. 特征模式与矩阵` | 热图、矩阵对比、相关性与有序性能矩阵 | `heatmap_group_comparison`、`correlation_heatmap`、`clustered_heatmap`、`performance_heatmap`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel` | 已具备首个审计基线，并开始从独立矩阵扩到带 celltype/program 结构耦合、且可承载 atlas composition 叙事的复合热图 | 通用热图能力 + `Nature Medicine` 风险论文图 4c + atlas exemplar 学习 |
-| `F. 模型解释` | 特征归因、解释性摘要与复杂度审计 | `shap_summary_beeswarm`、`shap_dependence_panel`、`model_complexity_audit_panel` | 已具备首个审计基线，并把 dependence family 提升为正式 pack 资产；但 waterfall / patient-level local explanation 仍待继续扩展 | `001/003` 锚点论文 + `npj Digital Medicine` `2025` SHAP dependence exemplar + `F` 家族视觉审计决策线 |
+| `F. 模型解释` | 特征归因、解释性摘要与复杂度审计 | `shap_summary_beeswarm`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`model_complexity_audit_panel` | 已具备首个审计基线，并把 dependence family 与 patient-level waterfall local explanation 一并提升为正式 pack 资产；当前剩余主缺口转向 force-like summary、PDP、ICE 等 follow-on | `001/003` 锚点论文 + `npj Digital Medicine` `2025` SHAP dependence exemplar + `npj Digital Medicine` `2025` UMORSS 图 6 + `JBJS Open Access` `2025` PARITY 图 6A/B + `F` 家族视觉审计决策线 |
 | `G. 生物信息与组学证据` | 组学打分、程序活性与组学原生热图表达 | `gsva_ssgsea_heatmap`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel` | 已建立首个专用审计基线，并把组学/程序证据从单独热图推进到带 atlas occupancy 与 composition channel 的复合证据面 | 组学原生证据需求 + `Nature Medicine` `2025` / `npj Digital Medicine` `2025` 复合图谱 exemplar + atlas overview partial-fit 学习 |
 | `H. 队列与研究设计证据` | 队列构成、泛化性、研究流程与投稿壳层 | `multicenter_generalizability_overview`、`cohort_flow_figure`、`submission_graphical_abstract`、`table1_baseline_characteristics`、`table3_clinical_interpretation_summary` | 已形成真实论文证明的核心能力 | `001/003` 锚点论文 + 投稿包装需求沉淀 |
 
@@ -133,6 +134,7 @@
 | `Nature Medicine` `2025` 炎症图谱图 1 + `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2/3/7 | 把单独的 embedding scatter 与矩阵热图提升为显式耦合的 `celltype/program` 复合图式，并把 `score_method`、行列完备性、legend/colorbar 锚定做成确定性约束 | `D/E/G` / `celltype_signature_heatmap` |
 | `Genome Research` `2021` tumor immune atlas 图 2 + `Nature Communications` `2023` integrated TME mapping 图 3 | 把 repeated atlas partial-fit 学到的 `embedding occupancy + group-wise composition shift + marker/signature definition` 固化为单一 atlas overview composite，并把 composition 完整性、state vocabulary 对齐、heatmap 网格完备性与 panel-level readability 做成正式契约 | `D/E/G` / `single_cell_atlas_overview_panel` |
 | `npj Digital Medicine` `2025` 前列腺 XAI SHAP dependence 图面 | 把论文现场局部 dependence explanation 提升为正式多 panel SHAP dependence 契约，并把 shared colorbar、panel label 与 zero-line 变成可审计下限 | `F` / `shap_dependence_panel` |
+| `npj Digital Medicine` `2025` UMORSS ovarian workflow 图 6 + `JBJS Open Access` `2025` PARITY bone tumor explanation 图 6A/B | 把 patient-level SHAP explanation 从“单篇论文现场插图”提升为正式 waterfall 模板；固定 `baseline -> ordered contributions -> final prediction` additive path、case/panel 唯一性、贡献方向一致性与预测值守恒约束 | `F` / `shap_waterfall_local_explanation_panel` |
 
 ### 已观察、仍在候选池中的高价值素材
 
@@ -177,7 +179,7 @@
 
 以下方向已经有价值，但当前不应被误写成“军火库已经完整具备”：
 
-- `F` 家族虽已从 `shap_summary_beeswarm` 扩到 `shap_dependence_panel`，但 waterfall / patient-level local explanation / force-like family 仍较薄，需要继续滚动 hardening；
+- `F` 家族虽已从 `shap_summary_beeswarm` 扩到 `shap_dependence_panel` 与 `shap_waterfall_local_explanation_panel`，但 force-like summary / PDP / ICE 仍较薄，需要继续滚动 hardening；
 - `D/E/G` 更大 atlas / spatial / trajectory 复合图谱结构；`single_cell_atlas_overview_panel` 虽已把 atlas baseline 扩到 occupancy + composition + marker/program，但不应被误写成整套 atlas 平台已经完成；
 - 仅在外部范例中观察到、但还没形成正式模板与回归套件的高级图式。
 
