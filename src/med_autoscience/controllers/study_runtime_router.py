@@ -30,6 +30,7 @@ from med_autoscience.controllers.study_runtime_execution import (
     _record_autonomous_runtime_notice_if_required,
     _build_context_create_payload,
     _build_execution_context,
+    _enable_explicit_stopped_relaunch_if_requested,
     _execute_blocked_refresh_runtime_decision,
     _execute_completion_runtime_decision,
     _execute_create_runtime_decision,
@@ -117,6 +118,7 @@ def study_runtime_status(
     study_id: str | None = None,
     study_root: Path | None = None,
     entry_mode: str | None = None,
+    sync_runtime_summary: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = _resolve_study(
         profile=profile,
@@ -129,6 +131,7 @@ def study_runtime_status(
         study_root=resolved_study_root,
         study_payload=study_payload,
         entry_mode=entry_mode,
+        sync_runtime_summary=sync_runtime_summary,
     )
 
 
@@ -138,6 +141,7 @@ def ensure_study_runtime(
     study_id: str | None = None,
     study_root: Path | None = None,
     entry_mode: str | None = None,
+    allow_stopped_relaunch: bool = False,
     force: bool = False,
     source: str = "med_autoscience",
 ) -> dict[str, Any]:
@@ -159,7 +163,10 @@ def ensure_study_runtime(
         study_root=resolved_study_root,
         study_payload=study_payload,
         entry_mode=entry_mode,
+        sync_runtime_summary=False,
     )
+    if allow_stopped_relaunch:
+        _enable_explicit_stopped_relaunch_if_requested(status=status)
     _run_runtime_preflight(status=status, context=context)
     outcome = _execute_runtime_decision(status=status, context=context)
     _persist_runtime_artifacts(

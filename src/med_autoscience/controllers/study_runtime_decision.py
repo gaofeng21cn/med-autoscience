@@ -18,6 +18,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeExecutionOwnerGuard,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
+    StudyRuntimeSummaryAlignment,
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
     _RESUMABLE_QUEST_STATUSES,
@@ -190,6 +191,59 @@ def _load_json_dict(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _runtime_state_path(quest_root: Path) -> Path:
+    return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+
+
+def _sync_runtime_summary_if_needed(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_context: study_runtime_protocol.StudyRuntimeContext,
+) -> None:
+    current_quest_status = status.quest_status.value if status.quest_status is not None else None
+    launch_report_path = runtime_context.launch_report_path
+    launch_report_payload = _load_json_dict(launch_report_path) if launch_report_path.exists() else {}
+    launch_report_exists = launch_report_path.exists()
+    launch_report_quest_status = str(launch_report_payload.get("quest_status") or "").strip() or None
+    aligned = launch_report_exists and launch_report_quest_status == current_quest_status
+    mismatch_reason: str | None = None
+    if not launch_report_exists:
+        mismatch_reason = "launch_report_missing"
+    elif launch_report_quest_status != current_quest_status:
+        mismatch_reason = "launch_report_quest_status_mismatch"
+    status_sync_applied = False
+    if not aligned:
+        study_runtime_protocol.persist_runtime_artifacts(
+            runtime_binding_path=runtime_context.runtime_binding_path,
+            launch_report_path=launch_report_path,
+            runtime_root=runtime_context.runtime_root,
+            study_id=status.study_id,
+            study_root=Path(status.study_root),
+            quest_id=status.quest_id if status.quest_exists else None,
+            last_action=None,
+            status=status.to_dict(),
+            source="study_runtime_status",
+            force=False,
+            startup_payload_path=None,
+            daemon_result=None,
+            recorded_at=_router_module()._utc_now(),
+        )
+        status_sync_applied = True
+    status.record_runtime_summary_alignment(
+        StudyRuntimeSummaryAlignment(
+            source_of_truth="study_runtime_status",
+            runtime_state_path=str(_runtime_state_path(runtime_context.quest_root)),
+            runtime_state_status=current_quest_status,
+            launch_report_path=str(launch_report_path),
+            launch_report_exists=launch_report_exists,
+            launch_report_quest_status=launch_report_quest_status,
+            aligned=aligned,
+            mismatch_reason=mismatch_reason,
+            status_sync_applied=status_sync_applied,
+        )
+    )
+
+
 def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id: str) -> Path | None:
     resolved_interaction_id = str(interaction_id or "").strip()
     if not resolved_interaction_id:
@@ -313,6 +367,7 @@ def _status_state(
     study_root: Path,
     study_payload: dict[str, object],
     entry_mode: str | None,
+    sync_runtime_summary: bool = True,
 ) -> StudyRuntimeStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload)
@@ -412,10 +467,15 @@ def _status_state(
         _record_execution_owner_guard(status=result, quest_root=quest_root)
         if not result.should_refresh_startup_hydration_while_blocked():
             result.extras.pop("runtime_escalation_ref", None)
-            return result
-        runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
-        if runtime_escalation_ref is not None:
-            result.record_runtime_escalation_ref(runtime_escalation_ref)
+        else:
+            runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
+            if runtime_escalation_ref is not None:
+                result.record_runtime_escalation_ref(runtime_escalation_ref)
+        if sync_runtime_summary:
+            _sync_runtime_summary_if_needed(
+                status=result,
+                runtime_context=runtime_context,
+            )
         return result
 
     if str(execution.get("engine") or "").strip() != "med-deepscientist":
@@ -611,7 +671,6 @@ def _status_state(
         if execution.get("auto_resume") is True:
             resumable_reason = {
                 StudyRuntimeQuestStatus.PAUSED: StudyRuntimeReason.QUEST_PAUSED,
-                StudyRuntimeQuestStatus.STOPPED: StudyRuntimeReason.QUEST_STOPPED,
             }.get(quest_status, StudyRuntimeReason.QUEST_INITIALIZED_WAITING_TO_START)
             result.set_decision(
                 StudyRuntimeDecision.RESUME,
@@ -620,7 +679,6 @@ def _status_state(
         else:
             blocked_reason = {
                 StudyRuntimeQuestStatus.PAUSED: StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
-                StudyRuntimeQuestStatus.STOPPED: StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
             }.get(quest_status, StudyRuntimeReason.QUEST_INITIALIZED_BUT_AUTO_RESUME_DISABLED)
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -682,6 +740,7 @@ def _status_payload(
     study_root: Path,
     study_payload: dict[str, object],
     entry_mode: str | None,
+    sync_runtime_summary: bool = True,
 ) -> dict[str, object]:
     router = _router_module()
     return router._status_state(
@@ -690,4 +749,5 @@ def _status_payload(
         study_root=study_root,
         study_payload=study_payload,
         entry_mode=entry_mode,
+        sync_runtime_summary=sync_runtime_summary,
     ).to_dict()

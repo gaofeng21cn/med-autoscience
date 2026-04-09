@@ -259,6 +259,7 @@ def list_tools() -> list[dict[str, Any]]:
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
                     "entry_mode": {"type": "string"},
+                    "allow_stopped_relaunch": {"type": "boolean"},
                     "force": {"type": "boolean"},
                 },
                 "required": ["profile_path"],
@@ -428,6 +429,7 @@ def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
         study_root=_optional_path(arguments, "study_root"),
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+        allow_stopped_relaunch=_optional_bool(arguments, "allow_stopped_relaunch"),
         force=_optional_bool(arguments, "force"),
         source="mcp",
     )

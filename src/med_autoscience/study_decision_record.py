@@ -40,6 +40,7 @@ class StudyDecisionType(StrEnum):
 
 class StudyDecisionActionType(StrEnum):
     ENSURE_STUDY_RUNTIME = "ensure_study_runtime"
+    ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED = "ensure_study_runtime_relaunch_stopped"
     PAUSE_RUNTIME = "pause_runtime"
     STOP_RUNTIME = "stop_runtime"
 

@@ -234,12 +234,20 @@
 - `runtime_liveness_audit`
 - `launch_report_path`
 - `startup_payload_path`
+- `runtime_summary_alignment`
 
 约束：
 
 - 核心字段缺失或改名，视为 contract break
 - extras 可以按场景缺席，但已有键名不应悄悄改名
 - extras 的出现条件应通过测试显式约束
+
+summary truth 约束：
+
+- `study_runtime_status(...)` 是 runtime 真相读取面
+- `last_launch_report.json` 是 workspace summary，不是 runtime truth source
+- 当直接 status 查询发现 summary 与当前 quest status 漂移时，允许 controller 用正式 persistence helper 刷新该 summary
+- 这种刷新不触发 transport，也不改变 runtime 本体
 
 ## 状态推进顺序
 
@@ -285,6 +293,8 @@
   - 允许创建 quest 并立刻恢复为 running
 - `RESUME`
   - quest 已存在且满足恢复条件
+- `RELAUNCH_STOPPED`
+  - quest 已处于 `stopped`，且 caller 已显式批准 stopped-quest relaunch
 - `PAUSE`
   - 现有 live runtime 不再满足运行条件，必须收回到 paused
 - `SYNC_COMPLETION`
@@ -303,6 +313,7 @@
   - `study_runtime_status(...)` 必须返回 `BLOCKED`
   - reason 固定为 `quest_stopped_requires_explicit_rerun`
   - `ensure_study_runtime(...)` 不得自动把 stopped quest 当成 resumable 状态
+  - 只有显式 `allow_stopped_relaunch=true` 才允许把它改写为 `RELAUNCH_STOPPED`
 
 ## Preflight contract
 
@@ -311,10 +322,10 @@
 
 当前最小稳定 preflight 规则：
 
-- 对 `CREATE_AND_START` / `CREATE_ONLY` / `RESUME`
+- 对 `CREATE_AND_START` / `CREATE_ONLY` / `RESUME` / `RELAUNCH_STOPPED`
   - 必须先确认 analysis bundle ready
   - 如果 runtime reentry 要求 managed skill audit，则 profile 必须允许 medical overlay
-  - 对 `RESUME`，如果启用了 medical overlay，必须先确保 overlay roots ready
+  - 对 `RESUME` / `RELAUNCH_STOPPED`，如果启用了 medical overlay，必须先确保 overlay roots ready
 - 对已有 quest 的非创建路径
   - 如果启用了 medical overlay，会做 overlay audit
   - 对 live quest，如果 overlay audit 失败，会把 decision 改写为 `PAUSE`
@@ -333,6 +344,10 @@
   - 先同步 startup context
   - 再执行 startup hydration 与 validation
   - hydration clear 后才允许 `resume_quest(...)`
+- stopped relaunch 路径
+  - controller 先把 blocked stopped 状态改写为 `RELAUNCH_STOPPED`
+  - transport 仍复用 daemon `resume_quest(...)`
+  - 但 runtime binding / launch report 的 `last_action` 必须写成 `relaunch_stopped`
 - blocked refresh 路径
   - 只在特定 blocked 场景下刷新 startup context / hydration
   - 不触发 resume

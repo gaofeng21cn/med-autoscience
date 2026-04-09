@@ -203,7 +203,10 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert latest_payload == payload
 
 
-def test_study_outer_loop_tick_fails_closed_without_runtime_escalation_ref(monkeypatch, tmp_path: Path) -> None:
+def test_study_outer_loop_tick_synthesizes_runtime_escalation_ref_when_status_lacks_one(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -230,23 +233,38 @@ def test_study_outer_loop_tick_fails_closed_without_runtime_escalation_ref(monke
             "reason": "startup_boundary_not_ready_for_resume",
         },
     )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **_: {
+            "decision": "resume",
+            "reason": "quest_paused",
+        },
+    )
 
-    with pytest.raises(ValueError, match="runtime_escalation_ref"):
-        module.study_outer_loop_tick(
-            profile=profile,
-            study_id="001-risk",
-            charter_ref=charter_ref,
-            publication_eval_ref=publication_eval_ref,
-            decision_type="continue_same_line",
-            requires_human_confirmation=False,
-            controller_actions=[
-                {
-                    "action_type": "ensure_study_runtime",
-                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
-                }
-            ],
-            reason="Publication eval keeps the study on the same line.",
-        )
+    result = module.study_outer_loop_tick(
+        profile=profile,
+        study_id="001-risk",
+        charter_ref=charter_ref,
+        publication_eval_ref=publication_eval_ref,
+        decision_type="continue_same_line",
+        requires_human_confirmation=False,
+        controller_actions=[
+            {
+                "action_type": "ensure_study_runtime",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        reason="Publication eval keeps the study on the same line.",
+    )
+
+    synthesized_ref = result["runtime_escalation_ref"]
+    assert synthesized_ref["record_id"].startswith(
+        "runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::"
+    )
+    payload = json.loads(Path(synthesized_ref["artifact_path"]).read_text(encoding="utf-8"))
+    assert payload["reason"] == "startup_boundary_not_ready_for_resume"
+    assert payload["recommended_actions"] == ["refresh_startup_hydration", "controller_review_required"]
 
 
 def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_latest_surface(
@@ -427,6 +445,34 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
 
     assert result["dispatch_status"] == "pending_human_confirmation"
     assert result["executed_controller_action"] is None
+    assert result["human_confirmation_request"] == {
+        "category": "controller_decision_confirmation",
+        "summary": "Controller requires human confirmation before stopping the quest.",
+        "runtime_blockers": [
+            {
+                "decision": "blocked",
+                "reason": "startup_boundary_not_ready_for_resume",
+                "record_id": runtime_escalation_ref["record_id"],
+                "summary_ref": runtime_escalation_ref["summary_ref"],
+            }
+        ],
+        "publication_blockers": [
+            {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Primary claim is ready to continue on the same line.",
+                "gap_summaries": ["External validation can still improve robustness."],
+            }
+        ],
+        "current_required_action": "human_confirmation_required",
+        "controller_actions": [
+            {
+                "action_type": "stop_runtime",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        "question_for_user": "Approve controller action `stop_runtime` for study `001-risk`?",
+    }
     artifact_path = Path(result["study_decision_ref"]["artifact_path"])
     payload = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert payload["requires_human_confirmation"] is True
@@ -436,6 +482,85 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
+
+
+def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    charter_ref = _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision": "blocked",
+            "reason": "quest_stopped_requires_explicit_rerun",
+            "quest_status": "stopped",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **kwargs: (
+            seen.setdefault("ensure_kwargs", kwargs),
+            {
+                "decision": "relaunch_stopped",
+                "reason": "quest_stopped_explicit_relaunch_requested",
+                "quest_status": "active",
+            },
+        )[1],
+    )
+
+    result = module.study_outer_loop_tick(
+        profile=profile,
+        study_id="001-risk",
+        charter_ref=charter_ref,
+        publication_eval_ref=publication_eval_ref,
+        decision_type="continue_same_line",
+        requires_human_confirmation=False,
+        controller_actions=[
+            {
+                "action_type": "ensure_study_runtime_relaunch_stopped",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        reason="Controller explicitly approved relaunch for a stopped quest.",
+        source="test-source",
+        recorded_at="2026-04-05T06:10:00+00:00",
+    )
+
+    assert seen["ensure_kwargs"] == {
+        "profile": profile,
+        "study_id": "001-risk",
+        "study_root": study_root,
+        "force": False,
+        "source": "test-source",
+        "allow_stopped_relaunch": True,
+    }
+    assert result["executed_controller_action"]["action_type"] == "ensure_study_runtime_relaunch_stopped"
+    assert result["executed_controller_action"]["result"] == {
+        "decision": "relaunch_stopped",
+        "reason": "quest_stopped_explicit_relaunch_requested",
+        "quest_status": "active",
+    }
 
 
 def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_path: Path) -> None:

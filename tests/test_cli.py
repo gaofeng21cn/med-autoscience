@@ -453,11 +453,21 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_ensure(*, profile, study_id: str | None, study_root: Path | None, entry_mode: str | None, force: bool, source: str) -> dict:
+    def fake_ensure(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        allow_stopped_relaunch: bool,
+        force: bool,
+        source: str,
+    ) -> dict:
         called["profile"] = profile
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
+        called["allow_stopped_relaunch"] = allow_stopped_relaunch
         called["force"] = force
         called["source"] = source
         return {"decision": "create_and_start", "study_id": study_id, "quest_id": study_id}
@@ -473,6 +483,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
             "001-risk",
             "--entry-mode",
             "full_research",
+            "--allow-stopped-relaunch",
             "--force",
         ]
     )
@@ -483,6 +494,7 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] == "full_research"
+    assert called["allow_stopped_relaunch"] is True
     assert called["force"] is True
     assert called["source"] == "cli"
     assert '"decision": "create_and_start"' in captured.out

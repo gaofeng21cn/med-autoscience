@@ -116,9 +116,11 @@
 
 ## 4. rerun policy
 
-当前 P1 的正式结论：
+当前正式结论：
 
-- **rerun 不是当前正式支持的 executable control action**
+- `stopped quest` 不允许自动恢复
+- 但已经正式支持 **显式 stopped-quest relaunch**
+- 该 relaunch 只允许通过 controller-owned 显式动作触发，不能伪装成普通 `resume`
 
 ### 4.1 当前允许的 re-entry
 
@@ -138,17 +140,36 @@
 
 - 当前 control surface 只保留其审计 identity
 - 不提供自动恢复
-- 不提供“同 quest 重新跑一遍”的正式动作
+- `study_runtime_status(...)` 继续返回
+  - `decision=blocked`
+  - `reason=quest_stopped_requires_explicit_rerun`
+- `ensure_study_runtime(...)` 只有在 caller 显式传入 stopped relaunch 许可时，才允许把它推进到正式 relaunch 动作
 
 换句话说：
 
-- `stopped` 会把系统带到 “需要显式 rerun policy，但当前未支持” 的阻塞态
+- `stopped` 会把系统带到 “需要显式 relaunch policy” 的阻塞态
 
-### 4.3 明确拒绝的 rerun 形态
+### 4.3 stopped quest 的正式 relaunch
+
+当前正式支持的 stopped-quest relaunch 只有一条：
+
+- outer-loop action:
+  - `ensure_study_runtime_relaunch_stopped`
+- direct controller entry:
+  - `ensure_study_runtime(..., allow_stopped_relaunch=True)`
+
+约束：
+
+- `study_runtime_status(...)` 不因为 caller 有 relaunch 意图而改变其只读真相
+- 显式 relaunch 仍需通过 startup boundary 与 runtime reentry gate
+- transport 层当前仍复用 daemon 的 `resume` control action
+- 但 controller / launch report / runtime binding 必须把该动作记为 `relaunch_stopped`，不能混写成普通 `resume`
+
+### 4.4 明确拒绝的 rerun 形态
 
 当前必须显式拒绝：
 
-- 任何名义上的 `rerun_*` controller action
+- 任何未显式授权的 `rerun_*` controller action
 - 任何试图让 `ensure_study_runtime(...)` 自动恢复 `stopped` quest 的行为
 - 任何“保留旧交付 identity，但重新开跑”的隐式重放
 - 任何需要 real-study relaunch / end-to-end study harness / cross-repo write 的 rerun
@@ -166,13 +187,15 @@
 2. 若 `requires_human_confirmation=true`
    - 允许写 artifact
    - 不允许 dispatch controller action
+   - 必须返回结构化 `human_confirmation_request`
 3. 只有在 human gate 清除后，后续 controller 才能执行下一步动作
 
 ## 6. 当前正式支持的 outer-loop controller actions
 
-当前只冻结三类 action：
+当前只冻结四类 action：
 
 - `ensure_study_runtime`
+- `ensure_study_runtime_relaunch_stopped`
 - `pause_runtime`
 - `stop_runtime`
 
@@ -190,6 +213,19 @@
   - 负责 `study_runtime_status(...)` / `ensure_study_runtime(...)` 的状态机与执行 contract
 - `docs/study_runtime_control_surface.md`（本文）
   - 负责 stop / rerun / human-confirmation / outer-loop action surface 的单义收口
+
+## 8. runtime truth priority
+
+workspace 层 runtime 真相优先级当前固定为：
+
+1. quest runtime state / `study_runtime_status(...)`
+2. workspace `last_launch_report.json`
+
+因此：
+
+- `last_launch_report.json` 只是 workspace summary，不是 runtime truth source
+- 若 `study_runtime_status(...)` 发现 launch report 与当前 quest status 不一致，允许通过正式 persistence helper 刷新该 summary
+- 这种刷新不改变 runtime 本体，只修正 workspace 派生摘要
 
 如果三者冲突：
 

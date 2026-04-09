@@ -481,6 +481,160 @@ def test_ensure_study_runtime_does_not_auto_resume_stopped_quest(monkeypatch, tm
     assert result["quest_status"] == "stopped"
 
 
+def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    write_text(
+        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        json.dumps(
+            {
+                "decision": "resume",
+                "reason": "quest_paused",
+                "quest_status": "active",
+                "recorded_at": "2026-04-08T09:42:28Z",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["quest_status"] == "stopped"
+    assert result["runtime_summary_alignment"] == {
+        "source_of_truth": "study_runtime_status",
+        "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+        "runtime_state_status": "stopped",
+        "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        "launch_report_exists": True,
+        "launch_report_quest_status": "active",
+        "aligned": False,
+        "mismatch_reason": "launch_report_quest_status_mismatch",
+        "status_sync_applied": True,
+    }
+    refreshed_launch_report = json.loads(
+        (study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8")
+    )
+    assert refreshed_launch_report["decision"] == "blocked"
+    assert refreshed_launch_report["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert refreshed_launch_report["quest_status"] == "stopped"
+
+
+def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    resumed: dict[str, object] = {}
+
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        resumed.update(
+            {
+                "runtime_root": runtime_root,
+                "quest_id": quest_id,
+                "source": source,
+            }
+        )
+        return {
+            "ok": True,
+            "quest_id": quest_id,
+            "action": "resume",
+            "status": "active",
+            "snapshot": {
+                "quest_id": quest_id,
+                "status": "active",
+            },
+        }
+
+    monkeypatch.setattr(module.med_deepscientist_transport, "resume_quest", fake_resume_quest)
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        allow_stopped_relaunch=True,
+        source="medautosci-test",
+    )
+
+    assert result["decision"] == "relaunch_stopped"
+    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert result["quest_status"] == "active"
+    assert resumed == {
+        "runtime_root": profile.med_deepscientist_runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
+    binding = yaml.safe_load((study_root / "runtime_binding.yaml").read_text(encoding="utf-8"))
+    assert binding["last_action"] == "relaunch_stopped"
+    launch_report = json.loads((study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
+    assert launch_report["decision"] == "relaunch_stopped"
+    assert launch_report["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert launch_report["daemon_result"]["resume"]["action"] == "resume"
+
+
 def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)

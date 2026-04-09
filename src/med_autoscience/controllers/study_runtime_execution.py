@@ -20,6 +20,7 @@ from .study_runtime_status import (
     StudyRuntimeDecision,
     StudyRuntimeOverlayResult,
     StudyRuntimePartialQuestRecoveryResult,
+    StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
@@ -30,6 +31,7 @@ __all__ = [
     "StudyRuntimeExecutionOutcome",
     "_build_context_create_payload",
     "_build_execution_context",
+    "_enable_explicit_stopped_relaunch_if_requested",
     "_execute_blocked_refresh_runtime_decision",
     "_execute_completion_runtime_decision",
     "_execute_create_runtime_decision",
@@ -230,6 +232,34 @@ def _build_execution_context(
         runtime_context=runtime_context,
         completion_state=completion_state,
         source=source,
+    )
+
+
+def _enable_explicit_stopped_relaunch_if_requested(
+    *,
+    status: StudyRuntimeStatus,
+) -> None:
+    if (
+        status.decision is not StudyRuntimeDecision.BLOCKED
+        or status.reason is not StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN
+        or status.quest_status is not StudyRuntimeQuestStatus.STOPPED
+    ):
+        return
+    if not status.startup_boundary_allows_compute_stage:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+        )
+        return
+    if not status.runtime_reentry_allows_runtime_entry:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+        )
+        return
+    status.set_decision(
+        StudyRuntimeDecision.RELAUNCH_STOPPED,
+        StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
     )
 
 
@@ -596,6 +626,11 @@ def _execute_runtime_decision(
         return router._execute_create_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.RESUME:
         return router._execute_resume_runtime_decision(status=status, context=context)
+    if status.decision == StudyRuntimeDecision.RELAUNCH_STOPPED:
+        outcome = router._execute_resume_runtime_decision(status=status, context=context)
+        if outcome.binding_last_action is StudyRuntimeBindingAction.RESUME:
+            outcome.binding_last_action = StudyRuntimeBindingAction.RELAUNCH_STOPPED
+        return outcome
     if status.should_refresh_startup_hydration_while_blocked():
         return router._execute_blocked_refresh_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.PAUSE:
@@ -624,6 +659,8 @@ def _managed_runtime_notice_reason(
         return "managed_runtime_started"
     if binding_last_action is StudyRuntimeBindingAction.RESUME:
         return "managed_runtime_resumed"
+    if binding_last_action is StudyRuntimeBindingAction.RELAUNCH_STOPPED:
+        return "managed_runtime_relaunched"
     return "detected_existing_live_managed_runtime"
 
 

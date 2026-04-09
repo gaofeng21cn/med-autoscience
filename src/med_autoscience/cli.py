@@ -323,6 +323,7 @@ def build_parser() -> argparse.ArgumentParser:
     ensure_study_runtime_parser.add_argument("--study-id", type=str)
     ensure_study_runtime_parser.add_argument("--study-root", type=str)
     ensure_study_runtime_parser.add_argument("--entry-mode", type=str)
+    ensure_study_runtime_parser.add_argument("--allow-stopped-relaunch", action="store_true")
     ensure_study_runtime_parser.add_argument("--force", action="store_true")
 
     study_runtime_status_parser = subparsers.add_parser("study-runtime-status")
@@ -417,6 +418,7 @@ def main(argv: list[str] | None = None) -> int:
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
+            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
             force=bool(args.force),
             source="cli",
         )
@@ -784,6 +786,7 @@ def main(argv: list[str] | None = None) -> int:
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
+            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
             force=bool(args.force),
             source="cli",
         )

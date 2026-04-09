@@ -81,7 +81,7 @@ def _resolve_publication_eval_ref(
 def _load_runtime_escalation_record(
     *,
     runtime_escalation_payload: dict[str, Any],
-) -> RuntimeEscalationRecordRef:
+) -> tuple[RuntimeEscalationRecordRef, RuntimeEscalationRecord]:
     runtime_escalation_ref = RuntimeEscalationRecordRef.from_payload(runtime_escalation_payload)
     artifact_path = Path(runtime_escalation_ref.artifact_path).expanduser().resolve()
     payload = json.loads(artifact_path.read_text(encoding="utf-8")) or {}
@@ -95,7 +95,105 @@ def _load_runtime_escalation_record(
         raise ValueError("study_outer_loop_tick runtime escalation artifact_path mismatch against status ref")
     if written_ref.summary_ref != runtime_escalation_ref.summary_ref:
         raise ValueError("study_outer_loop_tick runtime escalation summary_ref mismatch against status ref")
-    return written_ref
+    return written_ref, record
+
+
+def _runtime_escalation_recommended_actions(reason: str) -> tuple[str, ...]:
+    if reason == "quest_stopped_requires_explicit_rerun":
+        return ("explicit_stopped_quest_relaunch", "controller_review_required")
+    return ("refresh_startup_hydration", "controller_review_required")
+
+
+def _resolve_runtime_escalation_record(
+    *,
+    runtime_escalation_payload: dict[str, Any] | None,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    quest_id: str,
+    runtime_status: dict[str, str],
+    emitted_at: str,
+) -> tuple[RuntimeEscalationRecordRef, RuntimeEscalationRecord]:
+    if isinstance(runtime_escalation_payload, dict):
+        return _load_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
+    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
+        profile=profile,
+        study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+    )
+    reason = str(runtime_status.get("reason") or "").strip()
+    if not reason:
+        raise ValueError("study_outer_loop_tick requires runtime reason to synthesize runtime escalation record")
+    record = RuntimeEscalationRecord(
+        schema_version=1,
+        record_id=f"runtime-escalation::{study_id}::{quest_id}::{reason}::{emitted_at}",
+        study_id=study_id,
+        quest_id=quest_id,
+        emitted_at=emitted_at,
+        trigger=study_runtime_protocol.RuntimeEscalationTrigger(
+            trigger_id=reason,
+            source="study_outer_loop_status",
+        ),
+        scope="quest",
+        severity="quest",
+        reason=reason,
+        recommended_actions=_runtime_escalation_recommended_actions(reason),
+        evidence_refs=(str(runtime_context.launch_report_path),),
+        runtime_context_refs={"launch_report_path": str(runtime_context.launch_report_path)},
+        summary_ref=str(runtime_context.launch_report_path),
+    )
+    written_record = study_runtime_protocol.write_runtime_escalation_record(
+        quest_root=runtime_context.quest_root,
+        record=record,
+    )
+    return written_record.ref(), written_record
+
+
+def _build_human_confirmation_request(
+    *,
+    study_id: str,
+    summary: str,
+    runtime_status: dict[str, str],
+    runtime_escalation_ref: RuntimeEscalationRecordRef,
+    publication_eval_payload: dict[str, Any],
+    controller_actions: tuple[StudyDecisionControllerAction, ...],
+) -> dict[str, Any]:
+    verdict = publication_eval_payload.get("verdict")
+    gaps = publication_eval_payload.get("gaps")
+    publication_blockers: list[dict[str, Any]] = []
+    if isinstance(verdict, dict):
+        publication_blockers.append(
+            {
+                "overall_verdict": str(verdict.get("overall_verdict") or "").strip(),
+                "primary_claim_status": str(verdict.get("primary_claim_status") or "").strip(),
+                "summary": str(verdict.get("summary") or "").strip(),
+                "gap_summaries": [
+                    str(item.get("summary") or "").strip()
+                    for item in gaps
+                    if isinstance(item, dict) and str(item.get("summary") or "").strip()
+                ]
+                if isinstance(gaps, list)
+                else [],
+            }
+        )
+    first_action = controller_actions[0].action_type.value if controller_actions else "controller_review"
+    return {
+        "category": "controller_decision_confirmation",
+        "summary": summary,
+        "runtime_blockers": [
+            {
+                "decision": str(runtime_status.get("decision") or "").strip(),
+                "reason": str(runtime_status.get("reason") or "").strip(),
+                "record_id": runtime_escalation_ref.record_id,
+                "summary_ref": runtime_escalation_ref.summary_ref,
+            }
+        ],
+        "publication_blockers": publication_blockers,
+        "current_required_action": "human_confirmation_required",
+        "controller_actions": [action.to_dict() for action in controller_actions],
+        "question_for_user": f"Approve controller action `{first_action}` for study `{study_id}`?",
+    }
 
 
 def _execute_controller_action(
@@ -112,6 +210,15 @@ def _execute_controller_action(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
+            force=False,
+            source=source,
+        )
+    elif action.action_type is StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED:
+        result = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            allow_stopped_relaunch=True,
             force=False,
             source=source,
         )
@@ -170,8 +277,6 @@ def study_outer_loop_tick(
     runtime_status = _runtime_status_summary(status)
     runtime_escalation_payload = status.get("runtime_escalation_ref")
     quest_id = str(status.get("quest_id") or "").strip()
-    if not isinstance(runtime_escalation_payload, dict):
-        raise ValueError("study_outer_loop_tick requires runtime_escalation_ref from study_runtime_status")
     if not quest_id:
         raise ValueError("study_outer_loop_tick requires quest_id from study_runtime_status")
 
@@ -183,11 +288,26 @@ def study_outer_loop_tick(
         study_root=resolved_study_root,
         publication_eval_ref=publication_eval_ref,
     )
-    runtime_escalation_ref = _load_runtime_escalation_record(
-        runtime_escalation_payload=runtime_escalation_payload,
-    )
-
     emitted_at = recorded_at or _utc_now()
+    publication_eval_payload = read_publication_eval_latest(
+        study_root=resolved_study_root,
+        ref=normalized_publication_eval_ref.artifact_path,
+    )
+    runtime_escalation_ref, _runtime_escalation_record = _resolve_runtime_escalation_record(
+        runtime_escalation_payload=runtime_escalation_payload if isinstance(runtime_escalation_payload, dict) else None,
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        quest_id=quest_id,
+        runtime_status=runtime_status,
+        emitted_at=emitted_at,
+    )
+    normalized_controller_actions = tuple(
+        action
+        if isinstance(action, StudyDecisionControllerAction)
+        else StudyDecisionControllerAction.from_payload(action)
+        for action in (controller_actions or [])
+    )
     written_record = study_runtime_protocol.write_study_decision_record(
         study_root=resolved_study_root,
         record=StudyDecisionRecord(
@@ -206,12 +326,7 @@ def study_outer_loop_tick(
             runtime_escalation_ref=runtime_escalation_ref,
             publication_eval_ref=normalized_publication_eval_ref,
             requires_human_confirmation=requires_human_confirmation,
-            controller_actions=tuple(
-                action
-                if isinstance(action, StudyDecisionControllerAction)
-                else StudyDecisionControllerAction.from_payload(action)
-                for action in (controller_actions or [])
-            ),
+            controller_actions=normalized_controller_actions,
             reason=reason,
         ),
     )
@@ -224,6 +339,14 @@ def study_outer_loop_tick(
             "runtime_escalation_ref": written_record.runtime_escalation_ref.to_dict(),
             "study_decision_ref": written_record.ref().to_dict(),
             "dispatch_status": "pending_human_confirmation",
+            "human_confirmation_request": _build_human_confirmation_request(
+                study_id=resolved_study_id,
+                summary=reason,
+                runtime_status=runtime_status,
+                runtime_escalation_ref=written_record.runtime_escalation_ref,
+                publication_eval_payload=publication_eval_payload,
+                controller_actions=written_record.controller_actions,
+            ),
             "executed_controller_action": None,
         }
     executed_controller_action = _execute_controller_action(

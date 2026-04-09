@@ -32,6 +32,7 @@ __all__ = [
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
     "StudyRuntimeReentryGate",
+    "StudyRuntimeSummaryAlignment",
     "StudyRuntimeStartupBoundaryGate",
     "StudyRuntimeStartupContextSyncResult",
     "StudyRuntimeStartupDataReadinessReport",
@@ -56,6 +57,7 @@ class StudyRuntimeDecision(StrEnum):
     CREATE_AND_START = "create_and_start"
     CREATE_ONLY = "create_only"
     RESUME = "resume"
+    RELAUNCH_STOPPED = "relaunch_stopped"
     PAUSE = "pause"
     NOOP = "noop"
     SYNC_COMPLETION = "sync_completion"
@@ -102,6 +104,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
     QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN = "quest_stopped_requires_explicit_rerun"
+    QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED = "quest_stopped_explicit_relaunch_requested"
     QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"
     QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED = "quest_paused_but_auto_resume_disabled"
     QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED = "quest_stopped_but_auto_resume_disabled"
@@ -131,6 +134,7 @@ class StudyRuntimeBindingAction(StrEnum):
     CREATE_AND_START = "create_and_start"
     CREATE_ONLY = "create_only"
     RESUME = "resume"
+    RELAUNCH_STOPPED = "relaunch_stopped"
     PAUSE = "pause"
     COMPLETED = "completed"
     NOOP = "noop"
@@ -259,6 +263,61 @@ class StudyRuntimeAutonomousRuntimeNotice:
             monitoring_available=bool(payload.get("monitoring_available")),
             monitoring_error=str(payload.get("monitoring_error") or "").strip() or None,
             launch_report_path=str(payload.get("launch_report_path") or ""),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeSummaryAlignment:
+    source_of_truth: str
+    runtime_state_path: str
+    runtime_state_status: str | None
+    launch_report_path: str
+    launch_report_exists: bool
+    launch_report_quest_status: str | None
+    aligned: bool
+    mismatch_reason: str | None
+    status_sync_applied: bool
+
+    def __post_init__(self) -> None:
+        for field_name in ("source_of_truth", "runtime_state_path", "launch_report_path"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime summary alignment {field_name} must be non-empty str")
+        for field_name in ("runtime_state_status", "launch_report_quest_status", "mismatch_reason"):
+            value = getattr(self, field_name)
+            if value is not None and not isinstance(value, str):
+                raise TypeError(f"study runtime summary alignment {field_name} must be str or None")
+        for field_name in ("launch_report_exists", "aligned", "status_sync_applied"):
+            if not isinstance(getattr(self, field_name), bool):
+                raise TypeError(f"study runtime summary alignment {field_name} must be bool")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "source_of_truth": self.source_of_truth,
+            "runtime_state_path": self.runtime_state_path,
+            "runtime_state_status": self.runtime_state_status,
+            "launch_report_path": self.launch_report_path,
+            "launch_report_exists": self.launch_report_exists,
+            "launch_report_quest_status": self.launch_report_quest_status,
+            "aligned": self.aligned,
+            "mismatch_reason": self.mismatch_reason,
+            "status_sync_applied": self.status_sync_applied,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeSummaryAlignment":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime summary alignment payload must be a mapping")
+        return cls(
+            source_of_truth=str(payload.get("source_of_truth") or ""),
+            runtime_state_path=str(payload.get("runtime_state_path") or ""),
+            runtime_state_status=str(payload.get("runtime_state_status") or "").strip() or None,
+            launch_report_path=str(payload.get("launch_report_path") or ""),
+            launch_report_exists=bool(payload.get("launch_report_exists")),
+            launch_report_quest_status=str(payload.get("launch_report_quest_status") or "").strip() or None,
+            aligned=bool(payload.get("aligned")),
+            mismatch_reason=str(payload.get("mismatch_reason") or "").strip() or None,
+            status_sync_applied=bool(payload.get("status_sync_applied")),
         )
 
 
@@ -1351,6 +1410,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         return StudyRuntimeExecutionOwnerGuard.from_payload(payload)
 
     @property
+    def runtime_summary_alignment(self) -> StudyRuntimeSummaryAlignment:
+        payload = self.extras.get("runtime_summary_alignment")
+        if not isinstance(payload, dict):
+            raise KeyError("runtime_summary_alignment")
+        return StudyRuntimeSummaryAlignment.from_payload(payload)
+
+    @property
     def pending_user_interaction(self) -> StudyRuntimePendingUserInteraction:
         payload = self.extras.get("pending_user_interaction")
         if not isinstance(payload, dict):
@@ -1412,6 +1478,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimeExecutionOwnerGuard.from_payload(value)
         )
         self._record_dict_extra("execution_owner_guard", execution_owner_guard.to_dict())
+
+    def record_runtime_summary_alignment(
+        self,
+        value: dict[str, Any] | StudyRuntimeSummaryAlignment,
+    ) -> None:
+        runtime_summary_alignment = (
+            value
+            if isinstance(value, StudyRuntimeSummaryAlignment)
+            else StudyRuntimeSummaryAlignment.from_payload(value)
+        )
+        self._record_dict_extra("runtime_summary_alignment", runtime_summary_alignment.to_dict())
 
     def record_pending_user_interaction(
         self,

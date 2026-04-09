@@ -100,10 +100,11 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda *, profile, study_id, study_root, entry_mode, force, source: {
+        lambda *, profile, study_id, study_root, entry_mode, allow_stopped_relaunch, force, source: {
             "decision": "create_and_start",
             "study_id": study_id,
             "quest_id": study_id,
+            "allow_stopped_relaunch": allow_stopped_relaunch,
             "source": source,
         },
     )
@@ -114,6 +115,7 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
             "profile_path": str(profile_path),
             "study_id": "001-risk",
             "entry_mode": "full_research",
+            "allow_stopped_relaunch": True,
             "force": True,
         },
     )
@@ -121,6 +123,7 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     assert result["isError"] is False
     assert result["structuredContent"]["decision"] == "create_and_start"
     assert result["structuredContent"]["quest_id"] == "001-risk"
+    assert result["structuredContent"]["allow_stopped_relaunch"] is True
 
 
 def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch, tmp_path: Path) -> None:
