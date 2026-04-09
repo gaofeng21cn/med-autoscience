@@ -750,6 +750,9 @@ def _normalize_table_catalog_id(raw_id: str) -> str:
     appendix_short_match = re.fullmatch(r"TA(\d+)", item, flags=re.IGNORECASE)
     if appendix_short_match:
         return f"TA{int(appendix_short_match.group(1))}"
+    appendix_alias_match = re.fullmatch(r"A(\d+)", item, flags=re.IGNORECASE)
+    if appendix_alias_match:
+        return f"TA{int(appendix_alias_match.group(1))}"
     match = re.fullmatch(r"T(?:able)?(\d+)", item, flags=re.IGNORECASE)
     if not match:
         raise ValueError(f"unsupported table catalog_id `{raw_id}`")

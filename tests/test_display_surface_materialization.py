@@ -3362,6 +3362,82 @@ def test_materialize_display_surface_supports_generic_anchor_table_shells(tmp_pa
     ]
 
 
+def test_materialize_display_surface_accepts_appendix_table_alias_a1_for_grouped_risk_table(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    (paper_root / "figures").mkdir(parents=True)
+    (paper_root / "tables").mkdir(parents=True)
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "appendix_table_a1_public_anchors",
+                    "display_kind": "table",
+                    "requirement_key": "grouped_risk_event_summary_table",
+                    "catalog_id": "A1",
+                },
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "grouped_risk_event_summary_table.json",
+        {
+            "schema_version": 1,
+            "table_shell_id": "grouped_risk_event_summary_table",
+            "display_id": "appendix_table_a1_public_anchors",
+            "catalog_id": "A1",
+            "title": "Retained public anchor summary",
+            "caption": "Observed anchor counts across retained public anatomy and biology sources.",
+            "surface_column_label": "Anchor surface",
+            "stratum_column_label": "Retained subset",
+            "cases_column_label": "Cases",
+            "events_column_label": "Events",
+            "risk_column_label": "Share",
+            "rows": [
+                {
+                    "row_id": "mapping_pituitary_nfpa",
+                    "surface": "Mapping pituitary",
+                    "stratum": "NFPA",
+                    "cases": 85,
+                    "events": 27,
+                    "risk_display": "31.8%",
+                },
+                {
+                    "row_id": "gse169498_invasive",
+                    "surface": "GSE169498",
+                    "stratum": "Invasive",
+                    "cases": 73,
+                    "events": 49,
+                    "risk_display": "67.1%",
+                },
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["tables_materialized"] == ["TA1"]
+    assert (paper_root / "tables" / "generated" / "TA1_grouped_risk_event_summary_table.csv").exists()
+    assert (paper_root / "tables" / "generated" / "TA1_grouped_risk_event_summary_table.md").exists()
+
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
+    assert tables_by_id["TA1"]["table_shell_id"] == full_id("grouped_risk_event_summary_table")
+    assert tables_by_id["TA1"]["input_schema_id"] == "grouped_risk_event_summary_table_v1"
+    assert tables_by_id["TA1"]["asset_paths"] == [
+        "paper/tables/generated/TA1_grouped_risk_event_summary_table.csv",
+        "paper/tables/generated/TA1_grouped_risk_event_summary_table.md",
+    ]
+
+
 def test_materialize_display_surface_uses_pack_runtime_for_baseline_table_shell(
     tmp_path: Path,
     monkeypatch,
