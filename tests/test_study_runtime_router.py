@@ -2535,6 +2535,137 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
     assert result["bash_session_audit"]["status"] == "unknown"
 
 
+def test_ensure_study_runtime_keeps_supervisor_only_guard_when_live_runtime_progress_is_stale(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running","active_run_id":"run-live-stale"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resolve_daemon_url",
+        lambda *, runtime_root: "http://127.0.0.1:21999",
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": False,
+            "status": "unknown",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live-stale",
+            "runner_live": True,
+            "bash_live": False,
+            "stale_progress": True,
+            "liveness_guard_reason": "stale_progress_watchdog",
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-stale",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+                "interaction_watchdog": {
+                    "last_artifact_interact_at": "2026-04-08T10:05:03+00:00",
+                    "seconds_since_last_artifact_interact": 3600,
+                    "tool_calls_since_last_artifact_interact": 0,
+                    "active_execution_window": True,
+                    "stale_visibility_gap": True,
+                    "inspection_due": True,
+                    "user_update_due": False,
+                },
+                "stale_progress": True,
+                "liveness_guard_reason": "stale_progress_watchdog",
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 0,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
+            "error": "Live managed runtime exceeded the artifact interaction silence threshold.",
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "running_quest_live_session_audit_failed"
+    assert result["runtime_liveness_audit"]["status"] == "unknown"
+    assert result["runtime_liveness_audit"]["stale_progress"] is True
+    assert result["autonomous_runtime_notice"]["required"] is True
+    assert result["autonomous_runtime_notice"]["active_run_id"] == "run-live-stale"
+    assert result["execution_owner_guard"] == {
+        "owner": "managed_runtime",
+        "supervisor_only": True,
+        "guard_reason": "managed_runtime_audit_unhealthy",
+        "active_run_id": "run-live-stale",
+        "current_required_action": "inspect_runtime_health_and_decide_intervention",
+        "allowed_actions": [
+            "read_runtime_status",
+            "notify_user_runtime_is_live",
+            "open_monitoring_entry",
+            "pause_runtime",
+            "resume_runtime",
+            "stop_runtime",
+            "record_user_decision",
+        ],
+        "forbidden_actions": [
+            "direct_study_execution",
+            "direct_runtime_owned_write",
+            "direct_paper_line_write",
+            "direct_bundle_build",
+            "direct_compiled_bundle_proofing",
+        ],
+        "runtime_owned_roots": [
+            str(quest_root),
+            str(quest_root / ".ds"),
+            str(quest_root / "paper"),
+            str(quest_root / "release"),
+            str(quest_root / "artifacts"),
+        ],
+        "takeover_required": True,
+        "takeover_action": "pause_runtime_then_explicit_human_takeover",
+        "publication_gate_allows_direct_write": False,
+        "controller_stage_note": (
+            "managed runtime still owns study-local execution, but the liveness audit is unhealthy; "
+            "stay supervisor-only until the runtime is inspected and explicitly paused or resumed"
+        ),
+    }
+
+
 def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_quest_is_parked(
     monkeypatch,
     tmp_path: Path,

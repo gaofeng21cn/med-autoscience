@@ -144,29 +144,39 @@ def _record_execution_owner_guard(
         runtime_liveness = status.runtime_liveness_audit_record
     except KeyError:
         return
-    if runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE:
+    if runtime_liveness.status is StudyRuntimeAuditStatus.NONE:
         return
     try:
         active_run_id = status.autonomous_runtime_notice.active_run_id
     except KeyError:
         active_run_id = str(runtime_liveness.payload.get("active_run_id") or "").strip() or None
     publication_gate_allows_direct_write = _publication_gate_allows_direct_write(status)
+    guard_reason = "live_managed_runtime"
+    current_required_action = "supervise_managed_runtime"
+    controller_stage_note = (
+        "live managed runtime owns study-local execution; the foreground agent must stay supervisor-only "
+        "until explicit takeover"
+    )
+    if runtime_liveness.status is not StudyRuntimeAuditStatus.LIVE:
+        guard_reason = "managed_runtime_audit_unhealthy"
+        current_required_action = "inspect_runtime_health_and_decide_intervention"
+        controller_stage_note = (
+            "managed runtime still owns study-local execution, but the liveness audit is unhealthy; "
+            "stay supervisor-only until the runtime is inspected and explicitly paused or resumed"
+        )
     payload = {
         "owner": "managed_runtime",
         "supervisor_only": True,
-        "guard_reason": "live_managed_runtime",
+        "guard_reason": guard_reason,
         "active_run_id": active_run_id,
-        "current_required_action": "supervise_managed_runtime",
+        "current_required_action": current_required_action,
         "allowed_actions": list(_SUPERVISOR_ONLY_ALLOWED_ACTIONS),
         "forbidden_actions": list(_SUPERVISOR_ONLY_FORBIDDEN_ACTIONS),
         "runtime_owned_roots": list(_runtime_owned_roots(quest_root)),
         "takeover_required": True,
         "takeover_action": "pause_runtime_then_explicit_human_takeover",
         "publication_gate_allows_direct_write": publication_gate_allows_direct_write,
-        "controller_stage_note": (
-            "live managed runtime owns study-local execution; the foreground agent must stay supervisor-only "
-            "until explicit takeover"
-        ),
+        "controller_stage_note": controller_stage_note,
     }
     status.record_execution_owner_guard(StudyRuntimeExecutionOwnerGuard.from_payload(payload))
 

@@ -1577,6 +1577,90 @@ def test_inspect_quest_live_execution_combines_runtime_and_bash_audits(monkeypat
     }
 
 
+def test_inspect_quest_live_execution_degrades_stale_live_runtime_to_unknown(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_runtime",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-live-stale",
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+            "interaction_watchdog": {
+                "last_artifact_interact_at": "2026-04-08T10:05:03+00:00",
+                "seconds_since_last_artifact_interact": 3600,
+                "tool_calls_since_last_artifact_interact": 0,
+                "active_execution_window": True,
+                "stale_visibility_gap": True,
+                "inspection_due": True,
+                "user_update_due": False,
+            },
+            "stale_progress": True,
+            "liveness_guard_reason": "stale_progress_watchdog",
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_quest_live_bash_sessions",
+        lambda **kwargs: {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+    )
+
+    result = module.inspect_quest_live_execution(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "unknown",
+        "source": "combined_runner_or_bash_session",
+        "active_run_id": "run-live-stale",
+        "runner_live": True,
+        "bash_live": False,
+        "stale_progress": True,
+        "liveness_guard_reason": "stale_progress_watchdog",
+        "runtime_audit": {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-live-stale",
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+            "interaction_watchdog": {
+                "last_artifact_interact_at": "2026-04-08T10:05:03+00:00",
+                "seconds_since_last_artifact_interact": 3600,
+                "tool_calls_since_last_artifact_interact": 0,
+                "active_execution_window": True,
+                "stale_visibility_gap": True,
+                "inspection_due": True,
+                "user_update_due": False,
+            },
+            "stale_progress": True,
+            "liveness_guard_reason": "stale_progress_watchdog",
+        },
+        "bash_session_audit": {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+        "error": "Live managed runtime exceeded the artifact interaction silence threshold.",
+    }
+
+
 def test_inspect_quest_live_execution_falls_back_to_local_runtime_state_contract(
     monkeypatch,
     tmp_path: Path,

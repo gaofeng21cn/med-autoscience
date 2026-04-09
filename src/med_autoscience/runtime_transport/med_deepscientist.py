@@ -556,6 +556,26 @@ def inspect_quest_live_bash_sessions(
     }
 
 
+def _interaction_watchdog_payload(snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    payload = snapshot.get("interaction_watchdog")
+    if not isinstance(payload, dict):
+        return None
+    return dict(payload)
+
+
+def _stale_progress_watchdog(interaction_watchdog: dict[str, Any] | None) -> bool:
+    if not isinstance(interaction_watchdog, dict):
+        return False
+    if "stale_visibility_gap" in interaction_watchdog:
+        return bool(interaction_watchdog.get("stale_visibility_gap"))
+    silence_seconds = interaction_watchdog.get("seconds_since_last_artifact_interact")
+    try:
+        resolved_silence_seconds = int(silence_seconds)
+    except (TypeError, ValueError):
+        return False
+    return bool(interaction_watchdog.get("inspection_due")) and resolved_silence_seconds >= 30 * 60
+
+
 def inspect_quest_live_runtime(
     *,
     quest_id: str,
@@ -610,7 +630,9 @@ def inspect_quest_live_runtime(
             "error": f"Unsupported runtime audit status: {status or 'empty'}",
         }
 
-    return {
+    interaction_watchdog = _interaction_watchdog_payload(snapshot)
+    stale_progress = status == "live" and _stale_progress_watchdog(interaction_watchdog)
+    result = {
         "ok": bool(runtime_audit.get("ok", True)),
         "status": status,
         "source": str(runtime_audit.get("source") or "quest_session_runtime_audit"),
@@ -619,6 +641,12 @@ def inspect_quest_live_runtime(
         "worker_pending": bool(runtime_audit.get("worker_pending")) if "worker_pending" in runtime_audit else None,
         "stop_requested": bool(runtime_audit.get("stop_requested")) if "stop_requested" in runtime_audit else None,
     }
+    if interaction_watchdog is not None:
+        result["interaction_watchdog"] = interaction_watchdog
+    if stale_progress:
+        result["stale_progress"] = True
+        result["liveness_guard_reason"] = "stale_progress_watchdog"
+    return result
 
 
 def inspect_quest_live_execution(
@@ -644,7 +672,12 @@ def inspect_quest_live_execution(
     bash_live = str(bash_session_audit.get("status") or "").strip() == "live"
     runtime_known = str(runtime_audit.get("status") or "").strip() in {"live", "none"}
     bash_known = str(bash_session_audit.get("status") or "").strip() in {"live", "none"}
-    if runtime_live or bash_live:
+    stale_progress = bool(runtime_audit.get("stale_progress"))
+    liveness_guard_reason = str(runtime_audit.get("liveness_guard_reason") or "").strip() or None
+    if stale_progress:
+        status = "unknown"
+        ok = False
+    elif runtime_live or bash_live:
         status = "live"
         ok = True
     elif runtime_known and bash_known:
@@ -684,7 +717,14 @@ def inspect_quest_live_execution(
         "runtime_audit": runtime_audit,
         "bash_session_audit": bash_session_audit,
     }
-    errors = [str(item) for item in [runtime_audit.get("error"), bash_session_audit.get("error")] if item]
+    if stale_progress:
+        payload["stale_progress"] = True
+    if liveness_guard_reason is not None:
+        payload["liveness_guard_reason"] = liveness_guard_reason
+    errors: list[str] = []
+    if stale_progress:
+        errors.append("Live managed runtime exceeded the artifact interaction silence threshold.")
+    errors.extend(str(item) for item in [runtime_audit.get("error"), bash_session_audit.get("error")] if item)
     if errors:
         payload["error"] = " | ".join(errors)
     return payload
