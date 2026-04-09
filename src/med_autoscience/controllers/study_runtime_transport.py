@@ -13,7 +13,6 @@ __all__ = [
     "_inspect_quest_live_execution",
     "_pause_quest",
     "_resume_quest",
-    "_sync_completion_with_approval",
     "_update_quest_startup_context",
 ]
 
@@ -68,23 +67,4 @@ def _update_quest_startup_context(
         kwargs["requested_baseline_ref"] = requested_baseline_ref
     return StudyRuntimeStartupContextSyncResult.from_payload(
         _router_module().med_deepscientist_transport.update_quest_startup_context(**kwargs)
-    )
-
-
-def _sync_completion_with_approval(
-    *,
-    runtime_root: Path,
-    quest_id: str,
-    decision_request_payload: dict[str, Any],
-    approval_text: str,
-    summary: str,
-    source: str,
-) -> dict[str, Any]:
-    return _router_module().med_deepscientist_transport.sync_completion_with_approval(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        decision_request_payload=decision_request_payload,
-        approval_text=approval_text,
-        summary=summary,
-        source=source,
     )

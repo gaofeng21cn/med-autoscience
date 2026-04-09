@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 
+_OUTER_LOOP_WATCHED_QUEST_STATUSES = frozenset({"running", "active", "waiting_for_user"})
+
+
 class QuestRuntimeLivenessStatus(StrEnum):
     LIVE = "live"
     NONE = "none"
@@ -85,7 +88,7 @@ def iter_active_quests(runtime_root: Path) -> list[Path]:
         return []
     quests: list[Path] = []
     for quest_root in sorted(path for path in resolved_runtime_root.iterdir() if path.is_dir()):
-        if quest_status(quest_root) in {"running", "active"}:
+        if quest_status(quest_root) in _OUTER_LOOP_WATCHED_QUEST_STATUSES:
             quests.append(quest_root)
     return quests
 

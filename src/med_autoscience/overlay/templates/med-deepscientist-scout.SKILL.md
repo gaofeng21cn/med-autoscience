@@ -339,7 +339,7 @@ Produce an explicit statement of:
 
 The evaluation contract should be strong enough that later `baseline`, `idea`, and `experiment` work do not need to keep re-deriving it.
 
-If the evaluation contract is still ambiguous after local analysis, ask the user for a structured decision instead of guessing.
+If the evaluation contract is still ambiguous after local analysis, record the ambiguity and recommended route durably, then return control to MAS outer loop instead of asking the user directly from scout.
 
 Use `references/eval-contract-template.md` when writing the contract durably.
 
@@ -509,11 +509,11 @@ Preferred artifact usage:
 - use `decision` for:
   - next-anchor recommendation
   - blocked-state routing
-  - structured user choice requests when evidence cannot resolve the ambiguity
+  - controller-visible ambiguity records when evidence cannot resolve the route
 - use `milestone` when the scout stage reached a clear framing checkpoint
 - use `approval` only if the user explicitly confirms a preference-sensitive route
 
-Use `artifact.interact(...)` for a structured decision request only when a real ambiguity remains and local evidence cannot safely resolve it.
+Use `artifact.interact(...)` as a structured blocking request only when the missing input is an external secret or credential that MAS cannot infer or act on.
 
 Do not close a scout stage that depended on external literature search without a durable `report`.
 

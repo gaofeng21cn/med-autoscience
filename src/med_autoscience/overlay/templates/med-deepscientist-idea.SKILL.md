@@ -954,7 +954,7 @@ Before selecting, perform a narrative defensibility precheck:
 
 If the direction is not defensible even in outline form, do not promote it just because it is implementable.
 
-If multiple directions remain plausible and the choice is materially preference-sensitive, ask the user for a structured decision instead of pretending the tradeoff is objective.
+If multiple directions remain plausible and the tradeoff is materially preference-sensitive, record the competing routes durably and hand the ambiguity back to MAS outer loop instead of asking the user directly from MDS.
 
 If the real issue is that literature coverage is weak or novelty is uncertain, route back to `scout` rather than forcing an idea selection.
 
@@ -962,7 +962,7 @@ When the stage reaches a route-shaping outcome, notify the user through `artifac
 
 - use a richer threaded `milestone` update when a selected idea package, a rejected-ideas summary, or a route back to `scout` is durably recorded
 - the update should name the winner or rejection result, the strongest supporting evidence, the main residual risk, and the exact recommended next stage
-- if more than one candidate remains genuinely plausible and preference-sensitive, use `reply_mode='blocking'` for the user decision instead of pretending the choice is objective
+- if more than one candidate remains genuinely plausible and preference-sensitive, record the ambiguity and recommended route, but keep the interaction threaded; do not open a blocking user decision from the idea stage
 
 ## Idea output contract
 

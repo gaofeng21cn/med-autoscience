@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.controllers import (
     publication_gate as publication_gate_controller,
+    study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
@@ -242,6 +243,7 @@ def _pending_user_interaction_payload(
     reply_mode = str(artifact_payload.get("reply_mode") or "").strip() or None
     return {
         "interaction_id": interaction_id,
+        "kind": str(artifact_payload.get("kind") or "").strip() or None,
         "waiting_interaction_id": waiting_interaction_id,
         "default_reply_interaction_id": default_reply_interaction_id,
         "pending_decisions": pending_decisions,
@@ -252,6 +254,17 @@ def _pending_user_interaction_payload(
         "message": str(artifact_payload.get("message") or "").strip() or None,
         "summary": str(artifact_payload.get("summary") or "").strip() or None,
         "reply_schema": reply_schema,
+        "decision_type": str(reply_schema.get("decision_type") or "").strip() or None,
+        "options_count": (
+            len(artifact_payload.get("options") or [])
+            if isinstance(artifact_payload.get("options"), list)
+            else 0
+        ),
+        "guidance_requires_user_decision": (
+            artifact_payload.get("guidance_vm", {}).get("requires_user_decision")
+            if isinstance(artifact_payload.get("guidance_vm"), dict)
+            else None
+        ),
         "source_artifact_path": str(interaction_artifact_path) if interaction_artifact_path is not None else None,
         "relay_required": True,
     }
@@ -266,8 +279,6 @@ def _record_pending_user_interaction_if_required(
 ) -> None:
     if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER:
         return
-    if status.decision is not StudyRuntimeDecision.BLOCKED:
-        return
     payload = _pending_user_interaction_payload(
         runtime_root=runtime_root,
         quest_root=quest_root,
@@ -276,6 +287,23 @@ def _record_pending_user_interaction_if_required(
     if payload is None:
         return
     status.record_pending_user_interaction(payload)
+
+
+def _record_interaction_arbitration_if_required(
+    *,
+    status: StudyRuntimeStatus,
+    execution: dict[str, object],
+    submission_metadata_only: bool,
+) -> None:
+    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER:
+        return
+    payload = status.extras.get("pending_user_interaction")
+    arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
+        pending_interaction=payload if isinstance(payload, dict) else None,
+        decision_policy=str(execution.get("decision_policy") or "").strip() or None,
+        submission_metadata_only=submission_metadata_only,
+    )
+    status.record_interaction_arbitration(arbitration)
 
 
 def _status_state(
@@ -327,6 +355,11 @@ def _status_state(
         enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
+    submission_metadata_only_wait = (
+        quest_exists
+        and quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER
+        and _waiting_submission_metadata_only(quest_root)
+    )
 
     result = StudyRuntimeStatus(
         schema_version=1,
@@ -349,20 +382,28 @@ def _status_state(
         automation_ready_summary=router.render_automation_ready_summary(),
     )
 
+    if quest_exists:
+        publication_gate_report = publication_gate_controller.build_gate_report(
+            publication_gate_controller.build_gate_state(quest_root)
+        )
+        result.record_publication_supervisor_state(
+            publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
+        )
+    else:
+        publication_gate_report = None
+    _record_pending_user_interaction_if_required(
+        status=result,
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    _record_interaction_arbitration_if_required(
+        status=result,
+        execution=execution,
+        submission_metadata_only=submission_metadata_only_wait,
+    )
+
     def _finalize_result() -> StudyRuntimeStatus:
-        if quest_exists:
-            publication_gate_report = publication_gate_controller.build_gate_report(
-                publication_gate_controller.build_gate_state(quest_root)
-            )
-            result.record_publication_supervisor_state(
-                publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
-            )
-            _record_pending_user_interaction_if_required(
-                status=result,
-                runtime_root=runtime_root,
-                quest_root=quest_root,
-                quest_id=quest_id,
-            )
         router._record_autonomous_runtime_notice_if_required(
             status=result,
             runtime_root=runtime_root,
@@ -410,6 +451,19 @@ def _status_state(
         )
         return _finalize_result()
     if completion_state.ready:
+        contract = completion_state.contract
+        if contract is not None and contract.requires_program_human_confirmation:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STUDY_COMPLETION_REQUIRES_PROGRAM_HUMAN_CONFIRMATION,
+            )
+            return _finalize_result()
+        if publication_gate_report is not None and str(publication_gate_report.get("status") or "").strip() != "clear":
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED,
+            )
+            return _finalize_result()
         if not quest_exists:
             result.set_decision(
                 StudyRuntimeDecision.COMPLETED,
@@ -582,17 +636,31 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
-        if _waiting_submission_metadata_only(quest_root):
-            if execution.get("auto_resume") is True:
+        interaction_arbitration = result.extras.get("interaction_arbitration")
+        if isinstance(interaction_arbitration, dict):
+            classification = str(interaction_arbitration.get("classification") or "").strip()
+            action = str(interaction_arbitration.get("action") or "").strip()
+            if action == "resume":
+                resume_reason = {
+                    "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                    "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(
                     StudyRuntimeDecision.RESUME,
-                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                    resume_reason,
                 )
-            else:
+                return _finalize_result()
+            if classification == "external_input_required":
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
-                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_EXTERNAL_INPUT,
                 )
+                return _finalize_result()
+        if submission_metadata_only_wait:
+            result.set_decision(
+                StudyRuntimeDecision.RESUME,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
             return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,

@@ -432,7 +432,7 @@ def test_chat_quest_posts_typed_decision_response_when_provided(monkeypatch, tmp
         text="structured approval",
         source="medautosci-test",
         reply_to_interaction_id="decision-001",
-        decision_response={"decision_type": "quest_completion_approval", "approved": True},
+        decision_response={"decision_type": "external_secret_request", "provided": True},
     )
 
     assert result == {"ok": True, "message": {"id": "msg-typed"}}
@@ -441,8 +441,8 @@ def test_chat_quest_posts_typed_decision_response_when_provided(monkeypatch, tmp
         "source": "medautosci-test",
         "reply_to_interaction_id": "decision-001",
         "decision_response": {
-            "decision_type": "quest_completion_approval",
-            "approved": True,
+            "decision_type": "external_secret_request",
+            "provided": True,
         },
     }
 
@@ -477,7 +477,7 @@ def test_artifact_interact_posts_payload(monkeypatch, tmp_path: Path) -> None:
     result = module.artifact_interact(
         runtime_root=runtime_root,
         quest_id="001-risk",
-        payload={"kind": "decision_request", "reply_schema": {"decision_type": "quest_completion_approval"}},
+        payload={"kind": "decision_request", "reply_schema": {"decision_type": "external_secret_request"}},
     )
 
     assert result == {"status": "ok", "interaction_id": "decision-001"}
@@ -485,7 +485,7 @@ def test_artifact_interact_posts_payload(monkeypatch, tmp_path: Path) -> None:
     assert seen["timeout"] == 10
     assert seen["payload"] == {
         "kind": "decision_request",
-        "reply_schema": {"decision_type": "quest_completion_approval"},
+        "reply_schema": {"decision_type": "external_secret_request"},
     }
 
 
@@ -531,114 +531,6 @@ def test_artifact_complete_quest_posts_summary(monkeypatch, tmp_path: Path) -> N
     assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/artifact/complete"
     assert seen["timeout"] == 10
     assert seen["payload"] == {"summary": "Study completed."}
-
-
-def test_sync_completion_with_approval_chains_transport_calls(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
-    runtime_root = tmp_path / "runtime"
-    calls: list[tuple[str, object]] = []
-
-    monkeypatch.setattr(
-        module,
-        "artifact_interact",
-        lambda *, runtime_root, quest_id, payload: calls.append(("request", payload))
-        or {
-            "status": "ok",
-            "interaction_id": "decision-001",
-        },
-    )
-    monkeypatch.setattr(
-        module,
-        "chat_quest",
-        lambda *, runtime_root, quest_id, text, source, reply_to_interaction_id=None, decision_response=None: calls.append(
-            (
-                "approve",
-                {
-                    "text": text,
-                    "source": source,
-                    "reply_to_interaction_id": reply_to_interaction_id,
-                    "decision_response": decision_response,
-                },
-            )
-        )
-        or {"ok": True, "message": {"id": "msg-approval"}},
-    )
-    monkeypatch.setattr(
-        module,
-        "artifact_complete_quest",
-        lambda *, runtime_root, quest_id, summary: calls.append(("complete", summary))
-        or {
-            "ok": True,
-            "status": "completed",
-            "snapshot": {"quest_id": quest_id, "status": "completed"},
-            "summary_refresh": {"ok": True},
-        },
-    )
-
-    result = module.sync_completion_with_approval(
-        runtime_root=runtime_root,
-        quest_id="001-risk",
-        decision_request_payload={"kind": "decision_request", "message": "approve completion"},
-        approval_text="同意",
-        summary="Study completed.",
-        source="medautosci-test",
-    )
-
-    assert result == {
-        "completion_request": {
-            "status": "ok",
-            "interaction_id": "decision-001",
-        },
-        "approval_message": {
-            "ok": True,
-            "message": {"id": "msg-approval"},
-        },
-        "completion": {
-            "ok": True,
-            "status": "completed",
-            "snapshot": {"quest_id": "001-risk", "status": "completed"},
-            "summary_refresh": {"ok": True},
-        },
-    }
-    assert calls == [
-        ("request", {"kind": "decision_request", "message": "approve completion"}),
-        (
-            "approve",
-            {
-                "text": "同意",
-                "source": "medautosci-test",
-                "reply_to_interaction_id": "decision-001",
-                "decision_response": {
-                    "decision_type": "quest_completion_approval",
-                    "approved": True,
-                },
-            },
-        ),
-        ("complete", "Study completed."),
-    ]
-
-
-def test_sync_completion_with_approval_rejects_invalid_transport_sequence(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
-    runtime_root = tmp_path / "runtime"
-
-    monkeypatch.setattr(
-        module,
-        "artifact_interact",
-        lambda *, runtime_root, quest_id, payload: {"status": "ok"},
-    )
-
-    with pytest.raises(RuntimeError, match="failed to create quest completion approval request"):
-        module.sync_completion_with_approval(
-            runtime_root=runtime_root,
-            quest_id="001-risk",
-            decision_request_payload={"kind": "decision_request"},
-            approval_text="同意",
-            summary="Study completed.",
-            source="medautosci-test",
-        )
-
-
 def test_post_quest_control_posts_json_payload(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     seen: dict[str, object] = {}

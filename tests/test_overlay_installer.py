@@ -507,6 +507,38 @@ def test_load_overlay_skill_text_for_write_keeps_author_metadata_gaps_non_blocki
     assert "title-page or declaration metadata and an auditable package already exists" in write_text
 
 
+def test_load_overlay_skill_text_for_decision_forbids_runtime_completion_approval_in_autonomous_mode() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    decision_text = module.load_overlay_skill_text("decision")
+
+    assert "do not emit ordinary `artifact.interact(kind='decision_request', ...)` calls" in decision_text
+    assert "completion is handled by MAS outer-loop policy" in decision_text
+    assert "must not open a runtime blocking approval request" in decision_text
+    assert "runtime blocking is reserved for external secrets or credentials only" in decision_text
+
+
+def test_load_overlay_skill_text_for_idea_and_scout_routes_ambiguity_back_to_mas_outer_loop() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    idea_text = module.load_overlay_skill_text("idea")
+    scout_text = module.load_overlay_skill_text("scout")
+
+    assert "hand the ambiguity back to MAS outer loop" in idea_text
+    assert "do not open a blocking user decision from the idea stage" in idea_text
+    assert "return control to MAS outer loop" in scout_text
+    assert "only when the missing input is an external secret or credential" in scout_text
+
+
+def test_load_overlay_skill_text_for_finalize_routes_completion_back_to_mas_outer_loop() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    finalize_text = module.load_overlay_skill_text("finalize")
+
+    assert "do not open runtime completion approval" in finalize_text
+    assert "completion handoff is decided by MAS outer loop" in finalize_text
+
+
 def test_load_overlay_skill_text_for_journal_resolution_requires_official_sources() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 

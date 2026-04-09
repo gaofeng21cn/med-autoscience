@@ -23,6 +23,7 @@ __all__ = [
     "StudyRuntimeDaemonStep",
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
+    "StudyRuntimeInteractionArbitration",
     "StudyRuntimeOverlayAudit",
     "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
@@ -71,6 +72,10 @@ class StudyRuntimeReason(StrEnum):
     QUEST_ALREADY_COMPLETED = "quest_already_completed"
     STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED = "study_completion_live_runtime_audit_failed"
     STUDY_COMPLETION_READY = "study_completion_ready"
+    STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED = "study_completion_publishability_gate_blocked"
+    STUDY_COMPLETION_REQUIRES_PROGRAM_HUMAN_CONFIRMATION = (
+        "study_completion_requires_program_human_confirmation"
+    )
     WORKSPACE_CONTRACT_NOT_READY = "workspace_contract_not_ready"
     STUDY_DATA_READINESS_BLOCKED = "study_data_readiness_blocked"
     STARTUP_CONTRACT_RESOLUTION_FAILED = "startup_contract_resolution_failed"
@@ -88,6 +93,8 @@ class StudyRuntimeReason(StrEnum):
     RESUME_REQUEST_FAILED = "resume_request_failed"
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
+    QUEST_WAITING_ON_INVALID_BLOCKING = "quest_waiting_on_invalid_blocking"
+    QUEST_WAITING_FOR_EXTERNAL_INPUT = "quest_waiting_for_external_input"
     QUEST_WAITING_FOR_SUBMISSION_METADATA = "quest_waiting_for_submission_metadata"
     QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED = (
         "quest_waiting_for_submission_metadata_but_auto_resume_disabled"
@@ -332,6 +339,7 @@ class StudyRuntimeExecutionOwnerGuard:
 @dataclass(frozen=True)
 class StudyRuntimePendingUserInteraction:
     interaction_id: str
+    kind: str | None
     waiting_interaction_id: str | None
     default_reply_interaction_id: str | None
     pending_decisions: tuple[str, ...]
@@ -342,13 +350,25 @@ class StudyRuntimePendingUserInteraction:
     message: str | None
     summary: str | None
     reply_schema: dict[str, Any]
+    decision_type: str | None
+    options_count: int
+    guidance_requires_user_decision: bool | None
     source_artifact_path: str | None
     relay_required: bool
 
     def __post_init__(self) -> None:
         if not isinstance(self.interaction_id, str) or not self.interaction_id.strip():
             raise TypeError("study runtime pending user interaction interaction_id must be non-empty str")
-        for field_name in ("waiting_interaction_id", "default_reply_interaction_id", "reply_mode", "message", "summary", "source_artifact_path"):
+        for field_name in (
+            "kind",
+            "waiting_interaction_id",
+            "default_reply_interaction_id",
+            "reply_mode",
+            "message",
+            "summary",
+            "decision_type",
+            "source_artifact_path",
+        ):
             value = getattr(self, field_name)
             if value is not None and not isinstance(value, str):
                 raise TypeError(f"study runtime pending user interaction {field_name} must be str or None")
@@ -358,6 +378,15 @@ class StudyRuntimePendingUserInteraction:
             raise TypeError("study runtime pending user interaction expects_reply must be bool")
         if not isinstance(self.allow_free_text, bool):
             raise TypeError("study runtime pending user interaction allow_free_text must be bool")
+        if not isinstance(self.options_count, int) or self.options_count < 0:
+            raise TypeError("study runtime pending user interaction options_count must be non-negative int")
+        if self.guidance_requires_user_decision is not None and not isinstance(
+            self.guidance_requires_user_decision,
+            bool,
+        ):
+            raise TypeError(
+                "study runtime pending user interaction guidance_requires_user_decision must be bool or None"
+            )
         if not isinstance(self.relay_required, bool):
             raise TypeError("study runtime pending user interaction relay_required must be bool")
         object.__setattr__(self, "pending_decisions", tuple(str(item) for item in self.pending_decisions if str(item).strip()))
@@ -366,6 +395,7 @@ class StudyRuntimePendingUserInteraction:
     def to_dict(self) -> dict[str, Any]:
         return {
             "interaction_id": self.interaction_id,
+            "kind": self.kind,
             "waiting_interaction_id": self.waiting_interaction_id,
             "default_reply_interaction_id": self.default_reply_interaction_id,
             "pending_decisions": list(self.pending_decisions),
@@ -376,6 +406,9 @@ class StudyRuntimePendingUserInteraction:
             "message": self.message,
             "summary": self.summary,
             "reply_schema": dict(self.reply_schema),
+            "decision_type": self.decision_type,
+            "options_count": self.options_count,
+            "guidance_requires_user_decision": self.guidance_requires_user_decision,
             "source_artifact_path": self.source_artifact_path,
             "relay_required": self.relay_required,
         }
@@ -396,6 +429,7 @@ class StudyRuntimePendingUserInteraction:
             raise TypeError("study runtime pending user interaction reply_schema must be a mapping")
         return cls(
             interaction_id=str(payload.get("interaction_id") or ""),
+            kind=str(payload.get("kind") or "").strip() or None,
             waiting_interaction_id=str(payload.get("waiting_interaction_id") or "").strip() or None,
             default_reply_interaction_id=str(payload.get("default_reply_interaction_id") or "").strip() or None,
             pending_decisions=tuple(str(item) for item in pending_decisions),
@@ -406,8 +440,60 @@ class StudyRuntimePendingUserInteraction:
             message=str(payload.get("message") or "").strip() or None,
             summary=str(payload.get("summary") or "").strip() or None,
             reply_schema=reply_schema,
+            decision_type=str(payload.get("decision_type") or "").strip() or None,
+            options_count=int(payload.get("options_count") or 0),
+            guidance_requires_user_decision=payload.get("guidance_requires_user_decision"),
             source_artifact_path=str(payload.get("source_artifact_path") or "").strip() or None,
             relay_required=bool(payload.get("relay_required")),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeInteractionArbitration:
+    classification: str
+    action: str
+    reason_code: str
+    requires_user_input: bool
+    valid_blocking: bool
+    kind: str | None
+    decision_type: str | None
+    source_artifact_path: str | None
+    controller_stage_note: str
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        for field_name in ("classification", "action", "reason_code", "controller_stage_note"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime interaction arbitration {field_name} must be non-empty str")
+        for field_name in ("kind", "decision_type", "source_artifact_path"):
+            value = getattr(self, field_name)
+            if value is not None and not isinstance(value, str):
+                raise TypeError(f"study runtime interaction arbitration {field_name} must be str or None")
+        if not isinstance(self.requires_user_input, bool):
+            raise TypeError("study runtime interaction arbitration requires_user_input must be bool")
+        if not isinstance(self.valid_blocking, bool):
+            raise TypeError("study runtime interaction arbitration valid_blocking must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeInteractionArbitration":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime interaction arbitration payload must be a mapping")
+        return cls(
+            classification=str(payload.get("classification") or ""),
+            action=str(payload.get("action") or ""),
+            reason_code=str(payload.get("reason_code") or ""),
+            requires_user_input=bool(payload.get("requires_user_input")),
+            valid_blocking=bool(payload.get("valid_blocking")),
+            kind=str(payload.get("kind") or "").strip() or None,
+            decision_type=str(payload.get("decision_type") or "").strip() or None,
+            source_artifact_path=str(payload.get("source_artifact_path") or "").strip() or None,
+            controller_stage_note=str(payload.get("controller_stage_note") or ""),
+            payload=dict(payload),
         )
 
 
@@ -1271,6 +1357,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("pending_user_interaction")
         return StudyRuntimePendingUserInteraction.from_payload(payload)
 
+    @property
+    def interaction_arbitration(self) -> StudyRuntimeInteractionArbitration:
+        payload = self.extras.get("interaction_arbitration")
+        if not isinstance(payload, dict):
+            raise KeyError("interaction_arbitration")
+        return StudyRuntimeInteractionArbitration.from_payload(payload)
+
     def record_completion_sync(
         self,
         value: dict[str, Any] | StudyCompletionSyncResult,
@@ -1330,6 +1423,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimePendingUserInteraction.from_payload(value)
         )
         self._record_dict_extra("pending_user_interaction", pending_user_interaction.to_dict())
+
+    def record_interaction_arbitration(
+        self,
+        value: dict[str, Any] | StudyRuntimeInteractionArbitration,
+    ) -> None:
+        interaction_arbitration = (
+            value
+            if isinstance(value, StudyRuntimeInteractionArbitration)
+            else StudyRuntimeInteractionArbitration.from_payload(value)
+        )
+        self._record_dict_extra("interaction_arbitration", interaction_arbitration.to_dict())
 
     def record_runtime_artifacts(
         self,

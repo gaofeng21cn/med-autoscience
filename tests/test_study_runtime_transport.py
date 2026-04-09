@@ -95,28 +95,3 @@ def test_study_runtime_transport_update_startup_context_omits_requested_baseline
 
     assert "requested_baseline_ref" not in seen["update_kwargs"]
     assert "requested_baseline_ref" not in result.to_dict()["snapshot"]
-
-
-def test_study_runtime_transport_sync_completion_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
-    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
-    router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
-    seen: dict[str, object] = {}
-
-    monkeypatch.setattr(
-        router.med_deepscientist_transport,
-        "sync_completion_with_approval",
-        lambda **kwargs: (seen.__setitem__("sync_kwargs", kwargs) or {"ok": True}),
-    )
-
-    decision_request_payload = {"kind": "decision_request"}
-    result = transport._sync_completion_with_approval(
-        runtime_root=tmp_path / "runtime",
-        quest_id="quest-001",
-        decision_request_payload=decision_request_payload,
-        approval_text="approved",
-        summary="done",
-        source="test",
-    )
-
-    assert seen["sync_kwargs"]["decision_request_payload"] == decision_request_payload
-    assert result == {"ok": True}

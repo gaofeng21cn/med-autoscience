@@ -24,10 +24,11 @@ class StudyCompletionContract:
     study_root: Path
     status: StudyCompletionContractStatus
     summary: str
-    user_approval_text: str
+    user_approval_text: str | None
     completed_at: str | None
     evidence_paths: tuple[str, ...]
     missing_evidence_paths: tuple[str, ...]
+    requires_program_human_confirmation: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "status", self._normalize_status(self.status))
@@ -60,10 +61,7 @@ class StudyCompletionContract:
             study_root=Path(study_root).expanduser(),
             status=_non_empty_string(payload.get("completion_status"), field_name="study completion state payload completion_status"),
             summary=_non_empty_string(payload.get("summary"), field_name="study completion state payload summary"),
-            user_approval_text=_non_empty_string(
-                payload.get("user_approval_text"),
-                field_name="study completion state payload user_approval_text",
-            ),
+            user_approval_text=_optional_string(payload.get("user_approval_text")),
             completed_at=_optional_string(payload.get("completed_at")),
             evidence_paths=_string_tuple(
                 payload.get("evidence_paths"),
@@ -75,6 +73,7 @@ class StudyCompletionContract:
                 field_name="study completion state payload missing_evidence_paths",
                 allow_empty=True,
             ),
+            requires_program_human_confirmation=bool(payload.get("requires_program_human_confirmation", False)),
         )
 
 
@@ -98,7 +97,10 @@ class StudyCompletionState:
             "status": self.status.value,
             "completion_status": contract.status.value if contract is not None else None,
             "summary": contract.summary if contract is not None else "",
-            "user_approval_text": contract.user_approval_text if contract is not None else "",
+            "user_approval_text": contract.user_approval_text if contract is not None and contract.user_approval_text else "",
+            "requires_program_human_confirmation": (
+                contract.requires_program_human_confirmation if contract is not None else False
+            ),
             "completed_at": contract.completed_at if contract is not None else None,
             "evidence_paths": list(contract.evidence_paths) if contract is not None else [],
             "missing_evidence_paths": list(contract.missing_evidence_paths) if contract is not None else [],
@@ -220,13 +222,11 @@ def resolve_study_completion_contract(*, study_root: Path | None) -> StudyComple
         study_root=resolved_study_root,
         status=StudyCompletionContractStatus(status),
         summary=_non_empty_string(raw_completion.get("summary"), field_name="study_completion.summary"),
-        user_approval_text=_non_empty_string(
-            raw_completion.get("user_approval_text"),
-            field_name="study_completion.user_approval_text",
-        ),
+        user_approval_text=_optional_string(raw_completion.get("user_approval_text")),
         completed_at=_optional_string(raw_completion.get("completed_at")),
         evidence_paths=evidence_paths,
         missing_evidence_paths=missing_evidence_paths,
+        requires_program_human_confirmation=bool(raw_completion.get("requires_program_human_confirmation", False)),
     )
 
 

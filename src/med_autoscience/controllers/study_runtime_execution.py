@@ -569,8 +569,6 @@ def _execute_completion_runtime_decision(
         router._sync_study_completion(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
-            study_id=context.study_id,
-            study_root=context.study_root,
             completion_state=context.completion_state,
             source=context.source,
         )

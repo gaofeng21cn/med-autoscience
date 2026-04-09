@@ -14,7 +14,8 @@ Use this skill to close or pause a quest responsibly.
 - If the runtime starts an auto-continue turn with no new user message, keep finalizing from the durable quest state and active requirements instead of replaying the previous user turn.
 - If a threaded user reply arrives, interpret it relative to the latest finalize progress update before assuming the task changed completely.
 - When finalize reaches a real closure state, pause-ready packet, or route-back decision, send one threaded `artifact.interact(kind='milestone', ...)` update that names the recommendation, why it is the right call, and any reopen condition that still matters.
-- True quest completion still requires explicit user approval through the runtime completion flow before calling `artifact.complete_quest(...)`.
+- In MAS-managed autonomous mode, do not open runtime completion approval. Finalize should materialize closure evidence and completion handoff is decided by MAS outer loop.
+- If the startup contract explicitly requires program-level human confirmation, stop at a MAS-visible blocker instead of emitting a direct runtime approval request.
 
 ## Stage purpose
 

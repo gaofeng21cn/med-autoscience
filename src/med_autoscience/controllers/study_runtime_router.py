@@ -18,7 +18,6 @@ from med_autoscience.controllers import (
     startup_hydration_validation as startup_hydration_validation_controller,
 )
 from med_autoscience.controllers.study_runtime_completion import (
-    _build_study_completion_request_message,
     _study_completion_state,
     _sync_study_completion,
 )
@@ -60,7 +59,6 @@ from med_autoscience.controllers.study_runtime_transport import (
     _inspect_quest_live_execution,
     _pause_quest,
     _resume_quest,
-    _sync_completion_with_approval,
     _update_quest_startup_context,
 )
 from med_autoscience.controllers.study_runtime_types import (
@@ -73,6 +71,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
     StudyRuntimeExecutionContext,
     StudyRuntimeExecutionOutcome,
+    StudyRuntimeInteractionArbitration,
     StudyRuntimeOverlayAudit,
     StudyRuntimeOverlayResult,
     StudyRuntimePendingUserInteraction,

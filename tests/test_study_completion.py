@@ -52,6 +52,7 @@ def test_resolve_study_completion_state_serializes_ready_contract(tmp_path: Path
         "completion_status": "completed",
         "summary": "Study is done.",
         "user_approval_text": "同意",
+        "requires_program_human_confirmation": False,
         "completed_at": "2026-04-03T00:00:00+00:00",
         "evidence_paths": [
             "manuscript/submission_manifest.json",
@@ -121,6 +122,7 @@ def test_resolve_study_completion_state_wraps_invalid_contract_as_invalid_state(
         "completion_status": None,
         "summary": "",
         "user_approval_text": "",
+        "requires_program_human_confirmation": False,
         "completed_at": None,
         "evidence_paths": [],
         "missing_evidence_paths": [],
@@ -170,6 +172,7 @@ def test_study_completion_state_from_payload_round_trips_resolved_contract() -> 
         "completion_status": "completed",
         "summary": "Study is done.",
         "user_approval_text": "同意",
+        "requires_program_human_confirmation": False,
         "completed_at": "2026-04-03T00:00:00+00:00",
         "evidence_paths": [
             "manuscript/submission_manifest.json",
@@ -203,6 +206,7 @@ def test_study_completion_state_from_payload_rejects_resolved_payload_without_co
                 "status": "resolved",
                 "summary": "Study is done.",
                 "user_approval_text": "同意",
+                "requires_program_human_confirmation": False,
                 "completed_at": "2026-04-03T00:00:00+00:00",
                 "evidence_paths": ["manuscript/submission_manifest.json"],
                 "missing_evidence_paths": [],
@@ -240,3 +244,32 @@ def test_resolve_study_completion_contract_rejects_unsupported_status(tmp_path: 
         assert "study_completion.status" in str(exc)
     else:
         raise AssertionError("expected ValueError for unsupported study_completion.status")
+
+
+def test_resolve_study_completion_state_accepts_autonomous_completion_contract_without_user_approval_text(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_completion")
+    study_root = tmp_path / "study"
+    write_text(
+        study_root / "study.yaml",
+        "\n".join(
+            [
+                "study_id: 001-risk",
+                "study_completion:",
+                "  status: completed",
+                "  summary: Study is done.",
+                "  evidence_paths:",
+                "    - manuscript/submission_manifest.json",
+                "",
+            ]
+        ),
+    )
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
+
+    state = module.resolve_study_completion_state(study_root=study_root)
+
+    assert state.ready is True
+    assert state.contract is not None
+    assert state.contract.user_approval_text is None
+    assert state.contract.requires_program_human_confirmation is False

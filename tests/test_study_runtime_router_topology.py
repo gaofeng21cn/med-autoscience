@@ -62,24 +62,24 @@ def test_study_runtime_router_resolve_study_uses_router_yaml_loader_binding(monk
     assert study_payload["title"] == "patched"
 
 
-def test_study_runtime_router_sync_completion_uses_router_message_builder_binding(monkeypatch, tmp_path: Path) -> None:
+def test_study_runtime_router_sync_completion_uses_router_artifact_complete_binding(monkeypatch, tmp_path: Path) -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        router,
-        "_build_study_completion_request_message",
-        lambda **kwargs: "patched completion message",
-    )
-    monkeypatch.setattr(
         router.med_deepscientist_transport,
-        "sync_completion_with_approval",
-        lambda **kwargs: seen.setdefault("decision_request_payload", kwargs["decision_request_payload"]) or {"ok": True},
+        "artifact_complete_quest",
+        lambda **kwargs: seen.setdefault("completion_kwargs", kwargs)
+        or {
+            "ok": True,
+            "status": "completed",
+            "snapshot": {"quest_id": kwargs["quest_id"], "status": "completed"},
+        },
     )
 
     class _Contract:
         summary = "summary"
-        user_approval_text = "approved"
+        requires_program_human_confirmation = False
 
     class _CompletionState:
         contract = _Contract()
@@ -87,13 +87,15 @@ def test_study_runtime_router_sync_completion_uses_router_message_builder_bindin
     router._sync_study_completion(
         runtime_root=tmp_path / "runtime",
         quest_id="quest-001",
-        study_id="study-001",
-        study_root=tmp_path / "study",
         completion_state=_CompletionState(),
         source="test",
     )
 
-    assert seen["decision_request_payload"]["message"] == "patched completion message"
+    assert seen["completion_kwargs"] == {
+        "runtime_root": tmp_path / "runtime",
+        "quest_id": "quest-001",
+        "summary": "summary",
+    }
 
 
 def test_study_runtime_router_create_quest_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
@@ -244,7 +246,6 @@ def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -
     assert router._resume_quest is transport._resume_quest
     assert router._pause_quest is transport._pause_quest
     assert router._update_quest_startup_context is transport._update_quest_startup_context
-    assert router._sync_completion_with_approval is transport._sync_completion_with_approval
     assert router._load_yaml_dict is resolution._load_yaml_dict
     assert router._resolve_study is resolution._resolve_study
     assert router._execution_payload is resolution._execution_payload
@@ -270,7 +271,6 @@ def test_study_runtime_router_reexports_split_startup_and_completion_helpers() -
     assert router._run_startup_hydration is startup._run_startup_hydration
     assert router._sync_existing_quest_startup_context is startup._sync_existing_quest_startup_context
     assert router._study_completion_state is completion._study_completion_state
-    assert router._build_study_completion_request_message is completion._build_study_completion_request_message
     assert router._sync_study_completion is completion._sync_study_completion
 
 

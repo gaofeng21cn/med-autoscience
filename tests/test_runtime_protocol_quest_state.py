@@ -8,6 +8,7 @@ from med_autoscience.runtime_protocol.quest_state import (
     QuestRuntimeSnapshot,
     find_latest_main_result_path,
     inspect_quest_runtime,
+    iter_active_quests,
     load_runtime_state,
     read_recent_stdout_lines,
     resolve_active_stdout_path,
@@ -169,3 +170,27 @@ def test_quest_runtime_snapshot_normalizes_runtime_liveness_status_values() -> N
     assert none_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.NONE
     assert unknown_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.UNKNOWN
     assert other_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.OTHER
+
+
+def test_iter_active_quests_includes_waiting_for_user_for_outer_loop_arbitration(tmp_path: Path) -> None:
+    runtime_root = tmp_path / "runtime" / "quests"
+    statuses = {
+        "q-running": "running",
+        "q-active": "active",
+        "q-waiting": "waiting_for_user",
+        "q-stopped": "stopped",
+        "q-completed": "completed",
+    }
+
+    for quest_id, status in statuses.items():
+        dump_json(
+            runtime_root / quest_id / ".ds" / "runtime_state.json",
+            {
+                "quest_id": quest_id,
+                "status": status,
+            },
+        )
+
+    quests = iter_active_quests(runtime_root)
+
+    assert [quest_root.name for quest_root in quests] == ["q-active", "q-running", "q-waiting"]

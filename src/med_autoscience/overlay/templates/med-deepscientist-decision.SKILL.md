@@ -14,9 +14,10 @@ Use this skill whenever continuation is non-trivial.
 - Message templates are references only. Adapt to context and vary wording so updates feel natural and non-robotic.
 - If the runtime starts an auto-continue turn with no new user message, continue from the active requirements and durable quest state instead of replaying the previous user turn.
 - If `startup_contract.decision_policy = autonomous`, do not emit ordinary `artifact.interact(kind='decision_request', ...)` calls; decide the route yourself, record the reason, and continue.
-- Use `reply_mode='blocking'` for the actual decision request only when the user must choose before safe continuation and the quest contract still allows a user-gated decision.
+- In MAS-managed mode, do not use runtime blocking for internal route selection, finalize transitions, package adequacy, publishability, or completion coordination.
 - If a threaded user reply arrives, interpret it relative to the latest decision or progress interaction before assuming the task changed completely.
-- Quest completion is a special terminal decision: first ask for explicit completion approval with `artifact.interact(kind='decision_request', reply_mode='blocking', reply_schema={'decision_type': 'quest_completion_approval'}, ...)`, and only after an explicit approval reply should you call `artifact.complete_quest(...)`.
+- In MAS-managed autonomous mode, completion is handled by MAS outer-loop policy; MDS must not open a runtime blocking approval request for routine quest closure.
+- Only explicit external secrets or credentials that MAS cannot infer or act on may become runtime blocking requests.
 
 ## Stage purpose
 
@@ -32,7 +33,7 @@ It is a cross-cutting control skill that should be used whenever the quest must 
 - whether to finalize
 - whether to reset
 - whether to stop
-- whether to ask the user for a structured decision
+- whether to escalate an unresolved ambiguity back to MAS outer loop
 
 {{MED_AUTOSCIENCE_AUTOMATION_READY}}
 
@@ -116,7 +117,6 @@ Use the following canonical actions:
 - `iterate`
 - `reset`
 - `stop`
-- `request_user_decision`
 
 Choose the smallest action that genuinely resolves the current state.
 
@@ -345,7 +345,7 @@ Useful optional fields include:
 When a decision materially changes the route, follow it with the appropriate user-visible `artifact.interact(...)` update:
 
 - use threaded `artifact.interact(kind='milestone', reply_mode='threaded', ...)` when the decision is already durably resolved and the quest can continue automatically
-- use `reply_mode='blocking'` only when the user must choose before safe continuation and `startup_contract.decision_policy` is not `autonomous`
+- use `reply_mode='blocking'` only for explicit external secret or credential requests that MAS cannot infer or act on
 - the user-facing update should name the chosen action, the decisive evidence, the rejected alternative, and the next checkpoint
 
 This is especially useful for:
@@ -357,22 +357,23 @@ This is especially useful for:
 - post-campaign routing
 - stop / pivot / finalize choices
 
-### 5. Request user input only when needed
+### 5. Escalate only true external input gaps
 
-Ask the user only when:
+Do not ask the user to resolve ordinary route ambiguity, finalize timing, package adequacy, or publishability judgments from inside MDS.
 
-- multiple options are all plausible
-- the choice depends on preference, cost, or scope
-- the missing information cannot be derived locally
+Escalate a blocking interaction only when:
 
-When asking, use a structured decision request with:
+- the missing input is an external secret or credential
+- MAS cannot derive it from durable state
+- MAS cannot act on the user's behalf without that input
+
+When escalating that external gap, use a structured request with:
 
 - concise question
-- 1 to 3 concrete options
-- tradeoffs, including the main pros and cons for each option
-- recommended option first
+- the exact missing credential or secret
+- why continuation is impossible without it
 - explicit reply format
-- a stated timeout window; normally wait up to 1 day before self-resolving if no user reply arrives, except when the only blocker is a missing external credential or secret that only the user can provide
+- no fake options when the gap is not actually a choice
 
 ### 6. Record the decision durably
 
@@ -383,12 +384,11 @@ For `write` or `finalize` actions, include a durable writing contract payload, f
 - `submission_minimal_required`
 - `terminology_redlines`
 
-If user input is needed, also use `artifact.interact(kind='decision_request', ...)`.
-If the timeout expires without a user reply, choose the best option yourself, record why, and notify the user of the chosen option before moving on.
-This does not apply when the only blocker is a missing external credential or secret that only the user can provide; in that case keep the interaction waiting and, if resumed without the credential, you may park with `bash_exec(command='sleep 3600', mode='await', timeout_seconds=3700)` instead of busy-looping.
+If a true external secret or credential is needed, also use `artifact.interact(kind='decision_request', ...)`.
+If the timeout expires without a user reply, do not invent a substitute; keep the blocker explicit and avoid busy-looping.
 
-If `startup_contract.decision_policy = autonomous`, ordinary route ambiguity is not by itself grounds to request user input.
-In that mode, only explicit approval-style exceptions such as quest completion should normally become blocking user decisions.
+If `startup_contract.decision_policy = autonomous`, ordinary route ambiguity is never grounds to request user input.
+In MAS-managed mode, runtime blocking is reserved for external secrets or credentials only.
 
 ## Decision-quality rules
 

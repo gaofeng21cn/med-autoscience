@@ -807,53 +807,6 @@ def artifact_complete_quest(
         url=f"{base_url}/api/quests/{quote(quest_id, safe='')}/artifact/complete",
         payload={"summary": summary},
     )
-
-
-def sync_completion_with_approval(
-    *,
-    runtime_root: Path,
-    quest_id: str,
-    decision_request_payload: dict[str, Any],
-    approval_text: str,
-    summary: str,
-    source: str,
-) -> dict[str, Any]:
-    request_result = artifact_interact(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        payload=decision_request_payload,
-    )
-    interaction_id = str(request_result.get("interaction_id") or "").strip()
-    if str(request_result.get("status") or "").strip() != "ok" or not interaction_id:
-        raise RuntimeError("failed to create quest completion approval request")
-    approval_message = chat_quest(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        text=approval_text,
-        source=source,
-        reply_to_interaction_id=interaction_id,
-        decision_response={
-            "decision_type": "quest_completion_approval",
-            "approved": True,
-        },
-    )
-    if approval_message.get("ok") is not True:
-        raise RuntimeError("failed to bind study-level approval into managed quest")
-    completion_result = artifact_complete_quest(
-        runtime_root=runtime_root,
-        quest_id=quest_id,
-        summary=summary,
-    )
-    completion_result = _normalize_stable_artifact_completion_result(payload=completion_result)
-    if str(completion_result.get("status") or "").strip() not in {"completed", "already_completed"}:
-        raise RuntimeError("managed quest completion did not reach completed state")
-    return {
-        "completion_request": request_result,
-        "approval_message": approval_message,
-        "completion": completion_result,
-    }
-
-
 def post_quest_control(
     *,
     quest_id: str,

@@ -494,7 +494,7 @@ def test_reapplies_when_fingerprint_changes(tmp_path: Path) -> None:
     assert calls == [False, True, False, True]
 
 
-def test_scan_runtime_only_processes_active_quests(tmp_path: Path) -> None:
+def test_scan_runtime_processes_live_and_waiting_for_user_quests(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     except ModuleNotFoundError:
@@ -504,6 +504,7 @@ def test_scan_runtime_only_processes_active_quests(tmp_path: Path) -> None:
     runtime_root = tmp_path / "runtime" / "quests"
     make_quest(tmp_path, "q-running", status="running")
     make_quest(tmp_path, "q-active", status="active")
+    make_quest(tmp_path, "q-waiting", status="waiting_for_user")
     make_quest(tmp_path, "q-stopped", status="stopped")
     make_quest(tmp_path, "q-completed", status="completed")
     seen: list[str] = []
@@ -524,8 +525,8 @@ def test_scan_runtime_only_processes_active_quests(tmp_path: Path) -> None:
         apply=False,
     )
 
-    assert sorted(seen) == ["q-active", "q-running"]
-    assert sorted(result["scanned_quests"]) == ["q-active", "q-running"]
+    assert sorted(seen) == ["q-active", "q-running", "q-waiting"]
+    assert sorted(result["scanned_quests"]) == ["q-active", "q-running", "q-waiting"]
 
 
 def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path, monkeypatch) -> None:

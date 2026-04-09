@@ -212,6 +212,7 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     profile = make_profile(tmp_path)
     write_study(
         profile.workspace_root,
@@ -242,6 +243,21 @@ def test_ensure_study_runtime_uses_protocol_runtime_root_for_transport_calls(
         module.startup_data_readiness_controller,
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "clear",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
     )
     monkeypatch.setattr(
         module.study_runtime_protocol,
@@ -294,6 +310,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -868,6 +885,7 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -910,6 +928,21 @@ def test_study_runtime_status_prefers_study_completion_contract_over_boundary_ga
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "clear",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
@@ -924,6 +957,7 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -967,28 +1001,29 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "clear",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
-        "sync_completion_with_approval",
-        lambda *, runtime_root, quest_id, decision_request_payload, approval_text, summary, source: {
-            "completion_request": {
-                "status": "ok",
-                "interaction_id": "decision-001",
-                "payload": decision_request_payload,
-            },
-            "approval_message": {
-                "ok": True,
-                "message": {
-                    "id": "msg-approval",
-                    "content": approval_text,
-                },
-            },
-            "completion": {
-                "ok": True,
-                "status": "completed",
-                "snapshot": {"quest_id": quest_id, "status": "completed"},
-                "message": summary,
-            },
+        "artifact_complete_quest",
+        lambda *, runtime_root, quest_id, summary: {
+            "ok": True,
+            "status": "completed",
+            "snapshot": {"quest_id": quest_id, "status": "completed"},
+            "message": summary,
         },
     )
 
@@ -1005,36 +1040,115 @@ def test_ensure_study_runtime_syncs_study_completion_into_managed_quest(
     assert launch_report["reason"] == "study_completion_synced"
 
 
-def test_build_study_completion_request_message_accepts_typed_completion_state(tmp_path: Path) -> None:
+def test_ensure_study_runtime_keeps_completion_blocked_when_publishability_gate_is_not_clear(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_status="completed",
+        quest_id="001-risk-managed",
+        study_completion={
+            "status": "completed",
+            "summary": "Study-level finalized delivery is complete.",
+            "evidence_paths": [
+                "notes/revision_status.md",
+                "manuscript/submission_manifest.json",
+            ],
+        },
+    )
+    write_text(study_root / "notes" / "revision_status.md", "# Revision\n")
+    write_text(study_root / "manuscript" / "submission_manifest.json", "{}\n")
+
+    monkeypatch.setattr(
+        module.quest_state,
+        "inspect_quest_runtime",
+        lambda quest_root: module.quest_state.QuestRuntimeSnapshot(
+            quest_exists=True,
+            quest_status="paused",
+            bash_session_audit=None,
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": ["finalize_paper_line"],
+            "controller_stage_note": "scientific publishability is not yet adequate for completion sync",
+        },
+    )
+
+    def _unexpected_completion(**kwargs):
+        raise AssertionError("artifact_complete_quest must not run while publishability gate is blocked")
+
+    monkeypatch.setattr(module.med_deepscientist_transport, "artifact_complete_quest", _unexpected_completion)
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "study_completion_publishability_gate_blocked"
+    assert result["study_completion_contract"]["status"] == "resolved"
+    assert result["study_completion_contract"]["ready"] is True
+
+
+def test_sync_study_completion_rejects_program_human_confirmation_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     completion_module = importlib.import_module("med_autoscience.study_completion")
-    study_root = tmp_path / "study"
     completion_state = completion_module.StudyCompletionState(
         status=completion_module.StudyCompletionStateStatus.RESOLVED,
         contract=completion_module.StudyCompletionContract(
-            study_root=study_root,
+            study_root=tmp_path / "study",
             status=completion_module.StudyCompletionContractStatus.COMPLETED,
             summary="Study-level finalized delivery is complete.",
-            user_approval_text="同意",
+            user_approval_text=None,
             completed_at="2026-04-03T00:00:00+00:00",
             evidence_paths=(
                 "notes/revision_status.md",
                 "manuscript/submission_manifest.json",
             ),
             missing_evidence_paths=(),
+            requires_program_human_confirmation=True,
         ),
         errors=(),
     )
 
-    message = module._build_study_completion_request_message(
-        study_id="001-risk",
-        study_root=study_root,
-        completion_state=completion_state,
-    )
-
-    assert "Completion summary: Study-level finalized delivery is complete." in message
-    assert "- `notes/revision_status.md`" in message
-    assert "Please record explicit quest-completion approval" in message
+    try:
+        module._sync_study_completion(
+            runtime_root=tmp_path / "runtime",
+            quest_id="001-risk",
+            completion_state=completion_state,
+            source="medautosci-test",
+        )
+    except ValueError as exc:
+        assert "requires MAS outer-loop human confirmation" in str(exc)
+    else:
+        raise AssertionError("expected ValueError when completion contract requires program human confirmation")
 
 
 def test_ensure_study_runtime_prefers_runtime_reentry_anchor_when_configured(
@@ -4218,11 +4332,12 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "quest_waiting_for_user"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "waiting_for_user"
     assert result["pending_user_interaction"] == {
         "interaction_id": "progress-standby-001",
+        "kind": "progress",
         "waiting_interaction_id": "progress-standby-001",
         "default_reply_interaction_id": "progress-standby-001",
         "pending_decisions": ["progress-standby-001"],
@@ -4233,10 +4348,29 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
         "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
         "summary": "等待 Gateway 侧转发新的用户指令。",
         "reply_schema": {"type": "free_text"},
+        "decision_type": None,
+        "options_count": 0,
+        "guidance_requires_user_decision": None,
         "source_artifact_path": str(
             quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-standby-001.json"
         ),
         "relay_required": True,
+    }
+    assert result["interaction_arbitration"] == {
+        "classification": "invalid_blocking",
+        "action": "resume",
+        "reason_code": "blocking_requires_structured_decision_request",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "progress",
+        "decision_type": None,
+        "source_artifact_path": str(
+            quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-standby-001.json"
+        ),
+        "controller_stage_note": (
+            "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
+            "runtime blocking is rejected unless it is a valid structured decision request."
+        ),
     }
 
 
@@ -4290,6 +4424,118 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "waiting_for_user"
+
+
+def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-invalid-001.json",
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": "progress-invalid-001",
+                "id": "progress-invalid-001",
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "status": "active",
+                "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
+                "summary": "等待 Gateway 侧转发新的用户指令。",
+                "interaction_phase": "ack",
+                "importance": "info",
+                "interaction_id": "progress-invalid-001",
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "surface_actions": [],
+                "options": [],
+                "allow_free_text": True,
+                "reply_schema": {"type": "free_text"},
+                "guidance_vm": {"requires_user_decision": False},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": "progress-invalid-001",
+                "default_reply_interaction_id": "progress-invalid-001",
+                "pending_decisions": ["progress-invalid-001"],
+                "active_interaction_id": "progress-invalid-001",
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["interaction_arbitration"] == {
+        "classification": "invalid_blocking",
+        "action": "resume",
+        "reason_code": "blocking_requires_structured_decision_request",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "progress",
+        "decision_type": None,
+        "source_artifact_path": str(
+            quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-invalid-001.json"
+        ),
+        "controller_stage_note": (
+            "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
+            "runtime blocking is rejected unless it is a valid structured decision request."
+        ),
+    }
 
 
 def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(monkeypatch, tmp_path: Path) -> None:
