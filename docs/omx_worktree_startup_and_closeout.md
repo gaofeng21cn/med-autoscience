@@ -199,6 +199,72 @@ git worktree add .worktrees/codex/<lane>-<timestamp> -b codex/<lane>-<timestamp>
 
 如果不先固定这些，后面再强行追溯上下文，污染会迅速放大。
 
+## `medical-display-mainline` 的推荐启动形态
+
+`medical-display-mainline` 现在不是“偶尔修一张图”的短线，而是一条持续滚动的 display 主线。
+
+因此它的正确启动方式应固定为两层：
+
+### 第一层：根工作树上的主线控制面
+
+根工作树只负责：
+
+- 读取 `docs/medical_display_*` 的 tracked 真相；
+- 读取 `.omx/reports/medical-display-mainline/*` 的 baton 与 backlog；
+- 判定当前 phase；
+- 决定下一簇 capability cluster；
+- 在上一轮 merge-back 后做清理与 reroute。
+
+根工作树 **不应** 直接承载 display 的长期实现。
+
+### 第二层：独立 owner worktree 上的重型执行面
+
+一旦 display 主线进入以下任一状态：
+
+- 当前 next cluster 已选定；
+- owner brief 已收口；
+- 需要进入 `Phase 2` 的 tracked code / tracked docs 改动；
+- 需要长期 `ralph` 外循环推进；
+
+就必须：
+
+1. 从最新 `main` 新开唯一 owner worktree；
+2. 只在该 owner worktree 内启动重型 OMX；
+3. 用 `leader-only / single-lane` 承接 display 核心写集；
+4. 完成后 merge-back、清理 worktree / branch；
+5. 再回到根工作树进入下一轮 reroute。
+
+### display 主线的默认循环
+
+`medical-display-mainline` 的正常工作节奏应固定理解为：
+
+1. 根工作树做 `Phase 4` 路由与 owner brief 收口；
+2. 新开 owner worktree，进入 `Phase 2` capability cluster 实现；
+3. 若真实图面暴露 paper-facing 问题，则进入 `Phase 3` visual audit；
+4. 回到 `Phase 5` merge-back / cleanup；
+5. 再回根工作树继续下一轮 `Phase 4`。
+
+这里的 phase 边界是 **阶段切换点**，不是默认停车点。
+
+### display 主线的当前推荐实践
+
+对当前 `medical-display-mainline`，建议固定使用两类 prompt：
+
+- 根工作树：
+  - `.omx/context/OMX_MEDICAL_DISPLAY_MAINLINE_AUTOPILOT_PROMPT.md`
+  - `.omx/context/OMX_MEDICAL_DISPLAY_MAINLINE_SHORT_PROMPT.md`
+- 新开的 owner worktree：
+  - 针对当前 cluster 的 owner prompt，例如 `.omx/context/OMX_MEDICAL_DISPLAY_SPATIAL_OWNER_REOPEN_PROMPT.md`
+
+这样可以把：
+
+- 主线控制面；
+- 当前 implementation baton；
+- worktree 隔离纪律；
+- merge-back 之后的自动续跑；
+
+放在稳定、可复用、可审计的 surface 上，而不是靠会话记忆维持。
+
 ## 执行中纪律
 
 ### 1. 不在同一个 cwd 里再开第二条重型线
