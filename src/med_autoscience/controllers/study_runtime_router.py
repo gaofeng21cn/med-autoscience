@@ -75,6 +75,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeExecutionOutcome,
     StudyRuntimeOverlayAudit,
     StudyRuntimeOverlayResult,
+    StudyRuntimePendingUserInteraction,
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimePublicationSupervisorState,
     StudyRuntimeQuestStatus,

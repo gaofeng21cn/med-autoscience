@@ -229,6 +229,24 @@ def make_execution_owner_guard_payload(
     }
 
 
+def make_pending_user_interaction_payload() -> dict[str, object]:
+    return {
+        "interaction_id": "progress-standby-001",
+        "waiting_interaction_id": "progress-standby-001",
+        "default_reply_interaction_id": "progress-standby-001",
+        "pending_decisions": ["progress-standby-001"],
+        "blocking": True,
+        "reply_mode": "blocking",
+        "expects_reply": True,
+        "allow_free_text": True,
+        "message": "[等待决策] 请由 Gateway 接管并转发给用户。",
+        "summary": "等待新的用户消息。",
+        "reply_schema": {"type": "free_text"},
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/.ds/worktrees/paper-main/artifacts/progress/progress-standby-001.json",
+        "relay_required": True,
+    }
+
+
 def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
@@ -258,6 +276,14 @@ def test_study_runtime_types_reexports_execution_owner_guard_surface() -> None:
     assert typed_surface.StudyRuntimeExecutionOwnerGuard.__module__ == status_surface.__name__
 
 
+def test_study_runtime_types_reexports_pending_user_interaction_surface() -> None:
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+
+    assert typed_surface.StudyRuntimePendingUserInteraction is status_surface.StudyRuntimePendingUserInteraction
+    assert typed_surface.StudyRuntimePendingUserInteraction.__module__ == status_surface.__name__
+
+
 def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
@@ -274,6 +300,7 @@ def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types()
     assert router.StudyRuntimeAnalysisBundleResult is typed_surface.StudyRuntimeAnalysisBundleResult
     assert router.StudyRuntimeOverlayAudit is typed_surface.StudyRuntimeOverlayAudit
     assert router.StudyRuntimeOverlayResult is typed_surface.StudyRuntimeOverlayResult
+    assert router.StudyRuntimePendingUserInteraction is typed_surface.StudyRuntimePendingUserInteraction
     assert router.StudyRuntimeStartupContextSyncResult is typed_surface.StudyRuntimeStartupContextSyncResult
     assert router.StudyRuntimePartialQuestRecoveryResult is typed_surface.StudyRuntimePartialQuestRecoveryResult
     assert router.StudyRuntimeWorkspaceContractsSummary is typed_surface.StudyRuntimeWorkspaceContractsSummary
@@ -815,6 +842,18 @@ def test_study_runtime_status_records_execution_owner_guard_payload() -> None:
     assert status.execution_owner_guard.owner == "managed_runtime"
     assert status.execution_owner_guard.supervisor_only is True
     assert status.execution_owner_guard.takeover_required is True
+
+
+def test_study_runtime_status_records_pending_user_interaction_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(make_status_payload())
+
+    status.record_pending_user_interaction(make_pending_user_interaction_payload())
+
+    assert status.to_dict()["pending_user_interaction"] == make_pending_user_interaction_payload()
+    assert status.pending_user_interaction.interaction_id == "progress-standby-001"
+    assert status.pending_user_interaction.blocking is True
+    assert status.pending_user_interaction.relay_required is True
 
 
 def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:

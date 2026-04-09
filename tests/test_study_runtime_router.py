@@ -4127,6 +4127,119 @@ def test_study_runtime_status_reports_waiting_for_user_quest_as_blocked(monkeypa
     assert result["quest_status"] == "waiting_for_user"
 
 
+def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-standby-001.json",
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": "progress-standby-001",
+                "id": "progress-standby-001",
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "status": "active",
+                "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
+                "summary": "等待 Gateway 侧转发新的用户指令。",
+                "interaction_phase": "ack",
+                "importance": "info",
+                "interaction_id": "progress-standby-001",
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "surface_actions": [],
+                "options": [],
+                "allow_free_text": True,
+                "reply_schema": {"type": "free_text"},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": "progress-standby-001",
+                "default_reply_interaction_id": "progress-standby-001",
+                "pending_decisions": ["progress-standby-001"],
+                "active_interaction_id": "progress-standby-001",
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_user"
+    assert result["quest_status"] == "waiting_for_user"
+    assert result["pending_user_interaction"] == {
+        "interaction_id": "progress-standby-001",
+        "waiting_interaction_id": "progress-standby-001",
+        "default_reply_interaction_id": "progress-standby-001",
+        "pending_decisions": ["progress-standby-001"],
+        "blocking": True,
+        "reply_mode": "blocking",
+        "expects_reply": True,
+        "allow_free_text": True,
+        "message": "[等待决策] 这一步已经处理完，等待 Gateway 接管并转发给用户。",
+        "summary": "等待 Gateway 侧转发新的用户指令。",
+        "reply_schema": {"type": "free_text"},
+        "source_artifact_path": str(
+            quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-standby-001.json"
+        ),
+        "relay_required": True,
+    }
+
+
 def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(
     monkeypatch,
     tmp_path: Path,

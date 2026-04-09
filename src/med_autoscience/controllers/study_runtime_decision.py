@@ -181,6 +181,103 @@ def _record_execution_owner_guard(
     status.record_execution_owner_guard(StudyRuntimeExecutionOwnerGuard.from_payload(payload))
 
 
+def _load_json_dict(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id: str) -> Path | None:
+    resolved_interaction_id = str(interaction_id or "").strip()
+    if not resolved_interaction_id:
+        return None
+    candidates: list[Path] = []
+    patterns = (
+        f".ds/worktrees/*/artifacts/*/{resolved_interaction_id}.json",
+        f"artifacts/*/{resolved_interaction_id}.json",
+    )
+    for pattern in patterns:
+        candidates.extend(quest_root.glob(pattern))
+    return quest_state.find_latest(candidates)
+
+
+def _pending_user_interaction_payload(
+    *,
+    runtime_root: Path,
+    quest_root: Path,
+    quest_id: str,
+) -> dict[str, object] | None:
+    router = _router_module()
+    try:
+        session_payload = router.med_deepscientist_transport.get_quest_session(
+            runtime_root=runtime_root,
+            quest_id=quest_id,
+        )
+    except (RuntimeError, OSError, ValueError):
+        return None
+    snapshot = session_payload.get("snapshot")
+    if not isinstance(snapshot, dict):
+        return None
+    waiting_interaction_id = str(snapshot.get("waiting_interaction_id") or "").strip() or None
+    default_reply_interaction_id = str(snapshot.get("default_reply_interaction_id") or "").strip() or None
+    raw_pending_decisions = snapshot.get("pending_decisions")
+    pending_decisions = (
+        [str(item).strip() for item in raw_pending_decisions if str(item).strip()]
+        if isinstance(raw_pending_decisions, list)
+        else []
+    )
+    interaction_id = waiting_interaction_id or default_reply_interaction_id or (pending_decisions[0] if pending_decisions else None)
+    if interaction_id is None:
+        return None
+    interaction_artifact_path = _find_pending_interaction_artifact_path(
+        quest_root=quest_root,
+        interaction_id=interaction_id,
+    )
+    artifact_payload = _load_json_dict(interaction_artifact_path) if interaction_artifact_path is not None else {}
+    reply_schema = artifact_payload.get("reply_schema")
+    if not isinstance(reply_schema, dict):
+        reply_schema = {}
+    reply_mode = str(artifact_payload.get("reply_mode") or "").strip() or None
+    return {
+        "interaction_id": interaction_id,
+        "waiting_interaction_id": waiting_interaction_id,
+        "default_reply_interaction_id": default_reply_interaction_id,
+        "pending_decisions": pending_decisions,
+        "blocking": reply_mode == "blocking" or waiting_interaction_id == interaction_id,
+        "reply_mode": reply_mode,
+        "expects_reply": bool(artifact_payload.get("expects_reply", waiting_interaction_id == interaction_id)),
+        "allow_free_text": bool(artifact_payload.get("allow_free_text", True)),
+        "message": str(artifact_payload.get("message") or "").strip() or None,
+        "summary": str(artifact_payload.get("summary") or "").strip() or None,
+        "reply_schema": reply_schema,
+        "source_artifact_path": str(interaction_artifact_path) if interaction_artifact_path is not None else None,
+        "relay_required": True,
+    }
+
+
+def _record_pending_user_interaction_if_required(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_root: Path,
+    quest_root: Path,
+    quest_id: str,
+) -> None:
+    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER:
+        return
+    if status.decision is not StudyRuntimeDecision.BLOCKED:
+        return
+    payload = _pending_user_interaction_payload(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if payload is None:
+        return
+    status.record_pending_user_interaction(payload)
+
+
 def _status_state(
     *,
     profile: WorkspaceProfile,
@@ -259,6 +356,12 @@ def _status_state(
             )
             result.record_publication_supervisor_state(
                 publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
+            )
+            _record_pending_user_interaction_if_required(
+                status=result,
+                runtime_root=runtime_root,
+                quest_root=quest_root,
+                quest_id=quest_id,
             )
         router._record_autonomous_runtime_notice_if_required(
             status=result,

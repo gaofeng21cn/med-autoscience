@@ -25,6 +25,7 @@ __all__ = [
     "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeOverlayAudit",
     "StudyRuntimeOverlayResult",
+    "StudyRuntimePendingUserInteraction",
     "StudyRuntimePartialQuestRecoveryResult",
     "StudyRuntimePublicationSupervisorState",
     "StudyRuntimeQuestStatus",
@@ -325,6 +326,88 @@ class StudyRuntimeExecutionOwnerGuard:
             publication_gate_allows_direct_write=publication_gate_allows_direct_write,
             controller_stage_note=str(payload.get("controller_stage_note") or ""),
             payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimePendingUserInteraction:
+    interaction_id: str
+    waiting_interaction_id: str | None
+    default_reply_interaction_id: str | None
+    pending_decisions: tuple[str, ...]
+    blocking: bool
+    reply_mode: str | None
+    expects_reply: bool
+    allow_free_text: bool
+    message: str | None
+    summary: str | None
+    reply_schema: dict[str, Any]
+    source_artifact_path: str | None
+    relay_required: bool
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.interaction_id, str) or not self.interaction_id.strip():
+            raise TypeError("study runtime pending user interaction interaction_id must be non-empty str")
+        for field_name in ("waiting_interaction_id", "default_reply_interaction_id", "reply_mode", "message", "summary", "source_artifact_path"):
+            value = getattr(self, field_name)
+            if value is not None and not isinstance(value, str):
+                raise TypeError(f"study runtime pending user interaction {field_name} must be str or None")
+        if not isinstance(self.blocking, bool):
+            raise TypeError("study runtime pending user interaction blocking must be bool")
+        if not isinstance(self.expects_reply, bool):
+            raise TypeError("study runtime pending user interaction expects_reply must be bool")
+        if not isinstance(self.allow_free_text, bool):
+            raise TypeError("study runtime pending user interaction allow_free_text must be bool")
+        if not isinstance(self.relay_required, bool):
+            raise TypeError("study runtime pending user interaction relay_required must be bool")
+        object.__setattr__(self, "pending_decisions", tuple(str(item) for item in self.pending_decisions if str(item).strip()))
+        object.__setattr__(self, "reply_schema", dict(self.reply_schema))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "interaction_id": self.interaction_id,
+            "waiting_interaction_id": self.waiting_interaction_id,
+            "default_reply_interaction_id": self.default_reply_interaction_id,
+            "pending_decisions": list(self.pending_decisions),
+            "blocking": self.blocking,
+            "reply_mode": self.reply_mode,
+            "expects_reply": self.expects_reply,
+            "allow_free_text": self.allow_free_text,
+            "message": self.message,
+            "summary": self.summary,
+            "reply_schema": dict(self.reply_schema),
+            "source_artifact_path": self.source_artifact_path,
+            "relay_required": self.relay_required,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimePendingUserInteraction":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime pending user interaction payload must be a mapping")
+        pending_decisions = payload.get("pending_decisions")
+        if pending_decisions is None:
+            pending_decisions = []
+        if not isinstance(pending_decisions, (list, tuple)):
+            raise TypeError("study runtime pending user interaction pending_decisions must be a list")
+        reply_schema = payload.get("reply_schema")
+        if reply_schema is None:
+            reply_schema = {}
+        if not isinstance(reply_schema, dict):
+            raise TypeError("study runtime pending user interaction reply_schema must be a mapping")
+        return cls(
+            interaction_id=str(payload.get("interaction_id") or ""),
+            waiting_interaction_id=str(payload.get("waiting_interaction_id") or "").strip() or None,
+            default_reply_interaction_id=str(payload.get("default_reply_interaction_id") or "").strip() or None,
+            pending_decisions=tuple(str(item) for item in pending_decisions),
+            blocking=bool(payload.get("blocking")),
+            reply_mode=str(payload.get("reply_mode") or "").strip() or None,
+            expects_reply=bool(payload.get("expects_reply")),
+            allow_free_text=bool(payload.get("allow_free_text")),
+            message=str(payload.get("message") or "").strip() or None,
+            summary=str(payload.get("summary") or "").strip() or None,
+            reply_schema=reply_schema,
+            source_artifact_path=str(payload.get("source_artifact_path") or "").strip() or None,
+            relay_required=bool(payload.get("relay_required")),
         )
 
 
@@ -1181,6 +1264,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("execution_owner_guard")
         return StudyRuntimeExecutionOwnerGuard.from_payload(payload)
 
+    @property
+    def pending_user_interaction(self) -> StudyRuntimePendingUserInteraction:
+        payload = self.extras.get("pending_user_interaction")
+        if not isinstance(payload, dict):
+            raise KeyError("pending_user_interaction")
+        return StudyRuntimePendingUserInteraction.from_payload(payload)
+
     def record_completion_sync(
         self,
         value: dict[str, Any] | StudyCompletionSyncResult,
@@ -1229,6 +1319,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimeExecutionOwnerGuard.from_payload(value)
         )
         self._record_dict_extra("execution_owner_guard", execution_owner_guard.to_dict())
+
+    def record_pending_user_interaction(
+        self,
+        value: dict[str, Any] | StudyRuntimePendingUserInteraction,
+    ) -> None:
+        pending_user_interaction = (
+            value
+            if isinstance(value, StudyRuntimePendingUserInteraction)
+            else StudyRuntimePendingUserInteraction.from_payload(value)
+        )
+        self._record_dict_extra("pending_user_interaction", pending_user_interaction.to_dict())
 
     def record_runtime_artifacts(
         self,
