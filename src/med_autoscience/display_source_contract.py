@@ -23,6 +23,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "clustered_heatmap_inputs_v1": "clustered_heatmap_inputs.json",
     "gsva_ssgsea_heatmap_inputs_v1": "gsva_ssgsea_heatmap_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
+    "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_dependence_panel_inputs_v1": "shap_dependence_panel_inputs.json",
     "shap_waterfall_local_explanation_panel_inputs_v1": "shap_waterfall_local_explanation_panel_inputs.json",

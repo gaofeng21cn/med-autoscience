@@ -49,6 +49,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("gsva_ssgsea_heatmap"),
         _full_id("forest_effect_main"),
         _full_id("subgroup_forest"),
+        _full_id("generalizability_subgroup_composite_panel"),
         _full_id("shap_summary_beeswarm"),
         _full_id("shap_dependence_panel"),
         _full_id("shap_waterfall_local_explanation_panel"),
@@ -115,6 +116,16 @@ def test_shap_waterfall_local_explanation_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_shap_waterfall_local_explanation_panel"
 
 
+def test_generalizability_subgroup_composite_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("generalizability_subgroup_composite_panel"))
+
+    assert spec.paper_family_ids == ("C", "H")
+    assert spec.evidence_class == "generalizability"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "generalizability_subgroup_composite_inputs_v1"
+    assert spec.layout_qc_profile == "publication_generalizability_subgroup_composite_panel"
+
+
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:
     evidence_spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
     shell_spec = display_registry.get_illustration_shell_spec(_full_id("submission_graphical_abstract"))
@@ -147,6 +158,9 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     figure16 = display_registry.get_evidence_figure_spec(_full_id("time_to_event_decision_curve"))
     figure17 = display_registry.get_evidence_figure_spec(
         _full_id("multicenter_generalizability_overview")
+    )
+    figure17b = display_registry.get_evidence_figure_spec(
+        _full_id("generalizability_subgroup_composite_panel")
     )
     figure19 = display_registry.get_evidence_figure_spec(
         _full_id("time_to_event_stratified_cumulative_incidence_panel")
@@ -210,6 +224,11 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure16.layout_qc_profile == "publication_decision_curve"
     assert figure17.allowed_paper_roles == ("main_text", "supplementary")
     assert figure17.evidence_class == "generalizability"
+    assert figure17b.paper_family_ids == ("C", "H")
+    assert figure17b.evidence_class == "generalizability"
+    assert figure17b.renderer_family == "python"
+    assert figure17b.input_schema_id == "generalizability_subgroup_composite_inputs_v1"
+    assert figure17b.layout_qc_profile == "publication_generalizability_subgroup_composite_panel"
     assert figure19.renderer_family == "python"
     assert figure19.input_schema_id == "time_to_event_stratified_cumulative_incidence_inputs_v1"
     assert figure19.layout_qc_profile == "publication_survival_curve"

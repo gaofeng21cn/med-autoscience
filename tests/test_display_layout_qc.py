@@ -3035,6 +3035,203 @@ def test_run_display_layout_qc_fails_when_shap_waterfall_contribution_bar_leaves
     assert any(issue["rule_id"] == "contribution_bar_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_generalizability_subgroup_composite_panel",
+        layout_sidecar={
+            "template_id": "generalizability_subgroup_composite_panel",
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.34, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.58, y0=0.86, x1=0.84, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.82, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.82, x1=0.60, y1=0.85),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.20, y0=0.10, x1=0.32, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.67, y0=0.10, x1=0.76, y1=0.13),
+                make_box("overview_row_label_1", "overview_row_label", x0=0.03, y0=0.63, x1=0.11, y1=0.67),
+                make_box("overview_row_label_2", "overview_row_label", x0=0.03, y0=0.48, x1=0.11, y1=0.52),
+                make_box("overview_row_label_3", "overview_row_label", x0=0.03, y0=0.33, x1=0.11, y1=0.37),
+                make_box("overview_support_label_1", "support_label", x0=0.37, y0=0.63, x1=0.44, y1=0.67),
+                make_box("overview_support_label_2", "support_label", x0=0.37, y0=0.48, x1=0.44, y1=0.52),
+                make_box("overview_support_label_3", "support_label", x0=0.37, y0=0.33, x1=0.44, y1=0.37),
+                make_box("overview_metric_marker_1", "overview_metric_marker", x0=0.28, y0=0.63, x1=0.29, y1=0.67),
+                make_box("overview_metric_marker_2", "overview_metric_marker", x0=0.25, y0=0.48, x1=0.26, y1=0.52),
+                make_box("overview_metric_marker_3", "overview_metric_marker", x0=0.27, y0=0.33, x1=0.28, y1=0.37),
+                make_box("overview_comparator_marker_1", "overview_comparator_marker", x0=0.23, y0=0.63, x1=0.24, y1=0.67),
+                make_box("overview_comparator_marker_2", "overview_comparator_marker", x0=0.23, y0=0.48, x1=0.24, y1=0.52),
+                make_box("overview_comparator_marker_3", "overview_comparator_marker", x0=0.23, y0=0.33, x1=0.24, y1=0.37),
+                make_box("subgroup_row_label_1", "subgroup_row_label", x0=0.46, y0=0.63, x1=0.56, y1=0.67),
+                make_box("subgroup_row_label_2", "subgroup_row_label", x0=0.46, y0=0.48, x1=0.56, y1=0.52),
+                make_box("subgroup_row_label_3", "subgroup_row_label", x0=0.46, y0=0.33, x1=0.57, y1=0.37),
+                make_box("subgroup_ci_1", "ci_segment", x0=0.69, y0=0.645, x1=0.79, y1=0.655),
+                make_box("subgroup_ci_2", "ci_segment", x0=0.66, y0=0.495, x1=0.75, y1=0.505),
+                make_box("subgroup_ci_3", "ci_segment", x0=0.72, y0=0.345, x1=0.84, y1=0.355),
+                make_box("subgroup_estimate_1", "estimate_marker", x0=0.74, y0=0.63, x1=0.75, y1=0.67),
+                make_box("subgroup_estimate_2", "estimate_marker", x0=0.70, y0=0.48, x1=0.71, y1=0.52),
+                make_box("subgroup_estimate_3", "estimate_marker", x0=0.77, y0=0.33, x1=0.78, y1=0.37),
+            ],
+            "panel_boxes": [
+                make_box("overview_panel", "panel", x0=0.12, y0=0.18, x1=0.45, y1=0.80),
+                make_box("subgroup_panel", "panel", x0=0.58, y0=0.18, x1=0.88, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.32, y0=0.02, x1=0.58, y1=0.08),
+            ],
+            "metrics": {
+                "metric_family": "discrimination",
+                "primary_label": "Locked model",
+                "comparator_label": "Derivation cohort",
+                "legend_title": "Model context",
+                "legend_labels": ["Locked model", "Derivation cohort"],
+                "overview_rows": [
+                    {
+                        "cohort_id": "external_a",
+                        "cohort_label": "External A",
+                        "support_count": 184,
+                        "metric_value": 0.82,
+                        "comparator_metric_value": 0.79,
+                        "label_box_id": "overview_row_label_1",
+                        "support_label_box_id": "overview_support_label_1",
+                        "metric_marker_box_id": "overview_metric_marker_1",
+                        "comparator_marker_box_id": "overview_comparator_marker_1",
+                    },
+                    {
+                        "cohort_id": "external_b",
+                        "cohort_label": "External B",
+                        "support_count": 163,
+                        "metric_value": 0.78,
+                        "comparator_metric_value": 0.79,
+                        "label_box_id": "overview_row_label_2",
+                        "support_label_box_id": "overview_support_label_2",
+                        "metric_marker_box_id": "overview_metric_marker_2",
+                        "comparator_marker_box_id": "overview_comparator_marker_2",
+                    },
+                    {
+                        "cohort_id": "temporal",
+                        "cohort_label": "Temporal",
+                        "support_count": 142,
+                        "metric_value": 0.80,
+                        "comparator_metric_value": 0.79,
+                        "label_box_id": "overview_row_label_3",
+                        "support_label_box_id": "overview_support_label_3",
+                        "metric_marker_box_id": "overview_metric_marker_3",
+                        "comparator_marker_box_id": "overview_comparator_marker_3",
+                    },
+                ],
+                "subgroup_reference_value": 0.80,
+                "subgroup_rows": [
+                    {
+                        "subgroup_id": "age_ge_65",
+                        "subgroup_label": "Age ≥65 years",
+                        "estimate": 0.82,
+                        "lower": 0.78,
+                        "upper": 0.86,
+                        "label_box_id": "subgroup_row_label_1",
+                        "estimate_box_id": "subgroup_estimate_1",
+                        "ci_box_id": "subgroup_ci_1",
+                    },
+                    {
+                        "subgroup_id": "female",
+                        "subgroup_label": "Female",
+                        "estimate": 0.79,
+                        "lower": 0.75,
+                        "upper": 0.83,
+                        "label_box_id": "subgroup_row_label_2",
+                        "estimate_box_id": "subgroup_estimate_2",
+                        "ci_box_id": "subgroup_ci_2",
+                    },
+                    {
+                        "subgroup_id": "high_risk",
+                        "subgroup_label": "High-risk surgery",
+                        "estimate": 0.84,
+                        "lower": 0.79,
+                        "upper": 0.89,
+                        "label_box_id": "subgroup_row_label_3",
+                        "estimate_box_id": "subgroup_estimate_3",
+                        "ci_box_id": "subgroup_ci_3",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_generalizability_overview_marker_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_generalizability_subgroup_composite_panel",
+        layout_sidecar={
+            "template_id": "generalizability_subgroup_composite_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.34, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.58, y0=0.86, x1=0.84, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.82, x1=0.14, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.82, x1=0.60, y1=0.85),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.20, y0=0.10, x1=0.32, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.67, y0=0.10, x1=0.76, y1=0.13),
+                make_box("overview_row_label_1", "overview_row_label", x0=0.03, y0=0.63, x1=0.11, y1=0.67),
+                make_box("overview_support_label_1", "support_label", x0=0.37, y0=0.63, x1=0.44, y1=0.67),
+                make_box("overview_metric_marker_1", "overview_metric_marker", x0=0.46, y0=0.63, x1=0.47, y1=0.67),
+                make_box("overview_comparator_marker_1", "overview_comparator_marker", x0=0.23, y0=0.63, x1=0.24, y1=0.67),
+                make_box("subgroup_row_label_1", "subgroup_row_label", x0=0.46, y0=0.63, x1=0.56, y1=0.67),
+                make_box("subgroup_ci_1", "ci_segment", x0=0.69, y0=0.645, x1=0.79, y1=0.655),
+                make_box("subgroup_estimate_1", "estimate_marker", x0=0.74, y0=0.63, x1=0.75, y1=0.67),
+            ],
+            "panel_boxes": [
+                make_box("overview_panel", "panel", x0=0.12, y0=0.18, x1=0.45, y1=0.80),
+                make_box("subgroup_panel", "panel", x0=0.58, y0=0.18, x1=0.88, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.32, y0=0.02, x1=0.58, y1=0.08),
+            ],
+            "metrics": {
+                "metric_family": "discrimination",
+                "primary_label": "Locked model",
+                "comparator_label": "Derivation cohort",
+                "legend_title": "Model context",
+                "legend_labels": ["Locked model", "Derivation cohort"],
+                "overview_rows": [
+                    {
+                        "cohort_id": "external_a",
+                        "cohort_label": "External A",
+                        "support_count": 184,
+                        "metric_value": 0.82,
+                        "comparator_metric_value": 0.79,
+                        "label_box_id": "overview_row_label_1",
+                        "support_label_box_id": "overview_support_label_1",
+                        "metric_marker_box_id": "overview_metric_marker_1",
+                        "comparator_marker_box_id": "overview_comparator_marker_1",
+                    },
+                ],
+                "subgroup_reference_value": 0.80,
+                "subgroup_rows": [
+                    {
+                        "subgroup_id": "age_ge_65",
+                        "subgroup_label": "Age ≥65 years",
+                        "estimate": 0.82,
+                        "lower": 0.78,
+                        "upper": 0.86,
+                        "label_box_id": "subgroup_row_label_1",
+                        "estimate_box_id": "subgroup_estimate_1",
+                        "ci_box_id": "subgroup_ci_1",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "overview_metric_marker_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_time_to_event_threshold_governance_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

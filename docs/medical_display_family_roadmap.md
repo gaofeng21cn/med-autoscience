@@ -296,18 +296,19 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `partial / expanding`
 
 Current audited anchors:
 
 - `forest_effect_main`
 - `subgroup_forest`
+- `generalizability_subgroup_composite_panel`
 
 Current gap direction:
 
 - interaction-effect displays
 - coefficient-path / compact estimate panels
-- broader heterogeneous effect summaries
+- broader heterogeneous effect summaries beyond the first bounded generalizability + subgroup composite baseline
 
 ### D. 表征结构与数据几何类
 
@@ -452,7 +453,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `paper-proven core / expanding`
 
 Current audited anchors:
 
@@ -501,13 +502,14 @@ Current audited anchors:
 - `table2_time_to_event_performance_summary`
 - `table3_clinical_interpretation_summary`
 - `multicenter_generalizability_overview`
+- `generalizability_subgroup_composite_panel`
 
 Current gap direction:
 
 - baseline balance plots
 - missingness maps
 - explicit QC/batch-effect display families
-- broader design-evidence shells beyond current paper tables
+- broader design-evidence shells beyond current paper tables and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families
 

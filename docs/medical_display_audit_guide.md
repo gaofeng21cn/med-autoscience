@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `34`
+- Implemented evidence figure templates: `35`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `41`
+- Total implemented display templates: `42`
 
 ### Evidence Classes
 
@@ -111,7 +111,7 @@ Current implemented display inventory:
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
 | Model Explanation | 3 | `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
-| Generalizability | 1 | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` |
+| Generalizability | 2 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel` |
 
 ### Publication Shell Layer
 
@@ -290,16 +290,17 @@ Authoritative contract:
 Templates:
 
 - `multicenter_generalizability_overview`
+- `generalizability_subgroup_composite_panel`
 
 Audit purpose:
 
-- Center-level transportability and interval alignment under audited sample-size and estimate panels.
+- Center-level transportability plus bounded subgroup interval robustness under audited sample-size, cohort-level metric, and interval-estimate panels.
 
 Authoritative contract:
 
-- Input schema: `multicenter_generalizability_inputs_v1`
+- Input schemas: `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`
 - Renderer family: `python`
-- QC: `publication_multicenter_overview`
+- QC: `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`
 
 ## Publication Shell And Table Audit Map
 
@@ -348,8 +349,9 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 ### H generalizability and shell layer
 
 - `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
+- `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel`
 - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
-- lower-bound focus: panel-label anchoring, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
+- lower-bound focus: panel-label anchoring, outboard cohort/subgroup label containment, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
 
 ### D/E/G composite atlas lane
 

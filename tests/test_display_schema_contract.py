@@ -43,6 +43,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
+    generalizability_subgroup = module.get_input_schema_contract("generalizability_subgroup_composite_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
     shap_dependence = module.get_input_schema_contract("shap_dependence_panel_inputs_v1")
     shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
@@ -74,6 +75,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         item for item in module.list_display_schema_classes() if item.class_id == "clinical_utility"
     )
     model_audit_class = next(item for item in module.list_display_schema_classes() if item.class_id == "model_audit")
+    generalizability_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "generalizability"
+    )
 
     assert binary.template_ids == (
         _full_id("roc_curve_binary"),
@@ -263,6 +267,47 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
 
     assert forest.template_ids == (_full_id("forest_effect_main"), _full_id("subgroup_forest"))
+    assert generalizability_subgroup.template_ids == (_full_id("generalizability_subgroup_composite_panel"),)
+    assert generalizability_subgroup.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "metric_family",
+        "primary_label",
+        "overview_panel_title",
+        "overview_x_label",
+        "overview_rows",
+        "subgroup_panel_title",
+        "subgroup_x_label",
+        "subgroup_reference_value",
+        "subgroup_rows",
+    )
+    assert generalizability_subgroup.display_optional_fields == ("paper_role", "comparator_label")
+    assert generalizability_subgroup.collection_required_fields["overview_rows"] == (
+        "cohort_id",
+        "cohort_label",
+        "support_count",
+        "metric_value",
+    )
+    assert generalizability_subgroup.collection_optional_fields["overview_rows"] == (
+        "comparator_metric_value",
+        "event_count",
+    )
+    assert generalizability_subgroup.collection_required_fields["subgroup_rows"] == (
+        "subgroup_id",
+        "subgroup_label",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert generalizability_subgroup.collection_optional_fields["subgroup_rows"] == ("group_n",)
+    assert "metric_family_must_be_supported" in generalizability_subgroup.additional_constraints
+    assert (
+        "overview_comparator_metric_values_must_be_present_for_all_rows_when_comparator_label_is_declared"
+        in generalizability_subgroup.additional_constraints
+    )
+    assert "subgroup_rows_must_satisfy_lower_le_estimate_le_upper" in generalizability_subgroup.additional_constraints
     assert forest.collection_required_fields["rows"] == ("label", "estimate", "lower", "upper")
     assert shap.template_ids == (_full_id("shap_summary_beeswarm"),)
     assert shap.collection_required_fields["rows"] == ("feature", "points")
@@ -374,9 +419,11 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("shap_summary_beeswarm") in model_explanation_class.template_ids
     assert _full_id("shap_dependence_panel") in model_explanation_class.template_ids
     assert _full_id("shap_waterfall_local_explanation_panel") in model_explanation_class.template_ids
+    assert _full_id("generalizability_subgroup_composite_panel") in generalizability_class.template_ids
     assert "shap_summary_inputs_v1" in model_explanation_class.input_schema_ids
     assert "shap_dependence_panel_inputs_v1" in model_explanation_class.input_schema_ids
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
+    assert "generalizability_subgroup_composite_inputs_v1" in generalizability_class.input_schema_ids
     assert performance_heatmap.display_required_fields == (
         "display_id",
         "template_id",
@@ -849,6 +896,36 @@ def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> Non
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    composite = module.get_input_schema_contract("generalizability_subgroup_composite_inputs_v1")
+    generalizability_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "generalizability"
+    )
+
+    assert composite.template_ids == (_full_id("generalizability_subgroup_composite_panel"),)
+    assert composite.display_name == "Generalizability and Subgroup Composite Panel"
+    assert composite.collection_required_fields["overview_rows"] == (
+        "cohort_id",
+        "cohort_label",
+        "support_count",
+        "metric_value",
+    )
+    assert composite.collection_required_fields["subgroup_rows"] == (
+        "subgroup_id",
+        "subgroup_label",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert "overview_rows_must_be_non_empty" in composite.additional_constraints
+    assert "overview_metric_values_must_be_finite" in composite.additional_constraints
+    assert "subgroup_rows_must_satisfy_lower_le_estimate_le_upper" in composite.additional_constraints
+    assert _full_id("generalizability_subgroup_composite_panel") in generalizability_class.template_ids
+    assert "generalizability_subgroup_composite_inputs_v1" in generalizability_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -888,6 +965,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("gsva_ssgsea_heatmap") in markdown
     assert "gsva_ssgsea_heatmap_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
+    assert _full_id("generalizability_subgroup_composite_panel") in markdown
+    assert "generalizability_subgroup_composite_inputs_v1" in markdown
     assert _full_id("time_to_event_discrimination_calibration_panel") in markdown
     assert "time_to_event_decision_curve_inputs_v1" in markdown
     assert _full_id("multicenter_generalizability_overview") in markdown

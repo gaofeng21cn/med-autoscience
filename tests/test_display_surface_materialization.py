@@ -6608,6 +6608,78 @@ def _make_shap_waterfall_local_explanation_panel_display(display_id: str = "Figu
     }
 
 
+def _make_generalizability_subgroup_composite_panel_display(display_id: str = "Figure34") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "generalizability_subgroup_composite_panel",
+        "title": "Generalizability and subgroup discrimination composite for external validation",
+        "caption": (
+            "Bounded composite lock for overall external generalizability and prespecified subgroup discrimination "
+            "stability."
+        ),
+        "metric_family": "discrimination",
+        "primary_label": "Locked model",
+        "comparator_label": "Derivation cohort",
+        "overview_panel_title": "External cohort discrimination overview",
+        "overview_x_label": "AUROC",
+        "overview_rows": [
+            {
+                "cohort_id": "external_a",
+                "cohort_label": "External A",
+                "support_count": 184,
+                "event_count": 29,
+                "metric_value": 0.82,
+                "comparator_metric_value": 0.79,
+            },
+            {
+                "cohort_id": "external_b",
+                "cohort_label": "External B",
+                "support_count": 163,
+                "event_count": 21,
+                "metric_value": 0.78,
+                "comparator_metric_value": 0.79,
+            },
+            {
+                "cohort_id": "temporal",
+                "cohort_label": "Temporal",
+                "support_count": 142,
+                "event_count": 18,
+                "metric_value": 0.80,
+                "comparator_metric_value": 0.79,
+            },
+        ],
+        "subgroup_panel_title": "Prespecified subgroup discrimination stability",
+        "subgroup_x_label": "AUROC",
+        "subgroup_reference_value": 0.80,
+        "subgroup_rows": [
+            {
+                "subgroup_id": "age_ge_65",
+                "subgroup_label": "Age ≥65 years",
+                "group_n": 201,
+                "estimate": 0.82,
+                "lower": 0.78,
+                "upper": 0.86,
+            },
+            {
+                "subgroup_id": "female",
+                "subgroup_label": "Female",
+                "group_n": 173,
+                "estimate": 0.79,
+                "lower": 0.75,
+                "upper": 0.83,
+            },
+            {
+                "subgroup_id": "high_risk",
+                "subgroup_label": "High-risk surgery",
+                "group_n": 96,
+                "estimate": 0.84,
+                "lower": 0.79,
+                "upper": 0.89,
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
     tmp_path: Path,
 ) -> None:
@@ -6657,6 +6729,35 @@ def test_load_evidence_display_payload_rejects_zero_contribution_for_shap_waterf
             paper_root=paper_root,
             spec=spec,
             display_id="Figure33",
+        )
+
+
+def test_load_evidence_display_payload_rejects_partial_comparator_metrics_for_generalizability_subgroup_composite_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_generalizability_subgroup_composite_panel_display()
+    del display_payload["overview_rows"][1]["comparator_metric_value"]
+    dump_json(
+        paper_root / "generalizability_subgroup_composite_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("generalizability_subgroup_composite_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="comparator_metric_value must be provided for every overview row when comparator_label is declared",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure34",
         )
 
 
@@ -6734,6 +6835,88 @@ def test_materialize_display_surface_generates_shap_waterfall_local_explanation_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_waterfall_local_explanation_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_waterfall_local_explanation_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_generalizability_subgroup_composite_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "display_kind": "figure",
+                    "requirement_key": "generalizability_subgroup_composite_panel",
+                    "catalog_id": "F34",
+                    "shell_path": "paper/figures/Figure34.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "template_id": "generalizability_subgroup_composite_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "generalizability_subgroup_composite_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "generalizability_subgroup_composite_inputs_v1",
+            "displays": [_make_generalizability_subgroup_composite_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F34"]
+    assert (paper_root / "figures" / "generated" / "F34_generalizability_subgroup_composite_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F34_generalizability_subgroup_composite_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F34_generalizability_subgroup_composite_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "legend" for item in layout_sidecar["guide_boxes"])
+    assert layout_sidecar["metrics"]["metric_family"] == "discrimination"
+    assert layout_sidecar["metrics"]["primary_label"] == "Locked model"
+    assert layout_sidecar["metrics"]["comparator_label"] == "Derivation cohort"
+    assert [item["cohort_label"] for item in layout_sidecar["metrics"]["overview_rows"]] == [
+        "External A",
+        "External B",
+        "Temporal",
+    ]
+    assert layout_sidecar["metrics"]["subgroup_reference_value"] == 0.80
+    assert layout_sidecar["metrics"]["subgroup_rows"][0]["subgroup_label"] == "Age ≥65 years"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F34"
+    assert figure_entry["template_id"] == full_id("generalizability_subgroup_composite_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_generalizability_subgroup_composite_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

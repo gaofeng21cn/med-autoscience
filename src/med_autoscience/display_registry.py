@@ -49,6 +49,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "gsva_ssgsea_heatmap",
         "forest_effect_main",
         "subgroup_forest",
+        "generalizability_subgroup_composite_panel",
         "shap_summary_beeswarm",
         "shap_dependence_panel",
         "shap_waterfall_local_explanation_panel",
