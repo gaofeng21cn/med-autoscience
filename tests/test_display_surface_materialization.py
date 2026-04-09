@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 from typing import Any
 
+import matplotlib.pyplot as plt
 import pytest
 
 from med_autoscience import display_registry
@@ -5042,6 +5043,157 @@ def test_materialize_display_surface_generates_model_complexity_audit_panel(tmp_
     figure_entry = figure_catalog["figures"][0]
     assert figure_entry["template_id"] == full_id("model_complexity_audit_panel")
     assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_keeps_model_complexity_audit_audit_labels_clear_of_metric_column(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "model_audit",
+                    "display_kind": "figure",
+                    "requirement_key": "model_complexity_audit_panel",
+                    "catalog_id": "F4",
+                    "shell_path": "paper/figures/model_audit.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "model_complexity_audit_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "model_complexity_audit_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "model_audit",
+                    "template_id": "model_complexity_audit_panel",
+                    "title": "Threshold-based operating characteristics and risk-group profiles for the clinically informed preoperative model",
+                    "caption": "Discrimination, overall error, calibration, and bounded complexity audit across the candidate packages.",
+                    "metric_panels": [
+                        {
+                            "panel_id": "auroc_panel",
+                            "panel_label": "A",
+                            "title": "Discrimination",
+                            "x_label": "AUROC",
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 0.8022},
+                                {"label": "Clinically informed preoperative model", "value": 0.8004},
+                                {"label": "Pathology-augmented model", "value": 0.7999},
+                                {"label": "Elastic-net comparison model", "value": 0.8006},
+                                {"label": "Random forest comparison model", "value": 0.8359},
+                            ],
+                        },
+                        {
+                            "panel_id": "brier_panel",
+                            "panel_label": "B",
+                            "title": "Overall error",
+                            "x_label": "Brier score",
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 0.1433},
+                                {"label": "Clinically informed preoperative model", "value": 0.1099},
+                                {"label": "Pathology-augmented model", "value": 0.1090},
+                                {"label": "Elastic-net comparison model", "value": 0.1086},
+                                {"label": "Random forest comparison model", "value": 0.1011},
+                            ],
+                        },
+                        {
+                            "panel_id": "slope_panel",
+                            "panel_label": "C",
+                            "title": "Calibration",
+                            "x_label": "Calibration slope",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Core preoperative model", "value": 2.4065},
+                                {"label": "Clinically informed preoperative model", "value": 1.0442},
+                                {"label": "Pathology-augmented model", "value": 1.0395},
+                                {"label": "Elastic-net comparison model", "value": 1.1096},
+                                {"label": "Random forest comparison model", "value": 0.8017},
+                            ],
+                        },
+                    ],
+                    "audit_panels": [
+                        {
+                            "panel_id": "coefficient_panel",
+                            "panel_label": "D",
+                            "title": "Coefficient stability",
+                            "x_label": "Mean odds ratio",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Age", "value": 0.9117898553832784},
+                                {"label": "Female sex", "value": 1.0309311059934487},
+                                {"label": "Blurred Vision", "value": 1.183703663712767},
+                                {"label": "Defect Field Vision", "value": 1.067175358232608},
+                                {"label": "Preoperative hypopituitarism", "value": 1.121955952267307},
+                                {"label": "Knosp grade", "value": 1.1321181751012195},
+                                {"label": "Invasiveness", "value": 1.0176339267412329},
+                                {"label": "Tumor diameter", "value": 1.443952677790654},
+                                {"label": "Log Diameter", "value": 1.3878032746085207},
+                                {"label": "Knosp Ge 3", "value": 1.0176339267412329},
+                                {"label": "Knosp Ge 4", "value": 1.3314915096706699},
+                                {"label": "Invasiveness Log Diameter", "value": 1.0860598862755477},
+                            ],
+                        },
+                        {
+                            "panel_id": "domain_panel",
+                            "panel_label": "E",
+                            "title": "Domain stability",
+                            "x_label": "Mean absolute coefficient",
+                            "rows": [
+                                {"label": "Demographics", "value": 0.07697647508285217},
+                                {"label": "Endocrine impairment", "value": 0.11428074753919776},
+                                {"label": "Invasion burden", "value": 0.10914169938817306},
+                                {"label": "Tumor burden", "value": 0.3444167074572295},
+                                {"label": "Visual compromise", "value": 0.11849667910968223},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    captured_figures: list[Any] = []
+    original_close = plt.close
+
+    def _capture_close(fig: Any | None = None) -> None:
+        if fig is not None:
+            captured_figures.append(fig)
+
+    monkeypatch.setattr(plt, "close", _capture_close)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert captured_figures
+
+    figure = captured_figures[-1]
+    figure.canvas.draw()
+    renderer = figure.canvas.get_renderer()
+    metric_axes = figure.axes[:3]
+    audit_axes = figure.axes[3:]
+    metric_column_right_edge = max(axes.get_window_extent(renderer=renderer).x1 for axes in metric_axes)
+    audit_label_left_edge = min(
+        label.get_window_extent(renderer=renderer).x0
+        for axes in audit_axes
+        for label in axes.get_yticklabels()
+        if label.get_text().strip()
+    )
+
+    assert audit_label_left_edge - metric_column_right_edge >= 12.0
+
+    original_close(figure)
 
 
 def test_materialize_display_surface_omits_figure_title_for_model_complexity_audit_panel_by_default(

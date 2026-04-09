@@ -1385,7 +1385,7 @@ def _render_python_model_complexity_audit_panel(
             y=0.985,
         )
 
-    outer = fig.add_gridspec(1, 2, width_ratios=[1.06, 0.94], wspace=0.34)
+    outer = fig.add_gridspec(1, 2, width_ratios=[1.06, 0.94], wspace=0.60)
     left_grid = outer[0, 0].subgridspec(
         len(metric_panels),
         1,
