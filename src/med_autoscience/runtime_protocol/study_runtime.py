@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from med_autoscience import startup_literature
+from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
     RuntimeEscalationRecordRef,
@@ -43,6 +44,43 @@ def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(rendered if rendered.endswith("\n") else f"{rendered}\n", encoding="utf-8")
 
 
+def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
+    runtime_liveness_audit = status.get("runtime_liveness_audit")
+    runtime_audit = (
+        dict(runtime_liveness_audit.get("runtime_audit"))
+        if isinstance(runtime_liveness_audit, dict) and isinstance(runtime_liveness_audit.get("runtime_audit"), dict)
+        else {}
+    )
+    supervisor_tick_audit = status.get("supervisor_tick_audit")
+    return {
+        "active_run_id": (
+            str(
+                status.get("active_run_id")
+                or (runtime_liveness_audit.get("active_run_id") if isinstance(runtime_liveness_audit, dict) else None)
+                or runtime_audit.get("active_run_id")
+                or ""
+            ).strip()
+            or None
+        ),
+        "runtime_liveness_status": (
+            str(
+                status.get("runtime_liveness_status")
+                or (runtime_liveness_audit.get("status") if isinstance(runtime_liveness_audit, dict) else None)
+                or ""
+            ).strip()
+            or None
+        ),
+        "supervisor_tick_status": (
+            str(
+                status.get("supervisor_tick_status")
+                or (supervisor_tick_audit.get("status") if isinstance(supervisor_tick_audit, dict) else None)
+                or ""
+            ).strip()
+            or None
+        ),
+    }
+
+
 def _runtime_escalation_record_path(quest_root: Path) -> Path:
     return (
         Path(quest_root).expanduser().resolve()
@@ -50,6 +88,15 @@ def _runtime_escalation_record_path(quest_root: Path) -> Path:
         / "reports"
         / "escalation"
         / "runtime_escalation_record.json"
+    )
+
+
+def _runtime_event_report_root(quest_root: Path) -> Path:
+    return (
+        Path(quest_root).expanduser().resolve()
+        / "artifacts"
+        / "reports"
+        / "runtime_events"
     )
 
 
@@ -77,6 +124,10 @@ def _study_decision_record_path(*, study_root: Path, record: StudyDecisionRecord
     )
 
 
+def _runtime_event_record_path(*, quest_root: Path, record: RuntimeEventRecord) -> Path:
+    return _runtime_event_report_root(quest_root) / f"{_artifact_timestamp_slug(record.emitted_at)}_{_safe_artifact_id(record.event_kind)}.json"
+
+
 def write_runtime_escalation_record(
     *,
     quest_root: Path,
@@ -100,6 +151,32 @@ def read_runtime_escalation_record_ref(
     if not isinstance(payload, dict):
         raise ValueError("runtime escalation record artifact must contain a mapping payload")
     return RuntimeEscalationRecord.from_payload(payload).ref()
+
+
+def write_runtime_event_record(
+    *,
+    quest_root: Path,
+    record: RuntimeEventRecord,
+) -> RuntimeEventRecord:
+    path = _runtime_event_record_path(quest_root=quest_root, record=record)
+    persisted_record = record.with_artifact_path(str(path))
+    payload = persisted_record.to_dict()
+    _write_json(path, payload)
+    _write_json(path.parent / "latest.json", payload)
+    return RuntimeEventRecord.from_payload(payload)
+
+
+def read_runtime_event_record_ref(
+    *,
+    quest_root: Path,
+) -> RuntimeEventRecordRef | None:
+    path = _runtime_event_report_root(quest_root) / "latest.json"
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("runtime event record artifact must contain a mapping payload")
+    return RuntimeEventRecord.from_payload(payload).ref()
 
 
 def write_study_decision_record(
@@ -376,6 +453,7 @@ def write_launch_report(
     recorded_at: str,
 ) -> None:
     report = dict(status)
+    report.update(_launch_report_runtime_projection(report))
     report.update(
         {
             "source": source,

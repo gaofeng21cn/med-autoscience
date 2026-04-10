@@ -7,7 +7,17 @@ from pathlib import Path
 from typing import Any
 
 
-_OUTER_LOOP_WATCHED_QUEST_STATUSES = frozenset({"running", "active", "waiting_for_user"})
+_OUTER_LOOP_WATCHED_QUEST_STATUSES = frozenset(
+    {
+        "created",
+        "idle",
+        "paused",
+        "running",
+        "active",
+        "waiting_for_user",
+        "stopped",
+    }
+)
 
 
 class QuestRuntimeLivenessStatus(StrEnum):

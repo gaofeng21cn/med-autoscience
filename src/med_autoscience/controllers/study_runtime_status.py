@@ -276,9 +276,15 @@ class StudyRuntimeSummaryAlignment:
     source_of_truth: str
     runtime_state_path: str
     runtime_state_status: str | None
+    source_active_run_id: str | None
+    source_runtime_liveness_status: str | None
+    source_supervisor_tick_status: str | None
     launch_report_path: str
     launch_report_exists: bool
     launch_report_quest_status: str | None
+    launch_report_active_run_id: str | None
+    launch_report_runtime_liveness_status: str | None
+    launch_report_supervisor_tick_status: str | None
     aligned: bool
     mismatch_reason: str | None
     status_sync_applied: bool
@@ -288,7 +294,17 @@ class StudyRuntimeSummaryAlignment:
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise TypeError(f"study runtime summary alignment {field_name} must be non-empty str")
-        for field_name in ("runtime_state_status", "launch_report_quest_status", "mismatch_reason"):
+        for field_name in (
+            "runtime_state_status",
+            "source_active_run_id",
+            "source_runtime_liveness_status",
+            "source_supervisor_tick_status",
+            "launch_report_quest_status",
+            "launch_report_active_run_id",
+            "launch_report_runtime_liveness_status",
+            "launch_report_supervisor_tick_status",
+            "mismatch_reason",
+        ):
             value = getattr(self, field_name)
             if value is not None and not isinstance(value, str):
                 raise TypeError(f"study runtime summary alignment {field_name} must be str or None")
@@ -301,9 +317,15 @@ class StudyRuntimeSummaryAlignment:
             "source_of_truth": self.source_of_truth,
             "runtime_state_path": self.runtime_state_path,
             "runtime_state_status": self.runtime_state_status,
+            "source_active_run_id": self.source_active_run_id,
+            "source_runtime_liveness_status": self.source_runtime_liveness_status,
+            "source_supervisor_tick_status": self.source_supervisor_tick_status,
             "launch_report_path": self.launch_report_path,
             "launch_report_exists": self.launch_report_exists,
             "launch_report_quest_status": self.launch_report_quest_status,
+            "launch_report_active_run_id": self.launch_report_active_run_id,
+            "launch_report_runtime_liveness_status": self.launch_report_runtime_liveness_status,
+            "launch_report_supervisor_tick_status": self.launch_report_supervisor_tick_status,
             "aligned": self.aligned,
             "mismatch_reason": self.mismatch_reason,
             "status_sync_applied": self.status_sync_applied,
@@ -317,9 +339,19 @@ class StudyRuntimeSummaryAlignment:
             source_of_truth=str(payload.get("source_of_truth") or ""),
             runtime_state_path=str(payload.get("runtime_state_path") or ""),
             runtime_state_status=str(payload.get("runtime_state_status") or "").strip() or None,
+            source_active_run_id=str(payload.get("source_active_run_id") or "").strip() or None,
+            source_runtime_liveness_status=str(payload.get("source_runtime_liveness_status") or "").strip() or None,
+            source_supervisor_tick_status=str(payload.get("source_supervisor_tick_status") or "").strip() or None,
             launch_report_path=str(payload.get("launch_report_path") or ""),
             launch_report_exists=bool(payload.get("launch_report_exists")),
             launch_report_quest_status=str(payload.get("launch_report_quest_status") or "").strip() or None,
+            launch_report_active_run_id=str(payload.get("launch_report_active_run_id") or "").strip() or None,
+            launch_report_runtime_liveness_status=(
+                str(payload.get("launch_report_runtime_liveness_status") or "").strip() or None
+            ),
+            launch_report_supervisor_tick_status=(
+                str(payload.get("launch_report_supervisor_tick_status") or "").strip() or None
+            ),
             aligned=bool(payload.get("aligned")),
             mismatch_reason=str(payload.get("mismatch_reason") or "").strip() or None,
             status_sync_applied=bool(payload.get("status_sync_applied")),
@@ -1622,6 +1654,19 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             )
         )
         self._record_dict_extra("runtime_escalation_ref", runtime_escalation_ref.to_dict())
+
+    def record_runtime_event_ref(
+        self,
+        value: dict[str, Any] | study_runtime_protocol.RuntimeEventRecordRef,
+    ) -> None:
+        runtime_event_ref = (
+            value
+            if isinstance(value, study_runtime_protocol.RuntimeEventRecordRef)
+            else study_runtime_protocol.RuntimeEventRecordRef.from_payload(
+                self._require_dict_field("runtime_event_ref", value)
+            )
+        )
+        self._record_dict_extra("runtime_event_ref", runtime_event_ref.to_dict())
 
     def __getitem__(self, key: str) -> Any:
         payload = self.to_dict()

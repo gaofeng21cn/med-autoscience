@@ -50,6 +50,10 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
 
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index_zh
+    assert "runtime_event_and_outer_loop_input_contract.md" in docs_index
+    assert "runtime_event_and_outer_loop_input_contract.md" in docs_index_zh
+    assert "runtime_event_and_outer_loop_input_implementation_plan.md" in docs_index
+    assert "runtime_event_and_outer_loop_input_implementation_plan.md" in docs_index_zh
 
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:

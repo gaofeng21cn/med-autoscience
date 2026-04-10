@@ -494,7 +494,7 @@ def test_reapplies_when_fingerprint_changes(tmp_path: Path) -> None:
     assert calls == [False, True, False, True]
 
 
-def test_scan_runtime_processes_live_and_waiting_for_user_quests(tmp_path: Path) -> None:
+def test_scan_runtime_processes_managed_quests_including_non_live_states(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     except ModuleNotFoundError:
@@ -502,6 +502,9 @@ def test_scan_runtime_processes_live_and_waiting_for_user_quests(tmp_path: Path)
 
     assert module is not None
     runtime_root = tmp_path / "runtime" / "quests"
+    make_quest(tmp_path, "q-created", status="created")
+    make_quest(tmp_path, "q-idle", status="idle")
+    make_quest(tmp_path, "q-paused", status="paused")
     make_quest(tmp_path, "q-running", status="running")
     make_quest(tmp_path, "q-active", status="active")
     make_quest(tmp_path, "q-waiting", status="waiting_for_user")
@@ -525,8 +528,16 @@ def test_scan_runtime_processes_live_and_waiting_for_user_quests(tmp_path: Path)
         apply=False,
     )
 
-    assert sorted(seen) == ["q-active", "q-running", "q-waiting"]
-    assert sorted(result["scanned_quests"]) == ["q-active", "q-running", "q-waiting"]
+    assert sorted(seen) == ["q-active", "q-created", "q-idle", "q-paused", "q-running", "q-stopped", "q-waiting"]
+    assert sorted(result["scanned_quests"]) == [
+        "q-active",
+        "q-created",
+        "q-idle",
+        "q-paused",
+        "q-running",
+        "q-stopped",
+        "q-waiting",
+    ]
 
 
 def test_watch_runtime_can_ensure_managed_studies_before_scanning(tmp_path: Path, monkeypatch) -> None:
@@ -961,6 +972,161 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
     assert latest_payload["health_status"] == "escalated"
     assert latest_payload["next_action_summary"]
     assert escalation_path.exists()
+    escalation_payload = json.loads(escalation_path.read_text(encoding="utf-8"))
+    runtime_event_payload = json.loads(
+        (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert escalation_payload["reason"] == "resume_request_failed"
+    assert runtime_event_payload["event_kind"] == "supervision_changed"
+    assert runtime_event_payload["event_source"] == "runtime_supervision"
+    assert runtime_event_payload["outer_loop_input"]["reason"] == "resume_request_failed"
+
+
+def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_recovers_to_live(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="diabetes",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    quest_root = profile.runtime_root / "001-risk"
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    dump_json(
+        launch_report_path,
+        {
+            "recorded_at": "2026-04-10T09:05:00+00:00",
+            "source": "runtime_watch",
+            "decision": "blocked",
+            "reason": "resume_request_failed",
+        },
+    )
+
+    states = [
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "001-risk",
+                "auto_resume": True,
+            },
+            "quest_id": "001-risk",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "resume_request_failed",
+            "launch_report_path": str(launch_report_path),
+            "runtime_liveness_audit": {
+                "status": "none",
+                "active_run_id": "run-stale",
+                "runtime_audit": {
+                    "status": "none",
+                    "active_run_id": "run-stale",
+                    "worker_running": False,
+                    "worker_pending": False,
+                    "stop_requested": False,
+                },
+            },
+        },
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "001-risk",
+                "auto_resume": True,
+            },
+            "quest_id": "001-risk",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "launch_report_path": str(launch_report_path),
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-live",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live",
+                    "worker_running": True,
+                    "worker_pending": False,
+                    "stop_requested": False,
+                },
+            },
+        },
+    ]
+    call_index = {"value": 0}
+
+    def next_status(*, profile, study_root, source):
+        index = min(call_index["value"], len(states) - 1)
+        call_index["value"] += 1
+        return states[index]
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", next_status)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    first = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    second = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    first_supervision = first["managed_study_supervision"][0]
+    second_supervision = second["managed_study_supervision"][0]
+    runtime_event_payload = json.loads(
+        (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert first_supervision["health_status"] == "degraded"
+    assert second_supervision["health_status"] == "live"
+    assert second_supervision["last_transition"] == "recovered"
+    assert runtime_event_payload["event_kind"] == "supervision_changed"
+    assert runtime_event_payload["outer_loop_input"]["runtime_liveness_status"] == "live"
+    assert runtime_event_payload["outer_loop_input"]["active_run_id"] == "run-live"
 
 
 def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:

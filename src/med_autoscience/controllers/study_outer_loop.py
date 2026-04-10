@@ -12,6 +12,7 @@ from med_autoscience.publication_eval_latest import (
     read_publication_eval_latest,
     resolve_publication_eval_latest_ref,
 )
+from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord, RuntimeEscalationRecordRef
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
@@ -32,7 +33,38 @@ def _decision_id(*, study_id: str, quest_id: str, decision_type: str, recorded_a
     return f"study-decision::{study_id}::{quest_id}::{decision_type}::{recorded_at}"
 
 
-def _runtime_status_summary(status: dict[str, Any]) -> dict[str, str]:
+def _runtime_status_summary(
+    status: dict[str, Any],
+    *,
+    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None] | None = None,
+) -> dict[str, str]:
+    if managed_runtime_event is not None:
+        runtime_event_ref, runtime_event_record, _runtime_escalation_payload = managed_runtime_event
+        outer_loop_input = runtime_event_record.outer_loop_input
+        return {
+            "decision": str(outer_loop_input.get("decision") or "").strip(),
+            "reason": str(outer_loop_input.get("reason") or "").strip(),
+            "quest_status": str(outer_loop_input.get("quest_status") or "").strip(),
+            "active_run_id": str(outer_loop_input.get("active_run_id") or "").strip(),
+            "runtime_liveness_status": str(outer_loop_input.get("runtime_liveness_status") or "").strip(),
+            "supervisor_tick_status": str(outer_loop_input.get("supervisor_tick_status") or "").strip(),
+            "runtime_event_id": runtime_event_ref.event_id,
+        }
+    runtime_event_payload = status.get("runtime_event_ref")
+    if isinstance(runtime_event_payload, dict):
+        runtime_event_ref, runtime_event_record = _load_runtime_event_record(
+            runtime_event_payload=runtime_event_payload
+        )
+        outer_loop_input = runtime_event_record.outer_loop_input
+        return {
+            "decision": str(outer_loop_input.get("decision") or "").strip(),
+            "reason": str(outer_loop_input.get("reason") or "").strip(),
+            "quest_status": str(outer_loop_input.get("quest_status") or "").strip(),
+            "active_run_id": str(outer_loop_input.get("active_run_id") or "").strip(),
+            "runtime_liveness_status": str(outer_loop_input.get("runtime_liveness_status") or "").strip(),
+            "supervisor_tick_status": str(outer_loop_input.get("supervisor_tick_status") or "").strip(),
+            "runtime_event_id": runtime_event_ref.event_id,
+        }
     return {
         "decision": str(status.get("decision") or "").strip(),
         "reason": str(status.get("reason") or "").strip(),
@@ -98,56 +130,74 @@ def _load_runtime_escalation_record(
     return written_ref, record
 
 
-def _runtime_escalation_recommended_actions(reason: str) -> tuple[str, ...]:
-    if reason == "quest_stopped_requires_explicit_rerun":
-        return ("explicit_stopped_quest_relaunch", "controller_review_required")
-    return ("refresh_startup_hydration", "controller_review_required")
+def _load_runtime_event_record(
+    *,
+    runtime_event_payload: dict[str, Any],
+) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord]:
+    runtime_event_ref = RuntimeEventRecordRef.from_payload(runtime_event_payload)
+    artifact_path = Path(runtime_event_ref.artifact_path).expanduser().resolve()
+    payload = json.loads(artifact_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("runtime event record artifact must contain a mapping payload")
+    record = RuntimeEventRecord.from_payload(payload)
+    written_ref = record.ref()
+    if written_ref.event_id != runtime_event_ref.event_id:
+        raise ValueError("study_outer_loop_tick runtime event event_id mismatch against status ref")
+    if Path(written_ref.artifact_path).expanduser().resolve() != artifact_path:
+        raise ValueError("study_outer_loop_tick runtime event artifact_path mismatch against status ref")
+    if written_ref.summary_ref != runtime_event_ref.summary_ref:
+        raise ValueError("study_outer_loop_tick runtime event summary_ref mismatch against status ref")
+    return written_ref, record
+
+
+def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
+    execution = status.get("execution")
+    if not isinstance(execution, dict):
+        return False
+    return (
+        str(execution.get("engine") or "").strip() == "med-deepscientist"
+        and str(execution.get("auto_entry") or "").strip() == "on_managed_research_intent"
+    )
+
+
+def _resolve_managed_runtime_event_contract(
+    *,
+    status: dict[str, Any],
+) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None]:
+    runtime_event_payload = status.get("runtime_event_ref")
+    if not isinstance(runtime_event_payload, dict):
+        raise ValueError("study_outer_loop_tick requires runtime_event_ref from managed runtime status")
+    runtime_event_ref, runtime_event_record = _load_runtime_event_record(
+        runtime_event_payload=runtime_event_payload
+    )
+    status_study_id = str(status.get("study_id") or "").strip()
+    status_quest_id = str(status.get("quest_id") or "").strip()
+    if status_study_id and runtime_event_record.study_id != status_study_id:
+        raise ValueError("study_outer_loop_tick runtime event study_id mismatch against status")
+    if status_quest_id and runtime_event_record.quest_id != status_quest_id:
+        raise ValueError("study_outer_loop_tick runtime event quest_id mismatch against status")
+    supervisor_tick_status = str(runtime_event_record.outer_loop_input.get("supervisor_tick_status") or "").strip()
+    if supervisor_tick_status != "fresh":
+        raise ValueError("study_outer_loop_tick requires supervisor_tick_status=fresh in managed runtime event input")
+    runtime_escalation_payload = runtime_event_record.outer_loop_input.get("runtime_escalation_ref")
+    if runtime_escalation_payload is not None and not isinstance(runtime_escalation_payload, dict):
+        raise ValueError("study_outer_loop_tick runtime_event runtime_escalation_ref must be a mapping")
+    status_runtime_escalation_payload = status.get("runtime_escalation_ref")
+    if isinstance(status_runtime_escalation_payload, dict):
+        if runtime_escalation_payload is None:
+            raise ValueError("study_outer_loop_tick requires runtime_escalation_ref in managed runtime event input")
+        if status_runtime_escalation_payload != runtime_escalation_payload:
+            raise ValueError("study_outer_loop_tick runtime escalation ref mismatch against runtime_event")
+    return runtime_event_ref, runtime_event_record, runtime_escalation_payload
 
 
 def _resolve_runtime_escalation_record(
     *,
     runtime_escalation_payload: dict[str, Any] | None,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    quest_id: str,
-    runtime_status: dict[str, str],
-    emitted_at: str,
 ) -> tuple[RuntimeEscalationRecordRef, RuntimeEscalationRecord]:
     if isinstance(runtime_escalation_payload, dict):
         return _load_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
-    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
-        profile=profile,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-    )
-    reason = str(runtime_status.get("reason") or "").strip()
-    if not reason:
-        raise ValueError("study_outer_loop_tick requires runtime reason to synthesize runtime escalation record")
-    record = RuntimeEscalationRecord(
-        schema_version=1,
-        record_id=f"runtime-escalation::{study_id}::{quest_id}::{reason}::{emitted_at}",
-        study_id=study_id,
-        quest_id=quest_id,
-        emitted_at=emitted_at,
-        trigger=study_runtime_protocol.RuntimeEscalationTrigger(
-            trigger_id=reason,
-            source="study_outer_loop_status",
-        ),
-        scope="quest",
-        severity="quest",
-        reason=reason,
-        recommended_actions=_runtime_escalation_recommended_actions(reason),
-        evidence_refs=(str(runtime_context.launch_report_path),),
-        runtime_context_refs={"launch_report_path": str(runtime_context.launch_report_path)},
-        summary_ref=str(runtime_context.launch_report_path),
-    )
-    written_record = study_runtime_protocol.write_runtime_escalation_record(
-        quest_root=runtime_context.quest_root,
-        record=record,
-    )
-    return written_record.ref(), written_record
+    raise ValueError("study_outer_loop_tick requires runtime_escalation_ref from managed runtime input")
 
 
 def _build_human_confirmation_request(
@@ -274,8 +324,13 @@ def study_outer_loop_tick(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
     )
-    runtime_status = _runtime_status_summary(status)
-    runtime_escalation_payload = status.get("runtime_escalation_ref")
+    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None] | None = None
+    if _managed_runtime_requires_event_ref(status):
+        managed_runtime_event = _resolve_managed_runtime_event_contract(status=status)
+    runtime_status = _runtime_status_summary(status, managed_runtime_event=managed_runtime_event)
+    runtime_escalation_payload = (
+        managed_runtime_event[2] if managed_runtime_event is not None else status.get("runtime_escalation_ref")
+    )
     quest_id = str(status.get("quest_id") or "").strip()
     if not quest_id:
         raise ValueError("study_outer_loop_tick requires quest_id from study_runtime_status")
@@ -295,12 +350,6 @@ def study_outer_loop_tick(
     )
     runtime_escalation_ref, _runtime_escalation_record = _resolve_runtime_escalation_record(
         runtime_escalation_payload=runtime_escalation_payload if isinstance(runtime_escalation_payload, dict) else None,
-        profile=profile,
-        study_id=resolved_study_id,
-        study_root=resolved_study_root,
-        quest_id=quest_id,
-        runtime_status=runtime_status,
-        emitted_at=emitted_at,
     )
     normalized_controller_actions = tuple(
         action
