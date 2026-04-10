@@ -79,6 +79,50 @@ def test_arbitrate_waiting_for_user_rejects_program_decision_requests_inside_mas
     }
 
 
+def test_arbitrate_waiting_for_user_rejects_completion_request_before_publication_gate_clears() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction={
+            "interaction_id": "decision-completion-001",
+            "kind": "decision",
+            "reply_mode": "blocking",
+            "expects_reply": True,
+            "allow_free_text": False,
+            "reply_schema": {"decision_type": "quest_completion_approval"},
+            "decision_type": "quest_completion_approval",
+            "options_count": 0,
+            "guidance_requires_user_decision": True,
+            "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/decisions/decision-completion-001.json",
+        },
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        publication_gate_report={
+            "status": "blocked",
+            "blockers": ["forbidden_manuscript_terminology"],
+            "current_required_action": "complete_bundle_stage",
+        },
+    )
+
+    assert result == {
+        "classification": "premature_completion_request",
+        "action": "resume",
+        "reason_code": "completion_requested_before_publication_gate_clear",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "decision",
+        "decision_type": "quest_completion_approval",
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/decisions/decision-completion-001.json",
+        "publication_gate_status": "blocked",
+        "publication_gate_blockers": ["forbidden_manuscript_terminology"],
+        "publication_gate_required_action": "complete_bundle_stage",
+        "controller_stage_note": (
+            "Runtime completion approval was requested before the MAS publication gate cleared; "
+            "resume the managed runtime so it fixes publication blockers instead of asking the user."
+        ),
+    }
+
+
 def test_arbitrate_waiting_for_user_blocks_external_secret_request() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
 

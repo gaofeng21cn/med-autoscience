@@ -701,6 +701,7 @@ def _record_interaction_arbitration_if_required(
     status: StudyRuntimeStatus,
     execution: dict[str, object],
     submission_metadata_only: bool,
+    publication_gate_report: dict[str, object] | None,
 ) -> None:
     if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
         return
@@ -711,6 +712,7 @@ def _record_interaction_arbitration_if_required(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
         submission_metadata_only=submission_metadata_only,
+        publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
 
@@ -819,6 +821,7 @@ def _status_state(
         status=result,
         execution=execution,
         submission_metadata_only=submission_metadata_only_wait,
+        publication_gate_report=publication_gate_report,
     )
 
     def _finalize_result() -> StudyRuntimeStatus:
@@ -1102,6 +1105,9 @@ def _status_state(
             if action == "resume":
                 resume_reason = {
                     "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                    "premature_completion_request": (
+                        StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
+                    ),
                     "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(

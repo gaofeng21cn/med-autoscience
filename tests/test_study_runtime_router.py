@@ -5450,6 +5450,140 @@ def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
     }
 
 
+def test_study_runtime_status_auto_resumes_premature_completion_request_when_publication_gate_is_blocked(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    decision_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "artifacts"
+        / "decisions"
+        / "decision-completion-001.json"
+    )
+    write_text(
+        decision_path,
+        json.dumps(
+            {
+                "kind": "decision",
+                "schema_version": 1,
+                "artifact_id": "decision-completion-001",
+                "id": "decision-completion-001",
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "message": "[等待决策] 批准 completion。",
+                "summary": "请求批准 completion。",
+                "interaction_id": "decision-completion-001",
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "allow_free_text": True,
+                "reply_schema": {"decision_type": "quest_completion_approval"},
+                "guidance_vm": {"requires_user_decision": True},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "blockers": ["forbidden_manuscript_terminology"],
+            "supervisor_phase": "bundle_stage_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "complete_bundle_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage blockers are now on the critical path for this paper line",
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": "decision-completion-001",
+                "default_reply_interaction_id": "decision-completion-001",
+                "pending_decisions": ["decision-completion-001"],
+                "active_interaction_id": "decision-completion-001",
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"
+    assert result["interaction_arbitration"] == {
+        "classification": "premature_completion_request",
+        "action": "resume",
+        "reason_code": "completion_requested_before_publication_gate_clear",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "decision",
+        "decision_type": "quest_completion_approval",
+        "source_artifact_path": str(decision_path),
+        "publication_gate_status": "blocked",
+        "publication_gate_blockers": ["forbidden_manuscript_terminology"],
+        "publication_gate_required_action": "complete_bundle_stage",
+        "controller_stage_note": (
+            "Runtime completion approval was requested before the MAS publication gate cleared; "
+            "resume the managed runtime so it fixes publication blockers instead of asking the user."
+        ),
+    }
+
+
 def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)

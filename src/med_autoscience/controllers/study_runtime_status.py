@@ -98,6 +98,9 @@ class StudyRuntimeReason(StrEnum):
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
     QUEST_WAITING_ON_INVALID_BLOCKING = "quest_waiting_on_invalid_blocking"
+    QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR = (
+        "quest_completion_requested_before_publication_gate_clear"
+    )
     QUEST_WAITING_FOR_EXTERNAL_INPUT = "quest_waiting_for_external_input"
     QUEST_WAITING_FOR_SUBMISSION_METADATA = "quest_waiting_for_submission_metadata"
     QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED = (

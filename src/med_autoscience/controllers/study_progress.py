@@ -33,6 +33,7 @@ _CONTROLLER_ACTION_LABELS = {
 }
 _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
+    "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
     "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
     "startup_boundary_not_ready_for_resume": "运行前置条件尚未满足，系统不能直接续跑。",
     "runtime_reentry_not_ready_for_resume": "运行重入条件尚未满足，系统不能直接续跑。",

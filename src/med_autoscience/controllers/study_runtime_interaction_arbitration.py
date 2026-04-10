@@ -31,6 +31,7 @@ def arbitrate_waiting_for_user(
     pending_interaction: dict[str, Any] | None,
     decision_policy: str | None,
     submission_metadata_only: bool,
+    publication_gate_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if submission_metadata_only:
         return {
@@ -70,6 +71,28 @@ def arbitrate_waiting_for_user(
     reply_schema = pending_interaction.get("reply_schema")
     structured_reply_schema = isinstance(reply_schema, dict) and _has_structured_reply_schema(reply_schema)
     normalized_policy = _text(decision_policy) or "autonomous"
+    publication_gate_status = _text((publication_gate_report or {}).get("status"))
+    publication_gate_blockers = list((publication_gate_report or {}).get("blockers") or [])
+    publication_gate_required_action = _text((publication_gate_report or {}).get("current_required_action"))
+
+    if decision_type == "quest_completion_approval" and publication_gate_status not in {None, "clear"}:
+        return {
+            "classification": "premature_completion_request",
+            "action": "resume",
+            "reason_code": "completion_requested_before_publication_gate_clear",
+            "requires_user_input": False,
+            "valid_blocking": False,
+            "kind": kind,
+            "decision_type": decision_type,
+            "source_artifact_path": source_artifact_path,
+            "publication_gate_status": publication_gate_status,
+            "publication_gate_blockers": publication_gate_blockers,
+            "publication_gate_required_action": publication_gate_required_action,
+            "controller_stage_note": (
+                "Runtime completion approval was requested before the MAS publication gate cleared; "
+                "resume the managed runtime so it fixes publication blockers instead of asking the user."
+            ),
+        }
 
     if kind != "decision_request":
         return {
