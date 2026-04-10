@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import time
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -33,6 +34,17 @@ DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
     "medical_literature_audit",
     "medical_reporting_audit",
     "figure_loop_guard",
+)
+
+_MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
+_HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user"})
+_HARD_AUTO_RECOVERY_REASONS = frozenset(
+    {
+        "quest_marked_running_but_no_live_session",
+        "quest_parked_on_unchanged_finalize_state",
+        "quest_waiting_on_invalid_blocking",
+        "quest_waiting_for_submission_metadata",
+    }
 )
 
 
@@ -173,6 +185,73 @@ def _managed_study_status_payload(
     if isinstance(action_payload, StudyRuntimeStatus):
         return action_payload.to_dict()
     return dict(action_payload)
+
+
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any]:
+    value = payload.get(key)
+    return value if isinstance(value, Mapping) else {}
+
+
+def _payload_active_run_id(payload: Mapping[str, Any]) -> str | None:
+    continuation_state = _mapping_value(payload, "continuation_state")
+    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
+    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
+    autonomous_runtime_notice = _mapping_value(payload, "autonomous_runtime_notice")
+    execution_owner_guard = _mapping_value(payload, "execution_owner_guard")
+    for candidate in (
+        payload.get("active_run_id"),
+        continuation_state.get("active_run_id"),
+        runtime_liveness_audit.get("active_run_id"),
+        runtime_audit.get("active_run_id"),
+        autonomous_runtime_notice.get("active_run_id"),
+        execution_owner_guard.get("active_run_id"),
+    ):
+        active_run_id = _non_empty_text(candidate)
+        if active_run_id is not None:
+            return active_run_id
+    return None
+
+
+def _payload_runtime_liveness_status(payload: Mapping[str, Any]) -> str | None:
+    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
+    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
+    return _non_empty_text(runtime_liveness_audit.get("status")) or _non_empty_text(runtime_audit.get("status"))
+
+
+def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | StudyRuntimeStatus) -> bool:
+    payload = _managed_study_status_payload(action_payload)
+    if _non_empty_text(payload.get("decision")) != "resume":
+        return False
+    if _non_empty_text(payload.get("quest_status")) not in _HARD_AUTO_RECOVERY_QUEST_STATUSES:
+        return False
+    if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
+        return False
+    if _payload_active_run_id(payload) is not None:
+        return False
+    return _payload_runtime_liveness_status(payload) != "live"
+
+
+def _serialize_managed_study_auto_recovery(
+    *,
+    preflight_payload: dict[str, Any] | StudyRuntimeStatus,
+    applied_payload: dict[str, Any] | StudyRuntimeStatus,
+    source: str,
+) -> dict[str, Any]:
+    preflight = _serialize_managed_study_action(preflight_payload)
+    applied = _serialize_managed_study_action(applied_payload)
+    return {
+        "study_id": applied.get("study_id") or preflight.get("study_id"),
+        "preflight_decision": preflight.get("decision"),
+        "preflight_reason": preflight.get("reason"),
+        "applied_decision": applied.get("decision"),
+        "applied_reason": applied.get("reason"),
+        "source": source,
+    }
 
 
 def _write_latest_watch_alias(*, report_dir: Path, report: Mapping[str, Any], markdown: str) -> tuple[Path, Path]:
@@ -330,6 +409,7 @@ def run_watch_for_runtime(
     controller_runners = controller_runners or build_default_controller_runners()
     managed_study_actions: list[dict[str, Any]] = []
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
+    managed_study_auto_recoveries: list[dict[str, Any]] = []
     if ensure_study_runtimes:
         if profile is None:
             raise ValueError("profile is required when ensure_study_runtimes is enabled")
@@ -349,6 +429,20 @@ def run_watch_for_runtime(
                     profile=profile,
                     study_root=study_root,
                 )
+                if _should_hard_auto_recover_managed_study(action_payload):
+                    preflight_payload = action_payload
+                    action_payload = study_runtime_router.ensure_study_runtime(
+                        profile=profile,
+                        study_root=study_root,
+                        source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+                    )
+                    managed_study_auto_recoveries.append(
+                        _serialize_managed_study_auto_recovery(
+                            preflight_payload=preflight_payload,
+                            applied_payload=action_payload,
+                            source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+                        )
+                    )
             managed_study_actions.append(_serialize_managed_study_action(action_payload))
             managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
     scanned: list[str] = []
@@ -391,6 +485,7 @@ def run_watch_for_runtime(
         "runtime_root": str(runtime_root),
         "scanned_quests": scanned,
         "managed_study_actions": managed_study_actions,
+        "managed_study_auto_recoveries": managed_study_auto_recoveries,
         "managed_study_supervision": managed_study_supervision,
         "reports": reports,
     }
@@ -414,17 +509,27 @@ def run_watch_loop(
 
     tick_count = 0
     last_result: dict[str, Any] | None = None
+    tick_errors: list[dict[str, Any]] = []
     started_at = utc_now()
 
     while True:
         tick_count += 1
-        last_result = run_watch_for_runtime(
-            runtime_root=resolved_runtime_root,
-            controller_runners=None,
-            apply=apply,
-            profile=profile,
-            ensure_study_runtimes=ensure_study_runtimes,
-        )
+        try:
+            last_result = run_watch_for_runtime(
+                runtime_root=resolved_runtime_root,
+                controller_runners=None,
+                apply=apply,
+                profile=profile,
+                ensure_study_runtimes=ensure_study_runtimes,
+            )
+        except Exception as exc:
+            tick_errors.append(
+                {
+                    "tick": tick_count,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+            )
         if max_ticks is not None and tick_count >= max_ticks:
             break
         sleep_fn(float(interval_seconds))
@@ -439,6 +544,7 @@ def run_watch_loop(
         "ensure_study_runtimes": ensure_study_runtimes,
         "interval_seconds": interval_seconds,
         "tick_count": tick_count,
+        "tick_errors": tick_errors,
         "last_result": last_result,
     }
 

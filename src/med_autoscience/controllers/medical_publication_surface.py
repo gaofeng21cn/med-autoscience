@@ -121,7 +121,9 @@ MARKDOWN_TABLE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
 MARKDOWN_TABLE_DELIMITER_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$")
 MARKDOWN_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 URL_RE = re.compile(r"https?://\S+", flags=re.IGNORECASE)
-QUESTION_SENTENCE_RE = re.compile(r"[^.!?\n]*[A-Za-z][^!?\n]{0,400}[?？]")
+QUESTION_MARK_CHARS = frozenset({"?", "？"})
+SENTENCE_TERMINATOR_CHARS = frozenset({".", "!", "?", "。", "！", "？"})
+QUESTION_SENTENCE_CONTEXT_LIMIT = 400
 
 
 def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
@@ -1030,8 +1032,7 @@ def scan_non_formal_question_sentences(path: Path) -> list[dict[str, Any]]:
         sanitized = URL_RE.sub("", raw_line).strip()
         if not sanitized:
             continue
-        for match in QUESTION_SENTENCE_RE.finditer(sanitized):
-            sentence = match.group(0).strip()
+        for sentence in iter_non_formal_question_sentences(sanitized):
             if not sentence:
                 continue
             hits.append(
@@ -1044,6 +1045,21 @@ def scan_non_formal_question_sentences(path: Path) -> list[dict[str, Any]]:
                 }
             )
     return hits
+
+
+def iter_non_formal_question_sentences(line: str) -> list[str]:
+    sentences: list[str] = []
+    sentence_start = 0
+    for index, char in enumerate(line):
+        if char not in SENTENCE_TERMINATOR_CHARS:
+            continue
+        if char in QUESTION_MARK_CHARS:
+            excerpt_start = max(sentence_start, index - QUESTION_SENTENCE_CONTEXT_LIMIT)
+            sentence = line[excerpt_start : index + 1].strip()
+            if any(letter.isascii() and letter.isalpha() for letter in sentence):
+                sentences.append(sentence)
+        sentence_start = index + 1
+    return sentences
 
 
 def build_surface_report(state: SurfaceState) -> dict[str, Any]:

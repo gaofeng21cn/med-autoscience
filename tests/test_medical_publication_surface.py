@@ -1192,6 +1192,34 @@ def test_build_report_blocks_when_non_formal_question_sentence_appears(tmp_path:
     assert any(hit["pattern_id"] == "non_formal_question_sentence" for hit in report["top_hits"])
 
 
+def test_scan_non_formal_question_sentences_does_not_use_backtracking_question_regex(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    manuscript_path = tmp_path / "paper" / "draft.md"
+    manuscript_path.parent.mkdir(parents=True)
+    manuscript_path.write_text(
+        "## Discussion\n"
+        + ("This clause keeps extending the same manuscript sentence " * 200)
+        + "does the supervisor tick remain bounded?\n",
+        encoding="utf-8",
+    )
+
+    class ExplodingQuestionRegex:
+        def finditer(self, text: str):
+            raise AssertionError("question sentence scanning must not depend on the backtracking regex")
+
+    monkeypatch.setattr(module, "QUESTION_SENTENCE_RE", ExplodingQuestionRegex(), raising=False)
+
+    hits = module.scan_non_formal_question_sentences(manuscript_path)
+
+    assert len(hits) == 1
+    assert hits[0]["pattern_id"] == "non_formal_question_sentence"
+    assert hits[0]["location"] == "line 2"
+    assert hits[0]["phrase"].endswith("does the supervisor tick remain bounded?")
+
+
 def test_build_report_blocks_generic_tool_disclosure_labels_in_caption(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

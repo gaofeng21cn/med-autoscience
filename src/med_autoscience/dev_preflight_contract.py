@@ -86,6 +86,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="runtime_contract_surface",
         exact_paths=(
+            "src/med_autoscience/controllers/runtime_watch.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/study_runtime_startup.py",
             "src/med_autoscience/controllers/study_runtime_status.py",
@@ -93,12 +94,14 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_runtime_protocol_runtime_watch.py",
             "tests/test_runtime_protocol_study_runtime.py",
             "tests/test_runtime_transport_med_deepscientist.py",
+            "tests/test_runtime_watch.py",
             "tests/test_study_runtime_router.py",
         ),
         prefix_paths=(
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
+            "uv run pytest tests/test_runtime_watch.py -q",
             "uv run pytest tests/test_study_runtime_router.py -q",
             "uv run pytest tests/test_runtime_transport_med_deepscientist.py -q",
             "uv run pytest tests/test_runtime_protocol_study_runtime.py -q",
