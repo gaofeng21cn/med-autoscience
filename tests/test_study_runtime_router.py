@@ -5244,6 +5244,100 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
     assert result["quest_status"] == "waiting_for_user"
 
 
+def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable_when_checklist_uses_key(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    write_text(
+        paper_root / "paper_bundle_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "paper_branch": "paper/main",
+                "compile_report_path": str(paper_root / "build" / "compile_report.json"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        paper_root / "build" / "compile_report.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "compiled_with_open_submission_items",
+                "author_metadata_status": "placeholder_external_input_required",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        paper_root / "review" / "submission_checklist.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "proof_ready_with_author_metadata_and_submission_declarations_pending",
+                "blocking_items": [
+                    {
+                        "key": "author_metadata",
+                        "status": "external_input_required",
+                        "detail": "author metadata pending",
+                    },
+                    {
+                        "key": "ethics_statement",
+                        "status": "external_input_required",
+                        "detail": "ethics statement pending",
+                    },
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "waiting_for_user"
+
+
 def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
     monkeypatch,
     tmp_path: Path,

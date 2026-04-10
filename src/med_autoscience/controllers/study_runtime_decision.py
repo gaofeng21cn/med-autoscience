@@ -41,21 +41,7 @@ from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 
 
-_SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS = frozenset(
-    {
-        "author_metadata",
-        "author_affiliations",
-        "corresponding_author",
-        "corresponding_author_contact",
-        "ethics_statement",
-        "human_subjects_consent_statement",
-        "ai_declaration",
-        "funding_statement",
-        "conflict_of_interest_statement",
-        "data_availability_statement",
-        "acknowledgments",
-    }
-)
+_SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS
 
 _SUPERVISOR_ONLY_ALLOWED_ACTIONS = (
     "read_runtime_status",
@@ -209,17 +195,7 @@ def _record_supervisor_tick_audit(
 
 
 def _normalize_submission_blocking_item_ids(payload: dict[str, object]) -> tuple[str, ...]:
-    raw_items = payload.get("blocking_items")
-    if not isinstance(raw_items, list):
-        return ()
-    normalized: list[str] = []
-    for item in raw_items:
-        if not isinstance(item, dict):
-            continue
-        item_id = str(item.get("id") or "").strip()
-        if item_id:
-            normalized.append(item_id)
-    return tuple(normalized)
+    return paper_artifacts.normalize_submission_checklist_blocking_item_keys(payload)
 
 
 def _waiting_submission_metadata_only(quest_root: Path) -> bool:
@@ -238,7 +214,7 @@ def _waiting_submission_metadata_only(quest_root: Path) -> bool:
     blocking_item_ids = _normalize_submission_blocking_item_ids(payload)
     if not blocking_item_ids:
         return False
-    return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS for item_id in blocking_item_ids)
+    return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS for item_id in blocking_item_ids)
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:

@@ -22,6 +22,7 @@ def make_quest(
     include_current_medical_publication_surface_report: bool = False,
     medical_publication_surface_status: str = "clear",
     manuscript_files: dict[str, str] | None = None,
+    submission_checklist: dict[str, object] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -78,6 +79,11 @@ def make_quest(
             "author_metadata_status": "placeholder_external_input_required",
         },
     )
+    if submission_checklist is not None:
+        dump_json(
+            worktree_root / "paper" / "review" / "submission_checklist.json",
+            submission_checklist,
+        )
     if include_submission_minimal:
         dump_json(
             worktree_root / "paper" / "submission_minimal" / "submission_manifest.json",
@@ -203,6 +209,74 @@ def test_build_gate_report_blocks_finalize_only_bundle_without_current_surface_r
     assert report["status"] == "blocked"
     assert report["allow_write"] is False
     assert "missing_current_medical_publication_surface_report" in report["blockers"]
+    assert report["supervisor_phase"] == "bundle_stage_blocked"
+    assert report["current_required_action"] == "complete_bundle_stage"
+
+
+def test_build_gate_report_allows_handoff_ready_bundle_with_non_scientific_pageproof_gap(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        submission_checklist={
+            "overall_status": "display_materialized_draft_bundle_not_submission_ready",
+            "checks": [
+                {"key": "claim_evidence_alignment", "status": "pass"},
+                {"key": "proofing_present", "status": "pass"},
+            ],
+            "blocking_items": [
+                {
+                    "key": "full_manuscript_pageproof",
+                    "notes": "Rendered page proof is still unavailable.",
+                }
+            ],
+            "handoff_ready": True,
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "paper_bundle"
+    assert report["status"] == "clear"
+    assert report["allow_write"] is True
+    assert report["submission_minimal_present"] is False
+    assert report["submission_checklist_handoff_ready"] is True
+    assert report["non_scientific_handoff_gaps"] == ["full_manuscript_pageproof"]
+    assert report["blockers"] == []
+    assert report["supervisor_phase"] == "bundle_stage_ready"
+    assert report["current_required_action"] == "continue_bundle_stage"
+
+
+def test_build_gate_report_keeps_handoff_ready_bundle_blocked_for_unknown_submission_gap(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        submission_checklist={
+            "overall_status": "draft_bundle_with_unresolved_method_gap",
+            "blocking_items": [
+                {
+                    "key": "methods_completeness",
+                    "notes": "Methods section still misses a required implementation detail.",
+                }
+            ],
+            "handoff_ready": True,
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert report["submission_checklist_handoff_ready"] is True
+    assert report["submission_checklist_unclassified_blocking_items"] == ["methods_completeness"]
+    assert "submission_checklist_contains_unclassified_blocking_items" in report["blockers"]
     assert report["supervisor_phase"] == "bundle_stage_blocked"
     assert report["current_required_action"] == "complete_bundle_stage"
 

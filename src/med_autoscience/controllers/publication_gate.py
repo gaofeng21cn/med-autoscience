@@ -21,6 +21,9 @@ PUBLICATION_SUPERVISOR_KEYS: tuple[str, ...] = (
     "deferred_downstream_actions",
     "controller_stage_note",
 )
+_NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS = (
+    paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS | frozenset({"full_manuscript_pageproof"})
+)
 
 
 @dataclass
@@ -47,6 +50,8 @@ class GateState:
     present_deliverables: list[str]
     paper_bundle_manifest_path: Path | None
     paper_bundle_manifest: dict[str, Any] | None
+    submission_checklist_path: Path | None
+    submission_checklist: dict[str, Any] | None
     submission_minimal_manifest_path: Path | None
     submission_minimal_manifest: dict[str, Any] | None
     submission_minimal_docx_present: bool
@@ -295,6 +300,8 @@ def build_gate_state(quest_root: Path) -> GateState:
         present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
     else:
         present_deliverables, missing_deliverables = [], []
+    submission_checklist_path = paper_artifacts.resolve_submission_checklist_path(paper_bundle_manifest_path)
+    submission_checklist = paper_artifacts.load_submission_checklist(paper_bundle_manifest_path)
     submission_minimal_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
     submission_minimal_manifest = (
         load_json(submission_minimal_manifest_path) if submission_minimal_manifest_path else None
@@ -338,6 +345,8 @@ def build_gate_state(quest_root: Path) -> GateState:
         present_deliverables=present_deliverables,
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
+        submission_checklist_path=submission_checklist_path,
+        submission_checklist=submission_checklist,
         submission_minimal_manifest_path=submission_minimal_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
         submission_minimal_docx_present=bool(submission_minimal_docx_path and submission_minimal_docx_path.exists()),
@@ -363,6 +372,19 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         latest_surface_path=state.latest_medical_publication_surface_path,
         anchor_path=state.anchor_path,
     )
+    submission_checklist_blocking_items = list(
+        paper_artifacts.normalize_submission_checklist_blocking_item_keys(state.submission_checklist)
+    )
+    submission_checklist_handoff_ready = bool(
+        isinstance(state.submission_checklist, dict) and state.submission_checklist.get("handoff_ready") is True
+    )
+    non_scientific_handoff_gaps = [
+        item for item in submission_checklist_blocking_items if item in _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS
+    ]
+    submission_checklist_unclassified_blocking_items = [
+        item for item in submission_checklist_blocking_items if item not in _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS
+    ]
+    closure_bundle_ready = submission_checklist_handoff_ready and not submission_checklist_unclassified_blocking_items
     blockers: list[str] = []
     if state.anchor_kind == "main_result":
         allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
@@ -376,19 +398,29 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         allow_write = (
             state.compile_report_path is not None
             and state.compile_report is not None
-            and state.submission_minimal_manifest is not None
-            and state.submission_minimal_docx_present
-            and state.submission_minimal_pdf_present
+            and (
+                closure_bundle_ready
+                or (
+                    state.submission_minimal_manifest is not None
+                    and state.submission_minimal_docx_present
+                    and state.submission_minimal_pdf_present
+                )
+            )
         )
         if state.compile_report_path is None or state.compile_report is None:
             blockers.append("missing_paper_compile_report")
+        if submission_checklist_handoff_ready and submission_checklist_unclassified_blocking_items:
+            blockers.append("submission_checklist_contains_unclassified_blocking_items")
         if (
-            state.submission_minimal_manifest is None
-            or not state.submission_minimal_docx_present
-            or not state.submission_minimal_pdf_present
+            not closure_bundle_ready
+            and (
+                state.submission_minimal_manifest is None
+                or not state.submission_minimal_docx_present
+                or not state.submission_minimal_pdf_present
+            )
         ):
             blockers.append("missing_submission_minimal")
-        if not medical_publication_surface_current:
+        if not medical_publication_surface_current and not closure_bundle_ready:
             blockers.append("missing_current_medical_publication_surface_report")
     else:
         allow_write = False
@@ -454,6 +486,16 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "present_non_scalar_deliverables": state.present_deliverables,
         "missing_non_scalar_deliverables": state.missing_deliverables,
         "paper_bundle_manifest_path": str(state.paper_bundle_manifest_path) if state.paper_bundle_manifest_path else None,
+        "submission_checklist_path": str(state.submission_checklist_path) if state.submission_checklist_path else None,
+        "submission_checklist_present": state.submission_checklist is not None,
+        "submission_checklist_overall_status": (
+            str((state.submission_checklist or {}).get("overall_status") or "").strip() or None
+        ),
+        "submission_checklist_handoff_ready": submission_checklist_handoff_ready,
+        "submission_checklist_blocking_items": submission_checklist_blocking_items,
+        "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
+        "non_scientific_handoff_gaps": non_scientific_handoff_gaps,
+        "closure_bundle_ready": closure_bundle_ready,
         "submission_minimal_manifest_path": (
             str(state.submission_minimal_manifest_path) if state.submission_minimal_manifest_path else None
         ),
@@ -539,6 +581,8 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
     metrics = report.get("headline_metrics") or {}
     terminology_violations = report.get("manuscript_terminology_violations") or []
     submission_surface_qc_failures = report.get("submission_surface_qc_failures") or []
+    non_scientific_handoff_gaps = report.get("non_scientific_handoff_gaps") or []
+    submission_checklist_unclassified = report.get("submission_checklist_unclassified_blocking_items") or []
     lines = [
         "# Publishability Gate Control Report",
         "",
@@ -584,6 +628,9 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `anchor_path`: `{report.get('anchor_path')}`",
             f"- `paper_root`: `{report.get('paper_root')}`",
             f"- `paper_bundle_manifest_path`: `{report.get('paper_bundle_manifest_path')}`",
+            f"- `submission_checklist_path`: `{report.get('submission_checklist_path')}`",
+            f"- `submission_checklist_handoff_ready`: `{str(report.get('submission_checklist_handoff_ready')).lower()}`",
+            f"- `closure_bundle_ready`: `{str(report.get('closure_bundle_ready')).lower()}`",
             f"- `compile_report_path`: `{report.get('compile_report_path')}`",
             f"- `submission_minimal_manifest_path`: `{report.get('submission_minimal_manifest_path')}`",
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
@@ -594,6 +641,24 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `medical_publication_surface_current`: `{str(report.get('medical_publication_surface_current')).lower()}`",
         ]
     )
+    if non_scientific_handoff_gaps:
+        lines.extend(
+            [
+                "",
+                "## Non-Scientific Handoff Gaps",
+                "",
+                *[f"- `{item}`" for item in non_scientific_handoff_gaps],
+            ]
+        )
+    if submission_checklist_unclassified:
+        lines.extend(
+            [
+                "",
+                "## Unclassified Submission Checklist Gaps",
+                "",
+                *[f"- `{item}`" for item in submission_checklist_unclassified],
+            ]
+        )
     unmanaged_roots = report.get("unmanaged_submission_surface_roots") or []
     archived_roots = report.get("archived_submission_surface_roots") or []
     if archived_roots:

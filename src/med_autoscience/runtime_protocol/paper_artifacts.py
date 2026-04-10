@@ -14,6 +14,21 @@ def _resolve_path(path: Path) -> Path:
 
 
 ARCHIVED_REFERENCE_ONLY_SURFACE_STATUS = "archived_reference_only"
+SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = frozenset(
+    {
+        "author_metadata",
+        "author_affiliations",
+        "corresponding_author",
+        "corresponding_author_contact",
+        "ethics_statement",
+        "human_subjects_consent_statement",
+        "ai_declaration",
+        "funding_statement",
+        "conflict_of_interest_statement",
+        "data_availability_statement",
+        "acknowledgments",
+    }
+)
 
 
 def resolve_latest_paper_root(quest_root: Path) -> Path:
@@ -40,6 +55,40 @@ def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None)
         return None
     candidate = _resolve_path(paper_bundle_manifest_path).parent / "submission_minimal" / "submission_manifest.json"
     return candidate if candidate.exists() else None
+
+
+def resolve_submission_checklist_path(paper_bundle_manifest_path: Path | None) -> Path | None:
+    if paper_bundle_manifest_path is None:
+        return None
+    candidate = _resolve_path(paper_bundle_manifest_path).parent / "review" / "submission_checklist.json"
+    return candidate if candidate.exists() else None
+
+
+def load_submission_checklist(paper_bundle_manifest_path: Path | None) -> dict[str, Any] | None:
+    checklist_path = resolve_submission_checklist_path(paper_bundle_manifest_path)
+    if checklist_path is None:
+        return None
+    try:
+        payload = json.loads(checklist_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def normalize_submission_checklist_blocking_item_keys(payload: dict[str, Any] | None) -> tuple[str, ...]:
+    if not isinstance(payload, dict):
+        return ()
+    raw_items = payload.get("blocking_items")
+    if not isinstance(raw_items, list):
+        return ()
+    normalized: list[str] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        item_key = str(item.get("id") or item.get("key") or "").strip()
+        if item_key:
+            normalized.append(item_key)
+    return tuple(normalized)
 
 
 def load_submission_surface_manifest(surface_root: Path) -> dict[str, Any] | None:
