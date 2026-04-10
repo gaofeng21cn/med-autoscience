@@ -37,6 +37,15 @@ def make_quest(tmp_path: Path) -> tuple[Path, Path]:
             "pending_user_message_count": 0,
         },
     )
+    append_jsonl(
+        quest_root / ".ds" / "runs" / "run-loop" / "stdout.jsonl",
+        [
+            {
+                "timestamp": "2026-03-28T23:54:00+00:00",
+                "line": '{"type":"turn.started"}',
+            }
+        ],
+    )
     dump_json(quest_root / ".ds" / "user_message_queue.json", {"version": 1, "pending": [], "completed": []})
     (quest_root / ".ds" / "interaction_journal.jsonl").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / ".ds" / "interaction_journal.jsonl").write_text("", encoding="utf-8")
@@ -181,6 +190,69 @@ def test_build_guard_state_filters_outbox_rows_by_normalized_quest_root(tmp_path
     assert state.figure_counts["F3A"] == 1
     assert state.dominant_figure_id == "F4B"
     assert state.dominant_figure_mentions == 4
+
+
+def test_build_guard_state_ignores_figure_mentions_before_active_run_start(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": quest_root.name,
+            "status": "running",
+            "active_run_id": "run-loop",
+            "active_interaction_id": "progress-loop",
+            "pending_user_message_count": 0,
+            "last_resume_at": "2026-03-29T00:09:59+00:00",
+        },
+    )
+    append_jsonl(
+        quest_root / ".ds" / "runs" / "run-loop" / "stdout.jsonl",
+        [
+            {
+                "timestamp": "2026-03-29T00:10:00+00:00",
+                "line": '{"type":"turn.started"}',
+            }
+        ],
+    )
+
+    state = module.build_guard_state(
+        quest_root,
+        outbox_path=outbox_path,
+        min_figure_mentions=3,
+    )
+    report = module.build_guard_report(state)
+
+    assert state.figure_counts == {}
+    assert state.recent_outbox_rows == []
+    assert report["status"] == "clear"
+    assert report["blockers"] == []
+
+
+def test_build_guard_report_does_not_block_without_active_run(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": quest_root.name,
+            "status": "active",
+            "active_run_id": None,
+            "active_interaction_id": "progress-loop",
+            "pending_user_message_count": 0,
+        },
+    )
+
+    state = module.build_guard_state(
+        quest_root,
+        outbox_path=outbox_path,
+        min_figure_mentions=3,
+    )
+    report = module.build_guard_report(state)
+
+    assert report["status"] == "clear"
+    assert report["blockers"] == []
+    assert report["recommended_action"] == "continue_current_run"
 
 
 def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkeypatch) -> None:

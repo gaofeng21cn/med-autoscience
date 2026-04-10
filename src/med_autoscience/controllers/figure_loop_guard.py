@@ -56,6 +56,16 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def parse_timestamp(value: object) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def load_json(path: Path, default: Any = None) -> Any:
     if not path.exists():
         return default
@@ -100,7 +110,35 @@ def extract_figures(message: str) -> list[str]:
     return sorted(found)
 
 
-def read_recent_outbox_rows(outbox_path: Path, quest_root: Path, limit: int) -> list[dict[str, Any]]:
+def resolve_active_run_window_start(quest_root: Path, runtime_state: dict[str, Any]) -> datetime | None:
+    active_run_id = str(runtime_state.get("active_run_id") or "").strip()
+    if not active_run_id:
+        return None
+    stdout_path = quest_state.resolve_active_stdout_path(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+    )
+    if stdout_path is not None and stdout_path.exists():
+        for raw in stdout_path.read_text(encoding="utf-8").splitlines():
+            if not raw.strip():
+                continue
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            timestamp = parse_timestamp(payload.get("timestamp"))
+            if timestamp is not None:
+                return timestamp
+    return parse_timestamp(runtime_state.get("last_resume_at"))
+
+
+def read_recent_outbox_rows(
+    outbox_path: Path,
+    quest_root: Path,
+    limit: int,
+    *,
+    not_before: datetime | None = None,
+) -> list[dict[str, Any]]:
     if not outbox_path.exists():
         return []
     resolved_quest_root = str(Path(quest_root).expanduser().resolve())
@@ -115,6 +153,10 @@ def read_recent_outbox_rows(outbox_path: Path, quest_root: Path, limit: int) -> 
         payload_quest_root = _normalize_optional_path(payload.get("quest_root"))
         if payload_quest_root is not None and payload_quest_root != resolved_quest_root:
             continue
+        if not_before is not None:
+            sent_at = parse_timestamp(payload.get("sent_at") or payload.get("created_at"))
+            if sent_at is None or sent_at < not_before:
+                continue
         rows.append(payload)
     return rows[-max(limit, 0):]
 
@@ -187,7 +229,18 @@ def build_guard_state(
 ) -> GuardState:
     runtime_state = quest_state.load_runtime_state(quest_root)
     resolved_outbox_path = outbox_path or resolve_outbox_path(quest_root)
-    rows = read_recent_outbox_rows(resolved_outbox_path, quest_root, recent_window)
+    active_run_window_start = resolve_active_run_window_start(quest_root, runtime_state)
+    active_run_id = str(runtime_state.get("active_run_id") or "").strip()
+    rows = (
+        read_recent_outbox_rows(
+            resolved_outbox_path,
+            quest_root,
+            recent_window,
+            not_before=active_run_window_start,
+        )
+        if active_run_id and active_run_window_start is not None
+        else []
+    )
     counts = count_figures(rows)
     dominant_figure_id, dominant_figure_mentions = choose_dominant_figure(rows, counts)
     return GuardState(
