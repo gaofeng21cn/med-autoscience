@@ -79,3 +79,44 @@ def test_read_study_charter_rejects_non_object_payload(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="JSON object"):
         module.read_study_charter(study_root=study_root)
+
+
+def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    written_ref = module.materialize_study_charter(
+        study_root=study_root,
+        study_id="001-risk",
+        study_payload={
+            "title": "Diabetes mortality risk paper",
+            "primary_question": "Build a submission-ready survival-risk study.",
+            "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
+            "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
+        },
+        execution={
+            "decision_policy": "autonomous",
+            "launch_profile": "continue_existing_state",
+        },
+        required_first_anchor="write",
+    )
+
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    payload = json.loads(charter_path.read_text(encoding="utf-8"))
+
+    assert written_ref == {
+        "charter_id": "charter::001-risk::v1",
+        "artifact_path": str(charter_path.resolve()),
+    }
+    assert payload["schema_version"] == 1
+    assert payload["charter_id"] == "charter::001-risk::v1"
+    assert payload["study_id"] == "001-risk"
+    assert payload["title"] == "Diabetes mortality risk paper"
+    assert payload["publication_objective"] == "Build a submission-ready survival-risk study."
+    assert payload["paper_framing_summary"] == "Clinical survival framing is fixed around CVD-related mortality."
+    assert payload["minimum_sci_ready_evidence_package"] == ["external_validation", "decision_curve_analysis"]
+    assert payload["autonomy_envelope"] == {
+        "decision_policy": "autonomous",
+        "launch_profile": "continue_existing_state",
+        "required_first_anchor": "write",
+    }

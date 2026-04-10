@@ -24,6 +24,7 @@ from med_autoscience.policies.controller_first import render_controller_first_su
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.startup_contract import compose_startup_contract
+from med_autoscience.study_charter import materialize_study_charter
 from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
@@ -146,6 +147,13 @@ def _build_startup_contract(
         study_payload=study_payload,
         profile=profile,
     )
+    study_charter_ref = materialize_study_charter(
+        study_root=study_root,
+        study_id=study_id,
+        study_payload=study_payload,
+        execution=execution,
+        required_first_anchor=startup_boundary_gate.required_first_anchor,
+    )
 
     if not startup_boundary_gate.allow_compute_stage:
         scope = "full_research"
@@ -207,6 +215,7 @@ def _build_startup_contract(
                 existing_brief=existing_brief,
                 boundary_gate=boundary_gate,
             ),
+            "study_charter_ref": study_charter_ref,
             "required_first_anchor": startup_boundary_gate.required_first_anchor,
             "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
             "startup_boundary_gate": startup_boundary_gate.to_dict(),

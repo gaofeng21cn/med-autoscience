@@ -8,6 +8,7 @@ from med_autoscience.publication_eval_record import PublicationEvalRecord
 
 __all__ = [
     "STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH",
+    "materialize_publication_eval_latest",
     "read_publication_eval_latest",
     "resolve_publication_eval_latest_ref",
     "stable_publication_eval_latest_path",
@@ -49,3 +50,25 @@ def read_publication_eval_latest(
     if not isinstance(payload, dict):
         raise ValueError(f"publication eval latest payload must be a JSON object: {latest_path}")
     return PublicationEvalRecord.from_payload(payload).to_dict()
+
+
+def materialize_publication_eval_latest(
+    *,
+    study_root: Path,
+    record: PublicationEvalRecord | dict[str, Any],
+) -> dict[str, str]:
+    normalized_record = (
+        record
+        if isinstance(record, PublicationEvalRecord)
+        else PublicationEvalRecord.from_payload(record)
+    )
+    latest_path = stable_publication_eval_latest_path(study_root=study_root)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(
+        json.dumps(normalized_record.to_dict(), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "eval_id": normalized_record.eval_id,
+        "artifact_path": str(latest_path),
+    }
