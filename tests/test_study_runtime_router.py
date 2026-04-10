@@ -2401,6 +2401,122 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
     ]
 
 
+def test_study_runtime_status_records_missing_supervisor_tick_audit_for_existing_managed_quest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["supervisor_tick_audit"]["required"] is True
+    assert result["supervisor_tick_audit"]["status"] == "missing"
+    assert result["supervisor_tick_audit"]["reason"] == "supervisor_tick_report_missing"
+    assert result["supervisor_tick_audit"]["latest_report_path"] == str(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    )
+    assert result["supervisor_tick_audit"]["stale_after_seconds"] == 600
+
+
+def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_report_is_too_old(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    write_text(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recorded_at": "2026-04-10T09:00:00+00:00",
+                "health_status": "inactive",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        decision_module,
+        "_supervisor_tick_now",
+        lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["supervisor_tick_audit"]["required"] is True
+    assert result["supervisor_tick_audit"]["status"] == "stale"
+    assert result["supervisor_tick_audit"]["reason"] == "supervisor_tick_report_stale"
+    assert result["supervisor_tick_audit"]["latest_recorded_at"] == "2026-04-10T09:00:00+00:00"
+    assert result["supervisor_tick_audit"]["seconds_since_latest_recorded_at"] == 1800
+
+
 def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_validation_fails(
     monkeypatch,
     tmp_path: Path,

@@ -20,6 +20,9 @@ def test_runtime_supervision_doc_freezes_outer_supervisor_loop_contract() -> Non
     assert "watch --runtime-root" in content
     assert "runtime_supervision/latest.json" in content
     assert "study_progress" in content
+    assert "fresh" in content
+    assert "stale" in content
+    assert "监管心跳异常" in content
     assert "不是第二个 authority daemon" in content
     assert "runtime_supervision_loop.md" in docs_index
     assert "runtime_supervision_loop.md" in docs_index_zh

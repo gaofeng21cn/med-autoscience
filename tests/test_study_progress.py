@@ -700,3 +700,74 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     assert all("finalize 本地总结" not in item for item in result["current_blockers"])
     assert result["paper_stage"] == "scientific_anchor_missing"
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
+def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "paused",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_paused",
+            "publication_supervisor_state": {
+                "supervisor_phase": "scientific_anchor_missing",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": False,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "stale",
+                "reason": "supervisor_tick_report_stale",
+                "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
+                "next_action_summary": "需要先恢复 MedAutoScience supervisor tick / heartbeat 调度，再继续托管监管与自动恢复。",
+                "latest_report_path": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
+                "latest_recorded_at": "2026-04-10T09:00:00+00:00",
+                "seconds_since_latest_recorded_at": 1800,
+                "expected_interval_seconds": 300,
+                "stale_after_seconds": 600,
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "managed_runtime_supervision_gap"
+    assert "监管心跳已陈旧" in result["current_stage_summary"]
+    assert any("监管心跳已陈旧" in item for item in result["current_blockers"])
+    assert "supervisor tick" in result["next_system_action"]
+    assert result["supervision"]["supervisor_tick_status"] == "stale"

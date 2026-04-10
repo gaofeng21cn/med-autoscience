@@ -49,6 +49,7 @@ _ACTION_LABELS = {
     "human_confirmation_required": "等待医生或 PI 明确确认下一步。",
     "supervise_runtime_only": "当前以监督托管运行时为主，不直接接管执行。",
 }
+_SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
 
 
 def _utc_now() -> str:
@@ -227,6 +228,7 @@ def _current_stage(
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
 ) -> str:
     quest_status = _non_empty_text(status.get("quest_status"))
     decision = _non_empty_text(status.get("decision"))
@@ -239,6 +241,8 @@ def _current_stage(
         return "managed_runtime_degraded"
     if runtime_health_status == "escalated":
         return "managed_runtime_escalated"
+    if _supervisor_tick_gap_present(supervisor_tick_audit):
+        return "managed_runtime_supervision_gap"
     if needs_physician_decision:
         return "waiting_physician_decision"
     if isinstance(publication_supervisor_state, dict) and _non_empty_text(
@@ -283,6 +287,7 @@ def _stage_summary(
     publication_supervisor_state: dict[str, Any],
     latest_progress_message: str | None,
     runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
 ) -> str:
     if current_stage == "study_completed":
         return "研究主线已经进入结题/交付阶段，系统不会继续自动实验。"
@@ -300,6 +305,15 @@ def _stage_summary(
         if current_stage == "managed_runtime_escalated" and next_action_summary is not None:
             if "人工介入" not in summary:
                 summary = f"{summary} 当前需要人工介入。"
+            return f"{summary} {next_action_summary}"
+        return summary
+    if current_stage == "managed_runtime_supervision_gap":
+        summary = (
+            _non_empty_text((supervisor_tick_audit or {}).get("summary"))
+            or "MedAutoScience 外环监管心跳异常，当前不能把托管运行视为被持续监管。"
+        )
+        next_action_summary = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
+        if next_action_summary is not None:
             return f"{summary} {next_action_summary}"
         return summary
     if current_stage == "waiting_physician_decision":
@@ -322,6 +336,12 @@ def _stage_summary(
 
 def _interaction_arbitration_action(interaction_arbitration: dict[str, Any] | None) -> str | None:
     return _non_empty_text((interaction_arbitration or {}).get("action"))
+
+
+def _supervisor_tick_gap_present(supervisor_tick_audit: dict[str, Any]) -> bool:
+    if not bool((supervisor_tick_audit or {}).get("required")):
+        return False
+    return _non_empty_text((supervisor_tick_audit or {}).get("status")) in _SUPERVISOR_TICK_GAP_STATUSES
 
 
 def _needs_physician_decision(
@@ -374,7 +394,11 @@ def _next_system_action(
     execution_owner_guard: dict[str, Any],
     status: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
 ) -> str:
+    supervisor_tick_next_action = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
+    if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
+        return supervisor_tick_next_action
     runtime_next_action = _non_empty_text((runtime_supervision_payload or {}).get("next_action_summary"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_health_status in {"recovering", "degraded", "escalated"} and runtime_next_action is not None:
@@ -411,8 +435,14 @@ def _current_blockers(
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
 ) -> list[str]:
     blockers: list[str] = []
+    if _supervisor_tick_gap_present(supervisor_tick_audit):
+        _append_unique(
+            blockers,
+            _non_empty_text((supervisor_tick_audit or {}).get("summary")),
+        )
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_health_status in {"degraded", "escalated"}:
         _append_unique(
@@ -674,6 +704,11 @@ def read_study_progress(
         if isinstance(status.get("interaction_arbitration"), dict)
         else {}
     )
+    supervisor_tick_audit = (
+        dict(status.get("supervisor_tick_audit") or {})
+        if isinstance(status.get("supervisor_tick_audit"), dict)
+        else {}
+    )
     continuation_state = (
         dict(status.get("continuation_state") or {})
         if isinstance(status.get("continuation_state"), dict)
@@ -709,6 +744,7 @@ def read_study_progress(
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
     )
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -723,6 +759,7 @@ def read_study_progress(
             publication_supervisor_state=publication_supervisor_state,
             latest_progress_message=latest_progress_message,
             runtime_supervision_payload=runtime_supervision_payload,
+            supervisor_tick_audit=supervisor_tick_audit,
         ),
         "paper_stage": paper_stage,
         "paper_stage_summary": _paper_stage_summary(
@@ -756,6 +793,7 @@ def read_study_progress(
             pending_user_interaction=pending_user_interaction,
             interaction_arbitration=interaction_arbitration,
             runtime_supervision_payload=runtime_supervision_payload,
+            supervisor_tick_audit=supervisor_tick_audit,
         ),
         "next_system_action": _next_system_action(
             needs_physician_decision=needs_physician_decision,
@@ -764,6 +802,7 @@ def read_study_progress(
             execution_owner_guard=execution_owner_guard,
             status=status,
             runtime_supervision_payload=runtime_supervision_payload,
+            supervisor_tick_audit=supervisor_tick_audit,
         ),
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": _physician_decision_summary(
@@ -781,6 +820,10 @@ def read_study_progress(
             "active_run_id": _non_empty_text(execution_owner_guard.get("active_run_id"))
             or _non_empty_text(autonomous_runtime_notice.get("active_run_id")),
             "health_status": runtime_health_status,
+            "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
+            "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
+            "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),
+            "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
             "launch_report_path": str(launch_report_path),
         },
         "refs": {
@@ -804,6 +847,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     runtime_decision = str(payload.get("runtime_decision") or "unknown").strip()
     runtime_reason = _reason_label(payload.get("runtime_reason")) or str(payload.get("runtime_reason") or "").strip()
     runtime_health = str(((payload.get("supervision") or {}).get("health_status") or "unknown")).strip()
+    supervisor_tick_status = str(((payload.get("supervision") or {}).get("supervisor_tick_status") or "")).strip()
     lines = [
         "# 研究进度",
         "",
@@ -822,6 +866,8 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         f"- 运行健康: `{runtime_health or 'unknown'}`",
         f"- MAS 决策: `{runtime_decision or 'unknown'}`",
     ]
+    if supervisor_tick_status:
+        lines.append(f"- MAS 监管心跳: `{supervisor_tick_status}`")
     if runtime_reason:
         lines.append(f"- 决策原因: {runtime_reason}")
     continuation_reason = str(continuation_state.get("continuation_reason") or "").strip()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from importlib import import_module
 import json
 from pathlib import Path
@@ -75,10 +76,136 @@ _SUPERVISOR_ONLY_FORBIDDEN_ACTIONS = (
 _FINALIZE_PARKING_CONTINUATION_POLICY = "wait_for_user_or_resume"
 _FINALIZE_PARKING_CONTINUATION_REASON = "unchanged_finalize_state"
 _HUMAN_CONFIRMATION_REQUIRED_ACTION = "human_confirmation_required"
+_SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS = 5 * 60
+_SUPERVISOR_TICK_STALE_AFTER_SECONDS = 2 * _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS
 
 
 def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
+
+
+def _supervisor_tick_now() -> datetime:
+    return datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _normalize_timestamp(value: object) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _read_json_mapping(path: Path) -> dict[str, object] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return dict(payload)
+
+
+def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
+    execution = status.execution
+    return (
+        str(execution.get("engine") or "").strip() == "med-deepscientist"
+        and str(execution.get("auto_entry") or "").strip() == "on_managed_research_intent"
+        and status.quest_exists
+    )
+
+
+def _record_supervisor_tick_audit(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+) -> None:
+    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    required = _supervisor_tick_required(status)
+    payload: dict[str, object] = {
+        "required": required,
+        "expected_interval_seconds": _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS,
+        "stale_after_seconds": _SUPERVISOR_TICK_STALE_AFTER_SECONDS,
+        "latest_report_path": str(latest_report_path),
+    }
+    if not required:
+        payload.update(
+            {
+                "status": "not_required",
+                "reason": "supervisor_tick_not_required",
+                "summary": "当前 study 还不要求周期 supervisor tick 监管。",
+                "next_action_summary": "继续按需读取研究状态即可。",
+            }
+        )
+        status.record_supervisor_tick_audit(payload)
+        return
+
+    latest_report = _read_json_mapping(latest_report_path)
+    if latest_report is None:
+        payload.update(
+            {
+                "status": "missing",
+                "reason": "supervisor_tick_report_missing",
+                "summary": "MedAutoScience 外环监管心跳缺失，当前不能保证及时发现掉线并自动恢复。",
+                "next_action_summary": "需要恢复或补齐 MedAutoScience supervisor tick / heartbeat 调度，再继续托管监管与自动恢复。",
+                "latest_recorded_at": None,
+                "seconds_since_latest_recorded_at": None,
+                "last_known_health_status": None,
+            }
+        )
+        status.record_supervisor_tick_audit(payload)
+        return
+
+    payload["last_known_health_status"] = str(latest_report.get("health_status") or "").strip() or None
+    recorded_at = _normalize_timestamp(latest_report.get("recorded_at"))
+    if recorded_at is None:
+        payload.update(
+            {
+                "status": "invalid",
+                "reason": "supervisor_tick_report_timestamp_invalid",
+                "summary": "MedAutoScience 最近一次监管记录缺少可解析时间戳，当前不能确认监管心跳是否仍然新鲜。",
+                "next_action_summary": "需要刷新 supervisor tick durable surface，然后重新确认托管监管状态。",
+                "latest_recorded_at": str(latest_report.get("recorded_at") or "").strip() or None,
+                "seconds_since_latest_recorded_at": None,
+            }
+        )
+        status.record_supervisor_tick_audit(payload)
+        return
+
+    now = _supervisor_tick_now()
+    age_seconds = max(0, int((now - recorded_at).total_seconds()))
+    payload["latest_recorded_at"] = recorded_at.isoformat()
+    payload["seconds_since_latest_recorded_at"] = age_seconds
+    if age_seconds > _SUPERVISOR_TICK_STALE_AFTER_SECONDS:
+        payload.update(
+            {
+                "status": "stale",
+                "reason": "supervisor_tick_report_stale",
+                "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
+                "next_action_summary": "需要先恢复 MedAutoScience supervisor tick / heartbeat 调度，再继续托管监管与自动恢复。",
+            }
+        )
+        status.record_supervisor_tick_audit(payload)
+        return
+
+    payload.update(
+        {
+            "status": "fresh",
+            "reason": "supervisor_tick_report_fresh",
+            "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+            "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+        }
+    )
+    status.record_supervisor_tick_audit(payload)
 
 
 def _normalize_submission_blocking_item_ids(payload: dict[str, object]) -> tuple[str, ...]:
@@ -725,6 +852,7 @@ def _status_state(
             launch_report_path=launch_report_path,
         )
         _record_execution_owner_guard(status=result, quest_root=quest_root)
+        _record_supervisor_tick_audit(status=result, study_root=study_root)
         if not result.should_refresh_startup_hydration_while_blocked():
             result.extras.pop("runtime_escalation_ref", None)
         else:

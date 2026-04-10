@@ -177,6 +177,7 @@ def _managed_study_status_payload(
 def _write_latest_watch_alias(*, report_dir: Path, report: Mapping[str, Any], markdown: str) -> tuple[Path, Path]:
     latest_json = report_dir / "latest.json"
     latest_markdown = report_dir / "latest.md"
+    report_dir.mkdir(parents=True, exist_ok=True)
     latest_json.write_text(json.dumps(dict(report), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     latest_markdown.write_text(markdown, encoding="utf-8")
     return latest_json, latest_markdown

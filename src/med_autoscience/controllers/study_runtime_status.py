@@ -1513,6 +1513,12 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         )
         self._record_dict_extra("runtime_liveness_audit", runtime_liveness_audit.to_dict())
 
+    def record_supervisor_tick_audit(
+        self,
+        value: dict[str, Any],
+    ) -> None:
+        self._record_dict_extra("supervisor_tick_audit", value)
+
     def record_autonomous_runtime_notice(
         self,
         value: dict[str, Any] | StudyRuntimeAutonomousRuntimeNotice,

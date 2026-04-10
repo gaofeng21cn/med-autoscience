@@ -66,6 +66,7 @@
 - `details` projection 与 `bash_exec` summary 只用于补充“最近完成了什么”“论文建议推进到哪一步”
 - 不直接读 `.ds/codex_history` 原始事件流
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，而不是被论文阶段覆盖
+- 只要 `study_runtime_status.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，不能继续把 study 写成被持续托管监管
 
 ## 4. 输出合同
 
@@ -91,6 +92,7 @@
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `latest_events` 必须带明确时间戳
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
+- `supervision` 应同步暴露 `supervisor_tick_status`，用于前台解释当前是否仍有新鲜的 MAS 外环监管
 
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 

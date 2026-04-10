@@ -20,6 +20,8 @@ def test_study_progress_doc_freezes_projection_contract_and_doctor_readout() -> 
     assert "study_runtime_status" in content
     assert "runtime_watch" in content
     assert "runtime_supervision/latest.json" in content
+    assert "supervisor_tick_audit" in content
+    assert "监管心跳异常" in content
     assert "publication_eval/latest.json" in content
     assert "controller_decisions/latest.json" in content
     assert "医生" in content

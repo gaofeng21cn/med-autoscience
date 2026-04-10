@@ -18,6 +18,11 @@
 
 这三个目标必须同时成立，才算 managed runtime 真正可托管。
 
+除此之外还有一条 fail-closed 边界：
+
+- 如果 outer supervisor tick 自己已经缺失或陈旧，系统也不能继续假装“MAS 仍在稳定监管”
+- 这种情况必须作为正式监管异常直接暴露到 status / progress surface
+
 ## 2. authority 边界
 
 这里的外环是：
@@ -59,6 +64,15 @@ medautosci watch \
 4. 必要时写出或刷新 `runtime_escalation_record.json`
 
 也就是说，外环的核心不是“循环本身”，而是单次 tick 的 controller contract。
+
+同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
+
+- `fresh`
+- `missing`
+- `stale`
+- `invalid`
+
+只要不是 `fresh`，前台就必须明确表述为“监管心跳异常”，不能继续把研究描述成被持续托管监管。
 
 ## 4. fail-closed live 语义
 
