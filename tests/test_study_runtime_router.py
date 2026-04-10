@@ -394,7 +394,7 @@ def test_ensure_study_runtime_resume_flow_uses_protocol_quest_root_not_status_st
 
     assert result["decision"] == "resume"
     assert seen["overlay_quest_root"] == protocol_quest_root
-    assert seen["hydration_quest_root"] == protocol_quest_root
+    assert "hydration_quest_root" not in seen
 
 def test_study_runtime_status_blocks_stopped_quest_pending_explicit_rerun(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
@@ -736,6 +736,93 @@ def test_execute_resume_runtime_decision_records_nested_resume_daemon_step(monke
                 make_startup_hydration_validation_report(kwargs["quest_root"])
             ),
         ),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
+    )
+
+    outcome = module._execute_resume_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.RESUME
+    assert outcome.daemon_result == {"resume": {"ok": True, "status": "running"}}
+    assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
+    assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
+
+
+@pytest.mark.parametrize(
+    ("resume_reason",),
+    [
+        ("quest_marked_running_but_no_live_session",),
+        ("quest_parked_on_unchanged_finalize_state",),
+    ],
+)
+def test_execute_resume_runtime_decision_skips_startup_hydration_for_managed_runtime_recovery(
+    monkeypatch,
+    tmp_path: Path,
+    resume_reason: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Prediction framing is fixed.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "resume",
+                "reason": resume_reason,
+            }
+        )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_sync_existing_quest_startup_context",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": kwargs["quest_id"],
+                "startup_contract": kwargs["create_payload"]["startup_contract"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_run_startup_hydration",
+        lambda **kwargs: pytest.fail("startup hydration should not run for managed runtime recovery"),
     )
     monkeypatch.setattr(
         module.med_deepscientist_transport,
@@ -2235,8 +2322,6 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
 
     assert result["decision"] == "resume"
     assert calls == [
-        ("hydrate", profile.runtime_root / "001-risk"),
-        ("validate", profile.runtime_root / "001-risk"),
         ("resume", "001-risk"),
     ]
 
@@ -2721,6 +2806,113 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
     assert result["runtime_liveness_audit"]["status"] == "none"
     assert result["bash_session_audit"]["status"] == "none"
     assert calls == [
+        ("resume", "001-risk"),
+    ]
+
+
+def test_ensure_study_runtime_rehydrates_no_live_session_recovery_when_runtime_reentry_requires_startup_hydration(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+        runtime_reentry_required_paths=[],
+        runtime_reentry_require_startup_hydration=True,
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.runtime_reentry_gate_controller.startup_hydration_validation_controller,
+        "run_validation",
+        lambda *, quest_root: make_startup_hydration_validation_report(quest_root),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-stale",
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-stale",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 1,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "quest_hydration_controller",
+        SimpleNamespace(
+            run_hydration=lambda **kwargs: calls.append(("hydrate", kwargs["quest_root"]))
+            or make_startup_hydration_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "startup_hydration_validation_controller",
+        SimpleNamespace(
+            run_validation=lambda **kwargs: calls.append(("validate", kwargs["quest_root"]))
+            or make_startup_hydration_validation_report(kwargs["quest_root"])
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_marked_running_but_no_live_session"
+    assert calls == [
         ("hydrate", profile.runtime_root / "001-risk"),
         ("validate", profile.runtime_root / "001-risk"),
         ("resume", "001-risk"),
@@ -3034,8 +3226,6 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
     assert "daemon unavailable" in launch_report["daemon_result"]["resume"]["error"]
     assert calls == [
         ("sync_startup_context", "001-risk", "full_research"),
-        ("hydrate", profile.runtime_root / "001-risk"),
-        ("validate", profile.runtime_root / "001-risk"),
     ]
 
 
@@ -3920,8 +4110,6 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
     assert result["quest_status"] == "active"
     assert calls == [
         ("sync_startup_context", "001-risk", "full_research"),
-        ("hydrate", profile.runtime_root / "001-risk"),
-        ("validate", profile.runtime_root / "001-risk"),
         ("resume", "001-risk"),
     ]
 
@@ -4302,8 +4490,6 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
     }
     assert calls == [
         ("sync_startup_context", "001-risk-reentry", "full_research", {"baseline_id": "demo-baseline"}),
-        ("hydrate", profile.runtime_root / "001-risk-reentry"),
-        ("validate", profile.runtime_root / "001-risk-reentry"),
         ("resume", "001-risk-reentry"),
     ]
 

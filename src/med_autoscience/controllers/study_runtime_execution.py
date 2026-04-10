@@ -49,6 +49,10 @@ def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
 
 
+def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
+    return status.runtime_reentry_gate_result.require_startup_hydration
+
+
 @dataclass(frozen=True)
 class StudyRuntimeExecutionContext:
     profile: WorkspaceProfile
@@ -481,18 +485,19 @@ def _execute_resume_runtime_decision(
         execution=context.execution,
     )
     status.record_startup_context_sync(startup_context_sync)
-    hydration_result, validation_result = router._run_startup_hydration(
-        quest_root=context.quest_root,
-        create_payload=create_payload,
-    )
-    status.record_startup_hydration(hydration_result, validation_result)
-    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+    if _should_run_startup_hydration_for_resume(status=status):
+        hydration_result, validation_result = router._run_startup_hydration(
+            quest_root=context.quest_root,
+            create_payload=create_payload,
         )
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
+        status.record_startup_hydration(hydration_result, validation_result)
+        if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+            )
+            outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+            return outcome
     try:
         resume_result = router._resume_quest(
             runtime_root=context.runtime_root,
