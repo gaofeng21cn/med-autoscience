@@ -1170,3 +1170,118 @@ def test_watch_loop_continues_after_single_tick_failure(tmp_path: Path, monkeypa
         ("sleep", 12),
         ("tick", 2),
     ]
+
+
+def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enables_study_runtime_ensure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.WorkspaceProfile(
+        name="glioma",
+        workspace_root=tmp_path / "workspace",
+        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
+        studies_root=tmp_path / "workspace" / "studies",
+        portfolio_root=tmp_path / "workspace" / "portfolio",
+        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_watch_for_runtime(
+        *,
+        runtime_root: Path,
+        controller_runners=None,
+        apply: bool,
+        profile,
+        ensure_study_runtimes: bool = False,
+    ) -> dict[str, object]:
+        called["runtime_root"] = runtime_root
+        called["apply"] = apply
+        called["profile"] = profile
+        called["ensure_study_runtimes"] = ensure_study_runtimes
+        return {"mode": "managed_supervisor_tick"}
+
+    monkeypatch.setattr(module, "run_watch_for_runtime", fake_run_watch_for_runtime)
+
+    result = module.run_managed_supervisor_tick(profile=profile, apply=True)
+
+    assert result == {"mode": "managed_supervisor_tick"}
+    assert called == {
+        "runtime_root": profile.runtime_root,
+        "apply": True,
+        "profile": profile,
+        "ensure_study_runtimes": True,
+    }
+
+
+def test_run_managed_supervisor_loop_uses_profile_runtime_root_and_always_enables_study_runtime_ensure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.WorkspaceProfile(
+        name="glioma",
+        workspace_root=tmp_path / "workspace",
+        runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests",
+        studies_root=tmp_path / "workspace" / "studies",
+        portfolio_root=tmp_path / "workspace" / "portfolio",
+        med_deepscientist_runtime_root=tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_watch_loop(
+        *,
+        runtime_root: Path,
+        apply: bool,
+        profile,
+        ensure_study_runtimes: bool = False,
+        interval_seconds: int,
+        max_ticks: int | None,
+        sleep_fn,
+    ) -> dict[str, object]:
+        called["runtime_root"] = runtime_root
+        called["apply"] = apply
+        called["profile"] = profile
+        called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["interval_seconds"] = interval_seconds
+        called["max_ticks"] = max_ticks
+        called["sleep_fn"] = sleep_fn
+        return {"mode": "managed_supervisor_loop"}
+
+    monkeypatch.setattr(module, "run_watch_loop", fake_run_watch_loop)
+
+    result = module.run_managed_supervisor_loop(
+        profile=profile,
+        apply=True,
+        interval_seconds=45,
+        max_ticks=3,
+        sleep_fn=lambda _: None,
+    )
+
+    assert result == {"mode": "managed_supervisor_loop"}
+    assert called["runtime_root"] == profile.runtime_root
+    assert called["apply"] is True
+    assert called["profile"] == profile
+    assert called["ensure_study_runtimes"] is True
+    assert called["interval_seconds"] == 45
+    assert called["max_ticks"] == 3

@@ -228,6 +228,11 @@ def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
 
 def _publication_eval_gap_type(blocker: str) -> str:
     normalized = blocker.lower()
+    if normalized in {
+        "medical_publication_surface_blocked",
+        "missing_current_medical_publication_surface_report",
+    }:
+        return "reporting"
     if any(token in normalized for token in ("submission", "deliverable", "bundle", "surface", "package")):
         return "delivery"
     if any(token in normalized for token in ("terminology", "report", "qc")):
@@ -359,7 +364,7 @@ def _materialize_publication_eval_from_gate_report(
     )
     submission_minimal_ref = (
         str(publication_gate_report.get("submission_minimal_manifest_path") or "").strip()
-        or str((study_root / "paper" / "submission_minimal" / "submission_manifest.json").resolve())
+        or str((Path(paper_root_ref).resolve() / "submission_minimal" / "submission_manifest.json"))
     )
     runtime_escalation_ref = str(
         (quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json").resolve()

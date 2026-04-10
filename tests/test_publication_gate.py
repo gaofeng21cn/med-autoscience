@@ -209,8 +209,9 @@ def test_build_gate_report_blocks_finalize_only_bundle_without_current_surface_r
     assert report["status"] == "blocked"
     assert report["allow_write"] is False
     assert "missing_current_medical_publication_surface_report" in report["blockers"]
-    assert report["supervisor_phase"] == "bundle_stage_blocked"
-    assert report["current_required_action"] == "complete_bundle_stage"
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
 
 
 def test_build_gate_report_allows_handoff_ready_bundle_with_non_scientific_pageproof_gap(tmp_path: Path) -> None:
@@ -277,8 +278,9 @@ def test_build_gate_report_keeps_handoff_ready_bundle_blocked_for_unknown_submis
     assert report["submission_checklist_handoff_ready"] is True
     assert report["submission_checklist_unclassified_blocking_items"] == ["methods_completeness"]
     assert "submission_checklist_contains_unclassified_blocking_items" in report["blockers"]
-    assert report["supervisor_phase"] == "bundle_stage_blocked"
-    assert report["current_required_action"] == "complete_bundle_stage"
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
 
 
 def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_stale(tmp_path: Path) -> None:
@@ -301,6 +303,29 @@ def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_st
 
     assert report["status"] == "blocked"
     assert "missing_current_medical_publication_surface_report" in report["blockers"]
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
+
+
+def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["blockers"] == ["missing_submission_minimal"]
+    assert report["supervisor_phase"] == "bundle_stage_blocked"
+    assert report["bundle_tasks_downstream_only"] is False
+    assert report["current_required_action"] == "complete_bundle_stage"
 
 
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:

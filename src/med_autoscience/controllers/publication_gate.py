@@ -24,6 +24,14 @@ PUBLICATION_SUPERVISOR_KEYS: tuple[str, ...] = (
 _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS = (
     paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS | frozenset({"full_manuscript_pageproof"})
 )
+_BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
+    {
+        "missing_paper_compile_report",
+        "missing_submission_minimal",
+        "submission_surface_qc_failure_present",
+        "unmanaged_submission_surface_present",
+    }
+)
 
 
 @dataclass
@@ -448,6 +456,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     supervisor_state = build_publication_supervisor_state(
         anchor_kind=state.anchor_kind,
         allow_write=allow_write,
+        blockers=blockers,
     )
 
     return {
@@ -516,7 +525,12 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     }
 
 
-def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool) -> dict[str, Any]:
+def _bundle_stage_is_on_critical_path(*, blockers: list[str]) -> bool:
+    normalized_blockers = {str(item or "").strip() for item in blockers if str(item or "").strip()}
+    return bool(normalized_blockers) and normalized_blockers.issubset(_BUNDLE_STAGE_ONLY_BLOCKERS)
+
+
+def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool, blockers: list[str]) -> dict[str, Any]:
     deferred_downstream_actions: list[str] = []
     if anchor_kind == "missing":
         return {
@@ -559,6 +573,19 @@ def build_publication_supervisor_state(*, anchor_kind: str, allow_write: bool) -
             "current_required_action": "continue_bundle_stage",
             "deferred_downstream_actions": deferred_downstream_actions,
             "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        }
+    if not _bundle_stage_is_on_critical_path(blockers=blockers):
+        return {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": deferred_downstream_actions,
+            "controller_stage_note": (
+                "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                "bundle suggestions stay downstream-only until the gate clears"
+            ),
         }
     return {
         "supervisor_phase": "bundle_stage_blocked",

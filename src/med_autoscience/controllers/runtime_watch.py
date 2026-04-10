@@ -550,6 +550,38 @@ def run_watch_loop(
     }
 
 
+def run_managed_supervisor_tick(
+    *,
+    profile: WorkspaceProfile,
+    apply: bool,
+) -> dict[str, Any]:
+    return run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        apply=apply,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+
+def run_managed_supervisor_loop(
+    *,
+    profile: WorkspaceProfile,
+    apply: bool,
+    interval_seconds: int = 300,
+    max_ticks: int | None = None,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    return run_watch_loop(
+        runtime_root=profile.runtime_root,
+        apply=apply,
+        profile=profile,
+        ensure_study_runtimes=True,
+        interval_seconds=interval_seconds,
+        max_ticks=max_ticks,
+        sleep_fn=sleep_fn,
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--quest-root", type=Path)

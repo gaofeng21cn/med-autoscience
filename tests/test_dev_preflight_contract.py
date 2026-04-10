@@ -8,6 +8,7 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/runtime_watch.py",
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
@@ -37,12 +38,12 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
 
     result = module.classify_changed_files(
         [
-            "src/med_autoscience/controllers/workspace_init.py",
+            "src/med_autoscience/controllers/untracked_controller.py",
         ]
     )
 
     assert result.matched_categories == ()
-    assert result.unclassified_changes == ("src/med_autoscience/controllers/workspace_init.py",)
+    assert result.unclassified_changes == ("src/med_autoscience/controllers/untracked_controller.py",)
 
 
 def test_classify_changed_files_matches_external_runtime_dependency_surface() -> None:
@@ -65,6 +66,8 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
     result = module.classify_changed_files(
         [
             "docs/integration_harness_activation_package.md",
+            "src/med_autoscience/controllers/workspace_init.py",
+            "tests/test_workspace_init.py",
             "tests/test_integration_harness_activation_package.py",
         ]
     )

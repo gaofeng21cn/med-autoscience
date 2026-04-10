@@ -8,12 +8,12 @@ def test_run_preflight_reports_unclassified_changes_without_running_commands(tmp
     module = importlib.import_module("med_autoscience.dev_preflight")
 
     result = module.run_preflight(
-        changed_files=["src/med_autoscience/controllers/workspace_init.py"],
+        changed_files=["src/med_autoscience/controllers/untracked_controller.py"],
         repo_root=tmp_path,
     )
 
     assert result.ok is False
-    assert result.unclassified_changes == ("src/med_autoscience/controllers/workspace_init.py",)
+    assert result.unclassified_changes == ("src/med_autoscience/controllers/untracked_controller.py",)
     assert result.results == ()
     assert result.planned_commands == ()
 

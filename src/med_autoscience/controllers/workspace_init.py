@@ -261,12 +261,18 @@ def _render_profile_optional_forward_script(command: str) -> str:
 
 
 def _render_watch_runtime_script(*, runtime_quests_root: Path) -> str:
+    relative_runtime_root = runtime_quests_root.relative_to(runtime_quests_root.parents[3]).as_posix()
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        f'WORKSPACE_RUNTIME_ROOT="${{WORKSPACE_ROOT}}/{relative_runtime_root}"\n\n'
         'run_medautosci watch \\\n'
-        f'  --runtime-root "{runtime_quests_root}" \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
+        '  --ensure-study-runtimes \\\n'
+        '  --apply \\\n'
+        '  --loop \\\n'
         '  "$@"\n'
     )
 
