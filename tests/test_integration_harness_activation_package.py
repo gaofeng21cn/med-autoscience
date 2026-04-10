@@ -48,3 +48,16 @@ def test_merge_and_cutover_doc_keeps_cutover_gate_separate_from_activation_packa
     assert "integration harness activation package" in content
     assert "runtime cutover gate" in content
     assert "behavior equivalence gate" in content
+
+
+def test_activation_and_cutover_closeout_docs_record_external_blocker_as_already_absorbed() -> None:
+    activation = _read("docs/integration_harness_activation_package.md")
+    merge_gates = _read("docs/merge_and_cutover_gates.md")
+
+    assert "2026-04-10" in activation
+    assert "absorbed closeout commit" in activation
+    assert "70dc19fe4001b6eddda14e9b7a00e79a30d79ab1" in activation
+
+    assert "external runtime dependency gate" in merge_gates
+    assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in merge_gates
+    assert "未 absorb 的 same-repo tranche" in merge_gates

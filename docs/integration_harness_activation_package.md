@@ -2,7 +2,7 @@
 
 这份文档把 `real-study relaunch and verify` 已 absorbed 到 `main` 之后，`Phase 6 / Integration Harness And Cutover Readiness` 当前允许打开的 **最小 repo-tracked activation package** 固定下来。
 
-状态更新：截至 `2026-04-08`，这条 activation package 已完成并 absorbed 到 `main`。当前 repo-side 正式停车终态是：
+状态更新：截至 `2026-04-10`，这条 activation package 已完成并 absorbed 到 `main`。当前 repo-side 正式停车终态是：
 
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 
@@ -15,16 +15,17 @@
 
 ## 1. 当前 absorbed 起点
 
-截至 `2026-04-07`，当前已确认并 absorbed 到 `main` 的 committed position 为：
+截至 `2026-04-10`，当前已确认并 absorbed 到 `main` 的 committed position 为：
 
 1. `P0 outer-loop durable decision loop` 已完成
 2. `P1 formal stop semantics + rerun policy + canonical spec bridge` 已完成
 3. `P2 delivery plane contract map and artifact-surface freeze` 已完成
 4. `real-study relaunch and verify` 已在真实 anchor 完成验证并 absorbed 到 `main`
 
-当前 authoritative repo 起点：
+当前 authoritative repo 起点应拆成 tranche start baseline 与 absorbed closeout：
 
-- root `main` commit：`f5e909b0f6db64489f63aa70f6e1bfe38ec362a6`
+- tranche start baseline commit：`f5e909b0f6db64489f63aa70f6e1bfe38ec362a6`
+- absorbed closeout commit：`70dc19fe4001b6eddda14e9b7a00e79a30d79ab1`
 - real-study verification note：[`docs/real_study_relaunch_verification.md`](./real_study_relaunch_verification.md)
 
 因此，这份文档当前承担的是“已完成 activation package 的 repo-tracked closeout truth”，而不是“尚未 absorb 的 active tranche 说明”。

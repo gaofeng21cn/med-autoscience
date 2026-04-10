@@ -84,6 +84,17 @@
 - `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner
 - `MedDeepScientist` 是执行 surface，不是系统本体
 
+## 当前仓库侧状态
+
+当前 repo-tracked runtime 主线已经通过 integration-harness closeout 吸收到仓库主线。
+当前最诚实的 repo-side 停车结论是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`。
+
+这意味着：
+
+- 仓库已经承载当前 runtime contract、durable surfaces 与 cutover-readiness 阻塞包
+- 下一步不是重新打开新的仓内架构 tranche
+- 真实继续推进仍依赖 external runtime / workspace gate 与剩余的 human-required interaction
+
 ## 运行句柄与持久表面
 
 - `study_id`：医学 study 的持久聚合根身份。
@@ -147,6 +158,8 @@
 ## 最快开始方式：通过你的 Agent
 
 对大多数医学用户来说，最快的方式是先把目标、数据和约束交给 Agent，再让它调用 `Med Auto Science`。
+
+但针对真实课题继续推进，需要先明确一个边界：repo-side baseline 已经准备好，是否能继续 end-to-end 推进仍取决于 `docs/external_runtime_dependency_gate.md` 中定义的 external runtime / workspace gate package。
 
 通常只需要三步：
 

@@ -20,6 +20,18 @@
 这份索引与仓库首页共同构成默认的 GitHub 双语公开面。
 任何需要对外公开的文档，都必须进入这个公开面并配备英文与中文镜像。
 
+## 当前主线与阻塞包
+
+当前 repo-tracked runtime 主线在仓内已经吸收完成。
+当前最诚实的 repo-side 停车结论是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`，而不是还有一条正在仓内继续实现的 active tranche。
+
+- [Research Foundry 医学执行地图](research_foundry_medical_execution_map.md)
+- [Research Foundry 医学主线](research_foundry_medical_mainline.md)
+- [Integration Harness Activation Package](integration_harness_activation_package.md)
+- [External Runtime Dependency Gate](external_runtime_dependency_gate.md)
+- [Merge And Cutover Gates](merge_and_cutover_gates.md)
+- [医学展示平台主线](medical_display_platform_mainline.md)（展示面独立工作线，不属于当前 runtime 主线）
+
 ## 仓库跟踪的内部操作文档
 
 ### 面向医学操作同事

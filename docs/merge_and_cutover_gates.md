@@ -21,14 +21,15 @@
 
 `merge gate` 通过，不自动意味着 `runtime cutover gate` 通过。
 
-## 2026-04-07 / 当前 absorbed position
+## 2026-04-10 / absorbed historical position
 
-截至 `2026-04-07`，当前已知事实应按下面这条顺序理解：
+截至 `2026-04-10`，当前已知事实应按下面这条顺序理解：
 
 1. `P0` / `P1` / `P2` 与 `real-study relaunch and verify` 已 absorbed 到 `main`
 2. `integration harness activation package` 也已 absorbed 到 `main`
-3. 当前 repo-side 唯一仍可合法继续收口的 same-repo 动作，是把 external blocker 固定成 canonical package
-4. 因此，当前要做的是把 cutover readiness 仍依赖的 gate 诚实冻结，而不是越过这些 gate
+3. `external runtime dependency gate` 也已作为 canonical blocker package 固定下来
+4. 因此，当前 repo-side 正式停车终态已经是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+5. 后续能否继续，取决于 external runtime / workspace cutover readiness，而不是仓内还有未 absorb 的 same-repo tranche
 
 ## Merge Gate
 
@@ -122,9 +123,9 @@
 
 ## 当前判断
 
-以 `2026-04-07` 这个时间点看：
+以 `2026-04-10` 这个时间点看：
 
-- repo-side `merge gate` 对当前 activation baseline 与 external blocker package 来说都可以继续推进
+- repo-side `merge gate` 对 activation baseline 与 external blocker package 来说都已经完成并满足 absorb 条件
 - `runtime cutover gate` 还没有完成
 - 当前 external blocker 的 repo-side canonical package 见 `docs/external_runtime_dependency_gate.md`
 
@@ -135,16 +136,16 @@
 
 ## 当前建议
 
-### 何时可以 absorb 当前 tranche
+### 当前 absorbed tranche 何时算 closeout 成立
 
-当下面这些条件一起满足时，应直接 absorb：
+下面这些条件已经被满足，因此当前相关 repo-side tranche 已经 absorbed：
 
 1. 当前 activation package docs / tests / preflight / reports 一致
 2. targeted regression 与 broader regression 通过
 3. manual-test package 已刷新并有 fresh evidence
 4. `git diff --check` clean
 
-### 何时可以继续往更大 cutover 推进
+### 何时才可以继续往更大 cutover 推进
 
 只有当下面这些条件一起满足时，才建议继续：
 

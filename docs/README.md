@@ -20,6 +20,18 @@ It stays aligned with the project truth that the repository is the medical `Rese
 This index together with the repository home defines the default GitHub-facing bilingual surface.
 Any page that the public should read must live under this surface with fully mirrored English and Chinese variants.
 
+## Current Mainline And Blocker Package
+
+The current repo-tracked runtime mainline is already absorbed on the repository side.
+The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`, not an open in-repo implementation baton.
+
+- [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md)
+- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
+- [Integration Harness Activation Package](integration_harness_activation_package.md)
+- [External Runtime Dependency Gate](external_runtime_dependency_gate.md)
+- [Merge And Cutover Gates](merge_and_cutover_gates.md)
+- [Medical Display Platform Mainline](medical_display_platform_mainline.md) (display owner line; separate from the runtime mainline)
+
 ## Repo-Tracked Internal Operator Docs
 
 ### Medical operators

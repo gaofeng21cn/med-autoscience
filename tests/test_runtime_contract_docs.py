@@ -71,3 +71,19 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
     assert "behavior convergence" in positioning
     assert "domain-internal 长线" in positioning
     assert "不是放弃 monorepo" in positioning
+
+
+def test_public_entry_docs_surface_external_gate_stop_state() -> None:
+    readme = _read("README.md")
+    readme_zh = _read("README.zh-CN.md")
+    docs_index = _read("docs/README.md")
+    docs_index_zh = _read("docs/README.zh-CN.md")
+
+    for doc in [readme, readme_zh, docs_index, docs_index_zh]:
+        assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in doc
+        assert "external_runtime_dependency_gate.md" in doc
+
+    assert "new in-repo architecture tranche" in readme
+    assert "新的仓内架构 tranche" in readme_zh
+    assert "open in-repo implementation baton" in docs_index
+    assert "正在仓内继续实现的 active tranche" in docs_index_zh
