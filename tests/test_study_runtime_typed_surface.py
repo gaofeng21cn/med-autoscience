@@ -251,6 +251,64 @@ def make_pending_user_interaction_payload() -> dict[str, object]:
     }
 
 
+def make_progress_projection_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "generated_at": "2026-04-11T01:00:00+00:00",
+        "study_id": "001-risk",
+        "study_root": "/tmp/studies/001-risk",
+        "quest_id": "quest-001",
+        "quest_root": "/tmp/runtime/quests/quest-001",
+        "current_stage": "publication_supervision",
+        "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+        "paper_stage": "publishability_gate_blocked",
+        "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
+        "latest_events": [
+            {
+                "timestamp": "2026-04-11T00:58:00+00:00",
+                "time_label": "2026-04-11 00:58 UTC",
+                "category": "runtime_progress",
+                "title": "托管运行时完成一段推进",
+                "summary": "完成外部验证数据清点，正在整理论文证据面。",
+                "source": "bash_summary",
+                "artifact_path": "/tmp/runtime/quests/quest-001/.ds/bash_exec/summary.json",
+            }
+        ],
+        "current_blockers": [
+            "缺少最小投稿包导出。",
+            "论文叙事或方法/结果书写面仍有硬阻塞。",
+        ],
+        "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+        "needs_physician_decision": False,
+        "physician_decision_summary": None,
+        "runtime_decision": "noop",
+        "runtime_reason": "quest_already_running",
+        "continuation_state": {"quest_status": "running", "active_run_id": "run-001"},
+        "interaction_arbitration": None,
+        "supervision": {
+            "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+            "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            "active_run_id": "run-001",
+            "health_status": "live",
+            "supervisor_tick_status": "fresh",
+            "supervisor_tick_required": True,
+            "supervisor_tick_summary": "MAS 外环监管心跳新鲜。",
+            "supervisor_tick_latest_recorded_at": "2026-04-11T00:59:00+00:00",
+            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+        },
+        "refs": {
+            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            "publication_eval_path": "/tmp/studies/001-risk/artifacts/publication_eval/latest.json",
+            "controller_decision_path": "/tmp/studies/001-risk/artifacts/controller_decisions/latest.json",
+            "runtime_supervision_path": "/tmp/studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
+            "runtime_escalation_path": None,
+            "runtime_watch_report_path": "/tmp/runtime/quests/quest-001/artifacts/reports/runtime_watch/latest.json",
+            "bash_summary_path": "/tmp/runtime/quests/quest-001/.ds/bash_exec/summary.json",
+            "details_projection_path": "/tmp/runtime/quests/quest-001/.ds/projections/details.v1.json",
+        },
+    }
+
+
 def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
@@ -668,6 +726,20 @@ def test_study_runtime_status_records_typed_publication_supervisor_state() -> No
     assert status.publication_supervisor_state.supervisor_phase == "publishability_gate_blocked"
     assert status.publication_supervisor_state.phase_owner == "publication_gate"
     assert status.publication_supervisor_state.upstream_scientific_anchor_ready is True
+
+
+def test_study_runtime_status_records_typed_progress_projection() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
+
+    status.record_progress_projection(make_progress_projection_payload())
+
+    payload = status.to_dict()
+
+    assert payload["progress_projection"] == make_progress_projection_payload()
+    assert status.progress_projection_result is not None
+    assert status.progress_projection_result.current_stage == "publication_supervision"
+    assert status.progress_projection_result.next_system_action == "先补齐论文证据与叙事，再回到发表门控复核。"
 
 
 def test_startup_context_sync_result_requires_echoed_startup_contract() -> None:

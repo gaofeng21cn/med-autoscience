@@ -211,6 +211,56 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     assert result["structuredContent"]["study_id"] == "001-risk"
 
 
+def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_when_available(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "decision": "noop",
+            "quest_status": "running",
+            "progress_projection": {
+                "study_id": "001-risk",
+                "current_stage": "publication_supervision",
+                "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+                "paper_stage": "publishability_gate_blocked",
+                "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
+                "current_blockers": ["缺少最小投稿包导出。"],
+                "latest_events": [],
+                "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+                "needs_physician_decision": False,
+                "supervision": {
+                    "browser_url": "http://127.0.0.1:21001",
+                    "quest_session_api_url": "http://127.0.0.1:21001/api/session",
+                    "active_run_id": "run-001",
+                    "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+                },
+            },
+        },
+    )
+
+    result = module.call_tool(
+        "study_runtime_status",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+
+    assert result["isError"] is False
+    assert result["structuredContent"]["progress_projection"]["study_id"] == "001-risk"
+    assert "# 研究进度" in result["content"][0]["text"]
+    assert "论文可发表性面" in result["content"][0]["text"]
+
+
 def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"

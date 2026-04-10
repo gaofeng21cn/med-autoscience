@@ -4937,6 +4937,68 @@ def test_study_runtime_status_reports_waiting_for_user_quest_as_blocked(monkeypa
     assert result["quest_status"] == "waiting_for_user"
 
 
+def test_study_runtime_status_embeds_progress_projection_by_default(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    write_text(
+        quest_root / ".ds" / "bash_exec" / "summary.json",
+        json.dumps(
+            {
+                "session_count": 1,
+                "running_count": 1,
+                "latest_session": {
+                    "bash_id": "bash-001",
+                    "status": "running",
+                    "updated_at": "2026-04-11T01:02:00+00:00",
+                    "last_progress": {
+                        "ts": "2026-04-11T01:02:00+00:00",
+                        "message": "完成外部验证数据清点，正在整理论文证据面。",
+                    },
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["progress_projection"]["study_id"] == "001-risk"
+    assert result["progress_projection"]["current_stage_summary"]
+    assert "完成外部验证数据清点" in result["progress_projection"]["latest_events"][0]["summary"]
+    assert result["progress_projection"]["next_system_action"]
+
+
 def test_study_runtime_status_materializes_stable_publication_eval_latest(
     monkeypatch,
     tmp_path: Path,

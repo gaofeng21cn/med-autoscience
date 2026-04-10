@@ -29,6 +29,7 @@ __all__ = [
     "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
     "StudyRuntimePartialQuestRecoveryResult",
+    "StudyRuntimeProgressProjection",
     "StudyRuntimePublicationSupervisorState",
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
@@ -980,6 +981,63 @@ class StudyRuntimePublicationSupervisorState:
 
 
 @dataclass(frozen=True)
+class StudyRuntimeProgressProjection:
+    study_id: str
+    current_stage: str
+    current_stage_summary: str
+    paper_stage: str | None
+    paper_stage_summary: str
+    next_system_action: str
+    needs_physician_decision: bool
+    payload: dict[str, Any]
+
+    def __post_init__(self) -> None:
+        for field_name in ("study_id", "current_stage", "current_stage_summary", "paper_stage_summary", "next_system_action"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise TypeError(f"study runtime progress projection {field_name} must be non-empty str")
+        if self.paper_stage is not None and not isinstance(self.paper_stage, str):
+            raise TypeError("study runtime progress projection paper_stage must be str or None")
+        if not isinstance(self.needs_physician_decision, bool):
+            raise TypeError("study runtime progress projection needs_physician_decision must be bool")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(self.payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeProgressProjection":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime progress projection payload must be a mapping")
+        latest_events = payload.get("latest_events")
+        if latest_events is not None and not isinstance(latest_events, list):
+            raise ValueError("study runtime progress projection latest_events must be a list")
+        current_blockers = payload.get("current_blockers")
+        if current_blockers is not None and not isinstance(current_blockers, list):
+            raise ValueError("study runtime progress projection current_blockers must be a list")
+        supervision = payload.get("supervision")
+        if supervision is not None and not isinstance(supervision, dict):
+            raise ValueError("study runtime progress projection supervision must be a mapping")
+        refs = payload.get("refs")
+        if refs is not None and not isinstance(refs, dict):
+            raise ValueError("study runtime progress projection refs must be a mapping")
+        needs_physician_decision = payload.get("needs_physician_decision")
+        if not isinstance(needs_physician_decision, bool):
+            raise TypeError("study runtime progress projection needs_physician_decision must be bool")
+        paper_stage = str(payload.get("paper_stage") or "").strip() or None
+        return cls(
+            study_id=str(payload.get("study_id") or ""),
+            current_stage=str(payload.get("current_stage") or ""),
+            current_stage_summary=str(payload.get("current_stage_summary") or ""),
+            paper_stage=paper_stage,
+            paper_stage_summary=str(payload.get("paper_stage_summary") or ""),
+            next_system_action=str(payload.get("next_system_action") or ""),
+            needs_physician_decision=needs_physician_decision,
+            payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
 class StudyCompletionSyncResult:
     payload: dict[str, Any]
     completion_snapshot_status: str | None
@@ -1371,6 +1429,15 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("publication_supervisor_state")
         return StudyRuntimePublicationSupervisorState.from_payload(payload)
 
+    @property
+    def progress_projection_result(self) -> StudyRuntimeProgressProjection | None:
+        payload = self.extras.get("progress_projection")
+        if payload is None:
+            return None
+        if not isinstance(payload, dict):
+            raise TypeError("progress_projection must be dict")
+        return StudyRuntimeProgressProjection.from_payload(payload)
+
     def record_partial_quest_recovery(
         self,
         value: dict[str, Any] | StudyRuntimePartialQuestRecoveryResult,
@@ -1403,6 +1470,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimePublicationSupervisorState.from_payload(value)
         )
         self._record_dict_extra("publication_supervisor_state", publication_supervisor_state.to_dict())
+
+    def record_progress_projection(
+        self,
+        value: dict[str, Any] | StudyRuntimeProgressProjection,
+    ) -> None:
+        progress_projection = (
+            value
+            if isinstance(value, StudyRuntimeProgressProjection)
+            else StudyRuntimeProgressProjection.from_payload(value)
+        )
+        self._record_dict_extra("progress_projection", progress_projection.to_dict())
 
     def record_startup_hydration(
         self,

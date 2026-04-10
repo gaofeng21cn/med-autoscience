@@ -439,6 +439,12 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
     )
     serialized = _serialize_study_runtime_result(result)
+    progress_projection = serialized.get("progress_projection")
+    if isinstance(progress_projection, dict):
+        return _tool_text_result(
+            study_progress.render_study_progress_markdown(progress_projection),
+            structured=serialized,
+        )
     return _tool_text_result(_json_text(serialized), structured=serialized)
 
 

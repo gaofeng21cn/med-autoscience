@@ -119,6 +119,7 @@ def study_runtime_status(
     study_root: Path | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
+    include_progress_projection: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = _resolve_study(
         profile=profile,
@@ -132,6 +133,7 @@ def study_runtime_status(
         study_payload=study_payload,
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
+        include_progress_projection=include_progress_projection,
     )
 
 

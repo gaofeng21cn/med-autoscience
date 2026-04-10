@@ -730,6 +730,7 @@ def _status_state(
     study_payload: dict[str, object],
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
+    include_progress_projection: bool = True,
 ) -> StudyRuntimeStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload)
@@ -847,6 +848,18 @@ def _status_state(
             _sync_runtime_summary_if_needed(
                 status=result,
                 runtime_context=runtime_context,
+            )
+        if include_progress_projection:
+            from med_autoscience.controllers import study_progress as study_progress_controller
+
+            result.record_progress_projection(
+                study_progress_controller.build_study_progress_projection(
+                    profile=profile,
+                    study_id=study_id,
+                    study_root=study_root,
+                    status_payload=result,
+                    entry_mode=entry_mode,
+                )
             )
         return result
 
@@ -1153,6 +1166,7 @@ def _status_payload(
     study_payload: dict[str, object],
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
+    include_progress_projection: bool = True,
 ) -> dict[str, object]:
     router = _router_module()
     return router._status_state(
@@ -1162,4 +1176,5 @@ def _status_payload(
         study_payload=study_payload,
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
+        include_progress_projection=include_progress_projection,
     ).to_dict()

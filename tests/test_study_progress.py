@@ -771,3 +771,48 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
     assert any("监管心跳已陈旧" in item for item in result["current_blockers"])
     assert "supervisor tick" in result["next_system_action"]
     assert result["supervision"]["supervisor_tick_status"] == "stale"
+
+
+def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_blockers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "004-invasive-architecture",
+            "quest_id": "004-invasive-architecture-managed-20260408",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": (
+                "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                "bundle suggestions stay downstream-only until the gate clears"
+            ),
+            "paper_stage": "publishability_gate_blocked",
+            "paper_stage_summary": (
+                "论文当前建议推进到“publishability gate blocked”阶段。 paper bundle exists, but the active blockers "
+                "still belong to the publishability surface; bundle suggestions stay downstream-only until the gate clears"
+            ),
+            "runtime_decision": "noop",
+            "runtime_reason": "quest_already_running",
+            "current_blockers": [
+                "missing_submission_minimal",
+                "medical_publication_surface_blocked",
+                "forbidden_manuscript_terminology",
+            ],
+            "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+            "latest_events": [],
+            "supervision": {
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+                "browser_url": "http://127.0.0.1:21001",
+                "quest_session_api_url": "http://127.0.0.1:21001/api/session",
+                "active_run_id": "run-001",
+                "launch_report_path": "/tmp/studies/004-invasive-architecture/artifacts/runtime/last_launch_report.json",
+            },
+        }
+    )
+
+    assert "publication_supervision" not in markdown
+    assert "publishability_gate_blocked" not in markdown
+    assert "missing_submission_minimal" not in markdown
+    assert "论文可发表性" in markdown
+    assert "最小投稿包" in markdown
+    assert "术语" in markdown

@@ -17,6 +17,21 @@ _PAPER_STAGE_LABELS = {
     "analysis-campaign": "补充分析与稳健性验证",
     "review": "独立审阅与质控",
     "finalize": "定稿与投稿收尾",
+    "scientific_anchor_missing": "科学锚点仍缺失",
+    "publishability_gate_blocked": "论文可发表性门控未放行",
+    "bundle_stage_ready": "投稿打包阶段已放行",
+}
+_CURRENT_STAGE_LABELS = {
+    "study_completed": "研究已进入收尾/交付",
+    "managed_runtime_recovering": "托管运行恢复中",
+    "managed_runtime_degraded": "托管运行健康降级",
+    "managed_runtime_escalated": "托管运行已升级告警",
+    "managed_runtime_supervision_gap": "MAS 外环监管存在缺口",
+    "waiting_physician_decision": "等待医生或 PI 判断",
+    "publication_supervision": "论文可发表性监管",
+    "managed_runtime_active": "托管运行正在推进",
+    "runtime_blocked": "自动推进被阻断",
+    "runtime_preflight": "研究准备或预检阶段",
 }
 _DECISION_TYPE_LABELS = {
     "continue_same_line": "继续当前主线",
@@ -43,6 +58,11 @@ _WATCH_BLOCKER_LABELS = {
     "missing_post_main_publishability_gate": "论文可发表性门控尚未放行。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
 }
+_BLOCKER_LABELS = {
+    "missing_submission_minimal": "缺少最小投稿包导出。",
+    "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
+    "forbidden_manuscript_terminology": "当前稿件仍含不允许的术语表达，需要清理。",
+}
 _ACTION_LABELS = {
     "return_to_publishability_gate": "先补齐论文证据与叙事，再回到发表门控复核。",
     "controller_review_required": "需要控制面重新判断下一步。",
@@ -50,6 +70,55 @@ _ACTION_LABELS = {
     "human_confirmation_required": "等待医生或 PI 明确确认下一步。",
     "supervise_runtime_only": "当前以监督托管运行时为主，不直接接管执行。",
 }
+_RUNTIME_DECISION_LABELS = {
+    "noop": "无需额外动作",
+    "blocked": "当前被阻断",
+    "resume": "继续托管续跑",
+    "relaunch_stopped": "重新拉起已停止运行",
+    "create_and_start": "创建并启动新运行",
+    "create_only": "仅创建研究运行",
+    "completed": "研究运行已完成",
+    "lightweight": "仅做轻量监管",
+}
+_RUNTIME_HEALTH_LABELS = {
+    "live": "运行健康在线",
+    "recovering": "恢复中",
+    "degraded": "健康降级",
+    "escalated": "已升级告警",
+    "unknown": "状态未知",
+    "none": "未检测到在线 worker",
+}
+_SUPERVISOR_TICK_STATUS_LABELS = {
+    "fresh": "监管心跳新鲜",
+    "stale": "监管心跳已陈旧",
+    "missing": "监管心跳缺失",
+    "invalid": "监管心跳记录无效",
+    "not_required": "当前不要求监管心跳",
+}
+_CONTINUATION_REASON_LABELS = {
+    "unchanged_finalize_state": "运行停在未变化的定稿总结态",
+}
+_TEXT_LABELS = {
+    "bundle suggestions are downstream-only until the publication gate allows write": "在发表门控放行写作前，投稿包相关建议都只是后续件。",
+    "bundle-stage work is unlocked and can proceed on the critical path": "投稿打包阶段已被全局门控放行，可以进入关键路径。",
+    "paper bundle exists, but the active blockers still belong to the publishability surface; bundle suggestions stay downstream-only until the gate clears": "论文包雏形已经存在，但当前硬阻塞仍在论文可发表性面；在门控放行前，投稿包相关建议都只是后续件。",
+}
+_TEXT_REPLACEMENTS = (
+    ("paper bundle exists", "论文包雏形已经存在"),
+    ("the active blockers still belong to the publishability surface", "当前硬阻塞仍在论文可发表性面"),
+    ("bundle suggestions stay downstream-only until the gate clears", "在门控放行前，投稿包相关建议都只是后续件"),
+    ("publishability surface", "论文可发表性面"),
+    ("publication gate allows write", "发表门控放行写作"),
+    ("gate clears", "门控放行"),
+    ("submission bundle", "最小投稿包"),
+    ("bundle 相关建议", "投稿包相关建议"),
+    ("publishability gate blocked", "论文可发表性门控未放行"),
+    ("missing submission minimal", "缺少最小投稿包导出"),
+    ("forbidden manuscript terminology", "当前稿件仍含不允许的术语表达，需要清理"),
+    ("live 状态", "在线状态"),
+    (", but ", "，但"),
+    ("; ", "；"),
+)
 _SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
 
 
@@ -118,6 +187,30 @@ def _humanize_token(token: object) -> str | None:
     return text.replace("_", " ")
 
 
+def _display_text(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    if text in _TEXT_LABELS:
+        return _TEXT_LABELS[text]
+    for source, target in _TEXT_REPLACEMENTS:
+        text = text.replace(source, target)
+    for token, label in (
+        *_CURRENT_STAGE_LABELS.items(),
+        *_PAPER_STAGE_LABELS.items(),
+        *_BLOCKER_LABELS.items(),
+    ):
+        text = text.replace(token, label)
+    return text
+
+
+def _current_stage_label(stage: object) -> str | None:
+    text = _non_empty_text(stage)
+    if text is None:
+        return None
+    return _CURRENT_STAGE_LABELS.get(text, _humanize_token(text))
+
+
 def _paper_stage_label(stage: object) -> str | None:
     text = _non_empty_text(stage)
     if text is None:
@@ -146,6 +239,34 @@ def _reason_label(value: object) -> str | None:
     return _REASON_LABELS.get(text, _humanize_token(text))
 
 
+def _runtime_decision_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _RUNTIME_DECISION_LABELS.get(text, _humanize_token(text))
+
+
+def _runtime_health_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _RUNTIME_HEALTH_LABELS.get(text, _humanize_token(text))
+
+
+def _supervisor_tick_status_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _SUPERVISOR_TICK_STATUS_LABELS.get(text, _humanize_token(text))
+
+
+def _continuation_reason_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    return _CONTINUATION_REASON_LABELS.get(text, _humanize_token(text))
+
+
 def _action_label(value: object) -> str | None:
     text = _non_empty_text(value)
     if text is None:
@@ -158,6 +279,32 @@ def _watch_blocker_label(value: object) -> str | None:
     if text is None:
         return None
     return _WATCH_BLOCKER_LABELS.get(text, _humanize_token(text))
+
+
+def _blocker_label(value: object) -> str | None:
+    text = _non_empty_text(value)
+    if text is None:
+        return None
+    normalized = text.replace(" ", "_")
+    direct_label = _BLOCKER_LABELS.get(text) or _BLOCKER_LABELS.get(normalized)
+    if direct_label is not None:
+        return direct_label
+    watch_label = _WATCH_BLOCKER_LABELS.get(text) or _WATCH_BLOCKER_LABELS.get(normalized)
+    if watch_label is not None:
+        return watch_label
+    reason_label = _REASON_LABELS.get(text) or _REASON_LABELS.get(normalized)
+    if reason_label is not None:
+        return reason_label
+    return _display_text(text) or _humanize_token(text)
+
+
+def _humanized_blockers(items: list[str]) -> list[str]:
+    blockers: list[str] = []
+    for item in items:
+        label = _blocker_label(item) or str(item)
+        if label not in blockers:
+            blockers.append(label)
+    return blockers
 
 
 def _append_unique(items: list[str], message: str | None) -> None:
@@ -607,7 +754,11 @@ def _latest_events(
         if item is not None:
             events.append(item)
     if launch_report_payload is not None:
-        decision = _humanize_token(launch_report_payload.get("decision")) or "状态回写"
+        decision = (
+            _runtime_decision_label(launch_report_payload.get("decision"))
+            or _humanize_token(launch_report_payload.get("decision"))
+            or "状态回写"
+        )
         reason = _reason_label(launch_report_payload.get("reason"))
         summary = f"最近一次运行状态回写结论：{decision}。"
         if reason is not None:
@@ -626,26 +777,22 @@ def _latest_events(
     return events[:_DEFAULT_EVENT_LIMIT]
 
 
-def read_study_progress(
+def build_study_progress_projection(
     *,
     profile: WorkspaceProfile,
-    study_id: str | None = None,
-    study_root: Path | None = None,
+    study_id: str,
+    study_root: Path,
+    status_payload: dict[str, Any] | Any,
     entry_mode: str | None = None,
 ) -> dict[str, Any]:
-    resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-    )
-    status = _status_payload(
-        study_runtime_router.study_runtime_status(
-            profile=profile,
-            study_id=resolved_study_id,
-            study_root=resolved_study_root,
-            entry_mode=entry_mode,
-        )
-    )
+    del profile, entry_mode
+    status = _status_payload(status_payload)
+    existing_projection = status.get("progress_projection")
+    if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
+        return dict(existing_projection)
+
+    resolved_study_id = study_id
+    resolved_study_root = study_root
     quest_id = _non_empty_text(status.get("quest_id"))
     quest_root = _candidate_path(status.get("quest_root"))
     launch_report_path = (
@@ -755,19 +902,19 @@ def read_study_progress(
         "quest_id": quest_id,
         "quest_root": str(quest_root) if quest_root is not None else None,
         "current_stage": current_stage,
-        "current_stage_summary": _stage_summary(
+        "current_stage_summary": _display_text(_stage_summary(
             current_stage=current_stage,
             publication_supervisor_state=publication_supervisor_state,
             latest_progress_message=latest_progress_message,
             runtime_supervision_payload=runtime_supervision_payload,
             supervisor_tick_audit=supervisor_tick_audit,
-        ),
+        )) or "",
         "paper_stage": paper_stage,
-        "paper_stage_summary": _paper_stage_summary(
+        "paper_stage_summary": _display_text(_paper_stage_summary(
             paper_stage=paper_stage,
             publication_supervisor_state=publication_supervisor_state,
             publication_eval_payload=publication_eval_payload,
-        ),
+        )) or "",
         "latest_events": _latest_events(
             launch_report_payload=launch_report_payload,
             launch_report_path=launch_report_path,
@@ -786,17 +933,19 @@ def read_study_progress(
             bash_summary_payload=bash_summary_payload,
             bash_summary_path=bash_summary_path,
         ),
-        "current_blockers": _current_blockers(
-            publication_eval_payload=publication_eval_payload,
-            runtime_watch_payload=runtime_watch_payload,
-            runtime_escalation_payload=runtime_escalation_payload,
-            controller_decision_payload=controller_decision_payload,
-            pending_user_interaction=pending_user_interaction,
-            interaction_arbitration=interaction_arbitration,
-            runtime_supervision_payload=runtime_supervision_payload,
-            supervisor_tick_audit=supervisor_tick_audit,
+        "current_blockers": _humanized_blockers(
+            _current_blockers(
+                publication_eval_payload=publication_eval_payload,
+                runtime_watch_payload=runtime_watch_payload,
+                runtime_escalation_payload=runtime_escalation_payload,
+                controller_decision_payload=controller_decision_payload,
+                pending_user_interaction=pending_user_interaction,
+                interaction_arbitration=interaction_arbitration,
+                runtime_supervision_payload=runtime_supervision_payload,
+                supervisor_tick_audit=supervisor_tick_audit,
+            )
         ),
-        "next_system_action": _next_system_action(
+        "next_system_action": _display_text(_next_system_action(
             needs_physician_decision=needs_physician_decision,
             controller_decision_payload=controller_decision_payload,
             publication_supervisor_state=publication_supervisor_state,
@@ -804,13 +953,13 @@ def read_study_progress(
             status=status,
             runtime_supervision_payload=runtime_supervision_payload,
             supervisor_tick_audit=supervisor_tick_audit,
-        ),
+        )) or "",
         "needs_physician_decision": needs_physician_decision,
-        "physician_decision_summary": _physician_decision_summary(
+        "physician_decision_summary": _display_text(_physician_decision_summary(
             controller_decision_payload=controller_decision_payload,
             pending_user_interaction=pending_user_interaction,
             interaction_arbitration=interaction_arbitration,
-        ),
+        )),
         "runtime_decision": _non_empty_text(status.get("decision")),
         "runtime_reason": _non_empty_text(status.get("reason")),
         "continuation_state": continuation_state or None,
@@ -841,39 +990,69 @@ def read_study_progress(
     return payload
 
 
+def read_study_progress(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    entry_mode: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    status = study_runtime_router.study_runtime_status(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        entry_mode=entry_mode,
+        include_progress_projection=False,
+    )
+    return build_study_progress_projection(
+        profile=profile,
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        status_payload=status,
+        entry_mode=entry_mode,
+    )
+
+
 def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     latest_events = [dict(item) for item in (payload.get("latest_events") or []) if isinstance(item, dict)]
-    blockers = [str(item) for item in (payload.get("current_blockers") or []) if str(item).strip()]
+    blockers = [(_blocker_label(item) or str(item)) for item in (payload.get("current_blockers") or []) if str(item).strip()]
     continuation_state = dict(payload.get("continuation_state") or {})
-    runtime_decision = str(payload.get("runtime_decision") or "unknown").strip()
-    runtime_reason = _reason_label(payload.get("runtime_reason")) or str(payload.get("runtime_reason") or "").strip()
-    runtime_health = str(((payload.get("supervision") or {}).get("health_status") or "unknown")).strip()
-    supervisor_tick_status = str(((payload.get("supervision") or {}).get("supervisor_tick_status") or "")).strip()
+    runtime_decision = _runtime_decision_label(payload.get("runtime_decision")) or "未知"
+    runtime_reason = _reason_label(payload.get("runtime_reason")) or _display_text(payload.get("runtime_reason")) or ""
+    runtime_health = _runtime_health_label(((payload.get("supervision") or {}).get("health_status"))) or "未知"
+    supervisor_tick_status = _supervisor_tick_status_label(((payload.get("supervision") or {}).get("supervisor_tick_status"))) or ""
+    current_stage = _current_stage_label(payload.get("current_stage")) or "未知"
+    paper_stage = _paper_stage_label(payload.get("paper_stage")) or "未知"
     lines = [
         "# 研究进度",
         "",
         f"- study_id: `{str(payload.get('study_id') or '')}`",
         f"- quest_id: `{str(payload.get('quest_id') or 'none')}`",
-        f"- 当前阶段: `{str(payload.get('current_stage') or 'unknown')}`",
-        f"- 阶段摘要: {str(payload.get('current_stage_summary') or '').strip()}",
+        f"- 当前阶段: {current_stage}",
+        f"- 阶段摘要: {_display_text(payload.get('current_stage_summary')) or str(payload.get('current_stage_summary') or '').strip()}",
         "",
         "## 论文推进",
         "",
-        f"- 论文阶段: `{str(payload.get('paper_stage') or 'unknown')}`",
-        f"- 论文摘要: {str(payload.get('paper_stage_summary') or '').strip()}",
+        f"- 论文阶段: {paper_stage}",
+        f"- 论文摘要: {_display_text(payload.get('paper_stage_summary')) or str(payload.get('paper_stage_summary') or '').strip()}",
         "",
         "## 运行监管",
         "",
-        f"- 运行健康: `{runtime_health or 'unknown'}`",
-        f"- MAS 决策: `{runtime_decision or 'unknown'}`",
+        f"- 运行健康: {runtime_health}",
+        f"- MAS 决策: {runtime_decision}",
     ]
     if supervisor_tick_status:
-        lines.append(f"- MAS 监管心跳: `{supervisor_tick_status}`")
+        lines.append(f"- MAS 监管心跳: {supervisor_tick_status}")
     if runtime_reason:
         lines.append(f"- 决策原因: {runtime_reason}")
-    continuation_reason = str(continuation_state.get("continuation_reason") or "").strip()
+    continuation_reason = _continuation_reason_label(continuation_state.get("continuation_reason")) or str(continuation_state.get("continuation_reason") or "").strip()
     if continuation_reason:
-        lines.append(f"- continuation_reason: `{continuation_reason}`")
+        lines.append(f"- continuation_reason: {continuation_reason}")
     lines.extend(
         [
             "",
@@ -906,14 +1085,20 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     if latest_events:
         for item in latest_events:
             time_label = str(item.get("time_label") or item.get("timestamp") or "").strip()
-            summary = str(item.get("summary") or "").strip()
+            summary = _display_text(item.get("summary")) or str(item.get("summary") or "").strip()
             lines.append(f"- {time_label}: {summary}")
     else:
         lines.append("- 目前没有可用的阶段事件。")
     supervision = dict(payload.get("supervision") or {})
     lines.extend(["", "## 监督入口", ""])
+    supervision_labels = {
+        "browser_url": "监控入口",
+        "quest_session_api_url": "会话接口",
+        "active_run_id": "active_run_id",
+        "launch_report_path": "launch_report_path",
+    }
     for key in ("browser_url", "quest_session_api_url", "active_run_id", "launch_report_path"):
         value = str(supervision.get(key) or "").strip()
         if value:
-            lines.append(f"- {key}: `{value}`")
+            lines.append(f"- {supervision_labels[key]}: `{value}`")
     return "\n".join(lines) + "\n"
