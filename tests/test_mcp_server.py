@@ -48,6 +48,7 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "startup_data_readiness",
         "med_deepscientist_upgrade_check",
         "study_runtime_status",
+        "study_progress",
         "ensure_study_runtime",
         "init_workspace",
         "medical_literature_audit",
@@ -208,6 +209,40 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     assert result["isError"] is False
     assert result["structuredContent"]["decision"] == "noop"
     assert result["structuredContent"]["study_id"] == "001-risk"
+
+
+def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "managed_runtime_active",
+            "current_stage_summary": "托管运行时正在自动推进研究。",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "render_study_progress_markdown",
+        lambda payload: "# 研究进度\n\n托管运行时正在自动推进研究。\n",
+    )
+
+    result = module.call_tool(
+        "study_progress",
+        {
+            "profile_path": str(profile_path),
+            "study_id": "001-risk",
+        },
+    )
+
+    assert result["isError"] is False
+    assert result["structuredContent"]["study_id"] == "001-risk"
+    assert result["structuredContent"]["current_stage"] == "managed_runtime_active"
+    assert "自动推进研究" in result["content"][0]["text"]
 
 
 def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:

@@ -263,6 +263,60 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert "q001" in captured.out
 
 
+def test_study_progress_command_dispatches_controller_and_renders_markdown(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_read_study_progress(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        return {
+            "study_id": "001-risk",
+            "current_stage": "waiting_physician_decision",
+            "current_stage_summary": "系统已经推进到需要医生确认的节点。",
+        }
+
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
+    monkeypatch.setattr(
+        cli.study_progress,
+        "render_study_progress_markdown",
+        lambda payload: "# 研究进度\n\n系统已经推进到需要医生确认的节点。\n",
+    )
+
+    exit_code = cli.main(
+        [
+            "study-progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["entry_mode"] is None
+    assert "# 研究进度" in captured.out
+    assert "医生确认" in captured.out
+
+
 def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

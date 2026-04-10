@@ -23,6 +23,7 @@ __all__ = [
     "sidecar_provider",
     "study_runtime_router",
     "study_delivery_sync",
+    "study_progress",
     "submission_minimal",
     "submission_targets",
     "workspace_init",

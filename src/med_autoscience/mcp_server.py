@@ -14,6 +14,7 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     portfolio_memory,
     runtime_watch,
+    study_progress,
     startup_data_readiness as startup_data_readiness_controller,
     study_runtime_router,
     workspace_init,
@@ -247,6 +248,25 @@ def list_tools() -> list[dict[str, Any]]:
             },
         },
         {
+            "name": "study_progress",
+            "description": (
+                "Read a physician-friendly, read-only study progress projection built from "
+                "canonical durable surfaces. It summarizes current stage, paper progress, blockers, "
+                "and supervision links without becoming a second runtime authority."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "profile_path": {"type": "string"},
+                    "study_id": {"type": "string"},
+                    "study_root": {"type": "string"},
+                    "entry_mode": {"type": "string"},
+                },
+                "required": ["profile_path"],
+                "additionalProperties": False,
+            },
+        },
+        {
             "name": "ensure_study_runtime",
             "description": (
                 "Ensure a managed med-deepscientist runtime exists and is running for a study. "
@@ -422,6 +442,17 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(serialized), structured=serialized)
 
 
+def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile = load_profile(_require_string(arguments, "profile_path"))
+    result = study_progress.read_study_progress(
+        profile=profile,
+        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
+        study_root=_optional_path(arguments, "study_root"),
+        entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+    )
+    return _tool_text_result(study_progress.render_study_progress_markdown(result), structured=result)
+
+
 def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
     profile = load_profile(_require_string(arguments, "profile_path"))
     result = study_runtime_router.ensure_study_runtime(
@@ -486,6 +517,7 @@ TOOL_HANDLERS = {
     "startup_data_readiness": _call_startup_data_readiness,
     "med_deepscientist_upgrade_check": _call_med_deepscientist_upgrade_check,
     "study_runtime_status": _call_study_runtime_status,
+    "study_progress": _call_study_progress,
     "ensure_study_runtime": _call_ensure_study_runtime,
     "init_workspace": _call_init_workspace,
     "medical_literature_audit": _call_medical_literature_audit,

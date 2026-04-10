@@ -14,6 +14,7 @@ from med_autoscience.controllers import (
     medical_publication_surface,
     medical_reporting_audit,
     publication_gate,
+    runtime_supervision,
     study_runtime_router,
 )
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
@@ -165,6 +166,22 @@ def _serialize_managed_study_action(
     }
 
 
+def _managed_study_status_payload(
+    action_payload: dict[str, Any] | StudyRuntimeStatus,
+) -> dict[str, Any]:
+    if isinstance(action_payload, StudyRuntimeStatus):
+        return action_payload.to_dict()
+    return dict(action_payload)
+
+
+def _write_latest_watch_alias(*, report_dir: Path, report: Mapping[str, Any], markdown: str) -> tuple[Path, Path]:
+    latest_json = report_dir / "latest.json"
+    latest_markdown = report_dir / "latest.md"
+    latest_json.write_text(json.dumps(dict(report), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    latest_markdown.write_text(markdown, encoding="utf-8")
+    return latest_json, latest_markdown
+
+
 def render_watch_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Runtime Watch Report",
@@ -209,12 +226,19 @@ def render_watch_markdown(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def write_watch_report(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return runtime_watch_protocol.write_watch_report(
+def write_watch_report(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path, Path, Path]:
+    markdown = render_watch_markdown(report)
+    json_path, md_path = runtime_watch_protocol.write_watch_report(
         quest_root=quest_root,
         report=report,
-        markdown=render_watch_markdown(report),
+        markdown=markdown,
     )
+    latest_json, latest_markdown = _write_latest_watch_alias(
+        report_dir=json_path.parent,
+        report=report,
+        markdown=markdown,
+    )
+    return json_path, md_path, latest_json, latest_markdown
 
 
 def run_watch_for_quest(
@@ -285,9 +309,11 @@ def run_watch_for_quest(
             controllers=controller_state,
         ),
     )
-    json_path, md_path = write_watch_report(quest_root, report)
+    json_path, md_path, latest_json, latest_markdown = write_watch_report(quest_root, report)
     report["report_json"] = str(json_path)
     report["report_markdown"] = str(md_path)
+    report["latest_report_json"] = str(latest_json)
+    report["latest_report_markdown"] = str(latest_markdown)
     return report
 
 
@@ -301,6 +327,7 @@ def run_watch_for_runtime(
 ) -> dict[str, Any]:
     controller_runners = controller_runners or build_default_controller_runners()
     managed_study_actions: list[dict[str, Any]] = []
+    managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     if ensure_study_runtimes:
         if profile is None:
             raise ValueError("profile is required when ensure_study_runtimes is enabled")
@@ -321,6 +348,7 @@ def run_watch_for_runtime(
                     study_root=study_root,
                 )
             managed_study_actions.append(_serialize_managed_study_action(action_payload))
+            managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
     for quest_root in quest_state.iter_active_quests(runtime_root):
@@ -332,12 +360,36 @@ def run_watch_for_runtime(
                 apply=apply,
             )
         )
+    report_by_quest_root = {
+        str(Path(str(report.get("quest_root") or "")).expanduser().resolve()): report
+        for report in reports
+        if str(report.get("quest_root") or "").strip()
+    }
+    managed_study_supervision: list[dict[str, Any]] = []
+    for study_root, status_payload in managed_study_statuses:
+        quest_root = status_payload.get("quest_root")
+        quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
+        supervision_report = runtime_supervision.materialize_runtime_supervision(
+            study_root=study_root,
+            status_payload=status_payload,
+            recorded_at=utc_now(),
+            apply=apply,
+            runtime_watch_report_path=(
+                Path(str(quest_report.get("latest_report_json") or quest_report.get("report_json")))
+                if isinstance(quest_report, dict)
+                and str(quest_report.get("latest_report_json") or quest_report.get("report_json") or "").strip()
+                else None
+            ),
+        )
+        if supervision_report is not None:
+            managed_study_supervision.append(supervision_report)
     return {
         "schema_version": 1,
         "scanned_at": utc_now(),
         "runtime_root": str(runtime_root),
         "scanned_quests": scanned,
         "managed_study_actions": managed_study_actions,
+        "managed_study_supervision": managed_study_supervision,
         "reports": reports,
     }
 

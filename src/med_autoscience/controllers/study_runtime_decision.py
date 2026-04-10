@@ -14,6 +14,7 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeAuditRecord,
     StudyRuntimeAuditStatus,
+    StudyRuntimeContinuationState,
     StudyRuntimeDecision,
     StudyRuntimeExecutionOwnerGuard,
     StudyRuntimeQuestStatus,
@@ -24,9 +25,18 @@ from med_autoscience.controllers.study_runtime_types import (
     _RESUMABLE_QUEST_STATUSES,
 )
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.publication_eval_latest import materialize_publication_eval_latest
+from med_autoscience.publication_eval_record import (
+    PublicationEvalCharterContextRef,
+    PublicationEvalGap,
+    PublicationEvalRecommendedAction,
+    PublicationEvalRecord,
+    PublicationEvalVerdict,
+)
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 
 
@@ -62,6 +72,9 @@ _SUPERVISOR_ONLY_FORBIDDEN_ACTIONS = (
     "direct_bundle_build",
     "direct_compiled_bundle_proofing",
 )
+_FINALIZE_PARKING_CONTINUATION_POLICY = "wait_for_user_or_resume"
+_FINALIZE_PARKING_CONTINUATION_REASON = "unchanged_finalize_state"
+_HUMAN_CONFIRMATION_REQUIRED_ACTION = "human_confirmation_required"
 
 
 def _router_module():
@@ -99,6 +112,192 @@ def _waiting_submission_metadata_only(quest_root: Path) -> bool:
     if not blocking_item_ids:
         return False
     return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_IDS for item_id in blocking_item_ids)
+
+
+def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
+    refs: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            refs.append(text)
+    return tuple(refs)
+
+
+def _publication_eval_gap_type(blocker: str) -> str:
+    normalized = blocker.lower()
+    if any(token in normalized for token in ("submission", "deliverable", "bundle", "surface", "package")):
+        return "delivery"
+    if any(token in normalized for token in ("terminology", "report", "qc")):
+        return "reporting"
+    if any(token in normalized for token in ("anchor", "main", "result", "publishability")):
+        return "evidence"
+    return "claim"
+
+
+def _publication_eval_verdict(report: dict[str, object]) -> PublicationEvalVerdict:
+    status = str(report.get("status") or "").strip()
+    anchor_kind = str(report.get("anchor_kind") or "").strip()
+    summary = (
+        str(report.get("controller_stage_note") or "").strip()
+        or str(report.get("conclusion") or "").strip()
+        or str(report.get("results_summary") or "").strip()
+    )
+    if status == "clear":
+        return PublicationEvalVerdict(
+            overall_verdict="promising",
+            primary_claim_status="supported",
+            summary=summary or "Publication gate is clear and the current line can continue.",
+            stop_loss_pressure="none",
+        )
+    return PublicationEvalVerdict(
+        overall_verdict="blocked",
+        primary_claim_status="blocked" if anchor_kind == "missing" else "partial",
+        summary=summary or "Publication gate is blocked and requires controller review.",
+        stop_loss_pressure="high" if anchor_kind == "missing" else "watch",
+    )
+
+
+def _publication_eval_gaps(
+    *,
+    report: dict[str, object],
+    evidence_refs: tuple[str, ...],
+) -> tuple[PublicationEvalGap, ...]:
+    blockers = report.get("blockers")
+    if isinstance(blockers, list) and blockers:
+        return tuple(
+            PublicationEvalGap(
+                gap_id=f"gap-{index:03d}",
+                gap_type=_publication_eval_gap_type(str(blocker)),
+                severity="must_fix",
+                summary=str(blocker).strip(),
+                evidence_refs=evidence_refs,
+            )
+            for index, blocker in enumerate(blockers, start=1)
+            if str(blocker).strip()
+        )
+    return (
+        PublicationEvalGap(
+            gap_id="gap-001",
+            gap_type="reporting",
+            severity="optional",
+            summary=(
+                str(report.get("controller_stage_note") or "").strip()
+                or str(report.get("conclusion") or "").strip()
+                or "No blocking publication gate gap is active."
+            ),
+            evidence_refs=evidence_refs,
+        ),
+    )
+
+
+def _publication_eval_action(
+    *,
+    report: dict[str, object],
+    generated_at: str,
+    evidence_refs: tuple[str, ...],
+) -> PublicationEvalRecommendedAction:
+    status = str(report.get("status") or "").strip()
+    anchor_kind = str(report.get("anchor_kind") or "").strip()
+    if status == "clear":
+        action_type = "prepare_promotion_review" if anchor_kind == "paper_bundle" else "continue_same_line"
+        reason = (
+            str(report.get("controller_stage_note") or "").strip()
+            or "Publication gate is clear and the current line can continue."
+        )
+    else:
+        action_type = "return_to_controller"
+        reason = (
+            str(report.get("controller_stage_note") or "").strip()
+            or "Publication gate is blocked and requires controller review."
+        )
+    return PublicationEvalRecommendedAction(
+        action_id=f"publication-eval-action::{action_type}::{generated_at}",
+        action_type=action_type,
+        priority="now",
+        reason=reason,
+        evidence_refs=evidence_refs,
+        requires_controller_decision=True,
+    )
+
+
+def _materialize_publication_eval_from_gate_report(
+    *,
+    study_root: Path,
+    study_id: str,
+    quest_root: Path,
+    quest_id: str | None,
+    publication_gate_report: dict[str, object],
+) -> dict[str, str] | None:
+    if str(publication_gate_report.get("gate_kind") or "").strip() != "publishability_control":
+        return None
+    stable_charter_path = (study_root / "artifacts" / "controller" / "study_charter.json").resolve()
+    if not stable_charter_path.exists():
+        return None
+    generated_at = str(publication_gate_report.get("generated_at") or "").strip()
+    if not generated_at:
+        raise ValueError("publication gate report missing generated_at for publication eval materialization")
+    charter_payload = read_study_charter(study_root=study_root)
+    resolved_quest_id = (
+        str(publication_gate_report.get("quest_id") or "").strip()
+        or str(quest_id or "").strip()
+        or quest_root.name
+    )
+    latest_gate_path = (
+        str(publication_gate_report.get("latest_gate_path") or "").strip()
+        or str((quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json").resolve())
+    )
+    main_result_ref = (
+        str(publication_gate_report.get("main_result_path") or "").strip()
+        or str((quest_root / "artifacts" / "results" / "main_result.json").resolve())
+    )
+    paper_root_ref = (
+        str(publication_gate_report.get("paper_root") or "").strip()
+        or str((study_root / "paper").resolve())
+    )
+    submission_minimal_ref = (
+        str(publication_gate_report.get("submission_minimal_manifest_path") or "").strip()
+        or str((study_root / "paper" / "submission_minimal" / "submission_manifest.json").resolve())
+    )
+    runtime_escalation_ref = str(
+        (quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json").resolve()
+    )
+    evidence_refs = _publication_eval_evidence_refs(
+        latest_gate_path,
+        main_result_ref,
+        paper_root_ref,
+        str(quest_root.resolve()),
+    )
+    record = PublicationEvalRecord(
+        schema_version=1,
+        eval_id=f"publication-eval::{study_id}::{resolved_quest_id}::{generated_at}",
+        study_id=study_id,
+        quest_id=resolved_quest_id,
+        emitted_at=generated_at,
+        evaluation_scope="publication",
+        charter_context_ref=PublicationEvalCharterContextRef(
+            ref=str(stable_charter_path),
+            charter_id=str(charter_payload.get("charter_id") or "").strip(),
+            publication_objective=str(charter_payload.get("publication_objective") or "").strip(),
+        ),
+        runtime_context_refs={
+            "runtime_escalation_ref": runtime_escalation_ref,
+            "main_result_ref": main_result_ref,
+        },
+        delivery_context_refs={
+            "paper_root_ref": paper_root_ref,
+            "submission_minimal_ref": submission_minimal_ref,
+        },
+        verdict=_publication_eval_verdict(publication_gate_report),
+        gaps=_publication_eval_gaps(report=publication_gate_report, evidence_refs=evidence_refs),
+        recommended_actions=(
+            _publication_eval_action(
+                report=publication_gate_report,
+                generated_at=generated_at,
+                evidence_refs=evidence_refs,
+            ),
+        ),
+    )
+    return materialize_publication_eval_latest(study_root=study_root, record=record)
 
 
 def _record_quest_runtime_audits(
@@ -193,6 +392,57 @@ def _load_json_dict(path: Path) -> dict[str, object]:
 
 def _runtime_state_path(quest_root: Path) -> Path:
     return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+
+
+def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQuestStatus | None) -> dict[str, object] | None:
+    runtime_state_path = _runtime_state_path(quest_root)
+    runtime_state = _load_json_dict(runtime_state_path)
+    continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
+    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    if continuation_policy is None and continuation_anchor is None and continuation_reason is None:
+        return None
+    return {
+        "quest_status": str(runtime_state.get("status") or "").strip() or (quest_status.value if quest_status is not None else None),
+        "active_run_id": str(runtime_state.get("active_run_id") or "").strip() or None,
+        "continuation_policy": continuation_policy,
+        "continuation_anchor": continuation_anchor,
+        "continuation_reason": continuation_reason,
+        "runtime_state_path": str(runtime_state_path),
+    }
+
+
+def _record_continuation_state_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+    payload = _continuation_state_payload(quest_root=quest_root, quest_status=status.quest_status)
+    if payload is None:
+        return
+    status.record_continuation_state(StudyRuntimeContinuationState.from_payload(payload))
+
+
+def _is_controller_owned_finalize_parking(status: StudyRuntimeStatus) -> bool:
+    if status.quest_status not in _LIVE_QUEST_STATUSES:
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    return (
+        continuation_state.active_run_id is None
+        and continuation_state.continuation_policy == _FINALIZE_PARKING_CONTINUATION_POLICY
+        and continuation_state.continuation_reason == _FINALIZE_PARKING_CONTINUATION_REASON
+    )
+
+
+def _controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
+    payload = _load_json_dict(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    return bool(payload.get("requires_human_confirmation"))
+
+
+def _publication_supervisor_requires_human_confirmation(status: StudyRuntimeStatus) -> bool:
+    payload = status.extras.get("publication_supervisor_state")
+    if not isinstance(payload, dict):
+        return False
+    return str(payload.get("current_required_action") or "").strip() == _HUMAN_CONFIRMATION_REQUIRED_ACTION
 
 
 def _sync_runtime_summary_if_needed(
@@ -331,7 +581,7 @@ def _record_pending_user_interaction_if_required(
     quest_root: Path,
     quest_id: str,
 ) -> None:
-    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER:
+    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
         return
     payload = _pending_user_interaction_payload(
         runtime_root=runtime_root,
@@ -349,9 +599,11 @@ def _record_interaction_arbitration_if_required(
     execution: dict[str, object],
     submission_metadata_only: bool,
 ) -> None:
-    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER:
+    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
         return
     payload = status.extras.get("pending_user_interaction")
+    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not isinstance(payload, dict):
+        return
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
@@ -444,8 +696,16 @@ def _status_state(
         result.record_publication_supervisor_state(
             publication_gate_controller.extract_publication_supervisor_state(publication_gate_report)
         )
+        _materialize_publication_eval_from_gate_report(
+            study_root=study_root,
+            study_id=study_id,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            publication_gate_report=publication_gate_report,
+        )
     else:
         publication_gate_report = None
+    _record_continuation_state_if_present(status=result, quest_root=quest_root)
     _record_pending_user_interaction_if_required(
         status=result,
         runtime_root=runtime_root,
@@ -612,6 +872,7 @@ def _status_state(
 
     if quest_status in _LIVE_QUEST_STATUSES:
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
+        controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -632,6 +893,42 @@ def _status_state(
                 result.set_decision(
                     StudyRuntimeDecision.NOOP,
                     StudyRuntimeReason.QUEST_ALREADY_RUNNING,
+                )
+        elif controller_owned_finalize_parking:
+            interaction_arbitration = result.extras.get("interaction_arbitration")
+            if isinstance(interaction_arbitration, dict):
+                classification = str(interaction_arbitration.get("classification") or "").strip()
+                action = str(interaction_arbitration.get("action") or "").strip()
+                if classification == "external_input_required" and action == "block":
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.QUEST_WAITING_FOR_EXTERNAL_INPUT,
+                    )
+                    return _finalize_result()
+            if _controller_decision_requires_human_confirmation(study_root=study_root) or _publication_supervisor_requires_human_confirmation(result):
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE,
+                )
+            elif not result.startup_boundary_allows_compute_stage:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                )
+            elif not result.runtime_reentry_allows_runtime_entry:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                )
+            elif execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    StudyRuntimeReason.QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
                 )
         elif not result.startup_boundary_allows_compute_stage:
             result.set_decision(

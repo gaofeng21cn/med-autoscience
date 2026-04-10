@@ -3039,6 +3039,239 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
     ]
 
 
+def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surfaces_continuation_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            }
+        )
+        + "\n",
+    )
+    (study_root / "artifacts" / "controller_decisions").mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "source": "local_runtime_state_contract",
+            "active_run_id": None,
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "bash_session_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "local_runtime_state": {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            },
+            "probe_error": "daemon unavailable | daemon unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": False,
+            "quest_id": quest_id,
+            "snapshot": None,
+        },
+        raising=False,
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_parked_on_unchanged_finalize_state"
+    assert result["continuation_state"] == {
+        "quest_status": "active",
+        "active_run_id": None,
+        "continuation_policy": "wait_for_user_or_resume",
+        "continuation_anchor": "decision",
+        "continuation_reason": "unchanged_finalize_state",
+        "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+    }
+
+
+def test_study_runtime_status_blocks_finalize_parking_when_external_credential_is_required(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            }
+        )
+        + "\n",
+    )
+    interaction_id = "decision-secret-001"
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "decisions" / f"{interaction_id}.json",
+        json.dumps(
+            {
+                "kind": "decision_request",
+                "schema_version": 1,
+                "artifact_id": interaction_id,
+                "id": interaction_id,
+                "quest_id": "001-risk",
+                "status": "active",
+                "reply_mode": "blocking",
+                "expects_reply": True,
+                "allow_free_text": False,
+                "message": "需要外部凭证。",
+                "summary": "当前需要外部凭证后才能继续。",
+                "options": [{"id": "supply_credential", "label": "提供凭证"}],
+                "reply_schema": {
+                    "type": "decision",
+                    "decision_type": "external_credential_request",
+                },
+                "guidance_vm": {"requires_user_decision": True},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "source": "local_runtime_state_contract",
+            "active_run_id": None,
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "bash_session_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "local_runtime_state": {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            },
+            "probe_error": "daemon unavailable | daemon unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": interaction_id,
+                "default_reply_interaction_id": interaction_id,
+                "pending_decisions": [interaction_id],
+                "active_interaction_id": interaction_id,
+            },
+        },
+        raising=False,
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_external_input"
+    assert result["interaction_arbitration"] == {
+        "classification": "external_input_required",
+        "action": "block",
+        "reason_code": "external_secret_or_credential_required",
+        "requires_user_input": True,
+        "valid_blocking": True,
+        "kind": "decision_request",
+        "decision_type": "external_credential_request",
+        "source_artifact_path": str(
+            quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "decisions" / f"{interaction_id}.json"
+        ),
+        "controller_stage_note": (
+            "Only explicit external secrets or credentials may stay user-blocking under MAS management."
+        ),
+    }
+
+
 def test_ensure_study_runtime_blocks_when_create_request_fails(
     monkeypatch,
     tmp_path: Path,
@@ -4252,6 +4485,13 @@ def test_build_startup_contract_separates_runtime_owned_subset_from_controller_e
     assert controller_extensions["medical_analysis_contract_summary"] == startup_contract["medical_analysis_contract_summary"]
     assert controller_extensions["medical_reporting_contract_summary"] == startup_contract["medical_reporting_contract_summary"]
     assert controller_extensions["submission_targets"] == startup_contract["submission_targets"]
+    assert controller_extensions["study_charter_ref"] == startup_contract["study_charter_ref"]
+    charter_ref = startup_contract["study_charter_ref"]
+    assert charter_ref["charter_id"] == "charter::001-risk::v1"
+    assert charter_ref["artifact_path"] == str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())
+    charter_payload = json.loads(Path(charter_ref["artifact_path"]).read_text(encoding="utf-8"))
+    assert charter_payload["charter_id"] == charter_ref["charter_id"]
+    assert charter_payload["publication_objective"] == "Build a submission-ready survival-risk study."
     assert "custom_brief" in controller_extensions
 
 
@@ -4393,6 +4633,128 @@ def test_study_runtime_status_reports_waiting_for_user_quest_as_blocked(monkeypa
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_user"
     assert result["quest_status"] == "waiting_for_user"
+
+
+def test_study_runtime_status_materializes_stable_publication_eval_latest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    write_text(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "charter_id": "charter::001-risk::v1",
+                "study_id": "001-risk",
+                "publication_objective": "risk stratification external validation",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-03T04:00:00+00:00",
+            "anchor_kind": "missing",
+            "anchor_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            "quest_id": "001-risk",
+            "run_id": "run-1",
+            "main_result_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            "paper_root": str(study_root / "paper"),
+            "compile_report_path": None,
+            "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "medical_publication_surface_report_path": None,
+            "medical_publication_surface_current": False,
+            "allow_write": False,
+            "recommended_action": "return_to_publishability_gate",
+            "status": "blocked",
+            "blockers": ["missing_post_main_publishability_gate"],
+            "write_drift_detected": False,
+            "required_non_scalar_deliverables": [],
+            "present_non_scalar_deliverables": [],
+            "missing_non_scalar_deliverables": [],
+            "paper_bundle_manifest_path": None,
+            "submission_minimal_manifest_path": None,
+            "submission_minimal_present": False,
+            "submission_minimal_docx_present": False,
+            "submission_minimal_pdf_present": False,
+            "medical_publication_surface_status": None,
+            "submission_surface_qc_failures": [],
+            "archived_submission_surface_roots": [],
+            "unmanaged_submission_surface_roots": [],
+            "manuscript_terminology_violations": [],
+            "headline_metrics": {},
+            "primary_metric_delta_vs_baseline": None,
+            "results_summary": "summary",
+            "conclusion": "conclusion",
+            "controller_note": "note",
+            "supervisor_phase": "scientific_anchor_missing",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    assert latest_eval_path.is_file()
+    payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
+
+    assert result["publication_supervisor_state"]["supervisor_phase"] == "scientific_anchor_missing"
+    assert payload["eval_id"] == "publication-eval::001-risk::001-risk::2026-04-03T04:00:00+00:00"
+    assert payload["study_id"] == "001-risk"
+    assert payload["quest_id"] == "001-risk"
+    assert payload["charter_context_ref"] == {
+        "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        "charter_id": "charter::001-risk::v1",
+        "publication_objective": "risk stratification external validation",
+    }
+    assert payload["verdict"]["overall_verdict"] == "blocked"
+    assert payload["verdict"]["primary_claim_status"] == "blocked"
+    assert payload["recommended_actions"][0]["action_type"] == "return_to_controller"
+    assert payload["recommended_actions"][0]["requires_controller_decision"] is True
 
 
 def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_quest(

@@ -64,6 +64,7 @@ reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("referen
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
+study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
@@ -332,6 +333,13 @@ def build_parser() -> argparse.ArgumentParser:
     study_runtime_status_parser.add_argument("--study-root", type=str)
     study_runtime_status_parser.add_argument("--entry-mode", type=str)
 
+    study_progress_parser = subparsers.add_parser("study-progress")
+    study_progress_parser.add_argument("--profile", required=True)
+    study_progress_parser.add_argument("--study-id", type=str)
+    study_progress_parser.add_argument("--study-root", type=str)
+    study_progress_parser.add_argument("--entry-mode", type=str)
+    study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
 
@@ -436,6 +444,22 @@ def main(argv: list[str] | None = None) -> int:
             entry_mode=args.entry_mode,
         )
         print(json.dumps(_serialize_study_runtime_result(result), ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "study-progress":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = study_progress.read_study_progress(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(study_progress.render_study_progress_markdown(result), end="")
         return 0
 
     if args.command == "watch":

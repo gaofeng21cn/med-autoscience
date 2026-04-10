@@ -15,6 +15,7 @@ from .study_runtime_status import (
     StudyCompletionSyncResult,
     StudyRuntimeAutonomousRuntimeNotice,
     StudyRuntimeAnalysisBundleResult,
+    StudyRuntimeAuditStatus,
     StudyRuntimeBindingAction,
     StudyRuntimeDaemonStep,
     StudyRuntimeDecision,
@@ -652,9 +653,17 @@ def _execute_runtime_decision(
 
 def _managed_runtime_notice_reason(
     *,
-    status: StudyRuntimeStatus,
     binding_last_action: StudyRuntimeBindingAction | None,
+    strict_live: bool,
 ) -> str:
+    if not strict_live:
+        if binding_last_action in {
+            StudyRuntimeBindingAction.CREATE_AND_START,
+            StudyRuntimeBindingAction.RESUME,
+            StudyRuntimeBindingAction.RELAUNCH_STOPPED,
+        }:
+            return "managed_runtime_recovery_requested"
+        return "managed_runtime_degraded"
     if binding_last_action is StudyRuntimeBindingAction.CREATE_AND_START:
         return "managed_runtime_started"
     if binding_last_action is StudyRuntimeBindingAction.RESUME:
@@ -673,6 +682,27 @@ def _should_record_autonomous_runtime_notice(status: StudyRuntimeStatus) -> bool
         and status.quest_exists
         and status.quest_status in _LIVE_QUEST_STATUSES
     )
+
+
+def _runtime_audit_worker_running(payload: dict[str, Any]) -> bool:
+    runtime_audit = payload.get("runtime_audit")
+    if isinstance(runtime_audit, dict):
+        return runtime_audit.get("worker_running") is True
+    return payload.get("worker_running") is True
+
+
+def _is_strictly_live_runtime_notice(
+    *,
+    status: StudyRuntimeStatus,
+    active_run_id: str | None,
+) -> bool:
+    if active_run_id is None:
+        return False
+    payload = status.extras.get("runtime_liveness_audit")
+    if not isinstance(payload, dict):
+        return False
+    audit_status = str(payload.get("status") or "").strip().lower()
+    return audit_status == StudyRuntimeAuditStatus.LIVE.value and _runtime_audit_worker_running(payload)
 
 
 def _record_autonomous_runtime_notice_if_required(
@@ -697,6 +727,16 @@ def _record_autonomous_runtime_notice_if_required(
         payload = status.extras.get("runtime_liveness_audit")
         if isinstance(payload, dict):
             resolved_active_run_id = str(payload.get("active_run_id") or "").strip() or None
+            if resolved_active_run_id is None:
+                runtime_audit = payload.get("runtime_audit")
+                if isinstance(runtime_audit, dict):
+                    resolved_active_run_id = str(runtime_audit.get("active_run_id") or "").strip() or None
+    strict_live = _is_strictly_live_runtime_notice(
+        status=status,
+        active_run_id=resolved_active_run_id,
+    )
+    if resolved_active_run_id is None and not strict_live:
+        return
     quest_status = status.quest_status.value if status.quest_status is not None else "unknown"
     encoded_quest_id = quote(status.quest_id, safe="")
     status.record_autonomous_runtime_notice(
@@ -704,8 +744,8 @@ def _record_autonomous_runtime_notice_if_required(
             required=True,
             notice_key=f"quest:{status.quest_id}:{resolved_active_run_id or quest_status}",
             notification_reason=_managed_runtime_notice_reason(
-                status=status,
                 binding_last_action=binding_last_action,
+                strict_live=strict_live,
             ),
             quest_id=status.quest_id,
             quest_status=quest_status,

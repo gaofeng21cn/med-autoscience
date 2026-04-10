@@ -747,6 +747,7 @@ def _infer_local_runtime_liveness(*, runtime_root: Path, quest_id: str) -> dict[
         "active_run_id": active_run_id,
         "continuation_policy": str(runtime_state.get("continuation_policy") or "").strip() or None,
         "continuation_anchor": str(runtime_state.get("continuation_anchor") or "").strip() or None,
+        "continuation_reason": str(runtime_state.get("continuation_reason") or "").strip() or None,
     }
 
 

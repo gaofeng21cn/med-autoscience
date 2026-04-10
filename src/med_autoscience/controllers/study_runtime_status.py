@@ -20,6 +20,7 @@ __all__ = [
     "StudyRuntimeAuditRecord",
     "StudyRuntimeAuditStatus",
     "StudyRuntimeBindingAction",
+    "StudyRuntimeContinuationState",
     "StudyRuntimeDaemonStep",
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
@@ -92,6 +93,7 @@ class StudyRuntimeReason(StrEnum):
     STARTUP_BOUNDARY_NOT_READY_FOR_RESUME = "startup_boundary_not_ready_for_resume"
     RUNTIME_REENTRY_NOT_READY_FOR_RESUME = "runtime_reentry_not_ready_for_resume"
     QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION = "quest_marked_running_but_no_live_session"
+    QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE = "quest_parked_on_unchanged_finalize_state"
     RESUME_REQUEST_FAILED = "resume_request_failed"
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
@@ -553,6 +555,53 @@ class StudyRuntimeInteractionArbitration:
             source_artifact_path=str(payload.get("source_artifact_path") or "").strip() or None,
             controller_stage_note=str(payload.get("controller_stage_note") or ""),
             payload=dict(payload),
+        )
+
+
+@dataclass(frozen=True)
+class StudyRuntimeContinuationState:
+    quest_status: str | None
+    active_run_id: str | None
+    continuation_policy: str | None
+    continuation_anchor: str | None
+    continuation_reason: str | None
+    runtime_state_path: str
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "quest_status",
+            "active_run_id",
+            "continuation_policy",
+            "continuation_anchor",
+            "continuation_reason",
+        ):
+            value = getattr(self, field_name)
+            if value is not None and not isinstance(value, str):
+                raise TypeError(f"study runtime continuation state {field_name} must be str or None")
+        if not isinstance(self.runtime_state_path, str) or not self.runtime_state_path.strip():
+            raise TypeError("study runtime continuation state runtime_state_path must be non-empty str")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "quest_status": self.quest_status,
+            "active_run_id": self.active_run_id,
+            "continuation_policy": self.continuation_policy,
+            "continuation_anchor": self.continuation_anchor,
+            "continuation_reason": self.continuation_reason,
+            "runtime_state_path": self.runtime_state_path,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeContinuationState":
+        if not isinstance(payload, dict):
+            raise TypeError("study runtime continuation state payload must be a mapping")
+        return cls(
+            quest_status=str(payload.get("quest_status") or "").strip() or None,
+            active_run_id=str(payload.get("active_run_id") or "").strip() or None,
+            continuation_policy=str(payload.get("continuation_policy") or "").strip() or None,
+            continuation_anchor=str(payload.get("continuation_anchor") or "").strip() or None,
+            continuation_reason=str(payload.get("continuation_reason") or "").strip() or None,
+            runtime_state_path=str(payload.get("runtime_state_path") or ""),
         )
 
 
@@ -1430,6 +1479,13 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             raise KeyError("interaction_arbitration")
         return StudyRuntimeInteractionArbitration.from_payload(payload)
 
+    @property
+    def continuation_state(self) -> StudyRuntimeContinuationState:
+        payload = self.extras.get("continuation_state")
+        if not isinstance(payload, dict):
+            raise KeyError("continuation_state")
+        return StudyRuntimeContinuationState.from_payload(payload)
+
     def record_completion_sync(
         self,
         value: dict[str, Any] | StudyCompletionSyncResult,
@@ -1511,6 +1567,17 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
             else StudyRuntimeInteractionArbitration.from_payload(value)
         )
         self._record_dict_extra("interaction_arbitration", interaction_arbitration.to_dict())
+
+    def record_continuation_state(
+        self,
+        value: dict[str, Any] | StudyRuntimeContinuationState,
+    ) -> None:
+        continuation_state = (
+            value
+            if isinstance(value, StudyRuntimeContinuationState)
+            else StudyRuntimeContinuationState.from_payload(value)
+        )
+        self._record_dict_extra("continuation_state", continuation_state.to_dict())
 
     def record_runtime_artifacts(
         self,

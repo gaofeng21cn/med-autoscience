@@ -288,6 +288,14 @@ def test_study_runtime_types_reexports_pending_user_interaction_surface() -> Non
     assert typed_surface.StudyRuntimePendingUserInteraction.__module__ == status_surface.__name__
 
 
+def test_study_runtime_types_reexports_continuation_state_surface() -> None:
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
+
+    assert typed_surface.StudyRuntimeContinuationState is status_surface.StudyRuntimeContinuationState
+    assert typed_surface.StudyRuntimeContinuationState.__module__ == status_surface.__name__
+
+
 def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types() -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
@@ -862,6 +870,25 @@ def test_study_runtime_status_records_pending_user_interaction_payload() -> None
     assert status.pending_user_interaction.interaction_id == "progress-standby-001"
     assert status.pending_user_interaction.blocking is True
     assert status.pending_user_interaction.relay_required is True
+
+
+def test_study_runtime_status_records_continuation_state_payload() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    status = module.StudyRuntimeStatus.from_payload(make_status_payload(quest_status="active"))
+
+    payload = {
+        "quest_status": "active",
+        "active_run_id": None,
+        "continuation_policy": "wait_for_user_or_resume",
+        "continuation_anchor": "decision",
+        "continuation_reason": "unchanged_finalize_state",
+        "runtime_state_path": "/tmp/runtime/quests/quest-001/.ds/runtime_state.json",
+    }
+    status.record_continuation_state(payload)
+
+    assert status.to_dict()["continuation_state"] == payload
+    assert status.continuation_state.continuation_reason == "unchanged_finalize_state"
+    assert status.continuation_state.continuation_policy == "wait_for_user_or_resume"
 
 
 def test_study_runtime_status_detects_blocked_hydration_refresh_candidate() -> None:

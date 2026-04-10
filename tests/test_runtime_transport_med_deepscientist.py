@@ -1571,6 +1571,7 @@ def test_inspect_quest_live_execution_falls_back_to_local_runtime_state_contract
                 "active_run_id": None,
                 "continuation_policy": "wait_for_user_or_resume",
                 "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
             }
         )
         + "\n",
@@ -1635,6 +1636,7 @@ def test_inspect_quest_live_execution_falls_back_to_local_runtime_state_contract
             "active_run_id": None,
             "continuation_policy": "wait_for_user_or_resume",
             "continuation_anchor": "decision",
+            "continuation_reason": "unchanged_finalize_state",
         },
         "probe_error": "daemon unavailable | daemon unavailable",
     }
