@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -395,11 +396,61 @@ def run_watch_for_runtime(
     }
 
 
+def run_watch_loop(
+    *,
+    runtime_root: Path,
+    apply: bool,
+    profile: WorkspaceProfile | None = None,
+    ensure_study_runtimes: bool = False,
+    interval_seconds: int = 300,
+    max_ticks: int | None = None,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    resolved_runtime_root = Path(runtime_root).expanduser().resolve()
+    if interval_seconds <= 0:
+        raise ValueError("interval_seconds must be positive")
+    if max_ticks is not None and max_ticks <= 0:
+        raise ValueError("max_ticks must be positive when provided")
+
+    tick_count = 0
+    last_result: dict[str, Any] | None = None
+    started_at = utc_now()
+
+    while True:
+        tick_count += 1
+        last_result = run_watch_for_runtime(
+            runtime_root=resolved_runtime_root,
+            controller_runners=None,
+            apply=apply,
+            profile=profile,
+            ensure_study_runtimes=ensure_study_runtimes,
+        )
+        if max_ticks is not None and tick_count >= max_ticks:
+            break
+        sleep_fn(float(interval_seconds))
+
+    return {
+        "schema_version": 1,
+        "mode": "loop",
+        "started_at": started_at,
+        "completed_at": utc_now(),
+        "runtime_root": str(resolved_runtime_root),
+        "apply": apply,
+        "ensure_study_runtimes": ensure_study_runtimes,
+        "interval_seconds": interval_seconds,
+        "tick_count": tick_count,
+        "last_result": last_result,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--quest-root", type=Path)
     parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--loop", action="store_true")
+    parser.add_argument("--interval-seconds", type=int, default=300)
+    parser.add_argument("--max-ticks", type=int)
     return parser.parse_args()
 
 
@@ -407,8 +458,17 @@ def main() -> None:
     args = parse_args()
     if bool(args.quest_root) == bool(args.runtime_root):
         raise SystemExit("Specify exactly one of --quest-root or --runtime-root")
+    if args.loop and args.quest_root:
+        raise SystemExit("--loop is only supported with --runtime-root")
     if args.quest_root:
         result = run_watch_for_quest(quest_root=args.quest_root, apply=args.apply)
+    elif args.loop:
+        result = run_watch_loop(
+            runtime_root=args.runtime_root,
+            apply=args.apply,
+            interval_seconds=args.interval_seconds,
+            max_ticks=args.max_ticks,
+        )
     else:
         result = run_watch_for_runtime(runtime_root=args.runtime_root, apply=args.apply)
     print(json.dumps(result, ensure_ascii=False, indent=2))

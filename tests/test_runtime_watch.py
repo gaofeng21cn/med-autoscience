@@ -932,3 +932,50 @@ def test_reapplies_data_asset_gate_when_unresolved_dataset_ids_change(tmp_path: 
     assert first["controllers"]["data_asset_gate"]["action"] == "applied"
     assert second["controllers"]["data_asset_gate"]["action"] == "applied"
     assert calls == [False, True, False, True]
+
+
+def test_watch_loop_runs_runtime_ticks_on_interval(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    runtime_root = tmp_path / "runtime" / "quests"
+    runtime_root.mkdir(parents=True)
+    seen: list[tuple[str, object]] = []
+
+    def fake_run_watch_for_runtime(
+        *,
+        runtime_root: Path,
+        controller_runners=None,
+        apply: bool,
+        profile=None,
+        ensure_study_runtimes: bool = False,
+    ) -> dict[str, object]:
+        seen.append(("tick", runtime_root, apply, ensure_study_runtimes))
+        return {
+            "runtime_root": str(runtime_root),
+            "scanned_quests": [],
+        }
+
+    monkeypatch.setattr(module, "run_watch_for_runtime", fake_run_watch_for_runtime)
+
+    def fake_sleep(seconds: float) -> None:
+        seen.append(("sleep", seconds))
+
+    result = module.run_watch_loop(
+        runtime_root=runtime_root,
+        apply=True,
+        ensure_study_runtimes=True,
+        interval_seconds=12,
+        max_ticks=2,
+        sleep_fn=fake_sleep,
+    )
+
+    assert result["tick_count"] == 2
+    assert result["interval_seconds"] == 12
+    assert result["last_result"] == {
+        "runtime_root": str(runtime_root),
+        "scanned_quests": [],
+    }
+    assert seen == [
+        ("tick", runtime_root, True, True),
+        ("sleep", 12),
+        ("tick", runtime_root, True, True),
+    ]

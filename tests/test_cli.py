@@ -379,6 +379,71 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert '"study_id": "001-risk"' in captured.out
 
 
+def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_run_watch_loop(
+        *,
+        runtime_root: Path,
+        apply: bool,
+        profile=None,
+        ensure_study_runtimes: bool = False,
+        interval_seconds: int,
+        max_ticks: int | None,
+    ) -> dict[str, object]:
+        called["runtime_root"] = runtime_root
+        called["apply"] = apply
+        called["profile"] = profile
+        called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["interval_seconds"] = interval_seconds
+        called["max_ticks"] = max_ticks
+        return {
+            "tick_count": 1,
+            "interval_seconds": interval_seconds,
+        }
+
+    monkeypatch.setattr(cli.runtime_watch, "run_watch_loop", fake_run_watch_loop)
+
+    exit_code = cli.main(
+        [
+            "watch",
+            "--runtime-root",
+            str(tmp_path / "quests"),
+            "--apply",
+            "--loop",
+            "--interval-seconds",
+            "300",
+            "--max-ticks",
+            "1",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["runtime_root"] == tmp_path / "quests"
+    assert called["apply"] is True
+    assert called["profile"] is None
+    assert called["ensure_study_runtimes"] is False
+    assert called["interval_seconds"] == 300
+    assert called["max_ticks"] == 1
+    assert '"tick_count": 1' in captured.out
+
+
+def test_watch_command_rejects_loop_for_single_quest() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit):
+        cli.main(
+            [
+                "watch",
+                "--quest-root",
+                "/tmp/q001",
+                "--loop",
+            ]
+        )
+
+
 def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

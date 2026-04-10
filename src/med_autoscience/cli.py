@@ -157,6 +157,9 @@ def build_parser() -> argparse.ArgumentParser:
     watch_parser.add_argument("--profile", type=str)
     watch_parser.add_argument("--ensure-study-runtimes", action="store_true")
     watch_parser.add_argument("--apply", action="store_true")
+    watch_parser.add_argument("--loop", action="store_true")
+    watch_parser.add_argument("--interval-seconds", type=int, default=300)
+    watch_parser.add_argument("--max-ticks", type=int)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
@@ -469,6 +472,8 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--profile is only supported with --runtime-root")
         if args.quest_root and args.ensure_study_runtimes:
             parser.error("--ensure-study-runtimes is only supported with --runtime-root")
+        if args.quest_root and args.loop:
+            parser.error("--loop is only supported with --runtime-root")
         if args.ensure_study_runtimes and not args.profile:
             parser.error("--ensure-study-runtimes requires --profile")
         if args.quest_root:
@@ -478,12 +483,22 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             profile = load_profile(args.profile) if args.profile else None
-            result = runtime_watch.run_watch_for_runtime(
-                runtime_root=Path(args.runtime_root),
-                apply=args.apply,
-                profile=profile,
-                ensure_study_runtimes=bool(args.ensure_study_runtimes),
-            )
+            if args.loop:
+                result = runtime_watch.run_watch_loop(
+                    runtime_root=Path(args.runtime_root),
+                    apply=args.apply,
+                    profile=profile,
+                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
+                    interval_seconds=args.interval_seconds,
+                    max_ticks=args.max_ticks,
+                )
+            else:
+                result = runtime_watch.run_watch_for_runtime(
+                    runtime_root=Path(args.runtime_root),
+                    apply=args.apply,
+                    profile=profile,
+                    ensure_study_runtimes=bool(args.ensure_study_runtimes),
+                )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
