@@ -46,6 +46,7 @@
 - [Agent 运行接口](agent_runtime_interface.md)
 - [运行句柄与持久表面合同](runtime_handle_and_durable_surface_contract.md)
 - [运行时监管外环合同](runtime_supervision_loop.md)
+- [手工测试与运行面稳定化清单](manual_runtime_stabilization_checklist.md)
 - [前台研究进度投影](study_progress_projection.md)
 - [Agent 入口模式](agent_entry_modes.md)
 - [Open Harness OS 架构边界](open_harness_os_architecture.md)

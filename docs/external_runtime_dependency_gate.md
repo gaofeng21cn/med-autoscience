@@ -39,6 +39,10 @@
 
 ### 2.1 文档 truth
 
+在 external gate 未清除前，repo-side 手工测试与稳定化的执行清单统一收口到：
+
+- `docs/manual_runtime_stabilization_checklist.md`
+
 - `docs/runtime_boundary.md`
 - `docs/merge_and_cutover_gates.md`
 - `docs/agent_runtime_interface.md`

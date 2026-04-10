@@ -48,7 +48,7 @@
 必须满足：
 
 - 主仓根目录保持在 `main`
-- 当前 tracked 实现发生在独立 `.worktrees/...` worktree
+- 当前 tracked 实现发生在独立 `.worktree/...` worktree
 - root checkout 继续只承接 control-plane / absorb 动作
 
 ### 3. 当前 baseline proof 通过

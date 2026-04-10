@@ -46,6 +46,7 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 - [Agent runtime interface](agent_runtime_interface.md)
 - [Runtime Handle And Durable Surface Contract](runtime_handle_and_durable_surface_contract.md)
 - [Runtime Supervision Loop](runtime_supervision_loop.md)
+- [Manual runtime stabilization checklist](manual_runtime_stabilization_checklist.md) (Chinese only)
 - [Study Progress Projection](study_progress_projection.md)
 - [Agent entry modes](agent_entry_modes.md)
 - [Open Harness OS Architecture Boundary](open_harness_os_architecture.md)
