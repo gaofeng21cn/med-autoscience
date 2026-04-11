@@ -12,7 +12,13 @@
 - Agent 负责调用稳定接口，推进数据治理、研究执行和论文交付组织
 - 平台负责提供可验证、可审计、可重复调用的 gateway 入口，而不是要求医学用户手工维护底层状态
 
-当前默认本地执行形态仍是 `Codex-default host-agent runtime`。
+当前 repo-tracked 运行拓扑固定为：
+
+- `MedAutoScience` = 唯一研究入口与 research gateway
+- `Hermes` = 默认 outer runtime substrate owner
+- `MedDeepScientist` = controlled research backend
+- 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle，不再是长期产品方向
+- display / paper-facing asset packaging 独立线 = 明确排除在本 runtime / gateway / architecture tranche 之外
 
 当前 formal-entry matrix 继续固定为：
 
@@ -29,13 +35,13 @@
 
 ## 当前主线与 monorepo 长线的关系
 
-当前这条 repo-tracked 主线，优先级仍然是：
+当前这条 repo-tracked 主线，优先级应按下面顺序理解：
 
-- 保持 `MedAutoScience -> MedDeepScientist` runtime contract 稳定
+- 保持 `MedAutoScience -> Hermes -> MedDeepScientist` runtime topology 稳定
 - 保持 execution handle、durable surface 与 fail-closed gate semantics 不漂移
 - 继续把 `runtime backend interface` 收紧到 controller / outer-loop / transport / durable surface 全链只认 backend contract
-- 让 `Hermes` backend 进入受控接入准备，但不切默认 backend owner
-- 在 external runtime gate 清除前，以手工测试驱动稳定化，而不是重开新的大架构 tranche
+- 把 `MedDeepScientist` 明确收口为 controlled research backend，而不是 hidden authority truth
+- 在 external runtime gate 清除前，以手工测试驱动 repo-side 稳定化，而不是伪造更大的 cutover tranche
 
 这不等于 monorepo 目标取消。
 
@@ -61,14 +67,15 @@
   - study 聚合根身份
   - 对应 `studies/<study_id>/`
 - `quest_id`
-  - 受控 `MedDeepScientist` managed quest 的正式运行句柄
-  - 对应 `ops/med-deepscientist/runtime/quests/<quest_id>/`
+  - 当前 `Hermes-backed outer runtime` 绑定到 controlled research backend 后的正式运行句柄
+  - 当前仍对应 `ops/med-deepscientist/runtime/quests/<quest_id>/`
 - `active_run_id`
   - 当前 live daemon run 的细粒度执行句柄
   - 只在 live execution / runtime audit 场景里出现
 
 当前 canonical durable surface 至少包括：
 
+- `runtime_binding.yaml`
 - `study_runtime_status`
 - `runtime_watch`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
@@ -78,6 +85,7 @@
 
 这意味着：
 
+- `runtime_binding.yaml` 必须同时写出 `runtime_backend_id`、`runtime_engine_id`、`research_backend_id`、`research_engine_id`
 - `publication_eval` 必须继续落在 study-owned latest surface，而不是回写到 runtime 临时目录
 - `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
 - `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
@@ -89,23 +97,24 @@
 
 根据任务类型，从这里继续进入：
 
-- 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
-- workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
-- `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
+- 工作区接入与部署：[`bootstrap/README.md`](../../bootstrap/README.md)
+- workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](../references/workspace_architecture.md)
+- `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](../program/merge_and_cutover_gates.md)
 - `Hermes` repo-side continuation：[`../program/hermes_backend_continuation_board.md`](../program/hermes_backend_continuation_board.md)
 - `Hermes` repo-side activation package：[`../program/hermes_backend_activation_package.md`](../program/hermes_backend_activation_package.md)
+- `MedDeepScientist` 解构地图：[`../program/med_deepscientist_deconstruction_map.md`](../program/med_deepscientist_deconstruction_map.md)
 - external runtime blocker package：[`../program/external_runtime_dependency_gate.md`](../program/external_runtime_dependency_gate.md)
 - external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](../program/manual_runtime_stabilization_checklist.md)
-- `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
+- `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](../program/integration_harness_activation_package.md)
 - `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - 运行句柄与持久表面合同：[`runtime_handle_and_durable_surface_contract.md`](./runtime_handle_and_durable_surface_contract.md)
 - managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
-- 上游 intake 与 fork 升级流程：[`upstream_intake.md`](./upstream_intake.md)
-- 控制器与内部能力：[`controllers/README.md`](../controllers/README.md)
-- 数据资产策略：[`policies/data_asset_management.md`](./policies/data_asset_management.md)
-- 默认研究场景：[`policies/study_archetypes.md`](./policies/study_archetypes.md)
-- 研究路线偏置：[`policies/research_route_bias_policy.md`](./policies/research_route_bias_policy.md)
-- sidecar provider 与 figure routes 指南：[`sidecar_figure_routes.md`](./sidecar_figure_routes.md)
+- 上游 intake 与 fork 升级流程：[`upstream_intake.md`](../program/upstream_intake.md)
+- 控制器与内部能力：[`controllers/README.md`](../../controllers/README.md)
+- 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
+- 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
+- 研究路线偏置：[`policies/research_route_bias_policy.md`](../policies/research_route_bias_policy.md)
+- sidecar provider 与 figure routes 指南：[`sidecar_figure_routes.md`](../capabilities/medical-display/sidecar_figure_routes.md)
 - 第三方 Agent 入口模式：[`agent_entry_modes.md`](./agent_entry_modes.md)
 
 ## 第三方 Agent 入口资产
@@ -136,10 +145,11 @@
 
 ## 唯一研究入口
 
-在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`MedDeepScientist`（仓库名 `med-deepscientist`）是默认受控 runtime；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
+在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`Hermes` 是默认 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）是 controlled research backend；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
 
 因此：
 
+- Agent 不应直接调用 external `Hermes` daemon / repo / workspace surface 发起研究流程
 - Agent 不应直接调用 `MedDeepScientist` daemon HTTP API 发起 quest
 - Agent 不应把 `MedDeepScientist` UI / CLI 当成研究入口
 - `ops/med-deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
@@ -358,9 +368,9 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 external `Hermes` runtime truth 已经到位。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
-当前 P2 允许继续推进的 repo-side continuation，是把 `Hermes` 作为显式注册的非默认 backend 接入同一层 `runtime backend interface` contract。它的意义是让 controller / transport / durable surface 真正只认 backend contract，而不是继续把 `med-deepscientist` 模块名当 authority truth；它不等于 `Hermes` 已经成为默认 backend，也不等于 external runtime gate 已解除。
+当前 P2 repo-side continuation 已把 `Hermes` 切成默认 outer runtime substrate owner。它的意义是让 controller / transport / durable surface 真正只认 backend contract，并把 `MedDeepScientist` 收口成 controlled research backend；它不等于 external runtime gate 已解除，也不等于 physical migration 已开始。
 
 只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 
@@ -387,13 +397,15 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 
 Phase 3 开始，transport 面也开始显式收口：
 
+- `med_autoscience.runtime_transport.hermes`
+  - 负责 controller-facing outer substrate transport seam
+  - 负责暴露 backend-generic callable contract，并显式声明当前 controlled research backend metadata
 - `med_autoscience.runtime_transport.med_deepscientist`
-  - 负责 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
+  - 负责当前 research backend 的 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
   - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
-  - 对 study runtime controller 来说，它仍是稳定 transport 调用面；内部若存在更薄的 controller-local seam，只属于实现层，不额外提升为公开 contract
 
-这一步仍不等于 engine-neutral transport 已经完成；`MedAutoScience` 现在只是把 transport 显式命名出来。当前正式主链已经不再保留 `adapters/deepscientist/*` 作为运行时依赖，production code 只允许依赖 `runtime_protocol` / `runtime_transport`。
+这一步仍不等于 external `Hermes` runtime transport 已经完全到位；当前正式主链只是把 repo-side outer substrate 与 controlled research backend transport 的边界显式命名出来。production code 只允许依赖 `runtime_protocol` / `runtime_transport`，不再回退到 `adapters/deepscientist/*`。
 
 对于单个 study 的 runtime 编排，`study_runtime_router` 的稳定入口、typed surface 归属、decision 执行边界与 side-effect 约束，另见 [`study_runtime_orchestration.md`](./study_runtime_orchestration.md)。
 
@@ -412,11 +424,11 @@ Phase 3 开始，transport 面也开始显式收口：
    - 包括 topology、quest_state、paper_artifacts、user_message
    - 这是 filesystem-facing truth
 4. `runtime_transport`
-  - 只负责 engine-specific transport
-  - 当前就是 `med_deepscientist` daemon HTTP create / pause / resume / control
+  - 只负责 substrate / backend transport
+  - 当前由 `hermes` outer substrate seam 与 `med_deepscientist` backend transport 共同组成
   - 这是 process/network-facing truth
 5. `engine`
-  - 当前是受控 fork `med-deepscientist`
+  - 当前 research backend 是受控 fork `med-deepscientist`
   - 负责真正长时运行、状态机推进、daemon、UI 与 quest 执行
 
 对应关系应是单向的：

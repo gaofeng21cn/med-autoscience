@@ -4,7 +4,7 @@
 
 它的目标不是“尽快同步 upstream”，而是把 upstream 变化收口成一条受控、可验证、可回滚的 intake 流程。
 
-更高优先级的主线工作不是 intake 本身，而是把 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 和 adapter 退出路径收紧。
+更高优先级的主线工作不是 intake 本身，而是把 `MedAutoScience -> Hermes -> MedDeepScientist` 的 runtime protocol、compatibility contract 和 adapter 退出路径收紧。
 
 ## 一句话版本
 
@@ -40,10 +40,11 @@
 
 在当前阶段，工程优先级应按以下顺序理解：
 
-1. 让 `MedDeepScientist` 成为 `MedAutoScience` 的稳定默认 runtime
-2. 收口 `runtime_protocol` / `runtime_transport` / controller 对 runtime 的契约
-3. 去掉不必要的 adapter 与隐式 layout 依赖
-4. 只在合适时机做有明确收益的 upstream intake
+1. 维持 `Hermes` 作为默认 outer runtime substrate owner 的 repo-side contract 稳定
+2. 把 `MedDeepScientist` 收口为 controlled research backend，而不是默认 authority truth
+3. 收口 `runtime_protocol` / `runtime_transport` / controller 对 runtime 的契约
+4. 去掉不必要的 adapter 与隐式 layout 依赖
+5. 只在合适时机做有明确收益的 upstream intake
 
 ## Remote 命名
 

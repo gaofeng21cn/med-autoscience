@@ -10,7 +10,10 @@ from med_autoscience.overlay.constants import (
 )
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
-from med_autoscience.runtime_backend import DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+from med_autoscience.runtime_backend import (
+    DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    registered_managed_runtime_backend_ids,
+)
 
 SUPPORTED_STARTUP_ANCHOR_POLICIES = (
     "scout_first_for_continue_existing_state",
@@ -57,7 +60,7 @@ class WorkspaceProfile:
 
     @property
     def managed_runtime_home(self) -> Path:
-        return self.med_deepscientist_runtime_root
+        return self.runtime_root.parent
 
     @property
     def managed_runtime_quests_root(self) -> Path:
@@ -154,6 +157,18 @@ def _optional_startup_boundary_requirements(payload: dict[str, object]) -> tuple
     return requirements
 
 
+def _optional_managed_runtime_backend_id(payload: dict[str, object]) -> str:
+    backend_id = _optional_string_with_default(
+        payload,
+        "managed_runtime_backend_id",
+        default=DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    )
+    if backend_id not in registered_managed_runtime_backend_ids():
+        supported = ", ".join(registered_managed_runtime_backend_ids())
+        raise TypeError(f"managed_runtime_backend_id must be one of: {supported}")
+    return backend_id
+
+
 def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
     if key not in payload:
         return default
@@ -215,11 +230,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             profile_dir=profile_dir,
         ),
         med_deepscientist_repo_root=med_deepscientist_repo_root,
-        managed_runtime_backend_id=_optional_string_with_default(
-            payload,
-            "managed_runtime_backend_id",
-            default=DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
-        ),
+        managed_runtime_backend_id=_optional_managed_runtime_backend_id(payload),
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),

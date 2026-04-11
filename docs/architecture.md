@@ -4,6 +4,14 @@
 
 仓库的能力表达遵循 `policy -> controller -> overlay -> adapter` 主链路，避免旁路把临时状态升级为真相。关键运行语义以 contract 形式固化在 repo-tracked 文档与代码里，再由 controller 负责执行与审计。
 
+当前 runtime 拓扑固定为：
+
+- `MedAutoScience`：唯一研究入口、research gateway、study/workspace/outer-loop authority owner
+- `Hermes`：外层 runtime substrate owner，负责 backend-generic runtime contract、runtime handle 与 durable surface
+- `MedDeepScientist`：controlled research backend，保留当前仍需由 research runtime 承担的 backend execution 能力
+
+旧 `Codex-default host-agent runtime` 不再是长期产品 runtime 深化方向，只保留为迁移期对照面。
+
 ## 入口与控制面
 
 - 默认正式入口：`CLI`
@@ -25,6 +33,7 @@
 具体 contract 以运行层文档为准，例如：
 
 - `runtime/agent_runtime_interface.md`
+- `program/med_deepscientist_deconstruction_map.md`
 - `runtime/runtime_handle_and_durable_surface_contract.md`
 - `runtime/study_runtime_control_surface.md`
 - `runtime/delivery_plane_contract_map.md`

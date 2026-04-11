@@ -221,7 +221,7 @@ def _build_execution_context(
     source: str,
 ) -> StudyRuntimeExecutionContext:
     router = _router_module()
-    execution = router._execution_payload(study_payload)
+    execution = router._execution_payload(study_payload, profile=profile)
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     runtime_context = study_runtime_protocol.resolve_study_runtime_context(
         profile=profile,

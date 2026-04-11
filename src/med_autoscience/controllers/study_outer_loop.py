@@ -305,7 +305,8 @@ def _execute_controller_action(
         )
     elif action.action_type in {StudyDecisionActionType.PAUSE_RUNTIME, StudyDecisionActionType.STOP_RUNTIME}:
         execution = study_runtime_router._execution_payload(
-            study_runtime_router._load_yaml_dict(study_root / "study.yaml")
+            study_runtime_router._load_yaml_dict(study_root / "study.yaml"),
+            profile=profile,
         )
         managed_runtime_backend = (
             study_runtime_router._managed_runtime_backend_for_execution(execution)

@@ -1,11 +1,12 @@
 # Workspace Architecture
 
-这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到由 `MedDeepScientist` 支撑的标准形态的约束。
+这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到 `Hermes-backed outer runtime + MedDeepScientist controlled backend` 标准形态的约束。
 
 在顶层定位上，应始终按下面这条理解：
 
 - `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`
-- `MedDeepScientist` = 当前由 `MedAutoScience` harness OS 控制的底层研究执行 runtime substrate
+- `Hermes` = 当前默认 outer runtime substrate owner
+- `MedDeepScientist` = 当前由 `MedAutoScience` / `Hermes` 控制的 controlled research backend
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
 
 也就是说，当前 monorepo / runtime / controller 的任何后续演化，都应被理解为在收紧 `MedAutoScience` 内部 harness OS，而不是削弱它作为独立 domain gateway 的角色。
@@ -23,7 +24,7 @@
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前底层执行 runtime substrate
+- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`Hermes` 继续作为默认 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 
@@ -47,7 +48,7 @@
 - `study`
   - 单条研究线，通常对应一篇主稿或一组强关联投稿产物
 - `quest`
-  - `MedDeepScientist` 在某个 study 下的运行状态与过程性产物
+  - 当前由 `Hermes-backed outer runtime` 绑定到 controlled research backend 的运行状态与过程性产物
 - `paper bundle / submission package`
   - 面向投稿的 study-local 交付结果
 
@@ -172,7 +173,7 @@ wrapper 不应继续硬编码：
 │   │   ├── profiles/
 │   │   ├── config.env
 │   │   └── README.md
-│   └── deepscientist/
+│   └── med-deepscientist/
 │       ├── bin/
 │       ├── config.env
 │       ├── runtime/
@@ -204,7 +205,7 @@ wrapper 不应继续硬编码：
 
 ### D. 运行时重依赖层
 
-这一层专门放 `MedDeepScientist` 运行所需的重依赖：
+这一层当前专门放 controlled research backend 运行所需的重依赖：
 
 - 受管 Python 环境
 - `uv` cache
@@ -213,9 +214,9 @@ wrapper 不应继续硬编码：
 
 这部分应视为“可重建的运行支撑层”，不是项目知识本身，因此不应继续深埋在疾病 workspace 里。
 
-对于 `MedDeepScientist` 来说，这一层最终必须通过显式路径契约或正式兼容层来接入，而不是靠人工挪目录、临时 symlink 或手改 `site-packages`。
+对于 `MedDeepScientist` 来说，这一层最终必须通过显式路径契约或正式兼容层来接入，而不是靠人工挪目录、临时 symlink 或手改 `site-packages`。external `Hermes` runtime truth 未清除前，本仓不伪造新的 external substrate workspace layout。
 
-## MedDeepScientist 的推荐形态
+## Controlled Research Backend 的当前形态
 
 `MedDeepScientist` 沿用了 upstream `DeepScientist` 对两个概念的区分：
 
@@ -228,7 +229,7 @@ wrapper 不应继续硬编码：
 - runtime home 默认仍兼容 upstream 的 `~/DeepScientist/`
 - `runtime/` 下包含 `python-env`、`uv-cache`、`bundle`、`tools`
 
-因此在 `MedAutoScience` 体系下，推荐进一步把 `MedDeepScientist` 的使用方式收敛为：
+因此在当前 `MedAutoScience` 体系下，`MedDeepScientist` 应被理解为 controlled research backend，其使用方式收敛为：
 
 - 外部共享 repo：`med_deepscientist_repo_root`
 - workspace 内项目状态 home：`med_deepscientist_runtime_root`
@@ -267,6 +268,7 @@ wrapper 不应继续硬编码：
 - `runtime_root`
 - `studies_root`
 - `portfolio_root`
+- `managed_runtime_backend_id`
 - `med_deepscientist_runtime_root`
 - `med_deepscientist_repo_root`
 
@@ -284,11 +286,13 @@ wrapper 不应继续硬编码：
 - `workspace_root`
   - 当前疾病 workspace 根目录
 - `runtime_root`
-  - 当前 workspace 中 `MedDeepScientist` quest 根目录，通常是 `ops/med-deepscientist/runtime/quests`
+  - 当前 workspace 中 managed runtime quests 根目录；在 external `Hermes` runtime truth 未清除前，通常仍是 `ops/med-deepscientist/runtime/quests`
+- `managed_runtime_backend_id`
+  - 当前默认固定为 `hermes`
 - `med_deepscientist_runtime_root`
   - 当前 workspace 中 `MedDeepScientist` 项目状态根目录
 - `med_deepscientist_repo_root`
-  - 外部共享 `MedDeepScientist` 源码仓库
+  - 外部共享 `MedDeepScientist` 源码仓库；它对应 controlled research backend，而不是默认 outer substrate owner
 
 这里的 `name` 也应理解为 workspace 名称，而不是单个 study 名称。
 
@@ -299,7 +303,7 @@ wrapper 不应继续硬编码：
 - `ops/med-deepscientist/config.env`
   - 显式指定外部共享 `MedDeepScientist` repo，或其受控 launcher 入口
 
-当前阶段 `med_deepscientist_repo_root` 主要为 `med-deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 repo 身份已受控，不说明 adapter 已可退出。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 `med_deepscientist_repo_root` 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`med-deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
+当前阶段 `med_deepscientist_repo_root` 主要为 `med-deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行。当前 repo-side 已把 `managed_runtime_backend_id=hermes` 固定为默认 outer substrate owner，但 external `Hermes` runtime truth 仍未单独放行，因此真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 controlled backend repo 身份已受控，不说明 external runtime cutover 已可放行。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 controlled backend 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`med-deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。
@@ -341,9 +345,11 @@ wrapper 不应继续硬编码：
   - 管理 `paper_root`、bundle manifest、artifact manifest、submission outputs 这些 paper-facing 交付拓扑
 - `med_autoscience.runtime_protocol.user_message`
   - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数
+- `med_autoscience.runtime_transport.hermes`
+  - 管理 controller-facing outer substrate transport seam
 - `med_autoscience.runtime_transport.med_deepscientist`
-  - 管理 daemon URL 解析与 quest create / pause / resume / control 这类 engine-specific transport
-  - 对 controller 而言它仍是稳定 transport 调用面；若内部继续拆出更薄的 seam，也只是实现层组织方式，不改变对外 contract
+  - 管理 controlled research backend 的 daemon URL 解析与 quest create / pause / resume / control 这类 engine-specific transport
+  - 对 controller 而言它仍是稳定 backend transport 调用面；若内部继续拆出更薄的 seam，也只是实现层组织方式，不改变对外 contract
 - `adapters.deepscientist.*`
   - 现在只保留兼容导出与 shim 角色
   - 不再是 runtime 布局、quest state、paper artifact、user message 或 transport 的真相源
@@ -359,9 +365,11 @@ wrapper 不应继续硬编码：
 - `runtime_protocol`
   - 只管理 filesystem-facing contracts
 - `runtime_transport`
-  - 只管理 engine-specific transport
+  - 只管理 substrate / backend transport
+- `hermes`
+  - 负责 outer runtime substrate
 - `med-deepscientist`
-  - 只负责执行引擎本体
+  - 只负责 controlled research backend 引擎本体
 
 因此将来要继续移除的是：
 

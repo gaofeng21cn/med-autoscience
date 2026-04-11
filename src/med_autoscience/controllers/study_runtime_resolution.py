@@ -4,6 +4,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.profiles import WorkspaceProfile
 
 __all__ = [
@@ -49,8 +50,46 @@ def _resolve_study(
     return resolved_study_id, resolved_study_root, study_payload
 
 
-def _execution_payload(study_payload: dict[str, Any]) -> dict[str, Any]:
+def _execution_payload(
+    study_payload: dict[str, Any],
+    *,
+    profile: WorkspaceProfile | None = None,
+) -> dict[str, Any]:
     execution = study_payload.get("execution")
     if not isinstance(execution, dict):
-        return {}
-    return dict(execution)
+        execution_payload: dict[str, Any] = {}
+    else:
+        execution_payload = dict(execution)
+    if profile is None:
+        return execution_payload
+
+    normalized_execution = dict(execution_payload)
+    explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(normalized_execution)
+    if explicit_backend_id is None and str(normalized_execution.get("auto_entry") or "").strip() == "on_managed_research_intent":
+        profile_backend_id = str(profile.managed_runtime_backend_id or "").strip()
+        legacy_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
+        engine_text = str(normalized_execution.get("engine") or "").strip()
+        should_apply_profile_backend = (
+            legacy_backend_id == "med_deepscientist"
+            or (legacy_backend_id is None and not engine_text)
+        )
+        if profile_backend_id and should_apply_profile_backend:
+            normalized_execution["runtime_backend_id"] = profile_backend_id
+            normalized_execution["runtime_backend"] = profile_backend_id
+            normalized_execution["runtime_engine_id"] = runtime_backend_contract.engine_id_for_backend_id(profile_backend_id)
+            research_backend_id, research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
+                profile_backend_id
+            )
+            normalized_execution.setdefault("research_backend_id", research_backend_id)
+            normalized_execution.setdefault("research_backend", research_backend_id)
+            normalized_execution.setdefault("research_engine_id", research_engine_id)
+    else:
+        resolved_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
+        if resolved_backend_id is not None:
+            research_backend_id, research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
+                resolved_backend_id
+            )
+            normalized_execution.setdefault("research_backend_id", research_backend_id)
+            normalized_execution.setdefault("research_backend", research_backend_id)
+            normalized_execution.setdefault("research_engine_id", research_engine_id)
+    return normalized_execution

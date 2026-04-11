@@ -60,18 +60,23 @@ def test_activation_and_cutover_closeout_docs_record_external_blocker_as_already
 
     assert "external runtime dependency gate" in merge_gates
     assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in merge_gates
-    assert "未 absorb 的 same-repo tranche" in merge_gates
+    assert "Hermes backend continuation board" in merge_gates
+    assert "MedDeepScientist deconstruction map" in merge_gates
 
 
 def test_hermes_continuation_docs_are_part_of_current_repo_side_activation_story() -> None:
     integration_activation = _read("docs/program/integration_harness_activation_package.md")
     hermes_board = _read("docs/program/hermes_backend_continuation_board.md")
     hermes_activation = _read("docs/program/hermes_backend_activation_package.md")
+    deconstruction_map = _read("docs/program/med_deepscientist_deconstruction_map.md")
 
     assert "hermes_backend_continuation_board.md" in integration_activation
     assert "hermes_backend_activation_package.md" in integration_activation
+    assert "med_deepscientist_deconstruction_map.md" in integration_activation
+
+    for doc in [hermes_board, hermes_activation, deconstruction_map]:
+        assert "Hermes" in doc
+        assert "external" in doc
 
     for doc in [hermes_board, hermes_activation]:
-        assert "Hermes" in doc
         assert "runtime backend interface" in doc
-        assert "external" in doc

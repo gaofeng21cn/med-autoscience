@@ -890,7 +890,7 @@ def _status_state(
     include_progress_projection: bool = True,
 ) -> StudyRuntimeStatus:
     router = _router_module()
-    execution = router._execution_payload(study_payload)
+    execution = router._execution_payload(study_payload, profile=profile)
     explicit_runtime_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
     managed_runtime_backend = router._managed_runtime_backend_for_execution(execution)
     if managed_runtime_backend is not None:

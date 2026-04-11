@@ -103,12 +103,16 @@ def test_default_managed_runtime_backend_registry_exposes_med_deepscientist_and_
     backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
     hermes_backend = module.get_managed_runtime_backend("hermes")
 
-    assert backend.BACKEND_ID == "med_deepscientist"
-    assert backend.ENGINE_ID == "med-deepscientist"
+    assert backend.BACKEND_ID == "hermes"
+    assert backend.ENGINE_ID == "hermes"
     assert "med_deepscientist" in module.registered_managed_runtime_backend_ids()
     assert hermes_backend.BACKEND_ID == "hermes"
     assert hermes_backend.ENGINE_ID == "hermes"
     assert "hermes" in module.registered_managed_runtime_backend_ids()
+    assert module.controlled_research_backend_metadata_for_backend_id("hermes") == (
+        "med_deepscientist",
+        "med-deepscientist",
+    )
 
 
 def test_runtime_backend_resolves_registered_backend_from_engine_and_explicit_backend_id() -> None:

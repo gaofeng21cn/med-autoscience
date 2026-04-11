@@ -2,14 +2,23 @@
 
 ## 1. 当前事实
 
-当前正式状态已经不是“runtime truth 还没做”，而是：
+当前正式状态已经不是“runtime truth 还没做”，也不是“继续长期打磨旧 `Codex-default host-agent runtime`”。
 
-- `P0 runtime native truth` 已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
-- `MedAutoScience` 已完成 consumer-side cutover：managed runtime 不再主写 quest-owned `runtime_events/*`
-- `P1 workspace canonical literature / knowledge truth` 已完成
-- 当前剩余 active tranche 只剩 `P2 controlled cutover -> physical monorepo migration`
+截至当前 repo-side continuation，正确事实应按下面这条顺序理解：
 
-因此，runtime tranche 的问题已经从“谁负责写 truth”切换成“如何带着正确 owner 进入受控 cutover”。
+- `P0 runtime native truth` 已在 controlled research backend 一侧完成并 absorbed
+- `P1 workspace canonical literature / knowledge truth` 已完成并 absorbed
+- `P2 controlled cutover -> physical monorepo migration` 仍未完成
+- `P2` 当前 repo 内可继续推进的主线，已经切成：
+  - `MedAutoScience gateway -> Hermes outer runtime substrate -> MedDeepScientist controlled research backend`
+- `Hermes` 现已成为 repo-tracked 默认 outer runtime substrate owner
+- `MedDeepScientist` 不再是默认不可替代 runtime truth，而是 controlled research backend
+
+这意味着：
+
+- repo 内当前正确任务不是回头重做 `P0 / P1`
+- 也不是把 external runtime gate 伪造成 repo 内已清除
+- 而是把 `Hermes-backed outer runtime` 的 repo-side contract、durable surface、deconstruction map 与 blocker wording 收紧到诚实闭环
 
 ## 2. 已关闭的风险
 
@@ -19,52 +28,51 @@
 2. session-native `runtime_event_ref` 被 transport 静默丢弃
 3. `study_runtime_status` / `study_runtime_execution` / `runtime_supervision` 覆盖 quest-owned `runtime_events/latest.json`
 4. workspace literature 仍停留在 quest-local owner 语义
+5. `med-deepscientist` 品牌名继续充当默认 outer substrate owner
 
 ## 3. 当前剩余风险
 
-当前仍需解决的是 `P2` 风险，而不是重新打开 `P0` / `P1`：
+当前仍需解决的是 `P2` 风险，而且这些风险都必须按新拓扑理解。
 
-### 3.1 Cross-repo parity gate 仍未完全关闭
+### 3.1 Repo-side `Hermes` 闭环不等于 external `Hermes` truth
 
-虽然 owner 已经收口，但 physical cutover 之前仍要持续验证：
+当前仓内已完成的是：
 
-- session-native `runtime_event_ref` / `runtime_event`
-- MAS transport/status/outer-loop 消费链路
-- workspace canonical literature / reference-context / quest materialization-only
+- `Hermes` 作为 controller-facing outer runtime substrate owner 的 registry / transport / binding wiring
+- `runtime_binding.yaml` 同时写出 substrate / research-backend metadata
+- controller / outer-loop / transport 只认 backend-generic contract
 
-这些 contract 在跨 repo 回归下必须继续完全对齐。
+当前仓内仍未完成的是：
 
-### 3.2 Physical monorepo migration 仍未开始
+- external `Hermes` runtime repo / workspace / daemon truth
+- external `Hermes` runtime root / deployment contract
 
-当前还没有进入真正的 physical absorb。  
+### 3.2 `MedDeepScientist` 仍未完全退场
+
+虽然 authority truth 已经不再由 `MedDeepScientist` 隐式占有，但下面这些能力仍在 research backend 内：
+
+- quest inner-loop / daemon turn worker / bash session execution
+- quest-local logs / memory / config / paper worktree execution
+- controlled fork / `behavior_equivalence_gate` 相关 external gate
+
+因此当前不能伪造“已经完全切完”。
+
+### 3.3 Physical monorepo migration 仍未开始
+
+当前还没有进入真正的 physical absorb。
 如果现在贸然迁移，风险不再是“吸收了错误 owner”，而是：
 
 - 在没有明确模块边界和删除条件的前提下吸入过多双仓 glue
-- 把尚未完成的 parity gate 与 cutover runbook 一起硬塞进 monorepo
+- 把尚未清除的 external runtime / workspace gate 与 physical migration 混写
 
-### 3.3 文档与 gate 必须持续诚实
+### 3.4 文档、gate 与审计面必须持续诚实
 
 最大的流程风险已经不是代码侧 silent fallback，而是：
 
-- 把已完成的 tranche 再写成待办
-- 把未完成的 tranche 再写成已完成
-- 用同一个 `P0 / P1 / P2` 编号混写全局顺序和局部实现阶段
-
-### 3.4 Hermes backend onramp 仍需 repo-side 冻结
-
-虽然 `runtime backend interface` contract 已经冻结，但 `Hermes` 当前还不能只靠一句“未来可接入”来表述。
-
-在 external gate 未清除前，repo-side 仍然可以、也仍然应该继续完成：
-
-- `Hermes` backend continuation board
-- `Hermes` backend activation package
-- backend registry / transport / durable-surface 对 `Hermes` 的 fail-closed 收口
-
-但这条 onramp 仍然不能被写成：
-
-- default backend 已切换
-- runtime cutover 已放行
-- physical migration 已开始
+- 把 `Hermes` 仍写成“只是非默认 backend onramp”
+- 把 external blocker 写成已经解除
+- 把 display / paper-facing asset packaging 独立线混入 runtime 主线
+- 把 repo 内已完成的 tranche 再写成待办，或把未完成的 external truth 写成已完成
 
 ## 4. Controlled Cutover Gate
 
@@ -73,21 +81,24 @@
 1. quest-owned native runtime writer 已存在并稳定
 2. MAS 已切成 managed runtime truth 的消费者，而不是主 writer
 3. workspace canonical knowledge / literature 已稳定
-4. cross-repo parity suite 必须持续 green
-5. `Hermes` backend onramp 必须在 repo-side 完成 truth / adapter / durable-surface freeze
-6. physical monorepo absorb plan 必须写清模块边界、删除条件与回退条件
-7. 只有 1-6 全部满足后，才进入 physical migration
+4. `Hermes` default outer substrate wiring 已在 repo 内完成最小闭环
+5. `MedDeepScientist` deconstruction map 已冻结为 repo-tracked truth
+6. cross-repo parity suite 与 external runtime / workspace gate 必须持续 green
+7. physical monorepo absorb plan 必须写清模块边界、删除条件与回退条件
+8. 只有 1-7 全部满足后，才进入 physical migration
 
-前 1-3 项已经满足。当前 active work 在 4-6。
+前 1-5 项是当前 repo-side continuation 的职责。
+第 6-8 项仍依赖 external runtime / workspace / human gate。
 
 ## 5. 非目标
 
 当前 tranche 不做：
 
 - 重新引入 controller-side synthetic runtime event 作为长期方案
-- 用双写或旁路修补掩盖 owner 边界
-- 在 parity gate 未关之前提前做 physical migration
-- 把 workspace knowledge plane 再退回 quest-local cache
+- 用 hidden fallback、silent downgrade 或 synthetic truth rewrite 掩盖 owner 边界
+- 在 external gate 未清除前提前宣称 runtime cutover 已放行
+- 在 external gate 未清除前提前做 physical migration
+- 把 display / paper-facing asset packaging 独立线混入 runtime 主线
 
 ## 6. 结论
 
@@ -95,9 +106,11 @@
 
 - “继续完成 P0”
 - “继续完成 P1”
+- “继续把 `Hermes` 写成非默认 backend onramp”
 
 当前正确任务是：
 
 - 守住已经完成的 `P0 runtime native truth`
 - 守住已经完成的 `P1 workspace canonical literature / knowledge truth`
-- 把全部剩余精力集中到 `P2 controlled cutover -> physical monorepo migration`
+- 完成 `Hermes-backed outer runtime` 的 repo-side 最小闭环、durable-surface freeze 与 deconstruction map
+- 把真正剩余 blocker 诚实收口到 external runtime / workspace / human gate

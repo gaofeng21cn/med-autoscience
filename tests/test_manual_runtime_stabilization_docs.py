@@ -59,5 +59,4 @@ def test_merge_gate_worktree_wording_matches_project_truth() -> None:
     merge_gates = _read("docs/program/merge_and_cutover_gates.md")
 
     assert "worktree" in root_agents
-    assert ".worktree/" in merge_gates
-    assert ".worktrees/..." not in merge_gates
+    assert ".worktrees/" in merge_gates

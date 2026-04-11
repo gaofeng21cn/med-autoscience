@@ -19,7 +19,6 @@ def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_sem
     runtime_contract = _read("docs/runtime/runtime_handle_and_durable_surface_contract.md")
 
     for doc in [readme, root_agents, positioning, runtime_interface, runtime_contract]:
-        assert "Codex-default host-agent runtime" in doc
         assert "CLI" in doc
         assert "MCP" in doc
         assert "controller" in doc
@@ -34,12 +33,25 @@ def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_sem
         assert "runtime_escalation_record.json" in doc
         assert "controller_decisions/latest.json" in doc
 
+    for doc in [readme, readme_zh, positioning, runtime_interface, runtime_contract]:
+        assert "Codex-default host-agent runtime" in doc
+
+    for doc in [positioning, runtime_interface, runtime_contract]:
+        assert "Hermes" in doc
+        assert "MedDeepScientist" in doc
+        assert "controlled research backend" in doc
+        assert "runtime_binding.yaml" in doc
+
+    for doc in [runtime_interface, runtime_contract]:
+        assert "research_backend_id" in doc
+        assert "research_engine_id" in doc
+
     assert "research-foundry-medical-mainline" in readme
     assert "managed runtime handle" in readme
     assert "live daemon run handle" in readme
 
     assert "research-foundry-medical-mainline" in readme_zh
-    assert "managed quest" in readme_zh
+    assert "受控 research backend quest 正式运行句柄" in readme_zh
     assert "live daemon run" in readme_zh
     assert "本地 operator handoff surface" in readme_zh
 
@@ -70,6 +82,8 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
     assert "hermes_backend_continuation_board.md" in docs_index_zh
     assert "hermes_backend_activation_package.md" in docs_index
     assert "hermes_backend_activation_package.md" in docs_index_zh
+    assert "med_deepscientist_deconstruction_map.md" in docs_index
+    assert "med_deepscientist_deconstruction_map.md" in docs_index_zh
 
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
@@ -126,7 +140,7 @@ def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boun
 
     for doc in [hermes_board, hermes_activation]:
         assert "Hermes" in doc
-        assert "default backend" in doc
+        assert "outer runtime substrate owner" in doc
         assert "external" in doc
         assert "blocker" in doc
 
@@ -135,11 +149,11 @@ def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boun
     assert "runtime_binding.yaml" in hermes_activation
     assert "runtime_backend_id = hermes" in hermes_activation
 
-    assert "cb73b3d21c404d424e57d7765b5a9a409060700a" in runtime_cutover
-    assert "consumer-side cutover" in runtime_cutover
+    assert "Hermes-backed outer runtime" in runtime_cutover
+    assert "outer runtime substrate owner" in runtime_cutover
     assert "P2 controlled cutover -> physical monorepo migration" in runtime_cutover
-    assert "Cross-repo parity gate" in runtime_cutover
-    assert "Hermes backend onramp" in runtime_cutover
+    assert "deconstruction map" in runtime_cutover
+    assert "physical migration" in runtime_cutover
 
     assert "portfolio/research_memory" in workspace_knowledge
     assert "canonical knowledge / literature truth" in workspace_knowledge
@@ -175,3 +189,24 @@ def test_hermes_backend_docs_are_linked_from_mainline_execution_and_runtime_entr
     for doc in [mainline, execution_map, activation, runtime_interface]:
         assert "hermes_backend_continuation_board.md" in doc
         assert "hermes_backend_activation_package.md" in doc
+        assert "med_deepscientist_deconstruction_map.md" in doc
+
+
+def test_runtime_mainline_docs_freeze_hermes_topology_and_display_exclusion() -> None:
+    mainline = _read("docs/program/research_foundry_medical_mainline.md")
+    execution_map = _read("docs/program/research_foundry_medical_execution_map.md")
+    merge_gates = _read("docs/program/merge_and_cutover_gates.md")
+    external_gate = _read("docs/program/external_runtime_dependency_gate.md")
+
+    for doc in [mainline, execution_map, merge_gates, external_gate]:
+        assert "Hermes" in doc
+        assert "MedDeepScientist" in doc
+        assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in doc
+
+    for doc in [mainline, execution_map, merge_gates]:
+        assert "display" in doc
+
+    assert "outer runtime substrate owner" in mainline
+    assert "outer runtime substrate owner" in execution_map
+    assert "runtime cutover gate" in merge_gates
+    assert "external `Hermes` runtime" in external_gate

@@ -109,8 +109,11 @@ Human / Agent
   - 负责 `Research Ops` 的通用 framework 身份
 - `Med Auto Science`
   - 负责医学场景的正式实现
+- `Hermes`
+  - 当前是默认 outer runtime substrate owner
+  - 负责 controller-facing substrate contract
 - `Med DeepScientist`
-  - 当前仍是最核心的 runtime substrate 之一
+  - 当前是 controlled research backend
   - 但不等于整个 `Med Auto Science`
 
 ## Domain Gateway 与 Domain Harness OS 的分工
@@ -134,8 +137,9 @@ Human / Agent
 
 outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
-- `MedDeepScientist` 作为常驻 inner runtime
-- `Med Auto Science` 作为 tick-driven outer controller
+- `Hermes` 作为 controller-facing outer runtime substrate
+- `MedDeepScientist` 作为常驻 inner research backend
+- `Med Auto Science` 作为唯一研究入口与 tick-driven outer controller
 
 相关机制见：
 
@@ -156,23 +160,26 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 它们仍然是平台对医学用户最直观、最关键的交付面。
 
-## 2026-04-08 / 当前 absorbed position
+## 2026-04-11 / 当前 repo-side 位置
 
-截至 `2026-04-08`，repo-tracked truth 应按下面这条事实理解：
+截至 `2026-04-11`，repo-tracked truth 应按下面这条事实理解：
 
 1. `authority / outer-loop / delivery plane` 三层 contract 已完成并 absorbed 到 `main`
 2. `real-study relaunch and verify` 已在真实 anchor 上完成验证，并把 remaining blocker 收敛为 external workspace-side truth gap
 3. `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package 已完成并 absorbed 到 `main`
-4. 当前 repo-side 终态不是“没有下一步”，而是：
-   - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+4. 当前 repo-side 仍允许继续推进的主线，不再是“继续打磨旧 host-agent runtime”，而是：
+   - `MedAutoScience gateway -> Hermes outer runtime substrate -> MedDeepScientist controlled research backend`
 5. 当前最小 repo-tracked activation artifact 仍固定为：
    - [Integration Harness Activation Package](./integration_harness_activation_package.md)
+6. 当前 broader cutover 的正式 blocker 仍然是：
+   - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 
 这意味着：
 
 - repo 内已经完成了当前 truth 允许冻结的最小 `controller -> runtime -> eval -> delivery` baseline
 - 当前不应回退去重做 `real-study relaunch`
 - 当前也不应把 repo-side 已完成部分误写成 `end-to-end harness / cutover readiness` 已放行
+- 当前允许继续推进的，是 `Hermes-backed outer runtime` 的 repo-side 最小闭环，而不是更大的假 cutover tranche
 - 真正阻塞继续前进的是 external runtime / cutover readiness 依赖，而不是当前 repo-side baseline 仍未 absorb
 
 这条 activation package 负责的始终只是：
@@ -183,21 +190,23 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 ## 当前 immediate next step
 
-当前 repo 内不允许再伪造一个更大的“假 cutover tranche”，但允许继续推进一个更窄的 repo-side continuation：
+当前 repo 内不允许再伪造一个更大的“假 cutover tranche”，但允许继续推进并 absorb 当前更窄的 repo-side continuation：
 
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [Hermes Backend Activation Package](./hermes_backend_activation_package.md)
+- [MedDeepScientist Deconstruction Map](./med_deepscientist_deconstruction_map.md)
 
 这条 continuation 的含义是：
 
 1. 继续把 `runtime backend interface` contract 收紧到 controller / outer-loop / transport / durable surface 全链只认 backend contract
-2. 让 `Hermes` 以非默认 backend 的身份进入受控接入准备
-3. 不把 `Hermes` 写成当前默认 owner
+2. 把 `Hermes` 固定为默认 outer runtime substrate owner，并完成最小 repo-side 闭环
+3. 把 `MedDeepScientist` 固定为 controlled research backend，而不是 hidden authority truth
 4. 不把 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 写成已解除
+5. 不把 display / paper-facing asset packaging 独立线混入本线
 
 因此，当前真正的 next step 应理解为：
 
-1. 先完成 repo-side `Hermes` backend continuation truth 与 activation package
+1. 先完成 repo-side `Hermes` continuation truth、activation package 与 deconstruction map
 2. 同时继续把 external blocker 保持为 canonical package，见：
    - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
 3. 只有 external runtime / workspace / human gate 真正放行后，才允许继续往更大的 `end-to-end harness / cutover readiness` 推进
@@ -209,7 +218,7 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 1. authority / outer-loop / delivery plane convergence（已完成）
 2. real-study relaunch and verify（已完成）
 3. integration harness activation baseline（已完成并 absorbed）
-4. Hermes backend continuation board / activation package（当前 repo-side continuation）
+4. Hermes-backed outer runtime continuation / activation / deconstruction map（当前 repo-side continuation）
 5. external runtime / cutover readiness blocker 清理（仍然阻塞更大 cutover）
 6. only-then `end-to-end harness / cutover readiness`
 
@@ -231,5 +240,5 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 - 再完成 real-study relaunch and verify
 - 再把 `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package absorb 到 `main`
 - 当前 broader cutover 的停车终态继续诚实写成 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
-- 在不改默认 backend owner、不越过 external gate 的前提下，允许继续推进 `Hermes` backend continuation board / activation package
+- 在不越过 external gate 的前提下，允许继续推进 `Hermes-backed outer runtime` continuation / activation / deconstruction map
 - 只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续往更大 harness / cutover 推进

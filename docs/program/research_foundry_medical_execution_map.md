@@ -67,8 +67,10 @@
   当前 repo-side 可继续推进
   - continuation board：`./hermes_backend_continuation_board.md`
   - activation package：`./hermes_backend_activation_package.md`
-  - 目标：继续收紧 backend contract，并让 `Hermes` 进入非默认 backend 的受控接入准备
-  - 边界：不切默认 backend owner、不清除 external blocker、不启动 physical migration
+  - deconstruction map：`./med_deepscientist_deconstruction_map.md`
+  - controlled research backend：`MedDeepScientist`
+  - 目标：继续收紧 backend contract，并把 `Hermes` 固定为默认 outer runtime substrate owner
+  - 边界：不清除 external blocker、不启动 physical migration、不把 display 线混入本 tranche
 
 后置门：End-to-End Harness / Cutover Readiness
   当前 blocked on external runtime readiness
@@ -88,7 +90,8 @@
 - 它不是在重做 `real-study relaunch`
 - 也不是在 repo 内继续凭空打开 `end-to-end study harness`
 - 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
-- 当前终态应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+- 当前 repo-side 正在推进的下一棒，是第 5.5 层 `Hermes-backed outer runtime` continuation
+- 当前 broader cutover 终态仍应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 - 对应的 blocker package 见 `./external_runtime_dependency_gate.md`
 
 ## 每一层解决什么问题
@@ -135,7 +138,7 @@
 2. delivery / publication plane（已完成）
 3. real-study relaunch and verify（已完成）
 4. integration harness activation package（已完成并 absorbed）
-5. Hermes backend continuation board / activation package（当前 repo-side continuation）
+5. Hermes-backed outer runtime continuation / activation / deconstruction map（当前 repo-side continuation）
 6. external runtime dependency gate package（当前 canonical blocker）
 7. only-then `end-to-end harness / cutover readiness`
 
@@ -146,7 +149,7 @@
 更具体地说：
 
 - 当前最新完成层：第 5 层
-- 当前 repo-side 仍允许继续推进：第 5.5 层 `Hermes` backend continuation / activation package
+- 当前 repo-side 仍允许继续推进：第 5.5 层 `Hermes-backed outer runtime` continuation / activation / deconstruction map
 - 当前 broader cutover 仍被第 6 层 external blocker package 阻断
 
 ## 当前正式执行口径
@@ -160,7 +163,7 @@
 3. 再收紧 delivery / publication plane
 4. 再用真实课题 relaunch 验证整条链是否成立
 5. 再把 integration harness activation baseline 压成稳定 repo-tracked bridge
-6. 再把 `Hermes` backend continuation / activation package 压成稳定 repo-tracked bridge
+6. 再把 `Hermes-backed outer runtime` continuation / activation / deconstruction map 压成稳定 repo-tracked bridge
 
 当前前五层已经在 repo-side 收口完成；当前更大 cutover 的正式停车终态是：
 
