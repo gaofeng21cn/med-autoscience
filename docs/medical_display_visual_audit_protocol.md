@@ -7,7 +7,7 @@ Use this file when the question is:
 - how paper-facing figure review should happen after deterministic generation;
 - what should count as a visual-audit finding;
 - when a finding stays paper-local versus being promoted into platform truth;
-- how OMX should keep improving visual quality without falling back to hidden patches or heuristics.
+- how the active Codex execution lane should keep improving visual quality without falling back to hidden patches or heuristics.
 
 This protocol sits above the audited deterministic layer described in [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 
@@ -196,9 +196,9 @@ Visual audit must not degrade into:
 - heuristic post-processing that hides renderer defects;
 - figure approval based only on manifests or tests without looking at the image.
 
-## Minimal Loop For OMX
+## Minimal Loop For Codex Runtime
 
-The expected loop for OMX is:
+The expected loop for Codex runtime is:
 
 1. generate the display through the audited path;
 2. inspect the actual output image;

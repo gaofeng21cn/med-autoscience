@@ -6,7 +6,7 @@ Use this file when the question is:
 
 - what the current display program is trying to complete across `A-H`;
 - what should count as "enough coverage" for a paper family in the current long run;
-- how OMX should continue automatically after the current owner round finishes;
+- how the active Codex execution lane should continue automatically after the current owner round finishes;
 - when the platform should keep hardening an existing family versus opening a missing one.
 
 For the top-level family roadmap, see [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
@@ -95,7 +95,7 @@ The user-approved execution strategy is:
 1. keep `A-H` first-baseline coverage as the minimum coverage floor;
 2. keep real paper demand as the default source of truth for what to build next;
 3. do not reduce the program to a mechanical checklist;
-4. but if a family remains completely missing and no higher-priority paper blocker is active, OMX should proactively onboard that missing family instead of parking.
+4. but if a family remains completely missing and no higher-priority paper blocker is active, the active Codex execution lane should proactively onboard that missing family instead of parking.
 
 This means:
 
@@ -104,7 +104,7 @@ This means:
 
 ## Default Continuation Order
 
-OMX should continue in the following order unless a hard blocker overrides it:
+The active Codex execution lane should continue in the following order unless a hard blocker overrides it:
 
 1. finish the currently active owner round;
 2. finish required integration / merge-back;
@@ -146,7 +146,7 @@ Once `G` reaches its first audited baseline:
 
 1. the current completion program target across `A-H` is met;
 2. the display mainline itself does **not** end;
-3. OMX should shift to rolling hardening mode:
+3. the active Codex execution lane should shift to rolling hardening mode:
    - strengthen the weakest family;
    - keep improving deterministic lower-bound protection;
    - keep running visual audit where paper-facing quality demands it.
@@ -162,7 +162,7 @@ but the exact order should remain paper-driven where possible.
 
 ## Autonomous Continuation Rule
 
-Within the display-only scope, OMX should not stop at phase boundaries just because one baton succeeded.
+Within the display-only scope, the active Codex execution lane should not stop at phase boundaries just because one baton succeeded.
 
 It should continue automatically unless one of the following is true:
 
@@ -170,7 +170,7 @@ It should continue automatically unless one of the following is true:
 2. a scope decision genuinely requires the user;
 3. the display truth surfaces conflict and cannot be reconciled locally.
 
-If none of those are true, OMX should keep moving:
+If none of those are true, the active Codex execution lane should keep moving:
 
 - from implementation to integration;
 - from integration to visual audit;
