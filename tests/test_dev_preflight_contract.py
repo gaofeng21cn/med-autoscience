@@ -8,10 +8,16 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "docs/runtime/runtime_backend_interface_contract.md",
+            "src/med_autoscience/runtime_backend.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/runtime_watch.py",
+            "src/med_autoscience/runtime_transport/hermes.py",
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
+            "tests/test_runtime_backend.py",
+            "tests/test_runtime_contract_docs.py",
+            "tests/test_runtime_transport_hermes.py",
             "tests/test_runtime_watch.py",
         ]
     )
@@ -65,6 +71,10 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "docs/README.md",
+            "docs/README.zh-CN.md",
+            "docs/program/hermes_backend_continuation_board.md",
+            "docs/program/hermes_backend_activation_package.md",
             "docs/program/integration_harness_activation_package.md",
             "src/med_autoscience/controllers/workspace_init.py",
             "tests/test_workspace_init.py",
@@ -105,7 +115,18 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
 
     assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
     assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
+    assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
     assert (
         "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q"
         in commands
     )
+
+
+def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proofs() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("runtime_contract_surface",))
+
+    assert "uv run pytest tests/test_runtime_backend.py -q" in commands
+    assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
+    assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands

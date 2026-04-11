@@ -33,6 +33,8 @@
 
 - 保持 `MedAutoScience -> MedDeepScientist` runtime contract 稳定
 - 保持 execution handle、durable surface 与 fail-closed gate semantics 不漂移
+- 继续把 `runtime backend interface` 收紧到 controller / outer-loop / transport / durable surface 全链只认 backend contract
+- 让 `Hermes` backend 进入受控接入准备，但不切默认 backend owner
 - 在 external runtime gate 清除前，以手工测试驱动稳定化，而不是重开新的大架构 tranche
 
 这不等于 monorepo 目标取消。
@@ -90,6 +92,8 @@
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
+- `Hermes` repo-side continuation：[`../program/hermes_backend_continuation_board.md`](../program/hermes_backend_continuation_board.md)
+- `Hermes` repo-side activation package：[`../program/hermes_backend_activation_package.md`](../program/hermes_backend_activation_package.md)
 - external runtime blocker package：[`../program/external_runtime_dependency_gate.md`](../program/external_runtime_dependency_gate.md)
 - external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](../program/manual_runtime_stabilization_checklist.md)
 - `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
@@ -355,6 +359,8 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 ## Phase 1 gate 与真实执行
 
 当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 `MedAutoScience` 已经完成 engine-neutral runtime 切换。`med_deepscientist_repo_root` 现阶段主要仍服务于 `med-deepscientist-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+
+当前 P2 允许继续推进的 repo-side continuation，是把 `Hermes` 作为显式注册的非默认 backend 接入同一层 `runtime backend interface` contract。它的意义是让 controller / transport / durable surface 真正只认 backend contract，而不是继续把 `med-deepscientist` 模块名当 authority truth；它不等于 `Hermes` 已经成为默认 backend，也不等于 external runtime gate 已解除。
 
 只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 

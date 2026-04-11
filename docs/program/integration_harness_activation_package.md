@@ -167,4 +167,7 @@ study_runtime_status / ensure_study_runtime
 1. 承认这条 activation package / baseline 已 absorb 到 `main`
 2. 把后续更大推进诚实地停在 external dependency gate 前
 3. 通过 [`./external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md) 把 blocker 固定为 repo-tracked canonical audit package
-4. 不在 repo 内伪造新的 same-repo tranche 来代替 external readiness 清理
+4. 如果 repo 内还要继续推进，只允许打开更窄的 backend-contract continuation：
+   - [`./hermes_backend_continuation_board.md`](./hermes_backend_continuation_board.md)
+   - [`./hermes_backend_activation_package.md`](./hermes_backend_activation_package.md)
+5. 不在 repo 内伪造新的更大 same-repo tranche 来代替 external readiness 清理

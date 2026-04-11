@@ -105,6 +105,52 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     }
 
 
+def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    runtime_root = tmp_path / "workspace" / "ops" / "hermes" / "runtime"
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    binding_path = study_root / "runtime_binding.yaml"
+
+    module.write_runtime_binding(
+        runtime_binding_path=binding_path,
+        runtime_root=runtime_root,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-hermes-001",
+        last_action="resume",
+        source="test-source",
+        recorded_at="2026-04-11T12:00:00+00:00",
+        runtime_backend_id="hermes",
+        runtime_engine_id="hermes",
+    )
+
+    payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
+    assert payload["engine"] == "hermes"
+    assert payload["runtime_backend_id"] == "hermes"
+    assert payload["runtime_backend"] == "hermes"
+    assert payload["runtime_engine_id"] == "hermes"
+    assert payload["runtime_home"] == str(runtime_root)
+    assert payload["runtime_quests_root"] == str(runtime_root / "quests")
+    assert payload["med_deepscientist_runtime_root"] == str(runtime_root)
+
+
+def test_runtime_binding_backend_metadata_resolves_explicit_hermes_backend() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    backend_id, engine_id = module._runtime_binding_backend_metadata(
+        {
+            "execution": {
+                "runtime_backend_id": "hermes",
+                "runtime_engine_id": "hermes",
+                "auto_entry": "on_managed_research_intent",
+            }
+        }
+    )
+
+    assert backend_id == "hermes"
+    assert engine_id == "hermes"
+
+
 def test_write_launch_report_records_runtime_payload(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     report_path = tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import inspect
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -60,7 +61,7 @@ class ManagedRuntimeBackend(Protocol):
         *,
         runtime_root: Path,
         quest_id: str,
-        startup_contract: dict[str, Any],
+        startup_contract: dict[str, Any] | None = None,
         requested_baseline_ref: dict[str, Any] | None = None,
     ) -> dict[str, Any]: ...
 
@@ -77,18 +78,85 @@ class ManagedRuntimeBackend(Protocol):
         *,
         runtime_root: Path,
         quest_id: str,
-        message: str,
-        source: str,
+        payload: dict[str, Any],
     ) -> dict[str, Any]: ...
 
 
 _REGISTERED_MANAGED_RUNTIME_BACKENDS: dict[str, ManagedRuntimeBackend] = {}
 _ENGINE_TO_BACKEND_ID: dict[str, str] = {}
+_BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "resolve_daemon_url": (("runtime_root",), ()),
+    "create_quest": (("runtime_root", "payload"), ()),
+    "resume_quest": (("runtime_root", "quest_id", "source"), ()),
+    "pause_quest": (("runtime_root", "quest_id", "source"), ()),
+    "stop_quest": (("quest_id", "source"), ("daemon_url", "runtime_root")),
+    "get_quest_session": (("quest_id",), ("daemon_url", "runtime_root", "timeout")),
+    "inspect_quest_live_runtime": (("quest_id",), ("daemon_url", "runtime_root", "timeout")),
+    "inspect_quest_live_execution": (("quest_id",), ("daemon_url", "runtime_root", "timeout")),
+    "update_quest_startup_context": (
+        ("runtime_root", "quest_id"),
+        ("startup_contract", "requested_baseline_ref"),
+    ),
+    "artifact_complete_quest": (("runtime_root", "quest_id", "summary"), ()),
+    "artifact_interact": (("runtime_root", "quest_id", "payload"), ()),
+}
 
 
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _validate_backend_callable_contract(*, backend_id: str, backend: ManagedRuntimeBackend) -> None:
+    for operation_name, (required_parameters, optional_parameters) in _BACKEND_CALLABLE_CONTRACT.items():
+        candidate = getattr(backend, operation_name, None)
+        if not callable(candidate):
+            raise ValueError(f"managed runtime backend `{backend_id}` is missing callable `{operation_name}`")
+        signature = inspect.signature(candidate)
+        parameters = signature.parameters
+        missing_parameters = [
+            parameter_name
+            for parameter_name in (*required_parameters, *optional_parameters)
+            if parameter_name not in parameters
+        ]
+        if missing_parameters:
+            raise ValueError(
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` is missing parameters: "
+                + ", ".join(missing_parameters)
+            )
+        for parameter_name in required_parameters:
+            parameter = parameters[parameter_name]
+            if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                raise ValueError(
+                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
+                    f"for `{parameter_name}`"
+                )
+            if parameter.default is not inspect.Signature.empty:
+                raise ValueError(
+                    f"managed runtime backend `{backend_id}` callable `{operation_name}` must require `{parameter_name}`"
+                )
+        for parameter_name in optional_parameters:
+            parameter = parameters[parameter_name]
+            if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                raise ValueError(
+                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
+                    f"for `{parameter_name}`"
+                )
+        allowed_parameters = set(required_parameters) | set(optional_parameters)
+        for parameter_name, parameter in parameters.items():
+            if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                continue
+            if parameter_name not in allowed_parameters:
+                raise ValueError(
+                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unexpected parameter "
+                    f"`{parameter_name}`"
+                )
+        for parameter_name in optional_parameters:
+            parameter = parameters[parameter_name]
+            if parameter.default is inspect.Signature.empty:
+                raise ValueError(
+                    f"managed runtime backend `{backend_id}` callable `{operation_name}` must make `{parameter_name}` optional"
+                )
 
 
 def register_managed_runtime_backend(backend: ManagedRuntimeBackend) -> None:
@@ -98,6 +166,7 @@ def register_managed_runtime_backend(backend: ManagedRuntimeBackend) -> None:
         raise ValueError("managed runtime backend must expose non-empty BACKEND_ID")
     if engine_id is None:
         raise ValueError("managed runtime backend must expose non-empty ENGINE_ID")
+    _validate_backend_callable_contract(backend_id=backend_id, backend=backend)
     _REGISTERED_MANAGED_RUNTIME_BACKENDS[backend_id] = backend
     _ENGINE_TO_BACKEND_ID[engine_id] = backend_id
 
@@ -166,7 +235,8 @@ def engine_id_for_backend_id(backend_id: str) -> str:
 
 
 from med_autoscience.runtime_transport import med_deepscientist as _med_deepscientist_backend
+from med_autoscience.runtime_transport import hermes as _hermes_backend
 
 
 register_managed_runtime_backend(_med_deepscientist_backend)
-
+register_managed_runtime_backend(_hermes_backend)

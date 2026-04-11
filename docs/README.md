@@ -65,6 +65,8 @@ Current frozen state:
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
 - [Integration harness activation package](program/integration_harness_activation_package.md)
+- [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
+- [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Open Harness OS freeze plan](program/open_harness_os_freeze_plan.md)

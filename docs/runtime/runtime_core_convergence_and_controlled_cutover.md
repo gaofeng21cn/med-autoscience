@@ -50,6 +50,22 @@
 - 把未完成的 tranche 再写成已完成
 - 用同一个 `P0 / P1 / P2` 编号混写全局顺序和局部实现阶段
 
+### 3.4 Hermes backend onramp 仍需 repo-side 冻结
+
+虽然 `runtime backend interface` contract 已经冻结，但 `Hermes` 当前还不能只靠一句“未来可接入”来表述。
+
+在 external gate 未清除前，repo-side 仍然可以、也仍然应该继续完成：
+
+- `Hermes` backend continuation board
+- `Hermes` backend activation package
+- backend registry / transport / durable-surface 对 `Hermes` 的 fail-closed 收口
+
+但这条 onramp 仍然不能被写成：
+
+- default backend 已切换
+- runtime cutover 已放行
+- physical migration 已开始
+
 ## 4. Controlled Cutover Gate
 
 当前 cutover gate 应按下面顺序理解：
@@ -58,8 +74,9 @@
 2. MAS 已切成 managed runtime truth 的消费者，而不是主 writer
 3. workspace canonical knowledge / literature 已稳定
 4. cross-repo parity suite 必须持续 green
-5. physical monorepo absorb plan 必须写清模块边界、删除条件与回退条件
-6. 只有 1-5 全部满足后，才进入 physical migration
+5. `Hermes` backend onramp 必须在 repo-side 完成 truth / adapter / durable-surface freeze
+6. physical monorepo absorb plan 必须写清模块边界、删除条件与回退条件
+7. 只有 1-6 全部满足后，才进入 physical migration
 
 前 1-3 项已经满足。当前 active work 在 4-6。
 

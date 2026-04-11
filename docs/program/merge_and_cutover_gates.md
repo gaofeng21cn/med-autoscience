@@ -29,7 +29,11 @@
 2. `integration harness activation package` 也已 absorbed 到 `main`
 3. `external runtime dependency gate` 也已作为 canonical blocker package 固定下来
 4. 因此，当前 repo-side 正式停车终态已经是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
-5. 后续能否继续，取决于 external runtime / workspace cutover readiness，而不是仓内还有未 absorb 的 same-repo tranche
+5. 后续 broader cutover 能否继续，取决于 external runtime / workspace cutover readiness
+6. 在不改变默认 backend owner 的前提下，repo-side 仍允许继续推进更窄的：
+   - `Hermes backend continuation board`
+   - `Hermes backend activation package`
+7. 也就是说，当前阻塞并不是因为仓内还有未 absorb 的 same-repo tranche
 
 ## Merge Gate
 
@@ -132,6 +136,7 @@
 原因是：
 
 - repo-side contract 已完成 authority / delivery / real-study 的收口，并开始冻结 integration harness baseline
+- repo-side 仍可继续收紧 `runtime backend interface` contract，并接入 `Hermes` 的非默认 backend 准备
 - 但真实运行面的切换，仍取决于 controlled fork 固定、behavior equivalence gate 放行，以及 external runtime / workspace surface
 
 ## 当前建议

@@ -11,6 +11,7 @@
 
 - [Real-Study Relaunch Verification](./real_study_relaunch_verification.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
+- [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
 
 ## 一句话结论
@@ -62,9 +63,16 @@
   - 目标：冻结 `controller -> runtime -> eval -> delivery` chain、cutover readiness、residual risk、external surface requirement
   - 当前最小 baseline：`runtime_watch` / `publication_gate` / `study_delivery_sync`
 
+第 5.5 层：Hermes Backend Continuation & Activation
+  当前 repo-side 可继续推进
+  - continuation board：`./hermes_backend_continuation_board.md`
+  - activation package：`./hermes_backend_activation_package.md`
+  - 目标：继续收紧 backend contract，并让 `Hermes` 进入非默认 backend 的受控接入准备
+  - 边界：不切默认 backend owner、不清除 external blocker、不启动 physical migration
+
 后置门：End-to-End Harness / Cutover Readiness
   当前 blocked on external runtime readiness
-  - 只有第 5 层 absorb 之后，且 external runtime surface 真正放行，才允许继续
+  - 只有第 5 层与第 5.5 层完成、且 external runtime surface 真正放行，才允许继续
 ```
 
 ## 当前所在位置
@@ -127,18 +135,19 @@
 2. delivery / publication plane（已完成）
 3. real-study relaunch and verify（已完成）
 4. integration harness activation package（已完成并 absorbed）
-5. external runtime dependency gate package（当前 canonical blocker）
-6. only-then `end-to-end harness / cutover readiness`
+5. Hermes backend continuation board / activation package（当前 repo-side continuation）
+6. external runtime dependency gate package（当前 canonical blocker）
+7. only-then `end-to-end harness / cutover readiness`
 
 ## 当前 repo-side 应如何理解这条主线
 
-当前仓库不是在做“整个项目的所有部分”，而是在已经 absorbed 的 repo-side 真相上，诚实地停在当前最靠前的一层。
+当前仓库不是在做“整个项目的所有部分”，而是在已经 absorbed 的 repo-side 真相上，诚实推进当前允许继续的最靠前一层。
 
 更具体地说：
 
 - 当前最新完成层：第 5 层
-- 当前已经完成：activation baseline absorb
-- 当前之后不应在 repo 内伪造新 tranche；应先把 external blocker 收口成 canonical package，再等待 external runtime gate 是否允许继续
+- 当前 repo-side 仍允许继续推进：第 5.5 层 `Hermes` backend continuation / activation package
+- 当前 broader cutover 仍被第 6 层 external blocker package 阻断
 
 ## 当前正式执行口径
 
@@ -151,9 +160,10 @@
 3. 再收紧 delivery / publication plane
 4. 再用真实课题 relaunch 验证整条链是否成立
 5. 再把 integration harness activation baseline 压成稳定 repo-tracked bridge
+6. 再把 `Hermes` backend continuation / activation package 压成稳定 repo-tracked bridge
 
-当前这五层已经在 repo-side 收口完成；当前正式停车终态是：
+当前前五层已经在 repo-side 收口完成；当前更大 cutover 的正式停车终态是：
 
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 
-只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续讨论更大的 `end-to-end harness / cutover readiness`。
+只有在 `Hermes` continuation truth 也完成、并且 external runtime surface 与 cutover gate 真正放行后，才允许继续讨论更大的 `end-to-end harness / cutover readiness`。

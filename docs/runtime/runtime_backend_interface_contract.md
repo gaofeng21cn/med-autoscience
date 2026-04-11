@@ -11,6 +11,13 @@
 
 但这两个字段现在只是当前实现，不再是 `MedAutoScience` controller 层的硬编码身份。
 
+当前 repo-side 允许继续推进的下一棒是：
+
+- [`../program/hermes_backend_continuation_board.md`](../program/hermes_backend_continuation_board.md)
+- [`../program/hermes_backend_activation_package.md`](../program/hermes_backend_activation_package.md)
+
+它们只负责把 `Hermes` 作为非默认 backend 接入准备，不改变当前默认 backend owner。
+
 ## 2. Backend 选择规则
 
 `MedAutoScience` 解析 study execution 时，按下面顺序选择 backend：
@@ -46,6 +53,20 @@ managed runtime backend 必须显式暴露：
 - `artifact_interact(...)`
 
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
+
+## 3.1 Registry validation
+
+backend registry 当前必须 fail-closed 校验：
+
+1. `BACKEND_ID` 非空
+2. `ENGINE_ID` 非空
+3. 上述 controller-facing callable 全部存在
+4. callable 参数表与 contract surface 对齐，不允许缺字段、意外新增必填字段，或把 required 参数改成别的名字
+
+这条规则的意义是：
+
+- 不让 backend abstraction 停留在“只有两个 ID 字段”的假抽象
+- 在 `Hermes` 接入前就把 controller callsite 所依赖的最小可执行 contract 冻结出来
 
 ## 4. Managed Runtime 判定
 
@@ -97,13 +118,14 @@ managed runtime execution 的正式条件是：
 
 这份 contract 还没有完成的是：
 
-- Hermes backend 本身
+- Hermes external runtime truth / workspace truth
+- Hermes default owner switch
 - workspace physical layout 的完全去 `med-deepscientist` 化
 - physical monorepo migration
 
 所以当前正确顺序仍然是：
 
 1. freeze backend contract
-2. 接入 Hermes backend
+2. 完成 repo-side `Hermes` backend continuation / activation package
 3. 完成 controlled cutover
 4. 再决定 physical monorepo migration

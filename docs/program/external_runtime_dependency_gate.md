@@ -183,6 +183,8 @@ uv run --python 3.14 python -m med_autoscience.cli watch --quest-root <quest_roo
 
 - runtime mainline 已把 external blocker 相关的 doc / gate / audit / doctor / verification surface 收紧为 canonical package
 - repo 内不再需要伪造新的 same-repo tranche 来解释当前阻塞
+- 如果 repo-side 还要继续推进，也只能是更窄的 consumer-only continuation，而不是更大的假 cutover tranche
+- repo-side 仍可继续推进更窄的 `Hermes` backend continuation / activation package，但它不替代 external blocker 本身
 - 真正继续前进仍然依赖 external runtime、external workspace 与 human-required interaction
 
 因此当前正式停车终态继续是：

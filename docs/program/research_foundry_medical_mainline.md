@@ -14,6 +14,7 @@
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
+- [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
 
 ## 一句话结论
@@ -182,17 +183,24 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 ## 当前 immediate next step
 
-当前 repo 内已经没有新的产品级 same-repo tranche 可自动打开。
+当前 repo 内不允许再伪造一个更大的“假 cutover tranche”，但允许继续推进一个更窄的 repo-side continuation：
 
-当前 repo-side 唯一仍可合法继续收紧的动作，是把 external blocker 本身冻结成可审计的 canonical package，见：
+- [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
+- [Hermes Backend Activation Package](./hermes_backend_activation_package.md)
 
-- [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
+这条 continuation 的含义是：
 
-在该 package 收口完成后，当前真正的 next step 应理解为：
+1. 继续把 `runtime backend interface` contract 收紧到 controller / outer-loop / transport / durable surface 全链只认 backend contract
+2. 让 `Hermes` 以非默认 backend 的身份进入受控接入准备
+3. 不把 `Hermes` 写成当前默认 owner
+4. 不把 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 写成已解除
 
-1. 先在 external runtime / cutover surface 上清掉真实 blocker
-2. 等 external gate 放行后，再回到本仓继续推进更大的 `end-to-end harness / cutover readiness`
-3. 在此之前，不重开 repo-side tranche 来伪造“继续推进”
+因此，当前真正的 next step 应理解为：
+
+1. 先完成 repo-side `Hermes` backend continuation truth 与 activation package
+2. 同时继续把 external blocker 保持为 canonical package，见：
+   - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
+3. 只有 external runtime / workspace / human gate 真正放行后，才允许继续往更大的 `end-to-end harness / cutover readiness` 推进
 
 ## 固定推进顺序
 
@@ -201,8 +209,9 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 1. authority / outer-loop / delivery plane convergence（已完成）
 2. real-study relaunch and verify（已完成）
 3. integration harness activation baseline（已完成并 absorbed）
-4. external runtime / cutover readiness blocker 清理（当前阻塞）
-5. only-then `end-to-end harness / cutover readiness`
+4. Hermes backend continuation board / activation package（当前 repo-side continuation）
+5. external runtime / cutover readiness blocker 清理（仍然阻塞更大 cutover）
+6. only-then `end-to-end harness / cutover readiness`
 
 ## 非目标
 
@@ -221,5 +230,6 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 - 先完成 authority / outer-loop / delivery plane convergence
 - 再完成 real-study relaunch and verify
 - 再把 `Phase 6 / Integration Harness And Cutover Readiness` 的最小 activation package absorb 到 `main`
-- 当前停车终态应诚实写成 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+- 当前 broader cutover 的停车终态继续诚实写成 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+- 在不改默认 backend owner、不越过 external gate 的前提下，允许继续推进 `Hermes` backend continuation board / activation package
 - 只有在 external runtime surface 与 cutover gate 真正放行后，才允许继续往更大 harness / cutover 推进

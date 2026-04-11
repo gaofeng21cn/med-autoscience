@@ -66,6 +66,10 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
     assert "workspace_knowledge_and_literature_contract.md" in docs_index_zh
     assert "workspace_knowledge_and_literature_implementation_plan.md" in docs_index
     assert "workspace_knowledge_and_literature_implementation_plan.md" in docs_index_zh
+    assert "hermes_backend_continuation_board.md" in docs_index
+    assert "hermes_backend_continuation_board.md" in docs_index_zh
+    assert "hermes_backend_activation_package.md" in docs_index
+    assert "hermes_backend_activation_package.md" in docs_index_zh
 
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
@@ -91,6 +95,8 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
 
 def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boundary() -> None:
     priority_map = _read("docs/program/project_repair_priority_map.md")
+    hermes_board = _read("docs/program/hermes_backend_continuation_board.md")
+    hermes_activation = _read("docs/program/hermes_backend_activation_package.md")
     runtime_backend_contract = _read("docs/runtime/runtime_backend_interface_contract.md")
     runtime_contract = _read("docs/runtime/runtime_event_and_outer_loop_input_contract.md")
     runtime_cutover = _read("docs/runtime/runtime_core_convergence_and_controlled_cutover.md")
@@ -116,11 +122,24 @@ def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boun
     assert "runtime_engine_id" in runtime_backend_contract
     assert "如果 `execution.runtime_backend_id`" in runtime_backend_contract
     assert "Hermes" in runtime_backend_contract
+    assert "callable" in runtime_backend_contract
+
+    for doc in [hermes_board, hermes_activation]:
+        assert "Hermes" in doc
+        assert "default backend" in doc
+        assert "external" in doc
+        assert "blocker" in doc
+
+    assert "promotion invariants" in hermes_board
+    assert "excluded scope" in hermes_board
+    assert "runtime_binding.yaml" in hermes_activation
+    assert "runtime_backend_id = hermes" in hermes_activation
 
     assert "cb73b3d21c404d424e57d7765b5a9a409060700a" in runtime_cutover
     assert "consumer-side cutover" in runtime_cutover
     assert "P2 controlled cutover -> physical monorepo migration" in runtime_cutover
     assert "Cross-repo parity gate" in runtime_cutover
+    assert "Hermes backend onramp" in runtime_cutover
 
     assert "portfolio/research_memory" in workspace_knowledge
     assert "canonical knowledge / literature truth" in workspace_knowledge
@@ -145,3 +164,14 @@ def test_public_entry_docs_surface_current_p0_p1_done_and_p2_active() -> None:
     assert "external runtime gate 仍然存在" in readme_zh
     assert "part of the blocker package" in docs_index
     assert "属于 blocker package" in docs_index_zh
+
+
+def test_hermes_backend_docs_are_linked_from_mainline_execution_and_runtime_entry_docs() -> None:
+    mainline = _read("docs/program/research_foundry_medical_mainline.md")
+    execution_map = _read("docs/program/research_foundry_medical_execution_map.md")
+    activation = _read("docs/program/integration_harness_activation_package.md")
+    runtime_interface = _read("docs/runtime/agent_runtime_interface.md")
+
+    for doc in [mainline, execution_map, activation, runtime_interface]:
+        assert "hermes_backend_continuation_board.md" in doc
+        assert "hermes_backend_activation_package.md" in doc
