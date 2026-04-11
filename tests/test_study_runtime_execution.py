@@ -36,10 +36,20 @@ def _patch_router(monkeypatch, module) -> None:
         "_router_module",
         lambda: SimpleNamespace(
             managed_runtime_backend=managed_runtime_backend,
+            managed_runtime_transport=managed_runtime_backend,
             med_deepscientist_transport=managed_runtime_backend,
             _managed_runtime_backend_for_execution=lambda execution: managed_runtime_backend,
         ),
     )
+
+
+def test_runtime_execution_router_patch_exposes_generic_managed_runtime_transport_alias(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    _patch_router(monkeypatch, module)
+
+    router = module._router_module()
+
+    assert router.managed_runtime_transport is router.med_deepscientist_transport
 
 
 def test_autonomous_runtime_notice_reports_live_runtime_only_when_liveness_is_strictly_live(monkeypatch) -> None:

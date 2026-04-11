@@ -196,6 +196,7 @@ def test_study_runtime_orchestration_doc_tracks_generic_managed_runtime_transpor
     orchestration = _read("docs/runtime/study_runtime_orchestration.md")
 
     assert "managed_runtime_transport" in orchestration
+    assert "managed_runtime_backend" in orchestration
     assert "med_deepscientist_transport" in orchestration
     assert "兼容别名" in orchestration
     assert "daemon 调用绑定收口为独立内部层" in orchestration

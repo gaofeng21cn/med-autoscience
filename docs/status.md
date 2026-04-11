@@ -23,6 +23,7 @@
 - `docs/program/med_deepscientist_deconstruction_map.md` 已冻结三类能力归属：迁入 `Hermes` substrate、暂留 backend、后续吸收/替换。
 - `managed_runtime_transport` 已作为 repo-side controller / guard / publication stop surface 的通用 authority 名称落盘；`med_deepscientist_transport` 仅继续保留兼容别名。
 - workspace onboarding 已把默认自动推进 wording 明确切到 `Hermes-backed managed runtime`，不再把 `med-deepscientist` 写成默认 outer runtime owner。
+- `study_runtime_transport` 已接受 generic router shim 仅暴露 `managed_runtime_backend` 的收口形态；薄层 execution / outer-loop / topology 测试契约开始以 `managed_runtime_transport` 为主口径。
 
 ## 长线目标（规划层）
 
