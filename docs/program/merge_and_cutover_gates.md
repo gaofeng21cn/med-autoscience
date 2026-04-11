@@ -32,7 +32,7 @@
    - `Hermes backend continuation board`
    - `Hermes backend activation package`
    - `MedDeepScientist deconstruction map`
-6. 这条 same-repo tranche 的目标不是 reopening cutover，而是把 `Hermes-backed outer runtime` 压成可吸收的 repo-side truth
+6. 这条 same-repo tranche 的目标不是 reopening cutover，而是把“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”压成可吸收的 repo-side truth
 
 ## Merge Gate
 
@@ -148,13 +148,13 @@
 以 `2026-04-11` 这个时间点看：
 
 - repo-side `merge gate` 对 activation baseline 与 external blocker package 来说都已经满足
-- 当前新 tranche 的 `merge gate`，取决于 `Hermes-backed outer runtime` 这批 code / docs / tests / preflight 是否 fresh green
+- 当前新 tranche 的 `merge gate`，取决于“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”这批 code / docs / tests / preflight 是否 fresh green
 - `runtime cutover gate` 还没有完成
 - 当前 external blocker 的 repo-side canonical package 见 `./external_runtime_dependency_gate.md`
 
 原因是：
 
-- repo-side contract 已完成 authority / delivery / real-study 的收口，并已把默认 outer runtime substrate owner 切到 `Hermes`
+- repo-side contract 已完成 authority / delivery / real-study 的收口，并已把默认 outer-runtime seam label 切到 `hermes` 以指向上游目标
 - repo-side 仍可继续收紧 `runtime backend interface` contract，并把 `MedDeepScientist` 解构为 controlled research backend
 - 但真实运行面的切换，仍取决于 controlled fork 固定、behavior equivalence gate 放行，以及 external `Hermes` runtime / workspace surface
 
@@ -162,7 +162,7 @@
 
 ### 当前 tranche 何时算 closeout 成立
 
-下面这些条件全部满足时，当前 `Hermes-backed outer runtime` tranche 才算可以 absorb：
+下面这些条件全部满足时，当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” tranche 才算可以 absorb：
 
 1. 当前 runtime mainline docs / tests / preflight / code 一致
 2. targeted regression 与 meta verification 通过

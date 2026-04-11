@@ -49,16 +49,18 @@ def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_sem
     assert "research-foundry-medical-mainline" in readme
     assert "managed runtime handle" in readme
     assert "live daemon run handle" in readme
-    assert "repo-side outer runtime substrate contract owner" in readme
-    assert "standalone external Hermes daemon" in readme
+    assert "repo-side outer-runtime seam" in readme
+    assert "not a landed upstream `Hermes-Agent` runtime" in readme
+    assert "standalone host replacement continues through that gate" in readme
     assert "physician-friendly updates" in readme
 
     assert "research-foundry-medical-mainline" in readme_zh
     assert "受控 research backend quest 正式运行句柄" in readme_zh
     assert "live daemon run" in readme_zh
     assert "本地 operator handoff surface" in readme_zh
-    assert "repo-side outer runtime substrate contract owner" in readme_zh
-    assert "独立 external Hermes daemon" in readme_zh
+    assert "repo-side 外层 runtime seam" in readme_zh
+    assert "不等于上游 `Hermes-Agent` runtime 已经落地" in readme_zh
+    assert "独立上游 `Hermes-Agent` host 对 backend engine 的完整替代" in readme_zh
     assert "医生/PI 能读的人话进度" in readme_zh
 
 
@@ -155,8 +157,9 @@ def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boun
     assert "runtime_binding.yaml" in hermes_activation
     assert "runtime_backend_id = hermes" in hermes_activation
 
-    assert "Hermes-backed outer runtime" in runtime_cutover
-    assert "outer runtime substrate owner" in runtime_cutover
+    assert "上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam" in runtime_cutover
+    assert "repo-side outer-runtime seam" in runtime_cutover
+    assert "仓内已落地独立 Hermes-Agent host" in runtime_cutover
     assert "P2 controlled cutover -> physical monorepo migration" in runtime_cutover
     assert "deconstruction map" in runtime_cutover
     assert "physical migration" in runtime_cutover
@@ -180,7 +183,7 @@ def test_public_entry_docs_surface_current_p0_p1_done_and_p2_active() -> None:
         assert "P1 workspace canonical literature / knowledge truth" in doc
         assert "P2 controlled cutover -> physical monorepo migration" in doc
 
-    assert "external runtime gate still exists" in readme
+    assert "The external runtime gate now sits as a concrete external blocker inside `P2`" in readme
     assert "external runtime gate 仍然存在" in readme_zh
     assert "part of the blocker package" in docs_index
     assert "属于 blocker package" in docs_index_zh
@@ -233,8 +236,8 @@ def test_core_docs_explain_hermes_integrated_research_progression_without_overcl
     project = _read("docs/project.md")
     runtime_interface = _read("docs/runtime/agent_runtime_interface.md")
 
-    assert "问题定义 -> startup boundary -> Hermes managed runtime -> publication gate -> study completion sync" in architecture
-    assert "不是“保证必然发表”的机器" in architecture
+    assert "问题定义 -> startup boundary -> repo-side outer-runtime seam -> publication gate -> study completion sync" in architecture
+    assert "这套机制把研究推进拆成一串 fail-closed gate" in architecture
     assert "一步步逼近 SCI-ready 投稿态" in architecture
     assert "相对只依赖 `MedDeepScientist` 的版本，逻辑上不是降级" in architecture
     assert "outer-loop / inner-loop coordination" in architecture
@@ -244,8 +247,8 @@ def test_core_docs_explain_hermes_integrated_research_progression_without_overcl
 
     assert "SCI-ready 投稿态" in project
     assert "fail-closed gate" in project
-    assert "repo-side outer substrate contract owner" in project
-    assert "宿主机尚无 external `Hermes`" in project
+    assert "当前仓内的 `Hermes` 首先只是 repo-side outer substrate seam" in project
+    assert "宿主机尚无 external `Hermes-Agent`" in project
 
     assert "study charter / startup boundary / publication gate / completion sync" in runtime_interface
     assert "不是把判断继续藏在 inner runtime 里" in runtime_interface

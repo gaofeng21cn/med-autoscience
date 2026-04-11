@@ -5,7 +5,7 @@
 当前固定边界是：
 
 - `MedAutoScience`：唯一研究入口、research gateway、study / workspace / outer-loop authority owner
-- `Hermes`：新的外层 runtime substrate owner，负责 backend-generic transport、runtime handle、durable surface 与 substrate-level contract
+- 上游 `Hermes-Agent`：目标外层 runtime substrate owner；当前仓内通过 repo-side `Hermes` seam / adapter 暴露 backend-generic transport、runtime handle、durable surface 与 substrate-level contract
 - `MedDeepScientist`：受控 research backend，只保留当前仍需由 research runtime 承担的 backend 能力
 - 旧 `Codex-default host-agent runtime`：只保留为迁移期对照面与 regression oracle，不再是长期产品方向
 - display / paper-facing asset packaging：明确排除在本线之外
@@ -14,7 +14,7 @@
 
 每一项能力只允许落到下面三类之一：
 
-1. 应迁入 `Hermes` substrate 的通用 runtime 能力
+1. 应迁入上游 `Hermes-Agent` target substrate 的通用 runtime 能力
 2. 暂时保留为 controlled research backend 的能力
 3. 后续可进一步吸收或替换的能力
 
@@ -22,17 +22,17 @@ promotion 规则固定为：
 
 - 没有 repo-tracked contract、代码入口、测试 proof surface，不得把能力声称为“已迁出”
 - 不允许通过 hidden fallback、silent downgrade、synthetic truth rewrite 来伪造迁移完成
-- 任何能力迁出 `MedDeepScientist` 前，都必须先在 `MedAutoScience` / `Hermes` 拓扑里获得明确 owner、artifact surface 与 fail-closed gate semantics
+- 任何能力迁出 `MedDeepScientist` 前，都必须先在 `MedAutoScience` / 上游 `Hermes-Agent` target + repo-side seam 拓扑里获得明确 owner、artifact surface 与 fail-closed gate semantics
 
-## 2. A 类：应迁入 Hermes substrate 的通用 runtime 能力
+## 2. A 类：应迁入上游 Hermes-Agent target substrate 的通用 runtime 能力
 
 | 能力 | 当前 proof surface | 为什么属于 substrate | 当前 repo-side 动作 |
 | --- | --- | --- | --- |
-| backend registry / backend selection / fail-closed contract | `src/med_autoscience/runtime_backend.py`、`tests/test_runtime_backend.py` | 这是 controller-facing substrate contract，不应继续由单一 research backend 名称充当 authority | 已冻结为 backend-generic contract，默认 outer substrate owner 已切到 `Hermes` |
+| backend registry / backend selection / fail-closed contract | `src/med_autoscience/runtime_backend.py`、`tests/test_runtime_backend.py` | 这是 controller-facing substrate contract，不应继续由单一 research backend 名称充当 authority | 已冻结为 backend-generic contract，默认 outer-runtime seam label 已切到 `hermes`，并明确指向上游目标 |
 | runtime layout / runtime handle / runtime binding metadata | `src/med_autoscience/runtime_protocol/layout.py`、`src/med_autoscience/runtime_protocol/study_runtime.py`、`tests/test_runtime_protocol_layout.py`、`tests/test_runtime_protocol_study_runtime.py` | `program_id / study_id / quest_id / active_run_id` 与 `runtime_binding.yaml` 属于 substrate-level durable surface | 已写入 `runtime_backend_id / runtime_engine_id / research_backend_id / research_engine_id` |
-| quest session / live-runtime inspection / transport seam | `src/med_autoscience/controllers/study_runtime_transport.py`、`src/med_autoscience/runtime_transport/hermes.py`、`tests/test_runtime_transport_hermes.py` | 这些是 outer runtime 调 backend 的标准动作，不应由 `MedDeepScientist` 名称直接支配 | 已通过 `Hermes` adapter 暴露 controller-facing contract |
+| quest session / live-runtime inspection / transport seam | `src/med_autoscience/controllers/study_runtime_transport.py`、`src/med_autoscience/runtime_transport/hermes.py`、`tests/test_runtime_transport_hermes.py` | 这些是 outer runtime 调 backend 的标准动作，不应由 `MedDeepScientist` 名称直接支配 | 已通过 repo-side `Hermes` adapter 暴露 controller-facing contract |
 | outer-loop wakeup / runtime watch / study runtime status loop | `src/med_autoscience/controllers/study_runtime_router.py`、`src/med_autoscience/controllers/study_outer_loop.py`、`src/med_autoscience/controllers/runtime_watch.py` | 这是 gateway/substrate 的控制闭环，不是 research backend 的自治真相 | 已要求全链只认 backend-generic contract |
-| runtime durable surface normalization | `docs/runtime/runtime_handle_and_durable_surface_contract.md`、`docs/runtime/runtime_backend_interface_contract.md`、`tests/test_runtime_contract_docs.py` | durable surface 是产品主线 truth，不应继续挂在单一 backend 品牌名下 | 当前 repo-side 已冻结 Hermes-backed outer runtime wording |
+| runtime durable surface normalization | `docs/runtime/runtime_handle_and_durable_surface_contract.md`、`docs/runtime/runtime_backend_interface_contract.md`、`tests/test_runtime_contract_docs.py` | durable surface 是产品主线 truth，不应继续挂在单一 backend 品牌名下 | 当前 repo-side 已冻结上游 target + seam wording |
 
 ## 3. B 类：暂时保留为 controlled research backend 的能力
 
@@ -47,7 +47,7 @@ promotion 规则固定为：
 
 | 能力 | 当前 proof surface | 后续方向 |
 | --- | --- | --- |
-| startup-context patch / baseline attach metadata | `update_quest_startup_context(...)`、`requested_baseline_ref` roundtrip tests | 先保持 backend contract，可在 Hermes substrate 获得更稳定 owner 后再上收 |
+| startup-context patch / baseline attach metadata | `update_quest_startup_context(...)`、`requested_baseline_ref` roundtrip tests | 先保持 backend contract，可在上游 `Hermes-Agent` target substrate 获得更稳定 owner 后再上收 |
 | pending-user-interaction relay / approval mediation | `study_runtime_decision.py`、`study_outer_loop.py` | 当前仍需读 quest artifact；后续可向 outer substrate 的统一 interaction bridge 收敛 |
 | runtime-owned memory / review-followup / manuscript-edit side effects | `MedDeepScientist` external runtime truth、`docs/program/external_runtime_dependency_gate.md` | 这些能力要么迁入更通用 substrate，要么被更受控的上层产品替换 |
 

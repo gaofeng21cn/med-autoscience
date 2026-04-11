@@ -7,7 +7,7 @@
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向
 - formal-entry matrix：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
-- 当前 repo-tracked runtime topology：`MedAutoScience` 作为唯一研究入口与 research gateway，`Hermes` 作为外层 runtime substrate owner，`MedDeepScientist` 作为 controlled research backend
+- 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内仅有 repo-side seam / shim
 
 ## 目标
 
@@ -17,12 +17,12 @@
 - 维护稳定的 runtime contract 与 delivery surface，确保可验证、可迭代。
 - 把研究推进收口成一串通往 SCI-ready 投稿态的 fail-closed gate，而不是依赖一次长对话或单个 backend 自行兜底。
 
-## Hermes 整合后的项目理解
+## 目标中的 Hermes-Agent 与当前 seam
 
-当前 `Hermes` 整合后的 `MedAutoScience`，不应被理解为“把旧 `MedDeepScientist` 换个名字套起来”，而应理解为：
+目标态里，不应把 `MedAutoScience` 理解成“把旧 `MedDeepScientist` 换个名字套起来”，而应理解为：
 
 - `MedAutoScience` 负责研究入口、study/workspace authority、研究治理与 publication judgment。
-- `Hermes` 负责 outer runtime substrate、managed runtime handle 与 backend-generic execution contract。
+- 上游 `Hermes-Agent` 负责 outer runtime substrate、managed runtime handle 与 backend-generic execution contract。
 - `MedDeepScientist` 负责当前仍需保留的 inner research execution。
 
 因此系统追求的不是“保证必然发表”，而是把研究推进变成可审计的阶段性收敛过程：
@@ -33,8 +33,8 @@
 
 当前还要补上一条诚实边界：
 
-- 当前仓内的 `Hermes` 首先是 repo-side outer substrate contract owner，不等于宿主机已经预装独立 Hermes runtime。
-- 如果宿主机尚无 external `Hermes`，当前复用的是 outer-loop contract、durable surface、watch / supervision / progress semantics；底层 quest execution 仍经由 controlled backend contract 落到 `MedDeepScientist`。
+- 当前仓内的 `Hermes` 首先只是 repo-side outer substrate seam，不等于宿主机已经预装独立 `Hermes-Agent` runtime。
+- 如果宿主机尚无 external `Hermes-Agent`，当前复用的是 outer-loop contract、durable surface、watch / supervision / progress semantics；底层 quest execution 仍经由 controlled backend contract 落到 `MedDeepScientist`。
 - 因而这条主线相对旧形态不是逻辑降级，而是先把外环监管、研究治理、人话进度汇报收成独立 authority，再把剩余 engine-level 能力逐步解构出去。
 
 ## 非目标

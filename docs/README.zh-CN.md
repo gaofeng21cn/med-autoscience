@@ -26,10 +26,10 @@
 - `P1 workspace canonical literature / knowledge truth`：已在本仓完成
 - `P2 controlled cutover -> physical monorepo migration`：仍是当前 active tranche
 
-- 当前 repo-verified 基线：`MedAutoScience` 是唯一研究入口，`MedDeepScientist` 仍是当前受控 research backend。
-- 长线目标：`Hermes` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
+- 当前 repo-verified 基线：`MedAutoScience` 是唯一研究入口，`MedDeepScientist` 仍是当前受控 research backend；上游 `Hermes-Agent` 仍是目标 runtime substrate，而不是已落地事实。
+- 长线目标：上游 `Hermes-Agent` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
 - 独立支线：`medical display / 论文配图资产化` 与 runtime 主线严格分离。
-- `external_runtime_dependency_gate.md` 仍然属于 blocker package，但它已经不是整个项目的总停车结论。
+- `external_runtime_dependency_gate.md` 仍然属于 blocker package，并作为 `P2` 内剩余的外部 gate 继续跟踪。
 
 ## Runtime 合同与控制面
 

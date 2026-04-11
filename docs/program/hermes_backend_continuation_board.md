@@ -1,11 +1,11 @@
-# Hermes Backend Continuation Board
+# Upstream Hermes-Agent Target And Repo-Side Seam Continuation Board
 
-这份文档把 `P2 controlled cutover -> physical monorepo migration` 中，当前仍可在 repo 内诚实继续推进的 runtime / gateway / architecture 主线冻结下来。
+这份文档把 `P2 controlled cutover -> physical monorepo migration` 中，当前仍可在 repo 内诚实继续推进的 runtime / gateway / architecture 主线冻结下来。文件名沿用了历史 `hermes` 命名，但当前真相是：它描述的是“上游 `Hermes-Agent` 目标 + repo-side seam”的 continuation，而不是“仓内已经接入上游 Hermes-Agent”。
 
 它明确声明：
 
 - 旧 `Codex-default host-agent runtime` 不再是长期产品方向，只保留为迁移期对照面与 regression oracle
-- 当前主线只推进 `MedAutoScience gateway -> Hermes outer runtime substrate -> MedDeepScientist controlled research backend`
+- 当前主线只推进 `MedAutoScience gateway -> upstream Hermes-Agent target outer runtime substrate -> MedDeepScientist controlled research backend` 这条过渡链；仓内当前落地的是 outer-runtime seam，而不是上游 substrate 本体
 - display / paper-facing asset packaging 独立线明确排除，不得混入本线
 
 它不是：
@@ -19,14 +19,14 @@
 
 当前 Hermes continuation 只解决四件事：
 
-1. 让 `Hermes` 成为 repo-tracked 默认 outer runtime substrate owner
+1. 让 repo-tracked 默认 outer-runtime seam 与 target wording 都明确指向上游 `Hermes-Agent`
 2. 让 controller / outer-loop / transport / durable surface 真正只认 backend-generic contract
 3. 让 `MedDeepScientist` 退回 controlled research backend，而不是 hidden authority truth
 4. 把 `MedDeepScientist` 解构地图写成可继续实现、可验证的 repo-tracked artifact
 
 当前 repo-side 已落到的 continuation 子面包括：
 
-- `study_runtime_router` / `study_runtime_transport` / workspace onboarding 已以 `managed_runtime_transport` 和 `Hermes-backed managed runtime` 作为主线口径
+- `study_runtime_router` / `study_runtime_transport` / workspace onboarding 已把默认口径收紧到 `managed_runtime_transport` 与上游 target-facing repo-side seam
 - `figure_loop_guard` / `medical_publication_surface` 的 runtime stop seam 已收口到通用 managed runtime transport authority
 - `med_deepscientist_transport` 仅继续保留兼容别名，不再作为新的 authority 命名基线
 
@@ -35,7 +35,7 @@
 当前允许在 repo 内打开的 write-set 只包括：
 
 1. `runtime backend interface` / `runtime_backend` registry 与 fail-closed contract 校验
-2. `Hermes` adapter / default outer substrate wiring
+2. repo-side `Hermes` adapter / default outer-substrate seam wiring
 3. `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch` 对 substrate / research-backend metadata 的 durable-surface freeze
 4. `MedDeepScientist` deconstruction map、docs / tests / preflight 的同步收口
 
@@ -91,7 +91,7 @@
 
 只有当下面条件同时满足时，才允许把这条 continuation 的 repo-side 子目标表述为已完成：
 
-1. `Hermes` default outer substrate wiring 已通过 fresh verification
+1. repo-side `Hermes` default outer-substrate seam wiring 已通过 fresh verification
 2. `runtime_binding.yaml` 与相关 status / watch surface 已写出 substrate / research-backend 分层语义
 3. `MedDeepScientist` deconstruction map 已 repo-tracked，且能对应代码与验证面
 4. repo-tracked docs 已明确写清目标、边界、验证、promotion invariants、excluded scope、真实 blocker

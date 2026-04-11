@@ -15,7 +15,7 @@
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
 - 重大变更必须在独立 worktree 中完成，保持可追溯与可回滚。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
-- 当前目标形态是 `Hermes` 承担外层 runtime substrate、`MedAutoScience` 保持唯一研究入口、`MedDeepScientist` 逐步收敛为 research backend；不得再把旧默认 substrate 深磨成长期终态。
+- 当前目标形态是上游 `Hermes-Agent` 承担外层 runtime substrate、`MedAutoScience` 保持唯一研究入口、`MedDeepScientist` 逐步收敛为 research backend；不得再把当前 repo-side seam 写成“已接入 Hermes-Agent”。
 
 ## 文档与结构
 

@@ -40,7 +40,7 @@ If your goal is to keep turning disease-specific data into publication-ready stu
 
 ## Where It Sits
 
-`Med Auto Science` is not the whole of `Research Foundry`, and it is not the top-level `OPL` gateway either.
+`Med Auto Science` sits inside `Research Foundry` as the active medical `Research Ops` surface, while `OPL` continues to provide the top-level gateway and federation layer.
 
 Its current role is:
 
@@ -49,11 +49,11 @@ Its current role is:
 - it owns medical `Research Ops` contracts and delivery expectations
 - the domain gateway that organizes medical studies, evidence packages, and submission delivery
 - the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`
-- the harness-based runtime surface above a `Hermes` outer runtime substrate and a controlled `MedDeepScientist` research backend, while `MedDeepScientist` itself is not the system body
+- the harness-based runtime surface above a repo-side outer-runtime seam, with `MedDeepScientist` serving as the controlled research backend
 
 The public chain is:
 
-`User / Agent -> OPL Gateway (optional) -> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Hermes outer runtime substrate -> Controlled MedDeepScientist research backend`
+`User / Agent -> OPL Gateway (optional) -> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> repo-side outer-runtime seam -> Controlled MedDeepScientist research backend`
 
 ## What It Helps You Do
 
@@ -77,22 +77,22 @@ Many automated research systems are good at executing steps but weak at controll
 
 The old `Codex-default host-agent runtime` is now kept only as a migration-era comparison surface and regression oracle; it is no longer the long-term product direction.
 The formal-entry matrix remains fixed as: default formal entry `CLI`, supported protocol layer `MCP`, internal control surface `controller`.
-That matrix describes how agents enter the runtime; it does not mean the public product is a human CLI toolbox.
-The current repo-tracked product mainline is still `Auto-only`; any future `Human-in-the-loop` product should reuse the same substrate as a compatible sibling or upper-layer product rather than split this repository into same-repo dual-mode logic.
-The current repo-tracked runtime topology is:
+That matrix describes how agents enter the runtime, while the public product remains agent-operated and domain-governed.
+The current repo-tracked product mainline is still `Auto-only`; any future `Human-in-the-loop` product should reuse the same substrate as a compatible sibling or upper-layer product.
+The long-line target runtime topology is:
 
 - `Med Auto Science` stays the only research entry, research gateway, and study/workspace authority owner
-- `Hermes` is the default outer runtime substrate owner
-- `MedDeepScientist` is the controlled research backend, not the system body
+- upstream `Hermes-Agent` is the outer runtime substrate owner
+- `MedDeepScientist` is the controlled research backend
 
-The managed runtime side is frozen behind a single `runtime backend interface` contract. The controller, outer loop, transport, and durable surface now treat `runtime_backend_id = hermes` / `runtime_engine_id = hermes` as the default outer runtime metadata, while `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` records the current controlled research backend.
+The current repo-side seam is frozen behind a single `runtime backend interface` contract. Today, this repository has **not** landed a true upstream `Hermes-Agent` integration yet: the controller, outer loop, transport, and durable surface can already carry the future outer-runtime boundary, but real long-running execution still goes through the controlled `MedDeepScientist` backend.
 
 ### What `Hermes` Means Today
 
-- In this repository, `Hermes` currently means the repo-side outer runtime substrate contract owner. It does not mean this checkout automatically ships or installs a standalone external Hermes daemon on the host.
-- If a machine has not yet provisioned an external `Hermes` runtime, the repo can still use `runtime_backend_id = hermes` because `med_autoscience.runtime_transport.hermes` is currently a consumer-only seam that delegates actual quest control to the controlled `MedDeepScientist` transport through the backend contract.
+- In this repository, `Hermes` currently names the repo-side outer-runtime seam for the mainline, not a landed upstream `Hermes-Agent` runtime.
+- Before host-side external `Hermes-Agent` provisioning is complete, the repo can still use `runtime_backend_id = hermes` because `med_autoscience.runtime_transport.hermes` is currently a consumer-only seam that delegates actual quest control to the controlled `MedDeepScientist` transport through the backend contract.
 - This still gives the outer loop real leverage: `runtime_watch` can detect dropouts, `ensure_study_runtime` can request recovery, `runtime_supervision/latest.json` can escalate repeated failures, and `study_progress` can project physician-friendly updates from durable surfaces.
-- What it does not honestly prove yet is independent engine replacement. If the controlled `MedDeepScientist` execution surface disappears entirely, the current repo-side Hermes seam can detect, escalate, and report that failure, but it cannot be described as an already-installed standalone Hermes host that fully replaces the backend. That remains behind the external runtime gate.
+- What this seam already proves is supervised delegation, recovery signaling, and runtime reporting around the controlled backend. Independent engine replacement remains behind the external runtime gate: if the controlled `MedDeepScientist` execution surface disappears entirely, the current repo-side seam can detect, escalate, and report that failure while standalone host replacement continues through that gate.
 
 ## Current Repo-Side Status
 
@@ -102,9 +102,9 @@ That means:
 
 - `P0 runtime native truth` is complete in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
 - `P1 workspace canonical literature / knowledge truth` is complete in `Med Auto Science`
-- `P2 controlled cutover -> physical monorepo migration` remains active, but the repo-side mainline has already shifted to `Hermes` outer substrate ownership
+- `P2 controlled cutover -> physical monorepo migration` remains active, but what is currently landed is a repo-side seam and contract cleanup, not true upstream `Hermes-Agent` ownership
 
-The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, the `Hermes` outer substrate closure, and the `MedDeepScientist` deconstruction map. The external runtime gate still exists, but it is now a real external blocker inside `P2`, not the whole-project stop state.
+The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, a repo-side outer-runtime seam, and the `MedDeepScientist` deconstruction map. The external runtime gate now sits as a concrete external blocker inside `P2`, and it still prevents any honest claim that upstream `Hermes-Agent` already owns the runtime substrate.
 
 ## Execution Handle And Durable Surfaces
 

@@ -36,11 +36,11 @@
 
 ## 对外一句话理解
 
-如果你的目标是把专病数据持续推进成可投稿的正式研究，`Med Auto Science` 提供的不是零散脚本，而是一条可治理、可审计、可持续推进的医学研究主线。
+如果你的目标是把专病数据持续推进成可投稿的正式研究，`Med Auto Science` 提供的是一条可治理、可审计、可持续推进的医学研究主线。
 
 ## 它处在什么位置
 
-`Med Auto Science` 不是 `Research Foundry` 的全部本体，也不是顶层的 `OPL` gateway。
+`Med Auto Science` 位于 `Research Foundry` 主线内部，承担 active medical `Research Ops` surface，而顶层 `OPL` 继续负责 gateway 与 federation 层。
 
 它当前承担的是：
 
@@ -49,17 +49,17 @@
 - 负责医学 `Research Ops` 的领域合同与交付要求
 - 负责组织医学课题、证据包与投稿交付的 domain gateway
 - 共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` `Domain Harness OS`
-- 位于 `Hermes` 外层 runtime substrate 与受控 `MedDeepScientist` research backend 之上的 harness 化运行面，但不把 `MedDeepScientist` 视为系统本体
+- 位于 repo-side 外层 runtime seam 与受控 `MedDeepScientist` research backend 之上的 harness 化运行面
 
 公开链路可以概括为：
 
-`User / Agent -> OPL Gateway（可选顶层）-> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Hermes 外层 runtime substrate -> 受控 MedDeepScientist research backend`
+`User / Agent -> OPL Gateway（可选顶层）-> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> repo-side 外层 runtime seam -> 受控 MedDeepScientist research backend`
 
 ## 它能帮你做什么
 
 - 把专病级 workspace、数据资产、study 组合和交付物组织在同一个可审计表面上。
 - 把课题从数据清洗、资产登记推进到分析、验证、证据组织和稿件交付。
-- 让研究逻辑更贴近临床读者与期刊写作要求，而不是默认退化成通用 ML 论文结构。
+- 让研究逻辑贴近临床读者与期刊写作要求，并保持清晰的医学叙事结构。
 - 对论文图表、表格和 submission surface 施加更严格的结构化约束。
 
 ## 它为什么存在
@@ -68,31 +68,31 @@
 
 `Med Auto Science` 的优先级不同：
 
-- 先判断一个方向是否值得继续投入，而不是默认把预算花完
+- 先识别值得继续投入的方向，再分配执行预算
 - 先围绕临床意义、报告逻辑和证据链组织研究
-- 先把关键状态落到可审计表面，而不是藏在瞬时会话里
+- 先把关键状态落到可审计表面，形成可追踪的研究记录
 - 让 Agent 负责执行，把关键继续/停止判断保留给人类
 
 ## 当前默认运行形态
 
 旧 `Codex-default host-agent runtime` 现在只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
 formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`。
-这套矩阵描述的是 Agent 如何进入 runtime，并不意味着公开产品被重新定义成“给医学用户手工敲命令”的工具箱。
-当前 repo-tracked 产品主线仍按 `Auto-only` 理解；未来如果要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
-当前 repo-tracked runtime topology 已固定为：
+这套矩阵描述的是 Agent 如何进入 runtime，而公开产品继续保持 agent-operated、domain-governed 的医学研究主线。
+当前 repo-tracked 产品主线仍按 `Auto-only` 理解；未来如果要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate。
+当前长线目标的 runtime topology 是：
 
 - `Med Auto Science` 继续是唯一研究入口、research gateway 与 study/workspace authority owner
-- `Hermes` 成为默认外层 runtime substrate owner
-- `MedDeepScientist` 作为 controlled research backend 保留，不再充当系统本体
+- 上游 `Hermes-Agent` 成为外层 runtime substrate owner
+- `MedDeepScientist` 作为 controlled research backend 保留
 
-当前 managed runtime 一侧已经冻结到单一 `runtime backend interface` contract 后面。controller / outer-loop / transport / durable surface 默认写出 `runtime_backend_id = hermes` / `runtime_engine_id = hermes`，同时用 `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` 记录当前受控 research backend。
+当前 repo-side seam 已经冻结到单一 `runtime backend interface` contract 后面。需要明确的是：本仓**还没有**真正完成上游 `Hermes-Agent` 集成。现在落下来的，是 future outer-runtime boundary、outer-loop contract、watch / supervision / durable surface 的 repo-side 收口；真实长时执行仍然通过受控 `MedDeepScientist` backend 完成。
 
 ### 当前 `Hermes` 到底指什么
 
-- 在当前仓内，`Hermes` 首先指 repo-side outer runtime substrate contract owner；这不等于当前 checkout 会自动在宿主机上附带安装一个独立 external Hermes daemon。
-- 如果机器上还没有 external `Hermes` runtime，本仓仍然可以合法写出 `runtime_backend_id = hermes`，因为 `med_autoscience.runtime_transport.hermes` 当前是 consumer-only seam，它通过 backend contract 把 quest control 委托给受控 `MedDeepScientist` transport。
+- 在当前仓内，`Hermes` 首先指 repo-side outer runtime seam 与当前主线的集成边界，不等于上游 `Hermes-Agent` runtime 已经落地。
+- 在 external `Hermes-Agent` runtime 尚待完成宿主部署的阶段，本仓仍然可以合法写出 `runtime_backend_id = hermes`，因为 `med_autoscience.runtime_transport.hermes` 当前是 consumer-only seam，它通过 backend contract 把 quest control 委托给受控 `MedDeepScientist` transport。
 - 这并不是空名字：外环已经可以用 `runtime_watch` 发现掉线，用 `ensure_study_runtime` 请求恢复，把连续失败写进 `runtime_supervision/latest.json`，再由 `study_progress` 输出医生/PI 能读的人话进度。
-- 但它目前还不能诚实地证明“独立 Hermes host 已经完整替代 backend engine”。如果 `MedDeepScientist` execution surface 整体消失，当前 repo-side Hermes seam 能做的是检测、升级告警和报告，而不是宣称宿主上已有独立 Hermes 彻底接管执行。这仍属于 external runtime gate。
+- 它当前已经能证明对受控 backend 的监督委托、恢复信号与运行报告能力。独立上游 `Hermes-Agent` host 对 backend engine 的完整替代，继续作为 external runtime gate 的后续目标：如果 `MedDeepScientist` execution surface 整体消失，当前 repo-side seam 会负责检测、升级告警和报告。
 
 ## 当前仓库侧状态
 
@@ -102,9 +102,9 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 - `P0 runtime native truth` 已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
 - `P1 workspace canonical literature / knowledge truth` 已在 `Med Auto Science` 完成
-- `P2 controlled cutover -> physical monorepo migration` 仍是当前 active tranche，但 repo-side 主线已经切到 `Hermes` 外层 substrate ownership
+- `P2 controlled cutover -> physical monorepo migration` 仍是当前 active tranche，但当前落地的是 repo-side seam 与 contract cleanup，不是上游 `Hermes-Agent` 已接管
 
-现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract、`Hermes` outer substrate closure，以及 `MedDeepScientist` 解构地图。external runtime gate 仍然存在，但它已经只是 `P2` 内的一道真实外部 gate，不再是整个项目的总停车结论。
+现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract、repo-side outer-runtime seam，以及 `MedDeepScientist` 解构地图。external runtime gate 仍然存在，它也继续阻止我们把当前状态写成“上游 `Hermes-Agent` 已经落地”。
 
 ## 运行句柄与持久表面
 

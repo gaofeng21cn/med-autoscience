@@ -1,12 +1,12 @@
 # Workspace Architecture
 
-这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到 `Hermes-backed outer runtime + MedDeepScientist controlled backend` 标准形态的约束。
+这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam + MedDeepScientist controlled backend”标准形态的约束。
 
 在顶层定位上，应始终按下面这条理解：
 
 - `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`
-- `Hermes` = 当前默认 outer runtime substrate owner
-- `MedDeepScientist` = 当前由 `MedAutoScience` / `Hermes` 控制的 controlled research backend
+- 上游 `Hermes-Agent` = 目标 outer runtime substrate owner；当前通过 repo-side seam 暴露
+- `MedDeepScientist` = 当前由 `MedAutoScience` / repo-side seam 控制的 controlled research backend
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
 
 也就是说，当前 monorepo / runtime / controller 的任何后续演化，都应被理解为在收紧 `MedAutoScience` 内部 harness OS，而不是削弱它作为独立 domain gateway 的角色。
@@ -24,7 +24,7 @@
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`Hermes` 继续作为默认 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
+- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 
@@ -48,7 +48,7 @@
 - `study`
   - 单条研究线，通常对应一篇主稿或一组强关联投稿产物
 - `quest`
-  - 当前由 `Hermes-backed outer runtime` 绑定到 controlled research backend 的运行状态与过程性产物
+  - 当前由“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 的运行状态与过程性产物
 - `paper bundle / submission package`
   - 面向投稿的 study-local 交付结果
 

@@ -10,15 +10,15 @@
 - `P1 workspace canonical literature / knowledge truth` 已完成并 absorbed
 - `P2 controlled cutover -> physical monorepo migration` 仍未完成
 - `P2` 当前 repo 内可继续推进的主线，已经切成：
-  - `MedAutoScience gateway -> Hermes outer runtime substrate -> MedDeepScientist controlled research backend`
-- `Hermes` 现已成为 repo-tracked 默认 outer runtime substrate owner
+  - `MedAutoScience gateway -> upstream Hermes-Agent target outer runtime substrate -> MedDeepScientist controlled research backend`
+- 当前 repo-tracked 默认 owner 语义，是指向上游目标的 repo-side outer-runtime seam，而不是“仓内已落地独立 Hermes-Agent host”
 - `MedDeepScientist` 不再是默认不可替代 runtime truth，而是 controlled research backend
 
 这意味着：
 
 - repo 内当前正确任务不是回头重做 `P0 / P1`
 - 也不是把 external runtime gate 伪造成 repo 内已清除
-- 而是把 `Hermes-backed outer runtime` 的 repo-side contract、durable surface、deconstruction map 与 blocker wording 收紧到诚实闭环
+- 而是把“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”的 contract、durable surface、deconstruction map 与 blocker wording 收紧到诚实闭环
 
 ## 2. 已关闭的风险
 
@@ -38,7 +38,7 @@
 
 当前仓内已完成的是：
 
-- `Hermes` 作为 controller-facing outer runtime substrate owner 的 registry / transport / binding wiring
+- repo-side `Hermes` adapter 作为 controller-facing outer-runtime seam 的 registry / transport / binding wiring
 - `runtime_binding.yaml` 同时写出 substrate / research-backend metadata
 - controller / outer-loop / transport 只认 backend-generic contract
 
@@ -112,5 +112,5 @@
 
 - 守住已经完成的 `P0 runtime native truth`
 - 守住已经完成的 `P1 workspace canonical literature / knowledge truth`
-- 完成 `Hermes-backed outer runtime` 的 repo-side 最小闭环、durable-surface freeze 与 deconstruction map
+- 完成“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”的最小闭环、durable-surface freeze 与 deconstruction map
 - 把真正剩余 blocker 诚实收口到 external runtime / workspace / human gate

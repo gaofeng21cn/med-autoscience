@@ -67,7 +67,7 @@
   - study 聚合根身份
   - 对应 `studies/<study_id>/`
 - `quest_id`
-  - 当前 `Hermes-backed outer runtime` 绑定到 controlled research backend 后的正式运行句柄
+  - 当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 后的正式运行句柄
   - 当前仍对应 `ops/med-deepscientist/runtime/quests/<quest_id>/`
 - `active_run_id`
   - 当前 live daemon run 的细粒度执行句柄

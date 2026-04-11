@@ -28,8 +28,8 @@ Current frozen state:
 - `P1 workspace canonical literature / knowledge truth`: completed in this repo
 - `P2 controlled cutover -> physical monorepo migration`: still active
 
-- Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend.
-- Long-line target: `Hermes` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
+- Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
+- Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
 - `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
 

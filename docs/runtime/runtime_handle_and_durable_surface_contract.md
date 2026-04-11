@@ -51,7 +51,7 @@
 
 ### `quest_id`
 
-- 角色：当前 `Hermes-backed outer runtime` 绑定到 controlled research backend 后的正式 managed execution handle
+- 角色：当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 后的正式 managed execution handle
 - 典型落点：
   - `runtime_binding.yaml`
   - `study_runtime_status`

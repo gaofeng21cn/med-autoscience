@@ -90,7 +90,7 @@
 - 它不是在重做 `real-study relaunch`
 - 也不是在 repo 内继续凭空打开 `end-to-end study harness`
 - 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
-- 当前 repo-side 正在推进的下一棒，是第 5.5 层 `Hermes-backed outer runtime` continuation
+- 当前 repo-side 正在推进的下一棒，是第 5.5 层“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” continuation
 - 当前 broader cutover 终态仍应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 - 对应的 blocker package 见 `./external_runtime_dependency_gate.md`
 
@@ -138,7 +138,7 @@
 2. delivery / publication plane（已完成）
 3. real-study relaunch and verify（已完成）
 4. integration harness activation package（已完成并 absorbed）
-5. Hermes-backed outer runtime continuation / activation / deconstruction map（当前 repo-side continuation）
+5. 上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam continuation / activation / deconstruction map（当前 repo-side continuation）
 6. external runtime dependency gate package（当前 canonical blocker）
 7. only-then `end-to-end harness / cutover readiness`
 
@@ -149,7 +149,7 @@
 更具体地说：
 
 - 当前最新完成层：第 5 层
-- 当前 repo-side 仍允许继续推进：第 5.5 层 `Hermes-backed outer runtime` continuation / activation / deconstruction map
+- 当前 repo-side 仍允许继续推进：第 5.5 层“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” continuation / activation / deconstruction map
 - 当前 broader cutover 仍被第 6 层 external blocker package 阻断
 
 ## 当前正式执行口径
@@ -163,7 +163,7 @@
 3. 再收紧 delivery / publication plane
 4. 再用真实课题 relaunch 验证整条链是否成立
 5. 再把 integration harness activation baseline 压成稳定 repo-tracked bridge
-6. 再把 `Hermes-backed outer runtime` continuation / activation / deconstruction map 压成稳定 repo-tracked bridge
+6. 再把“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” continuation / activation / deconstruction map 压成稳定 repo-tracked bridge
 
 当前前五层已经在 repo-side 收口完成；当前更大 cutover 的正式停车终态是：
 

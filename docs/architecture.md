@@ -7,10 +7,10 @@
 当前 runtime 拓扑固定为：
 
 - `MedAutoScience`：唯一研究入口、research gateway、study/workspace/outer-loop authority owner
-- `Hermes`：外层 runtime substrate owner，负责 backend-generic runtime contract、runtime handle 与 durable surface
+- repo-side future outer-runtime seam：负责承接 backend-generic runtime contract、runtime handle 与 durable surface 的边界
 - `MedDeepScientist`：controlled research backend，保留当前仍需由 research runtime 承担的 backend execution 能力
 
-旧 `Codex-default host-agent runtime` 不再是长期产品 runtime 深化方向，只保留为迁移期对照面。
+旧 `Codex-default host-agent runtime` 当前承担迁移期对照面与回归参考角色。
 
 ## 入口与控制面
 
@@ -38,31 +38,30 @@
 - `runtime/study_runtime_control_surface.md`
 - `runtime/delivery_plane_contract_map.md`
 
-## Hermes 整合后的工作逻辑
+## 目标中的 Hermes-Agent 与当前 seam 工作逻辑
 
-当前整合 `Hermes` 之后，整个平台应按下面这条主链理解，而不是按函数名或某个 daemon 名称理解：
+当前在“上游 `Hermes-Agent` 目标 + repo-side seam”这条过渡态下，整个平台应按下面这条主链理解：
 
-`问题定义 -> startup boundary -> Hermes managed runtime -> publication gate -> study completion sync`
+`问题定义 -> startup boundary -> repo-side outer-runtime seam -> publication gate -> study completion sync`
 
 展开后，逻辑上是：
 
 1. 人类或 Agent 把疾病问题、数据边界、目标期刊、终点定义、证据要求送入 `MedAutoScience`。
 2. `MedAutoScience` 先在 study / workspace 层收紧 `study charter`、`startup boundary`、journal shortlist、reporting contract 与 evidence package，而不是直接放任 runtime 自己开跑。
-3. 只有在启动边界明确、数据准备度和报告逻辑过线后，`MedAutoScience` 才把 quest 绑定到 `Hermes` 托管的 managed runtime。
-4. `Hermes` 持有外层 runtime substrate 的 handle、binding 和 durable surface，负责把运行句柄、transport contract、watch surface、pause / stop / resume / relaunch 这些外层语义稳定下来。
+3. 只有在启动边界明确、数据准备度和报告逻辑过线后，`MedAutoScience` 才把 quest 绑定到 future outer-runtime seam 所描述的托管运行边界。
+4. 当前 repo-side seam 持有外层 runtime substrate 的 handle、binding 和 durable-surface contract，负责把运行句柄、transport contract、watch surface、pause / stop / resume / relaunch 这些外层语义稳定下来；真实执行仍通过受控 backend 完成。
 5. `MedDeepScientist` 只负责当前仍属于 research backend 的 inner research execution，例如 quest 内部代码执行、paper worktree、daemon worker、bash session 与 quest-local runtime state。
 6. `MedAutoScience` 的 outer-loop 再持续读取 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`runtime_escalation_record.json`、`controller_decisions/latest.json`，决定继续、暂停、重启、停止还是进入 completion sync。
 
-这套机制不是“保证必然发表”的机器。
-它做的是把研究推进拆成一串 fail-closed gate，让系统在证据不足、边界不清、publication hygiene 不过线时诚实阻断，而不是假装已经形成论文。
-因此它追求的是一步步逼近 SCI-ready 投稿态，而不是跳过研究治理直接赌最后一跳。
+这套机制把研究推进拆成一串 fail-closed gate，让系统在证据不足、边界不清、publication hygiene 不过线时诚实阻断。
+它追求的是一步步逼近 SCI-ready 投稿态，并把研究治理保持在主链上。
 
 ## 为什么这不是逻辑降级
 
 相对只依赖 `MedDeepScientist` 的版本，逻辑上不是降级，而是把原来混在一起的 authority 重新分层：
 
 - `MedAutoScience` 负责研究入口、study/workspace authority、journal / reporting / publication judgment。
-- `Hermes` 负责 outer runtime substrate、managed runtime handle 与 backend-generic execution contract。
+- 上游 `Hermes-Agent` 是目标 outer runtime substrate owner；当前仓内只是先冻结了对应 seam、managed runtime handle 与 backend-generic execution contract。
 - `MedDeepScientist` 负责当前仍未拆出的 inner-loop execution。
 
 在 repo-side 已完成的范围内，功能没有因为接入 `Hermes` 而退回“只能跑一个 backend”或“只能靠对话记状态”。
@@ -81,8 +80,8 @@
 ## 当前还不能诚实宣称的事
 
 - 当前 `med_autoscience.runtime_transport.hermes` 仍是 consumer-only outer substrate seam，底层 quest create / pause / resume / control 还是经由 controlled `MedDeepScientist` stable transport 完成。
-- 所以如果宿主机还没有 external `Hermes` runtime，本仓“用上 Hermes”成立的是 topology / contract / durable surface / outer-loop semantics 的复用，不是“已经装好了一个独立 Hermes host 并能脱离 backend 单独托管”。
-- 这也是当前真实 external blocker：本仓已经能检测、恢复请求、升级告警、医生可读汇报，但还不能把 `MedDeepScientist` 整体故障表述成“独立 Hermes 宿主已完整接管执行真相”。
+- 所以如果宿主机还没有 external `Hermes-Agent` runtime，本仓“用上 Hermes”成立的是 topology / contract / durable surface / outer-loop semantics 的复用，不是“已经装好了一个独立上游 `Hermes-Agent` host 并能脱离 backend 单独托管”。
+- 这也是当前真实 external blocker：本仓已经能检测、恢复请求、升级告警、医生可读汇报，但还不能把 `MedDeepScientist` 整体故障表述成“独立 `Hermes-Agent` 宿主已完整接管执行真相”。
 
 ## 现在比原来更好解决了什么
 
