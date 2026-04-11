@@ -4,6 +4,7 @@ import csv
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
+from functools import lru_cache
 import html
 import json
 import math
@@ -4563,8 +4564,18 @@ class _GraphvizLayout:
     nodes: dict[str, _GraphvizNodeBox]
 
 
+@lru_cache(maxsize=4)
+def _flow_font_path(font_weight: str) -> str:
+    normalized_weight = str(font_weight or "normal").strip().lower()
+    filename = "DejaVuSans-Bold.ttf" if "bold" in normalized_weight else "DejaVuSans.ttf"
+    font_path = Path(matplotlib.get_data_path()) / "fonts" / "ttf" / filename
+    if not font_path.exists():
+        raise FileNotFoundError(f"matplotlib bundled flow font is missing: {font_path}")
+    return str(font_path)
+
+
 def _flow_font_properties(*, font_weight: str) -> FontProperties:
-    return FontProperties(family="DejaVu Sans", weight=font_weight)
+    return FontProperties(fname=_flow_font_path(font_weight), weight=font_weight)
 
 
 def _measure_flow_text_width_pt(text: str, *, font_size: float, font_weight: str) -> float:

@@ -44,3 +44,12 @@ def test_public_readmes_publish_layered_test_entrypoints() -> None:
     assert "make test-fast" in readme_zh
     assert "make test-meta" in readme_zh
     assert "make test-display" in readme_zh
+
+
+def test_root_agents_freezes_layered_test_governance() -> None:
+    agents = _read("AGENTS.md")
+
+    assert "`make test-fast` is the default developer slice and must exclude both `meta` and `display_heavy` suites" in agents
+    assert "`make test-meta` and `make test-display` are explicit, marker-driven lanes" in agents
+    assert "`make test-full` is the clean-clone baseline and release gate" in agents
+    assert "update `Makefile`, `pyproject.toml`, `README*`, CI/release workflows, and command-surface tests together" in agents

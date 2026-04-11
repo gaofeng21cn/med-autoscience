@@ -31,6 +31,13 @@ Read that file first whenever repository-specific goals, architecture priorities
 - After the lane stops, either absorb the verified commits back to `main` or explicitly abandon the lane, then remove its worktree/branch and clear related tmux/session state.
 - Do not rely on session-only isolation to prevent hook interference; use physical worktree isolation.
 
+## Test Surface Governance
+
+- `make test-fast` is the default developer slice and must exclude both `meta` and `display_heavy` suites.
+- `make test-meta` and `make test-display` are explicit, marker-driven lanes; do not replace them with filename heuristics or fold them back into the default smoke path.
+- `make test-full` is the clean-clone baseline and release gate; repo-tracked docs, workflows, and operator instructions should reference it when they mean the full suite.
+- When changing test commands or marker allocation, update `Makefile`, `pyproject.toml`, `README*`, CI/release workflows, and command-surface tests together.
+
 ## Local State
 
 - `.codex/` and legacy `.omx/` are local tooling state and must remain untracked.
