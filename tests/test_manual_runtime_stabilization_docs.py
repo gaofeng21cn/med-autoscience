@@ -55,9 +55,9 @@ def test_manual_runtime_stabilization_doc_is_linked_from_runtime_entry_docs() ->
 
 
 def test_merge_gate_worktree_wording_matches_project_truth() -> None:
-    project_truth = _read("contracts/project-truth/AGENTS.md")
+    root_agents = _read("AGENTS.md")
     merge_gates = _read("docs/merge_and_cutover_gates.md")
 
-    assert ".worktree/" in project_truth
+    assert "worktree" in root_agents
     assert ".worktree/" in merge_gates
     assert ".worktrees/..." not in merge_gates

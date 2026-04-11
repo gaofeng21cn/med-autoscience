@@ -74,7 +74,7 @@
 
 ### Legacy / 历史参考
 
-- [Legacy OMX worktree 启动与收尾操作规约](omx_worktree_startup_and_closeout.md)（仅历史参考，不是当前 active workflow 入口）
+- [OMX 历史资料索引](history/omx/README.zh-CN.md)（仅历史参考，不是当前 active workflow 入口）
 
 ## 稳定内部规则
 
@@ -90,4 +90,5 @@
 - `README*` 与 `docs/README*`：默认对外双语公开面。
 - `bootstrap/`、`controllers/`、详细 `docs/*.md`：默认内部操作文档，中文优先，除非明确推广。
 - `docs/policies/`：稳定内部规则，默认中文维护。
+- `docs/history/omx/`：OMX 历史资料入口，只做归档，不再承担活跃 workflow。
 - `docs/superpowers/`：本地 AI/Superpowers 的计划、草稿与过程产物，应保持未跟踪。

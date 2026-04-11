@@ -74,7 +74,7 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 
 ### Legacy / Historical References
 
-- [Legacy OMX worktree startup and closeout runbook](omx_worktree_startup_and_closeout.md) (Chinese only; historical reference, not an active workflow entry)
+- [OMX historical archive](history/omx/README.md) (historical reference only; not an active workflow entry)
 
 ## Stable Internal Rules
 
@@ -90,4 +90,5 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 - `README*` and `docs/README*`: default bilingual public surface.
 - `bootstrap/`, `controllers/`, and detailed `docs/*.md`: internal operator references, Chinese by default unless explicitly promoted.
 - `docs/policies/`: stable internal rules, Chinese by default.
+- `docs/history/omx/`: OMX historical archive entry only; never an active workflow surface.
 - `docs/superpowers/`: local AI / Superpowers plans, drafts, and process artifacts; keep them untracked.

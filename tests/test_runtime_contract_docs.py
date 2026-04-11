@@ -13,12 +13,12 @@ def _read(relative_path: str) -> str:
 def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_semantics() -> None:
     readme = _read("README.md")
     readme_zh = _read("README.zh-CN.md")
-    project_truth = _read("contracts/project-truth/AGENTS.md")
+    root_agents = _read("AGENTS.md")
     positioning = _read("docs/domain-harness-os-positioning.md")
     runtime_interface = _read("docs/agent_runtime_interface.md")
     runtime_contract = _read("docs/runtime_handle_and_durable_surface_contract.md")
 
-    for doc in [readme, project_truth, positioning, runtime_interface, runtime_contract]:
+    for doc in [readme, root_agents, positioning, runtime_interface, runtime_contract]:
         assert "Codex-default host-agent runtime" in doc
         assert "CLI" in doc
         assert "MCP" in doc
@@ -67,14 +67,14 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
 
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
-    project_truth = _read("contracts/project-truth/AGENTS.md")
+    root_agents = _read("AGENTS.md")
     runtime_interface = _read("docs/agent_runtime_interface.md")
     positioning = _read("docs/research_foundry_positioning.md")
 
-    for doc in [project_truth, runtime_interface, positioning]:
+    for doc in [root_agents, runtime_interface, positioning]:
         assert "monorepo / runtime core ingest / controlled cutover" in doc
 
-    assert "external runtime gate" in project_truth
+    assert "external runtime gate" in root_agents
     assert "external runtime gate" in runtime_interface
     assert "controller_charter" in runtime_interface
     assert "eval_hygiene" in runtime_interface

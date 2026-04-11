@@ -1,63 +1,57 @@
-# Med Autoscience 仓库协作规范
-
-这个根目录 `AGENTS.md` 是仓库默认入口规范。直接从项目根进入的 Codex 会话，应先遵循这里，而不是先跳到更深层文档里找主规则。
+# MedAutoScience 仓库协作规范
 
 ## 适用范围
 
-适用于仓库根目录及其子目录；如果更深层目录存在 `AGENTS.md`，则以更近者为准。
+本文件适用于仓库根目录及其所有子目录；若更深层目录存在 `AGENTS.md`，以更近者为准。
 
 ## 项目定位
 
-- `MedAutoScience` 是共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` domain gateway 与 `Domain Harness OS`，不是给人手工操作的零散脚本工具箱。
-- 当前默认本地执行形态是 `Codex-default host-agent runtime`；当前 repo-tracked 产品主线按 `Auto-only` 理解。
-- `MedDeepScientist` 是本仓库依赖的执行 surface，不是本仓库的系统本体。
-- 人类负责设定研究目标、审核正式产物和做继续/停止决策；Agent 负责读取状态、推进执行并把关键判断写回可审计表面。
+- `MedAutoScience` 是共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` domain gateway 与 `Domain Harness OS`。
+- 当前默认本地执行形态是 `Codex-default host-agent runtime`；当前 repo-tracked 主线按 `Auto-only` 理解。
+- 当前 formal-entry matrix 固定为：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`。
+- `MedDeepScientist` 是执行 surface，不是本仓库本体；本仓库负责 gateway、controller、overlay、adapter 与可审计 durable surface。
+
+## 非目标
+
+- 不把仓库退化回零散脚本和一次性操作手册集合。
+- 不把 `.codex/` 或其他本地 handoff surface 冒充成 repo-tracked 产品真相。
+- 不在 external runtime gate 未清除时提前做 physical migration 或跨仓大重构。
 
 ## 开发优先级
 
-- 优先压实 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出边界。
-- 优先通过 `policy -> controller -> overlay -> adapter` 主链路表达能力，不要把仓库退化回临时脚本集合。
-- 优先保持本仓库作为独立的 `Research Ops` domain gateway，不要把 `OPL` 顶层 gateway 或某个底层 runtime 文件误写成它的替代物。
-- 影响运行行为时，优先改 `profile / overlay / controller`，避免直接篡改 runtime core。
+- 第一优先级：压实 `MedAutoScience -> MedDeepScientist` runtime protocol、compatibility contract 与 adapter 退出边界。
+- 第二优先级：通过 `policy -> controller -> overlay -> adapter` 主链路表达能力，减少旁路。
+- 第三优先级：把 runtime native truth convergence、workspace knowledge/literature convergence 与 controlled cutover 的顺序写清楚并守住。
 
-## 关键边界
+## 主要入口与真相面
 
-- `program_id`、`study_id`、`quest_id`、`active_run_id` 各自承担不同身份，不能互相替代。
-- `.codex/` 下的本地 handoff surface 不是 repo-tracked 产品 runtime truth。
-- 当前 canonical durable surface 继续以 `study_runtime_status`、`runtime_watch`、`studies/<study_id>/artifacts/**`、`ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/**` 为准。
-- gate 语义保持 fail-closed：`study_runtime_status -> runtime_escalation_record -> publication_eval/latest.json -> controller_decisions/latest.json -> controller action`。
+- 默认人类/AI 入口：`README.md`、`README.zh-CN.md`、`docs/README.md`、`docs/README.zh-CN.md`
+- 稳定/长期规则：`docs/policies/README.md`、`docs/agent_runtime_interface.md`、`docs/runtime_handle_and_durable_surface_contract.md`
+- 关键身份与 durable surface：`program_id`、`study_id`、`quest_id`、`active_run_id`；`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`runtime_escalation_record.json`、`controller_decisions/latest.json`
+- `monorepo / runtime core ingest / controlled cutover` 仍是后置长线，不是当前默认实现入口。
 
-## 工作树纪律
+## 文档规则
 
-- Heavy 或长链路实现必须在基于当前 `main` 创建的独立 worktree 中完成。
-- 共享根 checkout 保持在 `main`，只用于轻量读取、评审、吸收提交、push 和清理，不要把它变成长时间占用的 owner checkout。
-- 如果需要多条长链路主线，就创建多个 worktree，不要靠 session 级隔离硬撑。
-- 开始新 lane 前，确认 owner worktree 干净，没有陈旧本地 runtime 状态。
-- lane 结束后，要么把已验证提交吸收到 `main`，要么明确放弃，并清理 worktree、分支和相关 tmux/session 状态。
+- `README*` 与 `docs/README*` 是默认对外与默认入口文档。
+- 公开文档保持中英双语；内部技术、规划、备忘文档默认中文。
+- `docs/policies/` 放稳定规则，`docs/history/omx/` 放 OMX 历史资料索引，`docs/superpowers/` 放本地 AI 过程文档并保持未跟踪。
+- 任何新文档都要先判断它属于公开入口、稳定规则、参考资料还是历史归档，不要混放。
 
-## 测试面治理
-
-- `make test-fast` 是默认开发测试面，必须排除 `meta` 和 `display_heavy`。
-- `make test-meta` 与 `make test-display` 是显式 marker lane，不要再退回文件名启发式或把它们塞回默认 smoke。
-- `make test-full` 是 clean-clone 基线与 release gate；repo-tracked 文档、workflow 与操作说明凡是指“全量验证”，都应指向它。
-- 修改测试命令或 marker 分配时，要同步更新 `Makefile`、`pyproject.toml`、`README*`、CI/release workflow 与 command-surface tests。
-
-## 文档与附录
-
-- 根文档负责默认入口规则；`contracts/project-truth/AGENTS.md` 是更细的项目边界附录，不再是默认必读前置。
-- `docs/documentation-governance.md` 是文档治理附录。公开文档保持双语，内部技术/规划文档默认中文。
-- `docs/superpowers/` 只放本地 AI 工作过程文档，保持未跟踪。
-- OMX 相关材料仅保留为历史参考，不再构成 active workflow 要求。
-
-## 通用协作约束
+## 变更与验证
 
 - 保持 diff 小、可审查、可回退。
 - 能删就别加；能复用现有模式就别新起抽象。
-- 没有明确理由不要新增依赖。
-- 完成前必须运行与改动相匹配的测试、类型检查和验证命令。
-- 最终说明需要交代改了什么，以及还剩哪些风险或缺口。
+- 没有明确必要不要新增依赖。
+- 修改 formal-entry、command surface、marker/test lane、runtime handle 或 durable surface 语义时，必须同步改 README、docs、测试与相应实现。
+- 默认测试入口：`make test-fast`；`make test-meta`、`make test-display` 是显式 lane；`make test-full` 是 clean-clone 基线。
+
+## 并行开发与工作树
+
+- 大改动、长链路工作、并行多 AI 开发，默认先从当前 `main` 开独立 worktree，再在 worktree 内实现和验证。
+- 共享根 checkout 只用于轻量阅读、评审、吸收验证后提交、push 和清理，不应长期承担重型实现。
+- 需要多条 lane 时创建多个 worktree，不要把多条长线塞进同一工作目录。
 
 ## 本地状态
 
 - `.codex/` 与 `.omx/` 都是本地工具状态，必须保持未跟踪。
-- `.omx/` 仅保留历史残留，不再作为 active workflow 入口。
+- `.omx/` 仅允许作为历史残留存在，不得再作为当前 workflow 入口。
