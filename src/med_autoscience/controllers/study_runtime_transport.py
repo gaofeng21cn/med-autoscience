@@ -30,7 +30,9 @@ def _default_runtime_backend() -> ManagedRuntimeBackend:
         return router._default_managed_runtime_backend()
     if hasattr(router, "managed_runtime_backend"):
         return router.managed_runtime_backend
-    return router.med_deepscientist_transport
+    raise AttributeError(
+        "study_runtime_transport requires router to expose managed_runtime_transport or managed_runtime_backend"
+    )
 
 
 def _inspect_quest_live_execution(
