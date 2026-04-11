@@ -2,39 +2,65 @@
 
 ## Purpose
 
-这个文档定义 display surface 的扩容边界，但它不再把已经清掉的锚点论文假设继续留在 active backlog 里。
+这个文档现在只负责记录 display 的候选扩容池与历史 backlog 清理结果。
+
+它不是当前 active execution surface。
+
+当前 active round 与当前 phase 一律以 [medical_display_active_board.md](./medical_display_active_board.md) 为准。
 
 当前完成态真相优先看：
 
 - `./medical_display_audit_guide.md`
 - `./medical_display_template_catalog.md`
 - `./medical_display_anchor_paper_audit.md`
+- `./medical_display_active_board.md`
 
-## Current Audited Inventory
+## Current Audited Inventory Snapshot
 
-截至当前工作树：
+截至当前审计真相：
 
-- Evidence figure templates: `23`
-- Illustration shells: `1`
+- Evidence figure templates: `36`
+- Evidence figure templates: `37`
+- Illustration shells: `2`
 - Table shells: `5`
-- Total audited templates: `29`
+- Total audited templates: `44`
 
-新增并已进入正式 audited surface 的 anchor-driven 能力：
+这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
-- `risk_layering_monotonic_bars`
-- `binary_calibration_decision_curve_panel`
-- `model_complexity_audit_panel`
-- `performance_summary_table_generic`
-- `grouped_risk_event_summary_table`
+## Historical Anchor-Driven Cleanup
 
-## Anchor-Driven Backlog Status
+`001` 与 `003` 曾经驱动过的历史 backlog 已经完成清理，不再作为当前 active blocker：
 
-`001` 与 `003` 之前驱动过的 active backlog 现在已经重判：
+- `001 direct migration pack`
+- `003 risk_layering_monotonic_bars`
+- `003 binary_calibration_decision_curve_panel`
+- `003 model_complexity_audit_panel`
+- `003 performance summary`
+- `003 grouped risk event summary`
+- `Figure 1 unified shell upgrade`
 
-- `001 direct migration pack`：已不再是 active backlog；study-owned `paper/` root 已建立并通过 cross-paper verification。
-- `003 risk_layering_monotonic_bars` / `binary_calibration_decision_curve_panel` / `model_complexity_audit_panel`：已不再是 gap；已正式进入 audited repo surface。
-- `003 performance summary` / `grouped risk event summary`：已不再是 table-shell gap；已正式进入 audited repo surface。
-- `Figure 1 unified shell upgrade`：不再作为当前 backlog blocker；当前真实 submission surfaces 已稳定承载 `F1 cohort_flow_figure`，且 `001` legacy sidecar role 已在正式 materializer 中被兼容。
+这些条目保留在这里，只是为了说明它们已经出队，不应再持续污染当前判断。
+
+## Current Candidate Pool
+
+当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
+
+- `F / force-like summary`
+- `F / PDP`
+- `F / ICE`
+- `H / workflow_fact_sheet_panel`
+- `H / design_evidence_composite_shell`
+- `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
+
+这些候选不等于必须立即实现。
+
+只有当：
+
+1. 当前 active round 已 absorb；
+2. reroute 重新确认优先级；
+3. 新的真实论文或高质量 exemplar 证明其价值；
+
+它们才应进入新的 owner round。
 
 ## Current Boundary
 
@@ -56,9 +82,9 @@
 4. 能复用现有 `qc_profile`，或值得新增一个明确的 profile。
 5. 不允许把聚类、重排、避让、文字修正放到 renderer 内做启发式补救。
 
-## Inactive General Expansion Queue
+## Longer-Horizon Inactive Queue
 
-下面这些候选仍可作为未来扩容候选，但当前不是 active mainline：
+下面这些方向仍可作为更远期候选，但当前不是 active mainline：
 
 - `clinical_impact_curve_binary`
 - `multivariable_forest`
@@ -66,7 +92,4 @@
 - `confusion_matrix_heatmap_binary`
 - `temporal_external_validation_overview`
 
-重新激活它们的前提是：
-
-- fresh anchor-paper truth 已经收口；
-- 或者新的真实研究交付明确暴露了这些模板的稳定需求。
+它们只有在新的真实研究交付或新的 exemplar 明确证明价值时，才应重新激活。

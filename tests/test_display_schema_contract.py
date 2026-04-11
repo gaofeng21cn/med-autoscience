@@ -37,6 +37,8 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     embedding = module.get_input_schema_contract("embedding_grouped_inputs_v1")
     celltype_signature = module.get_input_schema_contract("celltype_signature_heatmap_inputs_v1")
     atlas_overview = module.get_input_schema_contract("single_cell_atlas_overview_inputs_v1")
+    spatial_niche_map = module.get_input_schema_contract("spatial_niche_map_inputs_v1")
+    trajectory_progression = module.get_input_schema_contract("trajectory_progression_inputs_v1")
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
@@ -196,6 +198,154 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_column_labels_must_match_cell_columns",
         "declared_column_labels_must_match_embedding_states",
         "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert spatial_niche_map.template_ids == (_full_id("spatial_niche_map_panel"),)
+    assert spatial_niche_map.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "spatial_panel_title",
+        "spatial_x_label",
+        "spatial_y_label",
+        "spatial_points",
+        "composition_panel_title",
+        "composition_x_label",
+        "composition_y_label",
+        "composition_groups",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert spatial_niche_map.display_optional_fields == (
+        "paper_role",
+        "spatial_annotation",
+        "composition_annotation",
+        "heatmap_annotation",
+    )
+    assert spatial_niche_map.collection_required_fields["spatial_points"] == ("x", "y", "niche_label")
+    assert spatial_niche_map.collection_optional_fields["spatial_points"] == ("region_label",)
+    assert spatial_niche_map.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "niche_proportions",
+    )
+    assert spatial_niche_map.nested_collection_required_fields["composition_groups.niche_proportions"] == (
+        "niche_label",
+        "proportion",
+    )
+    assert spatial_niche_map.collection_required_fields["row_order"] == ("label",)
+    assert spatial_niche_map.collection_required_fields["column_order"] == ("label",)
+    assert spatial_niche_map.collection_required_fields["cells"] == ("x", "y", "value")
+    assert spatial_niche_map.additional_constraints == (
+        "spatial_points_must_be_non_empty",
+        "spatial_point_coordinates_must_be_finite",
+        "spatial_point_niche_label_must_be_non_empty",
+        "composition_groups_must_be_non_empty",
+        "composition_group_labels_must_be_unique",
+        "composition_group_order_must_be_strictly_increasing",
+        "composition_group_niche_proportions_must_be_non_empty",
+        "composition_group_niche_labels_must_match_declared_columns",
+        "composition_group_proportions_must_be_finite_probability",
+        "composition_group_proportions_must_sum_to_one",
+        "score_method_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_column_labels_must_match_spatial_niches",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert trajectory_progression.template_ids == (_full_id("trajectory_progression_panel"),)
+    assert trajectory_progression.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "trajectory_panel_title",
+        "trajectory_x_label",
+        "trajectory_y_label",
+        "trajectory_points",
+        "composition_panel_title",
+        "composition_x_label",
+        "composition_y_label",
+        "branch_order",
+        "progression_bins",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert trajectory_progression.display_optional_fields == (
+        "paper_role",
+        "trajectory_annotation",
+        "composition_annotation",
+        "heatmap_annotation",
+    )
+    assert trajectory_progression.collection_required_fields["trajectory_points"] == (
+        "x",
+        "y",
+        "branch_label",
+        "state_label",
+        "pseudotime",
+    )
+    assert trajectory_progression.collection_required_fields["branch_order"] == ("label",)
+    assert trajectory_progression.collection_required_fields["progression_bins"] == (
+        "bin_label",
+        "bin_order",
+        "pseudotime_start",
+        "pseudotime_end",
+        "branch_weights",
+    )
+    assert trajectory_progression.nested_collection_required_fields["progression_bins.branch_weights"] == (
+        "branch_label",
+        "proportion",
+    )
+    assert trajectory_progression.collection_required_fields["row_order"] == ("label",)
+    assert trajectory_progression.collection_required_fields["column_order"] == ("label",)
+    assert trajectory_progression.collection_required_fields["cells"] == ("x", "y", "value")
+    assert trajectory_progression.additional_constraints == (
+        "trajectory_points_must_be_non_empty",
+        "trajectory_point_coordinates_must_be_finite",
+        "trajectory_point_branch_label_must_be_non_empty",
+        "trajectory_point_state_label_must_be_non_empty",
+        "trajectory_point_pseudotime_must_be_finite_probability",
+        "branch_order_labels_must_be_unique",
+        "branch_order_labels_must_match_trajectory_branches",
+        "progression_bins_must_be_non_empty",
+        "progression_bin_labels_must_be_unique",
+        "progression_bin_order_must_be_strictly_increasing",
+        "progression_bin_intervals_must_be_strictly_increasing",
+        "progression_bin_branch_weights_must_be_non_empty",
+        "progression_bin_branch_labels_must_match_declared_branch_order",
+        "progression_bin_branch_weights_must_be_finite_probability",
+        "progression_bin_branch_weights_must_sum_to_one",
+        "score_method_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_column_labels_must_match_progression_bins",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert _full_id("trajectory_progression_panel") in next(
+        item.template_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    )
+    assert "trajectory_progression_inputs_v1" in next(
+        item.input_schema_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     )
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
     assert clustered_heatmap.display_required_fields == (
@@ -403,10 +553,16 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("single_cell_atlas_overview_panel") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).template_ids
+    assert _full_id("spatial_niche_map_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).template_ids
     assert "celltype_signature_heatmap_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).input_schema_ids
     assert "single_cell_atlas_overview_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).input_schema_ids
+    assert "spatial_niche_map_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).input_schema_ids
     assert _full_id("performance_heatmap") in next(
@@ -869,6 +1025,62 @@ def test_single_cell_atlas_overview_schema_contract_is_registered() -> None:
     assert "single_cell_atlas_overview_inputs_v1" in data_geometry_class.input_schema_ids
 
 
+def test_spatial_niche_map_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    spatial_niche_map = module.get_input_schema_contract("spatial_niche_map_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert spatial_niche_map.template_ids == (_full_id("spatial_niche_map_panel"),)
+    assert spatial_niche_map.display_name == "Spatial Niche Map Panel"
+    assert spatial_niche_map.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "niche_proportions",
+    )
+    assert spatial_niche_map.nested_collection_required_fields["composition_groups.niche_proportions"] == (
+        "niche_label",
+        "proportion",
+    )
+    assert "composition_group_proportions_must_sum_to_one" in spatial_niche_map.additional_constraints
+    assert "declared_column_labels_must_match_spatial_niches" in spatial_niche_map.additional_constraints
+    assert _full_id("spatial_niche_map_panel") in data_geometry_class.template_ids
+    assert "spatial_niche_map_inputs_v1" in data_geometry_class.input_schema_ids
+
+
+def test_trajectory_progression_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    trajectory_progression = module.get_input_schema_contract("trajectory_progression_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert trajectory_progression.template_ids == (_full_id("trajectory_progression_panel"),)
+    assert trajectory_progression.display_name == "Trajectory Progression Panel"
+    assert trajectory_progression.collection_required_fields["trajectory_points"] == (
+        "x",
+        "y",
+        "branch_label",
+        "state_label",
+        "pseudotime",
+    )
+    assert trajectory_progression.collection_required_fields["branch_order"] == ("label",)
+    assert trajectory_progression.collection_required_fields["progression_bins"] == (
+        "bin_label",
+        "bin_order",
+        "pseudotime_start",
+        "pseudotime_end",
+        "branch_weights",
+    )
+    assert trajectory_progression.nested_collection_required_fields["progression_bins.branch_weights"] == (
+        "branch_label",
+        "proportion",
+    )
+    assert "progression_bin_branch_weights_must_sum_to_one" in trajectory_progression.additional_constraints
+    assert "declared_column_labels_must_match_progression_bins" in trajectory_progression.additional_constraints
+    assert _full_id("trajectory_progression_panel") in data_geometry_class.template_ids
+    assert "trajectory_progression_inputs_v1" in data_geometry_class.input_schema_ids
+
+
 def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -941,8 +1153,10 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("time_dependent_roc_horizon") in markdown
     assert _full_id("time_dependent_roc_comparison_panel") in markdown
     assert _full_id("single_cell_atlas_overview_panel") in markdown
+    assert _full_id("trajectory_progression_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
     assert "single_cell_atlas_overview_inputs_v1" in markdown
+    assert "trajectory_progression_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown
     assert _full_id("time_to_event_threshold_governance_panel") in markdown
