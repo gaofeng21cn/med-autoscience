@@ -553,22 +553,167 @@ def _publication_supervisor_requires_human_confirmation(status: StudyRuntimeStat
     return str(payload.get("current_required_action") or "").strip() == _HUMAN_CONFIRMATION_REQUIRED_ACTION
 
 
+def _runtime_liveness_audit_payload(status: StudyRuntimeStatus) -> dict[str, object]:
+    payload = status.extras.get("runtime_liveness_audit")
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
+def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+    runtime_liveness_audit = _runtime_liveness_audit_payload(status)
+    runtime_audit = (
+        dict(runtime_liveness_audit.get("runtime_audit") or {})
+        if isinstance(runtime_liveness_audit.get("runtime_audit"), dict)
+        else {}
+    )
+    continuation_state = status.extras.get("continuation_state")
+    supervisor_tick_audit = status.extras.get("supervisor_tick_audit")
+    return {
+        "quest_status": status.quest_status.value if status.quest_status is not None else None,
+        "decision": status.decision.value if status.decision is not None else None,
+        "reason": status.reason.value if status.reason is not None else None,
+        "active_run_id": str(runtime_liveness_audit.get("active_run_id") or runtime_audit.get("active_run_id") or "").strip() or None,
+        "runtime_liveness_status": str(runtime_liveness_audit.get("status") or "").strip() or None,
+        "worker_running": runtime_audit.get("worker_running") if isinstance(runtime_audit.get("worker_running"), bool) else None,
+        "continuation_policy": (
+            str(continuation_state.get("continuation_policy") or "").strip() or None
+            if isinstance(continuation_state, dict)
+            else None
+        ),
+        "continuation_reason": (
+            str(continuation_state.get("continuation_reason") or "").strip() or None
+            if isinstance(continuation_state, dict)
+            else None
+        ),
+        "supervisor_tick_status": (
+            str(supervisor_tick_audit.get("status") or "").strip() or None
+            if isinstance(supervisor_tick_audit, dict)
+            else None
+        ),
+        "controller_owned_finalize_parking": _is_controller_owned_finalize_parking(status),
+        "runtime_escalation_ref": (
+            dict(status.extras.get("runtime_escalation_ref"))
+            if isinstance(status.extras.get("runtime_escalation_ref"), dict)
+            else None
+        ),
+    }
+
+
+def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, object]:
+    snapshot = _runtime_event_status_snapshot(status)
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    return {
+        "quest_status": snapshot["quest_status"],
+        "decision": snapshot["decision"],
+        "reason": snapshot["reason"],
+        "active_run_id": snapshot["active_run_id"],
+        "runtime_liveness_status": snapshot["runtime_liveness_status"],
+        "worker_running": snapshot["worker_running"],
+        "supervisor_tick_status": snapshot["supervisor_tick_status"],
+        "controller_owned_finalize_parking": snapshot["controller_owned_finalize_parking"],
+        "interaction_action": (
+            str(interaction_arbitration.get("action") or "").strip() or None
+            if isinstance(interaction_arbitration, dict)
+            else None
+        ),
+        "interaction_requires_user_input": (
+            bool(interaction_arbitration.get("requires_user_input"))
+            if isinstance(interaction_arbitration, dict)
+            else False
+        ),
+        "runtime_escalation_ref": snapshot["runtime_escalation_ref"],
+    }
+
+
+def _launch_report_runtime_liveness_status(payload: dict[str, object]) -> str | None:
+    runtime_liveness_audit = payload.get("runtime_liveness_audit")
+    if isinstance(runtime_liveness_audit, dict):
+        status = str(runtime_liveness_audit.get("status") or "").strip()
+        if status:
+            return status
+    status = str(payload.get("runtime_liveness_status") or "").strip()
+    return status or None
+
+
+def _launch_report_supervisor_tick_status(payload: dict[str, object]) -> str | None:
+    supervisor_tick_audit = payload.get("supervisor_tick_audit")
+    if isinstance(supervisor_tick_audit, dict):
+        status = str(supervisor_tick_audit.get("status") or "").strip()
+        if status:
+            return status
+    status = str(payload.get("supervisor_tick_status") or "").strip()
+    return status or None
+
+
+def _record_runtime_event(
+    *,
+    status: StudyRuntimeStatus,
+    runtime_context: study_runtime_protocol.StudyRuntimeContext,
+) -> None:
+    execution = status.execution
+    if (
+        str(execution.get("engine") or "").strip() != "med-deepscientist"
+        or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
+        or not status.quest_exists
+    ):
+        status.extras.pop("runtime_event_ref", None)
+        return
+    emitted_at = _router_module()._utc_now()
+    record = study_runtime_protocol.RuntimeEventRecord(
+        schema_version=1,
+        event_id=f"runtime-event::{status.study_id}::{status.quest_id}::status_observed::{emitted_at}",
+        study_id=status.study_id,
+        quest_id=status.quest_id,
+        emitted_at=emitted_at,
+        event_source="study_runtime_status",
+        event_kind="status_observed",
+        summary_ref=str(runtime_context.launch_report_path),
+        status_snapshot=_runtime_event_status_snapshot(status),
+        outer_loop_input=_runtime_event_outer_loop_input(status),
+        artifact_path=None,
+    )
+    written_record = study_runtime_protocol.write_runtime_event_record(
+        quest_root=runtime_context.quest_root,
+        record=record,
+    )
+    status.record_runtime_event_ref(written_record.ref())
+
+
 def _sync_runtime_summary_if_needed(
     *,
     status: StudyRuntimeStatus,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
 ) -> None:
-    current_quest_status = status.quest_status.value if status.quest_status is not None else None
+    current_snapshot = _runtime_event_status_snapshot(status)
+    current_quest_status = (
+        str(current_snapshot.get("quest_status") or "").strip() or (status.quest_status.value if status.quest_status is not None else None)
+    )
+    current_active_run_id = str(current_snapshot.get("active_run_id") or "").strip() or None
+    current_runtime_liveness_status = str(current_snapshot.get("runtime_liveness_status") or "").strip() or None
+    current_supervisor_tick_status = str(current_snapshot.get("supervisor_tick_status") or "").strip() or None
     launch_report_path = runtime_context.launch_report_path
     launch_report_payload = _load_json_dict(launch_report_path) if launch_report_path.exists() else {}
     launch_report_exists = launch_report_path.exists()
     launch_report_quest_status = str(launch_report_payload.get("quest_status") or "").strip() or None
-    aligned = launch_report_exists and launch_report_quest_status == current_quest_status
+    launch_report_active_run_id = str(launch_report_payload.get("active_run_id") or "").strip() or None
+    launch_report_runtime_liveness_status = _launch_report_runtime_liveness_status(launch_report_payload)
+    launch_report_supervisor_tick_status = _launch_report_supervisor_tick_status(launch_report_payload)
+    aligned = launch_report_exists and (
+        launch_report_quest_status == current_quest_status
+        and launch_report_active_run_id == current_active_run_id
+        and launch_report_runtime_liveness_status == current_runtime_liveness_status
+        and launch_report_supervisor_tick_status == current_supervisor_tick_status
+    )
     mismatch_reason: str | None = None
     if not launch_report_exists:
         mismatch_reason = "launch_report_missing"
     elif launch_report_quest_status != current_quest_status:
         mismatch_reason = "launch_report_quest_status_mismatch"
+    elif launch_report_active_run_id != current_active_run_id:
+        mismatch_reason = "launch_report_active_run_id_mismatch"
+    elif launch_report_runtime_liveness_status != current_runtime_liveness_status:
+        mismatch_reason = "launch_report_runtime_liveness_status_mismatch"
+    elif launch_report_supervisor_tick_status != current_supervisor_tick_status:
+        mismatch_reason = "launch_report_supervisor_tick_status_mismatch"
     status_sync_applied = False
     if not aligned:
         study_runtime_protocol.persist_runtime_artifacts(
@@ -592,9 +737,15 @@ def _sync_runtime_summary_if_needed(
             source_of_truth="study_runtime_status",
             runtime_state_path=str(_runtime_state_path(runtime_context.quest_root)),
             runtime_state_status=current_quest_status,
+            source_active_run_id=current_active_run_id,
+            source_runtime_liveness_status=current_runtime_liveness_status,
+            source_supervisor_tick_status=current_supervisor_tick_status,
             launch_report_path=str(launch_report_path),
             launch_report_exists=launch_report_exists,
             launch_report_quest_status=launch_report_quest_status,
+            launch_report_active_run_id=launch_report_active_run_id,
+            launch_report_runtime_liveness_status=launch_report_runtime_liveness_status,
+            launch_report_supervisor_tick_status=launch_report_supervisor_tick_status,
             aligned=aligned,
             mismatch_reason=mismatch_reason,
             status_sync_applied=status_sync_applied,
@@ -861,6 +1012,10 @@ def _status_state(
                     entry_mode=entry_mode,
                 )
             )
+        _record_runtime_event(
+            status=result,
+            runtime_context=runtime_context,
+        )
         return result
 
     if str(execution.get("engine") or "").strip() != "med-deepscientist":

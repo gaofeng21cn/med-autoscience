@@ -37,6 +37,60 @@ def _write_runtime_escalation_record(module: object, quest_root: Path, study_roo
     return protocol.write_runtime_escalation_record(quest_root=quest_root, record=record).ref().to_dict()
 
 
+def _write_runtime_event_record(
+    quest_root: Path,
+    study_root: Path,
+    *,
+    quest_id: str = "quest-001",
+    quest_status: str = "paused",
+    decision: str = "blocked",
+    reason: str = "startup_boundary_not_ready_for_resume",
+    active_run_id: str | None = None,
+    runtime_liveness_status: str | None = "none",
+    worker_running: bool | None = False,
+    supervisor_tick_status: str | None = "fresh",
+    runtime_escalation_ref: dict[str, str] | None = None,
+) -> dict[str, str]:
+    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    record = protocol.RuntimeEventRecord(
+        schema_version=1,
+        event_id=f"runtime-event::001-risk::{quest_id}::status_observed::2026-04-05T05:56:00+00:00",
+        study_id="001-risk",
+        quest_id=quest_id,
+        emitted_at="2026-04-05T05:56:00+00:00",
+        event_source="study_runtime_status",
+        event_kind="status_observed",
+        summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        status_snapshot={
+            "quest_status": quest_status,
+            "decision": decision,
+            "reason": reason,
+            "active_run_id": active_run_id,
+            "runtime_liveness_status": runtime_liveness_status,
+            "worker_running": worker_running,
+            "continuation_policy": None,
+            "continuation_reason": None,
+            "supervisor_tick_status": supervisor_tick_status,
+            "controller_owned_finalize_parking": False,
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+        outer_loop_input={
+            "quest_status": quest_status,
+            "decision": decision,
+            "reason": reason,
+            "active_run_id": active_run_id,
+            "runtime_liveness_status": runtime_liveness_status,
+            "worker_running": worker_running,
+            "supervisor_tick_status": supervisor_tick_status,
+            "controller_owned_finalize_parking": False,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+    return protocol.write_runtime_event_record(quest_root=quest_root, record=record).ref().to_dict()
+
+
 def _write_charter(study_root: Path) -> dict[str, str]:
     payload = {
         "charter_id": "charter::001-risk::v1",
@@ -203,7 +257,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert latest_payload == payload
 
 
-def test_study_outer_loop_tick_synthesizes_runtime_escalation_ref_when_status_lacks_one(
+def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_event_ref(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -229,8 +283,81 @@ def test_study_outer_loop_tick_synthesizes_runtime_escalation_ref_when_status_la
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+            },
             "decision": "blocked",
             "reason": "startup_boundary_not_ready_for_resume",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda **_: {
+            "decision": "resume",
+            "reason": "quest_paused",
+        },
+    )
+
+    with pytest.raises(ValueError, match="runtime_event_ref"):
+        module.study_outer_loop_tick(
+            profile=profile,
+            study_id="001-risk",
+            charter_ref=charter_ref,
+            publication_eval_ref=publication_eval_ref,
+            decision_type="continue_same_line",
+            requires_human_confirmation=False,
+            controller_actions=[
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            reason="Publication eval keeps the study on the same line.",
+        )
+
+
+def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_contract(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    runtime_event_ref = _write_runtime_event_record(
+        quest_root,
+        study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+    )
+    charter_ref = _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+            },
+            "runtime_event_ref": runtime_event_ref,
         },
     )
     monkeypatch.setattr(
@@ -258,13 +385,132 @@ def test_study_outer_loop_tick_synthesizes_runtime_escalation_ref_when_status_la
         reason="Publication eval keeps the study on the same line.",
     )
 
-    synthesized_ref = result["runtime_escalation_ref"]
-    assert synthesized_ref["record_id"].startswith(
-        "runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::"
+    assert result["runtime_escalation_ref"] == runtime_escalation_ref
+    assert result["runtime_status"]["runtime_event_id"] == runtime_event_ref["event_id"]
+
+
+def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mismatches_status(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    payload = json.loads(Path(synthesized_ref["artifact_path"]).read_text(encoding="utf-8"))
-    assert payload["reason"] == "startup_boundary_not_ready_for_resume"
-    assert payload["recommended_actions"] == ["refresh_startup_hydration", "controller_review_required"]
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    runtime_event_ref = _write_runtime_event_record(
+        quest_root,
+        study_root,
+        quest_id="quest-other",
+        runtime_escalation_ref=runtime_escalation_ref,
+    )
+    charter_ref = _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+            },
+            "runtime_event_ref": runtime_event_ref,
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    with pytest.raises(ValueError, match="quest_id mismatch"):
+        module.study_outer_loop_tick(
+            profile=profile,
+            study_id="001-risk",
+            charter_ref=charter_ref,
+            publication_eval_ref=publication_eval_ref,
+            decision_type="continue_same_line",
+            requires_human_confirmation=False,
+            controller_actions=[
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            reason="Publication eval keeps the study on the same line.",
+        )
+
+
+def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_is_not_fresh(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    runtime_event_ref = _write_runtime_event_record(
+        quest_root,
+        study_root,
+        supervisor_tick_status="stale",
+        runtime_escalation_ref=runtime_escalation_ref,
+    )
+    charter_ref = _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+            },
+            "runtime_event_ref": runtime_event_ref,
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    with pytest.raises(ValueError, match="supervisor_tick_status"):
+        module.study_outer_loop_tick(
+            profile=profile,
+            study_id="001-risk",
+            charter_ref=charter_ref,
+            publication_eval_ref=publication_eval_ref,
+            decision_type="continue_same_line",
+            requires_human_confirmation=False,
+            controller_actions=[
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            reason="Publication eval keeps the study on the same line.",
+        )
 
 
 def test_study_outer_loop_tick_rejects_publication_eval_ref_outside_eval_owned_latest_surface(

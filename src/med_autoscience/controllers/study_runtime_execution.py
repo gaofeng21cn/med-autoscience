@@ -767,6 +767,153 @@ def _record_autonomous_runtime_notice_if_required(
     )
 
 
+def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
+    runtime_liveness_audit = (
+        dict(status.extras.get("runtime_liveness_audit"))
+        if isinstance(status.extras.get("runtime_liveness_audit"), dict)
+        else {}
+    )
+    runtime_audit = (
+        dict(runtime_liveness_audit.get("runtime_audit"))
+        if isinstance(runtime_liveness_audit.get("runtime_audit"), dict)
+        else {}
+    )
+    continuation_state = status.extras.get("continuation_state")
+    supervisor_tick_audit = status.extras.get("supervisor_tick_audit")
+    return {
+        "quest_status": status.quest_status.value if status.quest_status is not None else None,
+        "decision": status.decision.value if status.decision is not None else None,
+        "reason": status.reason.value if status.reason is not None else None,
+        "active_run_id": (
+            str(runtime_liveness_audit.get("active_run_id") or runtime_audit.get("active_run_id") or "").strip() or None
+        ),
+        "runtime_liveness_status": str(runtime_liveness_audit.get("status") or "").strip() or None,
+        "worker_running": runtime_audit.get("worker_running") if isinstance(runtime_audit.get("worker_running"), bool) else None,
+        "continuation_policy": (
+            str(continuation_state.get("continuation_policy") or "").strip() or None
+            if isinstance(continuation_state, dict)
+            else None
+        ),
+        "continuation_reason": (
+            str(continuation_state.get("continuation_reason") or "").strip() or None
+            if isinstance(continuation_state, dict)
+            else None
+        ),
+        "supervisor_tick_status": (
+            str(supervisor_tick_audit.get("status") or "").strip() or None
+            if isinstance(supervisor_tick_audit, dict)
+            else None
+        ),
+        "controller_owned_finalize_parking": False,
+        "runtime_escalation_ref": (
+            dict(status.extras.get("runtime_escalation_ref"))
+            if isinstance(status.extras.get("runtime_escalation_ref"), dict)
+            else None
+        ),
+    }
+
+
+def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, object]:
+    snapshot = _runtime_event_status_snapshot(status)
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    return {
+        "quest_status": snapshot["quest_status"],
+        "decision": snapshot["decision"],
+        "reason": snapshot["reason"],
+        "active_run_id": snapshot["active_run_id"],
+        "runtime_liveness_status": snapshot["runtime_liveness_status"],
+        "worker_running": snapshot["worker_running"],
+        "supervisor_tick_status": snapshot["supervisor_tick_status"],
+        "controller_owned_finalize_parking": snapshot["controller_owned_finalize_parking"],
+        "interaction_action": (
+            str(interaction_arbitration.get("action") or "").strip() or None
+            if isinstance(interaction_arbitration, dict)
+            else None
+        ),
+        "interaction_requires_user_input": (
+            bool(interaction_arbitration.get("requires_user_input"))
+            if isinstance(interaction_arbitration, dict)
+            else False
+        ),
+        "runtime_escalation_ref": snapshot["runtime_escalation_ref"],
+    }
+
+
+def _post_transition_quest_status(
+    *,
+    status: StudyRuntimeStatus,
+    outcome: StudyRuntimeExecutionOutcome,
+) -> StudyRuntimeQuestStatus | None:
+    if outcome.binding_last_action is StudyRuntimeBindingAction.CREATE_AND_START:
+        return StudyRuntimeQuestStatus(
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created")
+        )
+    if outcome.binding_last_action in {
+        StudyRuntimeBindingAction.RESUME,
+        StudyRuntimeBindingAction.RELAUNCH_STOPPED,
+    }:
+        return StudyRuntimeQuestStatus(
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running")
+        )
+    if outcome.binding_last_action is StudyRuntimeBindingAction.PAUSE:
+        return StudyRuntimeQuestStatus(
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused")
+        )
+    if outcome.binding_last_action is StudyRuntimeBindingAction.COMPLETED:
+        return StudyRuntimeQuestStatus(outcome.completion_snapshot_status(fallback="completed"))
+    return status.quest_status
+
+
+def _record_transition_runtime_event(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+    outcome: StudyRuntimeExecutionOutcome,
+) -> None:
+    if outcome.binding_last_action not in {
+        StudyRuntimeBindingAction.CREATE_AND_START,
+        StudyRuntimeBindingAction.RESUME,
+        StudyRuntimeBindingAction.RELAUNCH_STOPPED,
+        StudyRuntimeBindingAction.PAUSE,
+        StudyRuntimeBindingAction.COMPLETED,
+    }:
+        return
+    execution = status.execution
+    if (
+        str(execution.get("engine") or "").strip() != "med-deepscientist"
+        or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
+        or not status.quest_exists
+    ):
+        return
+    post_transition_status = _post_transition_quest_status(status=status, outcome=outcome)
+    status.update_quest_runtime(quest_status=post_transition_status)
+    emitted_at = _router_module()._utc_now()
+    status_snapshot = _runtime_event_status_snapshot(status)
+    outer_loop_input = _runtime_event_outer_loop_input(status)
+    active_run_id = outcome.active_run_id()
+    if active_run_id is not None:
+        status_snapshot["active_run_id"] = active_run_id
+        outer_loop_input["active_run_id"] = active_run_id
+    record = study_runtime_protocol.RuntimeEventRecord(
+        schema_version=1,
+        event_id=f"runtime-event::{context.study_id}::{status.quest_id}::transition_applied::{emitted_at}",
+        study_id=context.study_id,
+        quest_id=status.quest_id,
+        emitted_at=emitted_at,
+        event_source="study_runtime_execution",
+        event_kind="transition_applied",
+        summary_ref=str(context.launch_report_path),
+        status_snapshot=status_snapshot,
+        outer_loop_input=outer_loop_input,
+        artifact_path=None,
+    )
+    written_record = study_runtime_protocol.write_runtime_event_record(
+        quest_root=context.quest_root,
+        record=record,
+    )
+    status.record_runtime_event_ref(written_record.ref())
+
+
 def _runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:
     if reason in {
         StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
@@ -851,6 +998,7 @@ def _persist_runtime_artifacts(
     source: str,
 ) -> None:
     router = _router_module()
+    _record_transition_runtime_event(status=status, context=context, outcome=outcome)
     _record_autonomous_runtime_notice_if_required(
         status=status,
         runtime_root=context.runtime_root,

@@ -120,6 +120,16 @@ _TEXT_REPLACEMENTS = (
     ("; ", "；"),
 )
 _SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
+_LATEST_EVENT_DISPLAY_TIERS = {
+    "runtime_supervision": 0,
+    "runtime_progress": 0,
+    "paper_projection": 0,
+    "controller_decision": 0,
+    "publication_eval": 0,
+    "runtime_escalation": 0,
+    "runtime_watch": 1,
+    "launch_report": 2,
+}
 
 
 def _utc_now() -> str:
@@ -366,6 +376,13 @@ def _event(
         "source": source,
         "artifact_path": str(artifact_path) if artifact_path is not None else None,
     }
+
+
+def _latest_event_display_tier(category: object) -> int:
+    text = _non_empty_text(category)
+    if text is None:
+        return 0
+    return _LATEST_EVENT_DISPLAY_TIERS.get(text, 0)
 
 
 def _current_stage(
@@ -774,6 +791,8 @@ def _latest_events(
         if item is not None:
             events.append(item)
     events.sort(key=lambda item: item["timestamp"], reverse=True)
+    # “最近进展”优先展示具体推进，再展示轮询/状态回写类摘要。
+    events.sort(key=lambda item: _latest_event_display_tier(item.get("category")))
     return events[:_DEFAULT_EVENT_LIMIT]
 
 

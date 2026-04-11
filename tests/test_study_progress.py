@@ -254,6 +254,58 @@ def _write_details_projection(quest_root: Path) -> Path:
     return path
 
 
+def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
+    publication_eval_path = tmp_path / "studies" / "001-risk" / "artifacts" / "publication_eval" / "latest.json"
+    controller_decision_path = tmp_path / "studies" / "001-risk" / "artifacts" / "controller_decisions" / "latest.json"
+    bash_summary_path = (
+        tmp_path
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "quest-001"
+        / ".ds"
+        / "bash_exec"
+        / "summary.json"
+    )
+
+    events = module._latest_events(
+        launch_report_payload={
+            "recorded_at": "2026-04-10T09:14:00+00:00",
+            "decision": "noop",
+            "reason": "quest_already_running",
+        },
+        launch_report_path=launch_report_path,
+        runtime_supervision_payload=None,
+        runtime_supervision_path=None,
+        runtime_escalation_payload=None,
+        runtime_escalation_path=None,
+        publication_eval_payload=None,
+        publication_eval_path=publication_eval_path,
+        controller_decision_payload=None,
+        controller_decision_path=controller_decision_path,
+        runtime_watch_payload=None,
+        runtime_watch_path=None,
+        details_projection_payload=None,
+        details_projection_path=None,
+        bash_summary_payload={
+            "latest_session": {
+                "updated_at": "2026-04-10T09:12:00+00:00",
+                "last_progress": {
+                    "ts": "2026-04-10T09:12:00+00:00",
+                    "message": "完成外部验证数据清点，正在整理论文证据面。",
+                },
+            }
+        },
+        bash_summary_path=bash_summary_path,
+    )
+
+    assert [item["category"] for item in events[:2]] == ["runtime_progress", "launch_report"]
+    assert "完成外部验证数据清点" in events[0]["summary"]
+
+
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

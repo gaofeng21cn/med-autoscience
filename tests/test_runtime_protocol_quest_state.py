@@ -172,9 +172,12 @@ def test_quest_runtime_snapshot_normalizes_runtime_liveness_status_values() -> N
     assert other_snapshot.runtime_liveness_status is QuestRuntimeLivenessStatus.OTHER
 
 
-def test_iter_active_quests_includes_waiting_for_user_for_outer_loop_arbitration(tmp_path: Path) -> None:
+def test_iter_active_quests_includes_non_live_managed_states_for_outer_loop_arbitration(tmp_path: Path) -> None:
     runtime_root = tmp_path / "runtime" / "quests"
     statuses = {
+        "q-created": "created",
+        "q-idle": "idle",
+        "q-paused": "paused",
         "q-running": "running",
         "q-active": "active",
         "q-waiting": "waiting_for_user",
@@ -193,4 +196,12 @@ def test_iter_active_quests_includes_waiting_for_user_for_outer_loop_arbitration
 
     quests = iter_active_quests(runtime_root)
 
-    assert [quest_root.name for quest_root in quests] == ["q-active", "q-running", "q-waiting"]
+    assert [quest_root.name for quest_root in quests] == [
+        "q-active",
+        "q-created",
+        "q-idle",
+        "q-paused",
+        "q-running",
+        "q-stopped",
+        "q-waiting",
+    ]

@@ -541,9 +541,15 @@ def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
         "source_of_truth": "study_runtime_status",
         "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
         "runtime_state_status": "stopped",
+        "source_active_run_id": None,
+        "source_runtime_liveness_status": None,
+        "source_supervisor_tick_status": "missing",
         "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
         "launch_report_exists": True,
         "launch_report_quest_status": "active",
+        "launch_report_active_run_id": None,
+        "launch_report_runtime_liveness_status": None,
+        "launch_report_supervisor_tick_status": None,
         "aligned": False,
         "mismatch_reason": "launch_report_quest_status_mismatch",
         "status_sync_applied": True,
@@ -2515,6 +2521,75 @@ def test_study_runtime_status_marks_supervisor_tick_audit_stale_when_latest_repo
     assert result["supervisor_tick_audit"]["reason"] == "supervisor_tick_report_stale"
     assert result["supervisor_tick_audit"]["latest_recorded_at"] == "2026-04-10T09:00:00+00:00"
     assert result["supervisor_tick_audit"]["seconds_since_latest_recorded_at"] == 1800
+
+
+def test_study_runtime_status_records_supervisor_tick_transition_from_fresh_to_stale(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    write_text(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recorded_at": "2026-04-10T09:25:00+00:00",
+                "health_status": "inactive",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    now_state = {"value": "2026-04-10T09:30:00+00:00"}
+    monkeypatch.setattr(
+        decision_module,
+        "_supervisor_tick_now",
+        lambda: decision_module.datetime.fromisoformat(now_state["value"]),
+    )
+
+    fresh_result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    now_state["value"] = "2026-04-10T09:50:00+00:00"
+    stale_result = module.study_runtime_status(profile=profile, study_id="001-risk")
+    stale_runtime_event = json.loads(Path(stale_result["runtime_event_ref"]["artifact_path"]).read_text(encoding="utf-8"))
+
+    assert fresh_result["supervisor_tick_audit"]["status"] == "fresh"
+    assert stale_result["supervisor_tick_audit"]["status"] == "stale"
+    assert stale_runtime_event["outer_loop_input"]["supervisor_tick_status"] == "stale"
 
 
 def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_validation_fails(
@@ -4513,6 +4588,249 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_initialized_waiting_to_start"
     assert "runtime_escalation_ref" not in result
+
+
+def test_study_runtime_status_materializes_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    runtime_event_ref = result["runtime_event_ref"]
+    payload = json.loads(Path(runtime_event_ref["artifact_path"]).read_text(encoding="utf-8"))
+    assert payload["event_kind"] == "status_observed"
+    assert payload["outer_loop_input"]["quest_status"] == "stopped"
+    assert payload["outer_loop_input"]["reason"] == "quest_stopped_requires_explicit_rerun"
+
+
+def test_ensure_study_runtime_materializes_transition_applied_runtime_event_for_managed_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {
+            "ok": True,
+            "status": "running",
+            "snapshot": {
+                "quest_id": quest_id,
+                "status": "running",
+                "active_run_id": "run-resumed",
+            },
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    runtime_event_ref = result["runtime_event_ref"]
+    payload = json.loads(Path(runtime_event_ref["artifact_path"]).read_text(encoding="utf-8"))
+    assert payload["event_kind"] == "transition_applied"
+    assert payload["event_source"] == "study_runtime_execution"
+    assert payload["status_snapshot"]["quest_status"] == "running"
+    assert payload["outer_loop_input"]["decision"] == "resume"
+    assert payload["outer_loop_input"]["reason"] == "quest_paused"
+
+
+@pytest.mark.parametrize(
+    ("launch_report_overrides", "expected_mismatch_reason"),
+    [
+        ({"active_run_id": "run-launch"}, "launch_report_active_run_id_mismatch"),
+        (
+            {"runtime_liveness_audit": {"status": "none", "active_run_id": "run-live"}},
+            "launch_report_runtime_liveness_status_mismatch",
+        ),
+        (
+            {"supervisor_tick_audit": {"status": "stale"}},
+            "launch_report_supervisor_tick_status_mismatch",
+        ),
+    ],
+)
+def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_mismatch(
+    monkeypatch,
+    tmp_path: Path,
+    launch_report_overrides: dict[str, object],
+    expected_mismatch_reason: str,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running","active_run_id":"run-live"}\n')
+    write_text(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recorded_at": "2026-04-10T09:25:00+00:00",
+                "health_status": "live",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    launch_report_payload = {
+        "decision": "noop",
+        "reason": "quest_already_running",
+        "quest_status": "running",
+        "active_run_id": "run-live",
+        "runtime_liveness_audit": {"status": "live", "active_run_id": "run-live"},
+        "supervisor_tick_audit": {"status": "fresh"},
+        "recorded_at": "2026-04-10T09:20:00+00:00",
+    }
+    launch_report_payload.update(launch_report_overrides)
+    write_text(
+        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        json.dumps(launch_report_payload, ensure_ascii=False, indent=2) + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-1"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "resolve_daemon_url",
+        lambda *, runtime_root: "http://127.0.0.1:21999",
+    )
+    monkeypatch.setattr(
+        decision_module,
+        "_supervisor_tick_now",
+        lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["runtime_summary_alignment"]["aligned"] is False
+    assert result["runtime_summary_alignment"]["mismatch_reason"] == expected_mismatch_reason
+    assert result["runtime_summary_alignment"]["source_active_run_id"] == "run-live"
+    assert result["runtime_summary_alignment"]["source_runtime_liveness_status"] == "live"
+    assert result["runtime_summary_alignment"]["source_supervisor_tick_status"] == "fresh"
+    refreshed_launch_report = json.loads(
+        (study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8")
+    )
+    assert refreshed_launch_report["active_run_id"] == "run-live"
+    assert refreshed_launch_report["runtime_liveness_audit"]["status"] == "live"
+    assert refreshed_launch_report["supervisor_tick_audit"]["status"] == "fresh"
 
 
 def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypatch, tmp_path: Path) -> None:
