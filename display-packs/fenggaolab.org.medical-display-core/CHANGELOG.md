@@ -4,6 +4,8 @@
 
 - Add `spatial_niche_map_panel` as the first audited `D/E/G` tissue-coordinate spatial niche composite slice in the core display pack.
 - Lock its pack-facing contract to `spatial_niche_map_inputs_v1`, `publication_spatial_niche_map_panel`, and the Python spatial topography + niche-composition + marker/program renderer path.
+- Add `trajectory_progression_panel` as the first audited `D/E/G` trajectory progression composite slice in the core display pack.
+- Lock its pack-facing contract to `trajectory_progression_inputs_v1`, `publication_trajectory_progression_panel`, and the Python trajectory progression + branch-composition + kinetics renderer path.
 
 ## 0.1.5 - 2026-04-08
 

@@ -68,6 +68,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::celltype_signature_heatmap` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Cell-Type Embedding and Signature Heatmap | `python` | `celltype_signature_heatmap_inputs_v1` | `publication_celltype_signature_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::single_cell_atlas_overview_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Single-Cell Atlas Overview Panel | `python` | `single_cell_atlas_overview_inputs_v1` | `publication_single_cell_atlas_overview_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::spatial_niche_map_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Spatial Niche Map Panel | `python` | `spatial_niche_map_inputs_v1` | `publication_spatial_niche_map_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::trajectory_progression_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Trajectory Progression Panel | `python` | `trajectory_progression_inputs_v1` | `publication_trajectory_progression_panel` | `png`, `pdf` |
 
 ### Matrix Pattern
 
@@ -360,6 +361,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `composition_groups.niche_proportions` -> `niche_label`, `proportion`
 - Optional nested collection fields: None
 - Additional constraints: `spatial_points_must_be_non_empty`, `spatial_point_coordinates_must_be_finite`, `spatial_point_niche_label_must_be_non_empty`, `composition_groups_must_be_non_empty`, `composition_group_labels_must_be_unique`, `composition_group_order_must_be_strictly_increasing`, `composition_group_niche_proportions_must_be_non_empty`, `composition_group_niche_labels_must_match_declared_columns`, `composition_group_proportions_must_be_finite_probability`, `composition_group_proportions_must_sum_to_one`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_spatial_niches`, `declared_heatmap_grid_must_be_complete_and_unique`
+
+### `trajectory_progression_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Trajectory Progression Panel
+- Templates: `fenggaolab.org.medical-display-core::trajectory_progression_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `trajectory_panel_title`, `trajectory_x_label`, `trajectory_y_label`, `trajectory_points`, `composition_panel_title`, `composition_x_label`, `composition_y_label`, `branch_order`, `progression_bins`, `heatmap_panel_title`, `heatmap_x_label`, `heatmap_y_label`, `score_method`, `row_order`, `column_order`, `cells`
+- Optional display fields: `paper_role`, `trajectory_annotation`, `composition_annotation`, `heatmap_annotation`
+- Required collection fields: `trajectory_points` -> `x`, `y`, `branch_label`, `state_label`, `pseudotime`<br>`branch_order` -> `label`<br>`progression_bins` -> `bin_label`, `bin_order`, `pseudotime_start`, `pseudotime_end`, `branch_weights`<br>`row_order` -> `label`<br>`column_order` -> `label`<br>`cells` -> `x`, `y`, `value`
+- Optional collection fields: None
+- Required nested collection fields: `progression_bins.branch_weights` -> `branch_label`, `proportion`
+- Optional nested collection fields: None
+- Additional constraints: `trajectory_points_must_be_non_empty`, `trajectory_point_coordinates_must_be_finite`, `trajectory_point_branch_label_must_be_non_empty`, `trajectory_point_state_label_must_be_non_empty`, `trajectory_point_pseudotime_must_be_finite_probability`, `branch_order_labels_must_be_unique`, `branch_order_labels_must_match_trajectory_branches`, `progression_bins_must_be_non_empty`, `progression_bin_labels_must_be_unique`, `progression_bin_order_must_be_strictly_increasing`, `progression_bin_intervals_must_be_strictly_increasing`, `progression_bin_branch_weights_must_be_non_empty`, `progression_bin_branch_labels_must_match_declared_branch_order`, `progression_bin_branch_weights_must_be_finite_probability`, `progression_bin_branch_weights_must_sum_to_one`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_progression_bins`, `declared_heatmap_grid_must_be_complete_and_unique`
 
 ### `heatmap_group_comparison_inputs_v1`
 

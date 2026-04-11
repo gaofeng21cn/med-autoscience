@@ -43,6 +43,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "celltype_signature_heatmap",
         "single_cell_atlas_overview_panel",
         "spatial_niche_map_panel",
+        "trajectory_progression_panel",
         "heatmap_group_comparison",
         "performance_heatmap",
         "correlation_heatmap",
