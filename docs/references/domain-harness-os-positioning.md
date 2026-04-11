@@ -14,7 +14,8 @@
 
 - `Unified Harness Engineering Substrate` 提供跨域共享的工程约束与运行基础
 - `Med Auto Science` 负责医学领域合同、研究推进与交付治理
-- `MedDeepScientist` 负责被调用的执行 surface，不承担 `Domain Harness OS` 的全部职责
+- `Hermes` 负责当前默认 outer runtime substrate owner 的 controller-facing contract
+- `MedDeepScientist` 负责被调用的 controlled research backend execution surface，不承担 `Domain Harness OS` 的全部职责
 
 ## 2) 继承的统一约束（来自共享底座）
 
@@ -37,7 +38,12 @@
 
 ## 4) 当前默认 runtime 形态
 
-当前默认本地执行形态是 `Codex-default host-agent runtime`。
+当前 repo-tracked 默认 runtime 形态不是继续深化旧 `Codex-default host-agent runtime`，而是：
+
+- `MedAutoScience` = 唯一研究入口与 domain gateway
+- `Hermes` = 默认 outer runtime substrate owner
+- `MedDeepScientist` = controlled research backend
+- 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle
 
 在该形态下：
 
@@ -46,7 +52,7 @@
   - `supported_protocol_layer = MCP`
   - `internal_controller_surface = controller`
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
-- 运行推进通过受控 `MedDeepScientist` surface 完成
+- 运行推进通过 `Hermes -> MedDeepScientist` 的受控 surface 完成
 - `Med Auto Science` 作为 `Domain Harness OS`，负责控制面、合同面和审计面
 - `MedDeepScientist` 作为执行面，不被表述为系统本体
 
@@ -69,6 +75,7 @@
 
 当前主线下，至少以下表面必须继续被理解为 canonical durable surface：
 
+- `runtime_binding.yaml`
 - `study_runtime_status`
 - `runtime_watch`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
@@ -96,3 +103,4 @@
 - 不把当前表述夸大为“已经形成独立公共代码框架”
 - 不把 `MedDeepScientist` 等同为 `Med Auto Science` 本体
 - 不因为未来托管形态而稀释当前医学 `Domain Harness OS` 的职责
+- external `Hermes` runtime repo / workspace / daemon truth 未清除前，不把 repo-side contract 冻结误写成 external cutover 完成

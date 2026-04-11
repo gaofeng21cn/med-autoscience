@@ -4640,6 +4640,55 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
     assert "runtime_escalation_ref" not in result
 
 
+def test_study_runtime_status_uses_profile_default_hermes_substrate_for_legacy_managed_execution(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    profile = profile.__class__(**{**profile.__dict__, "managed_runtime_backend_id": "hermes"})
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"created"}\n')
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["execution"]["runtime_backend_id"] == "hermes"
+    assert result["execution"]["runtime_backend"] == "hermes"
+    assert result["execution"]["runtime_engine_id"] == "hermes"
+    assert result["execution"]["research_backend_id"] == "med_deepscientist"
+    assert result["execution"]["research_engine_id"] == "med-deepscientist"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_initialized_waiting_to_start"
+
+
 def test_study_runtime_status_uses_native_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)

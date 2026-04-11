@@ -23,3 +23,9 @@
 - 决策：后续新增投入默认服务 `Hermes` 外层 runtime substrate 这条目标形态，而不是继续把旧默认 substrate 深磨成长期产品方向。
 - 理由：历史基线和过渡实现仍然有价值，但它们应作为迁移桥、兼容层与回归基线存在，不能反向决定主线目标。
 - 影响：所有后续 tranche 都必须明确区分“当前 repo-verified baseline”与“长线目标”，并保持 display 独立支线不被主线误伤。
+
+## 2026-04-11：Hermes 成为 repo-tracked 默认 outer runtime substrate owner
+
+- 决策：repo 内默认的 outer runtime substrate owner 切到 `Hermes`；`MedAutoScience` 继续是唯一研究入口与 research gateway，`MedDeepScientist` 明确降级为 controlled research backend。
+- 理由：旧 `Codex-default host-agent runtime` 不再是长期产品方向；需要把主线 truth 从“继续深化旧 host-agent runtime”切回 `Hermes-backed outer runtime + controlled research backend` 的稳定拓扑。
+- 影响：默认 `managed_runtime_backend_id` 切到 `hermes`；`runtime_binding.yaml` 与相关 status surface 需要同时写出 `runtime_backend_*` 与 `research_backend_*` 元数据；display / paper-facing asset packaging 独立线继续排除在当前 tranche 外。

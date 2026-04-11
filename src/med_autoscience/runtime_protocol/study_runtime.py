@@ -435,9 +435,14 @@ def write_runtime_binding(
     runtime_engine_id: str = runtime_backend_contract.engine_id_for_backend_id(
         runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
     ),
+    research_backend_id: str | None = None,
+    research_engine_id: str | None = None,
 ) -> None:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_research_backend_id, resolved_research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
+        runtime_backend_id
+    )
     _write_yaml(
         runtime_binding_path,
         {
@@ -446,6 +451,9 @@ def write_runtime_binding(
             "runtime_backend_id": runtime_backend_id,
             "runtime_backend": runtime_backend_id,
             "runtime_engine_id": runtime_engine_id,
+            "research_backend_id": research_backend_id or resolved_research_backend_id,
+            "research_backend": research_backend_id or resolved_research_backend_id,
+            "research_engine_id": research_engine_id or resolved_research_engine_id,
             "runtime_home": str(resolved_runtime_root),
             "study_id": study_id,
             "study_root": str(resolved_study_root),
@@ -481,6 +489,8 @@ def persist_runtime_artifacts(
         if not resolved_quest_id:
             raise ValueError("quest_id is required when last_action is provided")
         runtime_backend_id, runtime_engine_id = _runtime_binding_backend_metadata(status)
+        research_backend_id = str(status.get("execution", {}).get("research_backend_id") or "").strip() or None
+        research_engine_id = str(status.get("execution", {}).get("research_engine_id") or "").strip() or None
         write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
             runtime_root=runtime_root,
@@ -492,6 +502,8 @@ def persist_runtime_artifacts(
             recorded_at=recorded_at,
             runtime_backend_id=runtime_backend_id,
             runtime_engine_id=runtime_engine_id,
+            research_backend_id=research_backend_id,
+            research_engine_id=research_engine_id,
         )
     write_launch_report(
         launch_report_path=launch_report_path,

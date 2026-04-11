@@ -8,15 +8,23 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "docs/references/domain-harness-os-positioning.md",
             "docs/runtime/runtime_backend_interface_contract.md",
+            "docs/runtime/runtime_handle_and_durable_surface_contract.md",
+            "src/med_autoscience/profiles.py",
             "src/med_autoscience/runtime_backend.py",
+            "src/med_autoscience/controllers/study_outer_loop.py",
+            "src/med_autoscience/controllers/study_runtime_execution.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
+            "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/runtime_watch.py",
             "src/med_autoscience/runtime_transport/hermes.py",
             "src/med_autoscience/runtime_transport/med_deepscientist.py",
+            "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
             "tests/test_runtime_contract_docs.py",
+            "tests/test_runtime_protocol_layout.py",
             "tests/test_runtime_transport_hermes.py",
             "tests/test_runtime_watch.py",
         ]
@@ -58,6 +66,8 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
     result = module.classify_changed_files(
         [
             "docs/program/external_runtime_dependency_gate.md",
+            "docs/references/workspace_architecture.md",
+            "docs/references/disease_workspace_quickstart.md",
             "src/med_autoscience/workspace_contracts.py",
         ]
     )
@@ -71,10 +81,16 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "README.zh-CN.md",
             "docs/README.md",
             "docs/README.zh-CN.md",
+            "docs/project.md",
+            "docs/architecture.md",
+            "docs/status.md",
+            "docs/decisions.md",
             "docs/program/hermes_backend_continuation_board.md",
             "docs/program/hermes_backend_activation_package.md",
+            "docs/program/med_deepscientist_deconstruction_map.md",
             "docs/program/integration_harness_activation_package.md",
             "src/med_autoscience/controllers/workspace_init.py",
             "tests/test_workspace_init.py",
@@ -116,6 +132,7 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
     assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
     assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
     assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
+    assert "make test-meta" in commands
     assert (
         "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q"
         in commands
@@ -128,5 +145,8 @@ def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proof
     commands = module.plan_commands_for_categories(("runtime_contract_surface",))
 
     assert "uv run pytest tests/test_runtime_backend.py -q" in commands
+    assert "uv run pytest tests/test_profiles.py -q" in commands
+    assert "uv run pytest tests/test_runtime_protocol_layout.py -q" in commands
     assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
     assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
+    assert "make test-meta" in commands

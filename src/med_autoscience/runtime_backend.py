@@ -5,7 +5,7 @@ import inspect
 from pathlib import Path
 from typing import Any, Protocol
 
-DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "med_deepscientist"
+DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "hermes"
 
 
 class ManagedRuntimeBackend(Protocol):
@@ -232,6 +232,21 @@ def engine_id_for_backend_id(backend_id: str) -> str:
     if engine_id is None:
         raise ValueError(f"managed runtime backend `{backend_id}` is missing ENGINE_ID")
     return engine_id
+
+
+def controlled_research_backend_metadata_for_backend_id(backend_id: str) -> tuple[str, str]:
+    backend = get_managed_runtime_backend(backend_id)
+    research_backend_id = (
+        _non_empty_text(getattr(backend, "CONTROLLED_RESEARCH_BACKEND_ID", None))
+        or _non_empty_text(getattr(backend, "BACKEND_ID", None))
+    )
+    research_engine_id = (
+        _non_empty_text(getattr(backend, "CONTROLLED_RESEARCH_ENGINE_ID", None))
+        or _non_empty_text(getattr(backend, "ENGINE_ID", None))
+    )
+    if research_backend_id is None or research_engine_id is None:
+        raise ValueError(f"managed runtime backend `{backend_id}` is missing controlled research backend metadata")
+    return research_backend_id, research_engine_id
 
 
 from med_autoscience.runtime_transport import med_deepscientist as _med_deepscientist_backend

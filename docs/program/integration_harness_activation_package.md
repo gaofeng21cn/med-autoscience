@@ -170,4 +170,5 @@ study_runtime_status / ensure_study_runtime
 4. 如果 repo 内还要继续推进，只允许打开更窄的 backend-contract continuation：
    - [`./hermes_backend_continuation_board.md`](./hermes_backend_continuation_board.md)
    - [`./hermes_backend_activation_package.md`](./hermes_backend_activation_package.md)
+   - [`./med_deepscientist_deconstruction_map.md`](./med_deepscientist_deconstruction_map.md)
 5. 不在 repo 内伪造新的更大 same-repo tranche 来代替 external readiness 清理

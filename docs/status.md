@@ -7,13 +7,20 @@
 - 仓库角色：医学 `Research Ops` 的 domain gateway 与 `Domain Harness OS`
 - 正式入口矩阵：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 当前产品主线：`Auto-only`
-- 当前研究入口边界：`MedAutoScience` 是唯一研究入口；`MedDeepScientist` 仍是当前受控 research backend
+- 当前研究入口边界：`MedAutoScience` 是唯一研究入口；`Hermes` 是默认 outer runtime substrate owner；`MedDeepScientist` 是当前受控 research backend
 
 ## 当前基线（repo-verified）
 
 - `P0 runtime native truth` 已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`。
 - `P1 workspace canonical literature / knowledge truth` 已完成，workspace canonical literature、study reference context 与 quest materialization-only 边界已进入仓库主线。
-- `P2 controlled cutover -> physical monorepo migration` 仍未完成；当前仓内允许继续推进的是 repo-side consumer-only 收敛与 `Hermes` backend continuation。
+- `P2 controlled cutover -> physical monorepo migration` 仍未完成；当前 repo-side 已把默认 outer runtime substrate owner 切到 `Hermes`，并把 `MedDeepScientist` 收口为 controlled research backend。仓内允许继续推进的是 repo-side consumer-only 收敛与 `Hermes` continuation。
+
+## 当前 tranche
+
+- 旧 `Codex-default host-agent runtime` 已明确退为迁移期对照面，不再作为长期产品方向。
+- 当前 runtime / gateway / architecture 主线只推进 `Hermes` substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
+- `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 `Hermes` outer substrate 与 `MedDeepScientist` research backend 的分层语义。
+- `docs/program/med_deepscientist_deconstruction_map.md` 已冻结三类能力归属：迁入 `Hermes` substrate、暂留 backend、后续吸收/替换。
 
 ## 长线目标（规划层）
 
@@ -26,6 +33,7 @@
 
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
 - 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
+- 保持 `Hermes` 作为默认 outer substrate owner 的 repo-side 闭环诚实成立，同时保留 external `Hermes` runtime repo / workspace / daemon truth 仍未进入本仓这一 blocker。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
 - 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。

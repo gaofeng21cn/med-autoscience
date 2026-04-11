@@ -68,6 +68,7 @@
 - [Integration Harness Activation Package](program/integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](program/hermes_backend_continuation_board.md)
 - [Hermes Backend Activation Package](program/hermes_backend_activation_package.md)
+- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [Open Harness OS 冻结计划](program/open_harness_os_freeze_plan.md)

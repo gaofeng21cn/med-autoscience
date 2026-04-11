@@ -49,11 +49,11 @@
 - 负责医学 `Research Ops` 的领域合同与交付要求
 - 负责组织医学课题、证据包与投稿交付的 domain gateway
 - 共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` `Domain Harness OS`
-- 位于受控 `MedDeepScientist` 执行 surface 之上的 harness 化运行面，但不把 `MedDeepScientist` 视为系统本体
+- 位于 `Hermes` 外层 runtime substrate 与受控 `MedDeepScientist` research backend 之上的 harness 化运行面，但不把 `MedDeepScientist` 视为系统本体
 
 公开链路可以概括为：
 
-`User / Agent -> OPL Gateway（可选顶层）-> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> 受控 MedDeepScientist surface`
+`User / Agent -> OPL Gateway（可选顶层）-> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Hermes 外层 runtime substrate -> 受控 MedDeepScientist research backend`
 
 ## 它能帮你做什么
 
@@ -75,16 +75,17 @@
 
 ## 当前默认运行形态
 
-当前默认是本地 `Codex-default host-agent runtime`。
-其 formal-entry matrix 已固定为：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`。
+旧 `Codex-default host-agent runtime` 现在只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
+formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`。
 这套矩阵描述的是 Agent 如何进入 runtime，并不意味着公开产品被重新定义成“给医学用户手工敲命令”的工具箱。
-当前 repo-tracked 产品主线按 `Auto-only` 理解；未来如果要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
-在该形态下，运行由受控 `MedDeepScientist` surface 推进，这意味着：
+当前 repo-tracked 产品主线仍按 `Auto-only` 理解；未来如果要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
+当前 repo-tracked runtime topology 已固定为：
 
-- `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner
-- `MedDeepScientist` 是执行 surface，不是系统本体
+- `Med Auto Science` 继续是唯一研究入口、research gateway 与 study/workspace authority owner
+- `Hermes` 成为默认外层 runtime substrate owner
+- `MedDeepScientist` 作为 controlled research backend 保留，不再充当系统本体
 
-当前 managed runtime 一侧已经冻结到单一 `runtime backend interface` contract 后面。`med-deepscientist` 仍是当前默认 backend 实现，但 controller 逻辑已经不再把 backend 模块名本身当作 authority boundary。
+当前 managed runtime 一侧已经冻结到单一 `runtime backend interface` contract 后面。controller / outer-loop / transport / durable surface 默认写出 `runtime_backend_id = hermes` / `runtime_engine_id = hermes`，同时用 `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` 记录当前受控 research backend。
 
 ## 当前仓库侧状态
 
@@ -94,17 +95,18 @@
 
 - `P0 runtime native truth` 已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
 - `P1 workspace canonical literature / knowledge truth` 已在 `Med Auto Science` 完成
-- `P2 controlled cutover -> physical monorepo migration` 是当前剩余的 active tranche
+- `P2 controlled cutover -> physical monorepo migration` 仍是当前 active tranche，但 repo-side 主线已经切到 `Hermes` 外层 substrate ownership
 
-现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract，以及剩余的 cutover 工作包。external runtime gate 仍然存在，但它已经只是 `P2` 内的一道 gate，不再是整个项目的总停车结论。
+现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract、`Hermes` outer substrate closure，以及 `MedDeepScientist` 解构地图。external runtime gate 仍然存在，但它已经只是 `P2` 内的一道真实外部 gate，不再是整个项目的总停车结论。
 
 ## 运行句柄与持久表面
 
 - `study_id`：医学 study 的持久聚合根身份。
-- `quest_id`：绑定到该 study 的受控 `MedDeepScientist` managed quest 正式运行句柄。
+- `quest_id`：绑定到该 study 的受控 research backend quest 正式运行句柄。
 - `active_run_id`：当前 quest 内 live daemon run 的细粒度执行句柄；它不能取代 `study_id` 或 `quest_id`。
 - `program_id`：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针。
 - 当前 canonical durable status / audit / decision surface：`study_runtime_status`、`runtime_watch`、`artifacts/publication_eval/latest.json`、`artifacts/reports/escalation/runtime_escalation_record.json`、`artifacts/controller_decisions/latest.json`、`artifacts/runtime/last_launch_report.json`。
+- `runtime_binding.yaml` 现在会同时记录 outer-substrate metadata（`runtime_backend_id`、`runtime_engine_id`）和 controlled research backend metadata（`research_backend_id`、`research_engine_id`）。
 - repo-tracked runtime truth 与本地 operator handoff surface 必须分开：前者负责产品/runtime 合同，后者只负责机器本地恢复与 continuation 状态。
 
 ## 未来托管形态下的不变项

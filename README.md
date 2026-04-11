@@ -49,11 +49,11 @@ Its current role is:
 - it owns medical `Research Ops` contracts and delivery expectations
 - the domain gateway that organizes medical studies, evidence packages, and submission delivery
 - the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`
-- the harness-based runtime surface above a controlled `MedDeepScientist` execution surface, while `MedDeepScientist` itself is not the system body
+- the harness-based runtime surface above a `Hermes` outer runtime substrate and a controlled `MedDeepScientist` research backend, while `MedDeepScientist` itself is not the system body
 
 The public chain is:
 
-`User / Agent -> OPL Gateway (optional) -> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Controlled MedDeepScientist surface`
+`User / Agent -> OPL Gateway (optional) -> Unified Harness Engineering Substrate -> Research Foundry -> Med Auto Science -> Hermes outer runtime substrate -> Controlled MedDeepScientist research backend`
 
 ## What It Helps You Do
 
@@ -75,17 +75,17 @@ Many automated research systems are good at executing steps but weak at controll
 
 ## Current Runtime Shape
 
-The default local execution mode is `Codex-default host-agent runtime`.
-Its formal-entry matrix is fixed as: default formal entry `CLI`, supported protocol layer `MCP`, internal control surface `controller`.
+The old `Codex-default host-agent runtime` is now kept only as a migration-era comparison surface and regression oracle; it is no longer the long-term product direction.
+The formal-entry matrix remains fixed as: default formal entry `CLI`, supported protocol layer `MCP`, internal control surface `controller`.
 That matrix describes how agents enter the runtime; it does not mean the public product is a human CLI toolbox.
-The current repo-tracked product mainline is `Auto-only`; any future `Human-in-the-loop` product should reuse the same substrate as a compatible sibling or upper-layer product rather than split this repository into same-repo dual-mode logic.
-On this runtime, medical study progression is executed through a controlled `MedDeepScientist` surface.
-This means:
+The current repo-tracked product mainline is still `Auto-only`; any future `Human-in-the-loop` product should reuse the same substrate as a compatible sibling or upper-layer product rather than split this repository into same-repo dual-mode logic.
+The current repo-tracked runtime topology is:
 
-- `Med Auto Science` remains the `Domain Harness OS` and contract owner
-- `MedDeepScientist` remains an execution surface under control, not the full system identity
+- `Med Auto Science` stays the only research entry, research gateway, and study/workspace authority owner
+- `Hermes` is the default outer runtime substrate owner
+- `MedDeepScientist` is the controlled research backend, not the system body
 
-The managed runtime side is now frozen behind a single `runtime backend interface` contract. `med-deepscientist` is the current default backend implementation, but controller logic no longer treats the backend module name itself as the authority boundary.
+The managed runtime side is frozen behind a single `runtime backend interface` contract. The controller, outer loop, transport, and durable surface now treat `runtime_backend_id = hermes` / `runtime_engine_id = hermes` as the default outer runtime metadata, while `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` records the current controlled research backend.
 
 ## Current Repo-Side Status
 
@@ -95,17 +95,18 @@ That means:
 
 - `P0 runtime native truth` is complete in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
 - `P1 workspace canonical literature / knowledge truth` is complete in `Med Auto Science`
-- `P2 controlled cutover -> physical monorepo migration` is the remaining active tranche
+- `P2 controlled cutover -> physical monorepo migration` remains active, but the repo-side mainline has already shifted to `Hermes` outer substrate ownership
 
-The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, and the remaining cutover work package. The external runtime gate still exists, but it is now one gate inside `P2`, not the whole-project stop state.
+The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, the `Hermes` outer substrate closure, and the `MedDeepScientist` deconstruction map. The external runtime gate still exists, but it is now a real external blocker inside `P2`, not the whole-project stop state.
 
 ## Execution Handle And Durable Surfaces
 
 - `study_id` is the durable aggregate-root identity for a medical study.
-- `quest_id` is the formal managed runtime handle for the controlled `MedDeepScientist` quest bound to that study.
+- `quest_id` is the formal managed runtime handle for the controlled research backend quest bound to that study.
 - `active_run_id` is the live daemon run handle inside the current quest when execution is active; it must not replace `study_id` or `quest_id`.
 - `program_id` is the control-plane and report-routing pointer for the active `research-foundry-medical-mainline`.
 - Current canonical durable status, audit, and decision surfaces are `study_runtime_status`, `runtime_watch`, `artifacts/publication_eval/latest.json`, `artifacts/reports/escalation/runtime_escalation_record.json`, `artifacts/controller_decisions/latest.json`, and `artifacts/runtime/last_launch_report.json`.
+- `runtime_binding.yaml` now records both outer-substrate metadata (`runtime_backend_id`, `runtime_engine_id`) and controlled research backend metadata (`research_backend_id`, `research_engine_id`).
 - Repo-tracked runtime truth and local operator handoff surfaces stay separate: the former owns the product/runtime contract, while the latter carries machine-local resume and continuation state.
 
 ## What Stays Stable Over Time

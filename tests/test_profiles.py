@@ -55,7 +55,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
-    assert profile.managed_runtime_backend_id == "med_deepscientist"
+    assert profile.managed_runtime_backend_id == "hermes"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -103,6 +103,7 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     profile = profiles.load_profile(profile_path)
 
     assert profile.med_deepscientist_repo_root is None
+    assert profile.managed_runtime_backend_id == "hermes"
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "global"
     assert profile.medical_overlay_skills == (

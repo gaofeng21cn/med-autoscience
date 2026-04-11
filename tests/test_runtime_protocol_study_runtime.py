@@ -88,10 +88,13 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
     assert payload == {
         "schema_version": 1,
-        "engine": "med-deepscientist",
-        "runtime_backend_id": "med_deepscientist",
-        "runtime_backend": "med_deepscientist",
-        "runtime_engine_id": "med-deepscientist",
+        "engine": "hermes",
+        "runtime_backend_id": "hermes",
+        "runtime_backend": "hermes",
+        "runtime_engine_id": "hermes",
+        "research_backend_id": "med_deepscientist",
+        "research_backend": "med_deepscientist",
+        "research_engine_id": "med-deepscientist",
         "runtime_home": str(runtime_root),
         "study_id": "001-risk",
         "study_root": str(study_root),
@@ -134,6 +137,31 @@ def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_pat
     assert payload["med_deepscientist_runtime_root"] == str(runtime_root)
 
 
+def test_write_runtime_binding_records_controlled_research_backend_metadata_for_hermes(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    runtime_root = tmp_path / "workspace" / "ops" / "hermes" / "runtime"
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    binding_path = study_root / "runtime_binding.yaml"
+
+    module.write_runtime_binding(
+        runtime_binding_path=binding_path,
+        runtime_root=runtime_root,
+        study_id="001-risk",
+        study_root=study_root,
+        quest_id="quest-hermes-001",
+        last_action="resume",
+        source="test-source",
+        recorded_at="2026-04-11T12:00:00+00:00",
+        runtime_backend_id="hermes",
+        runtime_engine_id="hermes",
+    )
+
+    payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
+    assert payload["research_backend_id"] == "med_deepscientist"
+    assert payload["research_backend"] == "med_deepscientist"
+    assert payload["research_engine_id"] == "med-deepscientist"
+
+
 def test_runtime_binding_backend_metadata_resolves_explicit_hermes_backend() -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
 
@@ -142,6 +170,26 @@ def test_runtime_binding_backend_metadata_resolves_explicit_hermes_backend() -> 
             "execution": {
                 "runtime_backend_id": "hermes",
                 "runtime_engine_id": "hermes",
+                "auto_entry": "on_managed_research_intent",
+            }
+        }
+    )
+
+    assert backend_id == "hermes"
+    assert engine_id == "hermes"
+
+
+def test_runtime_binding_backend_metadata_uses_profile_default_hermes_substrate_for_legacy_med_deepscientist_execution() -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+
+    backend_id, engine_id = module._runtime_binding_backend_metadata(
+        {
+            "execution": {
+                "engine": "med-deepscientist",
+                "runtime_backend_id": "hermes",
+                "runtime_engine_id": "hermes",
+                "research_backend_id": "med_deepscientist",
+                "research_engine_id": "med-deepscientist",
                 "auto_entry": "on_managed_research_intent",
             }
         }

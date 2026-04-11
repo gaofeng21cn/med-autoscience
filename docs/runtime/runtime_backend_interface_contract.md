@@ -4,19 +4,17 @@
 
 冻结 `MedAutoScience -> managed runtime backend` 的单一 contract，使 `MedAutoScience` 只依赖 `runtime backend interface` contract，而不再把 `med-deepscientist` 当作内建实现真相。
 
-当前默认已注册 backend 仍是：
+当前默认 outer runtime substrate owner 是：
 
-- `runtime_backend_id = med_deepscientist`
-- `runtime_engine_id = med-deepscientist`
+- `runtime_backend_id = hermes`
+- `runtime_engine_id = hermes`
 
-但这两个字段现在只是当前实现，不再是 `MedAutoScience` controller 层的硬编码身份。
+当前 controlled research backend 是：
 
-当前 repo-side 允许继续推进的下一棒是：
+- `research_backend_id = med_deepscientist`
+- `research_engine_id = med-deepscientist`
 
-- [`../program/hermes_backend_continuation_board.md`](../program/hermes_backend_continuation_board.md)
-- [`../program/hermes_backend_activation_package.md`](../program/hermes_backend_activation_package.md)
-
-它们只负责把 `Hermes` 作为非默认 backend 接入准备，不改变当前默认 backend owner。
+旧 `Codex-default host-agent runtime` 不再是长期产品方向；direct `med_deepscientist` backend lane 只保留为兼容 / regression oracle。
 
 ## 2. Backend 选择规则
 
@@ -24,7 +22,11 @@
 
 1. `execution.runtime_backend_id`
 2. `execution.runtime_backend`
-3. `execution.engine` 映射到已注册 backend
+3. 对 `auto_entry == on_managed_research_intent` 的历史 managed execution：
+   - 若 profile 固定 `managed_runtime_backend_id = hermes`
+   - 且 legacy `execution.engine` 指向 `med_deepscientist` 或为空
+   - controller 先把 execution 归一化到 `Hermes` outer substrate
+4. 其余场景再使用 `execution.engine` 映射到已注册 backend
 
 fail-closed 规则：
 
@@ -52,6 +54,11 @@ managed runtime backend 必须显式暴露：
 - `artifact_complete_quest(...)`
 - `artifact_interact(...)`
 
+可选但当前主线已使用的扩展 metadata：
+
+- `CONTROLLED_RESEARCH_BACKEND_ID`
+- `CONTROLLED_RESEARCH_ENGINE_ID`
+
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
 
 ## 3.1 Registry validation
@@ -66,7 +73,7 @@ backend registry 当前必须 fail-closed 校验：
 这条规则的意义是：
 
 - 不让 backend abstraction 停留在“只有两个 ID 字段”的假抽象
-- 在 `Hermes` 接入前就把 controller callsite 所依赖的最小可执行 contract 冻结出来
+- 在 `Hermes` outer substrate owner 已切入后，继续把 controller callsite 所依赖的最小可执行 contract 冻结出来
 
 ## 4. Managed Runtime 判定
 
@@ -86,11 +93,14 @@ managed runtime execution 的正式条件是：
 
 ## 5. Runtime Binding Durable Surface
 
-`runtime_binding.yaml` 现在必须同时写出 backend-generic 元数据：
+`runtime_binding.yaml` 现在必须同时写出：
 
 - `runtime_backend_id`
 - `runtime_backend`
 - `runtime_engine_id`
+- `research_backend_id`
+- `research_backend`
+- `research_engine_id`
 - `runtime_home`
 - `runtime_quests_root`
 
@@ -100,32 +110,19 @@ managed runtime execution 的正式条件是：
 - `runtime_root`
 - `med_deepscientist_runtime_root`
 
-其中：
-
-- `runtime_home` 是 backend home / runtime state root
-- `runtime_quests_root` 是 quest collection root
-- `runtime_root` 当前仍与 `runtime_quests_root` 对齐
-
-这意味着后续接入 Hermes 时，controller/outer-loop 不应再依赖 `med_deepscientist_runtime_root` 这一实现名义字段。
+这意味着 controller / outer-loop 不应再依赖 `med_deepscientist_runtime_root` 这一实现名义字段来推导 authority truth。
 
 ## 6. 当前仓库边界
 
 这份 contract 完成的是：
 
 - controller 与 transport 之间的 backend abstraction freeze
-- managed runtime 判定从 backend contract 出发，而不是从具体 backend 名字出发
-- `runtime_binding.yaml` 写出 backend-generic durable fields
+- `Hermes` 作为默认 outer substrate owner 的 repo-side 闭环
+- `MedDeepScientist` 作为 controlled research backend 的显式 durable metadata
 
 这份 contract 还没有完成的是：
 
-- Hermes external runtime truth / workspace truth
-- Hermes default owner switch
+- external `Hermes` runtime truth / workspace truth
+- `MedDeepScientist` backend 的完全退场
 - workspace physical layout 的完全去 `med-deepscientist` 化
 - physical monorepo migration
-
-所以当前正确顺序仍然是：
-
-1. freeze backend contract
-2. 完成 repo-side `Hermes` backend continuation / activation package
-3. 完成 controlled cutover
-4. 再决定 physical monorepo migration
