@@ -388,6 +388,16 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 
 当前 P2 repo-side continuation 已把 `Hermes` 切成默认 outer runtime substrate owner。它的意义是让 controller / transport / durable surface 真正只认 backend contract，并把 `MedDeepScientist` 收口成 controlled research backend；它不等于 external runtime gate 已解除，也不等于 physical migration 已开始。
 
+### 当前 `Hermes` 名义与宿主安装的关系
+
+`med_autoscience.runtime_transport.hermes` 当前是 repo-side consumer-only outer substrate seam。也就是说：
+
+- 即使宿主机还没有独立 external `Hermes` runtime，本仓也可以合法写出 `runtime_backend_id = hermes`
+- 这里冻结的是 outer substrate contract owner，不是宣称本机已经多出一个独立安装的 Hermes daemon
+- 当前这层 seam 的真实作用，是让 controller / outer-loop / durable surface 经由 backend contract 去监管受控 research backend
+- 它已经可以检测掉线、请求恢复、写出 supervision / escalation / progress surface
+- 但它还不能单独替代 `MedDeepScientist` engine 自身；如果 backend contract 整体不可达，当前 repo-side `Hermes` 只能 fail-closed 地检测、升级和报告，而不能诚实声称“独立 Hermes host 已自动接管执行”
+
 只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 
 ## Runtime Protocol Surface

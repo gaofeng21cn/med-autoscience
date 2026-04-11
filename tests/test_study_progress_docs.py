@@ -25,5 +25,8 @@ def test_study_progress_doc_freezes_projection_contract_and_doctor_readout() -> 
     assert "publication_eval/latest.json" in content
     assert "controller_decisions/latest.json" in content
     assert "医生" in content
+    assert "clinician_update" in content
+    assert "bash_exec summary" in content
+    assert "宿主机尚无 external `Hermes` runtime" in content
     assert "study_progress_projection.md" in docs_index
     assert "study_progress_projection.md" in docs_index_zh

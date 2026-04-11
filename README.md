@@ -87,6 +87,13 @@ The current repo-tracked runtime topology is:
 
 The managed runtime side is frozen behind a single `runtime backend interface` contract. The controller, outer loop, transport, and durable surface now treat `runtime_backend_id = hermes` / `runtime_engine_id = hermes` as the default outer runtime metadata, while `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` records the current controlled research backend.
 
+### What `Hermes` Means Today
+
+- In this repository, `Hermes` currently means the repo-side outer runtime substrate contract owner. It does not mean this checkout automatically ships or installs a standalone external Hermes daemon on the host.
+- If a machine has not yet provisioned an external `Hermes` runtime, the repo can still use `runtime_backend_id = hermes` because `med_autoscience.runtime_transport.hermes` is currently a consumer-only seam that delegates actual quest control to the controlled `MedDeepScientist` transport through the backend contract.
+- This still gives the outer loop real leverage: `runtime_watch` can detect dropouts, `ensure_study_runtime` can request recovery, `runtime_supervision/latest.json` can escalate repeated failures, and `study_progress` can project physician-friendly updates from durable surfaces.
+- What it does not honestly prove yet is independent engine replacement. If the controlled `MedDeepScientist` execution surface disappears entirely, the current repo-side Hermes seam can detect, escalate, and report that failure, but it cannot be described as an already-installed standalone Hermes host that fully replaces the backend. That remains behind the external runtime gate.
+
 ## Current Repo-Side Status
 
 The priority order is now frozen and partially completed:

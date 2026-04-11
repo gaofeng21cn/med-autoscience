@@ -21,6 +21,14 @@
 
 这些信息必须以医生 / 医学专家能看懂的人话表达，而不是把 runtime 内部技术术语直接甩给前台。
 
+当前“人话进度”不是拍脑袋总结，而是有固定来源：
+
+- `runtime_supervision/latest.json` 的 `clinician_update`、`summary`、`next_action_summary`
+- `runtime_watch` 的 controller scan 结果
+- `publication_eval/latest.json` 的 verdict / gap summary
+- `controller_decisions/latest.json` 的正式下一步决定
+- `bash_exec summary` 与 `details projection` 提供的最近推进描述
+
 ## 2. Authority 边界
 
 `study_progress` 的正式定位是：
@@ -67,6 +75,7 @@
 - 不直接读 `.ds/codex_history` 原始事件流
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，而不是被论文阶段覆盖
 - 只要 `study_runtime_status.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，不能继续把 study 写成被持续托管监管
+- 即使宿主机尚无 external `Hermes` runtime，前台的人话进度也仍来自这些 MAS durable surface，而不是假装另有一个独立 Hermes host 已经在后台接管一切
 
 ## 4. 输出合同
 

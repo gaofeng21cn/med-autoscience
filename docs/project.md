@@ -31,6 +31,12 @@
 - 再进入 managed runtime
 - 再通过 publication gate、completion sync 和 delivery plane 持续逼近 SCI-ready 投稿态
 
+当前还要补上一条诚实边界：
+
+- 当前仓内的 `Hermes` 首先是 repo-side outer substrate contract owner，不等于宿主机已经预装独立 Hermes runtime。
+- 如果宿主机尚无 external `Hermes`，当前复用的是 outer-loop contract、durable surface、watch / supervision / progress semantics；底层 quest execution 仍经由 controlled backend contract 落到 `MedDeepScientist`。
+- 因而这条主线相对旧形态不是逻辑降级，而是先把外环监管、研究治理、人话进度汇报收成独立 authority，再把剩余 engine-level 能力逐步解构出去。
+
 ## 非目标
 
 - 不把项目级 `.codex/`、`.omx/` 或其他临时 handoff surface 当作权威真相。

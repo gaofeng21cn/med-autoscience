@@ -49,11 +49,17 @@ def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_sem
     assert "research-foundry-medical-mainline" in readme
     assert "managed runtime handle" in readme
     assert "live daemon run handle" in readme
+    assert "repo-side outer runtime substrate contract owner" in readme
+    assert "standalone external Hermes daemon" in readme
+    assert "physician-friendly updates" in readme
 
     assert "research-foundry-medical-mainline" in readme_zh
     assert "受控 research backend quest 正式运行句柄" in readme_zh
     assert "live daemon run" in readme_zh
     assert "本地 operator handoff surface" in readme_zh
+    assert "repo-side outer runtime substrate contract owner" in readme_zh
+    assert "独立 external Hermes daemon" in readme_zh
+    assert "医生/PI 能读的人话进度" in readme_zh
 
 
 def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -> None:
@@ -232,9 +238,16 @@ def test_core_docs_explain_hermes_integrated_research_progression_without_overcl
     assert "一步步逼近 SCI-ready 投稿态" in architecture
     assert "相对只依赖 `MedDeepScientist` 的版本，逻辑上不是降级" in architecture
     assert "outer-loop / inner-loop coordination" in architecture
+    assert "supervisor_tick_audit" in architecture
+    assert "managed_runtime_supervision_gap" in architecture
+    assert "details projection" in architecture
 
     assert "SCI-ready 投稿态" in project
     assert "fail-closed gate" in project
+    assert "repo-side outer substrate contract owner" in project
+    assert "宿主机尚无 external `Hermes`" in project
 
     assert "study charter / startup boundary / publication gate / completion sync" in runtime_interface
     assert "不是把判断继续藏在 inner runtime 里" in runtime_interface
+    assert "consumer-only outer substrate seam" in runtime_interface
+    assert "独立安装的 Hermes daemon" in runtime_interface

@@ -37,6 +37,7 @@
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
 - 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
 - 保持 `Hermes` 作为默认 outer substrate owner 的 repo-side 闭环诚实成立，同时保留 external `Hermes` runtime repo / workspace / daemon truth 仍未进入本仓这一 blocker。
+- 如果宿主机尚无 external `Hermes` runtime，本仓当前仍只有 repo-side `Hermes` seam：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 Hermes host 已脱离 `MedDeepScientist` 完整接管执行”。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
 - 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。

@@ -1940,7 +1940,7 @@ def test_ensure_study_runtime_archives_invalid_partial_quest_root_before_create(
             },
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(_managed_runtime_transport(module), "create_quest", fake_create_quest)
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
@@ -2027,7 +2027,7 @@ def test_ensure_study_runtime_refreshes_startup_hydration_for_existing_created_q
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
             ("sync_startup_context", quest_id, startup_contract.get("scope"), requested_baseline_ref)
@@ -2135,7 +2135,7 @@ def test_ensure_study_runtime_blocks_when_existing_created_quest_overlay_refresh
         or make_runtime_overlay_result(all_roots_ready=False),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda **kwargs: pytest.fail("update_quest_startup_context should not run when overlay refresh stays broken"),
         raising=False,
@@ -2274,7 +2274,7 @@ def test_ensure_study_runtime_materializes_overlay_for_non_resumable_existing_qu
         lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda **kwargs: pytest.fail("startup context sync should not run for non-resumable completed quest"),
         raising=False,
@@ -2343,7 +2343,7 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -2416,7 +2416,7 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -2680,7 +2680,7 @@ def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_valid
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -2784,7 +2784,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_required_startup_hydrati
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "pause_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "paused"},
     )
@@ -2830,7 +2830,7 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -2858,7 +2858,7 @@ def test_ensure_study_runtime_noops_when_quest_is_already_running(monkeypatch, t
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resolve_daemon_url",
         lambda *, runtime_root: "http://127.0.0.1:21999",
     )
@@ -2963,7 +2963,7 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3009,7 +3009,7 @@ def test_ensure_study_runtime_resumes_running_quest_when_daemon_has_no_live_sess
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -3072,7 +3072,7 @@ def test_ensure_study_runtime_rehydrates_no_live_session_recovery_when_runtime_r
         lambda *, quest_root: make_startup_hydration_validation_report(quest_root),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3118,7 +3118,7 @@ def test_ensure_study_runtime_rehydrates_no_live_session_recovery_when_runtime_r
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -3171,7 +3171,7 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": False,
@@ -3247,12 +3247,12 @@ def test_ensure_study_runtime_keeps_supervisor_only_guard_when_live_runtime_prog
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resolve_daemon_url",
         lambda *, runtime_root: "http://127.0.0.1:21999",
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": False,
@@ -3379,7 +3379,7 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3413,7 +3413,7 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
             ("sync_startup_context", quest_id, startup_contract.get("scope"))
@@ -3422,7 +3422,7 @@ def test_ensure_study_runtime_blocks_when_resume_request_fails_after_active_ques
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: (_ for _ in ()).throw(RuntimeError("daemon unavailable")),
     )
@@ -3495,7 +3495,7 @@ def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surf
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3517,7 +3517,7 @@ def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surf
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": False,
@@ -3618,7 +3618,7 @@ def test_study_runtime_status_blocks_finalize_parking_when_external_credential_i
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3640,7 +3640,7 @@ def test_study_runtime_status_blocks_finalize_parking_when_external_credential_i
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -3711,12 +3711,12 @@ def test_ensure_study_runtime_blocks_when_create_request_fails(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "create_quest",
         lambda *, runtime_root, payload: (_ for _ in ()).throw(RuntimeError("daemon unavailable")),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: pytest.fail("resume_quest should not run after create failure"),
     )
@@ -3854,7 +3854,7 @@ def test_ensure_study_runtime_creates_without_starting_when_startup_boundary_is_
             },
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(_managed_runtime_transport(module), "create_quest", fake_create_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -3974,7 +3974,7 @@ def test_ensure_study_runtime_applies_startup_boundary_to_non_continue_launch_pr
             },
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(_managed_runtime_transport(module), "create_quest", fake_create_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -4029,7 +4029,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_startup_boundary_disallo
         paused["source"] = source
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(_managed_runtime_transport(module), "pause_quest", fake_pause_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -4153,7 +4153,7 @@ def test_ensure_study_runtime_uses_protocol_hydration_payload_builder(monkeypatc
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "create_quest",
         lambda *, runtime_root, payload: {
             "ok": True,
@@ -4182,7 +4182,7 @@ def test_ensure_study_runtime_uses_protocol_hydration_payload_builder(monkeypatc
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -4234,7 +4234,7 @@ def test_ensure_study_runtime_uses_protocol_startup_contract_validation(monkeypa
         ),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "create_quest",
         lambda **kwargs: called.__setitem__("create_called", True) or {},
     )
@@ -4304,7 +4304,7 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
             ("sync_startup_context", quest_id, startup_contract.get("scope"))
@@ -4313,7 +4313,7 @@ def test_ensure_study_runtime_resumes_idle_quest_after_startup_boundary_clears(
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
     )
@@ -4381,7 +4381,7 @@ def test_ensure_study_runtime_forwards_requested_baseline_ref_when_syncing_exist
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: (
             seen.__setitem__("requested_baseline_ref", requested_baseline_ref)
@@ -4397,7 +4397,7 @@ def test_ensure_study_runtime_forwards_requested_baseline_ref_when_syncing_exist
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "active"},
     )
@@ -4752,7 +4752,7 @@ def test_study_runtime_status_uses_native_runtime_event_ref_for_managed_runtime(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -4832,7 +4832,7 @@ def test_ensure_study_runtime_uses_native_runtime_event_ref_after_managed_transi
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {
             "ok": True,
@@ -4845,7 +4845,7 @@ def test_ensure_study_runtime_uses_native_runtime_event_ref_after_managed_transi
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -4961,7 +4961,7 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -4989,7 +4989,7 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resolve_daemon_url",
         lambda *, runtime_root: "http://127.0.0.1:21999",
     )
@@ -5071,7 +5071,7 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append(
             ("sync_startup_context", quest_id, startup_contract.get("scope"), requested_baseline_ref)
@@ -5087,7 +5087,7 @@ def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypa
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "active"},
     )
@@ -5187,7 +5187,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -5227,7 +5227,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
         paused["source"] = source
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(_managed_runtime_transport(module), "pause_quest", fake_pause_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
@@ -5343,7 +5343,7 @@ def test_ensure_study_runtime_keeps_live_audit_blocked_even_if_overlay_audit_fai
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": False,
@@ -5383,7 +5383,7 @@ def test_ensure_study_runtime_keeps_live_audit_blocked_even_if_overlay_audit_fai
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "pause_quest",
         lambda **kwargs: pytest.fail("pause_quest should not run when live-session audit is unknown"),
     )
@@ -5826,7 +5826,7 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -6106,7 +6106,7 @@ def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -6239,7 +6239,7 @@ def test_study_runtime_status_auto_resumes_premature_completion_request_when_pub
         },
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "get_quest_session",
         lambda *, runtime_root, quest_id: {
             "ok": True,
@@ -6335,14 +6335,14 @@ def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(mon
         lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "update_quest_startup_context",
         lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
         or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        _managed_runtime_transport(module),
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append("resume") or {"ok": True, "status": "active"},
     )

@@ -24,5 +24,8 @@ def test_runtime_supervision_doc_freezes_outer_supervisor_loop_contract() -> Non
     assert "stale" in content
     assert "监管心跳异常" in content
     assert "不是第二个 authority daemon" in content
+    assert "clinician_update" in content
+    assert "独立安装的 Hermes host" in content
+    assert "恢复请求、告警升级与人话汇报" in content
     assert "runtime_supervision_loop.md" in docs_index
     assert "runtime_supervision_loop.md" in docs_index_zh

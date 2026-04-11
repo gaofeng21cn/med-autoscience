@@ -68,6 +68,22 @@
 在 repo-side 已完成的范围内，功能没有因为接入 `Hermes` 而退回“只能跑一个 backend”或“只能靠对话记状态”。
 相反，outer-loop / inner-loop coordination 变得更清楚：outer loop 负责研究治理与 go / stop judgment，inner loop 负责受控执行，不再把两类 authority 混写成一个 runtime body。
 
+## 当前 outer / inner 交互怎么保证
+
+当前这套协作不是靠口头约定，而是靠几条已经落盘的 fail-closed contract：
+
+- 只有当 `runtime_liveness_audit.status == live`、`runtime_audit.worker_running == true`、`active_run_id != null` 同时成立时，`MedAutoScience` 才允许把托管运行视为 truly live；否则 `runtime_supervision/latest.json` 必须落到 `recovering / degraded / escalated`。
+- `runtime_watch` 周期扫描 quest controller surface，`runtime_supervision/latest.json` 把掉线、恢复请求、连续失败、人工介入需求写成 study-owned durable truth。
+- 一旦 `MedDeepScientist` 表面还显示 running，但 live worker 消失，MAS 可以通过 backend-generic contract 调 `ensure_study_runtime`、pause、resume、relaunch 这些路径做受控干预；不会靠 hidden fallback 或口头记忆假装恢复成功。
+- 这套“及时干预”本身也受外环监管约束：只要 `supervisor_tick_audit` 变成 `missing / stale / invalid`，`study_progress` 就必须把当前状态投影成 `managed_runtime_supervision_gap`，明确说明 MAS 已不能保证及时发现掉线和自动恢复。
+- 阶段性成果的人话汇报当前由 `study_progress` 只读组合 `runtime_supervision/latest.json`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`bash_exec summary`、`details projection`，而不是直接抓 inner runtime 原始日志拼装一个黑盒摘要。
+
+## 当前还不能诚实宣称的事
+
+- 当前 `med_autoscience.runtime_transport.hermes` 仍是 consumer-only outer substrate seam，底层 quest create / pause / resume / control 还是经由 controlled `MedDeepScientist` stable transport 完成。
+- 所以如果宿主机还没有 external `Hermes` runtime，本仓“用上 Hermes”成立的是 topology / contract / durable surface / outer-loop semantics 的复用，不是“已经装好了一个独立 Hermes host 并能脱离 backend 单独托管”。
+- 这也是当前真实 external blocker：本仓已经能检测、恢复请求、升级告警、医生可读汇报，但还不能把 `MedDeepScientist` 整体故障表述成“独立 Hermes 宿主已完整接管执行真相”。
+
 ## 现在比原来更好解决了什么
 
 当前相比只靠 `MedDeepScientist` 作为默认 runtime truth 的形态，更好地解决了几类老问题：

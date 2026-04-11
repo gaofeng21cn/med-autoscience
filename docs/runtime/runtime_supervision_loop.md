@@ -192,3 +192,19 @@ medautosci watch \
 - 再决定具体由谁负责“每 5 分钟跑一次”
 
 这能保证未来无论宿主变成 Codex、Gateway 还是 managed web runtime，合同都不漂。
+
+## 9. 当前这条外环能恢复到哪里
+
+当前这条外环已经能诚实做到：
+
+- 发现 live worker 掉线、finalize parking 或恢复失败
+- 通过 backend contract 请求 `ensure_study_runtime`、resume、relaunch 这类受控恢复
+- 把 `clinician_update`、`next_action_summary`、`needs_human_intervention` 写入 `runtime_supervision/latest.json`
+- 在连续失败后升级为 `escalated`，并把人工介入信号写到 `runtime_escalation_record.json` 与 `study_progress`
+
+但它当前还不能诚实宣称：
+
+- 宿主上已经存在一个独立安装的 Hermes host
+- 在 external `Hermes` runtime 尚未独立落地时，完全脱离 `MedDeepScientist` engine 自行接管执行
+
+也就是说，当前 outer loop 擅长的是监管、恢复请求、告警升级与人话汇报；它不是在 external gate 未解除前平地再造一个新的 execution engine。

@@ -87,6 +87,13 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 当前 managed runtime 一侧已经冻结到单一 `runtime backend interface` contract 后面。controller / outer-loop / transport / durable surface 默认写出 `runtime_backend_id = hermes` / `runtime_engine_id = hermes`，同时用 `research_backend_id = med_deepscientist` / `research_engine_id = med-deepscientist` 记录当前受控 research backend。
 
+### 当前 `Hermes` 到底指什么
+
+- 在当前仓内，`Hermes` 首先指 repo-side outer runtime substrate contract owner；这不等于当前 checkout 会自动在宿主机上附带安装一个独立 external Hermes daemon。
+- 如果机器上还没有 external `Hermes` runtime，本仓仍然可以合法写出 `runtime_backend_id = hermes`，因为 `med_autoscience.runtime_transport.hermes` 当前是 consumer-only seam，它通过 backend contract 把 quest control 委托给受控 `MedDeepScientist` transport。
+- 这并不是空名字：外环已经可以用 `runtime_watch` 发现掉线，用 `ensure_study_runtime` 请求恢复，把连续失败写进 `runtime_supervision/latest.json`，再由 `study_progress` 输出医生/PI 能读的人话进度。
+- 但它目前还不能诚实地证明“独立 Hermes host 已经完整替代 backend engine”。如果 `MedDeepScientist` execution surface 整体消失，当前 repo-side Hermes seam 能做的是检测、升级告警和报告，而不是宣称宿主上已有独立 Hermes 彻底接管执行。这仍属于 external runtime gate。
+
 ## 当前仓库侧状态
 
 当前优先级已经冻结，并且前两条 tranche 已完成：
