@@ -1784,6 +1784,139 @@ def test_run_display_layout_qc_fails_when_single_cell_atlas_overview_composition
     assert any(issue["rule_id"] == "composition_group_sum_invalid" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_spatial_niche_map_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_spatial_niche_map_panel",
+        layout_sidecar={
+            "template_id": "spatial_niche_map_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("spatial_panel_title", "panel_title", x0=0.08, y0=0.88, x1=0.26, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.11, y0=0.10, x1=0.23, y1=0.13),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.30, x1=0.05, y1=0.74),
+                make_box("composition_panel_title", "panel_title", x0=0.38, y0=0.88, x1=0.58, y1=0.91),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.43, y0=0.10, x1=0.56, y1=0.13),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.33, y0=0.28, x1=0.36, y1=0.76),
+                make_box("heatmap_panel_title", "panel_title", x0=0.68, y0=0.88, x1=0.86, y1=0.91),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.71, y0=0.10, x1=0.83, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.28, x1=0.65, y1=0.76),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.82, x1=0.10, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.82, x1=0.40, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+            ],
+            "panel_boxes": [
+                make_box("panel_spatial", "panel", x0=0.07, y0=0.18, x1=0.29, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.37, y0=0.18, x1=0.60, y1=0.86),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.67, y0=0.18, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.10, y0=0.02, x1=0.34, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.90, y0=0.22, x1=0.94, y1=0.82),
+            ],
+            "metrics": {
+                "points": [
+                    {"x": 0.14, "y": 0.70, "niche_label": "Immune niche"},
+                    {"x": 0.23, "y": 0.34, "niche_label": "Stromal niche"},
+                ],
+                "niche_labels": ["Immune niche", "Stromal niche"],
+                "row_labels": ["CXCL13 program", "TGF-beta program"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "niche_proportions": [
+                            {"niche_label": "Immune niche", "proportion": 0.64},
+                            {"niche_label": "Stromal niche", "proportion": 0.36},
+                        ],
+                    },
+                    {
+                        "group_label": "Invasive margin",
+                        "group_order": 2,
+                        "niche_proportions": [
+                            {"niche_label": "Immune niche", "proportion": 0.42},
+                            {"niche_label": "Stromal niche", "proportion": 0.58},
+                        ],
+                    },
+                ],
+                "matrix_cells": [
+                    {"x": "Immune niche", "y": "CXCL13 program", "value": 0.74},
+                    {"x": "Stromal niche", "y": "CXCL13 program", "value": -0.16},
+                    {"x": "Immune niche", "y": "TGF-beta program", "value": -0.19},
+                    {"x": "Stromal niche", "y": "TGF-beta program", "value": 0.69},
+                ],
+                "score_method": "AUCell",
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_spatial_niche_map_composition_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_spatial_niche_map_panel",
+        layout_sidecar={
+            "template_id": "spatial_niche_map_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("spatial_panel_title", "panel_title", x0=0.08, y0=0.88, x1=0.26, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.11, y0=0.10, x1=0.23, y1=0.13),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.30, x1=0.05, y1=0.74),
+                make_box("composition_panel_title", "panel_title", x0=0.38, y0=0.88, x1=0.58, y1=0.91),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.43, y0=0.10, x1=0.56, y1=0.13),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.33, y0=0.28, x1=0.36, y1=0.76),
+                make_box("heatmap_panel_title", "panel_title", x0=0.68, y0=0.88, x1=0.86, y1=0.91),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.71, y0=0.10, x1=0.83, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.28, x1=0.65, y1=0.76),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.82, x1=0.10, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.82, x1=0.40, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+            ],
+            "panel_boxes": [
+                make_box("panel_spatial", "panel", x0=0.07, y0=0.18, x1=0.29, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.37, y0=0.18, x1=0.60, y1=0.86),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.67, y0=0.18, x1=0.88, y1=0.86),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.10, y0=0.02, x1=0.34, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.90, y0=0.22, x1=0.94, y1=0.82),
+            ],
+            "metrics": {
+                "points": [
+                    {"x": 0.14, "y": 0.70, "niche_label": "Immune niche"},
+                    {"x": 0.23, "y": 0.34, "niche_label": "Stromal niche"},
+                ],
+                "niche_labels": ["Immune niche", "Stromal niche"],
+                "row_labels": ["CXCL13 program", "TGF-beta program"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "niche_proportions": [
+                            {"niche_label": "Immune niche", "proportion": 0.64},
+                        ],
+                    },
+                ],
+                "matrix_cells": [
+                    {"x": "Immune niche", "y": "CXCL13 program", "value": 0.74},
+                    {"x": "Stromal niche", "y": "CXCL13 program", "value": -0.16},
+                    {"x": "Immune niche", "y": "TGF-beta program", "value": -0.19},
+                    {"x": "Stromal niche", "y": "TGF-beta program", "value": 0.69},
+                ],
+                "score_method": "AUCell",
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "composition_group_niche_set_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_forest_marker_is_outside_interval() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

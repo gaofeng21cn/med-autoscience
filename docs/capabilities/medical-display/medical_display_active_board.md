@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`35`
+  - 证据型模板：`36`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`42`
+  - 总模板数：`43`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -36,7 +36,7 @@
 - Family cluster：`D/E/G`
 - Capability cluster：`spatial_niche_map_panel`
 - Owner worktree：当前专用 display worktree
-- 状态：`in_progress`
+- 状态：`merge_back_ready`
 
 ### 本轮核心问题
 

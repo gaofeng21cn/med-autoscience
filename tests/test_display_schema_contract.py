@@ -37,6 +37,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     embedding = module.get_input_schema_contract("embedding_grouped_inputs_v1")
     celltype_signature = module.get_input_schema_contract("celltype_signature_heatmap_inputs_v1")
     atlas_overview = module.get_input_schema_contract("single_cell_atlas_overview_inputs_v1")
+    spatial_niche_map = module.get_input_schema_contract("spatial_niche_map_inputs_v1")
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
@@ -195,6 +196,70 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_row_labels_must_match_cell_rows",
         "declared_column_labels_must_match_cell_columns",
         "declared_column_labels_must_match_embedding_states",
+        "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert spatial_niche_map.template_ids == (_full_id("spatial_niche_map_panel"),)
+    assert spatial_niche_map.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "spatial_panel_title",
+        "spatial_x_label",
+        "spatial_y_label",
+        "spatial_points",
+        "composition_panel_title",
+        "composition_x_label",
+        "composition_y_label",
+        "composition_groups",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "row_order",
+        "column_order",
+        "cells",
+    )
+    assert spatial_niche_map.display_optional_fields == (
+        "paper_role",
+        "spatial_annotation",
+        "composition_annotation",
+        "heatmap_annotation",
+    )
+    assert spatial_niche_map.collection_required_fields["spatial_points"] == ("x", "y", "niche_label")
+    assert spatial_niche_map.collection_optional_fields["spatial_points"] == ("region_label",)
+    assert spatial_niche_map.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "niche_proportions",
+    )
+    assert spatial_niche_map.nested_collection_required_fields["composition_groups.niche_proportions"] == (
+        "niche_label",
+        "proportion",
+    )
+    assert spatial_niche_map.collection_required_fields["row_order"] == ("label",)
+    assert spatial_niche_map.collection_required_fields["column_order"] == ("label",)
+    assert spatial_niche_map.collection_required_fields["cells"] == ("x", "y", "value")
+    assert spatial_niche_map.additional_constraints == (
+        "spatial_points_must_be_non_empty",
+        "spatial_point_coordinates_must_be_finite",
+        "spatial_point_niche_label_must_be_non_empty",
+        "composition_groups_must_be_non_empty",
+        "composition_group_labels_must_be_unique",
+        "composition_group_order_must_be_strictly_increasing",
+        "composition_group_niche_proportions_must_be_non_empty",
+        "composition_group_niche_labels_must_match_declared_columns",
+        "composition_group_proportions_must_be_finite_probability",
+        "composition_group_proportions_must_sum_to_one",
+        "score_method_must_be_non_empty",
+        "cells_must_be_non_empty",
+        "cell_coordinates_must_be_non_empty",
+        "cell_values_must_be_finite",
+        "row_order_labels_must_be_unique",
+        "column_order_labels_must_be_unique",
+        "declared_row_labels_must_match_cell_rows",
+        "declared_column_labels_must_match_cell_columns",
+        "declared_column_labels_must_match_spatial_niches",
         "declared_heatmap_grid_must_be_complete_and_unique",
     )
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
@@ -403,10 +468,16 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("single_cell_atlas_overview_panel") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).template_ids
+    assert _full_id("spatial_niche_map_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).template_ids
     assert "celltype_signature_heatmap_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).input_schema_ids
     assert "single_cell_atlas_overview_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).input_schema_ids
+    assert "spatial_niche_map_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).input_schema_ids
     assert _full_id("performance_heatmap") in next(
@@ -867,6 +938,29 @@ def test_single_cell_atlas_overview_schema_contract_is_registered() -> None:
     assert "declared_column_labels_must_match_embedding_states" in atlas_overview.additional_constraints
     assert _full_id("single_cell_atlas_overview_panel") in data_geometry_class.template_ids
     assert "single_cell_atlas_overview_inputs_v1" in data_geometry_class.input_schema_ids
+
+
+def test_spatial_niche_map_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    spatial_niche_map = module.get_input_schema_contract("spatial_niche_map_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert spatial_niche_map.template_ids == (_full_id("spatial_niche_map_panel"),)
+    assert spatial_niche_map.display_name == "Spatial Niche Map Panel"
+    assert spatial_niche_map.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "niche_proportions",
+    )
+    assert spatial_niche_map.nested_collection_required_fields["composition_groups.niche_proportions"] == (
+        "niche_label",
+        "proportion",
+    )
+    assert "composition_group_proportions_must_sum_to_one" in spatial_niche_map.additional_constraints
+    assert "declared_column_labels_must_match_spatial_niches" in spatial_niche_map.additional_constraints
+    assert _full_id("spatial_niche_map_panel") in data_geometry_class.template_ids
+    assert "spatial_niche_map_inputs_v1" in data_geometry_class.input_schema_ids
 
 
 def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:

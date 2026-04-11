@@ -343,12 +343,13 @@ Current audited anchors:
 - `tsne_scatter_grouped`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
+- `spatial_niche_map_panel`
 
 Current gap direction:
 
-- PHATE and trajectory/manifold overlays beyond the current atlas-overview baseline
-- richer density/coverage annotation beyond occupancy + composition + marker/program overview
-- stronger crowding / labeling / legend QC for atlas-style publication-facing embeddings
+- PHATE and trajectory/manifold overlays beyond the current atlas + spatial-niche baseline
+- richer density/coverage annotation beyond occupancy / tissue topography + composition + marker/program overview
+- stronger crowding / labeling / legend QC for atlas-style and spatial publication-facing composites
 
 ### E. 特征模式与矩阵类
 
@@ -381,12 +382,13 @@ Current audited anchors:
 - `clustered_heatmap`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
+- `spatial_niche_map_panel`
 
 Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
-- celltype/program composite matrices beyond the current atlas-overview baseline
+- celltype/program composite matrices beyond the current atlas / spatial-niche baseline
 - omics-oriented matrix surfaces with manuscript-facing annotation control
 
 ### F. 模型解释类
@@ -460,11 +462,12 @@ Current audited anchors:
 - `gsva_ssgsea_heatmap`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
+- `spatial_niche_map_panel`
 
 Current gap direction:
 
 - expand from GSVA-only heatmaps into structured celltype/program composite omics panels where real paper demand is already explicit
-- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program; spatial and trajectory omics composites remain follow-on slices
+- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, and now further into tissue-coordinate niche topography + composition + marker/program; larger spatial and trajectory omics composites remain follow-on slices
 - expand beyond the first omics-native baseline into volcano, enrichment, oncoplot, and mutation-landscape families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 

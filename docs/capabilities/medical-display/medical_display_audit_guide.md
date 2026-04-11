@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `35`
+- Implemented evidence figure templates: `36`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `42`
+- Total implemented display templates: `43`
 
 ### Evidence Classes
 
@@ -106,7 +106,7 @@ Current implemented display inventory:
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
 | Clinical Utility | 4 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
-| Data Geometry | 5 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel` |
+| Data Geometry | 6 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `spatial_niche_map_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_spatial_niche_map_panel` |
 | Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
 | Model Explanation | 3 | `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel` |
@@ -203,16 +203,17 @@ Templates:
 - `tsne_scatter_grouped`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
+- `spatial_niche_map_panel`
 
 Audit purpose:
 
-- Structured latent-space or embedding evidence under grouped labeling, including composite atlas panels that must keep embedding states, composition summaries, declared heatmap columns, and score-grid completeness fail-closed together.
+- Structured latent-space, tissue-coordinate niche, or atlas evidence under grouped labeling, including composite panels that must keep declared niche/state vocabularies, composition summaries, and marker-program heatmap grids fail-closed together.
 
 Authoritative contract:
 
-- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`
+- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `spatial_niche_map_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`
+- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_spatial_niche_map_panel`
 
 ### 5. Matrix Pattern
 

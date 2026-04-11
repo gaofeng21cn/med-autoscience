@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `35`
+- Evidence figure templates: `36`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total audited templates: `42`
+- Total audited templates: `43`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
