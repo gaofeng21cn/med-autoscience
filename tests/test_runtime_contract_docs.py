@@ -220,3 +220,21 @@ def test_runtime_mainline_docs_freeze_hermes_topology_and_display_exclusion() ->
     assert "outer runtime substrate owner" in execution_map
     assert "runtime cutover gate" in merge_gates
     assert "external `Hermes` runtime" in external_gate
+
+
+def test_core_docs_explain_hermes_integrated_research_progression_without_overclaiming() -> None:
+    architecture = _read("docs/architecture.md")
+    project = _read("docs/project.md")
+    runtime_interface = _read("docs/runtime/agent_runtime_interface.md")
+
+    assert "问题定义 -> startup boundary -> Hermes managed runtime -> publication gate -> study completion sync" in architecture
+    assert "不是“保证必然发表”的机器" in architecture
+    assert "一步步逼近 SCI-ready 投稿态" in architecture
+    assert "相对只依赖 `MedDeepScientist` 的版本，逻辑上不是降级" in architecture
+    assert "outer-loop / inner-loop coordination" in architecture
+
+    assert "SCI-ready 投稿态" in project
+    assert "fail-closed gate" in project
+
+    assert "study charter / startup boundary / publication gate / completion sync" in runtime_interface
+    assert "不是把判断继续藏在 inner runtime 里" in runtime_interface
