@@ -27,6 +27,7 @@ CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS: tuple[str, ...] = (
     "objectives",
     "baseline_urls",
     "paper_urls",
+    "reference_papers",
     "entry_state_summary",
     "review_summary",
     "controller_first_policy_summary",

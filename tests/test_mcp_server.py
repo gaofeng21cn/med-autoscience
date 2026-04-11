@@ -43,6 +43,8 @@ def test_mcp_server_lists_read_only_tools() -> None:
         "data_assets_status",
         "portfolio_memory_status",
         "init_portfolio_memory",
+        "workspace_literature_status",
+        "init_workspace_literature",
         "external_research_status",
         "prepare_external_research",
         "startup_data_readiness",
@@ -315,6 +317,28 @@ def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     assert result["isError"] is False
     assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
     assert result["structuredContent"]["asset_count"] == 3
+
+
+def test_mcp_server_can_call_workspace_literature_status_tool(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    captured: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict[str, object]:
+        captured["workspace_root"] = workspace_root
+        return {"workspace_literature_exists": True, "record_count": 7}
+
+    monkeypatch.setattr(module.workspace_literature, "workspace_literature_status", fake_status)
+
+    result = module.call_tool(
+        "workspace_literature_status",
+        {
+            "workspace_root": "/tmp/medautosci-demo",
+        },
+    )
+
+    assert result["isError"] is False
+    assert captured["workspace_root"] == Path("/tmp/medautosci-demo")
+    assert result["structuredContent"]["record_count"] == 7
 
 
 def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None:

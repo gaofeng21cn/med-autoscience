@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from importlib import import_module
+import inspect
 from pathlib import Path
 from typing import Any
 
@@ -207,6 +208,7 @@ def _build_startup_contract(
             "objectives": objectives,
             "baseline_urls": [],
             "paper_urls": list(study_payload.get("paper_urls") or []),
+            "reference_papers": list(study_payload.get("reference_papers") or []),
             "entry_state_summary": f"Study root: {study_root}",
             "review_summary": "",
             "controller_first_policy_summary": render_controller_first_summary(),
@@ -284,12 +286,28 @@ def _run_startup_hydration(
     *,
     quest_root: Path,
     create_payload: dict[str, Any],
+    study_root: Path | None = None,
+    workspace_root: Path | None = None,
 ) -> tuple[
     study_runtime_protocol.StartupHydrationReport,
     study_runtime_protocol.StartupHydrationValidationReport,
 ]:
     router = _router_module()
-    hydration_payload = study_runtime_protocol.build_hydration_payload(create_payload=create_payload)
+    build_hydration_payload = study_runtime_protocol.build_hydration_payload
+    build_hydration_payload_params = inspect.signature(build_hydration_payload).parameters
+    if (
+        study_root is not None
+        and workspace_root is not None
+        and "study_root" in build_hydration_payload_params
+        and "workspace_root" in build_hydration_payload_params
+    ):
+        hydration_payload = build_hydration_payload(
+            create_payload=create_payload,
+            study_root=study_root,
+            workspace_root=workspace_root,
+        )
+    else:
+        hydration_payload = build_hydration_payload(create_payload=create_payload)
     hydration_result = router.quest_hydration_controller.run_hydration(
         quest_root=quest_root,
         hydration_payload=hydration_payload,

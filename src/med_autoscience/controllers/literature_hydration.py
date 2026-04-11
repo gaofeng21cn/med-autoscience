@@ -225,9 +225,28 @@ def _preserve_existing_surface(quest_root: Path) -> dict[str, object] | None:
     }
 
 
-def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object]]) -> dict[str, object]:
+def _require_reference_context_records(reference_context: dict[str, object]) -> list[dict[str, object]]:
+    raw_records = reference_context.get("records")
+    if raw_records is None:
+        return []
+    if not isinstance(raw_records, list):
+        raise ValueError("study_reference_context.records must be a list")
+    records: list[dict[str, object]] = []
+    for item in raw_records:
+        if not isinstance(item, dict):
+            raise ValueError("study_reference_context.records must contain mappings")
+        records.append(dict(item))
+    return records
+
+
+def run_literature_hydration(
+    *,
+    quest_root: Path,
+    records: list[dict[str, object]],
+    workspace_literature: dict[str, object] | None = None,
+    study_reference_context: dict[str, object] | None = None,
+) -> dict[str, object]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    normalized_records = [_normalize_record(item) for item in records]
 
     pubmed_records_path = resolved_quest_root / "literature" / "pubmed" / "records.jsonl"
     imported_records_path = resolved_quest_root / "literature" / "imported" / "records.jsonl"
@@ -235,6 +254,27 @@ def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object
     coverage_path = resolved_quest_root / "paper" / "reference_coverage_report.json"
 
     source_mode = "input_records"
+    if study_reference_context is not None:
+        if not isinstance(workspace_literature, dict):
+            raise ValueError("workspace_literature must be provided when study_reference_context is provided")
+        workspace_registry_path = _require_nonempty_str(
+            workspace_literature.get("registry_path"),
+            field="workspace_literature.registry_path",
+        )
+        context_registry_path = _require_nonempty_str(
+            study_reference_context.get("workspace_registry_path"),
+            field="study_reference_context.workspace_registry_path",
+        )
+        if Path(workspace_registry_path).expanduser().resolve() != Path(context_registry_path).expanduser().resolve():
+            raise ValueError("study_reference_context workspace registry must match workspace_literature registry")
+        normalized_records = [
+            _normalize_record(item)
+            for item in _require_reference_context_records(study_reference_context)
+        ]
+        source_mode = "study_reference_context"
+    else:
+        normalized_records = [_normalize_record(item) for item in records]
+
     if normalized_records:
         pubmed_records = [record for record in normalized_records if record.primary_source == "pubmed"]
         imported_records = [record for record in normalized_records if record.primary_source != "pubmed"]
@@ -248,6 +288,20 @@ def run_literature_hydration(*, quest_root: Path, records: list[dict[str, object
             "records_by_primary_source": {
                 "pubmed": sum(1 for record in normalized_records if record.primary_source == "pubmed"),
                 "imported": sum(1 for record in normalized_records if record.primary_source != "pubmed"),
+            },
+            "high_priority_missing": [],
+        }
+    elif study_reference_context is not None:
+        pubmed_text = ""
+        imported_text = ""
+        bibliography_text = ""
+        coverage_payload = {
+            "record_count": 0,
+            "records_with_doi": 0,
+            "records_with_pmid": 0,
+            "records_by_primary_source": {
+                "pubmed": 0,
+                "imported": 0,
             },
             "high_priority_missing": [],
         }

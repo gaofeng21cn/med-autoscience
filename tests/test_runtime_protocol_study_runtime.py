@@ -364,6 +364,92 @@ def test_build_hydration_payload_includes_startup_literature_records(monkeypatch
     assert payload["literature_records"] == [{"record_id": "pmid:12345", "title": "Anchor paper"}]
 
 
+def test_build_hydration_payload_includes_workspace_literature_and_study_reference_context(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    workspace_root = tmp_path / "workspace"
+    workspace_registry_path = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+
+    monkeypatch.setattr(
+        module.study_reference_context,
+        "build_study_reference_context",
+        lambda *, study_root, workspace_root, startup_contract: {
+            "schema_version": 1,
+            "study_root": str(study_root),
+            "workspace_root": str(workspace_root),
+            "workspace_registry_path": str(workspace_registry_path),
+            "record_count": 1,
+            "selected_record_ids": ["pmid:12345"],
+            "mandatory_anchor_record_ids": ["pmid:12345"],
+            "optional_neighbor_record_ids": [],
+            "selections": [
+                {
+                    "record_id": "pmid:12345",
+                    "study_role": "framing_anchor",
+                    "source_layer": "startup_contract",
+                }
+            ],
+            "records": [
+                {
+                    "record_id": "pmid:12345",
+                    "title": "Anchor paper",
+                    "authors": [],
+                    "year": 2024,
+                    "journal": "BMC Medicine",
+                    "doi": "10.1000/example",
+                    "pmid": "12345",
+                    "pmcid": None,
+                    "arxiv_id": None,
+                    "abstract": None,
+                    "full_text_availability": "abstract_only",
+                    "source_priority": 2,
+                    "citation_payload": {"doi": "10.1000/example"},
+                    "local_asset_paths": [],
+                    "relevance_role": "framing_anchor",
+                    "claim_support_scope": ["paper_framing"],
+                }
+            ],
+            "artifact_path": str(study_root / "artifacts" / "reference_context" / "latest.json"),
+        },
+    )
+    monkeypatch.setattr(
+        module.workspace_literature_controller,
+        "workspace_literature_status",
+        lambda *, workspace_root: {
+            "workspace_literature_exists": True,
+            "workspace_literature_root": str(workspace_root / "portfolio" / "research_memory" / "literature"),
+            "registry_path": str(workspace_registry_path),
+            "references_bib_path": str(
+                workspace_root / "portfolio" / "research_memory" / "literature" / "references.bib"
+            ),
+            "coverage_report_path": str(
+                workspace_root / "portfolio" / "research_memory" / "literature" / "coverage" / "latest.json"
+            ),
+            "record_count": 1,
+            "references_bib_entry_count": 1,
+        },
+    )
+
+    payload = module.build_hydration_payload(
+        create_payload={
+            "startup_contract": {
+                "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
+                "entry_state_summary": "Study root: /tmp/workspace/studies/001-risk",
+            }
+        },
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    assert payload["workspace_literature"]["record_count"] == 1
+    assert payload["study_reference_context"]["selected_record_ids"] == ["pmid:12345"]
+    assert payload["literature_records"] == payload["study_reference_context"]["records"]
+
+
 def test_runtime_escalation_record_path_resolves_to_stable_quest_local_artifact(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "001-risk"

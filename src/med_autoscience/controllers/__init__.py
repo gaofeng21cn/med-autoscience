@@ -26,5 +26,6 @@ __all__ = [
     "study_progress",
     "submission_minimal",
     "submission_targets",
+    "workspace_literature",
     "workspace_init",
 ]

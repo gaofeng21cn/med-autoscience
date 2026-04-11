@@ -17,6 +17,7 @@ from med_autoscience.controllers import (
     study_progress,
     startup_data_readiness as startup_data_readiness_controller,
     study_runtime_router,
+    workspace_literature,
     workspace_init,
 )
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile, render_doctor_report, render_profile
@@ -170,6 +171,30 @@ def list_tools() -> list[dict[str, Any]]:
         {
             "name": "init_portfolio_memory",
             "description": "Initialize the portfolio research-memory scaffold for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "workspace_literature_status",
+            "description": "Read the workspace canonical literature status for a workspace root.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "workspace_root": {"type": "string"},
+                },
+                "required": ["workspace_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "init_workspace_literature",
+            "description": "Initialize the workspace canonical literature scaffold for a workspace root.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -401,6 +426,20 @@ def _call_init_portfolio_memory(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_workspace_literature_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = workspace_literature.workspace_literature_status(
+        workspace_root=Path(_require_string(arguments, "workspace_root"))
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
+def _call_init_workspace_literature(arguments: dict[str, Any]) -> dict[str, Any]:
+    result = workspace_literature.init_workspace_literature(
+        workspace_root=Path(_require_string(arguments, "workspace_root"))
+    )
+    return _tool_text_result(_json_text(result), structured=result)
+
+
 def _call_external_research_status(arguments: dict[str, Any]) -> dict[str, Any]:
     result = external_research.external_research_status(workspace_root=Path(_require_string(arguments, "workspace_root")))
     return _tool_text_result(_json_text(result), structured=result)
@@ -518,6 +557,8 @@ TOOL_HANDLERS = {
     "data_assets_status": _call_data_assets_status,
     "portfolio_memory_status": _call_portfolio_memory_status,
     "init_portfolio_memory": _call_init_portfolio_memory,
+    "workspace_literature_status": _call_workspace_literature_status,
+    "init_workspace_literature": _call_init_workspace_literature,
     "external_research_status": _call_external_research_status,
     "prepare_external_research": _call_prepare_external_research,
     "startup_data_readiness": _call_startup_data_readiness,

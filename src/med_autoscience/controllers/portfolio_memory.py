@@ -5,6 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from med_autoscience.controllers import workspace_literature as workspace_literature_controller
+
 
 PORTFOLIO_MEMORY_SCHEMA_VERSION = 1
 PORTFOLIO_MEMORY_LAYER = "portfolio_research_memory"
@@ -82,6 +84,7 @@ def _render_readme() -> str:
         "- `topic_landscape.md`\n"
         "- `dataset_question_map.md`\n"
         "- `venue_intelligence.md`\n"
+        "- `literature/`\n"
         "- `registry.yaml`\n\n"
         "可选增强目录：\n\n"
         "- `prompts/`\n"
@@ -195,6 +198,7 @@ def init_portfolio_memory(*, workspace_root: Path) -> dict[str, object]:
         rendered.path.parent.mkdir(parents=True, exist_ok=True)
         rendered.path.write_text(rendered.content, encoding="utf-8")
         created_files.append(str(rendered.path))
+    workspace_literature_controller.init_workspace_literature(workspace_root=resolved_workspace_root)
     return {
         "schema_version": PORTFOLIO_MEMORY_SCHEMA_VERSION,
         "workspace_root": str(resolved_workspace_root),

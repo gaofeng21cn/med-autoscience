@@ -429,6 +429,8 @@ def _execute_create_runtime_decision(
     hydration_result, validation_result = router._run_startup_hydration(
         quest_root=context.quest_root,
         create_payload=create_payload,
+        study_root=context.study_root,
+        workspace_root=context.profile.workspace_root,
     )
     status.record_startup_hydration(hydration_result, validation_result)
     if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
@@ -489,6 +491,8 @@ def _execute_resume_runtime_decision(
         hydration_result, validation_result = router._run_startup_hydration(
             quest_root=context.quest_root,
             create_payload=create_payload,
+            study_root=context.study_root,
+            workspace_root=context.profile.workspace_root,
         )
         status.record_startup_hydration(hydration_result, validation_result)
         if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
@@ -555,6 +559,8 @@ def _execute_blocked_refresh_runtime_decision(
     hydration_result, validation_result = router._run_startup_hydration(
         quest_root=context.quest_root,
         create_payload=create_payload,
+        study_root=context.study_root,
+        workspace_root=context.profile.workspace_root,
     )
     status.record_startup_hydration(hydration_result, validation_result)
     if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:

@@ -133,6 +133,29 @@ startup_contract:
     assert records[1]["full_text_availability"] == "full_text"
 
 
+def test_resolve_reference_paper_contract_from_payload_uses_anchor_root_for_relative_pdf_paths(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.reference_papers")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    contract = module.resolve_reference_paper_contract_from_payload(
+        anchor_root=study_root,
+        payload={
+            "reference_papers": [
+                {
+                    "id": "li2023-bmj",
+                    "title": "Gray-zone triage workflow",
+                    "pdf_path": "references/li2023-bmj.pdf",
+                    "role": "adjacent_inspiration",
+                }
+            ]
+        },
+    )
+
+    assert contract is not None
+    assert contract.quest_root == study_root.resolve()
+    assert contract.papers[0].pdf_path == (study_root / "references" / "li2023-bmj.pdf").resolve()
+
+
 def test_startup_brief_template_mentions_reference_papers() -> None:
     template = Path("templates/startup_brief.template.md").read_text(encoding="utf-8")
     assert "## Reference papers" in template

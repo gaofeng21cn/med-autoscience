@@ -71,6 +71,7 @@ submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minim
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
 time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
 tooluniverse_adapter = _LazyModuleProxy(lambda: _load_adapter("tooluniverse"))
+workspace_literature_controller = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
 workspace_init_controller = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
 analysis_bundle_controller = _LazyModuleProxy(_load_analysis_bundle_controller)
 
@@ -172,6 +173,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     portfolio_memory_status_parser = subparsers.add_parser("portfolio-memory-status")
     portfolio_memory_status_parser.add_argument("--workspace-root", required=True)
+
+    init_workspace_literature_parser = subparsers.add_parser("init-workspace-literature")
+    init_workspace_literature_parser.add_argument("--workspace-root", required=True)
+
+    workspace_literature_status_parser = subparsers.add_parser("workspace-literature-status")
+    workspace_literature_status_parser.add_argument("--workspace-root", required=True)
 
     prepare_external_research_parser = subparsers.add_parser("prepare-external-research")
     prepare_external_research_parser.add_argument("--workspace-root", required=True)
@@ -519,6 +526,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "portfolio-memory-status":
         result = portfolio_memory_controller.portfolio_memory_status(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "init-workspace-literature":
+        result = workspace_literature_controller.init_workspace_literature(workspace_root=Path(args.workspace_root))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "workspace-literature-status":
+        result = workspace_literature_controller.workspace_literature_status(workspace_root=Path(args.workspace_root))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

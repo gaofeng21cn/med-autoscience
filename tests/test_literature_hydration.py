@@ -161,3 +161,37 @@ def test_literature_hydration_preserves_existing_materialized_surface_when_paylo
     assert report["source_mode"] == "preserved_existing_surface"
     assert len(records_path.read_text(encoding="utf-8").strip().splitlines()) == 2
     assert references_bib_path.read_text(encoding="utf-8").count("@article{") == 2
+
+
+def test_literature_hydration_uses_study_reference_context_and_clears_stale_surface_when_selection_is_empty(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.literature_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+    (quest_root / "literature" / "pubmed").mkdir(parents=True, exist_ok=True)
+    (quest_root / "paper" / "references.bib").write_text("@article{stale,\n}\n", encoding="utf-8")
+    (quest_root / "literature" / "pubmed" / "records.jsonl").write_text(
+        json.dumps({"record_id": "stale:1"}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = module.run_literature_hydration(
+        quest_root=quest_root,
+        records=[],
+        workspace_literature={
+            "registry_path": str(tmp_path / "workspace" / "portfolio" / "research_memory" / "literature" / "registry.jsonl")
+        },
+        study_reference_context={
+            "workspace_registry_path": str(
+                tmp_path / "workspace" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+            ),
+            "record_count": 0,
+            "records": [],
+        },
+    )
+
+    assert report["record_count"] == 0
+    assert report["source_mode"] == "study_reference_context"
+    assert (quest_root / "paper" / "references.bib").read_text(encoding="utf-8") == ""
+    assert (quest_root / "literature" / "pubmed" / "records.jsonl").read_text(encoding="utf-8") == ""

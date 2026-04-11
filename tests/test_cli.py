@@ -498,6 +498,45 @@ def test_portfolio_memory_status_command_dispatches_controller(monkeypatch, tmp_
     assert '"asset_count": 3' in captured.out
 
 
+def test_init_workspace_literature_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_init(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {
+            "workspace_literature_root": str(workspace_root / "portfolio" / "research_memory" / "literature"),
+            "created_files": [],
+        }
+
+    monkeypatch.setattr(cli.workspace_literature_controller, "init_workspace_literature", fake_init)
+
+    exit_code = cli.main(["init-workspace-literature", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"workspace_literature_root"' in captured.out
+
+
+def test_workspace_literature_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_status(*, workspace_root: Path) -> dict[str, object]:
+        called["workspace_root"] = workspace_root
+        return {"workspace_literature_exists": True, "record_count": 7}
+
+    monkeypatch.setattr(cli.workspace_literature_controller, "workspace_literature_status", fake_status)
+
+    exit_code = cli.main(["workspace-literature-status", "--workspace-root", str(tmp_path / "workspace")])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["workspace_root"] == tmp_path / "workspace"
+    assert '"record_count": 7' in captured.out
+
+
 def test_prepare_external_research_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

@@ -58,6 +58,15 @@ def _optional_record_list(payload: dict[str, object], key: str) -> list[dict[str
     return records
 
 
+def _optional_mapping(payload: dict[str, object], key: str) -> dict[str, object] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"hydration payload must contain mapping when provided: {key}")
+    return dict(value)
+
+
 def _is_legacy_display_id(*, display_id: str, display_kind: str) -> bool:
     item = str(display_id).strip()
     kind = str(display_kind).strip()
@@ -376,6 +385,8 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
     medical_reporting_contract = _require_dict(hydration_payload, "medical_reporting_contract")
     entry_state_summary = _require_str(hydration_payload, "entry_state_summary")
     literature_records = _optional_record_list(hydration_payload, "literature_records")
+    workspace_literature = _optional_mapping(hydration_payload, "workspace_literature")
+    study_reference_context = _optional_mapping(hydration_payload, "study_reference_context")
     paper_roots = _resolve_hydration_paper_roots(quest_root=resolved_quest_root)
     written_files: list[str] = []
     for paper_root in paper_roots:
@@ -397,6 +408,8 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
     literature_report = literature_hydration_controller.run_literature_hydration(
         quest_root=resolved_quest_root,
         records=literature_records,
+        workspace_literature=workspace_literature,
+        study_reference_context=study_reference_context,
     )
     written_files.extend(
         [

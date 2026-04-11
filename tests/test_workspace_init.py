@@ -43,6 +43,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "studies").is_dir()
     assert (workspace_root / "portfolio" / "data_assets").is_dir()
     assert (workspace_root / "portfolio" / "research_memory").is_dir()
+    assert (workspace_root / "portfolio" / "research_memory" / "literature").is_dir()
+    assert (workspace_root / "portfolio" / "research_memory" / "literature" / "coverage").is_dir()
     assert (workspace_root / "portfolio" / "research_memory" / "prompts").is_dir()
     assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
@@ -82,6 +84,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
+    init_workspace_literature = workspace_root / "ops" / "medautoscience" / "bin" / "init-workspace-literature"
+    workspace_literature_status = workspace_root / "ops" / "medautoscience" / "bin" / "workspace-literature-status"
     prepare_external_research = workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research"
     external_research_status = workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status"
     ds_doctor = workspace_root / "ops" / "med-deepscientist" / "bin" / "doctor"
@@ -91,6 +95,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert resolve_journal_shortlist.is_file()
     assert init_portfolio_memory.is_file()
     assert portfolio_memory_status.is_file()
+    assert init_workspace_literature.is_file()
+    assert workspace_literature_status.is_file()
     assert prepare_external_research.is_file()
     assert external_research_status.is_file()
     assert ds_doctor.is_file()
@@ -100,6 +106,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(init_portfolio_memory, os.X_OK)
     assert os.access(portfolio_memory_status, os.X_OK)
+    assert os.access(init_workspace_literature, os.X_OK)
+    assert os.access(workspace_literature_status, os.X_OK)
     assert os.access(prepare_external_research, os.X_OK)
     assert os.access(external_research_status, os.X_OK)
     assert os.access(ds_doctor, os.X_OK)
@@ -111,8 +119,10 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
     portfolio_memory_registry = workspace_root / "portfolio" / "research_memory" / "registry.yaml"
+    workspace_literature_registry = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
     assert portfolio_memory_readme.is_file()
     assert portfolio_memory_registry.is_file()
+    assert workspace_literature_registry.is_file()
     assert "Portfolio Research Memory" in portfolio_memory_readme.read_text(encoding="utf-8")
 
     root_readme = workspace_root / "README.md"

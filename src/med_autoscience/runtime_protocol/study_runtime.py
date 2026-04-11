@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience import startup_literature
+from med_autoscience import study_reference_context
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
@@ -270,7 +272,12 @@ def resolve_study_runtime_paths(
     }
 
 
-def build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, object]:
+def build_hydration_payload(
+    *,
+    create_payload: dict[str, Any],
+    study_root: Path | None = None,
+    workspace_root: Path | None = None,
+) -> dict[str, object]:
     startup_contract = create_payload.get("startup_contract")
     if not isinstance(startup_contract, dict):
         raise ValueError("create payload missing startup_contract")
@@ -283,12 +290,28 @@ def build_hydration_payload(*, create_payload: dict[str, Any]) -> dict[str, obje
     entry_state_summary = startup_contract.get("entry_state_summary")
     if not isinstance(entry_state_summary, str) or not entry_state_summary.strip():
         raise ValueError("startup_contract missing entry_state_summary")
-    return {
+    payload: dict[str, object] = {
         "medical_analysis_contract": dict(medical_analysis_contract),
         "medical_reporting_contract": dict(medical_reporting_contract),
         "entry_state_summary": entry_state_summary.strip(),
         "literature_records": startup_literature.resolve_startup_literature_records(startup_contract=startup_contract),
     }
+    if (study_root is None) != (workspace_root is None):
+        raise ValueError("study_root and workspace_root must be provided together")
+    if study_root is None or workspace_root is None:
+        return payload
+
+    reference_context = study_reference_context.build_study_reference_context(
+        study_root=study_root,
+        workspace_root=workspace_root,
+        startup_contract=startup_contract,
+    )
+    payload["workspace_literature"] = workspace_literature_controller.workspace_literature_status(
+        workspace_root=workspace_root
+    )
+    payload["study_reference_context"] = reference_context
+    payload["literature_records"] = list(reference_context.get("records") or [])
+    return payload
 
 
 def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> StartupContractValidation:

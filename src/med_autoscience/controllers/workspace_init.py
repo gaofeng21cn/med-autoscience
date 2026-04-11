@@ -7,6 +7,7 @@ import json
 import re
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
+from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -36,6 +37,8 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "studies",
         workspace_root / "portfolio" / "data_assets",
         workspace_root / "portfolio" / "research_memory",
+        workspace_root / "portfolio" / "research_memory" / "literature",
+        workspace_root / "portfolio" / "research_memory" / "literature" / "coverage",
         workspace_root / "portfolio" / "research_memory" / "prompts",
         workspace_root / "portfolio" / "research_memory" / "external_reports",
         workspace_root / "refs",
@@ -551,6 +554,16 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "init-workspace-literature",
+            content=_render_forward_script("init-workspace-literature"),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "workspace-literature-status",
+            content=_render_forward_script("workspace-literature-status"),
+            executable=True,
+        ),
+        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research",
             content=_render_forward_script("prepare-external-research"),
             executable=True,
@@ -602,6 +615,8 @@ def _rendered_files(
         ),
     ]
     for item in portfolio_memory_controller.render_portfolio_memory_files(workspace_root=workspace_root):
+        files.append(RenderedFile(path=item.path, content=item.content))
+    for item in workspace_literature_controller.render_workspace_literature_files(workspace_root=workspace_root):
         files.append(RenderedFile(path=item.path, content=item.content))
     return files
 

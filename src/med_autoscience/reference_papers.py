@@ -149,6 +149,15 @@ def resolve_reference_paper_contract(*, quest_root: Path | None) -> ReferencePap
         return None
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     payload = _load_yaml_dict(resolved_quest_root / "quest.yaml")
+    return resolve_reference_paper_contract_from_payload(anchor_root=resolved_quest_root, payload=payload)
+
+
+def resolve_reference_paper_contract_from_payload(
+    *,
+    anchor_root: Path,
+    payload: dict[str, Any],
+) -> ReferencePaperContract | None:
+    resolved_anchor_root = Path(anchor_root).expanduser().resolve()
     startup_contract = payload.get("startup_contract") if isinstance(payload.get("startup_contract"), dict) else {}
     raw_papers = startup_contract.get("reference_papers")
     if raw_papers is None:
@@ -159,9 +168,9 @@ def resolve_reference_paper_contract(*, quest_root: Path | None) -> ReferencePap
         raise ValueError("reference_papers must be a list")
     if not raw_papers:
         return None
-    papers = tuple(_normalize_reference_paper(quest_root=resolved_quest_root, raw_paper=item) for item in raw_papers)
+    papers = tuple(_normalize_reference_paper(quest_root=resolved_anchor_root, raw_paper=item) for item in raw_papers)
     return ReferencePaperContract(
-        quest_root=resolved_quest_root,
+        quest_root=resolved_anchor_root,
         papers=papers,
         stage_requirements=dict(REFERENCE_PAPER_STAGE_REQUIREMENTS),
     )

@@ -435,6 +435,58 @@ def test_run_quest_hydration_syncs_contract_and_display_stubs_to_active_worktree
     assert (active_paper_root / "baseline_characteristics_schema.json").exists()
 
 
+def test_run_quest_hydration_materializes_literature_from_study_reference_context(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    report = module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {"study_archetype": "clinical_classifier", "endpoint_type": "time_to_event"},
+            "medical_reporting_contract": _time_to_event_reporting_contract(),
+            "entry_state_summary": "Study root: /tmp/studies/001-risk",
+            "workspace_literature": {
+                "registry_path": str(
+                    tmp_path / "workspace" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+                )
+            },
+            "study_reference_context": {
+                "workspace_registry_path": str(
+                    tmp_path / "workspace" / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
+                ),
+                "record_count": 1,
+                "records": [
+                    {
+                        "record_id": "pmid:12345",
+                        "title": "Prediction model paper",
+                        "authors": ["A. Author"],
+                        "year": 2024,
+                        "journal": "BMC Medicine",
+                        "doi": "10.1000/example",
+                        "pmid": "12345",
+                        "pmcid": None,
+                        "arxiv_id": None,
+                        "abstract": "Structured abstract",
+                        "full_text_availability": "abstract_only",
+                        "source_priority": 2,
+                        "citation_payload": {"journal": "BMC Medicine"},
+                        "local_asset_paths": [],
+                        "relevance_role": "framing_anchor",
+                        "claim_support_scope": ["paper_framing"],
+                    }
+                ],
+            },
+            "literature_records": [],
+        },
+    )
+
+    assert report["literature_report"]["record_count"] == 1
+    assert report["literature_report"]["source_mode"] == "study_reference_context"
+    records_payload = (quest_root / "literature" / "pubmed" / "records.jsonl").read_text(encoding="utf-8")
+    assert "pmid:12345" in records_payload
+
+
 def test_run_quest_hydration_rewrites_stale_generated_display_registry_and_preserves_populated_surface_inputs(
     tmp_path: Path,
 ) -> None:
