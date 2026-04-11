@@ -1550,6 +1550,7 @@ def test_ensure_study_runtime_creates_quest_before_runtime_overlay_materializati
 
 def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
     profile = make_profile(tmp_path)
     created: dict[str, object] = {}
     write_study(
@@ -1590,9 +1591,9 @@ def test_ensure_study_runtime_includes_medical_runtime_contracts(monkeypatch, tm
             "startup": {"queued": True},
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -1613,6 +1614,7 @@ def test_ensure_study_runtime_blocks_before_create_when_reporting_contract_is_un
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.WorkspaceProfile(
         **{
@@ -1667,9 +1669,9 @@ def test_ensure_study_runtime_blocks_before_create_when_reporting_contract_is_un
             "startup": {"queued": True},
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: {"ok": True, "status": "running"},
     )
@@ -1687,6 +1689,7 @@ def test_ensure_study_runtime_blocks_before_create_when_reporting_contract_is_un
 
 def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
     profile = make_profile(tmp_path)
     write_study(
         profile.workspace_root,
@@ -1728,7 +1731,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
             },
         }
 
-    monkeypatch.setattr(module.med_deepscientist_transport, "create_quest", fake_create_quest)
+    monkeypatch.setattr(transport, "create_quest", fake_create_quest)
     monkeypatch.setattr(
         module,
         "quest_hydration_controller",
@@ -1748,7 +1751,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -1765,6 +1768,7 @@ def test_ensure_study_runtime_hydrates_before_resume(monkeypatch, tmp_path: Path
 
 def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
     profile = make_profile(tmp_path)
     write_study(
         profile.workspace_root,
@@ -1795,7 +1799,7 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "create_quest",
         lambda *, runtime_root, payload: calls.append(("create", payload["auto_start"]))
         or {"ok": True, "snapshot": {"quest_id": "001-risk", "status": "created"}},
@@ -1823,7 +1827,7 @@ def test_ensure_study_runtime_blocks_when_hydration_validation_fails(monkeypatch
         raising=False,
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "resume_quest",
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
@@ -1845,6 +1849,7 @@ def test_ensure_study_runtime_blocks_before_create_when_startup_contract_is_unre
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
     profile = replace(make_profile(tmp_path), preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
     write_study(
         profile.workspace_root,
@@ -1870,7 +1875,7 @@ def test_ensure_study_runtime_blocks_before_create_when_startup_contract_is_unre
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        transport,
         "create_quest",
         lambda *, runtime_root, payload: created.setdefault("payload", payload)
         or {"ok": True, "snapshot": {"quest_id": "001-risk", "status": "created"}},
