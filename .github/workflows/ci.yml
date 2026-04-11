@@ -7,9 +7,9 @@ on:
       - development
 
 jobs:
-  test-and-build:
+  quick-checks:
     runs-on: macOS-latest
-    name: Run Python 3.12 Tests and Build
+    name: Run fast/meta tests and build
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -41,8 +41,11 @@ jobs:
           raise SystemExit(0 if result.get("ready") else 1)
           PY
 
-      - name: Run pytest
-        run: uv run pytest
+      - name: Run meta tests
+        run: make test-meta
+
+      - name: Run fast tests
+        run: make test-fast
 
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel
@@ -52,3 +55,27 @@ jobs:
         with:
           name: macos-dist
           path: dist
+
+  display-surface:
+    runs-on: macOS-latest
+    name: Run display-heavy tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.0.0
+
+      - name: Install pandoc, graphviz, and R
+        run: brew install pandoc graphviz r
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Run display tests
+        run: make test-display

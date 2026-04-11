@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --group dev
 
-      - name: Run pytest
-        run: uv run pytest
+      - name: Run full test baseline
+        run: make test-full
 
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel

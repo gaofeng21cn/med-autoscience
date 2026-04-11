@@ -61,14 +61,27 @@ def test_release_workflows_use_uv_managed_test_environment() -> None:
 
     assert "uv sync --frozen --group dev" in ci_workflow
     assert "uv sync --frozen --group dev" in release_workflow
-    assert "uv run pytest" in ci_workflow
-    assert "uv run pytest" in release_workflow
+    assert "make test-meta" in ci_workflow
+    assert "make test-fast" in ci_workflow
+    assert "make test-display" in ci_workflow
+    assert "make test-full" in release_workflow
     assert "uv run python -m build --sdist --wheel" in ci_workflow
     assert "uv run python -m build --sdist --wheel" in release_workflow
     assert "python -m pytest" not in ci_workflow
     assert "python -m pytest" not in release_workflow
     assert "python -m pip install pytest build python-docx ." not in ci_workflow
     assert "python -m pip install pytest build python-docx ." not in release_workflow
+    assert "uv run pytest" not in ci_workflow
+    assert "uv run pytest" not in release_workflow
+
+
+def test_release_workflows_split_ci_fast_and_display_jobs() -> None:
+    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "quick-checks:" in ci_workflow
+    assert "display-surface:" in ci_workflow
+    assert "Run fast/meta tests and build" in ci_workflow
+    assert "Run display-heavy tests" in ci_workflow
 
 
 def test_release_workflow_dev_group_matches_uv_sync_contract() -> None:

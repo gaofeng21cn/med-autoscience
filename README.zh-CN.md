@@ -183,9 +183,16 @@
 
 ```bash
 uv sync --frozen --group dev
-uv run pytest
+make test-full
 uv run python -m build --sdist --wheel
 ```
+
+本地测试分层入口：
+
+- `make test-fast`：默认开发切片，排除 meta-only 与 display-heavy 套件
+- `make test-meta`：repo-tracked 文档、workflow、打包与 contract surface 检查
+- `make test-display`：display materialization 与 golden regression 套件
+- `make test-full`：clean-clone 基线使用的完整验证入口
 
 如果你主要通过 Codex 接入，优先查看：
 

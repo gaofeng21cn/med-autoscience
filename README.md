@@ -184,9 +184,16 @@ Use the repository `uv` environment for development and verification:
 
 ```bash
 uv sync --frozen --group dev
-uv run pytest
+make test-full
 uv run python -m build --sdist --wheel
 ```
+
+Layered local test entrypoints:
+
+- `make test-fast`: default developer slice, excluding meta-only and display-heavy suites
+- `make test-meta`: repo-tracked docs, workflow, packaging, and contract-surface checks
+- `make test-display`: display materialization and golden-regression suites
+- `make test-full`: full clean-clone baseline
 
 If you primarily operate through Codex, use the built-in plugin entry:
 
