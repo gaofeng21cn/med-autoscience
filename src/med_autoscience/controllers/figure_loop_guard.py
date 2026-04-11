@@ -25,7 +25,8 @@ from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_qu
 managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
     runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
 )
-med_deepscientist_transport = managed_runtime_backend
+managed_runtime_transport = managed_runtime_backend
+med_deepscientist_transport = managed_runtime_transport
 
 
 RESOLVED_PATTERNS = [
@@ -445,7 +446,7 @@ def run_controller(
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = managed_runtime_backend.stop_quest(
+            stop_result = managed_runtime_transport.stop_quest(
                 daemon_url=daemon_url,
                 runtime_root=None if daemon_url else resolve_runtime_root_from_quest_root(state.quest_root),
                 quest_id=state.quest_id,

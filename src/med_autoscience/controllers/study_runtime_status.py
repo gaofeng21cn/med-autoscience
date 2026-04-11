@@ -69,7 +69,6 @@ class StudyRuntimeDecision(StrEnum):
 
 class StudyRuntimeReason(StrEnum):
     STUDY_EXECUTION_NOT_MANAGED_RUNTIME_BACKEND = "study_execution_not_managed_runtime_backend"
-    STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST = "study_execution_not_med_deepscientist"
     STUDY_EXECUTION_RUNTIME_BACKEND_UNBOUND = "study_execution_runtime_backend_unbound"
     STUDY_EXECUTION_NOT_MANAGED = "study_execution_not_managed"
     ENTRY_MODE_NOT_MANAGED = "entry_mode_not_managed"

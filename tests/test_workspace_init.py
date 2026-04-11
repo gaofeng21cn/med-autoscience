@@ -154,7 +154,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert workspace_rules.is_file()
     workspace_rules_text = workspace_rules.read_text(encoding="utf-8")
     assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
-    assert "边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进" in workspace_rules_text
+    assert "边界明确且 startup-ready 后，默认切入 `Hermes-backed` managed runtime 的自动持续推进" in workspace_rules_text
     assert "必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口" in workspace_rules_text
     assert "前台必须立即进入 supervisor-only 监管态" in workspace_rules_text
     assert "不得直接写入 runtime-owned 的 study / quest / paper surface" in workspace_rules_text

@@ -88,7 +88,7 @@ def _render_workspace_rules() -> str:
         "- 不要在已有平台能力覆盖的任务上自由发挥或发明平行流程。\n"
         f"- {controller_first_summary}\n\n"
         "## Automation-Ready Default\n\n"
-        "- 边界明确且 startup-ready 后，默认切入 `med-deepscientist` managed runtime 的自动持续推进。\n"
+        "- 边界明确且 startup-ready 后，默认切入 `Hermes-backed` managed runtime 的自动持续推进。\n"
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"

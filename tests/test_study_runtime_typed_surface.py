@@ -402,6 +402,16 @@ def test_study_runtime_types_reexports_status_and_execution_modules() -> None:
     assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_module.__name__
 
 
+def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() -> None:
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+
+    assert (
+        typed_surface.StudyRuntimeReason.STUDY_EXECUTION_NOT_MANAGED_RUNTIME_BACKEND.value
+        == "study_execution_not_managed_runtime_backend"
+    )
+    assert not hasattr(typed_surface.StudyRuntimeReason, "STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST")
+
+
 def test_study_runtime_status_round_trips_through_typed_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(

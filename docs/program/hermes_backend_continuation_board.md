@@ -24,6 +24,12 @@
 3. 让 `MedDeepScientist` 退回 controlled research backend，而不是 hidden authority truth
 4. 把 `MedDeepScientist` 解构地图写成可继续实现、可验证的 repo-tracked artifact
 
+当前 repo-side 已落到的 continuation 子面包括：
+
+- `study_runtime_router` / `study_runtime_transport` / workspace onboarding 已以 `managed_runtime_transport` 和 `Hermes-backed managed runtime` 作为主线口径
+- `figure_loop_guard` / `medical_publication_surface` 的 runtime stop seam 已收口到通用 managed runtime transport authority
+- `med_deepscientist_transport` 仅继续保留兼容别名，不再作为新的 authority 命名基线
+
 ## 2. 当前 repo-side 允许打开的范围
 
 当前允许在 repo 内打开的 write-set 只包括：

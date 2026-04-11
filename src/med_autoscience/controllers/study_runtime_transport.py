@@ -24,6 +24,8 @@ def _router_module():
 
 def _default_runtime_backend() -> ManagedRuntimeBackend:
     router = _router_module()
+    if hasattr(router, "managed_runtime_transport"):
+        return router.managed_runtime_transport
     if hasattr(router, "_default_managed_runtime_backend"):
         return router._default_managed_runtime_backend()
     return router.med_deepscientist_transport

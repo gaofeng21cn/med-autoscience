@@ -106,11 +106,15 @@ from med_autoscience.workspace_contracts import inspect_workspace_contracts
 managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
     runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
 )
-# 兼容旧测试与旧内部入口；当前主线代码应优先通过 managed_runtime_backend contract 访问 backend。
-med_deepscientist_transport = managed_runtime_backend
+managed_runtime_transport = managed_runtime_backend
+# 兼容旧测试与旧内部入口；当前主线代码应优先通过 managed_runtime_transport contract 访问 backend。
+med_deepscientist_transport = managed_runtime_transport
 
 
 def _default_managed_runtime_backend():
+    backend = globals().get("managed_runtime_transport")
+    if backend is not None:
+        return backend
     backend = globals().get("managed_runtime_backend")
     if backend is not None:
         return backend

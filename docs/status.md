@@ -21,6 +21,8 @@
 - 当前 runtime / gateway / architecture 主线只推进 `Hermes` substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
 - `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 `Hermes` outer substrate 与 `MedDeepScientist` research backend 的分层语义。
 - `docs/program/med_deepscientist_deconstruction_map.md` 已冻结三类能力归属：迁入 `Hermes` substrate、暂留 backend、后续吸收/替换。
+- `managed_runtime_transport` 已作为 repo-side controller / guard / publication stop surface 的通用 authority 名称落盘；`med_deepscientist_transport` 仅继续保留兼容别名。
+- workspace onboarding 已把默认自动推进 wording 明确切到 `Hermes-backed managed runtime`，不再把 `med-deepscientist` 写成默认 outer runtime owner。
 
 ## 长线目标（规划层）
 

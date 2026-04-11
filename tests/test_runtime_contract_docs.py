@@ -192,6 +192,15 @@ def test_hermes_backend_docs_are_linked_from_mainline_execution_and_runtime_entr
         assert "med_deepscientist_deconstruction_map.md" in doc
 
 
+def test_study_runtime_orchestration_doc_tracks_generic_managed_runtime_transport_contract() -> None:
+    orchestration = _read("docs/runtime/study_runtime_orchestration.md")
+
+    assert "managed_runtime_transport" in orchestration
+    assert "med_deepscientist_transport" in orchestration
+    assert "兼容别名" in orchestration
+    assert "daemon 调用绑定收口为独立内部层" in orchestration
+
+
 def test_runtime_mainline_docs_freeze_hermes_topology_and_display_exclusion() -> None:
     mainline = _read("docs/program/research_foundry_medical_mainline.md")
     execution_map = _read("docs/program/research_foundry_medical_execution_map.md")
