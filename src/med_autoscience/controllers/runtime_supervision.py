@@ -220,77 +220,6 @@ def _status_payload_interaction_requires_user_input(status_payload: Mapping[str,
     return bool(interaction_arbitration.get("requires_user_input"))
 
 
-def _status_payload_runtime_event_snapshot(
-    *,
-    status_payload: Mapping[str, Any],
-    runtime_escalation_ref: dict[str, str] | None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    facts = _runtime_facts(status_payload)
-    status_snapshot = {
-        "quest_status": _non_empty_text(status_payload.get("quest_status")),
-        "decision": _non_empty_text(status_payload.get("decision")),
-        "reason": _non_empty_text(status_payload.get("reason")),
-        "active_run_id": facts["active_run_id"],
-        "runtime_liveness_status": facts["runtime_liveness_status"],
-        "worker_running": facts["worker_running"],
-        "continuation_policy": _status_payload_continuation_field(status_payload, "continuation_policy"),
-        "continuation_reason": _status_payload_continuation_field(status_payload, "continuation_reason"),
-        "supervisor_tick_status": _status_payload_supervisor_tick_status(status_payload),
-        "controller_owned_finalize_parking": False,
-        "runtime_escalation_ref": runtime_escalation_ref,
-    }
-    outer_loop_input = {
-        "quest_status": status_snapshot["quest_status"],
-        "decision": status_snapshot["decision"],
-        "reason": status_snapshot["reason"],
-        "active_run_id": status_snapshot["active_run_id"],
-        "runtime_liveness_status": status_snapshot["runtime_liveness_status"],
-        "worker_running": status_snapshot["worker_running"],
-        "supervisor_tick_status": status_snapshot["supervisor_tick_status"],
-        "controller_owned_finalize_parking": status_snapshot["controller_owned_finalize_parking"],
-        "interaction_action": _status_payload_interaction_action(status_payload),
-        "interaction_requires_user_input": _status_payload_interaction_requires_user_input(status_payload),
-        "runtime_escalation_ref": runtime_escalation_ref,
-    }
-    return status_snapshot, outer_loop_input
-
-
-def _runtime_event_ref(
-    *,
-    study_root: Path,
-    quest_root: Path | None,
-    quest_id: str | None,
-    recorded_at: str,
-    latest_report_path: Path,
-    status_payload: Mapping[str, Any],
-    runtime_escalation_ref: dict[str, str] | None,
-) -> dict[str, str] | None:
-    if quest_root is None or quest_id is None:
-        return None
-    status_snapshot, outer_loop_input = _status_payload_runtime_event_snapshot(
-        status_payload=status_payload,
-        runtime_escalation_ref=runtime_escalation_ref,
-    )
-    record = study_runtime_protocol.RuntimeEventRecord(
-        schema_version=1,
-        event_id=f"runtime-event::{study_root.name}::{quest_id}::supervision_changed::{recorded_at}",
-        study_id=study_root.name,
-        quest_id=quest_id,
-        emitted_at=recorded_at,
-        event_source="runtime_supervision",
-        event_kind="supervision_changed",
-        summary_ref=str(latest_report_path),
-        status_snapshot=status_snapshot,
-        outer_loop_input=outer_loop_input,
-        artifact_path=None,
-    )
-    written_record = study_runtime_protocol.write_runtime_event_record(
-        quest_root=quest_root,
-        record=record,
-    )
-    return written_record.ref().to_dict()
-
-
 def materialize_runtime_supervision(
     *,
     study_root: Path,
@@ -416,22 +345,10 @@ def materialize_runtime_supervision(
             report["runtime_escalation_ref"] = escalation_ref
             report["refs"]["runtime_escalation_path"] = escalation_ref["artifact_path"]
     if previous_health_status != health_status:
-        runtime_event_ref = _runtime_event_ref(
-            study_root=resolved_study_root,
-            quest_root=quest_root,
-            quest_id=quest_id,
-            recorded_at=recorded_at,
-            latest_report_path=latest_report_path,
-            status_payload=status_payload,
-            runtime_escalation_ref=(
-                dict(report.get("runtime_escalation_ref"))
-                if isinstance(report.get("runtime_escalation_ref"), dict)
-                else None
-            ),
-        )
-        if runtime_event_ref is not None:
-            report["runtime_event_ref"] = runtime_event_ref
-            report["refs"]["runtime_event_path"] = runtime_event_ref["artifact_path"]
+        runtime_event_ref = status_payload.get("runtime_event_ref")
+        if isinstance(runtime_event_ref, dict):
+            report["runtime_event_ref"] = dict(runtime_event_ref)
+            report["refs"]["runtime_event_path"] = str(runtime_event_ref.get("artifact_path") or "").strip() or None
 
     timestamped_report_path = _timestamped_report_path(resolved_study_root, recorded_at)
     report["artifact_path"] = str(timestamped_report_path)

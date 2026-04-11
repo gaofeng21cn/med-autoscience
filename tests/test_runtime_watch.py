@@ -973,14 +973,10 @@ def test_watch_runtime_writes_study_supervision_report_and_escalates_after_conse
     assert latest_payload["next_action_summary"]
     assert escalation_path.exists()
     escalation_payload = json.loads(escalation_path.read_text(encoding="utf-8"))
-    runtime_event_payload = json.loads(
-        (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").read_text(encoding="utf-8")
-    )
 
     assert escalation_payload["reason"] == "resume_request_failed"
-    assert runtime_event_payload["event_kind"] == "supervision_changed"
-    assert runtime_event_payload["event_source"] == "runtime_supervision"
-    assert runtime_event_payload["outer_loop_input"]["reason"] == "resume_request_failed"
+    assert "runtime_event_ref" not in latest_payload
+    assert not (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").exists()
 
 
 def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_recovers_to_live(
@@ -1117,16 +1113,15 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
 
     first_supervision = first["managed_study_supervision"][0]
     second_supervision = second["managed_study_supervision"][0]
-    runtime_event_payload = json.loads(
-        (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").read_text(encoding="utf-8")
+    latest_payload = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
     )
 
     assert first_supervision["health_status"] == "degraded"
     assert second_supervision["health_status"] == "live"
     assert second_supervision["last_transition"] == "recovered"
-    assert runtime_event_payload["event_kind"] == "supervision_changed"
-    assert runtime_event_payload["outer_loop_input"]["runtime_liveness_status"] == "live"
-    assert runtime_event_payload["outer_loop_input"]["active_run_id"] == "run-live"
+    assert "runtime_event_ref" not in latest_payload
+    assert not (quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json").exists()
 
 
 def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:

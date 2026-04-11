@@ -14,6 +14,50 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _native_runtime_event_payload(*, quest_id: str, artifact_path: Path) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "event_id": f"runtime-event::{quest_id}::runtime_control_applied::2026-04-11T00:00:00+00:00",
+        "quest_id": quest_id,
+        "emitted_at": "2026-04-11T00:00:00+00:00",
+        "event_source": "daemon_app",
+        "event_kind": "runtime_control_applied",
+        "summary_ref": f"quest:{quest_id}:runtime_control_applied",
+        "status_snapshot": {
+            "quest_status": "paused",
+            "display_status": "paused",
+            "active_run_id": "run-native",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "stop_reason": "user_pause_requested",
+            "continuation_policy": "resume_allowed",
+            "continuation_reason": "paused_by_controller",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+        "outer_loop_input": {
+            "quest_status": "paused",
+            "display_status": "paused",
+            "active_run_id": "run-native",
+            "runtime_liveness_status": "none",
+            "worker_running": False,
+            "stop_reason": "user_pause_requested",
+            "continuation_policy": "resume_allowed",
+            "continuation_reason": "paused_by_controller",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+        "artifact_path": str(artifact_path),
+        "summary": "runtime paused by controller",
+    }
+
+
 def test_resolve_daemon_url_prefers_runtime_daemon_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "runtime"
@@ -1268,6 +1312,54 @@ def test_get_quest_session_reads_session_payload(monkeypatch) -> None:
     assert seen["timeout"] == 10
 
 
+def test_get_quest_session_validates_and_exposes_native_runtime_event_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    artifact_path = tmp_path / "runtime" / "quests" / "001-risk" / "artifacts" / "reports" / "runtime_events" / "latest.json"
+    native_event = _native_runtime_event_payload(quest_id="001-risk", artifact_path=artifact_path)
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "ok": True,
+                    "quest_id": "001-risk",
+                    "snapshot": {"quest_id": "001-risk", "active_run_id": "run-native"},
+                    "runtime_audit": {
+                        "ok": True,
+                        "status": "none",
+                        "source": "daemon_turn_worker",
+                        "active_run_id": "run-native",
+                        "worker_running": False,
+                        "worker_pending": False,
+                        "stop_requested": False,
+                    },
+                    "runtime_event_ref": {
+                        "event_id": str(native_event["event_id"]),
+                        "artifact_path": str(artifact_path),
+                        "summary_ref": str(native_event["summary_ref"]),
+                    },
+                    "runtime_event": native_event,
+                }
+            ).encode("utf-8")
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    result = module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
+
+    assert result["runtime_event_ref"] == {
+        "event_id": str(native_event["event_id"]),
+        "artifact_path": str(artifact_path),
+        "summary_ref": str(native_event["summary_ref"]),
+    }
+    assert result["runtime_event"] == native_event
+
+
 def test_get_quest_session_rejects_missing_runtime_audit_contract(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
 
@@ -1353,6 +1445,48 @@ def test_inspect_quest_live_runtime_reports_live_and_none(monkeypatch) -> None:
         "worker_pending": False,
         "stop_requested": False,
     }
+
+
+def test_inspect_quest_live_runtime_passes_through_native_runtime_event_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    artifact_path = tmp_path / "runtime" / "quests" / "001-risk" / "artifacts" / "reports" / "runtime_events" / "latest.json"
+    native_event = _native_runtime_event_payload(quest_id="001-risk", artifact_path=artifact_path)
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {"active_run_id": "run-native"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-native",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_ref": {
+                "event_id": str(native_event["event_id"]),
+                "artifact_path": str(artifact_path),
+                "summary_ref": str(native_event["summary_ref"]),
+            },
+            "runtime_event": native_event,
+        },
+    )
+
+    result = module.inspect_quest_live_runtime(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert result["runtime_event_ref"] == {
+        "event_id": str(native_event["event_id"]),
+        "artifact_path": str(artifact_path),
+        "summary_ref": str(native_event["summary_ref"]),
+    }
+    assert result["runtime_event"] == native_event
 
 
 def test_inspect_quest_live_execution_combines_runtime_and_bash_audits(monkeypatch) -> None:

@@ -89,44 +89,50 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
 
 def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boundary() -> None:
     priority_map = _read("docs/program/project_repair_priority_map.md")
+    runtime_contract = _read("docs/runtime/runtime_event_and_outer_loop_input_contract.md")
     runtime_cutover = _read("docs/runtime/runtime_core_convergence_and_controlled_cutover.md")
     workspace_knowledge = _read("docs/runtime/workspace_knowledge_and_literature_contract.md")
 
     assert "runtime native truth convergence" in priority_map
     assert "workspace knowledge and literature convergence" in priority_map
-    assert "controlled monorepo cutover" in priority_map
+    assert "controlled cutover -> physical monorepo migration" in priority_map
     assert "先完成 `runtime native truth convergence`" in priority_map
     assert "再完成 `workspace knowledge and literature convergence`" in priority_map
-    assert "最后进入 `controlled monorepo cutover`" in priority_map
+    assert "当前剩余的 active tranche" in priority_map
+    assert "P0：Runtime Native Truth 已完成" in priority_map
+    assert "P1：Workspace Knowledge / Literature 已完成" in priority_map
 
-    assert "runtime_event" in runtime_cutover
-    assert "runtime core 原生输出" in runtime_cutover
-    assert "MAS 改为纯消费者" in runtime_cutover
-    assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in runtime_cutover
-    assert "scaffold boundary" in runtime_cutover
-    assert "launch_report" in runtime_cutover
-    assert "runtime_watch" in runtime_cutover
+    assert "quest-owned native runtime truth" in runtime_contract
+    assert "study-owned outer-loop truth" in runtime_contract
+    assert "runtime_event_ref" in runtime_contract
+    assert "supervisor_tick_audit.status" in runtime_contract
+    assert "不得再由 `study_runtime_status`" in runtime_contract
+
+    assert "cb73b3d21c404d424e57d7765b5a9a409060700a" in runtime_cutover
+    assert "consumer-side cutover" in runtime_cutover
+    assert "P2 controlled cutover -> physical monorepo migration" in runtime_cutover
+    assert "Cross-repo parity gate" in runtime_cutover
 
     assert "portfolio/research_memory" in workspace_knowledge
-    assert "canonical literature registry" in workspace_knowledge
+    assert "canonical knowledge / literature truth" in workspace_knowledge
     assert "studies/<study_id>/artifacts/reference_context/latest.json" in workspace_knowledge
-    assert "quest hydration" in workspace_knowledge
     assert "materialized working copy" in workspace_knowledge
-    assert "journal_shortlist_evidence" in workspace_knowledge
-    assert "venue_intelligence" in workspace_knowledge
+    assert "workspace-first" in workspace_knowledge
+    assert "`P1` 的正式完成态" in workspace_knowledge
 
 
-def test_public_entry_docs_surface_external_gate_stop_state() -> None:
+def test_public_entry_docs_surface_current_p0_p1_done_and_p2_active() -> None:
     readme = _read("README.md")
     readme_zh = _read("README.zh-CN.md")
     docs_index = _read("docs/README.md")
     docs_index_zh = _read("docs/README.zh-CN.md")
 
     for doc in [readme, readme_zh, docs_index, docs_index_zh]:
-        assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in doc
-        assert "external_runtime_dependency_gate.md" in doc
+        assert "P0 runtime native truth" in doc
+        assert "P1 workspace canonical literature / knowledge truth" in doc
+        assert "P2 controlled cutover -> physical monorepo migration" in doc
 
-    assert "new in-repo architecture tranche" in readme
-    assert "新的仓内架构 tranche" in readme_zh
-    assert "open in-repo implementation baton" in docs_index
-    assert "正在仓内继续实现的 active tranche" in docs_index_zh
+    assert "external runtime gate still exists" in readme
+    assert "external runtime gate 仍然存在" in readme_zh
+    assert "part of the blocker package" in docs_index
+    assert "属于 blocker package" in docs_index_zh

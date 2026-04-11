@@ -4,10 +4,12 @@
 
 ## 主线状态
 
-- repo-side baseline 已就绪，但 end-to-end 继续推进仍受 external runtime / workspace gate 约束。
-- 当前 blocker package 见 `program/external_runtime_dependency_gate.md`。
+- `P0 runtime native truth` 已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`。
+- `P1 workspace canonical literature / knowledge truth` 已完成，workspace canonical literature、study reference context 与 quest materialization-only 边界已进入仓库主线。
+- `P2 controlled cutover -> physical monorepo migration` 尚未完成；当前剩余工作是 consumer-only 收敛、cross-repo parity gate 与 physical monorepo cutover 计划。
 
 ## 近期关注
 
-- 维护 runtime contract 与 durable surface 的一致性，避免旁路语义漂移。
-- 保持文档骨架与分类结构稳定，新增材料按分类归档。
+- 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
+- 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
+- 继续按新文档骨架维护状态、contract 与 cutover 计划，避免把已完成 tranche 写成待办，或把未完成 tranche 写成已完成。

@@ -11,6 +11,7 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import StudyCompletionState
 
+from .study_runtime_transport import _get_quest_session
 from .study_runtime_status import (
     StudyCompletionSyncResult,
     StudyRuntimeAutonomousRuntimeNotice,
@@ -890,34 +891,30 @@ def _record_transition_runtime_event(
         or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
         or not status.quest_exists
     ):
+        status.extras.pop("runtime_event_ref", None)
+        status.extras.pop("runtime_event", None)
         return
     post_transition_status = _post_transition_quest_status(status=status, outcome=outcome)
     status.update_quest_runtime(quest_status=post_transition_status)
-    emitted_at = _router_module()._utc_now()
-    status_snapshot = _runtime_event_status_snapshot(status)
-    outer_loop_input = _runtime_event_outer_loop_input(status)
-    active_run_id = outcome.active_run_id()
-    if active_run_id is not None:
-        status_snapshot["active_run_id"] = active_run_id
-        outer_loop_input["active_run_id"] = active_run_id
-    record = study_runtime_protocol.RuntimeEventRecord(
-        schema_version=1,
-        event_id=f"runtime-event::{context.study_id}::{status.quest_id}::transition_applied::{emitted_at}",
-        study_id=context.study_id,
-        quest_id=status.quest_id,
-        emitted_at=emitted_at,
-        event_source="study_runtime_execution",
-        event_kind="transition_applied",
-        summary_ref=str(context.launch_report_path),
-        status_snapshot=status_snapshot,
-        outer_loop_input=outer_loop_input,
-        artifact_path=None,
-    )
-    written_record = study_runtime_protocol.write_runtime_event_record(
-        quest_root=context.quest_root,
-        record=record,
-    )
-    status.record_runtime_event_ref(written_record.ref())
+    try:
+        session_payload = _get_quest_session(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+        )
+    except (RuntimeError, OSError, ValueError):
+        status.extras.pop("runtime_event_ref", None)
+        status.extras.pop("runtime_event", None)
+        return
+    runtime_event_ref = session_payload.get("runtime_event_ref")
+    if isinstance(runtime_event_ref, dict):
+        status.record_runtime_event_ref(runtime_event_ref)
+    else:
+        status.extras.pop("runtime_event_ref", None)
+    runtime_event = session_payload.get("runtime_event")
+    if isinstance(runtime_event, dict):
+        status["runtime_event"] = dict(runtime_event)
+    else:
+        status.extras.pop("runtime_event", None)
 
 
 def _runtime_escalation_trigger_source(reason: StudyRuntimeReason | None) -> str:

@@ -20,8 +20,13 @@
 
 ## 当前主线与阻塞包
 
-当前 repo-tracked runtime 主线已经吸收完成。
-当前最诚实的 repo-side 停车结论是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`，不是正在仓内继续实现的 active tranche。
+当前冻结状态如下：
+
+- `P0 runtime native truth`：已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
+- `P1 workspace canonical literature / knowledge truth`：已在本仓完成
+- `P2 controlled cutover -> physical monorepo migration`：仍是当前 active tranche
+
+`external_runtime_dependency_gate.md` 仍然属于 blocker package，但它已经不是整个项目的总停车结论。
 
 ## Runtime 合同与控制面
 

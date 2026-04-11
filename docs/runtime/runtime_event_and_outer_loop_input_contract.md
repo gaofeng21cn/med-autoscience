@@ -1,210 +1,154 @@
 # Runtime Event And Outer-Loop Input Contract
 
-## 1. 背景
+## 1. 目标
 
-当前 `MedAutoScience -> MedDeepScientist` 托管运行链路已经具备：
+本文件冻结当前已经落地的正式 contract：
+
+- `MedDeepScientist` 负责 quest-owned native runtime truth
+- `MedAutoScience` 负责 study-owned supervision / escalation / decision truth
+- managed runtime 的 outer loop 必须同时消费这两层正式输入，不能再靠本仓 controller 重写 quest-owned `runtime_events/*`
+
+这份 contract 解决的是“runtime 已经降级、暂停、停车或等待输入，但 MAS 看不见”的结构性问题。当前系统里，quest-owned truth 与 study-owned truth 已经拆开，不能再混写。
+
+## 2. Truth Owner 与 Surface
+
+### 2.1 Quest-owned native runtime truth
+
+权威 owner：`MedDeepScientist runtime core`
+
+稳定表面：
+
+- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/<timestamp>_<event_kind>.json`
+- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/latest.json`
+
+这是 quest-owned truth，不是 launch report、runtime watch，也不是 study-owned controller summary。
+
+### 2.2 Study-owned outer-loop truth
+
+权威 owner：`MedAutoScience`
+
+稳定表面：
 
 - `study_runtime_status`
-- `runtime_watch`
-- `runtime_escalation_record`
-- `publication_eval/latest.json`
+- `runtime_supervision/latest.json`
+- `runtime_escalation_record.json`
 - `controller_decisions/latest.json`
-- `last_launch_report.json`
+- `publication_eval/latest.json`
 
-这些 durable surfaces 足以表达大多数正式控制动作，但仍然缺一条关键 contract：
+这些表面负责 study-owned judgment，不负责伪装成 quest-owned runtime truth。
 
-- runtime 在进入 `park / pause / stop / waiting_for_user / degraded / stale` 等非 live 状态时，
-  没有稳定、显式、quest-owned、可被 MAS 直接消费的事件面。
+### 2.3 Workspace knowledge / literature truth
 
-结果是：
+权威 owner：workspace-level contract
 
-- MAS 需要从 `runtime_state.json`、launch report、watch report、liveness audit、pending interaction 等多个 projection 反推 runtime 真相；
-- 很多状态迁移只在 poll tick 中被“推断到”，而不是被“回报到”；
-- `pause / stop / parking / invisible` 场景容易从 `runtime_watch` 扫描面消失，或者被折叠成过于宽泛的健康态。
+稳定表面：
 
-本文件冻结两件事：
+- `portfolio/research_memory/*`
+- `portfolio/research_memory/literature/registry.jsonl`
+- `portfolio/research_memory/literature/references.bib`
+- `portfolio/research_memory/literature/coverage/latest.json`
+- `studies/<study_id>/artifacts/reference_context/latest.json`
 
-1. `runtime event contract`
-2. `outer-loop input contract`
+这层已经是 `P1` 完成态，不再由 quest-local literature cache 充当 authority root。
 
-它们共同构成 MAS 在当前双仓形态下的最小闭环。
+## 3. Session / Transport Contract
 
-## 2. 设计目标
+`GET /api/quests/{quest_id}/session` 的 stable transport contract 至少包含：
 
-- 让 MAS 不再只依赖 `poll + inference` 才能知道 quest 已进入非 live 状态。
-- 把 quest 级状态迁移收敛成一条稳定、可审计、可复读的事件面。
-- 让 outer loop 不再只依赖 `{decision, reason}` 这类压缩摘要做控制决策。
-- 保持当前 fail-closed 语义，不引入旁路、启发式纠偏或 silent healing。
-- 保持当前 repo-side contract-first 边界，不把 `.omx/`、`manuscript/`、`runtime_watch` 等 projection 升格为 authority root。
-
-## 3. Runtime Event Contract
-
-### 3.1 Owner 与 surface
-
-- owner: `quest-owned runtime artifact`
-- stable surface:
-  - `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/<timestamp>_<event_kind>.json`
-  - `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/latest.json`
-
-`runtime_event` 是 runtime plane 的正式事件面，不是 launch report 的别名，也不是 runtime watch 的投影。
-
-### 3.2 Event schema
-
-每条 event 至少必须包含：
-
-- `schema_version`
-- `event_id`
-- `study_id`
 - `quest_id`
-- `emitted_at`
-- `event_source`
-- `event_kind`
-- `summary_ref`
-- `status_snapshot`
-- `outer_loop_input`
-- `artifact_path`
+- `snapshot`
+- `runtime_audit`
 
-其中：
-
-- `event_source` 表示是谁物化了这个事件。
-  - 当前 repo-side 允许：
-    - `study_runtime_status`
-    - `study_runtime_execution`
-    - `runtime_supervision`
-- `event_kind` 表示事件类别。
-  - 当前 repo-side 允许：
-    - `status_observed`
-    - `transition_applied`
-    - `supervision_changed`
-
-### 3.3 Status snapshot
-
-`status_snapshot` 至少必须包含：
-
-- `quest_status`
-- `decision`
-- `reason`
-- `active_run_id`
-- `runtime_liveness_status`
-- `worker_running`
-- `continuation_policy`
-- `continuation_reason`
-- `supervisor_tick_status`
-- `controller_owned_finalize_parking`
-- `runtime_escalation_ref`
-
-语义要求：
-
-- 这是 MAS 在物化该 event 时看到的 quest 级 runtime snapshot。
-- 它不是 launch report summary，也不是 publication eval verdict。
-- 它必须保留 pause/stop/park/waiting/degraded 这类一等状态，不得用单一健康态吞并全部语义。
-
-### 3.4 Event emission rules
-
-当前 repo-side 冻结如下：
-
-- `study_runtime_status(...)` 在 managed runtime 上必须写 `status_observed` event。
-- `ensure_study_runtime(...)` 在执行 create/resume/pause/relaunch/completion 后必须写 `transition_applied` event。
-- `runtime_supervision` 在健康态发生变化时必须写 `supervision_changed` event。
-
-这意味着：
-
-- `stopped`
-- `paused`
-- `waiting_for_user`
-- `controller-owned finalize parking`
-- `strict_live` 丢失
-- `supervisor tick stale`
-
-都必须能在 quest 级 durable event 面上留下痕迹。
-
-## 4. Outer-Loop Input Contract
-
-### 4.1 Formal input
-
-对 managed runtime，`study_outer_loop_tick(...)` 的 runtime 输入不再只等价于：
-
-- `decision`
-- `reason`
-- optional `runtime_escalation_ref`
-
-正式输入固定为：
+native runtime truth 扩展字段：
 
 - `runtime_event_ref`
-- `runtime_event.outer_loop_input`
+- `runtime_event`
+
+规则：
+
+- `runtime_event_ref` 若存在，必须是合法 durable ref
+- `runtime_event` 若存在，必须是合法 native runtime event payload
+- 若二者同时存在，必须指向同一个 durable artifact
+- `runtime_event.quest_id` 必须与 session `quest_id` 一致
+- MAS transport 必须原样透传这对字段，不得静默丢弃，不得在 transport 层重新生成 quest-owned event
+
+## 4. Managed Study Status Contract
+
+对 managed runtime 且 quest 已存在的 study，`study_runtime_status` 必须满足：
+
+- `runtime_event_ref` 直接来自 session-native `runtime_event_ref`
+- `runtime_event` 可内联暴露最新 native event payload
+- `decision` / `reason` 仍是 study-owned controller judgment
+- `supervisor_tick_audit.status` 仍是 study-owned freshness truth
+- `runtime_escalation_ref` 仍是 study-owned escalation truth
+
+禁止事项：
+
+- 不得再由 `study_runtime_status` 把本地观测重新写成 quest-owned `status_observed` event
+- 不得再由 `study_runtime_execution` 把 create / resume / pause / completion 动作写成 quest-owned `transition_applied` event
+- `runtime_supervision` 可以在 study-level supervision report 中回显 `runtime_event_ref`，但不得覆盖 quest-owned `runtime_events/latest.json`
+
+## 5. Formal Outer-Loop Input
+
+对 managed runtime，outer loop 的正式输入固定为：
+
+- quest-owned `runtime_event_ref`
+- optional `runtime_event`
+- study-owned `decision`
+- study-owned `reason`
+- study-owned `supervisor_tick_audit.status`
+- study-owned `runtime_escalation_ref`
 - `publication_eval/latest.json`
 
-### 4.2 Outer-loop input schema
+语义分工：
 
-`runtime_event.outer_loop_input` 至少必须包含：
+- native runtime event 提供 quest runtime truth：
+  - `quest_status`
+  - `display_status`
+  - `active_run_id`
+  - `runtime_liveness_status`
+  - `worker_running`
+  - `stop_reason`
+  - `continuation_policy`
+  - `continuation_reason`
+  - `interaction_action`
+  - `interaction_requires_user_input`
+  - `active_interaction_id`
+- study-owned surfaces 提供 outer-loop judgment truth：
+  - `decision`
+  - `reason`
+  - `supervisor_tick_status`
+  - `runtime_escalation_ref`
 
-- `quest_status`
-- `decision`
-- `reason`
-- `active_run_id`
-- `runtime_liveness_status`
-- `worker_running`
-- `supervisor_tick_status`
-- `controller_owned_finalize_parking`
-- `interaction_action`
-- `interaction_requires_user_input`
-- `runtime_escalation_ref`
+换句话说，outer loop 现在消费的是：
 
-这些字段是 outer loop 允许直接依赖的 runtime 输入面。
+- runtime 自报的 quest truth
+- MAS 自己的 study-owned control truth
 
-### 4.3 Fail-closed rules
+而不是 MAS 自己代 runtime 再写一份 quest truth。
+
+## 6. Fail-Closed 规则
 
 对 managed runtime，outer loop 必须继续 fail-closed：
 
-- 缺 `runtime_event_ref` 时，不得自行假定 runtime 输入完整。
-- `runtime_event_ref` 指向的 artifact 不存在、schema 不合法、quest/study 身份不匹配时，必须报错。
-- 不得再在 outer loop 内“现造” runtime escalation record 来弥补输入缺口。
-- `runtime_escalation_ref` 若存在，必须与 event snapshot 对齐。
-- `supervisor_tick_status != fresh` 时，outer loop 不得把运行面描述成“持续稳定托管中”。
+- 缺 `runtime_event_ref` 时，不得把 managed runtime 说成输入完整
+- `runtime_event_ref` 指向的 artifact 不存在、schema 非法、`quest_id` 不匹配时，必须报错
+- `supervisor_tick_audit.status != fresh` 时，不得把当前 runtime 输入表述成稳定托管中
+- `runtime_escalation_ref` 缺失或非法时，不得把需要 escalation 的场景描述成正常可继续
+- 不允许再用 controller-side synthetic event 覆盖 native runtime truth
+- 不允许把 `runtime_watch`、`launch_report` 或 `study_progress` 升格成 quest runtime truth
 
-## 5. 与现有 surfaces 的关系
+## 7. 当前完成状态
 
-- `launch_report`
-  - 保持为 runtime orchestration summary
-  - 不是 event plane
-- `runtime_watch`
-  - 保持为 poll/report shell
-  - 不替代 runtime event
-- `runtime_supervision/latest.json`
-  - 保持为 study-level health truth
-  - 不替代 quest-level runtime event
-- `runtime_escalation_record`
-  - 保持为 escalation plane
-  - 不能吞并全部 runtime 状态迁移
+当前正式状态如下：
 
-## 6. Repo-side implementation phases
+- `P0 runtime native truth`：已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
+- `MedAutoScience` consumer-side cutover：已完成，managed runtime 不再覆盖 quest-owned `runtime_events/*`
+- `P1 workspace canonical literature / knowledge truth`：已完成
+- 当前剩余 active tranche：`P2 controlled cutover -> physical monorepo migration`
 
-### P0
+因此，这份文件不再把 `runtime event contract` 写成“MAS 物化的一份 projection contract”，而是把它写成：
 
-- 引入 `runtime_event` durable surface 与 typed schema。
-- 在 `study_runtime_status` / `study_runtime_execution` / `runtime_supervision` 上物化 event。
-- 让 outer loop 强依赖 `runtime_event_ref`，移除“缺 ref 时自动 synthesize escalation”。
-
-### P1
-
-- 收紧 watch 扫描面，确保 `paused / stopped / idle / created` 不再天然隐身。
-- 收紧 runtime summary alignment，不只比对 `quest_status`，还要比对 `active_run_id`、liveness、supervisor freshness。
-- 区分 semantic runtime state 与 health state，避免全都坍缩到 `inactive`。
-
-### P2
-
-- 用 transition matrix 补齐测试：
-  - `running -> parked`
-  - `running -> paused`
-  - `running -> stopped`
-  - `waiting_for_user -> MAS_resume`
-  - `degraded -> live`
-  - `fresh -> stale`
-  - cross-surface conflict
-
-## 7. 当前限制
-
-这个 contract 目前仍是 repo-side contract 收紧，不等于 external `med-deepscientist` 已完成同等事件语义内建。
-
-在当前双仓形态下，MAS 仍然需要从 repo-side 能读到的 surfaces 物化事件；
-真正的 monorepo end-state 则应把该 event plane 下沉为 runtime core 的原生输出。
+- runtime-native quest truth
+- study-owned outer-loop truth
+- 二者之间的正式拼接规则

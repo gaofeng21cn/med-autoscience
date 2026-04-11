@@ -86,14 +86,15 @@
 
 ## 当前仓库侧状态
 
-当前 repo-tracked runtime 主线已经通过 integration-harness closeout 吸收到仓库主线。
-当前最诚实的 repo-side 停车结论是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`。
+当前优先级已经冻结，并且前两条 tranche 已完成：
 
 这意味着：
 
-- 仓库已经承载当前 runtime contract、durable surfaces 与 cutover-readiness 阻塞包
-- 下一步不是重新打开新的仓内架构 tranche
-- 真实继续推进仍依赖 external runtime / workspace gate 与剩余的 human-required interaction
+- `P0 runtime native truth` 已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
+- `P1 workspace canonical literature / knowledge truth` 已在 `Med Auto Science` 完成
+- `P2 controlled cutover -> physical monorepo migration` 是当前剩余的 active tranche
+
+现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract，以及剩余的 cutover 工作包。external runtime gate 仍然存在，但它已经只是 `P2` 内的一道 gate，不再是整个项目的总停车结论。
 
 ## 运行句柄与持久表面
 
@@ -159,7 +160,7 @@
 
 对大多数医学用户来说，最快的方式是先把目标、数据和约束交给 Agent，再让它调用 `Med Auto Science`。
 
-但针对真实课题继续推进，需要先明确一个边界：repo-side baseline 已经准备好，是否能继续 end-to-end 推进仍取决于 `docs/program/external_runtime_dependency_gate.md` 中定义的 external runtime / workspace gate package。
+但针对真实课题继续推进，需要先明确一个边界：`P0` 与 `P1` 已经进入仓库主线，剩余是否能继续 end-to-end 推进，取决于 `P2` 的受控 cutover 验证、parity gate，以及 `docs/program/` 下剩余 external runtime / workspace gates。
 
 通常只需要三步：
 

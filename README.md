@@ -87,14 +87,15 @@ This means:
 
 ## Current Repo-Side Status
 
-The repo-tracked runtime mainline has already been absorbed through the integration-harness closeout.
-The current honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`.
+The priority order is now frozen and partially completed:
 
 That means:
 
-- the repository already carries the current runtime contract, durable surfaces, and cutover-readiness blocker package
-- the next step is not a new in-repo architecture tranche
-- real continuation still depends on external runtime / workspace gates and remaining human-required interaction
+- `P0 runtime native truth` is complete in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
+- `P1 workspace canonical literature / knowledge truth` is complete in `Med Auto Science`
+- `P2 controlled cutover -> physical monorepo migration` is the remaining active tranche
+
+The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, and the remaining cutover work package. The external runtime gate still exists, but it is now one gate inside `P2`, not the whole-project stop state.
 
 ## Execution Handle And Durable Surfaces
 
@@ -160,7 +161,7 @@ When a study is worth continuing, the platform is designed to deliver:
 
 For most medical users, the fastest path is to give your goal, data, and constraints to your agent, then let it run `Med Auto Science`.
 
-For current real-study continuation, keep one boundary explicit: the repo-side baseline is ready, but end-to-end continuation still depends on the external runtime / workspace gate package documented in `docs/program/external_runtime_dependency_gate.md`.
+For current real-study continuation, keep one boundary explicit: `P0` and `P1` are already in the repo, but `P2` still requires controlled cutover validation, parity checks, and the remaining external runtime / workspace gates documented under `docs/program/`.
 
 Typical three-step start:
 

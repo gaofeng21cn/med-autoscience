@@ -37,6 +37,7 @@ from med_autoscience.publication_eval_record import (
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.controllers.study_runtime_transport import _get_quest_session
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 
@@ -656,26 +657,27 @@ def _record_runtime_event(
         or not status.quest_exists
     ):
         status.extras.pop("runtime_event_ref", None)
+        status.extras.pop("runtime_event", None)
         return
-    emitted_at = _router_module()._utc_now()
-    record = study_runtime_protocol.RuntimeEventRecord(
-        schema_version=1,
-        event_id=f"runtime-event::{status.study_id}::{status.quest_id}::status_observed::{emitted_at}",
-        study_id=status.study_id,
-        quest_id=status.quest_id,
-        emitted_at=emitted_at,
-        event_source="study_runtime_status",
-        event_kind="status_observed",
-        summary_ref=str(runtime_context.launch_report_path),
-        status_snapshot=_runtime_event_status_snapshot(status),
-        outer_loop_input=_runtime_event_outer_loop_input(status),
-        artifact_path=None,
-    )
-    written_record = study_runtime_protocol.write_runtime_event_record(
-        quest_root=runtime_context.quest_root,
-        record=record,
-    )
-    status.record_runtime_event_ref(written_record.ref())
+    try:
+        session_payload = _get_quest_session(
+            runtime_root=runtime_context.runtime_root,
+            quest_id=status.quest_id,
+        )
+    except (RuntimeError, OSError, ValueError):
+        status.extras.pop("runtime_event_ref", None)
+        status.extras.pop("runtime_event", None)
+        return
+    runtime_event_ref = session_payload.get("runtime_event_ref")
+    if isinstance(runtime_event_ref, dict):
+        status.record_runtime_event_ref(runtime_event_ref)
+    else:
+        status.extras.pop("runtime_event_ref", None)
+    runtime_event = session_payload.get("runtime_event")
+    if isinstance(runtime_event, dict):
+        status["runtime_event"] = dict(runtime_event)
+    else:
+        status.extras.pop("runtime_event", None)
 
 
 def _sync_runtime_summary_if_needed(

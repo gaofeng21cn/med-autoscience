@@ -22,8 +22,13 @@ These five pages are the stable knowledge backbone (Chinese only unless mirrored
 
 ## Current Mainline And Blocker Package
 
-The current repo-tracked runtime mainline is already absorbed.
-The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`, not an open in-repo implementation baton.
+Current frozen state:
+
+- `P0 runtime native truth`: completed upstream in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
+- `P1 workspace canonical literature / knowledge truth`: completed in this repo
+- `P2 controlled cutover -> physical monorepo migration`: still active
+
+`external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
 
 ## Runtime Contracts And Control Surface
 

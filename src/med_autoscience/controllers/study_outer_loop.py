@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
+from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import (
     read_publication_eval_latest,
@@ -36,38 +37,60 @@ def _decision_id(*, study_id: str, quest_id: str, decision_type: str, recorded_a
 def _runtime_status_summary(
     status: dict[str, Any],
     *,
-    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None] | None = None,
+    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord | NativeRuntimeEventRecord, dict[str, Any] | None]
+    | None = None,
 ) -> dict[str, str]:
     if managed_runtime_event is not None:
         runtime_event_ref, runtime_event_record, _runtime_escalation_payload = managed_runtime_event
-        outer_loop_input = runtime_event_record.outer_loop_input
-        return {
-            "decision": str(outer_loop_input.get("decision") or "").strip(),
-            "reason": str(outer_loop_input.get("reason") or "").strip(),
-            "quest_status": str(outer_loop_input.get("quest_status") or "").strip(),
-            "active_run_id": str(outer_loop_input.get("active_run_id") or "").strip(),
-            "runtime_liveness_status": str(outer_loop_input.get("runtime_liveness_status") or "").strip(),
-            "supervisor_tick_status": str(outer_loop_input.get("supervisor_tick_status") or "").strip(),
-            "runtime_event_id": runtime_event_ref.event_id,
-        }
+        return _runtime_status_summary_from_runtime_event(
+            status=status,
+            runtime_event_ref=runtime_event_ref,
+            runtime_event_record=runtime_event_record,
+        )
     runtime_event_payload = status.get("runtime_event_ref")
     if isinstance(runtime_event_payload, dict):
         runtime_event_ref, runtime_event_record = _load_runtime_event_record(
             runtime_event_payload=runtime_event_payload
         )
-        outer_loop_input = runtime_event_record.outer_loop_input
-        return {
-            "decision": str(outer_loop_input.get("decision") or "").strip(),
-            "reason": str(outer_loop_input.get("reason") or "").strip(),
-            "quest_status": str(outer_loop_input.get("quest_status") or "").strip(),
-            "active_run_id": str(outer_loop_input.get("active_run_id") or "").strip(),
-            "runtime_liveness_status": str(outer_loop_input.get("runtime_liveness_status") or "").strip(),
-            "supervisor_tick_status": str(outer_loop_input.get("supervisor_tick_status") or "").strip(),
-            "runtime_event_id": runtime_event_ref.event_id,
-        }
+        return _runtime_status_summary_from_runtime_event(
+            status=status,
+            runtime_event_ref=runtime_event_ref,
+            runtime_event_record=runtime_event_record,
+        )
     return {
         "decision": str(status.get("decision") or "").strip(),
         "reason": str(status.get("reason") or "").strip(),
+    }
+
+
+def _runtime_status_summary_from_runtime_event(
+    *,
+    status: dict[str, Any],
+    runtime_event_ref: RuntimeEventRecordRef,
+    runtime_event_record: RuntimeEventRecord | NativeRuntimeEventRecord,
+) -> dict[str, str]:
+    outer_loop_input = runtime_event_record.outer_loop_input
+    if isinstance(runtime_event_record, RuntimeEventRecord):
+        decision = str(outer_loop_input.get("decision") or "").strip()
+        reason = str(outer_loop_input.get("reason") or "").strip()
+        supervisor_tick_status = str(outer_loop_input.get("supervisor_tick_status") or "").strip()
+    else:
+        decision = str(status.get("decision") or "").strip()
+        reason = str(status.get("reason") or "").strip()
+        supervisor_tick_payload = status.get("supervisor_tick_audit")
+        supervisor_tick_status = (
+            str(supervisor_tick_payload.get("status") or "").strip()
+            if isinstance(supervisor_tick_payload, dict)
+            else ""
+        )
+    return {
+        "decision": decision,
+        "reason": reason,
+        "quest_status": str(outer_loop_input.get("quest_status") or "").strip(),
+        "active_run_id": str(outer_loop_input.get("active_run_id") or "").strip(),
+        "runtime_liveness_status": str(outer_loop_input.get("runtime_liveness_status") or "").strip(),
+        "supervisor_tick_status": supervisor_tick_status,
+        "runtime_event_id": runtime_event_ref.event_id,
     }
 
 
@@ -133,13 +156,16 @@ def _load_runtime_escalation_record(
 def _load_runtime_event_record(
     *,
     runtime_event_payload: dict[str, Any],
-) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord]:
+) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord | NativeRuntimeEventRecord]:
     runtime_event_ref = RuntimeEventRecordRef.from_payload(runtime_event_payload)
     artifact_path = Path(runtime_event_ref.artifact_path).expanduser().resolve()
     payload = json.loads(artifact_path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise ValueError("runtime event record artifact must contain a mapping payload")
-    record = RuntimeEventRecord.from_payload(payload)
+    try:
+        record = RuntimeEventRecord.from_payload(payload)
+    except (TypeError, ValueError):
+        record = NativeRuntimeEventRecord.from_payload(payload)
     written_ref = record.ref()
     if written_ref.event_id != runtime_event_ref.event_id:
         raise ValueError("study_outer_loop_tick runtime event event_id mismatch against status ref")
@@ -163,7 +189,7 @@ def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
 def _resolve_managed_runtime_event_contract(
     *,
     status: dict[str, Any],
-) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None]:
+) -> tuple[RuntimeEventRecordRef, RuntimeEventRecord | NativeRuntimeEventRecord, dict[str, Any] | None]:
     runtime_event_payload = status.get("runtime_event_ref")
     if not isinstance(runtime_event_payload, dict):
         raise ValueError("study_outer_loop_tick requires runtime_event_ref from managed runtime status")
@@ -172,18 +198,27 @@ def _resolve_managed_runtime_event_contract(
     )
     status_study_id = str(status.get("study_id") or "").strip()
     status_quest_id = str(status.get("quest_id") or "").strip()
-    if status_study_id and runtime_event_record.study_id != status_study_id:
+    if isinstance(runtime_event_record, RuntimeEventRecord) and status_study_id and runtime_event_record.study_id != status_study_id:
         raise ValueError("study_outer_loop_tick runtime event study_id mismatch against status")
     if status_quest_id and runtime_event_record.quest_id != status_quest_id:
         raise ValueError("study_outer_loop_tick runtime event quest_id mismatch against status")
-    supervisor_tick_status = str(runtime_event_record.outer_loop_input.get("supervisor_tick_status") or "").strip()
+    if isinstance(runtime_event_record, RuntimeEventRecord):
+        supervisor_tick_status = str(runtime_event_record.outer_loop_input.get("supervisor_tick_status") or "").strip()
+        runtime_escalation_payload = runtime_event_record.outer_loop_input.get("runtime_escalation_ref")
+        if runtime_escalation_payload is not None and not isinstance(runtime_escalation_payload, dict):
+            raise ValueError("study_outer_loop_tick runtime_event runtime_escalation_ref must be a mapping")
+    else:
+        supervisor_tick_payload = status.get("supervisor_tick_audit")
+        supervisor_tick_status = (
+            str(supervisor_tick_payload.get("status") or "").strip()
+            if isinstance(supervisor_tick_payload, dict)
+            else ""
+        )
+        runtime_escalation_payload = status.get("runtime_escalation_ref")
     if supervisor_tick_status != "fresh":
         raise ValueError("study_outer_loop_tick requires supervisor_tick_status=fresh in managed runtime event input")
-    runtime_escalation_payload = runtime_event_record.outer_loop_input.get("runtime_escalation_ref")
-    if runtime_escalation_payload is not None and not isinstance(runtime_escalation_payload, dict):
-        raise ValueError("study_outer_loop_tick runtime_event runtime_escalation_ref must be a mapping")
     status_runtime_escalation_payload = status.get("runtime_escalation_ref")
-    if isinstance(status_runtime_escalation_payload, dict):
+    if isinstance(runtime_event_record, RuntimeEventRecord) and isinstance(status_runtime_escalation_payload, dict):
         if runtime_escalation_payload is None:
             raise ValueError("study_outer_loop_tick requires runtime_escalation_ref in managed runtime event input")
         if status_runtime_escalation_payload != runtime_escalation_payload:
@@ -324,7 +359,7 @@ def study_outer_loop_tick(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
     )
-    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord, dict[str, Any] | None] | None = None
+    managed_runtime_event: tuple[RuntimeEventRecordRef, RuntimeEventRecord | NativeRuntimeEventRecord, dict[str, Any] | None] | None = None
     if _managed_runtime_requires_event_ref(status):
         managed_runtime_event = _resolve_managed_runtime_event_contract(status=status)
     runtime_status = _runtime_status_summary(status, managed_runtime_event=managed_runtime_event)

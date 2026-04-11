@@ -11,6 +11,8 @@ from urllib.parse import quote
 
 import yaml
 
+from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
+from med_autoscience.runtime_event_record import RuntimeEventRecordRef
 from med_autoscience.startup_contract import stable_startup_contract
 
 
@@ -390,7 +392,31 @@ def _normalize_stable_quest_session(
     }
     if not required_runtime_audit_keys.issubset(runtime_audit):
         raise RuntimeError("missing stable quest session contract")
-    return dict(payload)
+    normalized_payload = dict(payload)
+    runtime_event_ref_payload = payload.get("runtime_event_ref")
+    runtime_event_payload = payload.get("runtime_event")
+    normalized_runtime_event_ref: dict[str, str] | None = None
+    normalized_runtime_event: dict[str, Any] | None = None
+    if runtime_event_ref_payload is not None:
+        try:
+            normalized_runtime_event_ref = RuntimeEventRecordRef.from_payload(runtime_event_ref_payload).to_dict()
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("invalid stable quest session runtime_event_ref contract") from exc
+    if runtime_event_payload is not None:
+        try:
+            native_runtime_event = NativeRuntimeEventRecord.from_payload(runtime_event_payload)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("invalid stable quest session runtime_event contract") from exc
+        if native_runtime_event.quest_id != quest_id:
+            raise RuntimeError("stable quest session runtime_event quest_id mismatch")
+        normalized_runtime_event = native_runtime_event.to_dict()
+        if normalized_runtime_event_ref is not None and native_runtime_event.ref().to_dict() != normalized_runtime_event_ref:
+            raise RuntimeError("stable quest session runtime_event_ref mismatch against runtime_event")
+    if normalized_runtime_event_ref is not None:
+        normalized_payload["runtime_event_ref"] = normalized_runtime_event_ref
+    if normalized_runtime_event is not None:
+        normalized_payload["runtime_event"] = normalized_runtime_event
+    return normalized_payload
 
 
 def _normalize_stable_quest_create_result(
@@ -641,6 +667,12 @@ def inspect_quest_live_runtime(
         "worker_pending": bool(runtime_audit.get("worker_pending")) if "worker_pending" in runtime_audit else None,
         "stop_requested": bool(runtime_audit.get("stop_requested")) if "stop_requested" in runtime_audit else None,
     }
+    runtime_event_ref_payload = payload.get("runtime_event_ref")
+    if isinstance(runtime_event_ref_payload, dict):
+        result["runtime_event_ref"] = dict(runtime_event_ref_payload)
+    runtime_event_payload = payload.get("runtime_event")
+    if isinstance(runtime_event_payload, dict):
+        result["runtime_event"] = dict(runtime_event_payload)
     if interaction_watchdog is not None:
         result["interaction_watchdog"] = interaction_watchdog
     if stale_progress:
@@ -717,6 +749,10 @@ def inspect_quest_live_execution(
         "runtime_audit": runtime_audit,
         "bash_session_audit": bash_session_audit,
     }
+    if isinstance(runtime_audit.get("runtime_event_ref"), dict):
+        payload["runtime_event_ref"] = dict(runtime_audit.get("runtime_event_ref") or {})
+    if isinstance(runtime_audit.get("runtime_event"), dict):
+        payload["runtime_event"] = dict(runtime_audit.get("runtime_event") or {})
     if stale_progress:
         payload["stale_progress"] = True
     if liveness_guard_reason is not None:

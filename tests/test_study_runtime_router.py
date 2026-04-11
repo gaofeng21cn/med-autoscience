@@ -2585,11 +2585,11 @@ def test_study_runtime_status_records_supervisor_tick_transition_from_fresh_to_s
     fresh_result = module.study_runtime_status(profile=profile, study_id="001-risk")
     now_state["value"] = "2026-04-10T09:50:00+00:00"
     stale_result = module.study_runtime_status(profile=profile, study_id="001-risk")
-    stale_runtime_event = json.loads(Path(stale_result["runtime_event_ref"]["artifact_path"]).read_text(encoding="utf-8"))
 
     assert fresh_result["supervisor_tick_audit"]["status"] == "fresh"
     assert stale_result["supervisor_tick_audit"]["status"] == "stale"
-    assert stale_runtime_event["outer_loop_input"]["supervisor_tick_status"] == "stale"
+    assert "runtime_event_ref" not in fresh_result
+    assert "runtime_event_ref" not in stale_result
 
 
 def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_validation_fails(
@@ -4418,6 +4418,56 @@ def _write_runtime_escalation_record_for_status_test(
     )
 
 
+def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: str, quest_status: str) -> dict[str, object]:
+    artifact_path = quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json"
+    payload = {
+        "schema_version": 1,
+        "event_id": f"runtime-event::{quest_id}::{quest_status}::2026-04-11T00:00:00+00:00",
+        "quest_id": quest_id,
+        "emitted_at": "2026-04-11T00:00:00+00:00",
+        "event_source": "daemon_app",
+        "event_kind": "runtime_control_applied",
+        "summary_ref": f"quest:{quest_id}:{quest_status}",
+        "status_snapshot": {
+            "quest_status": quest_status,
+            "display_status": quest_status,
+            "active_run_id": "run-native",
+            "runtime_liveness_status": "live" if quest_status == "running" else "none",
+            "worker_running": quest_status == "running",
+            "stop_reason": None,
+            "continuation_policy": "resume_allowed",
+            "continuation_reason": "native_runtime_truth",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+        "outer_loop_input": {
+            "quest_status": quest_status,
+            "display_status": quest_status,
+            "active_run_id": "run-native",
+            "runtime_liveness_status": "live" if quest_status == "running" else "none",
+            "worker_running": quest_status == "running",
+            "stop_reason": None,
+            "continuation_policy": "resume_allowed",
+            "continuation_reason": "native_runtime_truth",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+        "artifact_path": str(artifact_path),
+        "summary": f"native runtime event for {quest_status}",
+    }
+    write_text(
+        artifact_path,
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+    )
+    return payload
+
+
 def test_study_runtime_status_reads_only_runtime_escalation_ref_from_quest_artifact_when_blocked_refresh_is_active(
     monkeypatch,
     tmp_path: Path,
@@ -4590,7 +4640,7 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
     assert "runtime_escalation_ref" not in result
 
 
-def test_study_runtime_status_materializes_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
+def test_study_runtime_status_uses_native_runtime_event_ref_for_managed_runtime(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -4607,6 +4657,11 @@ def test_study_runtime_status_materializes_runtime_event_ref_for_managed_runtime
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"stopped"}\n')
+    native_event = _write_native_runtime_event_for_status_test(
+        quest_root=quest_root,
+        quest_id="001-risk",
+        quest_status="stopped",
+    )
 
     monkeypatch.setattr(
         module,
@@ -4623,19 +4678,44 @@ def test_study_runtime_status_materializes_runtime_event_ref_for_managed_runtime
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {"quest_id": quest_id, "active_run_id": "run-native"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-native",
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_ref": {
+                "event_id": str(native_event["event_id"]),
+                "artifact_path": str(native_event["artifact_path"]),
+                "summary_ref": str(native_event["summary_ref"]),
+            },
+            "runtime_event": native_event,
+        },
+    )
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_stopped_requires_explicit_rerun"
-    runtime_event_ref = result["runtime_event_ref"]
-    payload = json.loads(Path(runtime_event_ref["artifact_path"]).read_text(encoding="utf-8"))
-    assert payload["event_kind"] == "status_observed"
-    assert payload["outer_loop_input"]["quest_status"] == "stopped"
-    assert payload["outer_loop_input"]["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert result["runtime_event_ref"] == {
+        "event_id": str(native_event["event_id"]),
+        "artifact_path": str(native_event["artifact_path"]),
+        "summary_ref": str(native_event["summary_ref"]),
+    }
+    assert result["runtime_event"] == native_event
 
 
-def test_ensure_study_runtime_materializes_transition_applied_runtime_event_for_managed_runtime(
+def test_ensure_study_runtime_uses_native_runtime_event_ref_after_managed_transition(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -4657,6 +4737,11 @@ def test_ensure_study_runtime_materializes_transition_applied_runtime_event_for_
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
     write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    native_event = _write_native_runtime_event_for_status_test(
+        quest_root=quest_root,
+        quest_id="001-risk",
+        quest_status="running",
+    )
 
     monkeypatch.setattr(
         module,
@@ -4686,16 +4771,39 @@ def test_ensure_study_runtime_materializes_transition_applied_runtime_event_for_
             },
         },
     )
+    monkeypatch.setattr(
+        module.med_deepscientist_transport,
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {"quest_id": quest_id, "active_run_id": "run-native"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-native",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_ref": {
+                "event_id": str(native_event["event_id"]),
+                "artifact_path": str(native_event["artifact_path"]),
+                "summary_ref": str(native_event["summary_ref"]),
+            },
+            "runtime_event": native_event,
+        },
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
-    runtime_event_ref = result["runtime_event_ref"]
-    payload = json.loads(Path(runtime_event_ref["artifact_path"]).read_text(encoding="utf-8"))
-    assert payload["event_kind"] == "transition_applied"
-    assert payload["event_source"] == "study_runtime_execution"
-    assert payload["status_snapshot"]["quest_status"] == "running"
-    assert payload["outer_loop_input"]["decision"] == "resume"
-    assert payload["outer_loop_input"]["reason"] == "quest_paused"
+    assert result["runtime_event_ref"] == {
+        "event_id": str(native_event["event_id"]),
+        "artifact_path": str(native_event["artifact_path"]),
+        "summary_ref": str(native_event["summary_ref"]),
+    }
+    assert result["runtime_event"] == native_event
 
 
 @pytest.mark.parametrize(

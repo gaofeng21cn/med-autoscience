@@ -1,64 +1,49 @@
 # Runtime Core Convergence And Controlled Cutover Implementation Plan
 
-**Goal:** 把当前 repo-side `runtime_event` 合同推进到 runtime-native truth，并为 future monorepo 吸收准备可验证的 cutover gate。
+**Goal:** 在 `P0` 与 `P1` 已完成的前提下，完成 `P2 controlled cutover -> physical monorepo migration` 的剩余 gate 与实施计划。
 
-**Architecture:** 保持现有 MAS-facing `runtime_event_ref + outer_loop_input` contract 不变，优先迁移 event owner，而不是同时重写 consumer surface。先完成 contract parity 与 transition matrix，再做 runtime repo 吸收与 physical monorepo cutover。
+**Architecture:** 保持 quest-owned native runtime truth、study-owned supervision truth、workspace canonical knowledge truth 三层 owner 不变。`P2` 只处理 parity gate、模块边界、删除条件与 physical migration，不重新打开 `P0` / `P1`。
 
 ---
 
-## Task 1: 冻结 runtime-native owner contract
+## 已完成前置项
+
+- [x] runtime core 原生写出 quest-owned `runtime_events/*`
+- [x] `GET /api/quests/{quest_id}/session` 暴露 `runtime_event_ref` / `runtime_event`
+- [x] MAS transport/status/outer-loop 已消费 native runtime truth
+- [x] MAS 已停止覆盖 quest-owned `runtime_events/latest.json`
+- [x] workspace canonical literature / study reference context / quest materialization-only 已落地
+
+## 当前 P2 任务
+
+### Task 1: 写清 cutover gate
 
 **Files:**
-- Create: `./runtime_core_convergence_and_controlled_cutover.md`
+- Modify: `./runtime_core_convergence_and_controlled_cutover.md`
 - Modify: `../program/project_repair_priority_map.md`
 - Test: `tests/test_runtime_contract_docs.py`
 
-- [ ] 明确写下 `runtime_event` 的 end-state owner 是 runtime core，而不是 repo-side controller。
-- [ ] 明确写下 MAS cutover 后只做 consumer，不再承担 managed runtime event 的主要 writer 职责。
-- [ ] 在文档测试中冻结这些结论，避免未来又把 projection 当 authority。
+- [ ] 把 `P2` 明确写成当前唯一 active tranche
+- [ ] 明确 cross-repo parity suite 的放行标准
+- [ ] 明确 physical migration 的阻断条件与退出条件
 
-## Task 2: 补 runtime parity gate
-
-**Files:**
-- Modify: `./runtime_event_and_outer_loop_input_contract.md`
-- Modify: `./runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
-- Test: `tests/test_runtime_contract_docs.py`
-
-- [ ] 把 transition matrix 与 parity gate 文档化，覆盖 `paused / stopped / idle / created / waiting_for_user / parking / stale / degraded / live`。
-- [ ] 明确 cutover 之前必须验证 runtime-native event 与当前 MAS-facing schema 完全对齐。
-- [ ] 冻结“先校验 parity，再迁 owner，再做 cutover”的顺序。
-
-## Task 3: 在 runtime repo 实现 native event writer
+### Task 2: 锁定 absorb 边界
 
 **Files:**
-- Modify: `med-deepscientist` runtime core 对应 quest state / transition writer 模块
-- Modify: `med-deepscientist` runtime tests
-- Test: runtime repo transition matrix tests
+- Modify: monorepo 拓扑说明
+- Modify: cutover runbook
+- Test: repo-level integration checks
 
-- [ ] 让 runtime core 在 quest state 迁移时原生写 `runtime_events/*` durable surface。
-- [ ] 保持 `status_snapshot / outer_loop_input / summary_ref` 与 MAS 现有 consumer schema 对齐。
-- [ ] 为每类 transition 写显式失败测试，再补实现。
+- [ ] 明确哪些模块被吸收
+- [ ] 明确哪些过渡期 glue 必须删除
+- [ ] 明确 absorb 后 authority surface 不得发生混叠
 
-## Task 4: 让 MAS 改为 consumer-only
-
-**Files:**
-- Modify: `src/med_autoscience/controllers/study_runtime_decision.py`
-- Modify: `src/med_autoscience/controllers/study_runtime_execution.py`
-- Modify: `src/med_autoscience/controllers/runtime_supervision.py`
-- Modify: `tests/test_study_runtime_router.py`
-- Modify: `tests/test_runtime_watch.py`
-
-- [ ] 去掉 MAS 作为 managed runtime event 主 writer 的职责。
-- [ ] 保留对 native event 的严格校验与 fail-closed 行为。
-- [ ] 确认 `study_outer_loop_tick(...)`、`runtime_watch`、`study_progress` 仍只消费 event plane，不退回 summary 推断。
-
-## Task 5: 做 controlled monorepo cutover
+### Task 3: 做 final cutover verification
 
 **Files:**
-- Modify: monorepo 拓扑文档与模块边界说明
-- Modify: cutover runbook / absorb 文档
-- Test: cross-repo contract regression suite
+- Modify: cross-repo regression suite
+- Test: runtime native truth + workspace canonical truth + outer-loop contract
 
-- [ ] 仅在 native event owner 与 consumer-only gate 全部通过后，才进入 physical cutover。
-- [ ] 吸收 `controller_charter / runtime / eval_hygiene` 模块边界，不吸收过渡期 glue。
-- [ ] 完成 absorb 后重新跑 cross-surface regression，确认 authority 没有混叠。
+- [ ] 覆盖 runtime truth / knowledge truth / cutover gate 三条主线
+- [ ] 保证 physical migration 前 contract 与测试都是 green
+- [ ] 仅在验证通过后进入 physical monorepo migration
