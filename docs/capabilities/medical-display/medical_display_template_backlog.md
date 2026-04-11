@@ -19,11 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `36`
-- Evidence figure templates: `37`
+- Evidence figure templates: `38`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total audited templates: `44`
+- Total audited templates: `45`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -45,7 +44,6 @@
 
 当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
 
-- `F / force-like summary`
 - `F / PDP`
 - `F / ICE`
 - `H / workflow_fact_sheet_panel`

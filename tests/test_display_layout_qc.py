@@ -3352,6 +3352,181 @@ def test_run_display_layout_qc_fails_when_shap_waterfall_contribution_bar_leaves
     assert any(issue["rule_id"] == "contribution_bar_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_force_like_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_force_like_summary_panel",
+        layout_sidecar={
+            "template_id": "shap_force_like_summary_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.87, x1=0.31, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.48, y0=0.87, x1=0.70, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.14, y0=0.80, x1=0.16, y1=0.823),
+                make_box("panel_label_B", "panel_label", x0=0.48, y0=0.80, x1=0.50, y1=0.823),
+                make_box("case_label_A", "case_label", x0=0.17, y0=0.80, x1=0.30, y1=0.823),
+                make_box("case_label_B", "case_label", x0=0.52, y0=0.80, x1=0.68, y1=0.823),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.31, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.53, y0=0.10, x1=0.69, y1=0.13),
+                make_box("baseline_label_A", "baseline_label", x0=0.18, y0=0.75, x1=0.24, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.28, y0=0.75, x1=0.34, y1=0.78),
+                make_box("baseline_label_B", "baseline_label", x0=0.56, y0=0.75, x1=0.62, y1=0.78),
+                make_box("prediction_label_B", "prediction_label", x0=0.47, y0=0.75, x1=0.53, y1=0.78),
+                make_box("force_label_A_1", "force_feature_label", x0=0.23, y0=0.51, x1=0.29, y1=0.55),
+                make_box("force_label_A_2", "force_feature_label", x0=0.15, y0=0.32, x1=0.20, y1=0.36),
+                make_box("force_label_B_1", "force_feature_label", x0=0.59, y0=0.51, x1=0.65, y1=0.55),
+                make_box("force_label_B_2", "force_feature_label", x0=0.50, y0=0.32, x1=0.55, y1=0.36),
+                make_box("positive_force_segment_A_1", "positive_force_segment", x0=0.21, y0=0.50, x1=0.31, y1=0.56),
+                make_box("negative_force_segment_A_2", "negative_force_segment", x0=0.14, y0=0.31, x1=0.21, y1=0.37),
+                make_box("positive_force_segment_B_1", "positive_force_segment", x0=0.57, y0=0.50, x1=0.66, y1=0.56),
+                make_box("negative_force_segment_B_2", "negative_force_segment", x0=0.48, y0=0.31, x1=0.57, y1=0.37),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.13, y0=0.18, x1=0.35, y1=0.80),
+                make_box("panel_B", "panel", x0=0.47, y0=0.18, x1=0.70, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("baseline_marker_A", "baseline_marker", x0=0.21, y0=0.22, x1=0.212, y1=0.74),
+                make_box("prediction_marker_A", "prediction_marker", x0=0.31, y0=0.22, x1=0.312, y1=0.74),
+                make_box("baseline_marker_B", "baseline_marker", x0=0.57, y0=0.22, x1=0.572, y1=0.74),
+                make_box("prediction_marker_B", "prediction_marker", x0=0.48, y0=0.22, x1=0.482, y1=0.74),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "case_a",
+                        "panel_label": "A",
+                        "title": "Representative responder",
+                        "case_label": "Case 1",
+                        "baseline_value": 0.22,
+                        "predicted_value": 0.31,
+                        "panel_box_id": "panel_A",
+                        "baseline_marker_box_id": "baseline_marker_A",
+                        "prediction_marker_box_id": "prediction_marker_A",
+                        "contributions": [
+                            {
+                                "feature": "Age",
+                                "feature_value_text": "74 years",
+                                "shap_value": 0.13,
+                                "direction": "positive",
+                                "start_value": 0.22,
+                                "end_value": 0.35,
+                                "segment_box_id": "positive_force_segment_A_1",
+                                "label_box_id": "force_label_A_1",
+                            },
+                            {
+                                "feature": "Albumin",
+                                "feature_value_text": "3.1 g/dL",
+                                "shap_value": -0.04,
+                                "direction": "negative",
+                                "start_value": 0.22,
+                                "end_value": 0.18,
+                                "segment_box_id": "negative_force_segment_A_2",
+                                "label_box_id": "force_label_A_2",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "case_b",
+                        "panel_label": "B",
+                        "title": "Representative non-responder",
+                        "case_label": "Case 2",
+                        "baseline_value": 0.57,
+                        "predicted_value": 0.48,
+                        "panel_box_id": "panel_B",
+                        "baseline_marker_box_id": "baseline_marker_B",
+                        "prediction_marker_box_id": "prediction_marker_B",
+                        "contributions": [
+                            {
+                                "feature": "Tumor stage",
+                                "feature_value_text": "Stage III",
+                                "shap_value": 0.09,
+                                "direction": "positive",
+                                "start_value": 0.57,
+                                "end_value": 0.66,
+                                "segment_box_id": "positive_force_segment_B_1",
+                                "label_box_id": "force_label_B_1",
+                            },
+                            {
+                                "feature": "Albumin",
+                                "feature_value_text": "4.6 g/dL",
+                                "shap_value": -0.18,
+                                "direction": "negative",
+                                "start_value": 0.57,
+                                "end_value": 0.39,
+                                "segment_box_id": "negative_force_segment_B_2",
+                                "label_box_id": "force_label_B_2",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_force_like_positive_segment_crosses_baseline() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_force_like_summary_panel",
+        layout_sidecar={
+            "template_id": "shap_force_like_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.87, x1=0.31, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.14, y0=0.82, x1=0.16, y1=0.85),
+                make_box("case_label_A", "case_label", x0=0.14, y0=0.82, x1=0.30, y1=0.85),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.31, y1=0.13),
+                make_box("baseline_label_A", "baseline_label", x0=0.18, y0=0.75, x1=0.24, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.28, y0=0.75, x1=0.34, y1=0.78),
+                make_box("force_label_A_1", "force_feature_label", x0=0.23, y0=0.51, x1=0.29, y1=0.55),
+                make_box("positive_force_segment_A_1", "positive_force_segment", x0=0.16, y0=0.50, x1=0.31, y1=0.56),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.13, y0=0.18, x1=0.35, y1=0.80)],
+            "guide_boxes": [
+                make_box("baseline_marker_A", "baseline_marker", x0=0.21, y0=0.22, x1=0.212, y1=0.74),
+                make_box("prediction_marker_A", "prediction_marker", x0=0.31, y0=0.22, x1=0.312, y1=0.74),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "case_a",
+                        "panel_label": "A",
+                        "title": "Representative responder",
+                        "case_label": "Case 1",
+                        "baseline_value": 0.22,
+                        "predicted_value": 0.31,
+                        "panel_box_id": "panel_A",
+                        "baseline_marker_box_id": "baseline_marker_A",
+                        "prediction_marker_box_id": "prediction_marker_A",
+                        "contributions": [
+                            {
+                                "feature": "Age",
+                                "feature_value_text": "74 years",
+                                "shap_value": 0.13,
+                                "direction": "positive",
+                                "start_value": 0.22,
+                                "end_value": 0.35,
+                                "segment_box_id": "positive_force_segment_A_1",
+                                "label_box_id": "force_label_A_1",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "positive_segment_crosses_baseline" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

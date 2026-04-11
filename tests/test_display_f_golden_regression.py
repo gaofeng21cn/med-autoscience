@@ -244,3 +244,117 @@ def test_shap_waterfall_local_explanation_panel_preserves_f_patient_level_contra
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_shap_force_like_summary_panel_preserves_f_force_like_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_force_like_summary_panel",
+                    "catalog_id": "F35",
+                    "shell_path": "paper/figures/Figure35.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "template_id": "shap_force_like_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_force_like_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_force_like_summary_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_force_like_summary_panel",
+                    "title": "SHAP force-like summary panel for representative response phenotypes",
+                    "caption": "Regression lock for manuscript-facing force-like local explanation lanes.",
+                    "x_label": "Predicted response probability",
+                    "panels": [
+                        {
+                            "panel_id": "case_a",
+                            "panel_label": "A",
+                            "title": "Representative responder",
+                            "case_label": "Case 1 · durable response",
+                            "baseline_value": 0.22,
+                            "predicted_value": 0.31,
+                            "contributions": [
+                                {"feature": "Age", "feature_value_text": "74 years", "shap_value": 0.13},
+                                {"feature": "Albumin", "feature_value_text": "3.1 g/dL", "shap_value": -0.04},
+                            ],
+                        },
+                        {
+                            "panel_id": "case_b",
+                            "panel_label": "B",
+                            "title": "Representative non-responder",
+                            "case_label": "Case 2 · early progression",
+                            "baseline_value": 0.57,
+                            "predicted_value": 0.48,
+                            "contributions": [
+                                {"feature": "Tumor stage", "feature_value_text": "Stage III", "shap_value": -0.18},
+                                {"feature": "Albumin", "feature_value_text": "4.6 g/dL", "shap_value": 0.09},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F35_shap_force_like_summary_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert not any(box["box_type"] == "title" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "baseline_marker"]) == 2
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "prediction_marker"]) == 2
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][0]["direction"] == "positive"
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][1]["direction"] == "negative"
+    assert layout_sidecar["metrics"]["panels"][1]["contributions"][0]["direction"] == "negative"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

@@ -7108,6 +7108,45 @@ def _make_shap_waterfall_local_explanation_panel_display(display_id: str = "Figu
     }
 
 
+def _make_shap_force_like_summary_panel_display(display_id: str = "Figure35") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_force_like_summary_panel",
+        "title": "SHAP force-like summary panel for representative response phenotypes",
+        "caption": (
+            "Force-like local explanation lanes summarize which features push each representative case toward "
+            "higher or lower predicted response probability."
+        ),
+        "x_label": "Predicted response probability",
+        "panels": [
+            {
+                "panel_id": "case_a",
+                "panel_label": "A",
+                "title": "Representative responder",
+                "case_label": "Case 1 · durable response",
+                "baseline_value": 0.22,
+                "predicted_value": 0.31,
+                "contributions": [
+                    {"feature": "Age", "feature_value_text": "74 years", "shap_value": 0.13},
+                    {"feature": "Albumin", "feature_value_text": "3.1 g/dL", "shap_value": -0.04},
+                ],
+            },
+            {
+                "panel_id": "case_b",
+                "panel_label": "B",
+                "title": "Representative non-responder",
+                "case_label": "Case 2 · early progression",
+                "baseline_value": 0.57,
+                "predicted_value": 0.48,
+                "contributions": [
+                    {"feature": "Tumor stage", "feature_value_text": "Stage III", "shap_value": -0.18},
+                    {"feature": "Albumin", "feature_value_text": "4.6 g/dL", "shap_value": 0.09},
+                ],
+            },
+        ],
+    }
+
+
 def _make_generalizability_subgroup_composite_panel_display(display_id: str = "Figure34") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7232,6 +7271,38 @@ def test_load_evidence_display_payload_rejects_zero_contribution_for_shap_waterf
         )
 
 
+def test_load_evidence_display_payload_rejects_unsorted_force_like_contributions(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_force_like_summary_panel_display()
+    display_payload["panels"][0]["contributions"] = [
+        {"feature": "Albumin", "feature_value_text": "3.1 g/dL", "shap_value": -0.04},
+        {"feature": "Age", "feature_value_text": "74 years", "shap_value": 0.13},
+    ]
+    dump_json(
+        paper_root / "shap_force_like_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_force_like_summary_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_force_like_summary_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="contributions must be sorted by descending absolute shap_value within each panel",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure35",
+        )
+
+
 def test_load_evidence_display_payload_rejects_partial_comparator_metrics_for_generalizability_subgroup_composite_panel(
     tmp_path: Path,
 ) -> None:
@@ -7335,6 +7406,80 @@ def test_materialize_display_surface_generates_shap_waterfall_local_explanation_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_waterfall_local_explanation_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_waterfall_local_explanation_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_shap_force_like_summary_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_force_like_summary_panel",
+                    "catalog_id": "F35",
+                    "shell_path": "paper/figures/Figure35.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "template_id": "shap_force_like_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_force_like_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_force_like_summary_panel_inputs_v1",
+            "displays": [_make_shap_force_like_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F35"]
+    assert (paper_root / "figures" / "generated" / "F35_shap_force_like_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F35_shap_force_like_summary_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F35_shap_force_like_summary_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "baseline_marker"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "prediction_marker"]) == 2
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][0]["direction"] == "positive"
+    assert layout_sidecar["metrics"]["panels"][0]["contributions"][1]["direction"] == "negative"
+    assert layout_sidecar["metrics"]["panels"][1]["contributions"][0]["feature"] == "Tumor stage"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F35"
+    assert figure_entry["template_id"] == full_id("shap_force_like_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_force_like_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_force_like_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
