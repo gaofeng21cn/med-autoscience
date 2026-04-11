@@ -15,6 +15,21 @@
 - 通过 `policy -> controller -> overlay -> adapter` 主链路表达能力，减少旁路。
 - 把 controller / outer-loop / transport / durable surface 全链收紧到 backend-generic contract，避免继续把 `MedDeepScientist` 视作默认不可替代 runtime truth。
 - 维护稳定的 runtime contract 与 delivery surface，确保可验证、可迭代。
+- 把研究推进收口成一串通往 SCI-ready 投稿态的 fail-closed gate，而不是依赖一次长对话或单个 backend 自行兜底。
+
+## Hermes 整合后的项目理解
+
+当前 `Hermes` 整合后的 `MedAutoScience`，不应被理解为“把旧 `MedDeepScientist` 换个名字套起来”，而应理解为：
+
+- `MedAutoScience` 负责研究入口、study/workspace authority、研究治理与 publication judgment。
+- `Hermes` 负责 outer runtime substrate、managed runtime handle 与 backend-generic execution contract。
+- `MedDeepScientist` 负责当前仍需保留的 inner research execution。
+
+因此系统追求的不是“保证必然发表”，而是把研究推进变成可审计的阶段性收敛过程：
+
+- 先明确问题、边界、journal 和 evidence package
+- 再进入 managed runtime
+- 再通过 publication gate、completion sync 和 delivery plane 持续逼近 SCI-ready 投稿态
 
 ## 非目标
 

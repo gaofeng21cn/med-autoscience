@@ -163,6 +163,22 @@
 - Agent 负责调用 CLI 和稳定接口，组织数据资产、推进研究阶段、收敛论文交付
 - 技术同事负责接入 workspace、核对 profile、维护实现层与 controller 行为
 
+当前整合 `Hermes` 之后，runtime 的概念主链应按下面这条来读：
+
+- `study charter / startup boundary / publication gate / completion sync`
+
+它的含义不是把判断继续藏在 inner runtime 里，而是：
+
+- `MedAutoScience` outer-loop 负责研究治理、journal / reporting / publication judgment
+- `Hermes` 负责 outer runtime substrate、managed runtime handle、control semantics 和 durable runtime contract
+- `MedDeepScientist` 负责当前仍保留在 backend 内的 inner research execution
+
+因此当前更好的地方，不是“多了一个名字”，而是 outer-loop / inner-loop coordination 被显式拆开：
+
+- 是否继续进入 managed runtime，不由 inner runtime 自己偷做决定
+- 是否 pause / stop / relaunch / complete，不再只是 backend 内部状态转换
+- 是否已经够资格朝论文交付继续推进，要经过 publication gate 与 completion sync，而不是只看 quest 是否还活着
+
 因此，README 首页不再承担“教人逐条执行命令”的职责；命令、payload 和运行约束统一收在这份文档里，供 Agent 调用和人类审计。
 
 ## 接口使用原则
