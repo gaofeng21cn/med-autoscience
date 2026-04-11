@@ -7,7 +7,7 @@ Use this file when the question is:
 - what the display mainline is ultimately trying to accomplish;
 - how long-horizon display work should advance without losing context;
 - how current paper work, platform hardening, and future family expansion should relate;
-- when the active Codex lane should continue, hand off, or stop.
+- when the active display round should continue, hand off, or stop.
 
 For the current baseline-completion provenance across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
 
@@ -20,6 +20,10 @@ For the generated template inventory, see [medical_display_template_catalog.md](
 For the paper-facing visual review discipline above deterministic contracts, see [medical_display_visual_audit_protocol.md](./medical_display_visual_audit_protocol.md).
 
 For the package architecture that separates template-library evolution from host-platform development, see [medical_display_template_pack_architecture.md](./medical_display_template_pack_architecture.md).
+
+For the tracked active execution surface that replaces retired project-local runtime state, see [medical_display_active_board.md](./medical_display_active_board.md).
+
+Historical OMX / Codex materials under [`docs/history/omx/`](../../history/omx/README.md) remain audit provenance only. They must not be treated as the current execution surface.
 
 ## North Star
 
@@ -138,7 +142,7 @@ The platform must not rely on:
 
 ### 6. Continuous autonomous continuation is the default
 
-Within the display-only scope, the active Codex lane should continue automatically across phases.
+Within the display-only scope, the active display round should continue automatically across phases.
 
 It should not stop just because:
 
@@ -158,15 +162,17 @@ The display mainline uses four lane types.
 
 Responsibilities:
 
-- maintain the long-horizon prompt/report/control surface;
-- route the active Codex lane to the correct current phase;
+- maintain the tracked long-horizon charter and active-board surface;
+- route the active display round to the correct current phase;
 - keep the taxonomy and baton logic coherent;
-- prevent old prompts or stale statuses from reviving closed lines.
+- prevent retired project-local runtime state or stale historical docs from reviving closed lines.
 
 Write scope:
 
-- `.codex/context/*`
-- `.codex/reports/medical-display-mainline/*`
+- `docs/capabilities/medical-display/medical_display_platform_mainline.md`
+- `docs/capabilities/medical-display/medical_display_active_board.md`
+- `docs/capabilities/medical-display/medical_display_template_backlog.md`
+- other tracked display docs only when the audited truth changes
 
 ### 2. Owner implementation lane
 
@@ -332,7 +338,7 @@ The display mainline should eventually look like this:
 4. each real paper either:
    - uses an existing family cleanly; or
    - leaves behind a stronger audited family after closure;
-5. the active Codex lane can continue across phases without repeatedly losing the plot.
+5. the active display round can continue across phases without repeatedly losing the plot.
 
 In short:
 
@@ -376,8 +382,9 @@ Stopping because "one round of figures passed" is not enough.
 When display work advances, the following should be kept coherent:
 
 - this mainline charter;
+- [medical_display_active_board.md](./medical_display_active_board.md);
 - [medical_display_family_roadmap.md](./medical_display_family_roadmap.md);
 - [medical_display_audit_guide.md](./medical_display_audit_guide.md);
 - [medical_display_template_catalog.md](./medical_display_template_catalog.md);
-- the active `.codex` mainline control surface;
-- the active owner worktree reports.
+- the tracked current-round execution notes;
+- the active owner worktree itself.
