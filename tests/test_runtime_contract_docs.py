@@ -54,6 +54,16 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
     assert "runtime_event_and_outer_loop_input_contract.md" in docs_index_zh
     assert "runtime_event_and_outer_loop_input_implementation_plan.md" in docs_index
     assert "runtime_event_and_outer_loop_input_implementation_plan.md" in docs_index_zh
+    assert "project_repair_priority_map.md" in docs_index
+    assert "project_repair_priority_map.md" in docs_index_zh
+    assert "runtime_core_convergence_and_controlled_cutover.md" in docs_index
+    assert "runtime_core_convergence_and_controlled_cutover.md" in docs_index_zh
+    assert "runtime_core_convergence_and_controlled_cutover_implementation_plan.md" in docs_index
+    assert "runtime_core_convergence_and_controlled_cutover_implementation_plan.md" in docs_index_zh
+    assert "workspace_knowledge_and_literature_contract.md" in docs_index
+    assert "workspace_knowledge_and_literature_contract.md" in docs_index_zh
+    assert "workspace_knowledge_and_literature_implementation_plan.md" in docs_index
+    assert "workspace_knowledge_and_literature_implementation_plan.md" in docs_index_zh
 
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
@@ -75,6 +85,35 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
     assert "behavior convergence" in positioning
     assert "domain-internal 长线" in positioning
     assert "不是放弃 monorepo" in positioning
+
+
+def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boundary() -> None:
+    priority_map = _read("docs/project_repair_priority_map.md")
+    runtime_cutover = _read("docs/runtime_core_convergence_and_controlled_cutover.md")
+    workspace_knowledge = _read("docs/workspace_knowledge_and_literature_contract.md")
+
+    assert "runtime native truth convergence" in priority_map
+    assert "workspace knowledge and literature convergence" in priority_map
+    assert "controlled monorepo cutover" in priority_map
+    assert "先完成 `runtime native truth convergence`" in priority_map
+    assert "再完成 `workspace knowledge and literature convergence`" in priority_map
+    assert "最后进入 `controlled monorepo cutover`" in priority_map
+
+    assert "runtime_event" in runtime_cutover
+    assert "runtime core 原生输出" in runtime_cutover
+    assert "MAS 改为纯消费者" in runtime_cutover
+    assert "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB" in runtime_cutover
+    assert "scaffold boundary" in runtime_cutover
+    assert "launch_report" in runtime_cutover
+    assert "runtime_watch" in runtime_cutover
+
+    assert "portfolio/research_memory" in workspace_knowledge
+    assert "canonical literature registry" in workspace_knowledge
+    assert "studies/<study_id>/artifacts/reference_context/latest.json" in workspace_knowledge
+    assert "quest hydration" in workspace_knowledge
+    assert "materialized working copy" in workspace_knowledge
+    assert "journal_shortlist_evidence" in workspace_knowledge
+    assert "venue_intelligence" in workspace_knowledge
 
 
 def test_public_entry_docs_surface_external_gate_stop_state() -> None:
