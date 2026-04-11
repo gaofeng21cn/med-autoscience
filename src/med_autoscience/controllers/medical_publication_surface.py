@@ -17,7 +17,8 @@ from med_autoscience.runtime_protocol import paper_artifacts, quest_state, repor
 managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
     runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
 )
-med_deepscientist_transport = managed_runtime_backend
+managed_runtime_transport = managed_runtime_backend
+med_deepscientist_transport = managed_runtime_transport
 
 
 @dataclass
@@ -1459,7 +1460,7 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = managed_runtime_backend.stop_quest(
+            stop_result = managed_runtime_transport.stop_quest(
                 daemon_url=daemon_url,
                 quest_id=report["quest_id"],
                 source=source,
