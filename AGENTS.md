@@ -9,6 +9,7 @@
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
+- 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
 - external runtime gate 未清除前，不做 physical migration 或 cross-repo refactor。
 - `monorepo / runtime core ingest / controlled cutover` 是后置长线，不作为当前默认实施入口。
 
@@ -40,7 +41,12 @@
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。
 - `docs/policies/`：稳定内部规则，默认中文维护。
-- `docs/superpowers/`：本地 AI/Superpowers 过程文档，保持未跟踪。
+- `docs/superpowers/`：存量 repo-tracked 历史设计材料可保留为内部档案；新增本地 AI/Superpowers 过程草稿默认保持未跟踪。
+
+## 本地工具状态
+
+- 项目级 `.codex/` 与 `.omx/` 已退役，不再作为仓库本地状态入口。
+- 如需保留历史 session、prompt、log 或 hook 状态，应迁入用户级 `~/.codex/` 归档。
 
 ## Worktree 规则
 

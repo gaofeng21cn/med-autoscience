@@ -20,7 +20,7 @@ These five pages are the stable knowledge backbone (Chinese only unless mirrored
 
 - [Repository home](../README.md)
 
-## Current Mainline And Blocker Package
+## Current Baseline, Long-Line Target, And Task Ladder
 
 Current frozen state:
 
@@ -28,7 +28,10 @@ Current frozen state:
 - `P1 workspace canonical literature / knowledge truth`: completed in this repo
 - `P2 controlled cutover -> physical monorepo migration`: still active
 
-`external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
+- Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend.
+- Long-line target: `Hermes` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
+- Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
+- `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
 
 ## Runtime Contracts And Control Surface
 
@@ -109,4 +112,4 @@ Current frozen state:
 - `docs/capabilities/`, `docs/program/`, `docs/runtime/`, `docs/references/`: repo-tracked operator docs, Chinese by default unless promoted.
 - `docs/policies/`: stable internal rules, Chinese by default.
 - `docs/history/omx/`: OMX historical archive entry only; never an active workflow surface.
-- `docs/superpowers/`: local AI / Superpowers plans, drafts, and process artifacts; keep them untracked.
+- `docs/superpowers/`: existing repo-tracked historical design material may remain as internal archive, but new local AI / Superpowers drafts should stay untracked by default.

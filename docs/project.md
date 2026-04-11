@@ -16,6 +16,6 @@
 
 ## 非目标
 
-- 不把本地 `.omx/` 或其他临时 handoff surface 当作权威真相。
+- 不把项目级 `.codex/`、`.omx/` 或其他临时 handoff surface 当作权威真相。
 - 不在 external runtime gate 未解除时推动物理迁移或跨仓大重构。
 - 不以临时补丁或后处理补救方式替代严谨 contract 设计。

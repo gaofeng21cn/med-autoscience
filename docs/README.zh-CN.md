@@ -18,7 +18,7 @@
 
 - [仓库首页](../README.zh-CN.md)
 
-## 当前主线与阻塞包
+## 当前基线、长线目标与任务层级
 
 当前冻结状态如下：
 
@@ -26,7 +26,10 @@
 - `P1 workspace canonical literature / knowledge truth`：已在本仓完成
 - `P2 controlled cutover -> physical monorepo migration`：仍是当前 active tranche
 
-`external_runtime_dependency_gate.md` 仍然属于 blocker package，但它已经不是整个项目的总停车结论。
+- 当前 repo-verified 基线：`MedAutoScience` 是唯一研究入口，`MedDeepScientist` 仍是当前受控 research backend。
+- 长线目标：`Hermes` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
+- 独立支线：`medical display / 论文配图资产化` 与 runtime 主线严格分离。
+- `external_runtime_dependency_gate.md` 仍然属于 blocker package，但它已经不是整个项目的总停车结论。
 
 ## Runtime 合同与控制面
 
@@ -107,4 +110,4 @@
 - `docs/capabilities/`、`docs/program/`、`docs/runtime/`、`docs/references/`：仓库跟踪的操作文档，默认中文维护。
 - `docs/policies/`：稳定内部规则，默认中文维护。
 - `docs/history/omx/`：OMX 历史资料入口，只做归档，不再承担活跃 workflow。
-- `docs/superpowers/`：本地 AI/Superpowers 的计划、草稿与过程产物，应保持未跟踪。
+- `docs/superpowers/`：存量 repo-tracked 历史设计材料可保留为内部档案；新增本地 AI/Superpowers 草稿默认不进入跟踪。

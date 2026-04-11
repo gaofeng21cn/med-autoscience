@@ -2,15 +2,36 @@
 
 **更新时间：2026-04-11**
 
-## 主线状态
+## 当前角色与边界
+
+- 仓库角色：医学 `Research Ops` 的 domain gateway 与 `Domain Harness OS`
+- 正式入口矩阵：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
+- 当前产品主线：`Auto-only`
+- 当前研究入口边界：`MedAutoScience` 是唯一研究入口；`MedDeepScientist` 仍是当前受控 research backend
+
+## 当前基线（repo-verified）
 
 - `P0 runtime native truth` 已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`。
 - `P1 workspace canonical literature / knowledge truth` 已完成，workspace canonical literature、study reference context 与 quest materialization-only 边界已进入仓库主线。
-- `P2 controlled cutover -> physical monorepo migration` 尚未完成；当前剩余工作是 consumer-only 收敛、cross-repo parity gate 与 physical monorepo cutover 计划。
+- `P2 controlled cutover -> physical monorepo migration` 仍未完成；当前仓内允许继续推进的是 repo-side consumer-only 收敛与 `Hermes` backend continuation。
 
-## 近期关注
+## 长线目标（规划层）
+
+- 让 `Hermes` 成为外层 runtime substrate owner。
+- 让 `MedAutoScience` 继续保持唯一研究入口与 research gateway。
+- 让 `MedDeepScientist` 从当前默认执行 substrate 收敛为受控 research backend，并逐步解构其中通用 runtime 能力。
+- 在 external gate 真正清除前，不伪造“已完全 cutover”或“已完成 physical monorepo migration”。
+
+## 当前真实 blocker 与独立支线
 
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
 - 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
-- 继续按新文档骨架维护状态、contract 与 cutover 计划，避免把已完成 tranche 写成待办，或把未完成 tranche 写成已完成。
+- `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
+- 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。
+
+## 下一阶段
+
+1. 在 repo-side 继续推进 `Hermes` backend continuation、backend-generic durable surface 与 cutover evidence 收口。
+2. 保持 display 线与 runtime 主线严格分离，避免资产化支线反向污染主线 truth。
+3. external gate 未清除前，只做 consumer-only convergence，不提前宣称 runtime owner 已切换完成。
