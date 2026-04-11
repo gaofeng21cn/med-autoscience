@@ -61,6 +61,7 @@
   - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
 - [`src/med_autoscience/controllers/study_runtime_transport.py`](../src/med_autoscience/controllers/study_runtime_transport.py)
   - 负责 `managed_runtime_transport` 相关的 transport I/O seam，把 daemon 调用绑定收口为独立内部层
+  - 薄层 consumer / test shim 至少可以通过 `managed_runtime_transport` 或 `managed_runtime_backend` 绑定默认 backend
   - `med_deepscientist_transport` 仍只作为兼容别名保留，避免旧测试和旧内部入口立即断裂
 `study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
