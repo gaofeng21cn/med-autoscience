@@ -3,78 +3,84 @@
 **English** | [中文](./README.zh-CN.md)
 
 This bilingual index is the default public surface for `Med Auto Science`.
-It stays aligned with the project truth that the repository is the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`, with a `Codex-default host-agent runtime` as the current local execution shape. Its formal-entry matrix is `CLI` as default formal entry, `MCP` as supported protocol layer, and `controller` as internal control surface. The current repository mainline is `Auto-only`.
+Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
+Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
 
-## Unified Documentation Governance
+## Core Skeleton
 
-- External documents must ship as paired English `.md` and Chinese `.zh-CN.md` files that stay synchronized.
-- Internal design, technical, planning, and memo documents default to Chinese unless a page is explicitly promoted into the bilingual surface.
-- Terminology may stay in English when it is part of stable domain language, but avoid unnecessary mixed-language prose.
-- `docs/README*` should consistently show which pages are public bilingual entry points and which remain internal holdings.
-- For more detail, see [Documentation Governance](documentation-governance.md) (Chinese only).
+These five pages are the stable knowledge backbone (Chinese only unless mirrored):
+
+- [Project](project.md)
+- [Architecture](architecture.md)
+- [Invariants](invariants.md)
+- [Decisions](decisions.md)
+- [Status](status.md)
 
 ## External Bilingual Surface
 
 - [Repository home](../README.md)
 
-This index together with the repository home defines the default GitHub-facing bilingual surface.
-Any page that the public should read must live under this surface with fully mirrored English and Chinese variants.
-
 ## Current Mainline And Blocker Package
 
-The current repo-tracked runtime mainline is already absorbed on the repository side.
+The current repo-tracked runtime mainline is already absorbed.
 The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`, not an open in-repo implementation baton.
 
-- [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md)
-- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
-- [Integration Harness Activation Package](integration_harness_activation_package.md)
-- [External Runtime Dependency Gate](external_runtime_dependency_gate.md)
-- [Merge And Cutover Gates](merge_and_cutover_gates.md)
-- [Medical Display Platform Mainline](medical_display_platform_mainline.md) (display owner line; separate from the runtime mainline)
+## Runtime Contracts And Control Surface
 
-## Repo-Tracked Internal Operator Docs
+- [Agent runtime interface](runtime/agent_runtime_interface.md)
+- [Agent entry modes](runtime/agent_entry_modes.md)
+- [Runtime handle and durable surface contract](runtime/runtime_handle_and_durable_surface_contract.md)
+- [Runtime event and outer-loop input contract](runtime/runtime_event_and_outer_loop_input_contract.md)
+- [Runtime event and outer-loop input implementation plan](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
+- [Runtime core convergence and controlled cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
+- [Runtime core convergence and controlled cutover implementation plan](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
+- [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)
+- [Workspace knowledge and literature implementation plan](runtime/workspace_knowledge_and_literature_implementation_plan.md)
+- [Runtime supervision loop](runtime/runtime_supervision_loop.md)
+- [Study runtime control surface](runtime/study_runtime_control_surface.md)
+- [Study runtime orchestration](runtime/study_runtime_orchestration.md)
+- [Outer-loop wakeup and decision loop](runtime/outer_loop_wakeup_and_decision_loop.md)
+- [Delivery plane contract map](runtime/delivery_plane_contract_map.md)
+- [Runtime boundary](runtime/runtime_boundary.md)
 
-### Medical operators
+## Capabilities
 
-- [Disease workspace quickstart](disease_workspace_quickstart.md)
-- [Medical display audit guide](medical_display_audit_guide.md)
-- [Medical display template catalog](medical_display_template_catalog.md)
+### Medical display
 
-### Technical operators / agent executors
+- [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
+- [Medical display audit guide](capabilities/medical-display/medical_display_audit_guide.md)
+- [Medical display template catalog](capabilities/medical-display/medical_display_template_catalog.md)
+- [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
+- [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
+- [Sidecar figure routes](capabilities/medical-display/sidecar_figure_routes.md)
 
-- [Domain Harness OS Positioning On Unified Substrate](domain-harness-os-positioning.md)
-- [Agent runtime interface](agent_runtime_interface.md)
-- [Runtime Handle And Durable Surface Contract](runtime_handle_and_durable_surface_contract.md)
-- [Project Repair Priority Map](project_repair_priority_map.md)
-- [Runtime Event And Outer-Loop Input Contract](runtime_event_and_outer_loop_input_contract.md)
-- [Runtime Core Convergence And Controlled Cutover](runtime_core_convergence_and_controlled_cutover.md)
-- [Runtime Supervision Loop](runtime_supervision_loop.md)
-- [Runtime Event And Outer-Loop Input Implementation Plan](runtime_event_and_outer_loop_input_implementation_plan.md)
-- [Runtime Core Convergence And Controlled Cutover Implementation Plan](runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
-- [Manual runtime stabilization checklist](manual_runtime_stabilization_checklist.md) (Chinese only)
-- [Study Progress Projection](study_progress_projection.md)
-- [Workspace Knowledge And Literature Contract](workspace_knowledge_and_literature_contract.md)
-- [Workspace Knowledge And Literature Implementation Plan](workspace_knowledge_and_literature_implementation_plan.md)
-- [Agent entry modes](agent_entry_modes.md)
-- [Open Harness OS Architecture Boundary](open_harness_os_architecture.md)
-- [Outer-Loop Wakeup And Decision Loop](outer_loop_wakeup_and_decision_loop.md)
-- [Open Harness OS Freeze Plan](open_harness_os_freeze_plan.md)
-- [Mainline Integration And Cleanup Cadence](mainline_integration_and_cleanup.md)
-- [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md)
-- [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
-- [Research Foundry Positioning](research_foundry_positioning.md)
-- [Repository Split Between Research Foundry And Med Auto Science](repo_split_between_research_foundry_and_med_autoscience.md)
-- [Runtime Boundary](runtime_boundary.md)
-- [Workspace Architecture](workspace_architecture.md)
-- [Upstream Intake Guide](upstream_intake.md)
-- [Repository CI Preflight](repository_ci_preflight.md)
-- [Codex Plugin Integration](codex_plugin.md)
-- [Codex Plugin Release Guide](codex_plugin_release.md)
-- [Documentation Governance](documentation-governance.md) (Chinese only)
+## Program And Gates
 
-### Legacy / Historical References
+- [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
+- [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
+- [Integration harness activation package](program/integration_harness_activation_package.md)
+- [External runtime dependency gate](program/external_runtime_dependency_gate.md)
+- [Merge and cutover gates](program/merge_and_cutover_gates.md)
+- [Open Harness OS freeze plan](program/open_harness_os_freeze_plan.md)
+- [Mainline integration and cleanup cadence](program/mainline_integration_and_cleanup.md)
+- [Upstream intake guide](program/upstream_intake.md)
+- [Repository CI preflight](program/repository_ci_preflight.md)
+- [Real study relaunch verification](program/real_study_relaunch_verification.md)
+- [Project repair priority map](program/project_repair_priority_map.md)
+- [Study progress projection](program/study_progress_projection.md)
+- [Manual runtime stabilization checklist](program/manual_runtime_stabilization_checklist.md) (Chinese only)
 
-- [OMX historical archive](history/omx/README.md) (historical reference only; not an active workflow entry)
+## References
+
+- [Domain Harness OS positioning](references/domain-harness-os-positioning.md)
+- [Domain gateway and harness OS overview](references/domain_gateway_harness_os.md)
+- [Research Foundry positioning](references/research_foundry_positioning.md)
+- [Repo split between Research Foundry and Med Auto Science](references/repo_split_between_research_foundry_and_med_autoscience.md)
+- [Open Harness OS architecture boundary](references/open_harness_os_architecture.md)
+- [Workspace architecture](references/workspace_architecture.md)
+- [Disease workspace quickstart](references/disease_workspace_quickstart.md)
+- [Codex plugin integration](references/codex_plugin.md)
+- [Codex plugin release guide](references/codex_plugin_release.md)
 
 ## Stable Internal Rules
 
@@ -85,10 +91,14 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 - [Research route bias policy](policies/research_route_bias_policy.md)
 - [Publication gate policy](policies/publication_gate_policy.md)
 
+## History
+
+- [OMX historical archive](history/omx/README.md) (historical reference only; not an active workflow entry)
+
 ## Documentation Boundary
 
 - `README*` and `docs/README*`: default bilingual public surface.
-- `bootstrap/`, `controllers/`, and detailed `docs/*.md`: internal operator references, Chinese by default unless explicitly promoted.
+- `docs/capabilities/`, `docs/program/`, `docs/runtime/`, `docs/references/`: repo-tracked operator docs, Chinese by default unless promoted.
 - `docs/policies/`: stable internal rules, Chinese by default.
 - `docs/history/omx/`: OMX historical archive entry only; never an active workflow surface.
 - `docs/superpowers/`: local AI / Superpowers plans, drafts, and process artifacts; keep them untracked.

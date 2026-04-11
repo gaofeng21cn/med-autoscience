@@ -48,7 +48,7 @@ Human / Agent
   - `MCP` 作为 supported protocol layer
   - `controller` 作为 internal control surface
 - adapter 入口
-- project-truth contract 与公开技术文档
+- 核心 docs、runtime contract 与公开技术文档
 
 ## Domain Harness OS 负责什么
 
@@ -109,7 +109,7 @@ Human / Agent
 
 - `Research Ops` domain gateway 的公开定位
 - 面向 Agent 与人类协作者的稳定入口
-- project-truth / docs / controller surfaces 这些可审计外层表面
+- 核心 docs / docs / controller surfaces 这些可审计外层表面
 
 ## 对 authority 的直接影响
 
@@ -157,4 +157,4 @@ Human / Agent
 - 把 `OPL` 写成对 `MedAutoScience` 的替代
 - 把 `MedDeepScientist` 直接写成整个 `MedAutoScience`
 - 因为要 monorepo 就把 gateway / harness OS / runtime 三层压成一层
-- 因为强调 harness OS 就弱化公开入口、project-truth 与可审计对外表面
+- 因为强调 harness OS 就弱化公开入口、核心 docs 与可审计对外表面

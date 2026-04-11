@@ -6,9 +6,9 @@
 
 当前完成态真相优先看：
 
-- `docs/medical_display_audit_guide.md`
-- `docs/medical_display_template_catalog.md`
-- `docs/medical_display_anchor_paper_audit.md`
+- `./medical_display_audit_guide.md`
+- `./medical_display_template_catalog.md`
+- `./medical_display_anchor_paper_audit.md`
 
 ## Current Audited Inventory
 

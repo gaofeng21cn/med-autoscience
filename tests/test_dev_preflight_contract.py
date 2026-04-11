@@ -25,7 +25,7 @@ def test_classify_changed_files_matches_display_surface_exact_guide() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/medical_display_audit_guide.md",
+            "docs/capabilities/medical-display/medical_display_audit_guide.md",
         ]
     )
 
@@ -51,7 +51,7 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
 
     result = module.classify_changed_files(
         [
-            "docs/external_runtime_dependency_gate.md",
+            "docs/program/external_runtime_dependency_gate.md",
             "src/med_autoscience/workspace_contracts.py",
         ]
     )
@@ -65,7 +65,7 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/integration_harness_activation_package.md",
+            "docs/program/integration_harness_activation_package.md",
             "src/med_autoscience/controllers/workspace_init.py",
             "tests/test_workspace_init.py",
             "tests/test_integration_harness_activation_package.py",

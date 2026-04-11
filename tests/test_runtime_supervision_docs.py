@@ -11,7 +11,7 @@ def _read(relative_path: str) -> str:
 
 
 def test_runtime_supervision_doc_freezes_outer_supervisor_loop_contract() -> None:
-    content = _read("docs/runtime_supervision_loop.md")
+    content = _read("docs/runtime/runtime_supervision_loop.md")
     docs_index = _read("docs/README.md")
     docs_index_zh = _read("docs/README.zh-CN.md")
 

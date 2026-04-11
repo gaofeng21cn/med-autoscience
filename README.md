@@ -160,7 +160,7 @@ When a study is worth continuing, the platform is designed to deliver:
 
 For most medical users, the fastest path is to give your goal, data, and constraints to your agent, then let it run `Med Auto Science`.
 
-For current real-study continuation, keep one boundary explicit: the repo-side baseline is ready, but end-to-end continuation still depends on the external runtime / workspace gate package documented in `docs/external_runtime_dependency_gate.md`.
+For current real-study continuation, keep one boundary explicit: the repo-side baseline is ready, but end-to-end continuation still depends on the external runtime / workspace gate package documented in `docs/program/external_runtime_dependency_gate.md`.
 
 Typical three-step start:
 
@@ -197,5 +197,5 @@ Layered local test entrypoints:
 
 If you primarily operate through Codex, use the built-in plugin entry:
 
-- [Codex plugin integration](docs/codex_plugin.md)
-- [Codex plugin release guide](docs/codex_plugin_release.md)
+- [Codex plugin integration](docs/references/codex_plugin.md)
+- [Codex plugin release guide](docs/references/codex_plugin_release.md)

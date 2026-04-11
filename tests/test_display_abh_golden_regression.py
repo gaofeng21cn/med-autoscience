@@ -302,10 +302,11 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
 
 def test_abh_golden_regression_tracked_docs_track_current_suite() -> None:
     repo_root = Path(__file__).resolve().parents[1]
+    docs_root = repo_root / "docs" / "capabilities" / "medical-display"
     text = "\n".join(
         (
-            (repo_root / "docs" / "medical_display_template_catalog.md").read_text(encoding="utf-8"),
-            (repo_root / "docs" / "medical_display_audit_guide.md").read_text(encoding="utf-8"),
+            (docs_root / "medical_display_template_catalog.md").read_text(encoding="utf-8"),
+            (docs_root / "medical_display_audit_guide.md").read_text(encoding="utf-8"),
         )
     )
 

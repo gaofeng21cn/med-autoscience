@@ -21,7 +21,7 @@
 - `MedDeepScientist` 当前是 harness OS 中最重要的 runtime executor 之一，但不等于整个 harness OS
 - future monorepo 的 `controller_charter / runtime / eval_hygiene` 应被理解为 harness OS 内部主模块，而不是对外 gateway 的替代品
 
-更系统的定位说明见：[Domain Gateway And Harness OS](../domain_gateway_harness_os.md)
+更系统的定位说明见：[Domain Gateway And Harness OS](../references/domain_gateway_harness_os.md)
 
 ## Gateway 与 Harness OS 的分工
 
@@ -29,7 +29,7 @@
 
 - 暴露面向人类与 Agent 的正式 domain 入口
 - 固定 workspace / profile / controller / overlay / adapter 的稳定接口
-- 保持公开定位、entry contract、project-truth 与审计边界清晰
+- 保持公开定位、entry contract、核心 docs 与审计边界清晰
 - 防止调用方绕过正式入口直接碰内部 runtime
 
 ### Domain harness OS 负责

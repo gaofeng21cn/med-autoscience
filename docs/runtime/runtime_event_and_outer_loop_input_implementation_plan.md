@@ -13,8 +13,8 @@
 ### Task 1: 冻结文档合同
 
 **Files:**
-- Create: `docs/runtime_event_and_outer_loop_input_contract.md`
-- Create: `docs/runtime_event_and_outer_loop_input_implementation_plan.md`
+- Create: `./runtime_event_and_outer_loop_input_contract.md`
+- Create: `./runtime_event_and_outer_loop_input_implementation_plan.md`
 - Modify: `docs/README.md`
 - Modify: `docs/README.zh-CN.md`
 - Test: `tests/test_runtime_contract_docs.py`

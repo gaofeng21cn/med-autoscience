@@ -14,9 +14,9 @@ def test_public_and_internal_runtime_contract_docs_freeze_handle_and_surface_sem
     readme = _read("README.md")
     readme_zh = _read("README.zh-CN.md")
     root_agents = _read("AGENTS.md")
-    positioning = _read("docs/domain-harness-os-positioning.md")
-    runtime_interface = _read("docs/agent_runtime_interface.md")
-    runtime_contract = _read("docs/runtime_handle_and_durable_surface_contract.md")
+    positioning = _read("docs/references/domain-harness-os-positioning.md")
+    runtime_interface = _read("docs/runtime/agent_runtime_interface.md")
+    runtime_contract = _read("docs/runtime/runtime_handle_and_durable_surface_contract.md")
 
     for doc in [readme, root_agents, positioning, runtime_interface, runtime_contract]:
         assert "Codex-default host-agent runtime" in doc
@@ -68,8 +68,8 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
 
 def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates() -> None:
     root_agents = _read("AGENTS.md")
-    runtime_interface = _read("docs/agent_runtime_interface.md")
-    positioning = _read("docs/research_foundry_positioning.md")
+    runtime_interface = _read("docs/runtime/agent_runtime_interface.md")
+    positioning = _read("docs/references/research_foundry_positioning.md")
 
     for doc in [root_agents, runtime_interface, positioning]:
         assert "monorepo / runtime core ingest / controlled cutover" in doc
@@ -88,9 +88,9 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
 
 
 def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boundary() -> None:
-    priority_map = _read("docs/project_repair_priority_map.md")
-    runtime_cutover = _read("docs/runtime_core_convergence_and_controlled_cutover.md")
-    workspace_knowledge = _read("docs/workspace_knowledge_and_literature_contract.md")
+    priority_map = _read("docs/program/project_repair_priority_map.md")
+    runtime_cutover = _read("docs/runtime/runtime_core_convergence_and_controlled_cutover.md")
+    workspace_knowledge = _read("docs/runtime/workspace_knowledge_and_literature_contract.md")
 
     assert "runtime native truth convergence" in priority_map
     assert "workspace knowledge and literature convergence" in priority_map

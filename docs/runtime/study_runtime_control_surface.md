@@ -4,8 +4,8 @@
 
 它不替代：
 
-- `docs/outer_loop_wakeup_and_decision_loop.md`
-- `docs/study_runtime_orchestration.md`
+- `./outer_loop_wakeup_and_decision_loop.md`
+- `./study_runtime_orchestration.md`
 
 而是把这两份文档之间最容易漂移的控制语义收口成一个明确入口，避免 `stop / rerun / human-confirmation` 只存在于 `.omx` 本地控制面。
 
@@ -207,11 +207,11 @@
 
 ## 7. bridge 到现有文档
 
-- `docs/outer_loop_wakeup_and_decision_loop.md`
+- `./outer_loop_wakeup_and_decision_loop.md`
   - 负责 outer-loop wakeup、artifact loop、decision write-back 主链路
-- `docs/study_runtime_orchestration.md`
+- `./study_runtime_orchestration.md`
   - 负责 `study_runtime_status(...)` / `ensure_study_runtime(...)` 的状态机与执行 contract
-- `docs/study_runtime_control_surface.md`（本文）
+- `./study_runtime_control_surface.md`（本文）
   - 负责 stop / rerun / human-confirmation / outer-loop action surface 的单义收口
 
 ## 8. runtime truth priority

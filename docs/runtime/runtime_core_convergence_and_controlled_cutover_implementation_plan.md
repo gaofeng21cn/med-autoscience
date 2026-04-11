@@ -9,8 +9,8 @@
 ## Task 1: 冻结 runtime-native owner contract
 
 **Files:**
-- Create: `docs/runtime_core_convergence_and_controlled_cutover.md`
-- Modify: `docs/project_repair_priority_map.md`
+- Create: `./runtime_core_convergence_and_controlled_cutover.md`
+- Modify: `../program/project_repair_priority_map.md`
 - Test: `tests/test_runtime_contract_docs.py`
 
 - [ ] 明确写下 `runtime_event` 的 end-state owner 是 runtime core，而不是 repo-side controller。
@@ -20,8 +20,8 @@
 ## Task 2: 补 runtime parity gate
 
 **Files:**
-- Modify: `docs/runtime_event_and_outer_loop_input_contract.md`
-- Modify: `docs/runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
+- Modify: `./runtime_event_and_outer_loop_input_contract.md`
+- Modify: `./runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
 - Test: `tests/test_runtime_contract_docs.py`
 
 - [ ] 把 transition matrix 与 parity gate 文档化，覆盖 `paused / stopped / idle / created / waiting_for_user / parking / stale / degraded / live`。

@@ -11,7 +11,7 @@ def _read(path: str) -> str:
 
 
 def test_external_runtime_dependency_gate_doc_lists_required_surfaces_and_blockers() -> None:
-    content = _read("docs/external_runtime_dependency_gate.md")
+    content = _read("docs/program/external_runtime_dependency_gate.md")
 
     required_terms = (
         "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB",
@@ -34,11 +34,11 @@ def test_external_runtime_dependency_gate_doc_lists_required_surfaces_and_blocke
 def test_external_runtime_dependency_gate_is_linked_from_mainline_entry_docs() -> None:
     doc_name = "external_runtime_dependency_gate.md"
 
-    mainline = _read("docs/research_foundry_medical_mainline.md")
-    execution_map = _read("docs/research_foundry_medical_execution_map.md")
-    activation = _read("docs/integration_harness_activation_package.md")
-    merge_gates = _read("docs/merge_and_cutover_gates.md")
-    agent_runtime = _read("docs/agent_runtime_interface.md")
+    mainline = _read("docs/program/research_foundry_medical_mainline.md")
+    execution_map = _read("docs/program/research_foundry_medical_execution_map.md")
+    activation = _read("docs/program/integration_harness_activation_package.md")
+    merge_gates = _read("docs/program/merge_and_cutover_gates.md")
+    agent_runtime = _read("docs/runtime/agent_runtime_interface.md")
 
     assert doc_name in mainline
     assert doc_name in execution_map
@@ -48,7 +48,7 @@ def test_external_runtime_dependency_gate_is_linked_from_mainline_entry_docs() -
 
 
 def test_external_runtime_dependency_gate_keeps_repo_side_and_external_evidence_distinct() -> None:
-    content = _read("docs/external_runtime_dependency_gate.md")
+    content = _read("docs/program/external_runtime_dependency_gate.md")
 
     assert "Repo-side canonical evidence surface" in content
     assert "当前仍然必须由 external surface 提供的证据" in content

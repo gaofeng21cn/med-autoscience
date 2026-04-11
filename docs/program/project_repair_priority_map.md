@@ -140,7 +140,7 @@ monorepo 仍要做，但它必须排在前两条 tranche 之后。
 
 对应正式文档：
 
-- `docs/runtime_core_convergence_and_controlled_cutover.md`
-- `docs/runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
-- `docs/workspace_knowledge_and_literature_contract.md`
-- `docs/workspace_knowledge_and_literature_implementation_plan.md`
+- `../runtime/runtime_core_convergence_and_controlled_cutover.md`
+- `../runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md`
+- `../runtime/workspace_knowledge_and_literature_contract.md`
+- `../runtime/workspace_knowledge_and_literature_implementation_plan.md`

@@ -13,11 +13,11 @@
 
 与 `stop / rerun / requires_human_confirmation` 相关的 outer-loop control semantics，现统一桥接到：
 
-- [`docs/study_runtime_control_surface.md`](./study_runtime_control_surface.md)
+- [`./study_runtime_control_surface.md`](./study_runtime_control_surface.md)
 
 与 `launch_report`、`runtime_escalation_record`、`publication_eval`、`study_decision_record` 以及 delivery/publication plane surface role 相关的 artifact 边界，现统一桥接到：
 
-- [`docs/delivery_plane_contract_map.md`](./delivery_plane_contract_map.md)
+- [`./delivery_plane_contract_map.md`](./delivery_plane_contract_map.md)
 
 ## 与 study charter / startup projection 的关系
 
@@ -308,7 +308,7 @@ summary truth 约束：
 
 补充边界：
 
-- `stop` **不是** `StudyRuntimeDecision` 的一部分；它属于 outer-loop controller action surface，见 `docs/study_runtime_control_surface.md`
+- `stop` **不是** `StudyRuntimeDecision` 的一部分；它属于 outer-loop controller action surface，见 `./study_runtime_control_surface.md`
 - 一旦 quest 进入 `stopped`，当前 P1 contract 下：
   - `study_runtime_status(...)` 必须返回 `BLOCKED`
   - reason 固定为 `quest_stopped_requires_explicit_rerun`

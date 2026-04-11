@@ -158,6 +158,6 @@ uv run python -m med_autoscience.cli init-workspace \
 ## 接下来读什么
 
 - [Workspace Architecture](workspace_architecture.md)
-- [Runtime Boundary](runtime_boundary.md)
+- [Runtime Boundary](../runtime/runtime_boundary.md)
 - [Bootstrap](../bootstrap/README.md)
 - [workspace.profile.template.toml](../profiles/workspace.profile.template.toml)

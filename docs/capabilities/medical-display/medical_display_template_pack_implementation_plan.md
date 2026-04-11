@@ -65,11 +65,11 @@
   - 断言 `submission_manifest.json` 使用完整模板名。
 - `tests/test_medical_publication_surface.py`
   - 断言 publication surface 对完整模板名、pack provenance 与 manuscript-facing contract 兼容。
-- `docs/medical_display_template_catalog.md`
+- `docs/capabilities/medical-display/medical_display_template_catalog.md`
   - 改为从活动模板包真相重新生成。
-- `docs/medical_display_arsenal.md`
+- `docs/capabilities/medical-display/medical_display_arsenal.md`
   - 军火库总账新增“当前内置核心包”口径。
-- `docs/medical_display_arsenal_history.md`
+- `docs/capabilities/medical-display/medical_display_arsenal_history.md`
   - 记录“当前内置模板库全量包化迁移”这一里程碑。
 
 ## 任务 1：定义模板包 contract 与最小 fixture
@@ -692,9 +692,9 @@ git commit -m "Route display controllers through namespaced template-pack truth"
 - Create: `src/med_autoscience/display_pack_lock.py`
 - Modify: `src/med_autoscience/controllers/display_surface_materialization.py`
 - Modify: `tests/test_display_surface_materialization.py`
-- Modify: `docs/medical_display_template_catalog.md`
-- Modify: `docs/medical_display_arsenal.md`
-- Modify: `docs/medical_display_arsenal_history.md`
+- Modify: `docs/capabilities/medical-display/medical_display_template_catalog.md`
+- Modify: `docs/capabilities/medical-display/medical_display_arsenal.md`
+- Modify: `docs/capabilities/medical-display/medical_display_arsenal_history.md`
 
 - [ ] **Step 1: 写失败测试，固定 `paper/build/display_pack_lock.json`**
 
@@ -735,7 +735,7 @@ uv run python - <<'PY'
 from pathlib import Path
 from med_autoscience.display_template_catalog import render_display_template_catalog_markdown
 
-Path("docs/medical_display_template_catalog.md").write_text(
+Path("docs/capabilities/medical-display/medical_display_template_catalog.md").write_text(
     render_display_template_catalog_markdown(),
     encoding="utf-8",
 )
@@ -745,7 +745,7 @@ PY
 Expected:
 
 ```text
-docs/medical_display_template_catalog.md regenerated
+docs/capabilities/medical-display/medical_display_template_catalog.md regenerated
 ```
 
 - [ ] **Step 4: 跑仓库级强回归**
@@ -809,7 +809,7 @@ publication-gate => clear
 - [ ] **Step 7: 提交**
 
 ```bash
-git add src/med_autoscience/display_pack_lock.py src/med_autoscience/controllers/display_surface_materialization.py tests/test_display_surface_materialization.py docs/medical_display_template_catalog.md docs/medical_display_arsenal.md docs/medical_display_arsenal_history.md
+git add src/med_autoscience/display_pack_lock.py src/med_autoscience/controllers/display_surface_materialization.py tests/test_display_surface_materialization.py docs/capabilities/medical-display/medical_display_template_catalog.md docs/capabilities/medical-display/medical_display_arsenal.md docs/capabilities/medical-display/medical_display_arsenal_history.md
 git commit -m "Lock template-pack provenance and reverify 001 003 acceptance"
 ```
 
@@ -828,5 +828,5 @@ git commit -m "Lock template-pack provenance and reverify 001 003 acceptance"
 1. `med-autoscience` 已能从本地目录模板包加载活动模板。
 2. `fenggaolab.org.medical-display-core` 已承载当前内置模板库的全量迁移结果。
 3. 系统不再以平面 `template_id` 作为正式真相。
-4. 当前 docs/catalog 已由包化真相重新生成。
+4. 当前 `docs/capabilities/medical-display/medical_display_template_catalog.md` 已由包化真相重新生成。
 5. `001/003` 已在完整模板名和 pack provenance 下重新通过首轮强验收。

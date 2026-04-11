@@ -77,5 +77,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --group dev
 
+      - name: Ensure study runtime analysis bundle
+        run: |
+          uv run python - <<'PY'
+          import json
+          import sys
+
+          from med_autoscience.study_runtime_analysis_bundle import ensure_study_runtime_analysis_bundle
+
+          result = ensure_study_runtime_analysis_bundle()
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          raise SystemExit(0 if result.get("ready") else 1)
+          PY
+
       - name: Run display tests
         run: make test-display

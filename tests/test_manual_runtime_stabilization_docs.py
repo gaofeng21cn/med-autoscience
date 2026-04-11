@@ -11,7 +11,7 @@ def _read(relative_path: str) -> str:
 
 
 def test_manual_runtime_stabilization_doc_lists_stable_surfaces_and_external_blockers() -> None:
-    content = _read("docs/manual_runtime_stabilization_checklist.md")
+    content = _read("docs/program/manual_runtime_stabilization_checklist.md")
 
     required_terms = (
         "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB",
@@ -45,8 +45,8 @@ def test_manual_runtime_stabilization_doc_is_linked_from_runtime_entry_docs() ->
 
     docs_index = _read("docs/README.md")
     docs_index_zh = _read("docs/README.zh-CN.md")
-    agent_runtime = _read("docs/agent_runtime_interface.md")
-    external_gate = _read("docs/external_runtime_dependency_gate.md")
+    agent_runtime = _read("docs/runtime/agent_runtime_interface.md")
+    external_gate = _read("docs/program/external_runtime_dependency_gate.md")
 
     assert doc_name in docs_index
     assert doc_name in docs_index_zh
@@ -56,7 +56,7 @@ def test_manual_runtime_stabilization_doc_is_linked_from_runtime_entry_docs() ->
 
 def test_merge_gate_worktree_wording_matches_project_truth() -> None:
     root_agents = _read("AGENTS.md")
-    merge_gates = _read("docs/merge_and_cutover_gates.md")
+    merge_gates = _read("docs/program/merge_and_cutover_gates.md")
 
     assert "worktree" in root_agents
     assert ".worktree/" in merge_gates

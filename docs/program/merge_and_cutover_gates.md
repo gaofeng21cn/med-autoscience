@@ -2,7 +2,7 @@
 
 这份文档定义两件事：
 
-另见：[`docs/external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md)，用于把当前 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 收口成 repo-side canonical blocker package。
+另见：[`./external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md)，用于把当前 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 收口成 repo-side canonical blocker package。
 
 
 - 什么时候当前 repo-side baseline 可以吸收到 `main`
@@ -127,7 +127,7 @@
 
 - repo-side `merge gate` 对 activation baseline 与 external blocker package 来说都已经完成并满足 absorb 条件
 - `runtime cutover gate` 还没有完成
-- 当前 external blocker 的 repo-side canonical package 见 `docs/external_runtime_dependency_gate.md`
+- 当前 external blocker 的 repo-side canonical package 见 `./external_runtime_dependency_gate.md`
 
 原因是：
 

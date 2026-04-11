@@ -41,8 +41,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="codex_plugin_docs_surface",
         exact_paths=(
             "README.md",
-            "docs/codex_plugin.md",
-            "docs/codex_plugin_release.md",
+            "docs/references/codex_plugin.md",
+            "docs/references/codex_plugin_release.md",
             "scripts/install-codex-plugin.sh",
             "src/med_autoscience/codex_plugin_installer.py",
             "tests/test_codex_plugin.py",
@@ -59,8 +59,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="display_publication_surface",
         exact_paths=(
-            "docs/medical_display_audit_guide.md",
-            "docs/medical_display_template_catalog.md",
+            "docs/capabilities/medical-display/medical_display_audit_guide.md",
+            "docs/capabilities/medical-display/medical_display_template_catalog.md",
             "src/med_autoscience/display_layout_qc.py",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract.py",
@@ -112,11 +112,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="external_runtime_dependency_surface",
         exact_paths=(
-            "docs/agent_runtime_interface.md",
-            "docs/external_runtime_dependency_gate.md",
-            "docs/merge_and_cutover_gates.md",
-            "docs/runtime_boundary.md",
-            "docs/upstream_intake.md",
+            "docs/runtime/agent_runtime_interface.md",
+            "docs/program/external_runtime_dependency_gate.md",
+            "docs/program/merge_and_cutover_gates.md",
+            "docs/runtime/runtime_boundary.md",
+            "docs/program/upstream_intake.md",
             "src/med_autoscience/controllers/med_deepscientist_upgrade_check.py",
             "src/med_autoscience/doctor.py",
             "src/med_autoscience/med_deepscientist_repo_manifest.py",
@@ -137,12 +137,12 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="integration_harness_surface",
         exact_paths=(
-            "docs/agent_runtime_interface.md",
-            "docs/integration_harness_activation_package.md",
-            "docs/merge_and_cutover_gates.md",
-            "docs/repository_ci_preflight.md",
-            "docs/research_foundry_medical_execution_map.md",
-            "docs/research_foundry_medical_mainline.md",
+            "docs/runtime/agent_runtime_interface.md",
+            "docs/program/integration_harness_activation_package.md",
+            "docs/program/merge_and_cutover_gates.md",
+            "docs/program/repository_ci_preflight.md",
+            "docs/program/research_foundry_medical_execution_map.md",
+            "docs/program/research_foundry_medical_mainline.md",
             "src/med_autoscience/controllers/workspace_init.py",
             "src/med_autoscience/dev_preflight_contract.py",
             "tests/test_dev_preflight.py",

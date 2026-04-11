@@ -46,10 +46,10 @@ def test_public_readmes_publish_layered_test_entrypoints() -> None:
     assert "make test-display" in readme_zh
 
 
-def test_root_agents_freezes_layered_test_governance() -> None:
+def test_root_agents_describe_current_verification_entrypoints() -> None:
     agents = _read("AGENTS.md")
 
-    assert "`make test-fast` is the default developer slice and must exclude both `meta` and `display_heavy` suites" in agents
-    assert "`make test-meta` and `make test-display` are explicit, marker-driven lanes" in agents
-    assert "`make test-full` is the clean-clone baseline and release gate" in agents
-    assert "update `Makefile`, `pyproject.toml`, `README*`, CI/release workflows, and command-surface tests together" in agents
+    assert "统一验证入口：`scripts/verify.sh`。" in agents
+    assert "默认最小验证：`scripts/verify.sh`（内部运行 `make test-fast`）。" in agents
+    assert "full lane：`scripts/verify.sh full`（内部运行 `make test-full`）。" in agents
+    assert "修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。" in agents

@@ -23,7 +23,7 @@
 最显式的方式：
 
 ```bash
-uv run medautosci preflight-changes --files README.md docs/codex_plugin.md
+uv run medautosci preflight-changes --files README.md docs/references/codex_plugin.md
 ```
 
 检查 staged 改动：

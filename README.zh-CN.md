@@ -159,7 +159,7 @@
 
 对大多数医学用户来说，最快的方式是先把目标、数据和约束交给 Agent，再让它调用 `Med Auto Science`。
 
-但针对真实课题继续推进，需要先明确一个边界：repo-side baseline 已经准备好，是否能继续 end-to-end 推进仍取决于 `docs/external_runtime_dependency_gate.md` 中定义的 external runtime / workspace gate package。
+但针对真实课题继续推进，需要先明确一个边界：repo-side baseline 已经准备好，是否能继续 end-to-end 推进仍取决于 `docs/program/external_runtime_dependency_gate.md` 中定义的 external runtime / workspace gate package。
 
 通常只需要三步：
 
@@ -196,5 +196,5 @@ uv run python -m build --sdist --wheel
 
 如果你主要通过 Codex 接入，优先查看：
 
-- [Codex plugin 接入](docs/codex_plugin.md)
-- [Codex plugin 发布说明](docs/codex_plugin_release.md)
+- [Codex plugin 接入](docs/references/codex_plugin.md)
+- [Codex plugin 发布说明](docs/references/codex_plugin_release.md)

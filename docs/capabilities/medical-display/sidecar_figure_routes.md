@@ -1,6 +1,6 @@
 # Sidecar Provider 与 Figure Routes 指南
 
-> 这个指南可以从 [`agent_runtime_interface.md`](./agent_runtime_interface.md) 中的“sidecar provider 与 figure routes 指南”入口访问，是对运行层中 sidecar 周期的稳定说明。
+> 这个指南可以从 [`../../runtime/agent_runtime_interface.md`](../../runtime/agent_runtime_interface.md) 中的“sidecar provider 与 figure routes 指南”入口访问，是对运行层中 sidecar 周期的稳定说明。
 
 ## 1. Sidecar provider 在 MedAutoScience 的定位
 
@@ -40,4 +40,4 @@ Sidecar 产出的 figures 与说明文案必须至少能追溯这几层内容：
 
 ## 参考链接
 
-- [`docs/agent_runtime_interface.md`](./agent_runtime_interface.md)：Agent Runtime Interface 提供整个运行层的入口路径。
+- [`../../runtime/agent_runtime_interface.md`](../../runtime/agent_runtime_interface.md)：Agent Runtime Interface 提供整个运行层的入口路径。

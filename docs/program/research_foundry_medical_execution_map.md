@@ -52,13 +52,13 @@
   已完成并 absorbed 到 main
   - anchor-study relaunch
   - real-study relaunch and verify
-  - 当前 repo-tracked verification note：`docs/real_study_relaunch_verification.md`
+  - 当前 repo-tracked verification note：`./real_study_relaunch_verification.md`
   - 最新锚点：`001-dm-cvd-mortality-risk`
   - 已验证 managed entry / runtime watch / publication gate / study delivery sync；remaining blocker 已被收敛到 external workspace-side publication surface
 
 第 5 层：Integration Harness Activation & Baseline
   已完成并 absorbed 到 main
-  - 当前 repo-tracked bridge：`docs/integration_harness_activation_package.md`
+  - 当前 repo-tracked bridge：`./integration_harness_activation_package.md`
   - 目标：冻结 `controller -> runtime -> eval -> delivery` chain、cutover readiness、residual risk、external surface requirement
   - 当前最小 baseline：`runtime_watch` / `publication_gate` / `study_delivery_sync`
 
@@ -81,7 +81,7 @@
 - 也不是在 repo 内继续凭空打开 `end-to-end study harness`
 - 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
 - 当前终态应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
-- 对应的 blocker package 见 `docs/external_runtime_dependency_gate.md`
+- 对应的 blocker package 见 `./external_runtime_dependency_gate.md`
 
 ## 每一层解决什么问题
 
@@ -99,7 +99,7 @@
 
 这一层解决的是“论文交付面本身的正式 contract map”。
 
-当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `docs/delivery_plane_contract_map.md`。
+当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `../runtime/delivery_plane_contract_map.md`。
 
 ### 第 4 层：Real-Study Relaunch & Verify
 

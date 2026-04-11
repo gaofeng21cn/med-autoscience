@@ -980,7 +980,13 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
 
 def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
-    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_template_catalog.md"
+    guide_path = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "capabilities"
+        / "medical-display"
+        / "medical_display_template_catalog.md"
+    )
 
     assert guide_path.read_text(encoding="utf-8") == module.render_display_template_catalog_markdown()
 
@@ -988,7 +994,13 @@ def test_checked_in_template_catalog_guide_matches_renderer_output() -> None:
 def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() -> None:
     schema_module = importlib.import_module("med_autoscience.display_schema_contract")
     registry_module = importlib.import_module("med_autoscience.display_registry")
-    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_audit_guide.md"
+    guide_path = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "capabilities"
+        / "medical-display"
+        / "medical_display_audit_guide.md"
+    )
 
     guide_text = guide_path.read_text(encoding="utf-8")
     evidence_classes = [
@@ -1014,7 +1026,13 @@ def test_checked_in_display_audit_guide_tracks_current_counts_and_class_map() ->
 
 def test_checked_in_display_audit_guide_mentions_all_registered_publication_shells_and_tables() -> None:
     registry_module = importlib.import_module("med_autoscience.display_registry")
-    guide_path = Path(__file__).resolve().parents[1] / "docs" / "medical_display_audit_guide.md"
+    guide_path = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "capabilities"
+        / "medical-display"
+        / "medical_display_audit_guide.md"
+    )
 
     guide_text = guide_path.read_text(encoding="utf-8")
 
@@ -1028,7 +1046,7 @@ def test_checked_in_display_audit_guide_mentions_all_registered_publication_shel
 
 
 def test_display_platform_truth_docs_track_current_paper_proven_baseline() -> None:
-    docs_root = Path(__file__).resolve().parents[1] / "docs"
+    docs_root = Path(__file__).resolve().parents[1] / "docs" / "capabilities" / "medical-display"
     roadmap_text = (docs_root / "medical_display_family_roadmap.md").read_text(encoding="utf-8")
     audit_text = (docs_root / "medical_display_audit_guide.md").read_text(encoding="utf-8")
     catalog_text = (docs_root / "medical_display_template_catalog.md").read_text(encoding="utf-8")

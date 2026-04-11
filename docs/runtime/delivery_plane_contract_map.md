@@ -4,9 +4,9 @@
 
 它不替代：
 
-- `docs/study_runtime_control_surface.md`
-- `docs/study_runtime_orchestration.md`
-- `docs/outer_loop_wakeup_and_decision_loop.md`
+- `./study_runtime_control_surface.md`
+- `./study_runtime_orchestration.md`
+- `./outer_loop_wakeup_and_decision_loop.md`
 
 而是回答两个在 P2 必须冻结的问题：
 
@@ -107,13 +107,13 @@
 
 ## 5. 与现有文档的桥接
 
-- `docs/study_runtime_control_surface.md`
+- `./study_runtime_control_surface.md`
   - 裁定 `pause / stop / rerun / requires_human_confirmation` 语义
-- `docs/study_runtime_orchestration.md`
+- `./study_runtime_orchestration.md`
   - 裁定 runtime orchestration、transport、`launch_report_path`
-- `docs/outer_loop_wakeup_and_decision_loop.md`
+- `./outer_loop_wakeup_and_decision_loop.md`
   - 裁定 `runtime_escalation_record -> publication_eval -> study_decision_record` durable outer loop
-- `docs/delivery_plane_contract_map.md`（本文）
+- `./delivery_plane_contract_map.md`（本文）
   - 裁定 delivery/publication plane 与上述 artifact 的 owner / surface / non-authority 边界
 
 若发生冲突：

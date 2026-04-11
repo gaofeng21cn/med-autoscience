@@ -11,7 +11,7 @@ def _read(relative_path: str) -> str:
 
 
 def test_study_progress_doc_freezes_projection_contract_and_doctor_readout() -> None:
-    content = _read("docs/study_progress_projection.md")
+    content = _read("docs/program/study_progress_projection.md")
     docs_index = _read("docs/README.md")
     docs_index_zh = _read("docs/README.zh-CN.md")
 

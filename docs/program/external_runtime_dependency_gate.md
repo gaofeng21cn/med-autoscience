@@ -41,13 +41,13 @@
 
 在 external gate 未清除前，repo-side 手工测试与稳定化的执行清单统一收口到：
 
-- `docs/manual_runtime_stabilization_checklist.md`
+- `./manual_runtime_stabilization_checklist.md`
 
-- `docs/runtime_boundary.md`
-- `docs/merge_and_cutover_gates.md`
-- `docs/agent_runtime_interface.md`
-- `docs/upstream_intake.md`
-- 本文 `docs/external_runtime_dependency_gate.md`
+- `../runtime/runtime_boundary.md`
+- `./merge_and_cutover_gates.md`
+- `../runtime/agent_runtime_interface.md`
+- `./upstream_intake.md`
+- 本文 `./external_runtime_dependency_gate.md`
 
 ### 2.2 可执行检查 surface
 
@@ -166,15 +166,15 @@ uv run --python 3.14 python -m med_autoscience.cli watch --quest-root <quest_roo
 
 ## 5. 与其他 canonical docs 的关系
 
-- `docs/runtime_boundary.md`
+- `../runtime/runtime_boundary.md`
   - 裁定 `MedAutoScience` 与 `MedDeepScientist` 的 authority 边界
-- `docs/merge_and_cutover_gates.md`
+- `./merge_and_cutover_gates.md`
   - 裁定 merge gate 与 runtime cutover gate 的区别
-- `docs/agent_runtime_interface.md`
+- `../runtime/agent_runtime_interface.md`
   - 提供 agent / operator 应走的正式命令入口
-- `docs/upstream_intake.md`
+- `./upstream_intake.md`
   - 裁定 controlled fork intake 与 comparison ref 语义
-- `docs/external_runtime_dependency_gate.md`（本文）
+- `./external_runtime_dependency_gate.md`（本文）
   - 把当前 external blocker 精确收口成 repo-side canonical audit package
 
 ## 6. 当前结论

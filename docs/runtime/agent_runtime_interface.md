@@ -2,7 +2,7 @@
 
 这份文档写给 `Codex` 等 Agent、内部技术合作者，以及需要审阅 Agent 行为的人。
 
-它属于仓库跟踪的操作文档层，因此保留在 `docs/` 下，但不属于首页默认双语公开面。
+它属于仓库跟踪的运行面文档层，因此收口在 `docs/runtime/`，但不属于首页默认双语公开面。
 与之相对，`docs/superpowers/` 更偏本地内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
 如果未来要把这份文档提升到默认公开面，必须同步提供英文 `.md` 与中文 `.zh-CN.md` 镜像。
 
@@ -90,8 +90,8 @@
 - 工作区接入与部署：[`bootstrap/README.md`](../bootstrap/README.md)
 - workspace 标准架构与 legacy 迁移：[`workspace_architecture.md`](./workspace_architecture.md)
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](./merge_and_cutover_gates.md)
-- external runtime blocker package：[`external_runtime_dependency_gate.md`](./external_runtime_dependency_gate.md)
-- external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](./manual_runtime_stabilization_checklist.md)
+- external runtime blocker package：[`../program/external_runtime_dependency_gate.md`](../program/external_runtime_dependency_gate.md)
+- external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](../program/manual_runtime_stabilization_checklist.md)
 - `Phase 6` 当前 repo-tracked activation baseline：[`integration_harness_activation_package.md`](./integration_harness_activation_package.md)
 - `MedAutoScience` / `MedDeepScientist` 边界：[`runtime_boundary.md`](./runtime_boundary.md)
 - 运行句柄与持久表面合同：[`runtime_handle_and_durable_surface_contract.md`](./runtime_handle_and_durable_surface_contract.md)

@@ -128,7 +128,7 @@ uv run --python 3.14 python -m med_autoscience.cli sync-study-delivery --paper-r
 
 `real-study relaunch and verify` absorbed 到 `main` 之后，当前 repo-side 唯一合法下一棒是：
 
-- [`docs/integration_harness_activation_package.md`](./integration_harness_activation_package.md) 所定义的 `Phase 6 / Integration Harness And Cutover Readiness`
+- [`./integration_harness_activation_package.md`](./integration_harness_activation_package.md) 所定义的 `Phase 6 / Integration Harness And Cutover Readiness`
 
 其含义是：
 

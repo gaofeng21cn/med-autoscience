@@ -9,8 +9,8 @@
 ## Task 1: 冻结 knowledge / literature owner contract
 
 **Files:**
-- Create: `docs/workspace_knowledge_and_literature_contract.md`
-- Modify: `docs/project_repair_priority_map.md`
+- Create: `./workspace_knowledge_and_literature_contract.md`
+- Modify: `../program/project_repair_priority_map.md`
 - Test: `tests/test_runtime_contract_docs.py`
 
 - [ ] 明确 workspace / study / quest 三层 authority 边界。
