@@ -33,6 +33,7 @@
 - [Agent 运行接口](runtime/agent_runtime_interface.md)
 - [Agent 入口模式](runtime/agent_entry_modes.md)
 - [运行句柄与持久表面合同](runtime/runtime_handle_and_durable_surface_contract.md)
+- [Runtime backend interface 合同](runtime/runtime_backend_interface_contract.md)
 - [运行时事件与 Outer-Loop 输入合同](runtime/runtime_event_and_outer_loop_input_contract.md)
 - [运行时事件与 Outer-Loop 输入实施计划](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
 - [Runtime Core 收敛与受控 Cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)

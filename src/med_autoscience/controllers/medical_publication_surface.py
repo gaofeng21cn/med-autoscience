@@ -9,9 +9,15 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, report_store as runtime_protocol_report_store, user_message
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
+
+
+managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
+    runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+)
+med_deepscientist_transport = managed_runtime_backend
 
 
 @dataclass
@@ -1453,7 +1459,7 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = med_deepscientist_transport.stop_quest(
+            stop_result = managed_runtime_backend.stop_quest(
                 daemon_url=daemon_url,
                 quest_id=report["quest_id"],
                 source=source,

@@ -55,6 +55,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
+    assert profile.managed_runtime_backend_id == "med_deepscientist"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -159,6 +160,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["portfolio_root"] == str(profile.portfolio_root)
     assert contract["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
     assert contract["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
+    assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
 
     publication = contract["publication"]
     assert publication["default_publication_profile"] == profile.default_publication_profile

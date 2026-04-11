@@ -6,6 +6,7 @@ from typing import Any
 
 import yaml
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
@@ -95,13 +96,40 @@ from med_autoscience.policies.controller_first import render_controller_first_su
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.study_completion import (
     StudyCompletionState,
     StudyCompletionStateStatus,
     resolve_study_completion_state,
 )
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
+
+managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
+    runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+)
+# 兼容旧测试与旧内部入口；当前主线代码应优先通过 managed_runtime_backend contract 访问 backend。
+med_deepscientist_transport = managed_runtime_backend
+
+
+def _default_managed_runtime_backend():
+    backend = globals().get("managed_runtime_backend")
+    if backend is not None:
+        return backend
+    return globals()["med_deepscientist_transport"]
+
+
+def _managed_runtime_backend_for_execution(execution: dict[str, Any] | None):
+    default_backend = _default_managed_runtime_backend()
+    explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
+    if explicit_backend_id is not None:
+        if explicit_backend_id == getattr(default_backend, "BACKEND_ID", None):
+            return default_backend
+        return runtime_backend_contract.try_get_managed_runtime_backend(explicit_backend_id)
+    backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
+    if backend is None:
+        return None
+    if getattr(backend, "BACKEND_ID", None) == getattr(default_backend, "BACKEND_ID", None):
+        return default_backend
+    return backend
 
 
 def _utc_now() -> str:

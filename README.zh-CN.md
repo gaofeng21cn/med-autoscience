@@ -84,6 +84,8 @@
 - `Med Auto Science` 仍是该领域的 `Domain Harness OS` 与 contract owner
 - `MedDeepScientist` 是执行 surface，不是系统本体
 
+当前 managed runtime 一侧已经冻结到单一 `runtime backend interface` contract 后面。`med-deepscientist` 仍是当前默认 backend 实现，但 controller 逻辑已经不再把 backend 模块名本身当作 authority boundary。
+
 ## 当前仓库侧状态
 
 当前优先级已经冻结，并且前两条 tranche 已完成：

@@ -11,5 +11,6 @@
 ## 近期关注
 
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
+- 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - 继续按新文档骨架维护状态、contract 与 cutover 计划，避免把已完成 tranche 写成待办，或把未完成 tranche 写成已完成。

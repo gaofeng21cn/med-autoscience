@@ -4584,7 +4584,7 @@ def test_study_runtime_status_does_not_expose_runtime_escalation_ref_for_non_med
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     assert result["decision"] == "lightweight"
-    assert result["reason"] == "study_execution_not_med_deepscientist"
+    assert result["reason"] == "study_execution_not_managed_runtime_backend"
     assert "runtime_escalation_ref" not in result
 
 

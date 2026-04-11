@@ -52,7 +52,20 @@ def build_workspace_runtime_layout(*, workspace_root: Path) -> WorkspaceRuntimeL
 
 
 def build_workspace_runtime_layout_for_profile(profile: WorkspaceProfile) -> WorkspaceRuntimeLayout:
-    return build_workspace_runtime_layout(workspace_root=profile.workspace_root)
+    runtime_root = profile.managed_runtime_home.expanduser().resolve()
+    return WorkspaceRuntimeLayout(
+        workspace_root=profile.workspace_root.expanduser().resolve(),
+        ops_root=runtime_root.parent,
+        runtime_root=runtime_root,
+        quests_root=profile.managed_runtime_quests_root.expanduser().resolve(),
+        bin_root=runtime_root.parent / "bin",
+        startup_briefs_root=runtime_root.parent / "startup_briefs",
+        startup_payloads_root=runtime_root.parent / "startup_payloads",
+        config_env_path=runtime_root.parent / "config.env",
+        config_env_example_path=runtime_root.parent / "config.env.example",
+        readme_path=runtime_root.parent / "README.md",
+        behavior_gate_path=runtime_root.parent / "behavior_equivalence_gate.yaml",
+    )
 
 
 def resolve_runtime_root_from_quest_root(quest_root: Path) -> Path:

@@ -6,6 +6,7 @@ import inspect
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
@@ -347,4 +348,8 @@ def _sync_existing_quest_startup_context(
         update_kwargs["requested_baseline_ref"] = (
             dict(requested_baseline_ref) if isinstance(requested_baseline_ref, dict) else None
         )
+    if isinstance(execution, dict) and runtime_backend_contract.is_managed_runtime_execution(execution):
+        managed_runtime_backend = _router_module()._managed_runtime_backend_for_execution(execution)
+        if managed_runtime_backend is not None:
+            update_kwargs["runtime_backend"] = managed_runtime_backend
     return _router_module()._update_quest_startup_context(**update_kwargs)

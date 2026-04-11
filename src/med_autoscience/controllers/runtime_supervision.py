@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
@@ -88,12 +89,7 @@ def _timestamped_report_path(study_root: Path, recorded_at: str) -> Path:
 
 def _is_managed_runtime_status(status_payload: Mapping[str, Any]) -> bool:
     execution = status_payload.get("execution")
-    if not isinstance(execution, Mapping):
-        return False
-    return (
-        _non_empty_text(execution.get("engine")) == "med-deepscientist"
-        and _non_empty_text(execution.get("auto_entry")) == "on_managed_research_intent"
-    )
+    return runtime_backend_contract.is_managed_research_execution(execution if isinstance(execution, Mapping) else None)
 
 
 def _runtime_facts(status_payload: Mapping[str, Any]) -> dict[str, Any]:

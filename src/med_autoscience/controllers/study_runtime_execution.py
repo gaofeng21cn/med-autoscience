@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_backend import ManagedRuntimeBackend
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import StudyCompletionState
 
@@ -63,6 +64,7 @@ class StudyRuntimeExecutionContext:
     execution: dict[str, Any]
     quest_id: str
     runtime_context: study_runtime_protocol.StudyRuntimeContext
+    runtime_backend: ManagedRuntimeBackend
     completion_state: StudyCompletionState
     source: str
 
@@ -227,6 +229,7 @@ def _build_execution_context(
         study_id=study_id,
         quest_id=quest_id,
     )
+    runtime_backend = router._managed_runtime_backend_for_execution(execution) or router._default_managed_runtime_backend()
     completion_state = router._study_completion_state(study_root=study_root)
     return StudyRuntimeExecutionContext(
         profile=profile,
@@ -236,6 +239,7 @@ def _build_execution_context(
         execution=execution,
         quest_id=quest_id,
         runtime_context=runtime_context,
+        runtime_backend=runtime_backend,
         completion_state=completion_state,
         source=source,
     )
@@ -388,6 +392,7 @@ def _execute_create_runtime_decision(
         create_result = router._create_quest(
             runtime_root=context.runtime_root,
             payload=create_payload,
+            runtime_backend=context.runtime_backend,
         )
     except RuntimeError as exc:
         outcome.record_daemon_step(
@@ -447,6 +452,7 @@ def _execute_create_runtime_decision(
                 runtime_root=context.runtime_root,
                 quest_id=status.quest_id,
                 source=context.source,
+                runtime_backend=context.runtime_backend,
             )
         except RuntimeError as exc:
             outcome.record_daemon_step(
@@ -508,6 +514,7 @@ def _execute_resume_runtime_decision(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
             source=context.source,
+            runtime_backend=context.runtime_backend,
         )
     except RuntimeError as exc:
         outcome.record_daemon_step(
@@ -582,6 +589,7 @@ def _execute_pause_runtime_decision(
         runtime_root=context.runtime_root,
         quest_id=status.quest_id,
         source=context.source,
+        runtime_backend=context.runtime_backend,
     )
     outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.PAUSE)
     outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
@@ -603,6 +611,7 @@ def _execute_completion_runtime_decision(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
             source=context.source,
+            runtime_backend=context.runtime_backend,
         )
         outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
         status.update_quest_runtime(
@@ -614,6 +623,7 @@ def _execute_completion_runtime_decision(
             quest_id=status.quest_id,
             completion_state=context.completion_state,
             source=context.source,
+            runtime_backend=context.runtime_backend,
         )
     )
     outcome.record_daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC, completion_sync.to_dict())
@@ -686,11 +696,9 @@ def _managed_runtime_notice_reason(
 
 
 def _should_record_autonomous_runtime_notice(status: StudyRuntimeStatus) -> bool:
-    execution_engine = str(status.execution.get("engine") or "").strip()
-    auto_entry = str(status.execution.get("auto_entry") or "").strip()
     return (
-        execution_engine == "med-deepscientist"
-        and auto_entry == "on_managed_research_intent"
+        _router_module()._managed_runtime_backend_for_execution(status.execution) is not None
+        and str(status.execution.get("auto_entry") or "").strip() == "on_managed_research_intent"
         and status.quest_exists
         and status.quest_status in _LIVE_QUEST_STATUSES
     )
@@ -728,10 +736,13 @@ def _record_autonomous_runtime_notice_if_required(
     if not _should_record_autonomous_runtime_notice(status):
         return
     router = _router_module()
+    managed_runtime_backend = router._managed_runtime_backend_for_execution(status.execution)
+    if managed_runtime_backend is None:
+        return
     browser_url: str | None = None
     monitoring_error: str | None = None
     try:
-        browser_url = router.med_deepscientist_transport.resolve_daemon_url(runtime_root=runtime_root)
+        browser_url = managed_runtime_backend.resolve_daemon_url(runtime_root=runtime_root)
     except (RuntimeError, OSError, ValueError) as exc:
         monitoring_error = str(exc)
     resolved_active_run_id = str(active_run_id or "").strip() or None
@@ -887,7 +898,7 @@ def _record_transition_runtime_event(
         return
     execution = status.execution
     if (
-        str(execution.get("engine") or "").strip() != "med-deepscientist"
+        _router_module()._managed_runtime_backend_for_execution(execution) is None
         or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
         or not status.quest_exists
     ):
@@ -900,6 +911,7 @@ def _record_transition_runtime_event(
         session_payload = _get_quest_session(
             runtime_root=context.runtime_root,
             quest_id=status.quest_id,
+            runtime_backend=context.runtime_backend,
         )
     except (RuntimeError, OSError, ValueError):
         status.extras.pop("runtime_event_ref", None)

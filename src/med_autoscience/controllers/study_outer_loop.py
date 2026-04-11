@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
@@ -178,12 +179,7 @@ def _load_runtime_event_record(
 
 def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
     execution = status.get("execution")
-    if not isinstance(execution, dict):
-        return False
-    return (
-        str(execution.get("engine") or "").strip() == "med-deepscientist"
-        and str(execution.get("auto_entry") or "").strip() == "on_managed_research_intent"
-    )
+    return runtime_backend_contract.is_managed_research_execution(execution if isinstance(execution, dict) else None)
 
 
 def _resolve_managed_runtime_event_contract(
@@ -308,6 +304,13 @@ def _execute_controller_action(
             source=source,
         )
     elif action.action_type in {StudyDecisionActionType.PAUSE_RUNTIME, StudyDecisionActionType.STOP_RUNTIME}:
+        execution = study_runtime_router._execution_payload(
+            study_runtime_router._load_yaml_dict(study_root / "study.yaml")
+        )
+        managed_runtime_backend = (
+            study_runtime_router._managed_runtime_backend_for_execution(execution)
+            or study_runtime_router._default_managed_runtime_backend()
+        )
         runtime_context = study_runtime_protocol.resolve_study_runtime_context(
             profile=profile,
             study_root=study_root,
@@ -315,13 +318,13 @@ def _execute_controller_action(
             quest_id=quest_id,
         )
         if action.action_type is StudyDecisionActionType.PAUSE_RUNTIME:
-            result = study_runtime_router.med_deepscientist_transport.pause_quest(
+            result = managed_runtime_backend.pause_quest(
                 runtime_root=runtime_context.runtime_root,
                 quest_id=quest_id,
                 source=source,
             )
         else:
-            result = study_runtime_router.med_deepscientist_transport.stop_quest(
+            result = managed_runtime_backend.stop_quest(
                 runtime_root=runtime_context.runtime_root,
                 quest_id=quest_id,
                 source=source,

@@ -5,6 +5,7 @@ from importlib import import_module
 import json
 from pathlib import Path
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import (
     publication_gate as publication_gate_controller,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
@@ -105,8 +106,7 @@ def _read_json_mapping(path: Path) -> dict[str, object] | None:
 def _supervisor_tick_required(status: StudyRuntimeStatus) -> bool:
     execution = status.execution
     return (
-        str(execution.get("engine") or "").strip() == "med-deepscientist"
-        and str(execution.get("auto_entry") or "").strip() == "on_managed_research_intent"
+        runtime_backend_contract.is_managed_research_execution(execution)
         and status.quest_exists
     )
 
@@ -444,9 +444,7 @@ def _record_execution_owner_guard(
     quest_root: Path,
 ) -> None:
     execution = status.execution
-    if str(execution.get("engine") or "").strip() != "med-deepscientist":
-        return
-    if str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent":
+    if not runtime_backend_contract.is_managed_research_execution(execution):
         return
     if not status.quest_exists or status.quest_status not in _LIVE_QUEST_STATUSES:
         return
@@ -649,10 +647,11 @@ def _record_runtime_event(
     *,
     status: StudyRuntimeStatus,
     runtime_context: study_runtime_protocol.StudyRuntimeContext,
+    runtime_backend=None,
 ) -> None:
     execution = status.execution
     if (
-        str(execution.get("engine") or "").strip() != "med-deepscientist"
+        runtime_backend is None
         or str(execution.get("auto_entry") or "").strip() != "on_managed_research_intent"
         or not status.quest_exists
     ):
@@ -663,6 +662,7 @@ def _record_runtime_event(
         session_payload = _get_quest_session(
             runtime_root=runtime_context.runtime_root,
             quest_id=status.quest_id,
+            runtime_backend=runtime_backend,
         )
     except (RuntimeError, OSError, ValueError):
         status.extras.pop("runtime_event_ref", None)
@@ -774,10 +774,12 @@ def _pending_user_interaction_payload(
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,
+    runtime_backend=None,
 ) -> dict[str, object] | None:
-    router = _router_module()
+    if runtime_backend is None:
+        return None
     try:
-        session_payload = router.med_deepscientist_transport.get_quest_session(
+        session_payload = runtime_backend.get_quest_session(
             runtime_root=runtime_root,
             quest_id=quest_id,
         )
@@ -841,6 +843,7 @@ def _record_pending_user_interaction_if_required(
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,
+    runtime_backend=None,
 ) -> None:
     if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
         return
@@ -848,6 +851,7 @@ def _record_pending_user_interaction_if_required(
         runtime_root=runtime_root,
         quest_root=quest_root,
         quest_id=quest_id,
+        runtime_backend=runtime_backend,
     )
     if payload is None:
         return
@@ -887,6 +891,13 @@ def _status_state(
 ) -> StudyRuntimeStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload)
+    explicit_runtime_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
+    managed_runtime_backend = router._managed_runtime_backend_for_execution(execution)
+    if managed_runtime_backend is not None:
+        execution = dict(execution)
+        execution.setdefault("runtime_backend_id", getattr(managed_runtime_backend, "BACKEND_ID", ""))
+        execution.setdefault("runtime_backend", getattr(managed_runtime_backend, "BACKEND_ID", ""))
+        execution.setdefault("runtime_engine_id", getattr(managed_runtime_backend, "ENGINE_ID", ""))
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     runtime_context = study_runtime_protocol.resolve_study_runtime_context(
@@ -902,10 +913,11 @@ def _status_state(
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
-    if quest_status in _LIVE_QUEST_STATUSES:
+    if quest_status in _LIVE_QUEST_STATUSES and managed_runtime_backend is not None:
         runtime_liveness_audit = router._inspect_quest_live_execution(
             runtime_root=runtime_root,
             quest_id=quest_id,
+            runtime_backend=managed_runtime_backend,
         )
         quest_runtime = quest_runtime.with_runtime_liveness_audit(runtime_liveness_audit).with_bash_session_audit(
             dict(runtime_liveness_audit.get("bash_session_audit") or {})
@@ -975,6 +987,7 @@ def _status_state(
         runtime_root=runtime_root,
         quest_root=quest_root,
         quest_id=quest_id,
+        runtime_backend=managed_runtime_backend,
     )
     _record_interaction_arbitration_if_required(
         status=result,
@@ -1017,13 +1030,21 @@ def _status_state(
         _record_runtime_event(
             status=result,
             runtime_context=runtime_context,
+            runtime_backend=managed_runtime_backend,
         )
         return result
 
-    if str(execution.get("engine") or "").strip() != "med-deepscientist":
+    if explicit_runtime_backend_id is not None and managed_runtime_backend is None:
+        result.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.STUDY_EXECUTION_RUNTIME_BACKEND_UNBOUND,
+        )
+        return _finalize_result()
+
+    if managed_runtime_backend is None:
         result.set_decision(
             StudyRuntimeDecision.LIGHTWEIGHT,
-            StudyRuntimeReason.STUDY_EXECUTION_NOT_MED_DEEPSCIENTIST,
+            StudyRuntimeReason.STUDY_EXECUTION_NOT_MANAGED_RUNTIME_BACKEND,
         )
         return _finalize_result()
 

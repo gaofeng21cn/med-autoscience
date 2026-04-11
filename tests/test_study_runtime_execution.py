@@ -30,13 +30,14 @@ def _base_status_payload() -> dict[str, object]:
 
 
 def _patch_router(monkeypatch, module) -> None:
+    managed_runtime_backend = SimpleNamespace(resolve_daemon_url=lambda *, runtime_root: "http://127.0.0.1:21999")
     monkeypatch.setattr(
         module,
         "_router_module",
         lambda: SimpleNamespace(
-            med_deepscientist_transport=SimpleNamespace(
-                resolve_daemon_url=lambda *, runtime_root: "http://127.0.0.1:21999"
-            )
+            managed_runtime_backend=managed_runtime_backend,
+            med_deepscientist_transport=managed_runtime_backend,
+            _managed_runtime_backend_for_execution=lambda execution: managed_runtime_backend,
         ),
     )
 

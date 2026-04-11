@@ -85,6 +85,8 @@ This means:
 - `Med Auto Science` remains the `Domain Harness OS` and contract owner
 - `MedDeepScientist` remains an execution surface under control, not the full system identity
 
+The managed runtime side is now frozen behind a single `runtime backend interface` contract. `med-deepscientist` is the current default backend implementation, but controller logic no longer treats the backend module name itself as the authority boundary.
+
 ## Current Repo-Side Status
 
 The priority order is now frozen and partially completed:

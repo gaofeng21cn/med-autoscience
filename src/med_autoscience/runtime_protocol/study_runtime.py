@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience import startup_literature
 from med_autoscience import study_reference_context
@@ -81,6 +82,37 @@ def _launch_report_runtime_projection(status: dict[str, Any]) -> dict[str, Any]:
             or None
         ),
     }
+
+
+def _runtime_binding_backend_metadata(status: dict[str, Any]) -> tuple[str, str]:
+    execution = status.get("execution")
+    execution_mapping = execution if isinstance(execution, dict) else None
+    explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution_mapping)
+    if explicit_backend_id is not None:
+        backend = runtime_backend_contract.try_get_managed_runtime_backend(explicit_backend_id)
+        if backend is None:
+            raise ValueError(f"unknown managed runtime backend in status execution: {explicit_backend_id}")
+        runtime_engine_id = str(
+            (execution_mapping or {}).get("runtime_engine_id")
+            or (execution_mapping or {}).get("engine")
+            or getattr(backend, "ENGINE_ID", "")
+        ).strip()
+        if not runtime_engine_id:
+            raise ValueError(f"managed runtime backend `{explicit_backend_id}` is missing ENGINE_ID")
+        return explicit_backend_id, runtime_engine_id
+    backend = runtime_backend_contract.resolve_managed_runtime_backend(execution_mapping)
+    if backend is not None:
+        runtime_backend_id = str(getattr(backend, "BACKEND_ID", "")).strip()
+        runtime_engine_id = str(
+            (execution_mapping or {}).get("runtime_engine_id")
+            or (execution_mapping or {}).get("engine")
+            or getattr(backend, "ENGINE_ID", "")
+        ).strip()
+        if not runtime_backend_id or not runtime_engine_id:
+            raise ValueError("managed runtime backend metadata must expose BACKEND_ID and ENGINE_ID")
+        return runtime_backend_id, runtime_engine_id
+    default_backend_id = runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+    return default_backend_id, runtime_backend_contract.engine_id_for_backend_id(default_backend_id)
 
 
 def _runtime_escalation_record_path(quest_root: Path) -> Path:
@@ -399,6 +431,10 @@ def write_runtime_binding(
     last_action: str,
     source: str,
     recorded_at: str,
+    runtime_backend_id: str = runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    runtime_engine_id: str = runtime_backend_contract.engine_id_for_backend_id(
+        runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+    ),
 ) -> None:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     resolved_study_root = Path(study_root).expanduser().resolve()
@@ -406,11 +442,16 @@ def write_runtime_binding(
         runtime_binding_path,
         {
             "schema_version": 1,
-            "engine": "med-deepscientist",
+            "engine": runtime_engine_id,
+            "runtime_backend_id": runtime_backend_id,
+            "runtime_backend": runtime_backend_id,
+            "runtime_engine_id": runtime_engine_id,
+            "runtime_home": str(resolved_runtime_root),
             "study_id": study_id,
             "study_root": str(resolved_study_root),
             "quest_id": quest_id,
             "runtime_root": str(resolved_runtime_root / "quests"),
+            "runtime_quests_root": str(resolved_runtime_root / "quests"),
             "med_deepscientist_runtime_root": str(resolved_runtime_root),
             "last_action": last_action,
             "last_action_at": recorded_at,
@@ -439,6 +480,7 @@ def persist_runtime_artifacts(
         resolved_quest_id = str(quest_id or "").strip()
         if not resolved_quest_id:
             raise ValueError("quest_id is required when last_action is provided")
+        runtime_backend_id, runtime_engine_id = _runtime_binding_backend_metadata(status)
         write_runtime_binding(
             runtime_binding_path=runtime_binding_path,
             runtime_root=runtime_root,
@@ -448,6 +490,8 @@ def persist_runtime_artifacts(
             last_action=last_action,
             source=source,
             recorded_at=recorded_at,
+            runtime_backend_id=runtime_backend_id,
+            runtime_engine_id=runtime_engine_id,
         )
     write_launch_report(
         launch_report_path=launch_report_path,

@@ -16,6 +16,8 @@ from med_autoscience.runtime_event_record import RuntimeEventRecordRef
 from med_autoscience.startup_contract import stable_startup_contract
 
 
+BACKEND_ID = "med_deepscientist"
+ENGINE_ID = "med-deepscientist"
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
 _UNSET = object()

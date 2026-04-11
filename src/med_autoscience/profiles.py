@@ -10,6 +10,7 @@ from med_autoscience.overlay.constants import (
 )
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
+from med_autoscience.runtime_backend import DEFAULT_MANAGED_RUNTIME_BACKEND_ID
 
 SUPPORTED_STARTUP_ANCHOR_POLICIES = (
     "scout_first_for_continue_existing_state",
@@ -47,11 +48,20 @@ class WorkspaceProfile:
     research_route_bias_policy: str
     preferred_study_archetypes: tuple[str, ...]
     default_submission_targets: tuple[dict[str, object], ...]
+    managed_runtime_backend_id: str = DEFAULT_MANAGED_RUNTIME_BACKEND_ID
     medical_overlay_bootstrap_mode: str = "ensure_ready"
     default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
     legacy_code_execution_policy: str = "forbid_without_user_approval"
     public_data_discovery_policy: str = "required_for_scout_route_selection"
     startup_boundary_requirements: tuple[str, ...] = SUPPORTED_STARTUP_BOUNDARY_REQUIREMENTS
+
+    @property
+    def managed_runtime_home(self) -> Path:
+        return self.med_deepscientist_runtime_root
+
+    @property
+    def managed_runtime_quests_root(self) -> Path:
+        return self.runtime_root
 
 
 def _require_string(payload: dict[str, object], key: str) -> str:
@@ -205,6 +215,11 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             profile_dir=profile_dir,
         ),
         med_deepscientist_repo_root=med_deepscientist_repo_root,
+        managed_runtime_backend_id=_optional_string_with_default(
+            payload,
+            "managed_runtime_backend_id",
+            default=DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+        ),
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
@@ -243,6 +258,7 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "portfolio_root": str(profile.portfolio_root),
         "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
         "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "managed_runtime_backend_id": profile.managed_runtime_backend_id,
         "publication": {
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,

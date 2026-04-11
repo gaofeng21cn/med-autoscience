@@ -50,6 +50,8 @@ def test_docs_index_tracks_runtime_contract_doc_as_internal_operator_surface() -
 
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index
     assert "runtime_handle_and_durable_surface_contract.md" in docs_index_zh
+    assert "runtime_backend_interface_contract.md" in docs_index
+    assert "runtime_backend_interface_contract.md" in docs_index_zh
     assert "runtime_event_and_outer_loop_input_contract.md" in docs_index
     assert "runtime_event_and_outer_loop_input_contract.md" in docs_index_zh
     assert "runtime_event_and_outer_loop_input_implementation_plan.md" in docs_index
@@ -89,6 +91,7 @@ def test_monorepo_longrun_goal_stays_explicit_but_postponed_behind_runtime_gates
 
 def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boundary() -> None:
     priority_map = _read("docs/program/project_repair_priority_map.md")
+    runtime_backend_contract = _read("docs/runtime/runtime_backend_interface_contract.md")
     runtime_contract = _read("docs/runtime/runtime_event_and_outer_loop_input_contract.md")
     runtime_cutover = _read("docs/runtime/runtime_core_convergence_and_controlled_cutover.md")
     workspace_knowledge = _read("docs/runtime/workspace_knowledge_and_literature_contract.md")
@@ -107,6 +110,12 @@ def test_project_repair_docs_freeze_priority_order_and_workspace_literature_boun
     assert "runtime_event_ref" in runtime_contract
     assert "supervisor_tick_audit.status" in runtime_contract
     assert "不得再由 `study_runtime_status`" in runtime_contract
+
+    assert "runtime backend interface" in runtime_backend_contract
+    assert "runtime_backend_id" in runtime_backend_contract
+    assert "runtime_engine_id" in runtime_backend_contract
+    assert "如果 `execution.runtime_backend_id`" in runtime_backend_contract
+    assert "Hermes" in runtime_backend_contract
 
     assert "cb73b3d21c404d424e57d7765b5a9a409060700a" in runtime_cutover
     assert "consumer-side cutover" in runtime_cutover

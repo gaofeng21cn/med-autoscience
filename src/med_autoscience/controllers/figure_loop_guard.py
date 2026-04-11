@@ -16,10 +16,16 @@ from med_autoscience.figure_routes import (
     partition_required_routes,
     supported_required_route_help,
 )
+from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
+
+
+managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
+    runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+)
+med_deepscientist_transport = managed_runtime_backend
 
 
 RESOLVED_PATTERNS = [
@@ -439,7 +445,7 @@ def run_controller(
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = med_deepscientist_transport.stop_quest(
+            stop_result = managed_runtime_backend.stop_quest(
                 daemon_url=daemon_url,
                 runtime_root=None if daemon_url else resolve_runtime_root_from_quest_root(state.quest_root),
                 quest_id=state.quest_id,

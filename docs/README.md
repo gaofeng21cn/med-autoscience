@@ -35,6 +35,7 @@ Current frozen state:
 - [Agent runtime interface](runtime/agent_runtime_interface.md)
 - [Agent entry modes](runtime/agent_entry_modes.md)
 - [Runtime handle and durable surface contract](runtime/runtime_handle_and_durable_surface_contract.md)
+- [Runtime backend interface contract](runtime/runtime_backend_interface_contract.md)
 - [Runtime event and outer-loop input contract](runtime/runtime_event_and_outer_loop_input_contract.md)
 - [Runtime event and outer-loop input implementation plan](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
 - [Runtime core convergence and controlled cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)

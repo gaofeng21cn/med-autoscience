@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib import import_module
 from pathlib import Path
 
+from med_autoscience.runtime_backend import ManagedRuntimeBackend
 from med_autoscience.study_completion import StudyCompletionState, resolve_study_completion_state
 
 
@@ -20,6 +21,7 @@ def _sync_study_completion(
     quest_id: str,
     completion_state: StudyCompletionState,
     source: str,
+    runtime_backend: ManagedRuntimeBackend | None = None,
 ) -> dict[str, object]:
     router = _router_module()
     contract = completion_state.contract
@@ -28,7 +30,8 @@ def _sync_study_completion(
         raise ValueError("study completion sync requires MAS outer-loop human confirmation before runtime closure")
     if not summary:
         raise ValueError("study completion sync requires summary")
-    completion = router.med_deepscientist_transport.artifact_complete_quest(
+    backend = runtime_backend or router._default_managed_runtime_backend()
+    completion = backend.artifact_complete_quest(
         runtime_root=runtime_root,
         quest_id=quest_id,
         summary=summary,
