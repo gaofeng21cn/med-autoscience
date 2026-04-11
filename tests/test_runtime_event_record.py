@@ -58,4 +58,3 @@ def test_runtime_event_record_round_trips_and_writes_latest_alias(tmp_path: Path
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest_payload["event_id"] == record.event_id
     assert latest_payload["outer_loop_input"]["quest_status"] == "stopped"
-
