@@ -28,7 +28,7 @@
 - 已完成但仍保留的 clean integration / minimal validation worktree
 - 已退出但仍残留的 team worker worktree
 - 已归档但仍被误当成真相源的 mailbox / state
-- `CURRENT_PROGRAM` / reports 与真实运行面不同步
+- 本地主线摘要 / handoff note 与真实运行面不同步
 
 这类漂移不会立刻让代码坏掉，但会持续削弱：
 
@@ -87,7 +87,7 @@ clean integration 形成后，必须在该 worktree 原位重跑 acceptance veri
 
 1. 吸收到根 checkout `main`
 2. 在 `main` 上重新确认 focused verification
-3. 更新 reports / CURRENT_PROGRAM（如果当前唯一活跃子线发生变化）
+3. 更新当前 repo-tracked 主线状态文档与必要摘要（如果当前唯一活跃子线发生变化）
 
 这一步完成后，当前子线的结果才算正式成为：
 
@@ -181,7 +181,7 @@ clean integration 形成后，必须在该 worktree 原位重跑 acceptance veri
 动作：
 
 - 先完成当前子线的 integration / cleanup
-- 再切换 `CURRENT_PROGRAM` / reports
+- 再切换当前 repo-tracked 主线状态文档与必要摘要
 - 最后才允许开下一条子线的 team
 
 ## 当前推荐口径

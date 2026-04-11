@@ -4,7 +4,7 @@
 
 1. 这条主线的最终目标是什么
 2. 当前已经做到哪里
-3. 当前 OMX 正在覆盖哪一层
+3. 当前 repo-side 已吸收到哪一层
 4. 后续必须按什么顺序继续推进
 
 如果只想快速看当前真实起点与下一棒，可同时看：
@@ -130,15 +130,15 @@
 5. external runtime dependency gate package（当前 canonical blocker）
 6. only-then `end-to-end harness / cutover readiness`
 
-## OMX 当前应该怎么理解自己的工作
+## 当前 repo-side 应如何理解这条主线
 
-当前 OMX 不是在做“整个项目”，而是在做“整个项目当前最正确的下一层”。
+当前仓库不是在做“整个项目的所有部分”，而是在已经 absorbed 的 repo-side 真相上，诚实地停在当前最靠前的一层。
 
 更具体地说：
 
-- OMX 当前最新完成层：第 5 层
-- OMX 当前已经完成：activation baseline absorb
-- OMX 当前之后不应在 repo 内伪造新 tranche；应先把 external blocker 收口成 canonical package，再等待 external runtime gate 是否允许继续
+- 当前最新完成层：第 5 层
+- 当前已经完成：activation baseline absorb
+- 当前之后不应在 repo 内伪造新 tranche；应先把 external blocker 收口成 canonical package，再等待 external runtime gate 是否允许继续
 
 ## 当前正式执行口径
 

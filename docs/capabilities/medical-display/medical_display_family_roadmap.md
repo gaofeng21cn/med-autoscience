@@ -8,7 +8,7 @@ Use this file when the question is:
 - How should the original `A-H` display families relate to the current audited engineering taxonomy?
 - What should count as platform progress after the current anchor-paper figure recovery closes?
 
-For the current long-run completion program that drives OMX toward first-baseline coverage across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
+For the absorbed baseline program that established first-baseline coverage across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
 
 For the strict engineering truth of what is already audited today, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
 

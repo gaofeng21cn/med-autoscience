@@ -7,7 +7,7 @@
 - `./outer_loop_wakeup_and_decision_loop.md`
 - `./study_runtime_orchestration.md`
 
-而是把这两份文档之间最容易漂移的控制语义收口成一个明确入口，避免 `stop / rerun / human-confirmation` 只存在于 `.omx` 本地控制面。
+而是把这两份文档之间最容易漂移的控制语义收口成一个明确入口，避免 `stop / rerun / human-confirmation` 只散落在机器私有 scratch 或口头 handoff 里。
 
 ## 1. 作用域
 

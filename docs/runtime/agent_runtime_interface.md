@@ -54,7 +54,7 @@
 
 - `program_id`
   - 当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针
-  - 默认回写到 `.omx/context/CURRENT_PROGRAM.md` 与 `.omx/reports/<program_id>/`
+  - 以 `README*`、`docs/status.md` 与当前 blocker / activation package 共同锚定
 - `study_id`
   - study 聚合根身份
   - 对应 `studies/<study_id>/`
@@ -79,7 +79,7 @@
 - `publication_eval` 必须继续落在 study-owned latest surface，而不是回写到 runtime 临时目录
 - `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
 - `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
-- `.omx/` 继续只承载机器本地 handoff，不替代 repo-tracked runtime truth
+- 本地未跟踪 handoff scratch 不替代 repo-tracked runtime truth
 
 如果你是医学用户，希望先理解这个项目是什么、适合什么课题、能产出什么，请先看仓库首页 [README.md](../README.md)。
 

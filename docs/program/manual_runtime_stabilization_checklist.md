@@ -39,7 +39,7 @@
 2. 正式研究入口仍是 `MedAutoScience`；不得直接把 `MedDeepScientist` UI / CLI / daemon HTTP API 当作研究入口。
 3. `publication_eval/latest.json` 是 study-owned latest surface，不得回写到 runtime 临时目录。
 4. `runtime_escalation_record.json` 与 `runtime_watch` 是 quest-owned runtime artifact，不得与 study-owned artifact 混写。
-5. `.omx/` 只承载本地 handoff，不替代 repo-tracked runtime truth。
+5. 本地未跟踪 handoff scratch 只承载机器私有 continuation，不替代 repo-tracked runtime truth。
 
 ## 当前明确不属于 repo-side 放行面的事项
 

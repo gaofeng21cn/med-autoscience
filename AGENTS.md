@@ -38,7 +38,7 @@
 - `docs/program/`：tranche、freeze、hardening、cleanup、intake 等程序阶段材料。
 - `docs/runtime/`：接口、控制面、合同/控制语义。
 - `docs/references/`：背景、定位、审计与非活跃参考。
-- `docs/history/omx/`：OMX 历史归档，仅作历史参考入口。
+- `docs/history/`：历史归档，仅作历史参考入口。
 - `docs/policies/`：稳定内部规则，默认中文维护。
 - `docs/superpowers/`：本地 AI/Superpowers 过程文档，保持未跟踪。
 
@@ -47,6 +47,7 @@
 - 大改动、长链路工作、并行多 AI 开发，默认先从当前 `main` 开独立 worktree，在 worktree 内实现和验证。
 - 共享根 checkout 只用于轻量阅读、评审、吸收验证后提交、push 和清理。
 - 需要多条 lane 时创建多个 worktree，不要把多条长线塞进同一工作目录。
+- worktree 内实现和验证完成后，应尽快吸收回 `main`，并清理对应 worktree、分支与临时状态。
 
 ## 验证规则
 
@@ -54,8 +55,3 @@
 - 默认最小验证：`scripts/verify.sh`（内部运行 `make test-fast`）。
 - full lane：`scripts/verify.sh full`（内部运行 `make test-full`）。
 - 修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。
-
-## `.omx` 历史残留规则
-
-- `.omx/` 仅允许作为历史残留存在，必须保持未跟踪，不得再作为当前 workflow 入口。
-- OMX 相关材料只能落在 `docs/history/omx/` 作为历史参考，不得被当作当前流程主入口。

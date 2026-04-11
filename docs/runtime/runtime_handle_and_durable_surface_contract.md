@@ -22,11 +22,13 @@
 ### `program_id`
 
 - 角色：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针
-- 典型落点：
-  - `.omx/context/CURRENT_PROGRAM.md`
-  - `.omx/reports/<program_id>/`
+- 典型锚点：
+  - `README*`
+  - `docs/status.md`
+  - `docs/program/research_foundry_medical_mainline.md`
+  - `docs/program/external_runtime_dependency_gate.md`
 - 边界：
-  - 它服务本地控制面与 handoff
+  - 它服务 repo-tracked 主线识别、报告路由与 blocker 归类
   - 它不是 `study_id`
   - 它不是 `quest_id`
   - 它不是 `active_run_id`
@@ -116,11 +118,9 @@
   - execution handle contract
   - durable surface contract
   - gate semantics
-- 本地 `.omx/` 控制面负责：
-  - `CURRENT_PROGRAM`
-  - `LATEST_STATUS`
-  - `OPEN_ISSUES`
-  - `ITERATION_LOG`
-  - 机器本地 handoff / longrun continuation
+- 本地未跟踪 handoff scratch 只负责：
+  - 机器私有 continuation note
+  - 临时观察记录
+  - 非规范化的本地协作上下文
 
 前者不能被后者替代；后者也不能被误写成产品 runtime truth。

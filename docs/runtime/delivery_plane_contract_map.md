@@ -125,11 +125,6 @@
 
 ## 6. 对应 planning truth
 
-当前 repo 内与本文直接对应的 planning surface：
+与本文相关的 planning 讨论已经吸收到 repo-tracked canonical docs；当前应直接以这些运行面与程序文档为准，而不是再回到任何机器私有 scratch 或历史 planning note 查默认入口。
 
-- `.omx/plans/prd-delivery-plane-contract-map.md`
-- `.omx/plans/test-spec-delivery-plane-contract-map.md`
-- `.omx/plans/prd-submission-target-authority-and-exporter-contract.md`
-- `.omx/plans/spec-publication-eval-plane.md`
-
-本文的作用是把这些 planning truth 桥接到 repo-tracked canonical docs，而不是把控制语义继续留在 `.omx` 本地面里。
+本文的作用是把这些 planning truth 固定到 repo-tracked canonical docs 中，避免控制语义重新散回本地未跟踪面。

@@ -184,7 +184,7 @@
 
 原因很简单：
 
-- 当前还有活跃 OMX 主线在持续推进
+- 当前还有活跃 repo-side mainline 在持续收口
 - display / monorepo 仍处于 contract 收口期
 - 过早做品牌级物理迁移，收益小于风险
 
@@ -286,7 +286,7 @@
 - Python import path
 - CLI command 名
 - 已存在的用户调用面
-- 已被当前 OMX 主线依赖的 contract path
+- 已被当前 repo-side mainline 依赖的 contract path
 
 ## 推荐公开口径
 

@@ -36,10 +36,10 @@
 实际执行的最小正式命令序列：
 
 ```bash
-uv run --python 3.14 python -m med_autoscience.cli doctor --profile .omx/local/profiles/dm-cvd-real-study.local.toml
-uv run --python 3.14 python -m med_autoscience.cli show-profile --profile .omx/local/profiles/dm-cvd-real-study.local.toml --format json
-uv run --python 3.14 python -m med_autoscience.cli study-runtime-status --profile .omx/local/profiles/dm-cvd-real-study.local.toml --study-id 001-dm-cvd-mortality-risk
-uv run --python 3.14 python -m med_autoscience.cli ensure-study-runtime --profile .omx/local/profiles/dm-cvd-real-study.local.toml --study-id 001-dm-cvd-mortality-risk
+uv run --python 3.14 python -m med_autoscience.cli doctor --profile <workspace_root>/ops/medautoscience/profiles/dm-cvd-mortality-risk.workspace.toml
+uv run --python 3.14 python -m med_autoscience.cli show-profile --profile <workspace_root>/ops/medautoscience/profiles/dm-cvd-mortality-risk.workspace.toml --format json
+uv run --python 3.14 python -m med_autoscience.cli study-runtime-status --profile <workspace_root>/ops/medautoscience/profiles/dm-cvd-mortality-risk.workspace.toml --study-id 001-dm-cvd-mortality-risk
+uv run --python 3.14 python -m med_autoscience.cli ensure-study-runtime --profile <workspace_root>/ops/medautoscience/profiles/dm-cvd-mortality-risk.workspace.toml --study-id 001-dm-cvd-mortality-risk
 uv run --python 3.14 python -m med_autoscience.cli medical-publication-surface --quest-root <quest_root> --apply
 uv run --python 3.14 python -m med_autoscience.cli publication-gate --quest-root <quest_root> --apply
 uv run --python 3.14 python -m med_autoscience.cli watch --quest-root <quest_root> --apply
