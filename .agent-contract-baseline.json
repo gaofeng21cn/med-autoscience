@@ -1,5 +1,5 @@
 {
-  "baseline_name": "omx-project-installer",
+  "baseline_name": "codex-project-installer",
   "baseline_version": "0.5.2",
   "contract_layout": "single-project-truth",
   "scope": "project",
@@ -61,7 +61,7 @@
   "continuous_program_scaffold": {
     "enabled_by_default": true,
     "program_id": "med-autoscience-mainline",
-    "report_dir": ".omx/reports/med-autoscience-mainline",
+    "report_dir": ".codex/reports/med-autoscience-mainline",
     "created": [],
     "preserved": [
       "existing-custom-scaffold"

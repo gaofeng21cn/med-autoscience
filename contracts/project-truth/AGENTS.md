@@ -2,7 +2,7 @@
 
 适用范围：仓库根目录及其子目录；如果具体 workspace 或子目录存在更近的 `AGENTS.md`，则以更近者为准。
 
-这些规则与 OMX 顶层编排契约同时生效：OMX 负责通用执行/协调机制，以下条目定义 `MedAutoScience` 在本仓库中的领域定位、架构优先级与硬约束。
+这些规则与仓库根 `AGENTS.md` 的执行编排约束同时生效：前者负责通用执行/协调机制，以下条目定义 `MedAutoScience` 在本仓库中的领域定位、架构优先级与硬约束。
 
 ## 项目定位
 
@@ -27,7 +27,7 @@
 - 未来迁移到同一底座上的 managed web runtime 时，必须保持领域 contract、artifact schema、决策审计链与升级/退出边界兼容；允许变化的仅是 host 生命周期与调度托管方式。
 - `monorepo / runtime core ingest / controlled cutover` 仍是本仓长线目标，但它属于 domain-internal 后置轨；在 external runtime gate、handle / durable surface truth 与 `Research Foundry -> medical implementation` 边界稳定前，不得提前进入 physical migration、cross-repo refactor 或 scaffold cutover。
 - 当前 execution handle contract 继续固定为：
-  - `program_id`：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针；本地 handoff 默认落在 `.omx/context/CURRENT_PROGRAM.md` 与 `.omx/reports/<program_id>/`
+  - `program_id`：当前 `research-foundry-medical-mainline` 的 control-plane / report-routing 指针；本地 handoff 默认落在 `.codex/context/CURRENT_PROGRAM.md` 与 `.codex/reports/<program_id>/`
   - `study_id`：study 聚合根身份，持久落在 `studies/<study_id>/`
   - `quest_id`：受控 `MedDeepScientist` managed quest 的正式运行句柄，持久落在 `ops/med-deepscientist/runtime/quests/<quest_id>/`
   - `active_run_id`：当前 live daemon run 的细粒度执行句柄；不能替代 `program_id`、`study_id` 或 `quest_id`
@@ -51,7 +51,7 @@
 - 公开 README 面向医学用户，重点解释项目目的、适用场景和产出；底层接口细节应放到操作文档或控制器说明，而不是让首页退化成命令手册。
 - 当前更高优先级是收紧 `MedAutoScience -> MedDeepScientist` 的 runtime protocol、compatibility contract 与 adapter 退出路径，而不是持续研究上游每一个新 commit。
 - 当前四仓统一主线是把 contract 与 behavior surface 压实，而不是提前做 monorepo 物理整合；只有当 runtime truth 与外部依赖 gate 都稳定后，才进入 `monorepo / runtime core ingest / controlled cutover`。
-- 不得把 live daemon `active_run_id` 混写成 study / quest 主身份，也不得把 `.omx/` 本地 handoff surface 冒充成 repo-tracked 产品 runtime truth。
+- 不得把 live daemon `active_run_id` 混写成 study / quest 主身份，也不得把 `.codex/` 本地 handoff surface 冒充成 repo-tracked 产品 runtime truth。
 - `upstream intake` 是周期性、按价值触发的维护动作；不要因为 upstream 多了一个 commit，就默认把它升级成当前主线工作。
 - 只有当某个上游变更对 runtime 稳定性、兼容性或真实迁移成本有明确价值时，才应启动独立的 intake 审计与吸收流程。
 - 涉及第三方 Agent 接入时，优先遵循已经文档化的入口模式与稳定接口面，而不是新增一套私有、不可审计的入口规则。
@@ -102,4 +102,4 @@
 
 - 用户显式指令高于本文件。
 - 更近目录下的 `AGENTS.md` 高于本文件。
-- 当 OMX 通用执行规则与仓库特定规则同时适用时：前者负责如何编排执行，后者负责这个仓库内什么目标、边界与约束是优先的。
+- 当根 `AGENTS.md` 通用执行规则与仓库特定规则同时适用时：前者负责如何编排执行，后者负责这个仓库内什么目标、边界与约束是优先的。

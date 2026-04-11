@@ -60,7 +60,6 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 - [Outer-Loop Wakeup And Decision Loop](outer_loop_wakeup_and_decision_loop.md)
 - [Open Harness OS Freeze Plan](open_harness_os_freeze_plan.md)
 - [Mainline Integration And Cleanup Cadence](mainline_integration_and_cleanup.md)
-- [OMX worktree startup and closeout runbook](omx_worktree_startup_and_closeout.md) (Chinese only)
 - [Research Foundry Medical Execution Map](research_foundry_medical_execution_map.md)
 - [Research Foundry Medical Mainline](research_foundry_medical_mainline.md)
 - [Research Foundry Positioning](research_foundry_positioning.md)
@@ -72,6 +71,10 @@ The honest repo-side stop is `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`,
 - [Codex Plugin Integration](codex_plugin.md)
 - [Codex Plugin Release Guide](codex_plugin_release.md)
 - [Documentation Governance](documentation-governance.md) (Chinese only)
+
+### Legacy / Historical References
+
+- [Legacy OMX worktree startup and closeout runbook](omx_worktree_startup_and_closeout.md) (Chinese only; historical reference, not an active workflow entry)
 
 ## Stable Internal Rules
 

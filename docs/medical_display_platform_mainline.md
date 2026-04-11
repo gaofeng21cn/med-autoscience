@@ -7,7 +7,7 @@ Use this file when the question is:
 - what the display mainline is ultimately trying to accomplish;
 - how long-horizon display work should advance without losing context;
 - how current paper work, platform hardening, and future family expansion should relate;
-- when an OMX lane should continue, hand off, or stop.
+- when the active Codex lane should continue, hand off, or stop.
 
 For the current baseline-completion provenance across `A-H`, see [medical_display_family_baseline_program.md](./medical_display_family_baseline_program.md).
 
@@ -138,7 +138,7 @@ The platform must not rely on:
 
 ### 6. Continuous autonomous continuation is the default
 
-Within the display-only scope, OMX should continue automatically across phases.
+Within the display-only scope, the active Codex lane should continue automatically across phases.
 
 It should not stop just because:
 
@@ -159,14 +159,14 @@ The display mainline uses four lane types.
 Responsibilities:
 
 - maintain the long-horizon prompt/report/control surface;
-- route OMX to the correct current phase;
+- route the active Codex lane to the correct current phase;
 - keep the taxonomy and baton logic coherent;
 - prevent old prompts or stale statuses from reviving closed lines.
 
 Write scope:
 
-- `.omx/context/*`
-- `.omx/reports/medical-display-mainline/*`
+- `.codex/context/*`
+- `.codex/reports/medical-display-mainline/*`
 
 ### 2. Owner implementation lane
 
@@ -332,7 +332,7 @@ The display mainline should eventually look like this:
 4. each real paper either:
    - uses an existing family cleanly; or
    - leaves behind a stronger audited family after closure;
-5. OMX can continue across phases without repeatedly losing the plot.
+5. the active Codex lane can continue across phases without repeatedly losing the plot.
 
 In short:
 
@@ -379,5 +379,5 @@ When display work advances, the following should be kept coherent:
 - [medical_display_family_roadmap.md](./medical_display_family_roadmap.md);
 - [medical_display_audit_guide.md](./medical_display_audit_guide.md);
 - [medical_display_template_catalog.md](./medical_display_template_catalog.md);
-- the active `.omx` mainline control surface;
+- the active `.codex` mainline control surface;
 - the active owner worktree reports.

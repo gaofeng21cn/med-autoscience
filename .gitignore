@@ -14,6 +14,7 @@ RTK.md
 AGENTS.md.bak
 # Public docs live under docs/; only docs/superpowers/ is reserved for local AI working material.
 docs/superpowers/
+# Legacy OMX local runtime state (historical reference only).
 .omx/
 /.codex/
 .codex/*

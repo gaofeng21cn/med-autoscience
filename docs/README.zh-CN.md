@@ -60,7 +60,6 @@
 - [Outer-Loop 唤醒与决策循环](outer_loop_wakeup_and_decision_loop.md)
 - [Open Harness OS 冻结计划](open_harness_os_freeze_plan.md)
 - [主线集成与清理节奏](mainline_integration_and_cleanup.md)
-- [OMX worktree 启动与收尾操作规约](omx_worktree_startup_and_closeout.md)
 - [Research Foundry 医学执行地图](research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](research_foundry_medical_mainline.md)
 - [Research Foundry 定位](research_foundry_positioning.md)
@@ -72,6 +71,10 @@
 - [Codex Plugin 接入](codex_plugin.md)
 - [Codex Plugin 发布指南](codex_plugin_release.md)
 - [文档治理规则](documentation-governance.md)
+
+### Legacy / 历史参考
+
+- [Legacy OMX worktree 启动与收尾操作规约](omx_worktree_startup_and_closeout.md)（仅历史参考，不是当前 active workflow 入口）
 
 ## 稳定内部规则
 

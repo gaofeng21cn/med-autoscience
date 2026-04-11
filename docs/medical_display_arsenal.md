@@ -28,7 +28,7 @@
 - `474ee02`：`B` 家族最后一个包含实际绘图代码变更的 head
 - `3cc2a19`：绘图主线冻结交棒 head
 - `9a74154`：`G` 家族首个审计基线
-- `.omx/reports/medical-display-mainline/*`：绘图主线冻结报告面
+- 历史冻结报告面（legacy）：`.omx/reports/medical-display-mainline/*`
 
 因此，本文记录的是“这条绘图主线到底已经会什么”，而不是“当前共享根工作树正好展开到了哪里”。
 
