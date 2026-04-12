@@ -7147,6 +7147,51 @@ def _make_shap_force_like_summary_panel_display(display_id: str = "Figure35") ->
     }
 
 
+def _make_partial_dependence_ice_panel_display(display_id: str = "Figure36") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "partial_dependence_ice_panel",
+        "title": "Partial dependence and ICE panel for representative feature-response trajectories",
+        "caption": (
+            "Bounded PDP and ICE overlays summarize how key features move the audited model prediction "
+            "across representative feature ranges."
+        ),
+        "y_label": "Predicted response probability",
+        "panels": [
+            {
+                "panel_id": "age_panel",
+                "panel_label": "A",
+                "title": "Age",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "pdp_curve": {"x": [40.0, 50.0, 60.0, 70.0], "y": [0.16, 0.21, 0.27, 0.34]},
+                "ice_curves": [
+                    {"curve_id": "age_case_1", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.14, 0.19, 0.25, 0.33]},
+                    {"curve_id": "age_case_2", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.17, 0.22, 0.29, 0.36]},
+                    {"curve_id": "age_case_3", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.18, 0.23, 0.28, 0.35]},
+                ],
+            },
+            {
+                "panel_id": "albumin_panel",
+                "panel_label": "B",
+                "title": "Albumin",
+                "x_label": "Albumin (g/dL)",
+                "feature": "Albumin",
+                "reference_value": 3.8,
+                "reference_label": "Median albumin",
+                "pdp_curve": {"x": [2.8, 3.4, 4.0, 4.6], "y": [0.39, 0.31, 0.25, 0.20]},
+                "ice_curves": [
+                    {"curve_id": "alb_case_1", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.41, 0.33, 0.26, 0.21]},
+                    {"curve_id": "alb_case_2", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.37, 0.30, 0.24, 0.18]},
+                    {"curve_id": "alb_case_3", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.40, 0.32, 0.27, 0.22]},
+                ],
+            },
+        ],
+    }
+
+
 def _make_generalizability_subgroup_composite_panel_display(display_id: str = "Figure34") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7300,6 +7345,35 @@ def test_load_evidence_display_payload_rejects_unsorted_force_like_contributions
             paper_root=paper_root,
             spec=spec,
             display_id="Figure35",
+        )
+
+
+def test_load_evidence_display_payload_rejects_ice_curve_grid_mismatch_for_partial_dependence_ice_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_partial_dependence_ice_panel_display()
+    display_payload["panels"][0]["ice_curves"][1]["x"] = [40.0, 52.0, 60.0, 70.0]
+    dump_json(
+        paper_root / "partial_dependence_ice_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_ice_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("partial_dependence_ice_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="ice_curves\\[1\\]\\.x must match pdp_curve.x within each panel",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure36",
         )
 
 
@@ -7480,6 +7554,79 @@ def test_materialize_display_surface_generates_shap_force_like_summary_panel(tmp
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_force_like_summary_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_force_like_summary_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_partial_dependence_ice_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure36",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_ice_panel",
+                    "catalog_id": "F36",
+                    "shell_path": "paper/figures/Figure36.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure36",
+                    "template_id": "partial_dependence_ice_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "partial_dependence_ice_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_ice_panel_inputs_v1",
+            "displays": [_make_partial_dependence_ice_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F36"]
+    assert (paper_root / "figures" / "generated" / "F36_partial_dependence_ice_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F36_partial_dependence_ice_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F36_partial_dependence_ice_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_type"] == "legend_box" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "pdp_reference_line"]) == 2
+    assert layout_sidecar["metrics"]["legend_labels"] == ["ICE curves", "PDP mean"]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Age", "Albumin"]
+    assert layout_sidecar["metrics"]["panels"][0]["reference_label"] == "Median age"
+    assert len(layout_sidecar["metrics"]["panels"][0]["ice_curves"]) == 3
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F36"
+    assert figure_entry["template_id"] == full_id("partial_dependence_ice_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "partial_dependence_ice_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_partial_dependence_ice_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

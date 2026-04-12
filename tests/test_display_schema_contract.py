@@ -575,10 +575,12 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("shap_summary_beeswarm") in model_explanation_class.template_ids
     assert _full_id("shap_dependence_panel") in model_explanation_class.template_ids
     assert _full_id("shap_waterfall_local_explanation_panel") in model_explanation_class.template_ids
+    assert _full_id("partial_dependence_ice_panel") in model_explanation_class.template_ids
     assert _full_id("generalizability_subgroup_composite_panel") in generalizability_class.template_ids
     assert "shap_summary_inputs_v1" in model_explanation_class.input_schema_ids
     assert "shap_dependence_panel_inputs_v1" in model_explanation_class.input_schema_ids
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
+    assert "partial_dependence_ice_panel_inputs_v1" in model_explanation_class.input_schema_ids
     assert "generalizability_subgroup_composite_inputs_v1" in generalizability_class.input_schema_ids
     assert performance_heatmap.display_required_fields == (
         "display_id",
@@ -1136,6 +1138,36 @@ def test_shap_force_like_summary_schema_contract_is_registered() -> None:
     assert "shap_force_like_summary_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_partial_dependence_ice_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    pdp_ice = module.get_input_schema_contract("partial_dependence_ice_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert pdp_ice.template_ids == (_full_id("partial_dependence_ice_panel"),)
+    assert pdp_ice.display_name == "Partial Dependence and ICE Panel"
+    assert pdp_ice.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "pdp_curve",
+        "ice_curves",
+    )
+    assert pdp_ice.nested_collection_required_fields["panels.pdp_curve"] == ("x", "y")
+    assert pdp_ice.nested_collection_required_fields["panels.ice_curves"] == ("curve_id", "x", "y")
+    assert "panel_count_must_not_exceed_three" in pdp_ice.additional_constraints
+    assert "panel_reference_values_must_fall_within_pdp_curve_range" in pdp_ice.additional_constraints
+    assert "ice_curve_x_grids_must_match_pdp_curve_x" in pdp_ice.additional_constraints
+    assert _full_id("partial_dependence_ice_panel") in model_explanation_class.template_ids
+    assert "partial_dependence_ice_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1202,6 +1234,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_force_like_summary_panel") in markdown
     assert "shap_force_like_summary_panel_inputs_v1" in markdown
+    assert _full_id("partial_dependence_ice_panel") in markdown
+    assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

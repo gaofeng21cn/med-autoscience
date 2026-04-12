@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`38`
+  - 证据型模板：`39`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`45`
+  - 总模板数：`46`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,7 +34,7 @@
 
 - Phase：`Phase 5 / integration / merge-back / monitor`
 - Family cluster：`F`
-- Capability cluster：`shap_force_like_summary_panel`
+- Capability cluster：`partial_dependence_ice_panel`
 - Owner worktree：当前专用 display worktree
 - 状态：`merge_back_ready`
 
@@ -42,23 +42,22 @@
 
 本轮要回答的是：
 
-> 在代表性病例层面，哪些特征把预测从 baseline 推向最终预测值，正负贡献分别位于哪一侧，以及这些信息如何在 bounded、可审计、可复用的 force-like panel 里稳定表达。
+> 如何在多特征 panel 中把 marginal response 与 individual-level trajectory 同时稳定表达出来，并把 `PDP mean`、`ICE curves`、reference line/label 与共享 legend 的 manuscript-facing lower bound 固化为可审计、可复用的 bounded panel contract。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `representative-case force-like summary panels`
-2. `baseline / prediction marker governance`
-3. `positive / negative contribution lanes with bounded in-panel labels`
+1. `bounded partial-dependence + ICE multi-panel explanation`
+2. `per-panel reference line / reference label governance`
+3. `shared legend + in-panel geometry containment for PDP mean and ICE curves`
 
 本轮明确不做：
 
-- `PDP`
-- `ICE`
 - workflow / design-evidence shells
 - 自由拼装式 explanation scene composition 系统
-- 超过 `3` 个 panel 的开放式病例陈列
+- feature-importance overview 或 grouped-local-explanation follow-on
+- 超过 `3` 个 panel 的开放式 explanation scene
 
 ## 预期写集
 
@@ -96,9 +95,9 @@
 
 ## 当前轮次结束后的候选
 
-只有在 `shap_force_like_summary_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
+只有在 `partial_dependence_ice_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
 
-1. `F / PDP / ICE follow-on`
+1. `F / richer partial-dependence variants or grouped-local-explanation follow-on`
 2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 
