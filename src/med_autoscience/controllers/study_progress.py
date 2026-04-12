@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.study_manual_finish import resolve_study_manual_finish_contract
 
 
 SCHEMA_VERSION = 1
@@ -23,6 +24,7 @@ _PAPER_STAGE_LABELS = {
 }
 _CURRENT_STAGE_LABELS = {
     "study_completed": "研究已进入收尾/交付",
+    "manual_finishing": "人工收尾与兼容保护",
     "managed_runtime_recovering": "托管运行恢复中",
     "managed_runtime_degraded": "托管运行健康降级",
     "managed_runtime_escalated": "托管运行已升级告警",
@@ -51,6 +53,7 @@ _REASON_LABELS = {
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
     "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
     "quest_stopped_requires_explicit_rerun": "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。",
+    "study_completion_contract_not_ready": "study-level 完成声明已存在，但 final submission 证据还未补齐，当前不能按完成态收口。",
     "startup_boundary_not_ready_for_resume": "运行前置条件尚未满足，系统不能直接续跑。",
     "runtime_reentry_not_ready_for_resume": "运行重入条件尚未满足，系统不能直接续跑。",
     "quest_already_running": "托管运行时已经处于自动推进状态。",
@@ -257,6 +260,22 @@ def _runtime_decision_label(value: object) -> str | None:
     return _RUNTIME_DECISION_LABELS.get(text, _humanize_token(text))
 
 
+def _manual_finish_active(manual_finish_contract: dict[str, Any] | None) -> bool:
+    return bool((manual_finish_contract or {}).get("compatibility_guard_only"))
+
+
+def _manual_finish_runtime_decision_summary(manual_finish_contract: dict[str, Any] | None) -> str:
+    del manual_finish_contract
+    return "兼容性监督中"
+
+
+def _manual_finish_runtime_reason_summary(manual_finish_contract: dict[str, Any] | None) -> str:
+    summary = _non_empty_text((manual_finish_contract or {}).get("summary"))
+    if summary is not None:
+        return _display_text(summary) or summary
+    return "当前 study 已转入人工收尾；MAS 只保持兼容性与监督入口。"
+
+
 def _runtime_health_label(value: object) -> str | None:
     text = _non_empty_text(value)
     if text is None:
@@ -397,12 +416,16 @@ def _current_stage(
     execution_owner_guard: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
 ) -> str:
     quest_status = _non_empty_text(status.get("quest_status"))
     decision = _non_empty_text(status.get("decision"))
+    runtime_reason = _non_empty_text(status.get("reason"))
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
-    if quest_status == "completed" or decision == "completed":
+    if decision == "completed" or (quest_status == "completed" and decision != "blocked"):
         return "study_completed"
+    if bool((manual_finish_contract or {}).get("compatibility_guard_only")) and runtime_reason == "quest_stopped_requires_explicit_rerun":
+        return "manual_finishing"
     if runtime_health_status == "recovering":
         return "managed_runtime_recovering"
     if runtime_health_status == "degraded":
@@ -459,9 +482,15 @@ def _stage_summary(
     latest_progress_message: str | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
 ) -> str:
     if current_stage == "study_completed":
         return "研究主线已经进入结题/交付阶段，系统不会继续自动实验。"
+    if current_stage == "manual_finishing":
+        return (
+            _non_empty_text((manual_finish_contract or {}).get("summary"))
+            or "当前 study 已转入人工收尾；MAS 只保持兼容性与监督入口，不再把它视为默认自动续跑对象。"
+        )
     if current_stage in {
         "managed_runtime_recovering",
         "managed_runtime_degraded",
@@ -569,7 +598,13 @@ def _next_system_action(
     status: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
 ) -> str:
+    if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
+        return (
+            _non_empty_text((manual_finish_contract or {}).get("next_action_summary"))
+            or "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。"
+        )
     supervisor_tick_next_action = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
@@ -611,8 +646,10 @@ def _current_blockers(
     interaction_arbitration: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
 ) -> list[str]:
     blockers: list[str] = []
+    manual_finish_active = _manual_finish_active(manual_finish_contract)
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         _append_unique(
             blockers,
@@ -625,7 +662,7 @@ def _current_blockers(
             _non_empty_text((runtime_supervision_payload or {}).get("summary"))
             or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update")),
         )
-    if _non_empty_text(status.get("decision")) == "blocked":
+    if _non_empty_text(status.get("decision")) == "blocked" and not manual_finish_active:
         _append_unique(
             blockers,
             _reason_label(status.get("reason")) or _non_empty_text(status.get("reason")),
@@ -896,6 +933,20 @@ def build_study_progress_projection(
         if isinstance(status.get("continuation_state"), dict)
         else {}
     )
+    try:
+        manual_finish = resolve_study_manual_finish_contract(study_root=resolved_study_root)
+    except ValueError:
+        manual_finish = None
+    manual_finish_contract = (
+        {
+            "status": manual_finish.status.value,
+            "summary": manual_finish.summary,
+            "next_action_summary": manual_finish.next_action_summary,
+            "compatibility_guard_only": manual_finish.compatibility_guard_only,
+        }
+        if manual_finish is not None
+        else None
+    )
     paper_contract_health = (
         dict((details_projection_payload or {}).get("paper_contract_health") or {})
         if isinstance((details_projection_payload or {}).get("paper_contract_health"), dict)
@@ -927,6 +978,7 @@ def build_study_progress_projection(
         execution_owner_guard=execution_owner_guard,
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
     )
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -943,6 +995,7 @@ def build_study_progress_projection(
             latest_progress_message=latest_progress_message,
             runtime_supervision_payload=runtime_supervision_payload,
             supervisor_tick_audit=supervisor_tick_audit,
+            manual_finish_contract=manual_finish_contract,
         )) or "",
         "paper_stage": paper_stage,
         "paper_stage_summary": _display_text(_paper_stage_summary(
@@ -979,6 +1032,7 @@ def build_study_progress_projection(
                 interaction_arbitration=interaction_arbitration,
                 runtime_supervision_payload=runtime_supervision_payload,
                 supervisor_tick_audit=supervisor_tick_audit,
+                manual_finish_contract=manual_finish_contract,
             )
         ),
         "next_system_action": _display_text(_next_system_action(
@@ -989,6 +1043,7 @@ def build_study_progress_projection(
             status=status,
             runtime_supervision_payload=runtime_supervision_payload,
             supervisor_tick_audit=supervisor_tick_audit,
+            manual_finish_contract=manual_finish_contract,
         )) or "",
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": _display_text(_physician_decision_summary(
@@ -1000,6 +1055,7 @@ def build_study_progress_projection(
         "runtime_reason": _non_empty_text(status.get("reason")),
         "continuation_state": continuation_state or None,
         "interaction_arbitration": interaction_arbitration or None,
+        "manual_finish_contract": manual_finish_contract,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -1058,8 +1114,22 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     latest_events = [dict(item) for item in (payload.get("latest_events") or []) if isinstance(item, dict)]
     blockers = [(_blocker_label(item) or str(item)) for item in (payload.get("current_blockers") or []) if str(item).strip()]
     continuation_state = dict(payload.get("continuation_state") or {})
-    runtime_decision = _runtime_decision_label(payload.get("runtime_decision")) or "未知"
-    runtime_reason = _reason_label(payload.get("runtime_reason")) or _display_text(payload.get("runtime_reason")) or ""
+    manual_finish_contract = (
+        dict(payload.get("manual_finish_contract") or {})
+        if isinstance(payload.get("manual_finish_contract"), dict)
+        else None
+    )
+    if _manual_finish_active(manual_finish_contract):
+        runtime_decision = _manual_finish_runtime_decision_summary(manual_finish_contract)
+        runtime_reason = _manual_finish_runtime_reason_summary(manual_finish_contract)
+        continuation_reason = ""
+    else:
+        runtime_decision = _runtime_decision_label(payload.get("runtime_decision")) or "未知"
+        runtime_reason = _reason_label(payload.get("runtime_reason")) or _display_text(payload.get("runtime_reason")) or ""
+        continuation_reason = (
+            _continuation_reason_label(continuation_state.get("continuation_reason"))
+            or str(continuation_state.get("continuation_reason") or "").strip()
+        )
     runtime_health = _runtime_health_label(((payload.get("supervision") or {}).get("health_status"))) or "未知"
     supervisor_tick_status = _supervisor_tick_status_label(((payload.get("supervision") or {}).get("supervisor_tick_status"))) or ""
     current_stage = _current_stage_label(payload.get("current_stage")) or "未知"
@@ -1086,7 +1156,6 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- MAS 监管心跳: {supervisor_tick_status}")
     if runtime_reason:
         lines.append(f"- 决策原因: {runtime_reason}")
-    continuation_reason = _continuation_reason_label(continuation_state.get("continuation_reason")) or str(continuation_state.get("continuation_reason") or "").strip()
     if continuation_reason:
         lines.append(f"- continuation_reason: {continuation_reason}")
     lines.extend(

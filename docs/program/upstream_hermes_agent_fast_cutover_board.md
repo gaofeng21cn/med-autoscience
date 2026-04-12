@@ -114,11 +114,27 @@
   - `study-progress` 已从 `managed_runtime_supervision_gap` 恢复为 `publication_supervision`
 - 同日对同一 workspace 又完成了一条 F4 收口 proof：
   - legacy workspace 重新执行 `init-workspace` 时，controller 已能在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts
+  - `init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中实际生效的 `MED_AUTOSCIENCE_PROFILE`，并可用显式 `--hermes-agent-repo-root / --hermes-home-root` 原位升级 active profile
   - `ops/medautoscience/bin/install-watch-runtime-service` 安装出的 launchd service 已显式携带 `MED_AUTOSCIENCE_UV_BIN`
-  - service 常驻后，`001-dm-cvd-mortality-risk` 从 `managed_runtime_supervision_gap` 恢复为 `runtime_blocked`
+  - service 常驻后，`001-dm-cvd-mortality-risk` 先从 `managed_runtime_supervision_gap` 恢复为 `runtime_blocked`，随后在写入正式 `manual_finish / compatibility_guard_only` contract 后投影为 `manual_finishing`
   - service 常驻后，`002-dm-china-us-mortality-attribution` 从 `managed_runtime_supervision_gap` 恢复为 `publication_supervision`
+  - 同日继续续跑后，`002-dm-china-us-mortality-attribution` 又重新回到 live managed runtime，当前 `active_run_id = run-bed9deed`
+- 同日又在真实 workspace `NF-PitNET` 上拿到一条 workspace compatibility proof：
+  - legacy `nfpitnet.workspace.toml` 已被原位补齐 Hermes binding，不再停在 `hermes adapter binding requires hermes_agent_repo_root`
+  - `watch-runtime-service-runner / install-watch-runtime-service / watch-runtime-service-status / uninstall-watch-runtime-service` 已补齐到 workspace 本地入口
+  - `doctor` 已转为 `external_runtime_contract.ready = true`
+  - 重新拉起 workspace-local `med-deepscientist` daemon 并执行 `watch --apply --ensure-study-runtimes` 后，`runtime_supervision/latest.json` 与 `runtime_watch/latest.json` 已重新刷新
+  - `002-early-residual-risk`、`003-endocrine-burden-followup`、`004-invasive-architecture` 现在都能进入诚实的 study-progress 投影，而不是在 adapter binding 上 fail-closed
+  - 同日又补上了一条 legacy host-service fix：repo-side `init-workspace` 现在会升级仍在直接调用裸 `uv` 的 `_shared.sh`；对 `NF-PitNET` 重跑升级并重新安装 launchd service 后，`ai.medautoscience.nfpitnet.watch-runtime` 已从 `exit 127` 恢复为常驻在线
+  - 之后 `002-early-residual-risk` 的 completion contract 漂移也已被修正，不再卡在缺失 final evidence path；当前 blocker 已回落为 publication gate
+  - 之后 `004-invasive-architecture` 已通过 `ensure-study-runtime --allow-stopped-relaunch` 加 `watch --loop` 回到 live managed runtime，当前 `active_run_id = run-67d99882`
 - 因此当前开发宿主上的 honest next step 已从 `F3 / real study soak / recovery proof` 转为 `F4 / blocker 收口`
-- 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，`001-dm-cvd-mortality-risk` 还需要显式 rerun 决策，`002-dm-china-us-mortality-attribution` 的当前 blocker 也已诚实回落到 publication surface / reporting contract，而不是 runtime owner gap
+- 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，当前 blocker 已明确回落为各 study 自身 truth，而不是 repo-side adapter gap
+  - `001-dm-cvd-mortality-risk`：manual finishing / compatibility-only + publication surface blocker
+  - `002-dm-china-us-mortality-attribution`：publication surface / reporting contract blocker
+  - `002-early-residual-risk`：publication gate / scientific anchor blocker
+  - `003-endocrine-burden-followup`：runtime recovering + publication surface blocker
+  - `004-invasive-architecture`：publication surface / submission package blocker（runtime 已重新 live）
 
 ## 默认验证
 

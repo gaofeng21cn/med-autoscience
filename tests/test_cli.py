@@ -845,6 +845,8 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
         force: bool,
         default_publication_profile: str,
         default_citation_style: str,
+        hermes_agent_repo_root: Path | None,
+        hermes_home_root: Path | None,
     ) -> dict:
         called["workspace_root"] = workspace_root
         called["workspace_name"] = workspace_name
@@ -852,6 +854,8 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
         called["force"] = force
         called["default_publication_profile"] = default_publication_profile
         called["default_citation_style"] = default_citation_style
+        called["hermes_agent_repo_root"] = hermes_agent_repo_root
+        called["hermes_home_root"] = hermes_home_root
         return {
             "workspace_root": str(workspace_root),
             "workspace_name": workspace_name,
@@ -870,6 +874,10 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
             "diabetes",
             "--dry-run",
             "--force",
+            "--hermes-agent-repo-root",
+            str(tmp_path / "_external" / "hermes-agent"),
+            "--hermes-home-root",
+            str(tmp_path / ".hermes"),
         ]
     )
     captured = capsys.readouterr()
@@ -881,6 +889,8 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
     assert called["force"] is True
     assert called["default_publication_profile"] == "general_medical_journal"
     assert called["default_citation_style"] == "AMA"
+    assert called["hermes_agent_repo_root"] == tmp_path / "_external" / "hermes-agent"
+    assert called["hermes_home_root"] == tmp_path / ".hermes"
     assert '"workspace_name": "diabetes"' in captured.out
 
 

@@ -359,6 +359,8 @@ def build_parser() -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--workspace-name", required=True)
     init_workspace_parser.add_argument("--default-publication-profile", default="general_medical_journal")
     init_workspace_parser.add_argument("--default-citation-style", default="AMA")
+    init_workspace_parser.add_argument("--hermes-agent-repo-root")
+    init_workspace_parser.add_argument("--hermes-home-root")
     init_workspace_parser.add_argument("--dry-run", action="store_true")
     init_workspace_parser.add_argument("--force", action="store_true")
 
@@ -886,6 +888,8 @@ def main(argv: list[str] | None = None) -> int:
             force=bool(args.force),
             default_publication_profile=str(args.default_publication_profile),
             default_citation_style=str(args.default_citation_style),
+            hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
+            hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

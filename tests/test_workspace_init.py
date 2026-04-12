@@ -337,3 +337,109 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     install_text = install_service.read_text(encoding="utf-8")
     assert "MED_AUTOSCIENCE_UV_BIN" in install_text
     assert "command -v uv" in install_text
+
+
+def test_init_workspace_upgrades_shared_script_that_still_invokes_bare_uv(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "legacy-uv-workspace"
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    shared.parent.mkdir(parents=True, exist_ok=True)
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n\n"
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        'MEDAUTOSCI_OPS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"\n'
+        'WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"\n'
+        'DEFAULT_PROFILE="${WORKSPACE_ROOT}/ops/medautoscience/profiles/legacy.local.toml"\n'
+        'CONFIG_ENV_PATH="${MEDAUTOSCI_OPS_ROOT}/config.env"\n\n'
+        'if [[ -f "${CONFIG_ENV_PATH}" ]]; then\n'
+        "  # shellcheck disable=SC1090\n"
+        '  source "${CONFIG_ENV_PATH}"\n'
+        "fi\n\n"
+        'PROFILE_PATH="${MED_AUTOSCIENCE_PROFILE:-${DEFAULT_PROFILE}}"\n'
+        'MED_AUTOSCIENCE_REPO_RESOLVED="$(cd "${MED_AUTOSCIENCE_REPO}" && pwd)"\n\n'
+        "run_medautosci() {\n"
+        '  uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy-uv",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(shared) in result["upgraded_files"]
+    shared_text = shared.read_text(encoding="utf-8")
+    assert "MED_AUTOSCIENCE_UV_BIN" in shared_text
+    assert '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in shared_text
+
+
+def test_init_workspace_upgrades_configured_active_profile_with_explicit_hermes_binding(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "nfpitnet-workspace"
+    profiles_root = workspace_root / "ops" / "medautoscience" / "profiles"
+    profiles_root.mkdir(parents=True, exist_ok=True)
+    active_profile = profiles_root / "nfpitnet.workspace.toml"
+    active_profile.write_text(
+        "\n".join(
+            [
+                'name = "nfpitnet"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
+                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                "enable_medical_overlay = true",
+                'medical_overlay_scope = "workspace"',
+                'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "write", "review", "rebuttal", "finalize"]',
+                'medical_overlay_bootstrap_mode = "ensure_ready"',
+                'research_route_bias_policy = "high_plasticity_medical"',
+                'preferred_study_archetypes = ["clinical_classifier", "llm_agent_clinical_task"]',
+                'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
+                'legacy_code_execution_policy = "forbid_without_user_approval"',
+                'public_data_discovery_policy = "required_for_scout_route_selection"',
+                'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_env = workspace_root / "ops" / "medautoscience" / "config.env"
+    config_env.parent.mkdir(parents=True, exist_ok=True)
+    config_env.write_text(
+        "\n".join(
+            [
+                'MED_AUTOSCIENCE_REPO="/Users/gaofeng/workspace/med-autoscience"',
+                f'MED_AUTOSCIENCE_PROFILE="{active_profile}"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    hermes_repo_root = tmp_path / "_external" / "hermes-agent"
+    hermes_home_root = tmp_path / ".hermes"
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="nfpitnet",
+        dry_run=False,
+        force=False,
+        hermes_agent_repo_root=hermes_repo_root,
+        hermes_home_root=hermes_home_root,
+    )
+
+    assert result["profile_path"] == str(active_profile)
+    assert str(active_profile) in result["upgraded_files"]
+    assert not (profiles_root / "nfpitnet.local.toml").exists()
+
+    active_profile_text = active_profile.read_text(encoding="utf-8")
+    assert f'hermes_agent_repo_root = "{hermes_repo_root}"' in active_profile_text
+    assert f'hermes_home_root = "{hermes_home_root}"' in active_profile_text
+    assert 'preferred_study_archetypes = ["clinical_classifier", "llm_agent_clinical_task"]' in active_profile_text

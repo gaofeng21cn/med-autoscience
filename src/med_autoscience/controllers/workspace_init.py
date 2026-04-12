@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import json
 import re
+import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
@@ -27,6 +28,45 @@ def _slugify_workspace_name(workspace_name: str) -> str:
 
 def _profile_filename(workspace_name: str) -> str:
     return f"{_slugify_workspace_name(workspace_name)}.local.toml"
+
+
+def _display_path_from_workspace_root(*, workspace_root: Path, target_path: Path) -> Path:
+    try:
+        return target_path.relative_to(workspace_root)
+    except ValueError:
+        return target_path
+
+
+def _configured_medautoscience_profile_path(workspace_root: Path) -> Path | None:
+    config_env_path = workspace_root / "ops" / "medautoscience" / "config.env"
+    if not config_env_path.is_file():
+        return None
+    try:
+        content = config_env_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    prefix = "MED_AUTOSCIENCE_PROFILE="
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or not stripped.startswith(prefix):
+            continue
+        raw_value = stripped[len(prefix) :].strip()
+        if not raw_value:
+            return None
+        if raw_value[0] in {'"', "'"} and raw_value[-1] == raw_value[0]:
+            raw_value = raw_value[1:-1]
+        candidate = Path(raw_value).expanduser()
+        if not candidate.is_absolute():
+            candidate = workspace_root / candidate
+        return candidate.resolve()
+    return None
+
+
+def _workspace_profile_path(*, workspace_root: Path, workspace_name: str) -> Path:
+    configured_path = _configured_medautoscience_profile_path(workspace_root)
+    if configured_path is not None:
+        return configured_path
+    return (workspace_root / "ops" / "medautoscience" / "profiles" / _profile_filename(workspace_name)).resolve()
 
 
 def _workspace_directories(workspace_root: Path) -> list[Path]:
@@ -128,41 +168,119 @@ def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) ->
     )
 
 
+def _quote_toml_string(value: str | Path) -> str:
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _render_workspace_profile_entries(
+    *,
+    workspace_root: Path,
+    workspace_name: str,
+    default_publication_profile: str,
+    default_citation_style: str,
+    hermes_agent_repo_root: Path | None,
+    hermes_home_root: Path | None,
+    include_hermes_placeholders: bool,
+) -> list[tuple[str, str]]:
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    entries: list[tuple[str, str]] = [
+        ("name", f"name = {_quote_toml_string(workspace_name)}"),
+        ("workspace_root", f"workspace_root = {_quote_toml_string(workspace_root)}"),
+        ("runtime_root", f"runtime_root = {_quote_toml_string(layout.quests_root)}"),
+        ("studies_root", f"studies_root = {_quote_toml_string(workspace_root / 'studies')}"),
+        ("portfolio_root", f"portfolio_root = {_quote_toml_string(workspace_root / 'portfolio')}"),
+        (
+            "med_deepscientist_runtime_root",
+            f"med_deepscientist_runtime_root = {_quote_toml_string(layout.runtime_root)}",
+        ),
+        ("med_deepscientist_repo_root", 'med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"'),
+    ]
+    if hermes_agent_repo_root is not None:
+        entries.append(
+            (
+                "hermes_agent_repo_root",
+                f"hermes_agent_repo_root = {_quote_toml_string(Path(hermes_agent_repo_root).expanduser().resolve())}",
+            )
+        )
+        resolved_hermes_home_root = (
+            Path(hermes_home_root).expanduser().resolve()
+            if hermes_home_root is not None
+            else (Path.home() / ".hermes").resolve()
+        )
+        entries.append(
+            (
+                "hermes_home_root",
+                f"hermes_home_root = {_quote_toml_string(resolved_hermes_home_root)}",
+            )
+        )
+    elif include_hermes_placeholders:
+        entries.extend(
+            [
+                ("hermes_agent_repo_root", 'hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"'),
+                ("hermes_home_root", 'hermes_home_root = "~/.hermes"'),
+            ]
+        )
+    entries.extend(
+        [
+            (
+                "default_publication_profile",
+                f"default_publication_profile = {_quote_toml_string(default_publication_profile)}",
+            ),
+            ("default_citation_style", f"default_citation_style = {_quote_toml_string(default_citation_style)}"),
+            ("enable_medical_overlay", "enable_medical_overlay = true"),
+            ("medical_overlay_scope", 'medical_overlay_scope = "workspace"'),
+            (
+                "medical_overlay_skills",
+                'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure-polish", "write", "review", "rebuttal", "finalize"]',
+            ),
+            ("medical_overlay_bootstrap_mode", 'medical_overlay_bootstrap_mode = "ensure_ready"'),
+            ("research_route_bias_policy", 'research_route_bias_policy = "high_plasticity_medical"'),
+            (
+                "preferred_study_archetypes",
+                'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
+            ),
+            (
+                "default_startup_anchor_policy",
+                'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
+            ),
+            ("legacy_code_execution_policy", 'legacy_code_execution_policy = "forbid_without_user_approval"'),
+            (
+                "public_data_discovery_policy",
+                'public_data_discovery_policy = "required_for_scout_route_selection"',
+            ),
+            (
+                "startup_boundary_requirements",
+                'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
+            ),
+        ]
+    )
+    return entries
+
+
 def _render_workspace_profile(
     *,
     workspace_root: Path,
     workspace_name: str,
     default_publication_profile: str,
     default_citation_style: str,
+    hermes_agent_repo_root: Path | None,
+    hermes_home_root: Path | None,
+    include_hermes_placeholders: bool,
 ) -> str:
-    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
-    return (
-        f'name = "{workspace_name}"\n'
-        f'workspace_root = "{workspace_root}"\n'
-        f'runtime_root = "{layout.quests_root}"\n'
-        f'studies_root = "{workspace_root / "studies"}"\n'
-        f'portfolio_root = "{workspace_root / "portfolio"}"\n'
-        f'med_deepscientist_runtime_root = "{layout.runtime_root}"\n'
-        'med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"\n'
-        'hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"\n'
-        'hermes_home_root = "~/.hermes"\n'
-        f'default_publication_profile = "{default_publication_profile}"\n'
-        f'default_citation_style = "{default_citation_style}"\n'
-        "enable_medical_overlay = true\n"
-        'medical_overlay_scope = "workspace"\n'
-        'medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "figure-polish", "write", "review", "rebuttal", "finalize"]\n'
-        'medical_overlay_bootstrap_mode = "ensure_ready"\n'
-        'research_route_bias_policy = "high_plasticity_medical"\n'
-        'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]\n'
-        'default_startup_anchor_policy = "scout_first_for_continue_existing_state"\n'
-        'legacy_code_execution_policy = "forbid_without_user_approval"\n'
-        'public_data_discovery_policy = "required_for_scout_route_selection"\n'
-        'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]\n'
+    entries = _render_workspace_profile_entries(
+        workspace_root=workspace_root,
+        workspace_name=workspace_name,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+        hermes_home_root=hermes_home_root,
+        include_hermes_placeholders=include_hermes_placeholders,
     )
+    return "\n".join(line for _, line in entries) + "\n"
 
 
 def _render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path) -> str:
-    profile_path = workspace_root / profile_relpath
+    profile_path = profile_relpath if profile_relpath.is_absolute() else workspace_root / profile_relpath
     return (
         "# Set the absolute path to the shared MedAutoScience checkout.\n"
         'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"\n'
@@ -634,6 +752,12 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     if suffix == ("ops", "medautoscience", "bin", "_shared.sh"):
         if "python3 -m med_autoscience.cli" in existing_content:
             return "legacy_python_entry"
+        looks_like_uv_entry = (
+            "run_medautosci() {" in existing_content
+            and 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in existing_content
+        )
+        if looks_like_uv_entry and "MED_AUTOSCIENCE_UV_BIN" not in existing_content:
+            return "legacy_uv_entry"
         return None
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
         looks_like_managed_watch = (
@@ -660,6 +784,53 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     return None
 
 
+def _is_workspace_profile_path(path: Path) -> bool:
+    return len(path.parts) >= 4 and path.parts[-4:-1] == ("ops", "medautoscience", "profiles") and path.suffix == ".toml"
+
+
+def _merge_workspace_profile_content(
+    *,
+    existing_content: str,
+    workspace_root: Path,
+    workspace_name: str,
+    default_publication_profile: str,
+    default_citation_style: str,
+    hermes_agent_repo_root: Path | None,
+    hermes_home_root: Path | None,
+) -> str:
+    try:
+        payload = tomllib.loads(existing_content)
+    except tomllib.TOMLDecodeError:
+        return existing_content
+    if not isinstance(payload, dict):
+        return existing_content
+    required_identity_keys = {
+        "name",
+        "workspace_root",
+        "runtime_root",
+        "studies_root",
+        "portfolio_root",
+        "med_deepscientist_runtime_root",
+    }
+    if not required_identity_keys.issubset(payload):
+        return existing_content
+    merge_entries = _render_workspace_profile_entries(
+        workspace_root=workspace_root,
+        workspace_name=workspace_name,
+        default_publication_profile=default_publication_profile,
+        default_citation_style=default_citation_style,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+        hermes_home_root=hermes_home_root,
+        include_hermes_placeholders=False,
+    )
+    missing_lines = [line for key, line in merge_entries if key not in payload]
+    if not missing_lines:
+        return existing_content
+    base = existing_content.rstrip()
+    separator = "\n\n" if base else ""
+    return f"{base}{separator}{chr(10).join(missing_lines)}\n"
+
+
 def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if not item.path.exists():
         return "create"
@@ -670,6 +841,8 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     except (OSError, UnicodeDecodeError):
         return "skip"
     if _legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
+        return "upgrade"
+    if _is_workspace_profile_path(item.path) and existing_content != item.content:
         return "upgrade"
     return "skip"
 
@@ -702,11 +875,14 @@ def _rendered_files(
     *,
     workspace_root: Path,
     workspace_name: str,
+    profile_path: Path,
     default_publication_profile: str,
     default_citation_style: str,
+    hermes_agent_repo_root: Path | None,
+    hermes_home_root: Path | None,
 ) -> list[RenderedFile]:
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
-    profile_relpath = Path("ops") / "medautoscience" / "profiles" / _profile_filename(workspace_name)
+    profile_relpath = _display_path_from_workspace_root(workspace_root=workspace_root, target_path=profile_path)
     files = [
         RenderedFile(
             path=workspace_root / "pyproject.toml",
@@ -721,12 +897,15 @@ def _rendered_files(
             content=_render_workspace_rules(),
         ),
         RenderedFile(
-            path=workspace_root / profile_relpath,
+            path=profile_path,
             content=_render_workspace_profile(
                 workspace_root=workspace_root,
                 workspace_name=workspace_name,
                 default_publication_profile=default_publication_profile,
                 default_citation_style=default_citation_style,
+                hermes_agent_repo_root=hermes_agent_repo_root,
+                hermes_home_root=hermes_home_root,
+                include_hermes_placeholders=True,
             ),
         ),
         RenderedFile(
@@ -909,16 +1088,49 @@ def init_workspace(
     force: bool = False,
     default_publication_profile: str = "general_medical_journal",
     default_citation_style: str = "AMA",
+    hermes_agent_repo_root: Path | None = None,
+    hermes_home_root: Path | None = None,
 ) -> dict[str, object]:
     workspace_root = workspace_root.expanduser().resolve()
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    profile_path = _workspace_profile_path(workspace_root=workspace_root, workspace_name=workspace_name)
     directories = _workspace_directories(workspace_root)
     files = _rendered_files(
         workspace_root=workspace_root,
         workspace_name=workspace_name,
+        profile_path=profile_path,
         default_publication_profile=default_publication_profile,
         default_citation_style=default_citation_style,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+        hermes_home_root=hermes_home_root,
     )
+    if not force:
+        prepared_files: list[RenderedFile] = []
+        for item in files:
+            if item.path == profile_path and item.path.exists():
+                try:
+                    existing_content = item.path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    prepared_files.append(item)
+                    continue
+                prepared_files.append(
+                    RenderedFile(
+                        path=item.path,
+                        content=_merge_workspace_profile_content(
+                            existing_content=existing_content,
+                            workspace_root=workspace_root,
+                            workspace_name=workspace_name,
+                            default_publication_profile=default_publication_profile,
+                            default_citation_style=default_citation_style,
+                            hermes_agent_repo_root=hermes_agent_repo_root,
+                            hermes_home_root=hermes_home_root,
+                        ),
+                        executable=item.executable,
+                    )
+                )
+                continue
+            prepared_files.append(item)
+        files = prepared_files
 
     created_directories: list[str] = []
     created_files: list[str] = []
@@ -959,7 +1171,6 @@ def init_workspace(
             if item.executable:
                 item.path.chmod(item.path.stat().st_mode | 0o111)
 
-    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / _profile_filename(workspace_name)
     return {
         "workspace_root": str(workspace_root),
         "workspace_name": workspace_name,

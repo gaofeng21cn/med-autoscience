@@ -903,6 +903,183 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
     assert "显式" in result["next_system_action"]
 
 
+def test_study_progress_projects_manual_finishing_contract_before_runtime_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    study_yaml_path = study_root / "study.yaml"
+    study_yaml_path.write_text(
+        study_yaml_path.read_text(encoding="utf-8")
+        + "\n".join(
+            [
+                "",
+                "manual_finish:",
+                "  status: active",
+                "  summary: 当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
+                "  next_action_summary: 继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
+                "  compatibility_guard_only: true",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "stopped",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_stopped_requires_explicit_rerun",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "reason": "supervisor_tick_report_fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+                "latest_report_path": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
+                "latest_recorded_at": "2026-04-10T09:00:00+00:00",
+                "seconds_since_latest_recorded_at": 30,
+                "expected_interval_seconds": 300,
+                "stale_after_seconds": 600,
+            },
+            "continuation_state": {
+                "quest_status": "stopped",
+                "active_run_id": None,
+                "continuation_policy": "explicit_rerun_required",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-4e192147",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "manual_finishing"
+    assert "人工打磨收尾" in result["current_stage_summary"]
+    assert not any("显式" in item for item in result["current_blockers"])
+    assert "兼容性" in result["next_system_action"]
+
+
+def test_study_progress_does_not_project_study_completed_when_completion_contract_is_not_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-002",
+                "auto_resume": False,
+            },
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "completed",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {
+                "ready": False,
+                "status": "incomplete",
+                "completion_status": "completed",
+                "summary": "论文交付声明已写，但 final submission evidence 还没真正补齐。",
+                "missing_evidence_paths": ["manuscript/final/submission_manifest.json"],
+            },
+            "decision": "blocked",
+            "reason": "study_completion_contract_not_ready",
+            "publication_supervisor_state": {
+                "supervisor_phase": "scientific_anchor_missing",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": False,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "reason": "supervisor_tick_report_fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+                "latest_report_path": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
+                "latest_recorded_at": "2026-04-10T09:00:00+00:00",
+                "seconds_since_latest_recorded_at": 30,
+                "expected_interval_seconds": 300,
+                "stale_after_seconds": 600,
+            },
+            "continuation_state": {
+                "quest_status": "completed",
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": None,
+                "continuation_reason": None,
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert result["current_stage"] == "runtime_blocked"
+    assert "收尾/交付" not in result["current_stage_summary"]
+    assert any("final submission 证据还未补齐" in item for item in result["current_blockers"])
+
+
 def test_render_study_progress_markdown_humanizes_decision_continuation_reason() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
@@ -932,6 +1109,45 @@ def test_render_study_progress_markdown_humanizes_decision_continuation_reason()
 
     assert "decision:decision-4e192147" not in markdown
     assert "运行停在待处理的决策节点" in markdown
+
+
+def test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual_finishing() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "current_stage": "manual_finishing",
+            "current_stage_summary": "当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
+            "paper_stage": "publishability_gate_blocked",
+            "paper_stage_summary": "论文当前建议推进到“论文可发表性门控未放行”阶段。",
+            "runtime_decision": "blocked",
+            "runtime_reason": "quest_stopped_requires_explicit_rerun",
+            "current_blockers": ["medical_publication_surface_blocked"],
+            "next_system_action": "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
+            "latest_events": [],
+            "continuation_state": {
+                "continuation_reason": "decision:decision-4e192147",
+            },
+            "manual_finish_contract": {
+                "status": "active",
+                "summary": "当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
+                "next_action_summary": "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
+                "compatibility_guard_only": True,
+            },
+            "supervision": {
+                "health_status": "none",
+                "supervisor_tick_status": "fresh",
+                "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            },
+        }
+    )
+
+    assert "MAS 决策: 兼容性监督中" in markdown
+    assert "当前被阻断" not in markdown
+    assert "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。" not in markdown
+    assert "decision:decision-4e192147" not in markdown
 
 
 def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_blockers() -> None:
