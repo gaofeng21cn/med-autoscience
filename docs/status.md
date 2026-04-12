@@ -30,6 +30,7 @@
 - `doctor` 与 workspace contract 已同步暴露 `external_runtime_contract`，不再只能靠人工口头描述“external runtime 可能缺什么”。
 - `med_autoscience.runtime_transport.hermes` 已从 consumer-only alias 收紧为 profile/runtime-bound real adapter：先绑定 runtime home 下的 Hermes evidence，再对 external runtime readiness fail-closed，最后才委托 controlled `MedDeepScientist` backend 执行 quest control。
 - `2026-04-12` 已在真实 workspace `dm-cvd-mortality-risk` 的 `002-dm-china-us-mortality-attribution` 上拿到一条完整 F3 证据链：`ensure-study-runtime` 把 quest 从 `waiting_for_user` 拉回 `running` 并拿到 `active_run_id = run-b5ed4887`；随后 `watch --apply --ensure-study-runtimes` 与两次短周期 `watch --loop` 连续刷新了 `runtime_watch/latest.json`、`runtime_supervision/latest.json` 和 `study-progress`。
+- 同日又拿到一条 workspace-level 常驻监管 proof：对 legacy `dm-cvd-mortality-risk` workspace 重跑 `init-workspace` 后，controller 在不加 `--force` 的前提下安全升级了 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service`；随后 launchd `watch-runtime` service 成功常驻在线，`001-dm-cvd-mortality-risk` 从 `managed_runtime_supervision_gap` 恢复为 `runtime_blocked`，`002-dm-china-us-mortality-attribution` 恢复为 `publication_supervision`，两者的 `supervisor_tick_audit.status` 均回到 `fresh`。
 
 ## 长线目标（规划层）
 
@@ -46,6 +47,7 @@
 - `2026-04-12` 对真实外部环境运行 `doctor`、`hermes-runtime-check` 与 `hermes gateway status` 后已确认：`/Users/gaofeng/workspace/_external/hermes-agent`、其 `.venv` / launcher、`~/.hermes/state.db` 与 launchd gateway service 均已就绪；当前开发宿主上的 repo-side `F2 / real adapter cutover` 代码与回归也已落地。
 - 同日对真实 study `002-dm-china-us-mortality-attribution` 运行 `ensure-study-runtime` 后，controller 已通过真实 Hermes adapter 把 quest 从 `waiting_for_user` 拉回 `running`，并通过 `autonomous_runtime_notice` 暴露 `browser_url = http://127.0.0.1:20999`、`quest_session_api_url` 与 `active_run_id = run-b5ed4887`。
 - 同日对同一 runtime 运行 `watch --runtime-root ... --profile ... --ensure-study-runtimes --apply` 与 `watch --loop --interval-seconds 1 --max-ticks 2` 后，`runtime_watch/latest.json` 与 `runtime_supervision/latest.json` 已连续刷新，`study-progress` 也已从 `managed_runtime_supervision_gap` 恢复到 `publication_supervision`。
+- 同日对同一 workspace 追加验证 `ops/medautoscience/bin/install-watch-runtime-service` 后，launchd service 已稳定持有 `MED_AUTOSCIENCE_UV_BIN` 并持续刷新 supervisor tick；因此当前真实 blocker 不再是“MAS 外环没有常驻入口”，而是 `001` 仍需显式 rerun 决策，以及 `002` 仍停在 publication surface / reporting contract。
 - 如果其他宿主机尚无 external `Hermes-Agent` runtime，本仓当前 adapter 会 fail-closed：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 `Hermes-Agent` host 已脱离 `MedDeepScientist` 完整接管执行”。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - 对当前开发宿主，external runtime dependency gate 已通过，F2 real adapter 与至少一条 F3 real study recovery/progress proof 也都已成立；当前 honest next step 已转为 `F4 / blocker 收口`，而不是回去继续做 seam-only 包装。

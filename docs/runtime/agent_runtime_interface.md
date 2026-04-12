@@ -158,21 +158,25 @@
 
 ## 当前用户可见的启动与进度入口
 
-对当前 agent-operated 形态，用户真正会碰到的启动与监督入口只有四个：
+对当前 agent-operated 形态，用户真正会碰到的启动与监督入口是四个 CLI 加一个可选的 workspace service 入口：
 
 - 正式启动或续跑：`ensure-study-runtime --profile <profile> --study-id <study_id>`
 - 完整结构化真相：`study-runtime-status --profile <profile> --study-id <study_id>`
 - 人话进度投影：`study-progress --profile <profile> --study-id <study_id>`
 - MAS 外环监管心跳：`watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+- MAS supervisor loop 常驻服务：`ops/medautoscience/bin/install-watch-runtime-service`
+
+如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。
 
 前台 contract 要求：
 
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
 - `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前阻塞和下一步
-- `watch` 负责持续刷新 supervisor tick；没有它，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
+- `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 
 `2026-04-12` 在真实 study `002-dm-china-us-mortality-attribution` 上已经验证过这套入口：`ensure-study-runtime` 把 quest 拉回 live managed runtime，`study-runtime-status` 暴露了 `browser_url = http://127.0.0.1:20999` 与 `active_run_id = run-b5ed4887`，而 `watch --apply --ensure-study-runtimes` 与短周期 `watch --loop` 则连续刷新了 `runtime_watch/latest.json`、`runtime_supervision/latest.json` 和 `study-progress`。
+同日又在真实 workspace `dm-cvd-mortality-risk` 上验证了产品态常驻路径：对 legacy workspace 重跑 `init-workspace` 后，controller 安全升级了 `_shared.sh`、`watch-runtime` 与 `install-watch-runtime-service`；随后 launchd `watch-runtime` service 成功常驻在线，`001-dm-cvd-mortality-risk` 从 `managed_runtime_supervision_gap` 回到诚实的 `runtime_blocked`，`002-dm-china-us-mortality-attribution` 则回到 `publication_supervision`，两者的 `supervisor_tick_audit.status` 都恢复为 `fresh`。
 
 ## 运行层分工
 

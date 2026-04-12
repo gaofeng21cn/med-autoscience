@@ -112,6 +112,11 @@
   - `watch --runtime-root ... --profile ... --ensure-study-runtimes --apply` 刷新了 `runtime_watch/latest.json` 与 `runtime_supervision/latest.json`
   - `watch --loop --interval-seconds 1 --max-ticks 2` 又连续写出两次新的 supervisor tick，证明这不是一次性手动补写
   - `study-progress` 已从 `managed_runtime_supervision_gap` 恢复为 `publication_supervision`
+- 同日对同一 workspace 又完成了一条 F4 收口 proof：
+  - legacy workspace 重新执行 `init-workspace` 时，controller 已能在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts
+  - `ops/medautoscience/bin/install-watch-runtime-service` 安装出的 launchd service 已显式携带 `MED_AUTOSCIENCE_UV_BIN`
+  - service 常驻后，`001-dm-cvd-mortality-risk` 从 `managed_runtime_supervision_gap` 恢复为 `runtime_blocked`
+  - service 常驻后，`002-dm-china-us-mortality-attribution` 从 `managed_runtime_supervision_gap` 恢复为 `publication_supervision`
 - 因此当前开发宿主上的 honest next step 已从 `F3 / real study soak / recovery proof` 转为 `F4 / blocker 收口`
 - 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，`001-dm-cvd-mortality-risk` 还需要显式 rerun 决策，`002-dm-china-us-mortality-attribution` 的当前 blocker 也已诚实回落到 publication surface / reporting contract，而不是 runtime owner gap
 

@@ -74,7 +74,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert ds_shared.is_file()
     med_shared_text = med_shared.read_text(encoding="utf-8")
     ds_shared_text = ds_shared.read_text(encoding="utf-8")
-    assert 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
+    assert 'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"' in med_shared_text
+    assert '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
     assert 'uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}"' in ds_shared_text
     assert 'CONTRACT_JSON="${payload_json}" uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<' in ds_shared_text
 
@@ -200,3 +201,139 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     )
     assert str(profile_path) in third["overwritten_files"]
     assert 'name = "pituitary"' in profile_path.read_text(encoding="utf-8")
+
+
+def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "lung-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="lung",
+        dry_run=False,
+        force=False,
+    )
+
+    runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
+    service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+    uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+
+    for path in (runner, install_service, service_status, uninstall_service):
+        assert path.is_file()
+        assert os.access(path, os.X_OK)
+
+    runner_text = runner.read_text(encoding="utf-8")
+    assert 'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"' in runner_text
+    assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
+    assert 'exec "${WATCH_RUNTIME_SCRIPT}" --interval-seconds "${WATCH_RUNTIME_INTERVAL_SECONDS}" "$@"' in runner_text
+
+    install_text = install_service.read_text(encoding="utf-8")
+    assert "ai.medautoscience.lung.watch-runtime" in install_text
+    assert "medautoscience-watch-runtime-lung" in install_text
+    assert 'watch-runtime-service-runner' in install_text
+    assert "MED_AUTOSCIENCE_UV_BIN" in install_text
+    assert "command -v uv" in install_text
+    assert "launchctl bootstrap" in install_text
+    assert "systemctl --user enable --now" in install_text
+    assert 'ops/medautoscience/logs' in install_text
+
+    status_text = service_status.read_text(encoding="utf-8")
+    assert "launchctl print" in status_text
+    assert "systemctl --user status" in status_text
+
+    uninstall_text = uninstall_service.read_text(encoding="utf-8")
+    assert "launchctl bootout" in uninstall_text
+    assert "systemctl --user disable --now" in uninstall_text
+
+
+def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "legacy-workspace"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy",
+        dry_run=False,
+        force=False,
+    )
+
+    shared = workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh"
+    watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
+
+    shared.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n\n"
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        'MEDAUTOSCI_OPS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"\n'
+        'WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"\n'
+        'DEFAULT_PROFILE="${WORKSPACE_ROOT}/ops/medautoscience/profiles/legacy.local.toml"\n'
+        'CONFIG_ENV_PATH="${MEDAUTOSCI_OPS_ROOT}/config.env"\n\n'
+        'if [[ -f "${CONFIG_ENV_PATH}" ]]; then\n'
+        "  # shellcheck disable=SC1090\n"
+        '  source "${CONFIG_ENV_PATH}"\n'
+        "fi\n\n"
+        'PROFILE_PATH="${MED_AUTOSCIENCE_PROFILE:-${DEFAULT_PROFILE}}"\n'
+        'MED_AUTOSCIENCE_REPO_RESOLVED="$(cd "${MED_AUTOSCIENCE_REPO}" && pwd)"\n\n'
+        "run_medautosci() {\n"
+        '  PYTHONPATH="${MED_AUTOSCIENCE_REPO_RESOLVED}/src${PYTHONPATH:+:${PYTHONPATH}}" \\\n'
+        '    python3 -m med_autoscience.cli "$@"\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    watch_runtime.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci watch \\\n'
+        '  --runtime-root "/private/var/folders/example/tmp.ws/ops/med-deepscientist/runtime/quests" \\\n'
+        '  "$@"\n',
+        encoding="utf-8",
+    )
+    install_service.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'LAUNCHD_LABEL="ai.medautoscience.legacy.watch-runtime"\n'
+        'SYSTEMD_SERVICE_NAME="medautoscience-watch-runtime-legacy"\n'
+        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"\n'
+        'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n'
+        'LOG_DIR="${WORKSPACE_ROOT}/ops/medautoscience/logs"\n'
+        'STDOUT_LOG="${LOG_DIR}/watch-runtime.stdout.log"\n'
+        'STDERR_LOG="${LOG_DIR}/watch-runtime.stderr.log"\n\n'
+        'mkdir -p "${LOG_DIR}"\n\n'
+        'case "$(uname -s)" in\n'
+        "  Darwin)\n"
+        '    launchctl bootstrap "gui/${UID}" "${HOME}/Library/LaunchAgents/${LAUNCHD_LABEL}.plist"\n'
+        "    ;;\n"
+        "  Linux)\n"
+        '    systemctl --user enable --now "${SYSTEMD_SERVICE_NAME}.service"\n'
+        "    ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(shared) in result["upgraded_files"]
+    assert str(watch_runtime) in result["upgraded_files"]
+    assert str(install_service) in result["upgraded_files"]
+
+    shared_text = shared.read_text(encoding="utf-8")
+    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
+    assert "MED_AUTOSCIENCE_UV_BIN" in shared_text
+    assert "command -v uv" in shared_text
+    assert 'python3 -m med_autoscience.cli' not in shared_text
+    assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' in watch_runtime_text
+    assert '--ensure-study-runtimes' in watch_runtime_text
+    assert '--apply' in watch_runtime_text
+    assert '--loop' in watch_runtime_text
+    install_text = install_service.read_text(encoding="utf-8")
+    assert "MED_AUTOSCIENCE_UV_BIN" in install_text
+    assert "command -v uv" in install_text

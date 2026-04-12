@@ -43,6 +43,7 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "portfolio" / "research_memory" / "external_reports",
         workspace_root / "refs",
         workspace_root / "ops" / "medautoscience" / "bin",
+        workspace_root / "ops" / "medautoscience" / "logs",
         workspace_root / "ops" / "medautoscience" / "profiles",
         layout.bin_root,
         layout.runtime_root,
@@ -66,9 +67,10 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "4. 编辑 `ops/med-deepscientist/config.env`，设置本机 `ds` launcher 路径。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
-        "7. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
-        "8. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
-        "9. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
+        "7. 如需让 MAS 外环监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理它。\n\n"
+        "8. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
+        "9. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "10. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `ops/med-deepscientist/` 只保留 runtime 状态和运维脚本。\n"
@@ -92,6 +94,7 @@ def _render_workspace_rules() -> str:
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"
+        "- live managed runtime 需要持续在线的 MAS supervisor loop；默认应把 `ops/medautoscience/bin/watch-runtime` 交给 host service / scheduler 持续调用，避免 supervisor tick 回落为 `stale`。\n"
         "- 不得直接写入 runtime-owned 的 study / quest / paper surface；如需人工接管，先显式暂停 runtime。\n"
         "- 只要 `publication_supervisor_state.bundle_tasks_downstream_only = true`，就把 bundle/build/proofing 视为硬阻断，不得抢跑。\n"
         f"- {automation_ready_summary}\n"
@@ -163,6 +166,8 @@ def _render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path
     return (
         "# Set the absolute path to the shared MedAutoScience checkout.\n"
         'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"\n'
+        "# Optional: set the absolute path to the uv binary used by workspace entry scripts and host services.\n"
+        'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"\n'
         "# Optional: override the default local profile file.\n"
         f'MED_AUTOSCIENCE_PROFILE="{profile_path}"\n'
     )
@@ -181,6 +186,12 @@ def _render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "这个目录是当前 workspace 面向用户和 Agent 的本地入口层。\n\n"
         "默认 profile:\n\n"
         f"- `{profile_relpath.as_posix()}`\n"
+        "\n"
+        "推荐的长时监管入口：\n\n"
+        "- `bin/watch-runtime`\n"
+        "- `bin/install-watch-runtime-service`\n"
+        "- `bin/watch-runtime-service-status`\n"
+        "- `bin/uninstall-watch-runtime-service`\n"
     )
 
 
@@ -228,8 +239,21 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         '  echo "Profile file not found: ${PROFILE_PATH}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
+        'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"\n'
+        'if [[ -z "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
+        '  echo "uv is not available. Set MED_AUTOSCIENCE_UV_BIN in ${CONFIG_ENV_PATH} or install uv on PATH." >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'if [[ "${MED_AUTOSCIENCE_UV_BIN}" != /* ]]; then\n'
+        '  echo "MED_AUTOSCIENCE_UV_BIN must be an absolute path: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'if [[ ! -x "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
+        '  echo "MED_AUTOSCIENCE_UV_BIN is not executable: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
         "run_medautosci() {\n"
-        '  uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
+        '  "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
         "}\n"
     )
 
@@ -279,6 +303,195 @@ def _render_watch_runtime_script(*, runtime_quests_root: Path) -> str:
         '  --apply \\\n'
         '  --loop \\\n'
         '  "$@"\n'
+    )
+
+
+def _watch_runtime_launchd_label(workspace_name: str) -> str:
+    return f"ai.medautoscience.{_slugify_workspace_name(workspace_name)}.watch-runtime"
+
+
+def _watch_runtime_systemd_name(workspace_name: str) -> str:
+    return f"medautoscience-watch-runtime-{_slugify_workspace_name(workspace_name)}"
+
+
+def _render_watch_runtime_service_runner() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"\n'
+        'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
+        'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
+        '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'exec "${WATCH_RUNTIME_SCRIPT}" --interval-seconds "${WATCH_RUNTIME_INTERVAL_SECONDS}" "$@"\n'
+    )
+
+
+def _render_watch_runtime_service_install_script(*, workspace_name: str) -> str:
+    launchd_label = _watch_runtime_launchd_label(workspace_name)
+    systemd_name = _watch_runtime_systemd_name(workspace_name)
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        f'LAUNCHD_LABEL="{launchd_label}"\n'
+        f'SYSTEMD_SERVICE_NAME="{systemd_name}"\n'
+        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-300}"\n'
+        'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n'
+        'LOG_DIR="${WORKSPACE_ROOT}/ops/medautoscience/logs"\n'
+        'STDOUT_LOG="${LOG_DIR}/watch-runtime.stdout.log"\n'
+        'STDERR_LOG="${LOG_DIR}/watch-runtime.stderr.log"\n\n'
+        'if [[ ! -x "${WATCH_RUNTIME_RUNNER}" ]]; then\n'
+        '  echo "watch-runtime-service-runner is missing or not executable: ${WATCH_RUNTIME_RUNNER}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"\n'
+        'if [[ -z "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
+        '  echo "uv is not available. Set MED_AUTOSCIENCE_UV_BIN in ops/medautoscience/config.env or install uv on PATH before installing the service." >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'if [[ "${MED_AUTOSCIENCE_UV_BIN}" != /* ]]; then\n'
+        '  echo "MED_AUTOSCIENCE_UV_BIN must be an absolute path: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'if [[ ! -x "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
+        '  echo "MED_AUTOSCIENCE_UV_BIN is not executable: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
+        "  exit 1\n"
+        "fi\n\n"
+        'mkdir -p "${LOG_DIR}"\n\n'
+        'case "$(uname -s)" in\n'
+        "  Darwin)\n"
+        '    SERVICE_FILE="${HOME}/Library/LaunchAgents/${LAUNCHD_LABEL}.plist"\n'
+        '    mkdir -p "$(dirname "${SERVICE_FILE}")"\n'
+        '    LAUNCHD_LABEL="${LAUNCHD_LABEL}" \\\n'
+        '    SERVICE_FILE="${SERVICE_FILE}" \\\n'
+        '    WORKSPACE_ROOT="${WORKSPACE_ROOT}" \\\n'
+        '    WATCH_RUNTIME_RUNNER="${WATCH_RUNTIME_RUNNER}" \\\n'
+        '    WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS}" \\\n'
+        '    MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN}" \\\n'
+        '    STDOUT_LOG="${STDOUT_LOG}" \\\n'
+        '    STDERR_LOG="${STDERR_LOG}" \\\n'
+        "    python3 - <<'PY'\n"
+        "import os\n"
+        "import plistlib\n\n"
+        "payload = {\n"
+        '    "Label": os.environ["LAUNCHD_LABEL"],\n'
+        '    "ProgramArguments": [os.environ["WATCH_RUNTIME_RUNNER"]],\n'
+        '    "EnvironmentVariables": {\n'
+        '        "WATCH_RUNTIME_INTERVAL_SECONDS": os.environ["WATCH_RUNTIME_INTERVAL_SECONDS"],\n'
+        '        "MED_AUTOSCIENCE_UV_BIN": os.environ["MED_AUTOSCIENCE_UV_BIN"],\n'
+        "    },\n"
+        '    "WorkingDirectory": os.environ["WORKSPACE_ROOT"],\n'
+        '    "RunAtLoad": True,\n'
+        '    "KeepAlive": True,\n'
+        '    "StandardOutPath": os.environ["STDOUT_LOG"],\n'
+        '    "StandardErrorPath": os.environ["STDERR_LOG"],\n'
+        "}\n\n"
+        'with open(os.environ["SERVICE_FILE"], "wb") as handle:\n'
+        "    plistlib.dump(payload, handle)\n"
+        "PY\n"
+        '    launchctl bootout "gui/${UID}/${LAUNCHD_LABEL}" >/dev/null 2>&1 || true\n'
+        '    launchctl bootstrap "gui/${UID}" "${SERVICE_FILE}"\n'
+        '    launchctl kickstart -k "gui/${UID}/${LAUNCHD_LABEL}"\n'
+        '    echo "Installed MedAutoScience watch-runtime launchd service: ${LAUNCHD_LABEL}"\n'
+        "    ;;\n"
+        "  Linux)\n"
+        '    SERVICE_FILE="${HOME}/.config/systemd/user/${SYSTEMD_SERVICE_NAME}.service"\n'
+        '    mkdir -p "$(dirname "${SERVICE_FILE}")"\n'
+        '    cat > "${SERVICE_FILE}" <<EOF\n'
+        "[Unit]\n"
+        "Description=MedAutoScience watch-runtime supervisor loop\n"
+        "After=default.target\n\n"
+        "[Service]\n"
+        "Type=simple\n"
+        'WorkingDirectory=${WORKSPACE_ROOT}\n'
+        'Environment=WATCH_RUNTIME_INTERVAL_SECONDS=${WATCH_RUNTIME_INTERVAL_SECONDS}\n'
+        'Environment=MED_AUTOSCIENCE_UV_BIN=${MED_AUTOSCIENCE_UV_BIN}\n'
+        'ExecStart=${WATCH_RUNTIME_RUNNER}\n'
+        "Restart=always\n"
+        "RestartSec=5\n"
+        'StandardOutput=append:${STDOUT_LOG}\n'
+        'StandardError=append:${STDERR_LOG}\n\n'
+        "[Install]\n"
+        "WantedBy=default.target\n"
+        "EOF\n"
+        '    systemctl --user daemon-reload\n'
+        '    systemctl --user enable --now "${SYSTEMD_SERVICE_NAME}.service"\n'
+        '    echo "Installed MedAutoScience watch-runtime systemd user service: ${SYSTEMD_SERVICE_NAME}"\n'
+        "    ;;\n"
+        "  *)\n"
+        '    echo "Unsupported host scheduler. Use watch-runtime directly on this platform." >&2\n'
+        "    exit 1\n"
+        "    ;;\n"
+        "esac\n"
+    )
+
+
+def _render_watch_runtime_service_status_script(*, workspace_name: str) -> str:
+    launchd_label = _watch_runtime_launchd_label(workspace_name)
+    systemd_name = _watch_runtime_systemd_name(workspace_name)
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        f'LAUNCHD_LABEL="{launchd_label}"\n'
+        f'SYSTEMD_SERVICE_NAME="{systemd_name}"\n\n'
+        'case "$(uname -s)" in\n'
+        "  Darwin)\n"
+        '    SERVICE_FILE="${HOME}/Library/LaunchAgents/${LAUNCHD_LABEL}.plist"\n'
+        '    echo "service_label: ${LAUNCHD_LABEL}"\n'
+        '    echo "service_file: ${SERVICE_FILE}"\n'
+        '    if launchctl print "gui/${UID}/${LAUNCHD_LABEL}" >/dev/null 2>&1; then\n'
+        '      echo "loaded: true"\n'
+        '      launchctl print "gui/${UID}/${LAUNCHD_LABEL}"\n'
+        "    else\n"
+        '      echo "loaded: false"\n'
+        "    fi\n"
+        "    ;;\n"
+        "  Linux)\n"
+        '    SERVICE_FILE="${HOME}/.config/systemd/user/${SYSTEMD_SERVICE_NAME}.service"\n'
+        '    echo "service_name: ${SYSTEMD_SERVICE_NAME}"\n'
+        '    echo "service_file: ${SERVICE_FILE}"\n'
+        '    systemctl --user status "${SYSTEMD_SERVICE_NAME}.service" --no-pager || true\n'
+        "    ;;\n"
+        "  *)\n"
+        '    echo "Unsupported host scheduler. Use watch-runtime directly on this platform." >&2\n'
+        "    exit 1\n"
+        "    ;;\n"
+        "esac\n"
+    )
+
+
+def _render_watch_runtime_service_uninstall_script(*, workspace_name: str) -> str:
+    launchd_label = _watch_runtime_launchd_label(workspace_name)
+    systemd_name = _watch_runtime_systemd_name(workspace_name)
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        f'LAUNCHD_LABEL="{launchd_label}"\n'
+        f'SYSTEMD_SERVICE_NAME="{systemd_name}"\n\n'
+        'case "$(uname -s)" in\n'
+        "  Darwin)\n"
+        '    SERVICE_FILE="${HOME}/Library/LaunchAgents/${LAUNCHD_LABEL}.plist"\n'
+        '    launchctl bootout "gui/${UID}/${LAUNCHD_LABEL}" >/dev/null 2>&1 || true\n'
+        '    rm -f "${SERVICE_FILE}"\n'
+        '    echo "Removed MedAutoScience watch-runtime launchd service: ${LAUNCHD_LABEL}"\n'
+        "    ;;\n"
+        "  Linux)\n"
+        '    SERVICE_FILE="${HOME}/.config/systemd/user/${SYSTEMD_SERVICE_NAME}.service"\n'
+        '    systemctl --user disable --now "${SYSTEMD_SERVICE_NAME}.service" >/dev/null 2>&1 || true\n'
+        '    rm -f "${SERVICE_FILE}"\n'
+        '    systemctl --user daemon-reload\n'
+        '    echo "Removed MedAutoScience watch-runtime systemd user service: ${SYSTEMD_SERVICE_NAME}"\n'
+        "    ;;\n"
+        "  *)\n"
+        '    echo "Unsupported host scheduler. Remove the service manually on this platform." >&2\n'
+        "    exit 1\n"
+        "    ;;\n"
+        "esac\n"
     )
 
 
@@ -416,6 +629,51 @@ def _render_med_deepscientist_shared() -> str:
     )
 
 
+def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
+    suffix = path.parts[-4:]
+    if suffix == ("ops", "medautoscience", "bin", "_shared.sh"):
+        if "python3 -m med_autoscience.cli" in existing_content:
+            return "legacy_python_entry"
+        return None
+    if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
+        looks_like_managed_watch = (
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
+            and "run_medautosci watch" in existing_content
+            and "--runtime-root" in existing_content
+        )
+        if looks_like_managed_watch and (
+            'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' not in existing_content
+            or '--profile "${PROFILE_PATH}"' not in existing_content
+            or "--ensure-study-runtimes" not in existing_content
+            or "--apply" not in existing_content
+            or "--loop" not in existing_content
+        ):
+            return "legacy_watch_runtime_entry"
+    if suffix == ("ops", "medautoscience", "bin", "install-watch-runtime-service"):
+        looks_like_service_install = (
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
+            and "watch-runtime-service-runner" in existing_content
+            and ("launchctl bootstrap" in existing_content or "systemctl --user enable --now" in existing_content)
+        )
+        if looks_like_service_install and "MED_AUTOSCIENCE_UV_BIN" not in existing_content:
+            return "legacy_watch_runtime_service_install"
+    return None
+
+
+def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
+    if not item.path.exists():
+        return "create"
+    if force:
+        return "overwrite"
+    try:
+        existing_content = item.path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return "skip"
+    if _legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
+        return "upgrade"
+    return "skip"
+
+
 def _render_med_deepscientist_forward(script_command: str) -> str:
     return (
         "#!/usr/bin/env bash\n"
@@ -518,6 +776,26 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime",
             content=_render_watch_runtime_script(runtime_quests_root=layout.quests_root),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner",
+            content=_render_watch_runtime_service_runner(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service",
+            content=_render_watch_runtime_service_install_script(workspace_name=workspace_name),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status",
+            content=_render_watch_runtime_service_status_script(workspace_name=workspace_name),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service",
+            content=_render_watch_runtime_service_uninstall_script(workspace_name=workspace_name),
             executable=True,
         ),
         RenderedFile(
@@ -646,22 +924,35 @@ def init_workspace(
     created_files: list[str] = []
     skipped_files: list[str] = []
     overwritten_files: list[str] = []
+    upgraded_files: list[str] = []
 
     if dry_run:
-        created_directories = [str(path) for path in directories]
-        created_files = [str(item.path) for item in files]
+        created_directories = [str(path) for path in directories if not path.exists()]
+        for item in files:
+            action = _rendered_file_action(item, force=force)
+            if action == "create":
+                created_files.append(str(item.path))
+            elif action == "overwrite":
+                overwritten_files.append(str(item.path))
+            elif action == "upgrade":
+                upgraded_files.append(str(item.path))
+            else:
+                skipped_files.append(str(item.path))
     else:
         for path in directories:
             if not path.exists():
                 path.mkdir(parents=True, exist_ok=True)
                 created_directories.append(str(path))
         for item in files:
-            if item.path.exists() and not force:
+            action = _rendered_file_action(item, force=force)
+            if action == "skip":
                 skipped_files.append(str(item.path))
                 continue
             item.path.parent.mkdir(parents=True, exist_ok=True)
-            if item.path.exists() and force:
+            if action == "overwrite":
                 overwritten_files.append(str(item.path))
+            elif action == "upgrade":
+                upgraded_files.append(str(item.path))
             else:
                 created_files.append(str(item.path))
             item.path.write_text(item.content, encoding="utf-8")
@@ -678,6 +969,7 @@ def init_workspace(
         "created_files": created_files,
         "skipped_files": skipped_files,
         "overwritten_files": overwritten_files,
+        "upgraded_files": upgraded_files,
         "profile_path": str(profile_path),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",

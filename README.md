@@ -217,18 +217,21 @@ You can give your agent an instruction like this:
 
 ### How Users Start And Watch Progress Today
 
-For the current agent-operated path, four commands define the real user-facing loop:
+For the current agent-operated path, four commands plus one optional host-service entry define the real user-facing loop:
 
 - Start or resume a managed study: `uv run python -m med_autoscience.cli ensure-study-runtime --profile <profile> --study-id <study_id>`
 - Inspect the full structured state and monitoring entry: `uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>`
 - Read the human-facing progress summary: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
 - Refresh the MAS supervisor heartbeat: `uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+- Keep the MAS supervisor loop online as a user service: `ops/medautoscience/bin/install-watch-runtime-service`
+
+If a workspace was initialized from an older scaffold, re-run `init-workspace` once before installing the service. The controller now upgrades the service-critical managed entry scripts in place without requiring `--force`.
 
 When `study-runtime-status` reports `autonomous_runtime_notice.required = true` or `execution_owner_guard.supervisor_only = true`, the study is already in a live managed runtime. At that point the user-visible surface is:
 
 - `browser_url`, `quest_session_api_url`, and `active_run_id` as the monitoring entry
 - `study-progress` for the plain-language phase, blockers, and next action
-- a supervisor-only foreground agent instead of direct writes into runtime-owned surfaces
+- the host service behind `install-watch-runtime-service` keeping the supervisor heartbeat fresh, plus a supervisor-only foreground agent instead of direct writes into runtime-owned surfaces
 
 ## Documentation
 

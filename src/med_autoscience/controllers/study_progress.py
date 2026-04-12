@@ -50,6 +50,7 @@ _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
     "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
+    "quest_stopped_requires_explicit_rerun": "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。",
     "startup_boundary_not_ready_for_resume": "运行前置条件尚未满足，系统不能直接续跑。",
     "runtime_reentry_not_ready_for_resume": "运行重入条件尚未满足，系统不能直接续跑。",
     "quest_already_running": "托管运行时已经处于自动推进状态。",
@@ -274,6 +275,8 @@ def _continuation_reason_label(value: object) -> str | None:
     text = _non_empty_text(value)
     if text is None:
         return None
+    if text.startswith("decision:"):
+        return "运行停在待处理的决策节点"
     return _CONTINUATION_REASON_LABELS.get(text, _humanize_token(text))
 
 
@@ -410,6 +413,8 @@ def _current_stage(
         return "managed_runtime_supervision_gap"
     if needs_physician_decision:
         return "waiting_physician_decision"
+    if decision == "blocked":
+        return "runtime_blocked"
     if isinstance(publication_supervisor_state, dict) and _non_empty_text(
         publication_supervisor_state.get("supervisor_phase")
     ):
@@ -448,6 +453,7 @@ def _paper_stage_summary(
 
 def _stage_summary(
     *,
+    status: dict[str, Any],
     current_stage: str,
     publication_supervisor_state: dict[str, Any],
     latest_progress_message: str | None,
@@ -495,6 +501,9 @@ def _stage_summary(
             summary += f" 最近一次可见推进是：{latest_progress_message}"
         return summary
     if current_stage == "runtime_blocked":
+        reason = _reason_label(status.get("reason"))
+        if reason is not None:
+            return reason
         return "自动推进已被硬阻断，需要先补齐前置条件后才能继续。"
     return "研究运行仍处在准备或轻量评估阶段。"
 
@@ -575,24 +584,25 @@ def _next_system_action(
         if action_type is not None:
             return f"等待医生/PI 确认后，再{action_type}。"
         return "等待医生/PI 明确确认后，再继续下一步托管推进。"
+    decision = _non_empty_text(status.get("decision"))
+    if decision == "blocked":
+        reason = _reason_label(status.get("reason"))
+        if reason is not None:
+            return reason
     publication_action = _action_label((publication_supervisor_state or {}).get("current_required_action"))
     if publication_action is not None:
         return publication_action
     guard_action = _action_label((execution_owner_guard or {}).get("current_required_action"))
     if guard_action is not None:
         return guard_action
-    decision = _non_empty_text(status.get("decision"))
     if decision in {"create_and_start", "resume", "relaunch_stopped"}:
         return "系统会继续托管推进当前研究运行。"
-    if decision == "blocked":
-        reason = _reason_label(status.get("reason"))
-        if reason is not None:
-            return reason
     return "继续轮询研究状态，并把新的阶段变化投影到前台。"
 
 
 def _current_blockers(
     *,
+    status: dict[str, Any],
     publication_eval_payload: dict[str, Any] | None,
     runtime_watch_payload: dict[str, Any] | None,
     runtime_escalation_payload: dict[str, Any] | None,
@@ -614,6 +624,11 @@ def _current_blockers(
             blockers,
             _non_empty_text((runtime_supervision_payload or {}).get("summary"))
             or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update")),
+        )
+    if _non_empty_text(status.get("decision")) == "blocked":
+        _append_unique(
+            blockers,
+            _reason_label(status.get("reason")) or _non_empty_text(status.get("reason")),
         )
     if bool((controller_decision_payload or {}).get("requires_human_confirmation")):
         _append_unique(blockers, "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。")
@@ -922,6 +937,7 @@ def build_study_progress_projection(
         "quest_root": str(quest_root) if quest_root is not None else None,
         "current_stage": current_stage,
         "current_stage_summary": _display_text(_stage_summary(
+            status=status,
             current_stage=current_stage,
             publication_supervisor_state=publication_supervisor_state,
             latest_progress_message=latest_progress_message,
@@ -954,6 +970,7 @@ def build_study_progress_projection(
         ),
         "current_blockers": _humanized_blockers(
             _current_blockers(
+                status=status,
                 publication_eval_payload=publication_eval_payload,
                 runtime_watch_payload=runtime_watch_payload,
                 runtime_escalation_payload=runtime_escalation_payload,
