@@ -44,7 +44,7 @@ jobs:
           PY
 
       - name: Run full test baseline
-        run: make test-full
+        run: scripts/verify.sh full
 
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel

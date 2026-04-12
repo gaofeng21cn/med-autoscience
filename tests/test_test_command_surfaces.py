@@ -53,3 +53,16 @@ def test_root_agents_describe_current_verification_entrypoints() -> None:
     assert "默认最小验证：`scripts/verify.sh`（内部运行 `make test-fast`）。" in agents
     assert "full lane：`scripts/verify.sh full`（内部运行 `make test-full`）。" in agents
     assert "修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。" in agents
+
+
+def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
+    verify_script = _read("scripts/verify.sh")
+
+    assert 'if [[ -z "${lane}" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "meta" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "display" ]]; then' in verify_script
+    assert 'if [[ "${lane}" == "full" ]]; then' in verify_script
+    assert "make test-fast" in verify_script
+    assert "make test-meta" in verify_script
+    assert "make test-display" in verify_script
+    assert "make test-full" in verify_script

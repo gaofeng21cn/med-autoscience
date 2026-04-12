@@ -282,6 +282,9 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     assert not (study_root / "manuscript" / "submission_package" / "tables" / "README.md").exists()
     assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.pdf").exists()
     assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.pdf").exists()
+    assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
     delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
     assert delivery_manifest["surface_roles"] == {
         "controller_authorized_paper_root": str(paper_root),
@@ -289,6 +292,8 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "human_facing_delivery_root": str(study_root / "manuscript"),
         "human_facing_submission_package_root": str(study_root / "manuscript" / "submission_package"),
         "human_facing_submission_package_zip": str(study_root / "manuscript" / "submission_package.zip"),
+        "human_facing_current_package_root": str(study_root / "manuscript" / "current_package"),
+        "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
         "auxiliary_evidence_root": None,
         "journal_submission_mirror_root": None,
     }
@@ -348,6 +353,8 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     assert (manuscript_root / "submission_manifest.json").exists()
     assert (manuscript_root / "submission_package.zip").exists()
     assert (submission_package_root / "README.md").exists()
+    assert (manuscript_root / "current_package" / "README.md").exists()
+    assert (manuscript_root / "current_package.zip").exists()
     assert "audit preview" in (
         submission_package_root / "README.md"
     ).read_text(encoding="utf-8")
@@ -675,9 +682,14 @@ def test_sync_study_delivery_for_draft_handoff_populates_study_draft_bundle(tmp_
     assert not (draft_bundle_root / "figures" / "cohort_flow.shell.json").exists()
     assert not (draft_bundle_root / "tables" / "baseline_characteristics.shell.json").exists()
     assert (study_root / "manuscript" / "draft_bundle.zip").exists()
+    assert (study_root / "manuscript" / "current_package" / "draft.md").exists()
+    assert (study_root / "manuscript" / "current_package" / "figures" / "F1_cohort_flow.pdf").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
     assert manifest["stage"] == "draft_handoff"
     assert manifest["targets"]["draft_bundle_root"] == str(draft_bundle_root)
     assert manifest["targets"]["draft_bundle_zip"] == str(study_root / "manuscript" / "draft_bundle.zip")
+    assert manifest["targets"]["current_package_root"] == str(study_root / "manuscript" / "current_package")
+    assert manifest["targets"]["current_package_zip"] == str(study_root / "manuscript" / "current_package.zip")
 
 
 def test_describe_draft_handoff_delivery_detects_stale_sources(tmp_path: Path) -> None:

@@ -61,10 +61,10 @@ def test_release_workflows_use_uv_managed_test_environment() -> None:
 
     assert "uv sync --frozen --group dev" in ci_workflow
     assert "uv sync --frozen --group dev" in release_workflow
-    assert "make test-meta" in ci_workflow
-    assert "make test-fast" in ci_workflow
-    assert "make test-display" in ci_workflow
-    assert "make test-full" in release_workflow
+    assert "scripts/verify.sh meta" in ci_workflow
+    assert "scripts/verify.sh" in ci_workflow
+    assert "scripts/verify.sh display" in ci_workflow
+    assert "scripts/verify.sh full" in release_workflow
     assert "uv run python -m build --sdist --wheel" in ci_workflow
     assert "uv run python -m build --sdist --wheel" in release_workflow
     assert "python -m pytest" not in ci_workflow
@@ -73,6 +73,10 @@ def test_release_workflows_use_uv_managed_test_environment() -> None:
     assert "python -m pip install pytest build python-docx ." not in release_workflow
     assert "uv run pytest" not in ci_workflow
     assert "uv run pytest" not in release_workflow
+    assert "make test-meta" not in ci_workflow
+    assert "make test-fast" not in ci_workflow
+    assert "make test-display" not in ci_workflow
+    assert "make test-full" not in release_workflow
 
 
 def test_ci_and_release_workflows_prepare_study_runtime_analysis_bundle_before_display_bound_lanes() -> None:
@@ -83,7 +87,7 @@ def test_ci_and_release_workflows_prepare_study_runtime_analysis_bundle_before_d
     assert "Run display-heavy tests" in ci_workflow
     assert "brew install pandoc graphviz r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow
-    assert "make test-full" in release_workflow
+    assert "scripts/verify.sh full" in release_workflow
 
 
 def test_release_workflows_split_ci_fast_and_display_jobs() -> None:

@@ -182,6 +182,7 @@ def build_general_delivery_readme(*, study_id: str, stage: str) -> str:
         f"- Canonical authority surface: `paper/`\n"
         f"- Canonical package root: `paper/submission_minimal/`\n"
         f"- This directory: `manuscript/` (human-facing delivery root)\n"
+        f"- Stable human-facing entry: `manuscript/current_package/`\n"
         f"- Figures/tables for human handoff: `manuscript/submission_package/`\n\n"
         f"This directory is refreshed automatically from the canonical paper-owned submission package so human handoff stays easy to find without introducing a second authority surface.\n"
     )
@@ -231,6 +232,7 @@ def build_manuscript_root_readme() -> str:
         "# Manuscript Delivery Surface\n\n"
         "- Canonical authority surface: `paper/`\n"
         "- Human-facing delivery root: `manuscript/`\n"
+        "- Stable human-facing package entry: `manuscript/current_package/`\n"
         "- Fixed package root inside the authority surface: `paper/submission_minimal/`\n\n"
         "Use `manuscript/` when a human needs the latest handoff-ready manuscript bundle. "
         "Edit or regenerate from `paper/`, not from this mirror.\n"
@@ -255,6 +257,7 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
         f"- Sync stage: `{stage}`\n"
         "- This directory is not part of the human-facing final delivery surface.\n"
         "- Expected contents: finalize/manuscript build evidence such as `paper_bundle_manifest.json` and `compile_report.json`.\n"
+        "- Stable human-facing package entry remains `manuscript/current_package/`.\n"
         "- Figures/tables remain in `manuscript/submission_package/` for handoff, and in `paper/` as authority.\n\n"
         "Use this directory only for machine-generated finalization evidence only, not for human-facing display lookup.\n"
     )
@@ -292,6 +295,8 @@ def build_delivery_surface_roles(
     manuscript_root: Path | None = None,
     submission_package_root: Path | None = None,
     submission_package_zip: Path | None = None,
+    current_package_root: Path | None = None,
+    current_package_zip: Path | None = None,
     auxiliary_evidence_root: Path | None = None,
     journal_submission_mirror_root: Path | None = None,
 ) -> dict[str, str | None]:
@@ -303,6 +308,8 @@ def build_delivery_surface_roles(
             str(submission_package_root) if submission_package_root is not None else None
         ),
         "human_facing_submission_package_zip": str(submission_package_zip) if submission_package_zip is not None else None,
+        "human_facing_current_package_root": str(current_package_root) if current_package_root is not None else None,
+        "human_facing_current_package_zip": str(current_package_zip) if current_package_zip is not None else None,
         "auxiliary_evidence_root": str(auxiliary_evidence_root) if auxiliary_evidence_root is not None else None,
         "journal_submission_mirror_root": (
             str(journal_submission_mirror_root) if journal_submission_mirror_root is not None else None
@@ -321,6 +328,8 @@ def build_promoted_delivery_readme(*, study_id: str, publication_profile: str) -
         f"  - `paper.pdf`\n"
         f"  - `submission_manifest.json`\n"
         f"  - `Supplementary_Material.docx` (when generated)\n"
+        f"  - `current_package/`\n"
+        f"  - `current_package.zip`\n"
         f"  - `submission_package/`\n"
         f"  - `submission_package.zip`\n"
         f"  - `journal_package_mirrors/{publication_profile}/`\n\n"
@@ -358,6 +367,64 @@ def build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
             if not source.is_file():
                 continue
             archive.write(source, source.relative_to(source_root).as_posix())
+
+
+def build_current_package_readme(*, study_id: str, stage: str, source_relative_root: str, status_line: str) -> str:
+    return (
+        "# Current Human Package\n\n"
+        f"- Study: `{study_id}`\n"
+        f"- Active sync stage: `{stage}`\n"
+        f"- Status: {status_line}\n"
+        f"- Stage-specific source mirror: `{source_relative_root}`\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- This directory is the stable, stage-agnostic entry point for the latest human-facing package.\n\n"
+        "Use this directory when a human wants the latest readable package without first deciding which stage-specific mirror to open. "
+        "Regenerate from the controller-authorized source, not from this projection.\n"
+    )
+
+
+def sync_current_package_projection(
+    *,
+    source_root: Path,
+    current_package_root: Path,
+    current_package_zip: Path,
+    study_id: str,
+    stage: str,
+    source_relative_root: str,
+    status_line: str,
+    copied_files: list[dict[str, str]],
+    generated_files: list[dict[str, str]],
+) -> None:
+    reset_directory(current_package_root)
+    copy_tree(
+        source_root=source_root,
+        target_root=current_package_root,
+        category="current_package",
+        copied_files=copied_files,
+    )
+    readme_path = current_package_root / "README.md"
+    write_text(
+        readme_path,
+        build_current_package_readme(
+            study_id=study_id,
+            stage=stage,
+            source_relative_root=source_relative_root,
+            status_line=status_line,
+        ),
+    )
+    generated_files.append(
+        {
+            "category": "current_package",
+            "path": str(readme_path.resolve()),
+        }
+    )
+    build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
+    generated_files.append(
+        {
+            "category": "current_package",
+            "path": str(current_package_zip.resolve()),
+        }
+    )
 
 
 def _copy_relative_files(
@@ -454,7 +521,10 @@ def _draft_handoff_source_relative_paths(*, paper_root: Path) -> tuple[Path, ...
 
     relative_paths: list[Path] = list(required_files)
     optional_files = (
+        Path("paper.pdf"),
+        Path("manuscript.docx"),
         Path("references.bib"),
+        Path("build/review_manuscript.md"),
         Path("build/compile_report.json"),
         Path("review/review.md"),
         Path("review/revision_log.md"),
@@ -511,6 +581,7 @@ def build_draft_handoff_readme(*, study_id: str) -> str:
         "- Sync stage: `draft_handoff`\n"
         "- Status: review-only draft surface; not a submission-ready package\n"
         "- Canonical authority surface: `paper/`\n"
+        "- Stable human-facing entry: `manuscript/current_package/`\n"
         "- Human-facing mirror: `manuscript/draft_bundle/`\n\n"
         "This bundle mirrors the latest human-reviewable paper draft into the study shallow path. "
         "It does not relax the publication gate, and it must not be treated as a formal submission package.\n"
@@ -524,6 +595,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
             "status": "not_applicable",
             "draft_bundle_root": None,
             "draft_bundle_zip": None,
+            "current_package_root": None,
+            "current_package_zip": None,
             "delivery_manifest_path": None,
         }
 
@@ -532,6 +605,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
     study_root = context["study_root"]
     draft_bundle_root = study_root / "manuscript" / "draft_bundle"
     draft_bundle_zip = study_root / "manuscript" / "draft_bundle.zip"
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_zip = study_root / "manuscript" / "current_package.zip"
     delivery_manifest_path = draft_bundle_root / "delivery_manifest.json"
     if not delivery_manifest_path.exists():
         return {
@@ -539,6 +614,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
             "status": "missing",
             "draft_bundle_root": str(draft_bundle_root),
             "draft_bundle_zip": str(draft_bundle_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "delivery_manifest_path": None,
         }
     try:
@@ -549,6 +626,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
             "status": "invalid",
             "draft_bundle_root": str(draft_bundle_root),
             "draft_bundle_zip": str(draft_bundle_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "delivery_manifest_path": str(delivery_manifest_path),
         }
     if not isinstance(manifest, dict):
@@ -557,6 +636,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
             "status": "invalid",
             "draft_bundle_root": str(draft_bundle_root),
             "draft_bundle_zip": str(draft_bundle_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "delivery_manifest_path": str(delivery_manifest_path),
         }
 
@@ -572,6 +653,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
             "status": "stale",
             "draft_bundle_root": str(draft_bundle_root),
             "draft_bundle_zip": str(draft_bundle_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "delivery_manifest_path": str(delivery_manifest_path),
         }
 
@@ -588,6 +671,8 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
         "status": status,
         "draft_bundle_root": str(draft_bundle_root),
         "draft_bundle_zip": str(draft_bundle_zip),
+        "current_package_root": str(current_package_root),
+        "current_package_zip": str(current_package_zip),
         "delivery_manifest_path": str(delivery_manifest_path),
     }
 
@@ -604,6 +689,8 @@ def describe_submission_delivery(
             "stale_reason": None,
             "delivery_manifest_path": None,
             "submission_package_root": None,
+            "current_package_root": None,
+            "current_package_zip": None,
             "missing_source_paths": [],
         }
 
@@ -618,6 +705,8 @@ def describe_submission_delivery(
         if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
         else manuscript_root / "journal_packages" / normalized_publication_profile
     )
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
     if not delivery_manifest_path.exists():
         return {
             "applicable": True,
@@ -625,6 +714,8 @@ def describe_submission_delivery(
             "stale_reason": None,
             "delivery_manifest_path": None,
             "submission_package_root": str(submission_package_root),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
         }
     try:
@@ -636,6 +727,8 @@ def describe_submission_delivery(
             "stale_reason": "delivery_manifest_invalid",
             "delivery_manifest_path": str(delivery_manifest_path),
             "submission_package_root": str(submission_package_root),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
         }
     if not isinstance(manifest, dict):
@@ -645,6 +738,8 @@ def describe_submission_delivery(
             "stale_reason": "delivery_manifest_invalid",
             "delivery_manifest_path": str(delivery_manifest_path),
             "submission_package_root": str(submission_package_root),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "missing_source_paths": [],
         }
 
@@ -667,6 +762,8 @@ def describe_submission_delivery(
             "stale_reason": "current_submission_source_missing",
             "delivery_manifest_path": str(delivery_manifest_path),
             "submission_package_root": str(submission_package_root),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
             "missing_source_paths": missing_source_paths,
         }
 
@@ -699,6 +796,8 @@ def describe_submission_delivery(
         "stale_reason": stale_reason,
         "delivery_manifest_path": str(delivery_manifest_path),
         "submission_package_root": str(submission_package_root),
+        "current_package_root": str(current_package_root),
+        "current_package_zip": str(current_package_zip),
         "missing_source_paths": missing_source_paths,
     }
 
@@ -737,6 +836,8 @@ def materialize_submission_delivery_stale_notice(
         if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
         else manuscript_root / f"{normalized_publication_profile}_submission_package.zip"
     )
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
     delivery_manifest_path = manuscript_root / "delivery_manifest.json"
     delivery_status_path = manuscript_root / "delivery_status.json"
     audit_status_path = submission_package_root / "audit_status.json"
@@ -749,6 +850,7 @@ def materialize_submission_delivery_stale_notice(
         manuscript_root / "paper.pdf",
         manuscript_root / "submission_manifest.json",
         submission_package_zip,
+        current_package_zip,
     ):
         if mirrored_file.exists():
             mirrored_file.unlink()
@@ -756,6 +858,9 @@ def materialize_submission_delivery_stale_notice(
     if submission_package_root.exists():
         remove_directory(submission_package_root)
         cleared_paths.append(str(submission_package_root.resolve()))
+    if current_package_root.exists():
+        remove_directory(current_package_root)
+        cleared_paths.append(str(current_package_root.resolve()))
 
     expected_source_root = build_submission_source_root(
         paper_root=resolved_paper_root,
@@ -861,6 +966,17 @@ def materialize_submission_delivery_stale_notice(
             "path": str((submission_package_root / "README.md").resolve()),
         }
     )
+    sync_current_package_projection(
+        source_root=submission_package_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage="submission_preview",
+        source_relative_root="manuscript/submission_package",
+        status_line="audit preview only; not submission-ready",
+        copied_files=copied_files,
+        generated_files=generated_files,
+    )
     status_payload = {
         "schema_version": 1,
         "generated_at": utc_now(),
@@ -878,6 +994,8 @@ def materialize_submission_delivery_stale_notice(
         "active_delivery_manifest_path": str(delivery_manifest_path) if delivery_manifest_path.exists() else None,
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
+        "current_package_root": str(current_package_root),
+        "current_package_zip": str(current_package_zip),
         "missing_source_paths": list(missing_source_paths or []),
         "cleared_paths": cleared_paths,
         "copied_files": copied_files,
@@ -924,6 +1042,8 @@ def sync_draft_handoff_delivery(
     manuscript_root = study_root / "manuscript"
     draft_bundle_root = manuscript_root / "draft_bundle"
     draft_bundle_zip = manuscript_root / "draft_bundle.zip"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
     ensure_manuscript_root_readme(manuscript_root=manuscript_root)
 
     copied_files: list[dict[str, str]] = []
@@ -958,6 +1078,17 @@ def sync_draft_handoff_delivery(
             "path": str(draft_bundle_zip.resolve()),
         }
     )
+    sync_current_package_projection(
+        source_root=draft_bundle_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage="draft_handoff",
+        source_relative_root="manuscript/draft_bundle",
+        status_line="review-only draft surface; not a submission-ready package",
+        copied_files=copied_files,
+        generated_files=generated_files,
+    )
 
     manifest = {
         "schema_version": 1,
@@ -974,12 +1105,16 @@ def sync_draft_handoff_delivery(
             "controller_authorized_paper_root": str(paper_root),
             "human_facing_draft_bundle_root": str(draft_bundle_root),
             "human_facing_draft_bundle_zip": str(draft_bundle_zip),
+            "human_facing_current_package_root": str(current_package_root),
+            "human_facing_current_package_zip": str(current_package_zip),
         },
         "targets": {
             "study_root": str(study_root),
             "manuscript_root": str(manuscript_root),
             "draft_bundle_root": str(draft_bundle_root),
             "draft_bundle_zip": str(draft_bundle_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
         },
         "copied_files": copied_files,
         "generated_files": generated_files,
@@ -1000,6 +1135,8 @@ def sync_general_delivery(
     artifacts_final_root = study_root / "artifacts" / "final"
     submission_package_root = manuscript_root / "submission_package"
     submission_package_zip = manuscript_root / "submission_package.zip"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
 
     reset_directory(manuscript_root)
     remove_directory(artifacts_final_root)
@@ -1148,12 +1285,25 @@ def sync_general_delivery(
             "path": str(submission_package_zip.resolve()),
         }
     )
+    sync_current_package_projection(
+        source_root=submission_package_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage=normalized_stage,
+        source_relative_root="manuscript/submission_package",
+        status_line="human-facing manuscript handoff surface",
+        copied_files=copied_files,
+        generated_files=generated_files,
+    )
 
     targets = {
         "study_root": str(study_root),
         "manuscript_root": str(manuscript_root),
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
+        "current_package_root": str(current_package_root),
+        "current_package_zip": str(current_package_zip),
     }
     if normalized_stage == "finalize":
         targets["artifacts_final_root"] = str(artifacts_final_root)
@@ -1175,6 +1325,8 @@ def sync_general_delivery(
             manuscript_root=manuscript_root,
             submission_package_root=submission_package_root,
             submission_package_zip=submission_package_zip,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
             auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
         ),
         "targets": targets,
@@ -1197,6 +1349,8 @@ def sync_journal_specific_delivery(
     manuscript_root = study_root / "manuscript"
     journal_package_root = manuscript_root / "journal_packages" / publication_profile
     journal_package_zip = manuscript_root / f"{publication_profile}_submission_package.zip"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
 
     manuscript_root.mkdir(parents=True, exist_ok=True)
@@ -1270,6 +1424,17 @@ def sync_journal_specific_delivery(
             "path": str(journal_package_zip.resolve()),
         }
     )
+    sync_current_package_projection(
+        source_root=journal_package_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage=f"{publication_profile}_{normalized_stage}",
+        source_relative_root=f"manuscript/journal_packages/{publication_profile}",
+        status_line="journal-specific human-facing manuscript package",
+        copied_files=copied_files,
+        generated_files=generated_files,
+    )
 
     manifest = {
         "schema_version": 1,
@@ -1287,6 +1452,8 @@ def sync_journal_specific_delivery(
             paper_root=paper_root,
             source_root=source_root,
             manuscript_root=manuscript_root,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
             auxiliary_evidence_root=None,
         ),
         "targets": {
@@ -1294,6 +1461,8 @@ def sync_journal_specific_delivery(
             "manuscript_root": str(manuscript_root),
             "journal_package_root": str(journal_package_root),
             "journal_package_zip": str(journal_package_zip),
+            "current_package_root": str(current_package_root),
+            "current_package_zip": str(current_package_zip),
         },
         "copied_files": copied_files,
         "generated_files": generated_files,
@@ -1315,6 +1484,8 @@ def sync_promoted_journal_delivery(
     artifacts_final_root = study_root / "artifacts" / "final"
     submission_package_root = manuscript_root / "submission_package"
     submission_package_zip = manuscript_root / "submission_package.zip"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
     mirror_root = manuscript_root / "journal_package_mirrors" / publication_profile
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile=publication_profile)
 
@@ -1478,6 +1649,17 @@ def sync_promoted_journal_delivery(
             "path": str(submission_package_zip.resolve()),
         }
     )
+    sync_current_package_projection(
+        source_root=submission_package_root,
+        current_package_root=current_package_root,
+        current_package_zip=current_package_zip,
+        study_id=study_id,
+        stage=f"{publication_profile}_submission",
+        source_relative_root="manuscript/submission_package",
+        status_line="promoted human-facing manuscript handoff surface",
+        copied_files=copied_files,
+        generated_files=generated_files,
+    )
 
     reset_directory(mirror_root)
     copy_tree(
@@ -1535,6 +1717,8 @@ def sync_promoted_journal_delivery(
         "manuscript_root": str(manuscript_root),
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
+        "current_package_root": str(current_package_root),
+        "current_package_zip": str(current_package_zip),
         "journal_package_mirror_root": str(mirror_root),
     }
     if normalized_stage == "finalize":
@@ -1557,6 +1741,8 @@ def sync_promoted_journal_delivery(
             manuscript_root=manuscript_root,
             submission_package_root=submission_package_root,
             submission_package_zip=submission_package_zip,
+            current_package_root=current_package_root,
+            current_package_zip=current_package_zip,
             auxiliary_evidence_root=artifacts_final_root if normalized_stage == "finalize" else None,
             journal_submission_mirror_root=mirror_root,
         ),

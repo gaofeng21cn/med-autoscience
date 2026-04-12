@@ -172,6 +172,33 @@ def test_run_publication_shell_sync_accepts_human_facing_submission_package_when
     assert report["source_paths"]["table1_source"].endswith("manuscript/submission_package/tables/Table1.csv")
 
 
+def test_run_publication_shell_sync_accepts_stage_neutral_current_package_when_other_surfaces_are_absent(
+    tmp_path: Path,
+) -> None:
+    module, study_root, paper_root = _prepare_sync_context(tmp_path)
+    write_csv(
+        study_root / "manuscript" / "current_package" / "tables" / "Table1.csv",
+        [
+            "Characteristic",
+            "Overall (N=357)",
+            "No later persistent global hypopituitarism (n=259)",
+            "Later persistent global hypopituitarism (n=98)",
+        ],
+        [
+            {
+                "Characteristic": "Age, years",
+                "Overall (N=357)": "51 [40-59]",
+                "No later persistent global hypopituitarism (n=259)": "50 [38-58]",
+                "Later persistent global hypopituitarism (n=98)": "56 [44-62]",
+            },
+        ],
+    )
+
+    report = module.run_publication_shell_sync(study_root=study_root, paper_root=paper_root)
+
+    assert report["source_paths"]["table1_source"].endswith("manuscript/current_package/tables/Table1.csv")
+
+
 def test_run_publication_shell_sync_rejects_legacy_artifacts_final_table_surface(tmp_path: Path) -> None:
     module, study_root, paper_root = _prepare_sync_context(tmp_path)
     write_csv(

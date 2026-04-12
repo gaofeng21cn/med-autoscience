@@ -42,10 +42,10 @@ jobs:
           PY
 
       - name: Run meta tests
-        run: make test-meta
+        run: scripts/verify.sh meta
 
       - name: Run fast tests
-        run: make test-fast
+        run: scripts/verify.sh
 
       - name: Build sdist and wheel
         run: uv run python -m build --sdist --wheel
@@ -91,4 +91,4 @@ jobs:
           PY
 
       - name: Run display tests
-        run: make test-display
+        run: scripts/verify.sh display
