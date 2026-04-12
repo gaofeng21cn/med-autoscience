@@ -120,9 +120,10 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 ### 当前 `Hermes` 到底指什么
 
 - 在当前仓内，`Hermes` 首先指 repo-side outer runtime seam 与当前主线的集成边界，不等于上游 `Hermes-Agent` runtime 已经落地。
-- 在 external `Hermes-Agent` runtime 尚待完成宿主部署的阶段，本仓仍然可以合法写出 `runtime_backend_id = hermes`，因为 `med_autoscience.runtime_transport.hermes` 当前是 consumer-only seam，它通过 backend contract 把 quest control 委托给受控 `MedDeepScientist` transport。
+- 现在本仓可以诚实地写出 `runtime_backend_id = hermes`，因为 `med_autoscience.runtime_transport.hermes` 已不再只是 alias：它已经成为 repo-side real adapter，会先把每个 managed runtime root 绑定到显式的 external `Hermes-Agent` runtime 证据，先对 `inspect_hermes_runtime_contract(...)` fail-closed，再通过 backend contract 把 quest control 委托给受控 `MedDeepScientist` transport。
 - 这并不是空名字：外环已经可以用 `runtime_watch` 发现掉线，用 `ensure_study_runtime` 请求恢复，把连续失败写进 `runtime_supervision/latest.json`，再由 `study_progress` 输出医生/PI 能读的人话进度。
-- 它当前已经能证明对受控 backend 的监督委托、恢复信号与运行报告能力。独立上游 `Hermes-Agent` host 对 backend engine 的完整替代，继续作为 external runtime gate 的后续目标：如果 `MedDeepScientist` execution surface 整体消失，当前 repo-side seam 会负责检测、升级告警和报告。
+- `2026-04-12` 已在真实 study `002-dm-china-us-mortality-attribution` 上拿到一条完整 proof：`ensure-study-runtime` 把等待中的 quest 拉回 live managed runtime，`watch --apply --ensure-study-runtimes` 与短周期 `watch --loop` 连续刷新了 `runtime_watch/latest.json` 和 `runtime_supervision/latest.json`，`study-progress` 也已恢复为带监控入口的人话进度。
+- 但这仍不等于“已经完成上游 Hermes 完整接管”：研究执行目前仍由受控 `MedDeepScientist` backend 承担，独立上游 `Hermes-Agent` host 对 backend engine 的完整替代、完整 upstream ownership，以及其他宿主机/其他 study 的 external gate 仍需继续诚实验证。
 
 ## 当前仓库侧状态
 
@@ -132,7 +133,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 - `P0 runtime native truth` 已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
 - `P1 workspace canonical literature / knowledge truth` 已在 `Med Auto Science` 完成
-- `P2 controlled cutover -> physical monorepo migration` 仍是当前 active tranche，但当前落地的是 repo-side seam 与 contract cleanup，不是上游 `Hermes-Agent` 已接管
+- `P2 controlled cutover -> physical monorepo migration` 仍是当前 active tranche，但当前落地的是 repo-side real adapter 与 contract cleanup，不是上游 `Hermes-Agent` 已完成接管证明
 
 现在仓库里已经同时承载 native-runtime transport contract、workspace canonical literature / reference-context contract、repo-side outer-runtime seam，以及 `MedDeepScientist` 解构地图。external runtime gate 仍然存在，它也继续阻止我们把当前状态写成“上游 `Hermes-Agent` 已经落地”。
 
@@ -212,6 +213,21 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 你可以直接把下面这段话发给 Agent：
 
 > 请先读取我放在这个研究目录中的数据和说明文档。第一步，把数据清洗并登记为机读、可审计的研究资产，明确变量定义、终点定义和可用范围。第二步，使用 Med Auto Science（`https://github.com/gaofeng21cn/med-autoscience`）作为共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` `Domain Harness OS`，通过受控 MedDeepScientist surface 推进课题，形成发表级证据链、图表表格、稿件表面和投稿材料。请把我提供的目标期刊、终点优先级、亚组要求和其他约束一并带入运行 contract。优先判断课题是否值得继续投入；若方向偏弱，请止损、改题或补充合适 sidecar。
+
+### 当前用户怎么启动、怎么看进度
+
+如果你现在就在 agent-operated 路径上继续一个真实 study，最核心的入口只有四个：
+
+- 正式启动或续跑：`uv run python -m med_autoscience.cli ensure-study-runtime --profile <profile> --study-id <study_id>`
+- 看完整结构化状态与监控入口：`uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>`
+- 看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- 刷新 MAS 外环监管心跳：`uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+
+如果 `study-runtime-status` 返回 `autonomous_runtime_notice.required = true` 或 `execution_owner_guard.supervisor_only = true`，就表示 study 已处于 live managed runtime。此时用户真正会看到的是：
+
+- `browser_url` / `quest_session_api_url` / `active_run_id` 这组监督入口
+- `study-progress` 输出的当前阶段、人话摘要、当前阻塞与下一步
+- 前台 agent 自动切到 supervisor-only，而不是继续直接写 runtime-owned surface
 
 ## 文档入口
 

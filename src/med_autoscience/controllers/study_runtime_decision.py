@@ -892,12 +892,6 @@ def _status_state(
     router = _router_module()
     execution = router._execution_payload(study_payload, profile=profile)
     explicit_runtime_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
-    managed_runtime_backend = router._managed_runtime_backend_for_execution(execution)
-    if managed_runtime_backend is not None:
-        execution = dict(execution)
-        execution.setdefault("runtime_backend_id", getattr(managed_runtime_backend, "BACKEND_ID", ""))
-        execution.setdefault("runtime_backend", getattr(managed_runtime_backend, "BACKEND_ID", ""))
-        execution.setdefault("runtime_engine_id", getattr(managed_runtime_backend, "ENGINE_ID", ""))
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     runtime_context = study_runtime_protocol.resolve_study_runtime_context(
@@ -910,6 +904,16 @@ def _status_state(
     quest_root = runtime_context.quest_root
     runtime_binding_path = runtime_context.runtime_binding_path
     launch_report_path = runtime_context.launch_report_path
+    managed_runtime_backend = router._managed_runtime_backend_for_execution(
+        execution,
+        profile=profile,
+        runtime_root=runtime_root,
+    )
+    if managed_runtime_backend is not None:
+        execution = dict(execution)
+        execution.setdefault("runtime_backend_id", getattr(managed_runtime_backend, "BACKEND_ID", ""))
+        execution.setdefault("runtime_backend", getattr(managed_runtime_backend, "BACKEND_ID", ""))
+        execution.setdefault("runtime_engine_id", getattr(managed_runtime_backend, "ENGINE_ID", ""))
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)

@@ -308,15 +308,19 @@ def _execute_controller_action(
             study_runtime_router._load_yaml_dict(study_root / "study.yaml"),
             profile=profile,
         )
-        managed_runtime_backend = (
-            study_runtime_router._managed_runtime_backend_for_execution(execution)
-            or study_runtime_router._default_managed_runtime_backend()
-        )
         runtime_context = study_runtime_protocol.resolve_study_runtime_context(
             profile=profile,
             study_root=study_root,
             study_id=study_id,
             quest_id=quest_id,
+        )
+        managed_runtime_backend = (
+            study_runtime_router._managed_runtime_backend_for_execution(
+                execution,
+                profile=profile,
+                runtime_root=runtime_context.runtime_root,
+            )
+            or study_runtime_router._default_managed_runtime_backend()
         )
         if action.action_type is StudyDecisionActionType.PAUSE_RUNTIME:
             result = managed_runtime_backend.pause_quest(

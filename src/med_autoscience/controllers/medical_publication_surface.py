@@ -11,6 +11,7 @@ from typing import Any
 from med_autoscience import display_registry
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, report_store as runtime_protocol_report_store, user_message
 
 
@@ -1462,6 +1463,7 @@ def run_controller(
         if current_status in {"running", "active"} and daemon_url:
             stop_result = managed_runtime_transport.stop_quest(
                 daemon_url=daemon_url,
+                runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
                 quest_id=report["quest_id"],
                 source=source,
             )

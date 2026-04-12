@@ -448,7 +448,7 @@ def run_controller(
         if runtime_status in {"running", "active"}:
             stop_result = managed_runtime_transport.stop_quest(
                 daemon_url=daemon_url,
-                runtime_root=None if daemon_url else resolve_runtime_root_from_quest_root(state.quest_root),
+                runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
                 quest_id=state.quest_id,
                 source=source,
             )

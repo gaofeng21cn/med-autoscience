@@ -135,9 +135,9 @@
 
 ## 当前还不能诚实宣称的事
 
-- 当前 `med_autoscience.runtime_transport.hermes` 仍是 consumer-only outer substrate seam，底层 quest create / pause / resume / control 还是经由 controlled `MedDeepScientist` stable transport 完成。
-- 所以如果宿主机还没有 external `Hermes-Agent` runtime，本仓“用上 Hermes”成立的是 topology / contract / durable surface / outer-loop semantics 的复用，不是“已经装好了一个独立上游 `Hermes-Agent` host 并能脱离 backend 单独托管”。
-- 这也是当前真实 external blocker：本仓已经能检测、恢复请求、升级告警、医生可读汇报，但还不能把 `MedDeepScientist` 整体故障表述成“独立 `Hermes-Agent` 宿主已完整接管执行真相”。
+- 当前 `med_autoscience.runtime_transport.hermes` 已不再是 consumer-only seam；它已经是一个 profile/runtime-bound real adapter，会先绑定 external `Hermes-Agent` runtime 证据并 fail-closed，再把底层 quest create / pause / resume / control 委托给 controlled `MedDeepScientist` stable transport。
+- 所以如果宿主机还没有 external `Hermes-Agent` runtime，本仓“用上 Hermes”成立的是 topology / contract / durable surface / outer-loop semantics 与 adapter-level runtime gate 的复用，不是“已经装好了一个独立上游 `Hermes-Agent` host 并能脱离 backend 单独托管”。
+- 这也是当前真实 external blocker：本仓已经能做到 substrate-bound 检测、恢复请求、升级告警与医生可读汇报，但还没有完成真实 study soak / recovery proof，因此仍不能把 `MedDeepScientist` 整体故障表述成“独立 `Hermes-Agent` 宿主已完整接管执行真相”。
 
 ## 现在比原来更好解决了什么
 

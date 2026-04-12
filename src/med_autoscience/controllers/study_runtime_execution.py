@@ -229,7 +229,11 @@ def _build_execution_context(
         study_id=study_id,
         quest_id=quest_id,
     )
-    runtime_backend = router._managed_runtime_backend_for_execution(execution) or router._default_managed_runtime_backend()
+    runtime_backend = router._managed_runtime_backend_for_execution(
+        execution,
+        profile=profile,
+        runtime_root=runtime_context.runtime_root,
+    ) or router._default_managed_runtime_backend()
     completion_state = router._study_completion_state(study_root=study_root)
     return StudyRuntimeExecutionContext(
         profile=profile,

@@ -291,7 +291,14 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     )
 
     assert module.managed_runtime_transport is module.med_deepscientist_transport
-    assert stopped == [("http://127.0.0.1:20999", None, "002-early-residual-risk", "medautosci-figure-loop-guard")]
+    assert stopped == [
+        (
+            "http://127.0.0.1:20999",
+            str((quest_root.parent.parent).resolve()),
+            "002-early-residual-risk",
+            "medautosci-figure-loop-guard",
+        )
+    ]
     assert result["intervention_enqueued"] is True
     queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
     assert len(queue["pending"]) == 1

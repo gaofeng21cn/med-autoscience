@@ -104,8 +104,16 @@
 
 - F1 的 repo-side 证据面已落成可验证 contract：`hermes-runtime-check`、`inspect_hermes_runtime_contract(...)`、`doctor.external_runtime_contract`
 - 对当前开发宿主执行检查后，已确认 external Hermes repo、launcher、managed `.venv`、`~/.hermes/state.db`、logs/sessions root、provider 配置与 launchd gateway service 均已就绪
-- 因此当前开发宿主上的 honest next step 已进入 `F2 / real adapter cutover`
-- 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”；只有 real adapter proof 与真实 study soak / recovery proof 成立后，才可继续上收这条切换
+- `med_autoscience.runtime_transport.hermes` 已从 consumer-only seam 收紧为 profile/runtime-bound real adapter：会先绑定 external Hermes runtime evidence，fail-closed 校验 readiness，再把 quest control 委托给 controlled backend
+- `2026-04-12` 已对真实 workspace `dm-cvd-mortality-risk` 的 `002-dm-china-us-mortality-attribution` 跑出一条完整 F3 证据链：
+  - `ensure-study-runtime` 把 quest 从 `waiting_for_user` 拉回 `running`
+  - live run 句柄变成 `active_run_id = run-b5ed4887`
+  - `autonomous_runtime_notice` 暴露 `browser_url = http://127.0.0.1:20999` 与 `quest_session_api_url`
+  - `watch --runtime-root ... --profile ... --ensure-study-runtimes --apply` 刷新了 `runtime_watch/latest.json` 与 `runtime_supervision/latest.json`
+  - `watch --loop --interval-seconds 1 --max-ticks 2` 又连续写出两次新的 supervisor tick，证明这不是一次性手动补写
+  - `study-progress` 已从 `managed_runtime_supervision_gap` 恢复为 `publication_supervision`
+- 因此当前开发宿主上的 honest next step 已从 `F3 / real study soak / recovery proof` 转为 `F4 / blocker 收口`
+- 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，`001-dm-cvd-mortality-risk` 还需要显式 rerun 决策，`002-dm-china-us-mortality-attribution` 的当前 blocker 也已诚实回落到 publication surface / reporting contract，而不是 runtime owner gap
 
 ## 默认验证
 

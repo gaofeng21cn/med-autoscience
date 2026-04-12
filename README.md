@@ -121,9 +121,10 @@ Because the external runtime gate is still open, the current truthful user path 
 ### What `Hermes` Means Today
 
 - In this repository, `Hermes` currently names the repo-side outer-runtime seam for the mainline, not a landed upstream `Hermes-Agent` runtime.
-- Before host-side external `Hermes-Agent` provisioning is complete, the repo can still use `runtime_backend_id = hermes` because `med_autoscience.runtime_transport.hermes` is currently a consumer-only seam that delegates actual quest control to the controlled `MedDeepScientist` transport through the backend contract.
+- The repo can now use `runtime_backend_id = hermes` honestly because `med_autoscience.runtime_transport.hermes` is no longer a pure alias: it is a repo-side real adapter that binds each managed runtime root to explicit external `Hermes-Agent` runtime evidence, fail-closes on `inspect_hermes_runtime_contract(...)`, and only then delegates actual quest control to the controlled `MedDeepScientist` transport through the backend contract.
 - This still gives the outer loop real leverage: `runtime_watch` can detect dropouts, `ensure_study_runtime` can request recovery, `runtime_supervision/latest.json` can escalate repeated failures, and `study_progress` can project physician-friendly updates from durable surfaces.
-- What this seam already proves is supervised delegation, recovery signaling, and runtime reporting around the controlled backend. Independent engine replacement remains behind the external runtime gate: if the controlled `MedDeepScientist` execution surface disappears entirely, the current repo-side seam can detect, escalate, and report that failure while standalone host replacement continues through that gate.
+- On `2026-04-12`, a real proof was captured on study `002-dm-china-us-mortality-attribution`: `ensure-study-runtime` brought a waiting quest back into a live managed run, `watch --apply --ensure-study-runtimes` plus a short `watch --loop` refreshed both `runtime_watch/latest.json` and `runtime_supervision/latest.json`, and `study-progress` returned to a human-readable progress surface with live monitoring links.
+- That still does **not** mean upstream Hermes fully owns execution yet: the research engine is still the controlled `MedDeepScientist` backend, standalone host replacement continues through that gate, and full upstream ownership plus external-gate clearance on other hosts and studies still need to be proven honestly.
 
 ## Current Repo-Side Status
 
@@ -133,7 +134,7 @@ That means:
 
 - `P0 runtime native truth` is complete in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
 - `P1 workspace canonical literature / knowledge truth` is complete in `Med Auto Science`
-- `P2 controlled cutover -> physical monorepo migration` remains active, but what is currently landed is a repo-side seam and contract cleanup, not true upstream `Hermes-Agent` ownership
+- `P2 controlled cutover -> physical monorepo migration` remains active, but what is currently landed is a repo-side real adapter and contract cleanup, not true upstream `Hermes-Agent` ownership proof
 
 The repository now carries the native-runtime transport contract, the workspace canonical literature / reference-context contract, a repo-side outer-runtime seam, and the `MedDeepScientist` deconstruction map. The external runtime gate now sits as a concrete external blocker inside `P2`, and it still prevents any honest claim that upstream `Hermes-Agent` already owns the runtime substrate.
 
@@ -213,6 +214,21 @@ Typical three-step start:
 You can give your agent an instruction like this:
 
 > Read the data and documentation in this study workspace first. Step 1: clean and register them into machine-readable, auditable research assets, and make variable definitions, endpoints, and usable scope explicit. Step 2: use Med Auto Science (`https://github.com/gaofeng21cn/med-autoscience`) as the medical `Research Ops` `Domain Harness OS` on the shared `Unified Harness Engineering Substrate`. Run the study through the controlled MedDeepScientist surface, and produce a publication-grade evidence chain with figures, tables, manuscript surfaces, and submission materials. Carry my journal targets, endpoint priorities, subgroup rules, and other constraints into the runtime contract. Prioritize deciding whether this study should continue; if the direction is weak, stop, reframe, or add a proper sidecar.
+
+### How Users Start And Watch Progress Today
+
+For the current agent-operated path, four commands define the real user-facing loop:
+
+- Start or resume a managed study: `uv run python -m med_autoscience.cli ensure-study-runtime --profile <profile> --study-id <study_id>`
+- Inspect the full structured state and monitoring entry: `uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>`
+- Read the human-facing progress summary: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- Refresh the MAS supervisor heartbeat: `uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+
+When `study-runtime-status` reports `autonomous_runtime_notice.required = true` or `execution_owner_guard.supervisor_only = true`, the study is already in a live managed runtime. At that point the user-visible surface is:
+
+- `browser_url`, `quest_session_api_url`, and `active_run_id` as the monitoring entry
+- `study-progress` for the plain-language phase, blockers, and next action
+- a supervisor-only foreground agent instead of direct writes into runtime-owned surfaces
 
 ## Documentation
 

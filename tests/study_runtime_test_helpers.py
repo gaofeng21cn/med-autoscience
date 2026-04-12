@@ -31,6 +31,8 @@ def make_profile(tmp_path: Path):
         research_route_bias_policy="high_plasticity_medical",
         preferred_study_archetypes=("clinical_classifier",),
         default_submission_targets=(),
+        hermes_agent_repo_root=tmp_path / "_external" / "hermes-agent",
+        hermes_home_root=tmp_path / ".hermes",
         default_startup_anchor_policy="scout_first_for_continue_existing_state",
         legacy_code_execution_policy="forbid_without_user_approval",
         startup_boundary_requirements=("paper_framing", "journal_shortlist", "evidence_package"),

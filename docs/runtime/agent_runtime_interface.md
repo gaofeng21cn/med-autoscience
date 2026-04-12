@@ -156,6 +156,24 @@
 - `ops/med-deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
 - 所有正式研究推进都应经由 `doctor`、`bootstrap`、`overlay-status`、`ensure-study-runtime` 和受管 route
 
+## 当前用户可见的启动与进度入口
+
+对当前 agent-operated 形态，用户真正会碰到的启动与监督入口只有四个：
+
+- 正式启动或续跑：`ensure-study-runtime --profile <profile> --study-id <study_id>`
+- 完整结构化真相：`study-runtime-status --profile <profile> --study-id <study_id>`
+- 人话进度投影：`study-progress --profile <profile> --study-id <study_id>`
+- MAS 外环监管心跳：`watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+
+前台 contract 要求：
+
+- 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
+- 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
+- `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前阻塞和下一步
+- `watch` 负责持续刷新 supervisor tick；没有它，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
+
+`2026-04-12` 在真实 study `002-dm-china-us-mortality-attribution` 上已经验证过这套入口：`ensure-study-runtime` 把 quest 拉回 live managed runtime，`study-runtime-status` 暴露了 `browser_url = http://127.0.0.1:20999` 与 `active_run_id = run-b5ed4887`，而 `watch --apply --ensure-study-runtimes` 与短周期 `watch --loop` 则连续刷新了 `runtime_watch/latest.json`、`runtime_supervision/latest.json` 和 `study-progress`。
+
 ## 运行层分工
 
 在这个运行层里，不建议把人类和 Agent 的职责混在一起：
@@ -391,13 +409,13 @@ PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --
 
 ### 当前 `Hermes` 名义与宿主安装的关系
 
-`med_autoscience.runtime_transport.hermes` 当前是 repo-side consumer-only outer substrate seam。也就是说：
+`med_autoscience.runtime_transport.hermes` 当前已经是 repo-side real adapter，而不是 consumer-only outer substrate seam。也就是说：
 
-- 即使宿主机还没有独立 external `Hermes` runtime，本仓也可以合法写出 `runtime_backend_id = hermes`
+- 本仓可以合法写出 `runtime_backend_id = hermes`，是因为这里已经有真实 adapter：它会先把 runtime root 绑定到 explicit external `Hermes` repo / home 证据，再对 runtime readiness 做 fail-closed 校验
 - 这里冻结的是 outer substrate contract owner，不是宣称本机已经多出一个独立安装的 Hermes daemon
-- 当前这层 seam 的真实作用，是让 controller / outer-loop / durable surface 经由 backend contract 去监管受控 research backend
-- 它已经可以检测掉线、请求恢复、写出 supervision / escalation / progress surface
-- 但它还不能单独替代 `MedDeepScientist` engine 自身；如果 backend contract 整体不可达，当前 repo-side `Hermes` 只能 fail-closed 地检测、升级和报告，而不能诚实声称“独立 Hermes host 已自动接管执行”
+- 当前这层 adapter 的真实作用，是让 controller / outer-loop / durable surface 经由 backend contract 去监管受控 research backend
+- 它已经可以检测掉线、请求恢复、写出 supervision / escalation / progress surface，并把 external runtime readiness 纳入 create / pause / resume / stop / watch 的正式控制路径
+- 但它还不能单独替代 `MedDeepScientist` engine 自身；如果 backend contract 整体不可达，当前 repo-side `Hermes` 仍只能 fail-closed 地检测、升级和报告，而不能诚实声称“独立 Hermes host 已自动接管执行”
 
 只要 `phase_25_ready=false`，`med-deepscientist-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
 

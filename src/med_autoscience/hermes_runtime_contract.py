@@ -167,7 +167,15 @@ def inspect_hermes_runtime_contract(
 
     session_count, message_count = _state_db_counts(state_db_path)
     gateway_status = _inspect_gateway_service(hermes_home_root=resolved_hermes_home_root)
-    gateway_service_loaded = bool(gateway_status["loaded"])
+    gateway_service_loaded = bool(
+        gateway_status["loaded"]
+        and repo_exists
+        and launcher_exists
+        and gateway_launcher_exists
+        and managed_python_exists
+        and hermes_home_exists
+        and state_db_exists
+    )
 
     issues: list[str] = []
     if not configured:

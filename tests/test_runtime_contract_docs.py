@@ -252,7 +252,7 @@ def test_core_docs_explain_hermes_integrated_research_progression_without_overcl
 
     assert "study charter / startup boundary / publication gate / completion sync" in runtime_interface
     assert "不是把判断继续藏在 inner runtime 里" in runtime_interface
-    assert "consumer-only outer substrate seam" in runtime_interface
+    assert "repo-side real adapter" in runtime_interface
     assert "独立安装的 Hermes daemon" in runtime_interface
 
 

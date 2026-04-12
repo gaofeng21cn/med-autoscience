@@ -121,19 +121,60 @@ def _default_managed_runtime_backend():
     return globals()["med_deepscientist_transport"]
 
 
-def _managed_runtime_backend_for_execution(execution: dict[str, Any] | None):
+def _bind_runtime_backend_for_profile(
+    *,
+    backend,
+    profile: WorkspaceProfile | None = None,
+    runtime_root: Path | None = None,
+):
+    if profile is None or runtime_root is None:
+        return backend
+    bind_runtime_root_from_profile = getattr(backend, "bind_runtime_root_from_profile", None)
+    if callable(bind_runtime_root_from_profile):
+        bind_runtime_root_from_profile(
+            runtime_root=runtime_root,
+            profile=profile,
+        )
+    return backend
+
+
+def _managed_runtime_backend_for_execution(
+    execution: dict[str, Any] | None,
+    *,
+    profile: WorkspaceProfile | None = None,
+    runtime_root: Path | None = None,
+):
     default_backend = _default_managed_runtime_backend()
     explicit_backend_id = runtime_backend_contract.explicit_runtime_backend_id(execution)
     if explicit_backend_id is not None:
         if explicit_backend_id == getattr(default_backend, "BACKEND_ID", None):
-            return default_backend
-        return runtime_backend_contract.try_get_managed_runtime_backend(explicit_backend_id)
+            return _bind_runtime_backend_for_profile(
+                backend=default_backend,
+                profile=profile,
+                runtime_root=runtime_root,
+            )
+        backend = runtime_backend_contract.try_get_managed_runtime_backend(explicit_backend_id)
+        if backend is None:
+            return None
+        return _bind_runtime_backend_for_profile(
+            backend=backend,
+            profile=profile,
+            runtime_root=runtime_root,
+        )
     backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
     if backend is None:
         return None
     if getattr(backend, "BACKEND_ID", None) == getattr(default_backend, "BACKEND_ID", None):
-        return default_backend
-    return backend
+        return _bind_runtime_backend_for_profile(
+            backend=default_backend,
+            profile=profile,
+            runtime_root=runtime_root,
+        )
+    return _bind_runtime_backend_for_profile(
+        backend=backend,
+        profile=profile,
+        runtime_root=runtime_root,
+    )
 
 
 def _utc_now() -> str:
