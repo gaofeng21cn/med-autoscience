@@ -126,14 +126,16 @@
   - 重新拉起 workspace-local `med-deepscientist` daemon 并执行 `watch --apply --ensure-study-runtimes` 后，`runtime_supervision/latest.json` 与 `runtime_watch/latest.json` 已重新刷新
   - `002-early-residual-risk`、`003-endocrine-burden-followup`、`004-invasive-architecture` 现在都能进入诚实的 study-progress 投影，而不是在 adapter binding 上 fail-closed
   - 同日又补上了一条 legacy host-service fix：repo-side `init-workspace` 现在会升级仍在直接调用裸 `uv` 的 `_shared.sh`；对 `NF-PitNET` 重跑升级并重新安装 launchd service 后，`ai.medautoscience.nfpitnet.watch-runtime` 已从 `exit 127` 恢复为常驻在线
+  - 同日继续补上了一条更深一层的 host-env fix：`med-deepscientist` launcher `ds.js` 在 launchd 最小 `PATH` 下会因为 `#!/usr/bin/env node` 失败；repo-side `init-workspace`、workspace `config.env` 与 `runtime_transport.med_deepscientist` 现在都已显式消费 `MED_AUTOSCIENCE_NODE_BIN`。对真实 DM / NF workspace 回灌并重装 service 后，两边 launchd supervisor 都已显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`
   - 之后 `002-early-residual-risk` 的 completion contract 漂移也已被修正，不再卡在缺失 final evidence path；当前 blocker 已回落为 publication gate
-  - 之后 `004-invasive-architecture` 已通过 `ensure-study-runtime --allow-stopped-relaunch` 加 `watch --loop` 回到 live managed runtime，当前 `active_run_id = run-67d99882`
+  - 之后 `003-endocrine-burden-followup` 又拿到一条新的 fresh proof：`ensure-study-runtime` 不再报 `env: node: No such file or directory`，当前 fresh blocker 已从 launcher host gap 前移到 `quest_parked_on_unchanged_finalize_state` 与题名页/投稿声明最终元数据等待用户决策
+  - 之后 `004-invasive-architecture` 已通过 `ensure-study-runtime --allow-stopped-relaunch` 加 `watch --loop` 回到 live managed runtime，当前 `active_run_id = run-bc987174`
 - 因此当前开发宿主上的 honest next step 已从 `F3 / real study soak / recovery proof` 转为 `F4 / blocker 收口`
 - 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，当前 blocker 已明确回落为各 study 自身 truth，而不是 repo-side adapter gap
   - `001-dm-cvd-mortality-risk`：manual finishing / compatibility-only + publication surface blocker
-  - `002-dm-china-us-mortality-attribution`：publication surface / reporting contract blocker
+  - `002-dm-china-us-mortality-attribution`：historical live recovery proof 已成立，但 `2026-04-12` fresh truth 已转为 `quest_marked_running_but_no_live_session`；当前 `ensure_managed_daemon(...)` 仍返回 `healthy=true / identity_match=true / url=http://127.0.0.1:20999`，说明 blocker 已前移到 study-local recovery / publication surface，而不是 Hermes adapter 或 node host contract
   - `002-early-residual-risk`：publication gate / scientific anchor blocker
-  - `003-endocrine-burden-followup`：runtime recovering + publication surface blocker
+  - `003-endocrine-burden-followup`：publication surface blocker + 最终元数据用户决策；`Rscript / node` host gap 已清掉
   - `004-invasive-architecture`：publication surface / submission package blocker（runtime 已重新 live）
 
 ## 默认验证

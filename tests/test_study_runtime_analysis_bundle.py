@@ -90,6 +90,25 @@ def test_ensure_r_analysis_bundle_installs_cran_then_bioconductor_when_needed(mo
     assert result["after"]["ready"] is True
 
 
+def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
+    monkeypatch.setenv("MED_AUTOSCIENCE_RSCRIPT_BIN", "/usr/local/bin/Rscript")
+    monkeypatch.setattr(module.shutil, "which", lambda executable: None)
+
+    def fake_run(args, **kwargs):
+        assert args[:2] == ["/usr/local/bin/Rscript", "-e"]
+        return SimpleNamespace(returncode=0, stdout="pROC=1\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    result = module._inspect_r_packages(packages=["pROC"])
+
+    assert result["ready"] is True
+    assert result["rscript"] == "/usr/local/bin/Rscript"
+    assert result["missing_packages"] == []
+    assert result["package_status"] == {"pROC": True}
+
+
 def test_ensure_study_runtime_analysis_bundle_delegates_to_repo_managed_runtime(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     before_state = {

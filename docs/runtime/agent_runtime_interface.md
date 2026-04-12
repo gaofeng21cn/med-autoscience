@@ -168,7 +168,7 @@
 
 如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。
 对于 legacy workspace，`init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中真实生效的 `MED_AUTOSCIENCE_PROFILE`；如果需要把 active profile 原位补齐到 Hermes-era contract，可显式传入 `--hermes-agent-repo-root` 与 `--hermes-home-root`，避免只在旁边生成一个不被当前 workspace 实际消费的 `.local.toml`。
-同一条升级路径现在也会修掉一种更隐蔽的 legacy service 漂移：如果 `_shared.sh` 仍停在“直接调用裸 `uv`”而不是显式消费 `MED_AUTOSCIENCE_UV_BIN`，launchd 在最小 PATH 下会直接 `exit 127`；`init-workspace` 已能识别并原位升级这种 bare-`uv` 入口。
+同一条升级路径现在也会修掉两种更隐蔽的 legacy host-service 漂移：如果 `_shared.sh` 仍停在“直接调用裸 `uv`”而不是显式消费 `MED_AUTOSCIENCE_UV_BIN`，launchd 在最小 PATH 下会直接 `exit 127`；如果 controlled backend launcher 仍依赖 `#!/usr/bin/env node` 而宿主最小 `PATH` 看不到 `node`，launchd 也会把它误报成 runtime 恢复失败。`init-workspace` 现在会识别并原位升级这些入口，把检测到的 `MED_AUTOSCIENCE_NODE_BIN` 合并进 workspace `config.env`，并让 service 显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`。
 
 前台 contract 要求：
 
@@ -180,7 +180,7 @@
 
 `2026-04-12` 在真实 study `002-dm-china-us-mortality-attribution` 上已经验证过这套入口：`ensure-study-runtime` 把 quest 拉回 live managed runtime，`study-runtime-status` 暴露了 `browser_url = http://127.0.0.1:20999` 与 `active_run_id = run-b5ed4887`，而 `watch --apply --ensure-study-runtimes` 与短周期 `watch --loop` 则连续刷新了 `runtime_watch/latest.json`、`runtime_supervision/latest.json` 和 `study-progress`。
 同日又在真实 workspace `dm-cvd-mortality-risk` 上验证了产品态常驻路径：对 legacy workspace 重跑 `init-workspace` 后，controller 安全升级了 `_shared.sh`、`watch-runtime` 与 `install-watch-runtime-service`；随后 launchd `watch-runtime` service 成功常驻在线，`001-dm-cvd-mortality-risk` 先从 `managed_runtime_supervision_gap` 恢复到诚实的 `runtime_blocked`，随后在写入 `study.yaml.manual_finish` 后进一步投影成 `manual_finishing`；`002-dm-china-us-mortality-attribution` 则回到 `publication_supervision`，两者的 `supervisor_tick_audit.status` 都恢复为 `fresh`。
-同日也在真实 workspace `NF-PitNET` 上验证了 legacy workspace compatibility lane：active `nfpitnet.workspace.toml` 已被原位补齐 Hermes binding；随后又通过修正 bare-`uv` `_shared.sh`、重新安装 `watch-runtime` launchd service，清掉了 `exit 127` 的 host-service 漂移。短周期 `watch --apply --ensure-study-runtimes --loop` 之后，`002` 已回到“completion contract 已就绪、只剩 publication gate”的诚实 blocker，`003` 继续处于 recovering，`004` 则重新回到 live managed runtime，并暴露 `browser_url = http://127.0.0.1:21001` 与 `active_run_id = run-67d99882`。
+同日也在真实 workspace `NF-PitNET` 上验证了 legacy workspace compatibility lane：active `nfpitnet.workspace.toml` 已被原位补齐 Hermes binding；随后又通过修正 bare-`uv` `_shared.sh`、补齐 `MED_AUTOSCIENCE_NODE_BIN`、重新安装 `watch-runtime` launchd service，清掉了 `exit 127` 与 `env: node: No such file or directory` 这两类 host-service 漂移。短周期 `watch --apply --ensure-study-runtimes --loop` 之后，`002` 已回到“completion contract 已就绪、只剩 publication gate”的诚实 blocker，`003` 不再是 launcher contract 失败，而是前移到 publication gate / 用户最终元数据决策，`004` 则重新回到 live managed runtime，并暴露 `browser_url = http://127.0.0.1:21001` 与 `active_run_id = run-bc987174`。
 
 ## 运行层分工
 

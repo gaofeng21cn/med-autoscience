@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import json
 import re
+import shutil
 import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
@@ -281,11 +282,17 @@ def _render_workspace_profile(
 
 def _render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path) -> str:
     profile_path = profile_relpath if profile_relpath.is_absolute() else workspace_root / profile_relpath
+    detected_node = shutil.which("node")
+    node_config_value = detected_node if detected_node and Path(detected_node).is_absolute() else "/ABS/PATH/TO/node"
     return (
         "# Set the absolute path to the shared MedAutoScience checkout.\n"
         'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"\n'
         "# Optional: set the absolute path to the uv binary used by workspace entry scripts and host services.\n"
         'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"\n'
+        "# Optional: set the absolute path to Rscript so host services can still see it under minimal PATH environments.\n"
+        'MED_AUTOSCIENCE_RSCRIPT_BIN="/ABS/PATH/TO/Rscript"\n'
+        "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments.\n"
+        f'MED_AUTOSCIENCE_NODE_BIN="{node_config_value}"\n'
         "# Optional: override the default local profile file.\n"
         f'MED_AUTOSCIENCE_PROFILE="{profile_path}"\n'
     )
@@ -370,6 +377,30 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         '  echo "MED_AUTOSCIENCE_UV_BIN is not executable: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
+        'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
+        'if [[ -n "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
+        '  if [[ "${MED_AUTOSCIENCE_RSCRIPT_BIN}" != /* ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_RSCRIPT_BIN must be an absolute path: ${MED_AUTOSCIENCE_RSCRIPT_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        '  if [[ ! -x "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_RSCRIPT_BIN is not executable: ${MED_AUTOSCIENCE_RSCRIPT_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        "fi\n\n"
+        'export MED_AUTOSCIENCE_RSCRIPT_BIN\n\n'
+        'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"\n'
+        'if [[ -n "${MED_AUTOSCIENCE_NODE_BIN}" ]]; then\n'
+        '  if [[ "${MED_AUTOSCIENCE_NODE_BIN}" != /* ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_NODE_BIN must be an absolute path: ${MED_AUTOSCIENCE_NODE_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        '  if [[ ! -x "${MED_AUTOSCIENCE_NODE_BIN}" ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_NODE_BIN is not executable: ${MED_AUTOSCIENCE_NODE_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        "fi\n\n"
+        'export MED_AUTOSCIENCE_NODE_BIN\n\n'
         "run_medautosci() {\n"
         '  "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
         "}\n"
@@ -478,6 +509,28 @@ def _render_watch_runtime_service_install_script(*, workspace_name: str) -> str:
         '  echo "MED_AUTOSCIENCE_UV_BIN is not executable: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
+        'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
+        'if [[ -n "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
+        '  if [[ "${MED_AUTOSCIENCE_RSCRIPT_BIN}" != /* ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_RSCRIPT_BIN must be an absolute path: ${MED_AUTOSCIENCE_RSCRIPT_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        '  if [[ ! -x "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_RSCRIPT_BIN is not executable: ${MED_AUTOSCIENCE_RSCRIPT_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        "fi\n\n"
+        'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"\n'
+        'if [[ -n "${MED_AUTOSCIENCE_NODE_BIN}" ]]; then\n'
+        '  if [[ "${MED_AUTOSCIENCE_NODE_BIN}" != /* ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_NODE_BIN must be an absolute path: ${MED_AUTOSCIENCE_NODE_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        '  if [[ ! -x "${MED_AUTOSCIENCE_NODE_BIN}" ]]; then\n'
+        '    echo "MED_AUTOSCIENCE_NODE_BIN is not executable: ${MED_AUTOSCIENCE_NODE_BIN}" >&2\n'
+        "    exit 1\n"
+        "  fi\n"
+        "fi\n\n"
         'mkdir -p "${LOG_DIR}"\n\n'
         'case "$(uname -s)" in\n'
         "  Darwin)\n"
@@ -489,18 +542,25 @@ def _render_watch_runtime_service_install_script(*, workspace_name: str) -> str:
         '    WATCH_RUNTIME_RUNNER="${WATCH_RUNTIME_RUNNER}" \\\n'
         '    WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS}" \\\n'
         '    MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN}" \\\n'
+        '    MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN}" \\\n'
+        '    MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN}" \\\n'
         '    STDOUT_LOG="${STDOUT_LOG}" \\\n'
         '    STDERR_LOG="${STDERR_LOG}" \\\n'
         "    python3 - <<'PY'\n"
         "import os\n"
         "import plistlib\n\n"
+        "environment = {\n"
+        '    "WATCH_RUNTIME_INTERVAL_SECONDS": os.environ["WATCH_RUNTIME_INTERVAL_SECONDS"],\n'
+        '    "MED_AUTOSCIENCE_UV_BIN": os.environ["MED_AUTOSCIENCE_UV_BIN"],\n'
+        "}\n"
+        'if os.environ.get("MED_AUTOSCIENCE_RSCRIPT_BIN"):\n'
+        '    environment["MED_AUTOSCIENCE_RSCRIPT_BIN"] = os.environ["MED_AUTOSCIENCE_RSCRIPT_BIN"]\n\n'
+        'if os.environ.get("MED_AUTOSCIENCE_NODE_BIN"):\n'
+        '    environment["MED_AUTOSCIENCE_NODE_BIN"] = os.environ["MED_AUTOSCIENCE_NODE_BIN"]\n\n'
         "payload = {\n"
         '    "Label": os.environ["LAUNCHD_LABEL"],\n'
         '    "ProgramArguments": [os.environ["WATCH_RUNTIME_RUNNER"]],\n'
-        '    "EnvironmentVariables": {\n'
-        '        "WATCH_RUNTIME_INTERVAL_SECONDS": os.environ["WATCH_RUNTIME_INTERVAL_SECONDS"],\n'
-        '        "MED_AUTOSCIENCE_UV_BIN": os.environ["MED_AUTOSCIENCE_UV_BIN"],\n'
-        "    },\n"
+        '    "EnvironmentVariables": environment,\n'
         '    "WorkingDirectory": os.environ["WORKSPACE_ROOT"],\n'
         '    "RunAtLoad": True,\n'
         '    "KeepAlive": True,\n'
@@ -518,6 +578,14 @@ def _render_watch_runtime_service_install_script(*, workspace_name: str) -> str:
         "  Linux)\n"
         '    SERVICE_FILE="${HOME}/.config/systemd/user/${SYSTEMD_SERVICE_NAME}.service"\n'
         '    mkdir -p "$(dirname "${SERVICE_FILE}")"\n'
+        '    RSCRIPT_ENV_LINE=""\n'
+        '    if [[ -n "${MED_AUTOSCIENCE_RSCRIPT_BIN}" ]]; then\n'
+        '      RSCRIPT_ENV_LINE="Environment=MED_AUTOSCIENCE_RSCRIPT_BIN=${MED_AUTOSCIENCE_RSCRIPT_BIN}"\n'
+        "    fi\n"
+        '    NODE_ENV_LINE=""\n'
+        '    if [[ -n "${MED_AUTOSCIENCE_NODE_BIN}" ]]; then\n'
+        '      NODE_ENV_LINE="Environment=MED_AUTOSCIENCE_NODE_BIN=${MED_AUTOSCIENCE_NODE_BIN}"\n'
+        "    fi\n"
         '    cat > "${SERVICE_FILE}" <<EOF\n'
         "[Unit]\n"
         "Description=MedAutoScience watch-runtime supervisor loop\n"
@@ -527,6 +595,8 @@ def _render_watch_runtime_service_install_script(*, workspace_name: str) -> str:
         'WorkingDirectory=${WORKSPACE_ROOT}\n'
         'Environment=WATCH_RUNTIME_INTERVAL_SECONDS=${WATCH_RUNTIME_INTERVAL_SECONDS}\n'
         'Environment=MED_AUTOSCIENCE_UV_BIN=${MED_AUTOSCIENCE_UV_BIN}\n'
+        '${RSCRIPT_ENV_LINE}\n'
+        '${NODE_ENV_LINE}\n'
         'ExecStart=${WATCH_RUNTIME_RUNNER}\n'
         "Restart=always\n"
         "RestartSec=5\n"
@@ -758,6 +828,15 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
         )
         if looks_like_uv_entry and "MED_AUTOSCIENCE_UV_BIN" not in existing_content:
             return "legacy_uv_entry"
+        looks_like_managed_shared = (
+            "run_medautosci() {" in existing_content
+            and '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"'
+            in existing_content
+        )
+        if looks_like_managed_shared and "MED_AUTOSCIENCE_RSCRIPT_BIN" not in existing_content:
+            return "legacy_rscript_entry"
+        if looks_like_managed_shared and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
+            return "legacy_node_entry"
         return None
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
         looks_like_managed_watch = (
@@ -781,11 +860,38 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
         )
         if looks_like_service_install and "MED_AUTOSCIENCE_UV_BIN" not in existing_content:
             return "legacy_watch_runtime_service_install"
+        if looks_like_service_install and "MED_AUTOSCIENCE_RSCRIPT_BIN" not in existing_content:
+            return "legacy_watch_runtime_service_rscript_install"
+        if looks_like_service_install and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
+            return "legacy_watch_runtime_service_node_install"
     return None
 
 
 def _is_workspace_profile_path(path: Path) -> bool:
     return len(path.parts) >= 4 and path.parts[-4:-1] == ("ops", "medautoscience", "profiles") and path.suffix == ".toml"
+
+
+def _is_medautoscience_config_path(path: Path) -> bool:
+    return len(path.parts) >= 3 and path.parts[-3:] == ("ops", "medautoscience", "config.env")
+
+
+def _merge_medautoscience_config_content(*, existing_content: str, workspace_root: Path, profile_relpath: Path) -> str:
+    if "MED_AUTOSCIENCE_NODE_BIN" in existing_content:
+        return existing_content
+    rendered_content = _render_medautoscience_config(workspace_root=workspace_root, profile_relpath=profile_relpath)
+    rendered_lines = rendered_content.splitlines()
+    try:
+        comment_index = rendered_lines.index(
+            "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments."
+        )
+    except ValueError:
+        return existing_content
+    node_block = "\n".join(rendered_lines[comment_index : comment_index + 2]).strip()
+    if not node_block:
+        return existing_content
+    base = existing_content.rstrip()
+    separator = "\n\n" if base else ""
+    return f"{base}{separator}{node_block}\n"
 
 
 def _merge_workspace_profile_content(
@@ -843,6 +949,8 @@ def _rendered_file_action(item: RenderedFile, *, force: bool) -> str:
     if _legacy_managed_runtime_entry_reason(path=item.path, existing_content=existing_content) is not None:
         return "upgrade"
     if _is_workspace_profile_path(item.path) and existing_content != item.content:
+        return "upgrade"
+    if _is_medautoscience_config_path(item.path) and existing_content != item.content:
         return "upgrade"
     return "skip"
 
@@ -1124,6 +1232,27 @@ def init_workspace(
                             default_citation_style=default_citation_style,
                             hermes_agent_repo_root=hermes_agent_repo_root,
                             hermes_home_root=hermes_home_root,
+                        ),
+                        executable=item.executable,
+                    )
+                )
+                continue
+            if _is_medautoscience_config_path(item.path) and item.path.exists():
+                try:
+                    existing_content = item.path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    prepared_files.append(item)
+                    continue
+                prepared_files.append(
+                    RenderedFile(
+                        path=item.path,
+                        content=_merge_medautoscience_config_content(
+                            existing_content=existing_content,
+                            workspace_root=workspace_root,
+                            profile_relpath=_display_path_from_workspace_root(
+                                workspace_root=workspace_root,
+                                target_path=profile_path,
+                            ),
                         ),
                         executable=item.executable,
                     )

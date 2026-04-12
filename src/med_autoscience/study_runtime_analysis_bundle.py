@@ -162,9 +162,23 @@ def _split_r_packages_by_repository(packages: tuple[str, ...] | list[str]) -> di
     }
 
 
+def _resolve_rscript_executable() -> tuple[str | None, str | None]:
+    configured_rscript = str(os.environ.get("MED_AUTOSCIENCE_RSCRIPT_BIN") or "").strip()
+    if configured_rscript:
+        if not os.path.isabs(configured_rscript):
+            return None, f"MED_AUTOSCIENCE_RSCRIPT_BIN must be an absolute path: {configured_rscript}"
+        if not os.access(configured_rscript, os.X_OK):
+            return None, f"MED_AUTOSCIENCE_RSCRIPT_BIN is not executable: {configured_rscript}"
+        return configured_rscript, None
+    rscript = shutil.which("Rscript")
+    if rscript is None:
+        return None, "Rscript not found on PATH"
+    return rscript, None
+
+
 def _inspect_r_packages(*, packages: tuple[str, ...] | list[str] | None = None) -> dict[str, Any]:
     normalized_packages = tuple(DEFAULT_R_ANALYSIS_BUNDLE_PACKAGES if packages is None else packages)
-    rscript = shutil.which("Rscript")
+    rscript, rscript_error = _resolve_rscript_executable()
     if rscript is None:
         return {
             "ready": False,
@@ -173,7 +187,7 @@ def _inspect_r_packages(*, packages: tuple[str, ...] | list[str] | None = None) 
             "package_status": {package: False for package in normalized_packages},
             "rscript": None,
             "stdout": "",
-            "stderr": "Rscript not found on PATH",
+            "stderr": rscript_error or "Rscript not found on PATH",
         }
 
     probe = (

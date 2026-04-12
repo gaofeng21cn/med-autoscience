@@ -140,6 +140,50 @@ def test_resolve_daemon_url_ignores_stale_daemon_state_when_health_home_mismatch
     assert result == "http://127.0.0.1:21001"
 
 
+def test_launcher_command_prefers_explicit_node_binary_for_node_shebang(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"
+    launcher_path = tmp_path / "bin" / "ds.js"
+    node_path = tmp_path / "bin" / "node"
+    write_text(
+        runtime_root.parent / "config.env",
+        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+    )
+    write_text(launcher_path, "#!/usr/bin/env node\nconsole.log('launcher');\n")
+    write_text(node_path, "#!/usr/bin/env bash\nexit 0\n")
+    launcher_path.chmod(0o755)
+    node_path.chmod(0o755)
+    monkeypatch.setenv("MED_AUTOSCIENCE_NODE_BIN", str(node_path))
+
+    command = module._launcher_command(runtime_root=runtime_root, args=("--status",))
+
+    assert command == [str(node_path), str(launcher_path), "--home", str(runtime_root), "--status"]
+
+
+def test_launcher_command_reads_node_binary_from_workspace_config_when_env_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    workspace_root = tmp_path / "workspace"
+    runtime_root = workspace_root / "ops" / "med-deepscientist" / "runtime"
+    launcher_path = tmp_path / "bin" / "ds.js"
+    node_path = tmp_path / "bin" / "node"
+    write_text(
+        runtime_root.parent / "config.env",
+        f'MED_DEEPSCIENTIST_LAUNCHER="{launcher_path}"\n',
+    )
+    write_text(
+        workspace_root / "ops" / "medautoscience" / "config.env",
+        f'MED_AUTOSCIENCE_NODE_BIN="{node_path}"\n',
+    )
+    write_text(launcher_path, "#!/usr/bin/env node\nconsole.log('launcher');\n")
+    write_text(node_path, "#!/usr/bin/env bash\nexit 0\n")
+    launcher_path.chmod(0o755)
+    node_path.chmod(0o755)
+
+    command = module._launcher_command(runtime_root=runtime_root, args=("--status",))
+
+    assert command == [str(node_path), str(launcher_path), "--home", str(runtime_root), "--status"]
+
+
 def test_ensure_managed_daemon_restarts_stale_launcher_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import json
+import os
 from pathlib import Path
 import shlex
 import subprocess
@@ -21,6 +22,30 @@ ENGINE_ID = "med-deepscientist"
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
 _UNSET = object()
+
+
+def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:
+    if not path.exists():
+        return None
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        lhs, rhs = stripped.split("=", 1)
+        normalized_key = lhs.removeprefix("export ").strip()
+        if normalized_key != key:
+            continue
+        value = rhs.strip()
+        if not value:
+            raise ValueError(f"{key} is empty in {path}")
+        try:
+            tokens = shlex.split(value, posix=True)
+        except ValueError as exc:
+            raise ValueError(f"invalid {key} assignment in {path}") from exc
+        if len(tokens) != 1 or not tokens[0].strip():
+            raise ValueError(f"{key} must resolve to one absolute path in {path}")
+        return tokens[0].strip()
+    return None
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
@@ -52,26 +77,11 @@ def _write_json_dict(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _read_config_env_value(*, path: Path, key: str) -> str:
+    value = _read_optional_config_env_value(path=path, key=key)
+    if value is not None:
+        return value
     if not path.exists():
         raise FileNotFoundError(f"missing med-deepscientist launcher config: {path}")
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        lhs, rhs = stripped.split("=", 1)
-        normalized_key = lhs.removeprefix("export ").strip()
-        if normalized_key != key:
-            continue
-        value = rhs.strip()
-        if not value:
-            raise ValueError(f"{key} is empty in {path}")
-        try:
-            tokens = shlex.split(value, posix=True)
-        except ValueError as exc:
-            raise ValueError(f"invalid {key} assignment in {path}") from exc
-        if len(tokens) != 1 or not tokens[0].strip():
-            raise ValueError(f"{key} must resolve to one absolute path in {path}")
-        return tokens[0].strip()
     raise ValueError(f"{key} is not configured in {path}")
 
 
@@ -90,9 +100,41 @@ def _resolve_launcher_path(*, runtime_root: Path) -> Path:
     return resolved_launcher_path
 
 
+def _launcher_requires_node(*, launcher_path: Path) -> bool:
+    try:
+        first_line = launcher_path.read_text(encoding="utf-8").splitlines()[0]
+    except (OSError, UnicodeDecodeError, IndexError):
+        return False
+    if not first_line.startswith("#!"):
+        return False
+    return "node" in first_line
+
+
+def _resolve_launcher_node_binary(*, runtime_root: Path) -> str | None:
+    configured_node = str(os.environ.get("MED_AUTOSCIENCE_NODE_BIN") or "").strip()
+    if not configured_node:
+        workspace_root = Path(runtime_root).expanduser().resolve().parents[2]
+        configured_value = _read_optional_config_env_value(
+            path=workspace_root / "ops" / "medautoscience" / "config.env",
+            key="MED_AUTOSCIENCE_NODE_BIN",
+        )
+        configured_node = str(configured_value or "").strip()
+    if not configured_node:
+        return None
+    if not os.path.isabs(configured_node):
+        raise ValueError(f"MED_AUTOSCIENCE_NODE_BIN must be an absolute path: {configured_node}")
+    if not os.access(configured_node, os.X_OK):
+        raise ValueError(f"MED_AUTOSCIENCE_NODE_BIN is not executable: {configured_node}")
+    return configured_node
+
+
 def _launcher_command(*, runtime_root: Path, args: tuple[str, ...]) -> list[str]:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     launcher_path = _resolve_launcher_path(runtime_root=resolved_runtime_root)
+    if _launcher_requires_node(launcher_path=launcher_path):
+        node_binary = _resolve_launcher_node_binary(runtime_root=resolved_runtime_root)
+        if node_binary:
+            return [node_binary, str(launcher_path), "--home", str(resolved_runtime_root), *args]
     return [str(launcher_path), "--home", str(resolved_runtime_root), *args]
 
 
