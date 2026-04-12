@@ -33,6 +33,7 @@ Current frozen state:
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
 - Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
+- Repo-level phase entry: `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
 - Current user inbox entry: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>` now folds repo mainline snapshot, workspace attention queue, and the practical start / submit-task / watch-progress loop into one surface.
 - Fastest cutover board: [Upstream Hermes-Agent fast cutover board](program/upstream_hermes_agent_fast_cutover_board.md) (Chinese only)
 - Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.

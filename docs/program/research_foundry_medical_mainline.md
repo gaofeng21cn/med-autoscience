@@ -70,6 +70,11 @@
 
 - [Research Foundry Medical Phase Ladder](./research_foundry_medical_phase_ladder.md)
 
+对应的 repo-level 命令面也已经落下：
+
+- `uv run python -m med_autoscience.cli mainline-status`
+- `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
+
 ## 两层主线必须分开理解
 
 ### 1. 业务北极星

@@ -858,6 +858,27 @@ def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> N
     assert json.loads(captured.out)["current_stage"]["id"] == "f4_blocker_closeout"
 
 
+def test_mainline_phase_command_dispatches_controller(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_read_mainline_phase_status(selector: str) -> dict:
+        called["selector"] = selector
+        return {
+            "program_id": "research-foundry-medical-mainline",
+            "phase": {"id": "phase_2_user_product_loop", "status": "pending"},
+        }
+
+    monkeypatch.setattr(cli.mainline_status, "read_mainline_phase_status", fake_read_mainline_phase_status)
+
+    exit_code = cli.main(["mainline-phase", "--phase", "next", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["selector"] == "next"
+    assert json.loads(captured.out)["phase"]["id"] == "phase_2_user_product_loop"
+
+
 def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

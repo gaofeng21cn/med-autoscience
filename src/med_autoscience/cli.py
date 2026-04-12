@@ -146,6 +146,10 @@ def build_parser() -> argparse.ArgumentParser:
     mainline_status_parser = subparsers.add_parser("mainline-status")
     mainline_status_parser.add_argument("--format", choices=("text", "json"), default="text")
 
+    mainline_phase_parser = subparsers.add_parser("mainline-phase")
+    mainline_phase_parser.add_argument("--phase", default="current")
+    mainline_phase_parser.add_argument("--format", choices=("text", "json"), default="text")
+
     subparsers.add_parser("show-agent-entry-modes")
 
     sync_agent_entry_assets_parser = subparsers.add_parser("sync-agent-entry-assets")
@@ -430,6 +434,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(mainline_status.render_mainline_status_markdown(result), end="")
+        return 0
+
+    if args.command == "mainline-phase":
+        result = mainline_status.read_mainline_phase_status(args.phase)
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(mainline_status.render_mainline_phase_markdown(result), end="")
         return 0
 
     if args.command == "show-agent-entry-modes":

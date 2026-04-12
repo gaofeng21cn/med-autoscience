@@ -8,6 +8,11 @@
 2. 现在处在第几阶段
 3. 后面该按什么顺序继续做，而不是把高优先级与后置长线混在一起
 
+配套命令面：
+
+- 总览：`uv run python -m med_autoscience.cli mainline-status`
+- 分阶段：`uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
+
 ## 理想形态
 
 按 `OPL -> Research Foundry -> Med Auto Science` 这条定位，最终目标不是单一仓库里的一套脚本，而是一条清楚分层、长期自治、可监管的产品链：

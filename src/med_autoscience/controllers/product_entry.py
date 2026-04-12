@@ -395,6 +395,8 @@ def _user_loop(*, profile: WorkspaceProfile, profile_ref: str | Path | None) -> 
     prefix = _command_prefix(profile_ref)
     return {
         "mainline_status": f"{prefix} mainline-status",
+        "phase_status_current": f"{prefix} mainline-phase --phase current",
+        "phase_status_next": f"{prefix} mainline-phase --phase next",
         "open_workspace_cockpit": f"{prefix} workspace-cockpit --profile {profile_arg}",
         "submit_task_template": (
             f"{prefix} submit-study-task --profile {profile_arg} --study-id <study_id> "

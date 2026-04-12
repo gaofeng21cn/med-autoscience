@@ -16,12 +16,13 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def read_mainline_status() -> dict[str, Any]:
-    phase_ladder = [
+def _phase_ladder() -> list[dict[str, Any]]:
+    return [
         {
             "id": "phase_1_mainline_established",
             "title": "Phase 1 mainline established",
             "status": "in_progress",
+            "usable_now": True,
             "summary": (
                 "先证明 MAS -> Hermes-Agent target outer substrate -> controlled MedDeepScientist backend 这条主线诚实成立，"
                 "并完成 F4 blocker 收口。"
@@ -30,48 +31,184 @@ def read_mainline_status() -> dict[str, Any]:
                 "close remaining study blockers without reopening seam-only work",
                 "keep runtime truth, recovery proof, and product-entry hardening aligned",
             ],
+            "entry_points": [
+                {
+                    "name": "mainline_status",
+                    "command": "uv run python -m med_autoscience.cli mainline-status",
+                    "purpose": "先看 repo 主线真相、当前 tranche 和 remaining gaps。",
+                },
+                {
+                    "name": "workspace_cockpit",
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+                    "purpose": "看当前 workspace 的监管、attention queue 和用户入口回路。",
+                },
+                {
+                    "name": "study_progress",
+                    "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
+                    "purpose": "确认 active study 当前卡在哪、下一步是什么、是否需要人工决策。",
+                },
+            ],
+            "exit_criteria": [
+                "F4 blocker closeout 不再主要停留在 repo-side seam 或 host compatibility。",
+                "当前活跃 study 的主要阻塞继续前移到 publication / completion / human-gate truth。",
+                "用户已经能稳定看到主线状态、workspace attention 和 study progress。",
+            ],
+            "phase_docs": [
+                "docs/program/upstream_hermes_agent_fast_cutover_board.md",
+                "docs/program/research_foundry_medical_mainline.md",
+                "docs/program/research_foundry_medical_phase_ladder.md",
+            ],
         },
         {
             "id": "phase_2_user_product_loop",
             "title": "Phase 2 user product loop",
             "status": "pending",
+            "usable_now": True,
             "summary": "把启动、下任务、持续看进度、看告警、看恢复建议收成稳定用户回路。",
             "focus": [
                 "stabilize user-facing inbox, attention queue, and progress loop",
                 "make stuck-state, recovery suggestions, and supervision freshness continuously visible",
+            ],
+            "entry_points": [
+                {
+                    "name": "workspace_cockpit",
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+                    "purpose": "把 workspace-cockpit 当作当前用户 inbox 入口使用。",
+                },
+                {
+                    "name": "submit_study_task",
+                    "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+                    "purpose": "把任务写成 durable truth，而不是只停在对话里。",
+                },
+                {
+                    "name": "launch_study",
+                    "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+                    "purpose": "正式启动或续跑 study，并立即拿到监督入口。",
+                },
+                {
+                    "name": "study_progress",
+                    "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
+                    "purpose": "持续轮询人话进度、阻塞、下一步和最新监督入口。",
+                },
+            ],
+            "exit_criteria": [
+                "用户不再需要自己拼 controller surface 才能完成 start / submit / watch。",
+                "attention queue、progress freshness、recovery suggestion 已经稳定可见。",
+                "当前 repo-tracked shell 已足够像真实 user loop，而不是命令散点集合。",
+            ],
+            "phase_docs": [
+                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/lightweight_product_entry_and_opl_handoff.md",
+                "docs/runtime/agent_runtime_interface.md",
             ],
         },
         {
             "id": "phase_3_multi_workspace_host_clearance",
             "title": "Phase 3 multi-workspace / host clearance",
             "status": "pending",
+            "usable_now": True,
             "summary": "把当前 proof 从单机/单 workspace 扩到多 workspace、多宿主的真实长期稳定性。",
             "focus": [
                 "prove service, recovery, and quality guards across more hosts and workspaces",
                 "clear broader external-runtime and workspace-specific blocker classes honestly",
+            ],
+            "entry_points": [
+                {
+                    "name": "doctor",
+                    "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
+                    "purpose": "先看 workspace / runtime / external Hermes contract readiness。",
+                },
+                {
+                    "name": "hermes_runtime_check",
+                    "command": "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
+                    "purpose": "检查 external Hermes runtime 证据和 fail-closed gate。",
+                },
+                {
+                    "name": "watch",
+                    "command": "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
+                    "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
+                },
+            ],
+            "exit_criteria": [
+                "external-runtime clearance 不再只依赖当前开发宿主。",
+                "更多 workspace / host 的 service、watch、recovery 已有真实 proof。",
+                "host/env compatibility 不再反复成为主阻塞类别。",
+            ],
+            "phase_docs": [
+                "docs/program/external_runtime_dependency_gate.md",
+                "docs/program/upstream_hermes_agent_fast_cutover_board.md",
+                "docs/program/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
             "id": "phase_4_backend_deconstruction",
             "title": "Phase 4 backend deconstruction",
             "status": "pending",
+            "usable_now": True,
             "summary": "在 outer runtime 与产品回路稳定后，再逐步解构 MedDeepScientist 中可迁出的通用能力。",
             "focus": [
                 "move reusable runtime capability out of the controlled backend only with proof",
                 "keep executor replacement explicit and contract-driven instead of forced rewrites",
+            ],
+            "entry_points": [
+                {
+                    "name": "mainline_phase",
+                    "command": "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction",
+                    "purpose": "先看 backend deconstruction 的当前边界、入口和退出条件。",
+                },
+                {
+                    "name": "deconstruction_map",
+                    "command": "open docs/program/med_deepscientist_deconstruction_map.md",
+                    "purpose": "核对哪些能力属于 substrate、backend、后续替换。",
+                },
+            ],
+            "exit_criteria": [
+                "迁出的能力有明确 owner、contract、tests 和 proof surface。",
+                "MedDeepScientist 更接近 controlled executor，而不是 hidden runtime authority。",
+                "executor replacement 不依赖一次性重写或 truth rewrite。",
+            ],
+            "phase_docs": [
+                "docs/program/med_deepscientist_deconstruction_map.md",
+                "docs/program/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
             "id": "phase_5_federation_platform_maturation",
             "title": "Phase 5 federation and platform maturation",
             "status": "pending",
+            "usable_now": True,
             "summary": "最后再考虑更大平台化工作，如 federation direct entry、monorepo 与 runtime core ingest。",
             "focus": [
                 "land broader federation-facing direct entry only after earlier phases hold",
                 "treat monorepo and large physical restructures as strictly post-gate work",
             ],
+            "entry_points": [
+                {
+                    "name": "mainline_phase",
+                    "command": "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation",
+                    "purpose": "先看 federation / platform 这层现在仍然为什么是后置阶段。",
+                },
+                {
+                    "name": "mainline_status",
+                    "command": "uv run python -m med_autoscience.cli mainline-status",
+                    "purpose": "回到当前主线，确认更大平台化工作是否已经到了诚实时机。",
+                },
+            ],
+            "exit_criteria": [
+                "前四阶段已经稳定成立，不再靠少量 proof 支撑整体口径。",
+                "更大物理结构调整不会制造 truth drift。",
+                "OPL family entry 与 MAS domain entry 已能自然衔接。",
+            ],
+            "phase_docs": [
+                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/program/research_foundry_medical_mainline.md",
+            ],
         },
     ]
+
+
+def read_mainline_status() -> dict[str, Any]:
+    phase_ladder = _phase_ladder()
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -180,6 +317,81 @@ def read_mainline_status() -> dict[str, Any]:
             "study_progress": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
         },
     }
+
+
+def read_mainline_phase_status(selector: str = "current") -> dict[str, Any]:
+    payload = read_mainline_status()
+    phase_ladder = [dict(item) for item in payload.get("phase_ladder") or [] if isinstance(item, dict)]
+    if not phase_ladder:
+        raise ValueError("mainline phase ladder is empty")
+    current_phase_id = str(((payload.get("current_program_phase") or {}).get("id")) or "").strip()
+
+    selected_phase: dict[str, Any] | None = None
+    normalized_selector = str(selector or "current").strip() or "current"
+    if normalized_selector == "current":
+        selected_phase = next((item for item in phase_ladder if item.get("id") == current_phase_id), None)
+    elif normalized_selector == "next":
+        current_index = next((index for index, item in enumerate(phase_ladder) if item.get("id") == current_phase_id), -1)
+        if 0 <= current_index < len(phase_ladder) - 1:
+            selected_phase = phase_ladder[current_index + 1]
+    else:
+        selected_phase = next((item for item in phase_ladder if item.get("id") == normalized_selector), None)
+    if selected_phase is None:
+        raise ValueError(f"unknown mainline phase selector: {normalized_selector}")
+
+    return {
+        "schema_version": payload.get("schema_version"),
+        "generated_at": payload.get("generated_at"),
+        "program_id": payload.get("program_id"),
+        "current_stage": dict(payload.get("current_stage") or {}),
+        "current_program_phase": dict(payload.get("current_program_phase") or {}),
+        "phase": selected_phase,
+        "source_docs": list(payload.get("source_docs") or []),
+    }
+
+
+def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
+    phase = dict(payload.get("phase") or {})
+    lines = [
+        "# Mainline Phase",
+        "",
+        f"- program_id: `{payload.get('program_id')}`",
+        f"- phase_id: `{phase.get('id')}`",
+        f"- phase_status: `{phase.get('status')}`",
+        f"- usable_now: `{phase.get('usable_now')}`",
+        f"- summary: {phase.get('summary')}",
+        "",
+        "## Entry Points",
+        "",
+    ]
+    entry_points = list(phase.get("entry_points") or [])
+    if entry_points:
+        for item in entry_points:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"- `{item.get('name')}`: `{item.get('command')}`"
+            )
+            purpose = str(item.get("purpose") or "").strip()
+            if purpose:
+                lines.append(f"  purpose: {purpose}")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Exit Criteria", ""])
+    exit_criteria = list(phase.get("exit_criteria") or [])
+    if exit_criteria:
+        for item in exit_criteria:
+            lines.append(f"- {item}")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Key Docs", ""])
+    phase_docs = list(phase.get("phase_docs") or [])
+    if phase_docs:
+        for item in phase_docs:
+            lines.append(f"- `{item}`")
+    else:
+        lines.append("- none")
+    return "\n".join(lines) + "\n"
 
 
 def render_mainline_status_markdown(payload: dict[str, Any]) -> str:

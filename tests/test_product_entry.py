@@ -134,6 +134,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
+    assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
     assert "study-progress" in payload["user_loop"]["watch_progress_template"]
 
