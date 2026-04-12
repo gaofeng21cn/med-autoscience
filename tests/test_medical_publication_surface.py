@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from med_autoscience import display_registry
@@ -90,6 +91,67 @@ def dump_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     normalized_payload = _normalize_namespaced_ids(payload)
     path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _paper_root_from_quest(quest_root: Path) -> Path:
+    return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+
+
+def _attach_public_anchor_study_context(monkeypatch, module, tmp_path: Path, quest_root: Path) -> Path:
+    study_root = tmp_path / "studies" / "004-public-anchor-route"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(
+        "study_id: 004-public-anchor-route\n"
+        "public_data_anchors:\n"
+        "  - dataset_id: mapping-pituitary\n"
+        "    role: anatomy_anchor\n"
+        "  - dataset_id: geo-gse169498\n"
+        "    role: biology_anchor\n",
+        encoding="utf-8",
+    )
+
+    paper_root = _paper_root_from_quest(quest_root)
+
+    monkeypatch.setattr(
+        module,
+        "resolve_paper_root_context",
+        lambda _: SimpleNamespace(
+            paper_root=paper_root,
+            worktree_root=paper_root.parent,
+            quest_root=quest_root,
+            study_id="004-public-anchor-route",
+            study_root=study_root,
+        ),
+        raising=False,
+    )
+    return study_root
+
+
+def _inject_public_data_surface_mentions(quest_root: Path) -> None:
+    paper_root = _paper_root_from_quest(quest_root)
+    review_path = paper_root / "build" / "review_manuscript.md"
+    review_path.write_text(
+        review_path.read_text(encoding="utf-8")
+        + "\nPublic MRI and omics datasets remain appendix-grade anatomy and biology anchors.\n",
+        encoding="utf-8",
+    )
+    draft_path = paper_root / "draft.md"
+    draft_path.write_text(
+        draft_path.read_text(encoding="utf-8")
+        + "\nPublic anatomy and biology anchors were retained for the manuscript-facing route.\n",
+        encoding="utf-8",
+    )
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog["figures"][0]["title"] = "Public anatomy and biology anchors remain appendix-grade contextual support"
+    dump_json(figure_catalog_path, figure_catalog)
+
+
+def _write_public_evidence_decisions(quest_root: Path, decisions: list[dict[str, Any]]) -> None:
+    derived_manifest_path = _paper_root_from_quest(quest_root) / "derived_analysis_manifest.json"
+    payload = json.loads(derived_manifest_path.read_text(encoding="utf-8"))
+    payload["public_evidence_decisions"] = decisions
+    dump_json(derived_manifest_path, payload)
 
 
 def make_quest(
@@ -1746,6 +1808,101 @@ def test_build_report_scans_only_table3_markdown_table_body(tmp_path: Path) -> N
 
     assert report["status"] == "clear"
     assert report["top_hits"] == []
+
+
+def test_build_report_blocks_public_data_without_surface_decision(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _inject_public_data_surface_mentions(quest_root)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "public_evidence_decisions_missing_or_incomplete" in report["blockers"]
+    assert report["public_data_anchor_count"] == 2
+    assert report["public_data_surface_reference_count"] >= 1
+    assert any(hit["pattern_id"] == "paper_facing_public_data_reference" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_public_data_when_decisions_drop_from_manuscript(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _inject_public_data_surface_mentions(quest_root)
+    _write_public_evidence_decisions(
+        quest_root,
+        [
+            {
+                "entry_id": "PE1",
+                "dataset_ids": ["mapping-pituitary", "geo-gse169498"],
+                "analysis_ids": ["A1"],
+                "paper_surface_decision": "drop_from_manuscript",
+                "decision_rationale": "Public datasets were retained for audit only and did not earn a manuscript-facing result.",
+            }
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "paper_facing_public_data_without_earned_evidence" in report["blockers"]
+    assert report["public_evidence_decision_count"] == 1
+    assert report["public_evidence_earned_count"] == 0
+
+
+def test_build_report_allows_public_data_after_appendix_earned_decision(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    _attach_public_anchor_study_context(monkeypatch, module, tmp_path, quest_root)
+    _inject_public_data_surface_mentions(quest_root)
+    _write_public_evidence_decisions(
+        quest_root,
+        [
+            {
+                "entry_id": "PE1",
+                "dataset_ids": ["mapping-pituitary", "geo-gse169498"],
+                "analysis_ids": ["A1"],
+                "paper_surface_decision": "appendix_earned",
+                "decision_rationale": "The public datasets earned a constrained appendix role after a separate route-specific audit.",
+                "result_statement": "Public MRI and omics anchors provide bounded appendix-only anatomy and biology context.",
+                "linked_display_items": ["F4"],
+                "linked_sections": ["discussion", "appendix"],
+                "interpretation_boundary": "Appendix context only; no external validation or mechanistic claim.",
+            }
+        ],
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert report["public_evidence_decision_count"] == 1
+    assert report["public_evidence_earned_count"] == 1
+    assert "public_evidence_decisions_missing_or_incomplete" not in report["blockers"]
+    assert "paper_facing_public_data_without_earned_evidence" not in report["blockers"]
+
+
 def test_validate_figure_catalog_requires_real_qc_result_fields() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
@@ -2072,6 +2229,42 @@ def test_build_surface_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_
 
     assert seen == {"quest_root": quest_root}
     assert state.runtime_state["status"] == "patched"
+
+
+def test_build_surface_state_resolves_study_root_from_live_quest_paper(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "004-live-quest"
+    paper_root = quest_root / "paper"
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "004-live-quest",
+            "status": "running",
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "bundle_inputs": {
+                "compiled_markdown_path": "paper/build/review_manuscript.md",
+            },
+        },
+    )
+    study_root = workspace_root / "studies" / "004-study"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 004-study\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text(
+        "schema_version: 1\n"
+        "study_id: 004-study\n"
+        "quest_id: 004-live-quest\n",
+        encoding="utf-8",
+    )
+
+    state = module.build_surface_state(quest_root)
+
+    assert state.study_root == study_root.resolve()
 
 
 def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:

@@ -8,11 +8,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from med_autoscience import display_registry
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
-from med_autoscience.runtime_protocol.layout import resolve_runtime_root_from_quest_root
-from med_autoscience.runtime_protocol import paper_artifacts, quest_state, report_store as runtime_protocol_report_store, user_message
+from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
+from med_autoscience.runtime_protocol import (
+    paper_artifacts,
+    quest_state,
+    report_store as runtime_protocol_report_store,
+    resolve_paper_root_context,
+    user_message,
+)
 
 
 managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
@@ -27,6 +35,7 @@ class SurfaceState:
     quest_root: Path
     runtime_state: dict[str, Any]
     paper_root: Path
+    study_root: Path | None
     review_defaults_path: Path
     ama_csl_path: Path
     paper_pdf_path: Path
@@ -76,10 +85,20 @@ def find_latest(paths: list[Path]) -> Path | None:
 def build_surface_state(quest_root: Path) -> SurfaceState:
     runtime_state = quest_state.load_runtime_state(quest_root) or {}
     paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
+    study_root: Path | None = None
+    try:
+        paper_context = resolve_paper_root_context(paper_root)
+    except (FileNotFoundError, ValueError):
+        paper_context = None
+    if paper_context is not None:
+        study_root = paper_context.study_root
+    if study_root is None:
+        study_root = resolve_study_root_from_live_quest_root(quest_root, runtime_state)
     return SurfaceState(
         quest_root=quest_root,
         runtime_state=runtime_state,
         paper_root=paper_root,
+        study_root=study_root,
         review_defaults_path=paper_root / "latex" / "review_defaults.yaml",
         ama_csl_path=paper_root / "latex" / "american-medical-association.csl",
         paper_pdf_path=paper_root / "paper.pdf",
@@ -102,6 +121,43 @@ def excerpt_around(text: str, start: int, end: int, *, width: int = 96) -> str:
     right = min(len(text), end + width // 2)
     excerpt = text[left:right].replace("\n", " ").strip()
     return excerpt
+
+
+def load_yaml_mapping(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        return {}
+    return payload
+
+
+def resolve_study_root_from_live_quest_root(quest_root: Path, runtime_state: dict[str, Any]) -> Path | None:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    try:
+        workspace_root = resolved_quest_root.parents[4]
+    except IndexError:
+        return None
+    layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    if resolved_quest_root.parent != layout.quests_root or resolved_quest_root.parent.parent != layout.runtime_root:
+        return None
+    quest_id = str(runtime_state.get("quest_id") or resolved_quest_root.name).strip()
+    if not quest_id:
+        return None
+    direct_study_root = (workspace_root / "studies" / quest_id).resolve()
+    if (direct_study_root / "study.yaml").exists():
+        return direct_study_root
+    studies_root = workspace_root / "studies"
+    if not studies_root.exists():
+        return None
+    for runtime_binding_path in sorted(studies_root.glob("*/runtime_binding.yaml")):
+        payload = load_yaml_mapping(runtime_binding_path)
+        if str(payload.get("quest_id") or "").strip() != quest_id:
+            continue
+        study_root = runtime_binding_path.parent.resolve()
+        if (study_root / "study.yaml").exists():
+            return study_root
+    return None
 
 
 def scan_text_file(path: Path) -> list[dict[str, Any]]:
@@ -132,6 +188,27 @@ URL_RE = re.compile(r"https?://\S+", flags=re.IGNORECASE)
 QUESTION_MARK_CHARS = frozenset({"?", "？"})
 SENTENCE_TERMINATOR_CHARS = frozenset({".", "!", "?", "。", "！", "？"})
 QUESTION_SENTENCE_CONTEXT_LIMIT = 400
+PUBLIC_DATA_GENERIC_REFERENCE_PHRASES = (
+    "public data",
+    "public dataset",
+    "public datasets",
+    "public mri",
+    "public omics",
+    "public mri and omics",
+    "public mri and omics datasets",
+    "public anchor",
+    "public anchors",
+    "public anatomy anchor",
+    "public anatomy anchors",
+    "public biology anchor",
+    "public biology anchors",
+    "public anatomy and biology anchor",
+    "public anatomy and biology anchors",
+    "anatomy anchor",
+    "anatomy anchors",
+    "biology anchor",
+    "biology anchors",
+)
 
 
 def resolve_paper_relative_path(paper_root: Path, raw_path: str) -> Path:
@@ -287,6 +364,224 @@ def scan_string_value(path: Path, location: str, value: str) -> list[dict[str, A
                 }
             )
     return hits
+
+
+def compile_phrase_pattern(phrase: str) -> re.Pattern[str]:
+    tokens = [token for token in re.split(r"[\s_-]+", str(phrase).strip()) if token]
+    if not tokens:
+        return re.compile(r"$^")
+    pattern = r"\b" + r"[\s_-]*".join(re.escape(token) for token in tokens) + r"\b"
+    return re.compile(pattern, flags=re.IGNORECASE)
+
+
+def dataset_reference_phrases(dataset_id: str) -> set[str]:
+    normalized = str(dataset_id or "").strip()
+    if not normalized:
+        return set()
+    phrases = {normalized}
+    if normalized.lower().startswith("geo-"):
+        phrases.add(normalized[4:])
+    if normalized.lower().startswith("dryad-"):
+        phrases.add(normalized[6:])
+    return {phrase for phrase in phrases if phrase}
+
+
+def load_public_data_anchors(study_root: Path | None) -> list[dict[str, str]]:
+    if study_root is None:
+        return []
+    study_payload = load_yaml_mapping(study_root / "study.yaml")
+    raw_anchors = study_payload.get("public_data_anchors")
+    if not isinstance(raw_anchors, list):
+        return []
+    anchors: list[dict[str, str]] = []
+    for item in raw_anchors:
+        if not isinstance(item, dict):
+            continue
+        dataset_id = str(item.get("dataset_id") or "").strip()
+        role = str(item.get("role") or "").strip()
+        if not dataset_id and not role:
+            continue
+        anchors.append({"dataset_id": dataset_id, "role": role})
+    return anchors
+
+
+def build_public_data_reference_patterns(public_data_anchors: list[dict[str, str]]) -> list[tuple[str, re.Pattern[str]]]:
+    phrases = {phrase for phrase in PUBLIC_DATA_GENERIC_REFERENCE_PHRASES}
+    roles = {str(item.get("role") or "").strip().replace("_", " ") for item in public_data_anchors if item}
+    if "anatomy anchor" in roles and "biology anchor" in roles:
+        phrases.add("public anatomy and biology anchors")
+    for anchor in public_data_anchors:
+        dataset_id = str(anchor.get("dataset_id") or "").strip()
+        role = str(anchor.get("role") or "").strip().replace("_", " ")
+        phrases.update(dataset_reference_phrases(dataset_id))
+        if role:
+            phrases.add(role)
+            phrases.add(f"public {role}")
+    patterns: list[tuple[str, re.Pattern[str]]] = []
+    for phrase in sorted(phrase for phrase in phrases if phrase):
+        patterns.append((phrase, compile_phrase_pattern(phrase)))
+    return patterns
+
+
+def scan_string_value_for_patterns(
+    path: Path,
+    location: str,
+    value: str,
+    *,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    hits: list[dict[str, Any]] = []
+    for phrase, compiled in patterns:
+        for match in compiled.finditer(value):
+            hits.append(
+                {
+                    "path": str(path),
+                    "location": location,
+                    "pattern_id": "paper_facing_public_data_reference",
+                    "phrase": phrase,
+                    "excerpt": excerpt_around(value, match.start(), match.end()),
+                }
+            )
+    return hits
+
+
+def scan_text_file_for_patterns(path: Path, *, patterns: list[tuple[str, re.Pattern[str]]]) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    hits: list[dict[str, Any]] = []
+    text = path.read_text(encoding="utf-8")
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        hits.extend(scan_string_value_for_patterns(path, f"line {line_number}", line, patterns=patterns))
+    return hits
+
+
+def scan_catalog_strings_for_patterns(
+    path: Path,
+    *,
+    collection_key: str,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    payload = load_json(path, default={}) or {}
+    hits: list[dict[str, Any]] = []
+    for index, item in enumerate(payload.get(collection_key, []) or []):
+        for field in ("title", "caption", "manuscript_purpose", "note", "next_action"):
+            value = str(item.get(field) or "")
+            if not value:
+                continue
+            hits.extend(
+                scan_string_value_for_patterns(path, f"{collection_key}[{index}].{field}", value, patterns=patterns)
+            )
+        if collection_key == "figures":
+            for panel_index, panel in enumerate(item.get("panel_plan", []) or []):
+                for field in ("title", "focus"):
+                    value = str(panel.get(field) or "")
+                    if not value:
+                        continue
+                    hits.extend(
+                        scan_string_value_for_patterns(
+                            path,
+                            f"{collection_key}[{index}].panel_plan[{panel_index}].{field}",
+                            value,
+                            patterns=patterns,
+                        )
+                    )
+        summary = item.get("summary")
+        if isinstance(summary, dict):
+            for field in ("purpose", "must_highlight", "scope_rule"):
+                value = str(summary.get(field) or "")
+                if not value:
+                    continue
+                hits.extend(
+                    scan_string_value_for_patterns(
+                        path,
+                        f"{collection_key}[{index}].summary.{field}",
+                        value,
+                        patterns=patterns,
+                    )
+                )
+    return hits
+
+
+def inspect_public_evidence_surface(
+    *,
+    state: SurfaceState,
+    derived_analysis_payload: object,
+) -> dict[str, Any]:
+    public_data_anchors = load_public_data_anchors(state.study_root)
+    anchor_count = len(public_data_anchors)
+    if not public_data_anchors:
+        return {
+            "public_data_anchors": [],
+            "surface_hits": [],
+            "decision_hits": [],
+            "decision_count": 0,
+            "earned_count": 0,
+        }
+
+    patterns = build_public_data_reference_patterns(public_data_anchors)
+    surface_hits: list[dict[str, Any]] = []
+    surface_hits.extend(scan_text_file_for_patterns(state.draft_path, patterns=patterns))
+    surface_hits.extend(scan_text_file_for_patterns(state.review_manuscript_path, patterns=patterns))
+    surface_hits.extend(scan_catalog_strings_for_patterns(state.figure_catalog_path, collection_key="figures", patterns=patterns))
+    surface_hits.extend(scan_catalog_strings_for_patterns(state.table_catalog_path, collection_key="tables", patterns=patterns))
+    surface_hits = unique_hits(surface_hits)
+
+    decision_hits: list[dict[str, Any]] = []
+    decision_count = 0
+    earned_count = 0
+    if not surface_hits:
+        return {
+            "public_data_anchors": public_data_anchors,
+            "surface_hits": [],
+            "decision_hits": [],
+            "decision_count": 0,
+            "earned_count": 0,
+        }
+
+    public_evidence_decisions = None
+    if isinstance(derived_analysis_payload, dict):
+        public_evidence_decisions = derived_analysis_payload.get(medical_surface_policy.PUBLIC_EVIDENCE_DECISIONS_KEY)
+        if isinstance(public_evidence_decisions, list):
+            decision_count = len(public_evidence_decisions)
+            earned_count = sum(
+                1
+                for item in public_evidence_decisions
+                if isinstance(item, dict)
+                and str(item.get("paper_surface_decision") or "").strip()
+                in medical_surface_policy.PUBLIC_EVIDENCE_EARNED_DECISIONS
+            )
+    decision_errors = medical_surface_policy.validate_public_evidence_decisions(public_evidence_decisions)
+    if decision_errors:
+        decision_hits.append(
+            {
+                "path": str(state.derived_analysis_manifest_path),
+                "location": "file",
+                "pattern_id": "public_evidence_decisions_missing_or_incomplete",
+                "phrase": medical_surface_policy.PUBLIC_EVIDENCE_DECISIONS_KEY,
+                "excerpt": "; ".join(decision_errors),
+            }
+        )
+    elif earned_count == 0:
+        decision_hits.append(
+            {
+                "path": str(state.derived_analysis_manifest_path),
+                "location": "file",
+                "pattern_id": "paper_facing_public_data_without_earned_evidence",
+                "phrase": medical_surface_policy.PUBLIC_EVIDENCE_DECISIONS_KEY,
+                "excerpt": (
+                    "Paper-facing public-data references are present, but no public_evidence_decisions entry earned "
+                    "a manuscript-facing role."
+                ),
+            }
+        )
+    return {
+        "public_data_anchors": public_data_anchors,
+        "surface_hits": surface_hits,
+        "decision_hits": decision_hits,
+        "decision_count": decision_count,
+        "earned_count": earned_count,
+        "anchor_count": anchor_count,
+    }
 
 
 def scan_results_narration_text_file(path: Path) -> list[dict[str, Any]]:
@@ -1257,6 +1552,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         if definition and definition.get("operational_definition") and definition.get("implementation_anchor"):
             continue
         undefined_methodology_label_hits.append(hit)
+    public_evidence_surface_state = inspect_public_evidence_surface(
+        state=state,
+        derived_analysis_payload=derived_analysis_payload,
+    )
+    public_data_surface_hits = public_evidence_surface_state.get("surface_hits") or []
+    public_evidence_decision_hits = public_evidence_surface_state.get("decision_hits") or []
     hits: list[dict[str, Any]] = []
     hits.extend(figure_catalog_hits)
     hits.extend(table_catalog_hits)
@@ -1276,6 +1577,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
     hits.extend(forbidden_hits)
+    hits.extend(public_data_surface_hits)
+    hits.extend(public_evidence_decision_hits)
     hits = unique_hits(hits)
 
     blockers: list[str] = []
@@ -1319,6 +1622,13 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_table_led_results_narration_present")
     if non_formal_question_hits:
         blockers.append("non_formal_question_sentence_present")
+    if any(hit["pattern_id"] == "public_evidence_decisions_missing_or_incomplete" for hit in public_evidence_decision_hits):
+        blockers.append("public_evidence_decisions_missing_or_incomplete")
+    if any(
+        hit["pattern_id"] == "paper_facing_public_data_without_earned_evidence"
+        for hit in public_evidence_decision_hits
+    ):
+        blockers.append("paper_facing_public_data_without_earned_evidence")
 
     return {
         "schema_version": 1,
@@ -1333,6 +1643,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         ),
         "blockers": blockers,
         "paper_root": str(state.paper_root),
+        "study_root": str(state.study_root) if state.study_root is not None else None,
         "review_defaults_path": str(state.review_defaults_path),
         "ama_csl_path": str(state.ama_csl_path),
         "ama_csl_present": ama_csl_present,
@@ -1375,6 +1686,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "endpoint_provenance_caveat_source_count": len(endpoint_caveat_sources),
         "paper_pdf_path": str(state.paper_pdf_path),
         "paper_pdf_present": state.paper_pdf_path.exists(),
+        "public_data_anchor_count": int(public_evidence_surface_state.get("anchor_count") or 0),
+        "public_data_surface_reference_count": len(public_data_surface_hits),
+        "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
+        "public_evidence_earned_count": int(public_evidence_surface_state.get("earned_count") or 0),
         "forbidden_hit_count": len(hits),
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
@@ -1419,6 +1734,10 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- endpoint_provenance_note_present: `{report['endpoint_provenance_note_present']}`",
         f"- endpoint_provenance_note_valid: `{report['endpoint_provenance_note_valid']}`",
         f"- endpoint_provenance_note_applied: `{report['endpoint_provenance_note_applied']}`",
+        f"- public_data_anchor_count: `{report.get('public_data_anchor_count', 0)}`",
+        f"- public_data_surface_reference_count: `{report.get('public_data_surface_reference_count', 0)}`",
+        f"- public_evidence_decision_count: `{report.get('public_evidence_decision_count', 0)}`",
+        f"- public_evidence_earned_count: `{report.get('public_evidence_earned_count', 0)}`",
         f"- forbidden_hit_count: `{report['forbidden_hit_count']}`",
         f"- undefined_methodology_label_hit_count: `{report['undefined_methodology_label_hit_count']}`",
         f"- results_narration_hit_count: `{report['results_narration_hit_count']}`",

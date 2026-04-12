@@ -73,6 +73,8 @@ _WATCH_BLOCKER_LABELS = {
     "figure_catalog_missing_or_incomplete": "关键图表目录仍不完整。",
     "table_catalog_missing_or_incomplete": "关键表格目录仍不完整。",
     "required_display_catalog_coverage_incomplete": "论文关键展示面覆盖仍不完整。",
+    "public_evidence_decisions_missing_or_incomplete": "公开数据进入论文前缺少明确的 earned/drop 决策记录。",
+    "paper_facing_public_data_without_earned_evidence": "公开数据已经写入论文面，但还没有真正 earned 的结果支撑。",
     "ama_pdf_defaults_missing": "AMA 稿件导出默认配置仍未补齐。",
     "results_narrative_map_missing_or_incomplete": "结果叙事映射仍不完整。",
     "methods_section_structure_missing_or_incomplete": "方法学章节结构仍不完整。",
@@ -85,6 +87,8 @@ _BLOCKER_LABELS = {
     "stale_study_delivery_mirror": "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
     "forbidden_manuscript_terminology": "当前稿件仍含不允许的术语表达，需要清理。",
+    "public_evidence_decisions_missing_or_incomplete": "公开数据进入论文前缺少明确的 earned/drop 决策记录。",
+    "paper_facing_public_data_without_earned_evidence": "公开数据已经写入论文面，但还没有真正 earned 的结果支撑。",
     "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
 }
 _ACTION_LABELS = {

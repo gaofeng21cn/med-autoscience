@@ -53,6 +53,20 @@ DERIVED_ANALYSIS_MANIFEST_BASENAME = "derived_analysis_manifest.json"
 REPRODUCIBILITY_SUPPLEMENT_BASENAME = "manuscript_safe_reproducibility_supplement.json"
 ENDPOINT_PROVENANCE_NOTE_BASENAME = "endpoint_provenance_note.md"
 CLAIM_EVIDENCE_MAP_BASENAME = "claim_evidence_map.json"
+PUBLIC_EVIDENCE_DECISIONS_KEY = "public_evidence_decisions"
+PUBLIC_EVIDENCE_SURFACE_DECISIONS = frozenset(
+    {
+        "main_text_earned",
+        "appendix_earned",
+        "drop_from_manuscript",
+    }
+)
+PUBLIC_EVIDENCE_EARNED_DECISIONS = frozenset(
+    {
+        "main_text_earned",
+        "appendix_earned",
+    }
+)
 RESULTS_NARRATION_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("figure shows", "Figure 1 shows", r"\bFigure\s+\d+[A-Za-z]?\s+shows\b", re.IGNORECASE),
     ("figure illustrates", "Figure 1 illustrates", r"\bFigure\s+\d+[A-Za-z]?\s+illustrates\b", re.IGNORECASE),
@@ -509,6 +523,42 @@ def validate_derived_analysis_manifest(payload: object) -> list[str]:
     return []
 
 
+def validate_public_evidence_decisions(payload: object) -> list[str]:
+    if not isinstance(payload, list) or not payload:
+        return ["public_evidence_decisions must contain at least one decision entry"]
+    required_fields = (
+        "entry_id",
+        "dataset_ids",
+        "analysis_ids",
+        "paper_surface_decision",
+        "decision_rationale",
+    )
+    earned_fields = (
+        "result_statement",
+        "linked_display_items",
+        "linked_sections",
+        "interpretation_boundary",
+    )
+    for index, item in enumerate(payload):
+        missing_fields = _missing_required_fields(item, required_fields)
+        if missing_fields:
+            return [f"missing public_evidence_decisions[{index}] fields: {', '.join(missing_fields)}"]
+        decision = str(item.get("paper_surface_decision") or "").strip()
+        if decision not in PUBLIC_EVIDENCE_SURFACE_DECISIONS:
+            return [
+                "public_evidence_decisions"
+                f"[{index}].paper_surface_decision `{decision}` must be one of "
+                + ", ".join(sorted(PUBLIC_EVIDENCE_SURFACE_DECISIONS))
+            ]
+        if decision in PUBLIC_EVIDENCE_EARNED_DECISIONS:
+            missing_earned_fields = _missing_required_fields(item, earned_fields)
+            if missing_earned_fields:
+                return [
+                    f"missing public_evidence_decisions[{index}] earned fields: {', '.join(missing_earned_fields)}"
+                ]
+    return []
+
+
 def validate_reproducibility_supplement(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return ["payload must be a JSON object"]
@@ -641,6 +691,21 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "its purpose, source data, derivation procedure, resampling design, refit policy, missing-data handling, "
             "correlation/collinearity assessment, and interpretation boundary."
         )
+    public_evidence_clause = ""
+    if "public_evidence_decisions_missing_or_incomplete" in (report.get("blockers") or []):
+        public_evidence_clause = (
+            f" Also add a top-level `paper/{DERIVED_ANALYSIS_MANIFEST_BASENAME}` field named "
+            f"`{PUBLIC_EVIDENCE_DECISIONS_KEY}` so every retained public dataset is explicitly marked as "
+            "`main_text_earned`, `appendix_earned`, or `drop_from_manuscript`, with a decision rationale. "
+            "Any earned public route must also declare the result statement, linked display items, linked manuscript "
+            "sections, and interpretation boundary."
+        )
+    public_surface_clause = ""
+    if "paper_facing_public_data_without_earned_evidence" in (report.get("blockers") or []):
+        public_surface_clause = (
+            " Remove public-dataset mentions from the title, abstract, main text, figure catalog, and table catalog "
+            "unless those datasets have already earned a manuscript-facing role through an explicit public-evidence decision."
+        )
     reproducibility_clause = ""
     if "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in (report.get("blockers") or []):
         reproducibility_clause = (
@@ -687,6 +752,6 @@ def build_intervention_message(report: dict[str, object]) -> str:
         "or tool/service references such as `deepscientist`, service URLs, or editing recommendations. "
         "Do not advertise tooling in figure captions. Do not reopen accepted figures unless in-figure visible text itself still "
         "contains a forbidden manuscript term."
-        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
+        f"{ama_clause}{methods_clause}{prose_structure_clause}{results_clause}{figure_semantics_clause}{derived_analysis_clause}{public_evidence_clause}{public_surface_clause}{reproducibility_clause}{missing_data_policy_clause}{endpoint_clause}{method_label_clause}{narration_clause}{formal_tone_clause} "
         "After those corrections, resume reviewer-style proofing or finalize."
     )
