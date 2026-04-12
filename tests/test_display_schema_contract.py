@@ -1108,6 +1108,34 @@ def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> Non
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_force_like_summary_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    force_like = module.get_input_schema_contract("shap_force_like_summary_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert force_like.template_ids == (_full_id("shap_force_like_summary_panel"),)
+    assert force_like.display_name == "SHAP Force-like Summary Panel"
+    assert force_like.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "case_label",
+        "baseline_value",
+        "predicted_value",
+        "contributions",
+    )
+    assert force_like.nested_collection_required_fields["panels.contributions"] == ("feature", "shap_value")
+    assert force_like.nested_collection_optional_fields["panels.contributions"] == ("feature_value_text",)
+    assert "panel_count_must_not_exceed_three" in force_like.additional_constraints
+    assert "panel_prediction_value_must_equal_baseline_plus_contributions" in force_like.additional_constraints
+    assert "panel_contributions_must_be_sorted_by_absolute_magnitude_descending" in force_like.additional_constraints
+    assert _full_id("shap_force_like_summary_panel") in model_explanation_class.template_ids
+    assert "shap_force_like_summary_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1172,6 +1200,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_dependence_panel_inputs_v1" in markdown
     assert _full_id("shap_waterfall_local_explanation_panel") in markdown
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
+    assert _full_id("shap_force_like_summary_panel") in markdown
+    assert "shap_force_like_summary_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

@@ -29,6 +29,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_dependence_panel_inputs_v1": "shap_dependence_panel_inputs.json",
     "shap_waterfall_local_explanation_panel_inputs_v1": "shap_waterfall_local_explanation_panel_inputs.json",
+    "shap_force_like_summary_panel_inputs_v1": "shap_force_like_summary_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
 }
 

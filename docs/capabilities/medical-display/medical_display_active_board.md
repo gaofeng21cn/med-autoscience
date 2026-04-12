@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`37`
+  - 证据型模板：`38`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`44`
+  - 总模板数：`45`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -32,9 +32,9 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 2 / cross-paper deterministic hardening`
-- Family cluster：`D/E/G`
-- Capability cluster：`trajectory_progression_panel`
+- Phase：`Phase 5 / integration / merge-back / monitor`
+- Family cluster：`F`
+- Capability cluster：`shap_force_like_summary_panel`
 - Owner worktree：当前专用 display worktree
 - 状态：`merge_back_ready`
 
@@ -42,23 +42,23 @@
 
 本轮要回答的是：
 
-> 在 trajectory / manifold 里，分支如何沿 pseudotime 演进，不同分支在各时间段的组成如何变化，以及哪些 marker / module kinetics 定义了这条演进路径。
+> 在代表性病例层面，哪些特征把预测从 baseline 推向最终预测值，正负贡献分别位于哪一侧，以及这些信息如何在 bounded、可审计、可复用的 force-like panel 里稳定表达。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `trajectory embedding panel`
-2. `pseudotime-bin branch composition block`
-3. `marker / module kinetics block`
+1. `representative-case force-like summary panels`
+2. `baseline / prediction marker governance`
+3. `positive / negative contribution lanes with bounded in-panel labels`
 
 本轮明确不做：
 
-- `spatial_niche_map_panel`
+- `PDP`
+- `ICE`
 - workflow / design-evidence shells
-- ligand-receptor network graphs
-- 完整 pathology segmentation suites
-- 自由拼装式 scene composition 系统
+- 自由拼装式 explanation scene composition 系统
+- 超过 `3` 个 panel 的开放式病例陈列
 
 ## 预期写集
 
@@ -96,9 +96,9 @@
 
 ## 当前轮次结束后的候选
 
-只有在 `trajectory_progression_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
+只有在 `shap_force_like_summary_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
 
-1. `F / force-like summary + PDP / ICE follow-on`
+1. `F / PDP / ICE follow-on`
 2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 

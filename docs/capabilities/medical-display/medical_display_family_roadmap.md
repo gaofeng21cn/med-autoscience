@@ -424,12 +424,13 @@ Current audited anchors:
 - `shap_summary_beeswarm`
 - `shap_dependence_panel`
 - `shap_waterfall_local_explanation_panel`
+- `shap_force_like_summary_panel`
 
 Current gap direction:
 
-- force-like summary families beyond the current waterfall baseline
-- PDP
+- richer PDP families beyond the current summary + dependence + waterfall + force-like baseline
 - ICE
+- feature-importance or grouped-local-explanation follow-on views where real paper demand proves they are worth stabilizing
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类
