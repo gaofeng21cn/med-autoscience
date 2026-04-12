@@ -322,6 +322,24 @@ def test_describe_submission_delivery_flags_stale_when_authority_source_disappea
     assert result["missing_source_paths"] != []
 
 
+def test_describe_submission_delivery_flags_stale_when_current_package_projection_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    shutil.rmtree(study_root / "manuscript" / "current_package")
+    (study_root / "manuscript" / "current_package.zip").unlink()
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["status"] == "stale_projection_missing"
+    assert result["stale_reason"] == "delivery_projection_missing"
+
+
 def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -493,6 +511,8 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
         "human_facing_delivery_root": str(study_root / "manuscript"),
         "human_facing_submission_package_root": None,
         "human_facing_submission_package_zip": None,
+        "human_facing_current_package_root": str(study_root / "manuscript" / "current_package"),
+        "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
         "auxiliary_evidence_root": None,
         "journal_submission_mirror_root": None,
     }
@@ -709,6 +729,16 @@ def test_describe_draft_handoff_delivery_detects_stale_sources(tmp_path: Path) -
 
     stale = module.describe_draft_handoff_delivery(paper_root=paper_root)
     assert stale["status"] == "stale"
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="draft_handoff",
+    )
+    shutil.rmtree(study_root / "manuscript" / "current_package")
+    (study_root / "manuscript" / "current_package.zip").unlink()
+
+    stale_projection = module.describe_draft_handoff_delivery(paper_root=paper_root)
+    assert stale_projection["status"] == "stale"
 
 
 def test_sync_study_delivery_for_draft_handoff_copies_quick_review_manuscript_files_when_present(

@@ -65,6 +65,7 @@ def _resolve_table1_source_path(*, study_root: Path) -> Path:
     resolved_study_root = Path(study_root).expanduser().resolve()
     candidates = (
         resolved_study_root / "paper" / "submission_minimal" / "tables" / "Table1.csv",
+        resolved_study_root / "manuscript" / "current_package" / "tables" / "Table1.csv",
         resolved_study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv",
     )
     for candidate in candidates:

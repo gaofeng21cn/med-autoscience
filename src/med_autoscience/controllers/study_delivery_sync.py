@@ -196,6 +196,8 @@ def _submission_delivery_stale_reason_label(stale_reason: str | None) -> str:
         return "the recorded mirror still references sources that no longer exist"
     if normalized == "delivery_manifest_source_mismatch":
         return "the recorded mirror points at a different authority package root"
+    if normalized == "delivery_projection_missing":
+        return "the stage-neutral current package projection has not been materialized yet"
     return normalized or "the current authority submission package is unavailable"
 
 
@@ -661,9 +663,14 @@ def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
     recorded_surface_roles = manifest.get("surface_roles") or {}
     recorded_source_signature = str(manifest.get("source_signature") or "").strip()
     recorded_source_root = str((recorded_surface_roles or {}).get("controller_authorized_paper_root") or "").strip()
+    projection_ready = current_package_root.exists() and current_package_zip.exists()
     status = (
         "current"
-        if recorded_source_signature == source_signature and recorded_source_root == str(resolved_paper_root)
+        if (
+            recorded_source_signature == source_signature
+            and recorded_source_root == str(resolved_paper_root)
+            and projection_ready
+        )
         else "stale"
     )
     return {
@@ -784,6 +791,9 @@ def describe_submission_delivery(
     if missing_source_paths:
         status = "stale_source_missing"
         stale_reason = "delivery_manifest_sources_missing"
+    elif not current_package_root.exists() or not current_package_zip.exists():
+        status = "stale_projection_missing"
+        stale_reason = "delivery_projection_missing"
     elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
