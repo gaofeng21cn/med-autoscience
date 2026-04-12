@@ -23,6 +23,7 @@
 - 当前 runtime / gateway / architecture 主线只推进上游 `Hermes-Agent` 目标 substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
 - `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 future outer-runtime seam 与 `MedDeepScientist` research backend 的分层语义。
 - `workspace-cockpit`、`submit-study-task`、`launch-study` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，而不是自己拼装底层 controller 命令。
+- `mainline-status` 已作为 repo-level 正式状态入口落地：现在可以直接读取 MAS 在 OPL / Research Foundry / runtime mainline 里的理想形态、当前阶段、已完成 tranche、剩余缺口与 next focus，而不必手工拼多份 program 文档。
 - `submit-study-task` 写出的 durable study task intake 已被 startup contract 真实消费，并同步进 startup brief surface；这意味着“下任务”不再只是口头描述，而是 study-owned durable truth。
 - `study-progress` 现已继续接住 `runtime_watch` 里的 figure-loop / 质量守卫告警，不再只显示 publication gate blocker。
 - 同日继续把这层 shell 收成更诚实的用户面：`workspace-cockpit` 现在会聚合 latest task intake、watch-runtime service 在线态与 stale / missing progress signal；`launch-study` 与 `study-progress` 也会直接投影当前任务摘要与 progress freshness，尽量把“卡住 / 没进度 / 空转”尽早暴露给用户，而不是让用户自己拼 controller surface。

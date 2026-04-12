@@ -160,6 +160,7 @@
 
 对当前 agent-operated 形态，用户真正会碰到的启动与监督入口已经先收成一层轻量 product-entry shell，再往下落到低层 controller 面：
 
+- repo 主线阶段/缺口入口：`mainline-status`
 - workspace cockpit：`workspace-cockpit --profile <profile>`
 - 写入 durable study task intake：`submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑：`launch-study --profile <profile> --study-id <study_id>`
@@ -179,6 +180,7 @@
 
 前台 contract 要求：
 
+- `mainline-status` 应直接回答 repo 的理想形态、当前主线阶段、已完成 tranche、剩余缺口与 next focus，避免用户自己拼多份 program 文档
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
 - `workspace-cockpit` 应直接投影 workspace 级 readiness、latest task intake、watch-runtime service 在线态，以及 stale / missing progress signal 聚合

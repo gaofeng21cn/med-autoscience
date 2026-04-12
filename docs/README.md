@@ -32,6 +32,7 @@ Current frozen state:
 - Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
+- Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
 - Fastest cutover board: [Upstream Hermes-Agent fast cutover board](program/upstream_hermes_agent_fast_cutover_board.md) (Chinese only)
 - Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
 - `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.

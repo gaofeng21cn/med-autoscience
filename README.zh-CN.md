@@ -225,6 +225,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 如果你现在就在 agent-operated 路径上继续一个真实 study，最核心的用户循环已经收成一层轻量 product-entry shell：
 
+- 如果你先想知道这个 repo 的理想形态、当前阶段和剩余缺口，先看：`uv run python -m med_autoscience.cli mainline-status`
 - 先看 workspace 全局 cockpit：`uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
 - cockpit 现在会直接投影每篇 study 最近一次 durable task intake、MAS watch-runtime service 是否 visibly online，以及哪些 study 已经 stale / 缺少明确进度信号。
 - 写入或刷新当前 study 的任务意图：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`

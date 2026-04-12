@@ -837,6 +837,27 @@ def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypat
     assert json.loads(captured.out)["workspace_status"] == "ready"
 
 
+def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_read_mainline_status() -> dict:
+        called["read"] = True
+        return {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {"id": "f4_blocker_closeout", "status": "in_progress"},
+        }
+
+    monkeypatch.setattr(cli.mainline_status, "read_mainline_status", fake_read_mainline_status)
+
+    exit_code = cli.main(["mainline-status", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["read"] is True
+    assert json.loads(captured.out)["current_stage"]["id"] == "f4_blocker_closeout"
+
+
 def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

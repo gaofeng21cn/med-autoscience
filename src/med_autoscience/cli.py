@@ -59,6 +59,7 @@ journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journa
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
+mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
@@ -141,6 +142,9 @@ def build_parser() -> argparse.ArgumentParser:
     show_profile_parser = subparsers.add_parser("show-profile")
     show_profile_parser.add_argument("--profile", required=True)
     show_profile_parser.add_argument("--format", choices=("text", "json"), default="text")
+
+    mainline_status_parser = subparsers.add_parser("mainline-status")
+    mainline_status_parser.add_argument("--format", choices=("text", "json"), default="text")
 
     subparsers.add_parser("show-agent-entry-modes")
 
@@ -418,6 +422,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(profile_to_dict(profile), ensure_ascii=False, indent=2))
         else:
             print(render_profile(profile), end="")
+        return 0
+
+    if args.command == "mainline-status":
+        result = mainline_status.read_mainline_status()
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(mainline_status.render_mainline_status_markdown(result), end="")
         return 0
 
     if args.command == "show-agent-entry-modes":
