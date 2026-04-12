@@ -90,13 +90,20 @@ def test_ensure_r_analysis_bundle_installs_cran_then_bioconductor_when_needed(mo
     assert result["after"]["ready"] is True
 
 
-def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(monkeypatch) -> None:
+def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(
+    monkeypatch,
+    tmp_path,
+) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
-    monkeypatch.setenv("MED_AUTOSCIENCE_RSCRIPT_BIN", "/usr/local/bin/Rscript")
+    explicit_rscript = tmp_path / "Rscript"
+    explicit_rscript.write_text("#!/bin/sh\n", encoding="utf-8")
+    explicit_rscript.chmod(0o755)
+
+    monkeypatch.setenv("MED_AUTOSCIENCE_RSCRIPT_BIN", str(explicit_rscript))
     monkeypatch.setattr(module.shutil, "which", lambda executable: None)
 
     def fake_run(args, **kwargs):
-        assert args[:2] == ["/usr/local/bin/Rscript", "-e"]
+        assert args[:2] == [str(explicit_rscript), "-e"]
         return SimpleNamespace(returncode=0, stdout="pROC=1\n", stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -104,7 +111,7 @@ def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(mon
     result = module._inspect_r_packages(packages=["pROC"])
 
     assert result["ready"] is True
-    assert result["rscript"] == "/usr/local/bin/Rscript"
+    assert result["rscript"] == str(explicit_rscript)
     assert result["missing_packages"] == []
     assert result["package_status"] == {"pROC": True}
 
