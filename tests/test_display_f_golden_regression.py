@@ -576,3 +576,107 @@ def test_shap_bar_importance_preserves_f_global_importance_contract(tmp_path: Pa
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["template_id"] == "fenggaolab.org.medical-display-core::shap_bar_importance"
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_shap_signed_importance_panel_preserves_f_directional_global_importance_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure38",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_signed_importance_panel",
+                    "catalog_id": "F38",
+                    "shell_path": "paper/figures/Figure38.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure38",
+                    "template_id": "shap_signed_importance_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_signed_importance_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_signed_importance_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure38",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_signed_importance_panel",
+                    "title": "SHAP signed importance panel for audited directional feature influence",
+                    "caption": "Regression lock for manuscript-facing signed SHAP global importance ranking.",
+                    "x_label": "Mean signed SHAP value",
+                    "negative_label": "Protective direction",
+                    "positive_label": "Risk direction",
+                    "bars": [
+                        {"rank": 1, "feature": "Albumin", "signed_importance_value": -0.118},
+                        {"rank": 2, "feature": "Age", "signed_importance_value": 0.104},
+                        {"rank": 3, "feature": "Tumor size", "signed_importance_value": 0.081},
+                        {"rank": 4, "feature": "Platelet count", "signed_importance_value": -0.064},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F38_shap_signed_importance_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 1
+    assert [item["feature"] for item in layout_sidecar["metrics"]["bars"]] == [
+        "Albumin",
+        "Age",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert [item["direction"] for item in layout_sidecar["metrics"]["bars"]] == [
+        "negative",
+        "positive",
+        "positive",
+        "negative",
+    ]
+    assert layout_sidecar["metrics"]["bars"][0]["signed_importance_value"] < 0.0
+    assert layout_sidecar["metrics"]["bars"][1]["signed_importance_value"] > 0.0
+    assert any(item["box_type"] == "zero_line" for item in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["template_id"] == "fenggaolab.org.medical-display-core::shap_signed_importance_panel"
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

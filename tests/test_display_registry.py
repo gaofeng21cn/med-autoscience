@@ -160,6 +160,16 @@ def test_shap_bar_importance_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_shap_bar_importance"
 
 
+def test_shap_signed_importance_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("shap_signed_importance_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "shap_signed_importance_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_shap_signed_importance_panel"
+
+
 def test_partial_dependence_ice_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("partial_dependence_ice_panel"))
 

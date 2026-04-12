@@ -3813,6 +3813,127 @@ def test_run_display_layout_qc_fails_when_shap_bar_importance_leaves_panel() -> 
     assert any(issue["rule_id"] == "importance_bar_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_signed_importance_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_panel",
+        layout_sidecar={
+            "template_id": "shap_signed_importance_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("negative_direction_label", "negative_direction_label", x0=0.24, y0=0.86, x1=0.38, y1=0.90),
+                make_box("positive_direction_label", "positive_direction_label", x0=0.62, y0=0.86, x1=0.75, y1=0.90),
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("feature_label_2", "feature_label", x0=0.05, y0=0.34, x1=0.19, y1=0.39),
+                make_box("feature_label_3", "feature_label", x0=0.05, y0=0.46, x1=0.21, y1=0.51),
+                make_box("feature_label_4", "feature_label", x0=0.05, y0=0.58, x1=0.20, y1=0.63),
+                make_box("importance_bar_1", "importance_bar", x0=0.23, y0=0.22, x1=0.49, y1=0.27),
+                make_box("importance_bar_2", "importance_bar", x0=0.50, y0=0.34, x1=0.73, y1=0.39),
+                make_box("importance_bar_3", "importance_bar", x0=0.50, y0=0.46, x1=0.68, y1=0.51),
+                make_box("importance_bar_4", "importance_bar", x0=0.35, y0=0.58, x1=0.49, y1=0.63),
+                make_box("value_label_1", "value_label", x0=0.17, y0=0.22, x1=0.22, y1=0.27),
+                make_box("value_label_2", "value_label", x0=0.75, y0=0.34, x1=0.81, y1=0.39),
+                make_box("value_label_3", "value_label", x0=0.70, y0=0.46, x1=0.76, y1=0.51),
+                make_box("value_label_4", "value_label", x0=0.29, y0=0.58, x1=0.34, y1=0.63),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.82, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("zero_line", "zero_line", x0=0.495, y0=0.18, x1=0.505, y1=0.82),
+            ],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Albumin",
+                        "direction": "negative",
+                        "signed_importance_value": -0.118,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    },
+                    {
+                        "rank": 2,
+                        "feature": "Age",
+                        "direction": "positive",
+                        "signed_importance_value": 0.104,
+                        "bar_box_id": "importance_bar_2",
+                        "feature_label_box_id": "feature_label_2",
+                        "value_label_box_id": "value_label_2",
+                    },
+                    {
+                        "rank": 3,
+                        "feature": "Tumor size",
+                        "direction": "positive",
+                        "signed_importance_value": 0.081,
+                        "bar_box_id": "importance_bar_3",
+                        "feature_label_box_id": "feature_label_3",
+                        "value_label_box_id": "value_label_3",
+                    },
+                    {
+                        "rank": 4,
+                        "feature": "Platelet count",
+                        "direction": "negative",
+                        "signed_importance_value": -0.064,
+                        "bar_box_id": "importance_bar_4",
+                        "feature_label_box_id": "feature_label_4",
+                        "value_label_box_id": "value_label_4",
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_signed_importance_bar_crosses_wrong_side_of_zero_line() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_signed_importance_panel",
+        layout_sidecar={
+            "template_id": "shap_signed_importance_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("negative_direction_label", "negative_direction_label", x0=0.24, y0=0.86, x1=0.38, y1=0.90),
+                make_box("positive_direction_label", "positive_direction_label", x0=0.62, y0=0.86, x1=0.75, y1=0.90),
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("importance_bar_1", "importance_bar", x0=0.52, y0=0.22, x1=0.74, y1=0.27),
+                make_box("value_label_1", "value_label", x0=0.76, y0=0.22, x1=0.82, y1=0.27),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.82, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("zero_line", "zero_line", x0=0.495, y0=0.18, x1=0.505, y1=0.82),
+            ],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Albumin",
+                        "direction": "negative",
+                        "signed_importance_value": -0.118,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    }
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "signed_importance_bar_wrong_side_of_zero" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

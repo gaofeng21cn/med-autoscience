@@ -1188,6 +1188,36 @@ def test_shap_bar_importance_schema_contract_is_registered() -> None:
     assert "shap_bar_importance_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_signed_importance_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    signed_panel = module.get_input_schema_contract("shap_signed_importance_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert signed_panel.template_ids == (_full_id("shap_signed_importance_panel"),)
+    assert signed_panel.display_name == "SHAP Signed Importance Panel"
+    assert signed_panel.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "negative_label",
+        "positive_label",
+        "bars",
+    )
+    assert signed_panel.collection_required_fields["bars"] == ("rank", "feature", "signed_importance_value")
+    assert "bars_must_be_non_empty" in signed_panel.additional_constraints
+    assert "bar_features_must_be_unique" in signed_panel.additional_constraints
+    assert "bar_ranks_must_be_strictly_increasing" in signed_panel.additional_constraints
+    assert "bar_signed_importance_values_must_be_finite_and_non_zero" in signed_panel.additional_constraints
+    assert "bar_signed_importance_values_must_be_sorted_by_absolute_magnitude_descending" in signed_panel.additional_constraints
+    assert _full_id("shap_signed_importance_panel") in model_explanation_class.template_ids
+    assert "shap_signed_importance_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1252,6 +1282,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_dependence_panel_inputs_v1" in markdown
     assert _full_id("shap_bar_importance") in markdown
     assert "shap_bar_importance_inputs_v1" in markdown
+    assert _full_id("shap_signed_importance_panel") in markdown
+    assert "shap_signed_importance_panel_inputs_v1" in markdown
     assert _full_id("shap_waterfall_local_explanation_panel") in markdown
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_force_like_summary_panel") in markdown

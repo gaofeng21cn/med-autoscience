@@ -28,6 +28,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_bar_importance_inputs_v1": "shap_bar_importance_inputs.json",
+    "shap_signed_importance_panel_inputs_v1": "shap_signed_importance_panel_inputs.json",
     "shap_dependence_panel_inputs_v1": "shap_dependence_panel_inputs.json",
     "shap_waterfall_local_explanation_panel_inputs_v1": "shap_waterfall_local_explanation_panel_inputs.json",
     "shap_force_like_summary_panel_inputs_v1": "shap_force_like_summary_panel_inputs.json",

@@ -2,6 +2,8 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `shap_signed_importance_panel` as the next audited `F` directional global-importance explanation slice in the core display pack.
+- Lock its pack-facing contract to `shap_signed_importance_panel_inputs_v1`, `publication_shap_signed_importance_panel`, and the Python single-panel zero-centered divergent-bar renderer path.
 - Add `shap_bar_importance` as the next audited `F` global-importance explanation slice in the core display pack.
 - Lock its pack-facing contract to `shap_bar_importance_inputs_v1`, `publication_shap_bar_importance`, and the Python single-panel horizontal-bar renderer path.
 - Add `spatial_niche_map_panel` as the first audited `D/E/G` tissue-coordinate spatial niche composite slice in the core display pack.

@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`40`
+  - 证据型模板：`41`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`47`
+  - 总模板数：`48`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,7 +34,7 @@
 
 - Phase：`Phase 5 / integration / merge-back / monitor`
 - Family cluster：`F`
-- Capability cluster：`shap_bar_importance`
+- Capability cluster：`shap_signed_importance_panel`
 - Owner worktree：当前专用 display worktree
 - 状态：`merge_back_ready`
 
@@ -42,21 +42,21 @@
 
 本轮要回答的是：
 
-> 如何把 manuscript-facing 的全局特征重要性总览稳定表达成单 panel、可审计、可复用的 bounded contract，并把排序、唯一性、条形几何 containment、标签关联与 value-label 可读性一起固化进正式模板路径。
+> 如何把 manuscript-facing 的全局特征重要性方向性总览稳定表达成零线居中的单 panel、可审计、可复用的 bounded contract，并把绝对值排序、方向极性、零线侧约束、标签关联与 value-label 可读性一起固化进正式模板路径。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `bounded global SHAP importance overview`
-2. `strict bar-rank / feature-identity / non-negative-importance contract`
-3. `single-panel horizontal bar geometry + outboard label/value label QC governance`
+1. `bounded global signed SHAP importance overview`
+2. `strict bar-rank / feature-identity / polarity / absolute-magnitude contract`
+3. `single-panel divergent horizontal bar geometry + zero-line / direction-label / value-label QC governance`
 
 本轮明确不做：
 
 - workflow / design-evidence shells
 - 自由拼装式 explanation scene composition 系统
-- 多 cohort 对照或 signed 正负归因版本
+- 多 cohort 对照或 grouped-local-explanation 复合场景
 - grouped-local-explanation follow-on
 
 ## 预期写集
@@ -95,9 +95,9 @@
 
 ## 当前轮次结束后的候选
 
-只有在 `shap_bar_importance` 被 absorb 之后，才允许 reroute 到下一批候选：
+只有在 `shap_signed_importance_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
 
-1. `F / grouped-local-explanation follow-on or signed feature-importance variants`
+1. `F / grouped-local-explanation follow-on or multi-cohort feature-importance variants`
 2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 
