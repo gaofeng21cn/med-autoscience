@@ -29,6 +29,18 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         ),
     )
 
+    monkeypatch.setattr(
+        module,
+        "_inspect_watch_runtime_service",
+        lambda profile: {
+            "manager": "launchd",
+            "status": "not_loaded",
+            "loaded": False,
+            "service_file_exists": True,
+            "summary": "MAS supervisor service 未常驻在线；如果要持续监管，请先安装或拉起 watch-runtime service。",
+        },
+    )
+
     def fake_progress(*, profile, study_id: str | None = None, study_root: Path | None = None, entry_mode=None) -> dict:
         resolved_study_id = study_id or Path(study_root).name
         if resolved_study_id == "001-risk":
@@ -46,6 +58,14 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "health_status": "unknown",
                     "supervisor_tick_status": "stale",
                 },
+                "task_intake": {
+                    "task_intent": "先恢复自动监管与持续进度，再决定是否继续推进论文主线。",
+                    "journal_target": "BMC Medicine",
+                },
+                "progress_freshness": {
+                    "status": "stale",
+                    "summary": "距离上一次明确研究推进已经超过 12 小时，当前要重点排查是否卡住或空转。",
+                },
             }
         return {
             "study_id": resolved_study_id,
@@ -61,6 +81,14 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "health_status": "live",
                 "supervisor_tick_status": "fresh",
             },
+            "task_intake": {
+                "task_intent": "把当前研究收口到 SCI-ready 投稿标准，并优先补齐证据链。",
+                "journal_target": "The Lancet Digital Health",
+            },
+            "progress_freshness": {
+                "status": "fresh",
+                "summary": "最近 12 小时内仍有明确研究推进记录。",
+            },
         }
 
     monkeypatch.setattr(module.study_progress, "read_study_progress", fake_progress)
@@ -70,14 +98,20 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["workspace_status"] == "attention_required"
     assert "MAS 外环监管存在缺口。" in payload["workspace_alerts"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in payload["workspace_alerts"]
+    assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
+    assert payload["workspace_supervision"]["service"]["status"] == "not_loaded"
+    assert payload["workspace_supervision"]["study_counts"]["progress_stale"] == 1
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
+    assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
 
     markdown = module.render_workspace_cockpit_markdown(payload)
     assert "001-risk" in markdown
     assert "002-risk" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
+    assert "The Lancet Digital Health" in markdown
+    assert "MAS supervisor service 未常驻在线" in markdown
     assert "launch-study" in markdown
 
 
@@ -114,6 +148,14 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
                 "health_status": "live",
                 "supervisor_tick_status": "fresh",
             },
+            "task_intake": {
+                "task_intent": "优先发现卡住、无进度和 figure 质量回退，再决定是否继续自动推进。",
+                "journal_target": "JAMA Network Open",
+            },
+            "progress_freshness": {
+                "status": "fresh",
+                "summary": "最近 12 小时内仍有明确研究推进记录。",
+            },
         },
     )
 
@@ -127,12 +169,16 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert payload["study_id"] == "001-risk"
     assert payload["runtime_status"]["decision"] == "resume"
     assert payload["progress"]["supervision"]["browser_url"] == "http://127.0.0.1:20999"
+    assert payload["progress"]["task_intake"]["journal_target"] == "JAMA Network Open"
+    assert payload["progress"]["progress_freshness"]["status"] == "fresh"
     assert payload["commands"]["progress"].endswith("--study-id 001-risk")
     assert "workspace-cockpit" in payload["commands"]["cockpit"]
 
     markdown = module.render_launch_study_markdown(payload)
     assert "http://127.0.0.1:20999" in markdown
     assert "论文叙事或方法/结果书写面仍有硬阻塞。" in markdown
+    assert "优先发现卡住、无进度和 figure 质量回退" in markdown
+    assert "最近 12 小时内仍有明确研究推进记录" in markdown
 
 
 def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block(tmp_path: Path) -> None:

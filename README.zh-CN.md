@@ -97,9 +97,9 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 现在仓内已经补上一层 repo-tracked 的轻量 `product-entry shell`，但它仍然是克制收口的：
 
-- `workspace-cockpit`：先看 workspace readiness、全局告警和 study supervision
+- `workspace-cockpit`：先看 workspace readiness、最新任务摘要、supervisor service 在线态、stale progress 告警和 study supervision
 - `submit-study-task`：把任务意图写成 durable study task intake，并同步进 startup brief surface
-- `launch-study`：启动/续跑 study，并立刻返回监控入口与进度面
+- `launch-study`：启动/续跑 study，并立刻返回监控入口、当前任务摘要和进度信号
 
 这个仓的目标 domain 级入口形态应是：
 
@@ -226,9 +226,11 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 如果你现在就在 agent-operated 路径上继续一个真实 study，最核心的用户循环已经收成一层轻量 product-entry shell：
 
 - 先看 workspace 全局 cockpit：`uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
+- cockpit 现在会直接投影每篇 study 最近一次 durable task intake、MAS watch-runtime service 是否 visibly online，以及哪些 study 已经 stale / 缺少明确进度信号。
 - 写入或刷新当前 study 的任务意图：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑，并直接拿到监督入口：`uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
 - 随时看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- `study-progress` 现在还会带上最新 durable task intake 摘要与 progress freshness signal，尽量把“没进度 / 卡住 / 空转”早点暴露出来，而不是变成黑盒。
 - 刷新 MAS 外环监管心跳：`uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - 把 MAS supervisor loop 作为用户级服务常驻在线：`ops/medautoscience/bin/install-watch-runtime-service`
 
@@ -243,7 +245,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 如果 `study-runtime-status` 返回 `autonomous_runtime_notice.required = true` 或 `execution_owner_guard.supervisor_only = true`，就表示 study 已处于 live managed runtime。此时用户真正会看到的是：
 
 - `browser_url` / `quest_session_api_url` / `active_run_id` 这组监督入口
-- `study-progress` 输出的当前阶段、人话摘要、当前阻塞、下一步，以及 runtime_watch 已发现的 figure-loop / 质量守卫告警
+- `study-progress` 输出的当前阶段、人话摘要、当前任务摘要、progress freshness、当前阻塞、下一步，以及 runtime_watch 已发现的 figure-loop / 质量守卫告警
 - `install-watch-runtime-service` 背后持续在线的 supervisor heartbeat，以及前台 agent 自动切到 supervisor-only，而不是继续直接写 runtime-owned surface
 
 ## 文档入口

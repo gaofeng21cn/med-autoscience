@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import importlib
 import json
 from pathlib import Path
@@ -324,6 +325,7 @@ def test_latest_events_prefers_runtime_progress_over_newer_launch_report_summary
 
 def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -344,6 +346,15 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     runtime_watch_path = _write_runtime_watch(quest_root)
     bash_summary_path = _write_bash_summary(quest_root)
     details_projection_path = _write_details_projection(quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="把当前研究收口到 SCI-ready 投稿标准，并持续自检卡住、无进度和质量回退。",
+        journal_target="BMC Medicine",
+        first_cycle_outputs=("study-progress", "runtime_watch", "publication_eval/latest.json"),
+    )
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     _write_json(
         launch_report_path,
@@ -417,6 +428,11 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
                 "summary_ref": str(launch_report_path),
             },
         },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
     )
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
@@ -434,6 +450,9 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["supervision"]["browser_url"] == "http://127.0.0.1:21999/quests/quest-001"
     assert result["supervision"]["quest_session_api_url"] == "http://127.0.0.1:21999/api/sessions/run-001"
     assert result["supervision"]["active_run_id"] == "run-001"
+    assert result["task_intake"]["journal_target"] == "BMC Medicine"
+    assert "SCI-ready 投稿标准" in result["task_intake"]["task_intent"]
+    assert result["progress_freshness"]["status"] == "not_required"
     assert result["latest_events"][0]["category"] == "runtime_progress"
     assert result["latest_events"][0]["timestamp"] == "2026-04-10T09:12:00+00:00"
     assert "外部验证数据清点" in result["latest_events"][0]["summary"]
@@ -446,6 +465,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
 
 def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -461,6 +481,14 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
     _write_runtime_watch(quest_root)
     _write_bash_summary(quest_root)
     _write_details_projection(quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="优先保证系统能发现卡住、没进度和质量回退。",
+        journal_target="JAMA Network Open",
+    )
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     _write_json(
         launch_report_path,
@@ -534,16 +562,117 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
             },
         },
     )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 10, 10, 0, tzinfo=timezone.utc),
+    )
 
     payload = module.read_study_progress(profile=profile, study_id="001-risk")
     markdown = module.render_study_progress_markdown(payload)
 
     assert "# 研究进度" in markdown
     assert "当前阶段" in markdown
+    assert "当前任务" in markdown
     assert "论文推进" in markdown
     assert "最近进展" in markdown
     assert "监督入口" in markdown
+    assert "JAMA Network Open" in markdown
+    assert "研究进度信号" in markdown
     assert "外部验证数据清点" in markdown
+
+
+def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+
+    _write_publication_eval(study_root, quest_root)
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="001-risk",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="持续推进论文主线，并在卡住时及时暴露给用户。",
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-001",
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+                "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-001",
+                "current_required_action": "supervise_runtime_only",
+                "publication_gate_allows_direct_write": False,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "latest_recorded_at": "2026-04-12T09:50:00+00:00",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "publication_supervision"
+    assert result["progress_freshness"]["status"] == "stale"
+    assert "超过 12 小时" in result["progress_freshness"]["summary"]
+    assert any("超过 12 小时" in item for item in result["current_blockers"])
 
 
 def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_when_runtime_is_escalated(

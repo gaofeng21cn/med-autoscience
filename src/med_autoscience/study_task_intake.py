@@ -65,6 +65,28 @@ def read_latest_task_intake(*, study_root: Path) -> dict[str, Any] | None:
     return payload
 
 
+def summarize_task_intake(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    task_intent = _non_empty_text(payload.get("task_intent"))
+    entry_mode = _non_empty_text(payload.get("entry_mode")) or "full_research"
+    if task_intent is None and entry_mode is None:
+        return None
+    return {
+        "task_id": _non_empty_text(payload.get("task_id")),
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "emitted_at": _non_empty_text(payload.get("emitted_at")),
+        "entry_mode": entry_mode,
+        "task_intent": task_intent,
+        "journal_target": _non_empty_text(payload.get("journal_target")),
+        "constraints": _normalized_strings(payload.get("constraints") or []),
+        "evidence_boundary": _normalized_strings(payload.get("evidence_boundary") or []),
+        "trusted_inputs": _normalized_strings(payload.get("trusted_inputs") or []),
+        "reference_papers": _normalized_strings(payload.get("reference_papers") or []),
+        "first_cycle_outputs": _normalized_strings(payload.get("first_cycle_outputs") or []),
+    }
+
+
 def render_task_intake_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Study Task Intake",

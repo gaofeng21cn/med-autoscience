@@ -9,6 +9,7 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.study_manual_finish import resolve_study_manual_finish_contract
+from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
 
 SCHEMA_VERSION = 1
@@ -81,6 +82,7 @@ _WATCH_BLOCKER_LABELS = {
 }
 _BLOCKER_LABELS = {
     "missing_submission_minimal": "缺少最小投稿包导出。",
+    "stale_study_delivery_mirror": "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
     "forbidden_manuscript_terminology": "当前稿件仍含不允许的术语表达，需要清理。",
     "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
@@ -117,6 +119,12 @@ _SUPERVISOR_TICK_STATUS_LABELS = {
     "invalid": "监管心跳记录无效",
     "not_required": "当前不要求监管心跳",
 }
+_PROGRESS_FRESHNESS_STATUS_LABELS = {
+    "fresh": "研究推进信号新鲜",
+    "stale": "研究推进信号已陈旧",
+    "missing": "研究推进信号缺失",
+    "not_required": "当前不要求新的自动推进信号",
+}
 _CONTINUATION_REASON_LABELS = {
     "unchanged_finalize_state": "运行停在未变化的定稿总结态",
 }
@@ -142,6 +150,7 @@ _TEXT_REPLACEMENTS = (
     ("; ", "；"),
 )
 _SUPERVISOR_TICK_GAP_STATUSES = {"missing", "invalid", "stale"}
+_PROGRESS_STALE_AFTER_SECONDS = 12 * 60 * 60
 _LATEST_EVENT_DISPLAY_TIERS = {
     "runtime_supervision": 0,
     "runtime_progress": 0,
@@ -156,6 +165,10 @@ _LATEST_EVENT_DISPLAY_TIERS = {
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _progress_freshness_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _status_payload(result: Any) -> dict[str, Any]:
@@ -198,6 +211,11 @@ def _time_label(timestamp: str | None) -> str | None:
     instant = datetime.fromisoformat(normalized)
     suffix = "UTC" if instant.utcoffset() == timezone.utc.utcoffset(instant) else instant.strftime("UTC%z")
     return f"{instant.strftime('%Y-%m-%d %H:%M')} {suffix}".replace("UTC+0000", "UTC")
+
+
+def _duration_hours_label(seconds: int) -> str:
+    hours = max(1, round(seconds / 3600))
+    return f"{hours} 小时"
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -423,6 +441,160 @@ def _latest_event_display_tier(category: object) -> int:
     if text is None:
         return 0
     return _LATEST_EVENT_DISPLAY_TIERS.get(text, 0)
+
+
+def _progress_freshness_status_label(status: object) -> str | None:
+    text = _non_empty_text(status)
+    if text is None:
+        return None
+    return _PROGRESS_FRESHNESS_STATUS_LABELS.get(text, _humanize_token(text))
+
+
+def _progress_freshness_required(current_stage: str) -> bool:
+    return current_stage not in {
+        "study_completed",
+        "manual_finishing",
+        "waiting_physician_decision",
+    }
+
+
+def _append_progress_signal(
+    *,
+    signals: list[dict[str, Any]],
+    timestamp: object,
+    source: str,
+    summary: object,
+) -> None:
+    normalized_timestamp = _normalize_timestamp(timestamp)
+    rendered_summary = _display_text(summary)
+    if normalized_timestamp is None or rendered_summary is None:
+        return
+    signals.append(
+        {
+            "timestamp": normalized_timestamp,
+            "time_label": _time_label(normalized_timestamp),
+            "source": source,
+            "summary": rendered_summary,
+        }
+    )
+
+
+def _latest_progress_signal(
+    *,
+    bash_summary_payload: dict[str, Any] | None,
+    details_projection_payload: dict[str, Any] | None,
+    controller_decision_payload: dict[str, Any] | None,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    signals: list[dict[str, Any]] = []
+    latest_session = (bash_summary_payload or {}).get("latest_session")
+    if isinstance(latest_session, dict):
+        last_progress = latest_session.get("last_progress")
+        if isinstance(last_progress, dict):
+            _append_progress_signal(
+                signals=signals,
+                timestamp=_non_empty_text(last_progress.get("ts")) or _non_empty_text(latest_session.get("updated_at")),
+                source="bash_summary",
+                summary=_non_empty_text(last_progress.get("message")) or _non_empty_text(last_progress.get("step")),
+            )
+    if details_projection_payload is not None:
+        _append_progress_signal(
+            signals=signals,
+            timestamp=_non_empty_text(((details_projection_payload.get("summary") or {}).get("updated_at")))
+            or _non_empty_text((details_projection_payload or {}).get("generated_at")),
+            source="details_projection",
+            summary=_non_empty_text(((details_projection_payload.get("summary") or {}).get("status_line"))),
+        )
+    if controller_decision_payload is not None:
+        decision_type = _decision_type_label(controller_decision_payload.get("decision_type")) or "形成控制面决定"
+        reason = _display_text(controller_decision_payload.get("reason"))
+        summary = f"控制面正式决定：{decision_type}。"
+        if reason:
+            summary += f" 原因：{reason}"
+        _append_progress_signal(
+            signals=signals,
+            timestamp=controller_decision_payload.get("emitted_at"),
+            source="controller_decision",
+            summary=summary,
+        )
+    if publication_eval_payload is not None:
+        verdict = (publication_eval_payload.get("verdict") or {}) if isinstance(publication_eval_payload, dict) else {}
+        _append_progress_signal(
+            signals=signals,
+            timestamp=publication_eval_payload.get("emitted_at"),
+            source="publication_eval",
+            summary=_non_empty_text(verdict.get("summary")) or "发表评估已更新。",
+        )
+    if not signals:
+        return None
+    return max(signals, key=lambda item: item["timestamp"])
+
+
+def _progress_freshness(
+    *,
+    current_stage: str,
+    bash_summary_payload: dict[str, Any] | None,
+    details_projection_payload: dict[str, Any] | None,
+    controller_decision_payload: dict[str, Any] | None,
+    publication_eval_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    required = _progress_freshness_required(current_stage)
+    latest_signal = _latest_progress_signal(
+        bash_summary_payload=bash_summary_payload,
+        details_projection_payload=details_projection_payload,
+        controller_decision_payload=controller_decision_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if not required:
+        summary = "当前阶段以人工判断或收尾为主，不要求系统继续产出新的自动推进信号。"
+        return {
+            "status": "not_required",
+            "required": False,
+            "summary": summary,
+            "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
+            "latest_progress_at": latest_signal.get("timestamp") if latest_signal else None,
+            "latest_progress_time_label": latest_signal.get("time_label") if latest_signal else None,
+            "latest_progress_source": latest_signal.get("source") if latest_signal else None,
+            "latest_progress_summary": latest_signal.get("summary") if latest_signal else None,
+            "seconds_since_latest_progress": None,
+        }
+    if latest_signal is None:
+        return {
+            "status": "missing",
+            "required": True,
+            "summary": "当前还没有看到明确的研究推进记录，用户现在只能看到监管或状态面。",
+            "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
+            "latest_progress_at": None,
+            "latest_progress_time_label": None,
+            "latest_progress_source": None,
+            "latest_progress_summary": None,
+            "seconds_since_latest_progress": None,
+        }
+
+    age_seconds = max(
+        0,
+        int((_progress_freshness_now() - datetime.fromisoformat(str(latest_signal["timestamp"]))).total_seconds()),
+    )
+    if age_seconds > _PROGRESS_STALE_AFTER_SECONDS:
+        summary = (
+            f"距离上一次明确研究推进已经超过 {_duration_hours_label(_PROGRESS_STALE_AFTER_SECONDS)}，"
+            "当前要重点排查是否卡住或空转。"
+        )
+        status = "stale"
+    else:
+        summary = f"最近 {_duration_hours_label(_PROGRESS_STALE_AFTER_SECONDS)}内仍有明确研究推进记录。"
+        status = "fresh"
+    return {
+        "status": status,
+        "required": True,
+        "summary": summary,
+        "stale_after_seconds": _PROGRESS_STALE_AFTER_SECONDS,
+        "latest_progress_at": latest_signal["timestamp"],
+        "latest_progress_time_label": latest_signal["time_label"],
+        "latest_progress_source": latest_signal["source"],
+        "latest_progress_summary": latest_signal["summary"],
+        "seconds_since_latest_progress": age_seconds,
+    }
 
 
 def _current_stage(
@@ -704,6 +876,7 @@ def _current_blockers(
     interaction_arbitration: dict[str, Any] | None,
     runtime_supervision_payload: dict[str, Any] | None,
     supervisor_tick_audit: dict[str, Any],
+    progress_freshness: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
 ) -> list[str]:
     blockers: list[str] = []
@@ -717,6 +890,11 @@ def _current_blockers(
         _append_unique(
             blockers,
             _non_empty_text((supervisor_tick_audit or {}).get("summary")),
+        )
+    if _non_empty_text((progress_freshness or {}).get("status")) in {"stale", "missing"}:
+        _append_unique(
+            blockers,
+            _non_empty_text((progress_freshness or {}).get("summary")),
         )
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_health_status in {"degraded", "escalated"}:
@@ -1033,6 +1211,7 @@ def build_study_progress_projection(
         _non_empty_text(paper_contract_health.get("recommended_next_stage"))
         or _non_empty_text(publication_supervisor_state.get("supervisor_phase"))
     )
+    task_intake = summarize_task_intake(read_latest_task_intake(study_root=resolved_study_root))
     latest_progress_message = None
     latest_session = ((bash_summary_payload or {}).get("latest_session"))
     if isinstance(latest_session, dict) and isinstance(latest_session.get("last_progress"), dict):
@@ -1057,6 +1236,13 @@ def build_study_progress_projection(
         runtime_supervision_payload=runtime_supervision_payload,
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
+    )
+    progress_freshness = _progress_freshness(
+        current_stage=current_stage,
+        bash_summary_payload=bash_summary_payload,
+        details_projection_payload=details_projection_payload,
+        controller_decision_payload=controller_decision_payload,
+        publication_eval_payload=publication_eval_payload,
     )
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1110,6 +1296,7 @@ def build_study_progress_projection(
                 interaction_arbitration=interaction_arbitration,
                 runtime_supervision_payload=runtime_supervision_payload,
                 supervisor_tick_audit=supervisor_tick_audit,
+                progress_freshness=progress_freshness,
                 manual_finish_contract=manual_finish_contract,
             )
         ),
@@ -1135,6 +1322,8 @@ def build_study_progress_projection(
         "continuation_state": continuation_state or None,
         "interaction_arbitration": interaction_arbitration or None,
         "manual_finish_contract": manual_finish_contract,
+        "task_intake": task_intake,
+        "progress_freshness": progress_freshness,
         "supervision": {
             "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
             "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
@@ -1217,6 +1406,8 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         )
     runtime_health = _runtime_health_label(((payload.get("supervision") or {}).get("health_status"))) or "未知"
     supervisor_tick_status = _supervisor_tick_status_label(((payload.get("supervision") or {}).get("supervisor_tick_status"))) or ""
+    progress_freshness = dict(payload.get("progress_freshness") or {})
+    task_intake = dict(payload.get("task_intake") or {})
     current_stage = _current_stage_label(payload.get("current_stage")) or "未知"
     paper_stage = _paper_stage_label(payload.get("paper_stage")) or "未知"
     lines = [
@@ -1226,19 +1417,53 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         f"- quest_id: `{str(payload.get('quest_id') or 'none')}`",
         f"- 当前阶段: {current_stage}",
         f"- 阶段摘要: {_display_text(payload.get('current_stage_summary')) or str(payload.get('current_stage_summary') or '').strip()}",
-        "",
-        "## 论文推进",
-        "",
-        f"- 论文阶段: {paper_stage}",
-        f"- 论文摘要: {_display_text(payload.get('paper_stage_summary')) or str(payload.get('paper_stage_summary') or '').strip()}",
-        "",
-        "## 运行监管",
-        "",
-        f"- 运行健康: {runtime_health}",
-        f"- MAS 决策: {runtime_decision}",
     ]
+    if task_intake:
+        lines.extend(
+            [
+                "",
+                "## 当前任务",
+                "",
+                f"- 任务意图: {task_intake.get('task_intent') or '未提供'}",
+            ]
+        )
+        if task_intake.get("journal_target"):
+            lines.append(f"- 目标期刊: {task_intake.get('journal_target')}")
+        if task_intake.get("entry_mode"):
+            lines.append(f"- 入口模式: {task_intake.get('entry_mode')}")
+        if task_intake.get("emitted_at"):
+            lines.append(f"- 任务写入时间: {task_intake.get('emitted_at')}")
+        first_cycle_outputs = [str(item).strip() for item in task_intake.get("first_cycle_outputs") or [] if str(item).strip()]
+        if first_cycle_outputs:
+            lines.append(f"- 首轮输出要求: {', '.join(first_cycle_outputs)}")
+    lines.extend(
+        [
+            "",
+            "## 论文推进",
+            "",
+            f"- 论文阶段: {paper_stage}",
+            f"- 论文摘要: {_display_text(payload.get('paper_stage_summary')) or str(payload.get('paper_stage_summary') or '').strip()}",
+            "",
+            "## 运行监管",
+            "",
+            f"- 运行健康: {runtime_health}",
+            f"- MAS 决策: {runtime_decision}",
+        ]
+    )
     if supervisor_tick_status:
         lines.append(f"- MAS 监管心跳: {supervisor_tick_status}")
+    progress_freshness_summary = _display_text(progress_freshness.get("summary")) or _non_empty_text(progress_freshness.get("summary"))
+    if progress_freshness_summary:
+        progress_status_label = _progress_freshness_status_label(progress_freshness.get("status"))
+        if progress_status_label:
+            lines.append(f"- 研究进度信号: {progress_status_label}；{progress_freshness_summary}")
+        else:
+            lines.append(f"- 研究进度信号: {progress_freshness_summary}")
+    if progress_freshness.get("latest_progress_time_label") and progress_freshness.get("latest_progress_summary"):
+        lines.append(
+            f"- 最近明确推进: {progress_freshness.get('latest_progress_time_label')}，"
+            f"{progress_freshness.get('latest_progress_summary')}"
+        )
     if runtime_reason:
         lines.append(f"- 决策原因: {runtime_reason}")
     if continuation_reason:

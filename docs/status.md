@@ -25,6 +25,7 @@
 - `workspace-cockpit`、`submit-study-task`、`launch-study` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，而不是自己拼装底层 controller 命令。
 - `submit-study-task` 写出的 durable study task intake 已被 startup contract 真实消费，并同步进 startup brief surface；这意味着“下任务”不再只是口头描述，而是 study-owned durable truth。
 - `study-progress` 现已继续接住 `runtime_watch` 里的 figure-loop / 质量守卫告警，不再只显示 publication gate blocker。
+- 同日继续把这层 shell 收成更诚实的用户面：`workspace-cockpit` 现在会聚合 latest task intake、watch-runtime service 在线态与 stale / missing progress signal；`launch-study` 与 `study-progress` 也会直接投影当前任务摘要与 progress freshness，尽量把“卡住 / 没进度 / 空转”尽早暴露给用户，而不是让用户自己拼 controller surface。
 - `docs/program/med_deepscientist_deconstruction_map.md` 已冻结三类能力归属：迁入 `Hermes` substrate、暂留 backend、后续吸收/替换。
 - `managed_runtime_transport` 已作为 repo-side controller / guard / publication stop surface 的通用 authority 名称落盘；`med_deepscientist_transport` 仅继续保留兼容别名。
 - workspace onboarding 已把默认自动推进 wording 明确切到“上游 `Hermes-Agent` 目标 + repo-side managed runtime seam”，不再把 `med-deepscientist` 写成默认 outer runtime owner。

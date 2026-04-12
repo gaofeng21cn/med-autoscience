@@ -181,7 +181,9 @@
 
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
-- `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
+- `workspace-cockpit` 应直接投影 workspace 级 readiness、latest task intake、watch-runtime service 在线态，以及 stale / missing progress signal 聚合
+- `launch-study` 应在返回监督入口的同时，把当前 latest task intake 与 progress freshness 一并投影给用户
+- `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前任务摘要、progress freshness、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
 - `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 - 如果 `study.yaml` 显式声明 `manual_finish` 且 `compatibility_guard_only = true`，`study-progress` 应把该 study 投影成 `manual_finishing`，表达“当前以人工收尾 + 兼容保护为主”，而不是继续误报成默认应自动续跑的活跃 runtime blocker
 

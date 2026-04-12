@@ -23,6 +23,7 @@
 
 当前“人话进度”不是拍脑袋总结，而是有固定来源：
 
+- `artifacts/controller/task_intake/latest.json` 的当前任务意图与输出要求
 - `runtime_supervision/latest.json` 的 `clinician_update`、`summary`、`next_action_summary`
 - `runtime_watch` 的 controller scan 结果
 - `publication_eval/latest.json` 的 verdict / gap summary
@@ -55,6 +56,7 @@
 `study_progress` 的 authority 输入只读下列表面：
 
 - `study_runtime_status`
+- `studies/<study_id>/artifacts/controller/task_intake/latest.json`
 - `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
@@ -87,6 +89,8 @@
 - `paper_stage_summary`
 - `runtime_decision`
 - `runtime_reason`
+- `task_intake`
+- `progress_freshness`
 - `latest_events`
 - `current_blockers`
 - `next_system_action`
@@ -98,7 +102,9 @@
 其中：
 
 - `current_stage` 表示当前整体研究推进阶段
+- `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
+- `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
 - `latest_events` 必须带明确时间戳
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
 - `supervision` 应同步暴露 `supervisor_tick_status`，用于前台解释当前是否仍有新鲜的 MAS 外环监管
@@ -106,13 +112,14 @@
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 
 1. 当前阶段
-2. 论文推进
-3. 运行监管
-4. 当前阻塞
-5. 下一步
-6. 医生判断（仅在确实需要时出现）
-7. 最近进展
-8. 监督入口
+2. 当前任务
+3. 论文推进
+4. 运行监管
+5. 当前阻塞
+6. 下一步
+7. 医生判断（仅在确实需要时出现）
+8. 最近进展
+9. 监督入口
 
 ## 5. 人话约束
 
@@ -121,6 +128,7 @@
 - 先说临床/研究含义，再说技术动作
 - 避免把 `quest`, `projection`, `fingerprint`, `runtime reentry` 这类内部术语直接当主句
 - 不能伪造百分比进度
+- 对正在自动推进的 study，前台应尽量暴露 progress freshness；如果超过阈值仍无明确推进记录，就应把“可能卡住 / 空转”诚实写出来
 - 不能把 bundle/build/proofing 误报成当前主线 next step；如果 `bundle_tasks_downstream_only=true`，就必须明确那是后续步骤
 - 如果当前需要人工确认，必须直说“需要医生/PI 确认”，不能只写 `requires_human_confirmation=true`
 - 如果 `interaction_arbitration.action == resume`，前台不得继续把原始 `pending_user_interaction` 误投影成“等待医生/PI 决策”

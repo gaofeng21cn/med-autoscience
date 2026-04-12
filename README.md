@@ -98,9 +98,9 @@ That means:
 
 A new repo-tracked lightweight product-entry shell is now present, but it is still intentionally narrow:
 
-- `workspace-cockpit` for workspace-wide readiness, alerts, and study supervision
+- `workspace-cockpit` for workspace-wide readiness, latest study task summaries, supervisor-service visibility, stale-progress alerts, and study supervision
 - `submit-study-task` for writing a durable study task intake and syncing it into the startup brief surface
-- `launch-study` for start/resume plus immediate monitoring and progress links
+- `launch-study` for start/resume plus immediate monitoring, current task summary, and progress-signal links
 
 The target domain-facing shape is:
 
@@ -227,9 +227,11 @@ You can give your agent an instruction like this:
 For the current agent-operated path, the real user-facing loop is now a lightweight product-entry shell over the existing controller surfaces:
 
 - Read the workspace-wide cockpit first: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
+- The cockpit now projects the latest study task intent, whether the MAS watch-runtime service is visibly online, and whether any study has gone stale or lost clear progress signals.
 - Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - Start or resume the managed study and get the monitoring entry back immediately: `uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
 - Read the human-facing progress summary at any time: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- `study-progress` now includes the latest durable task-intake summary plus a progress-freshness signal, so “no progress” and “stuck/idle” stop looking like an opaque black box.
 - Refresh the MAS supervisor heartbeat: `uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - Keep the MAS supervisor loop online as a user service: `ops/medautoscience/bin/install-watch-runtime-service`
 
@@ -244,7 +246,7 @@ If a workspace was initialized from an older scaffold, re-run `init-workspace` o
 When `study-runtime-status` reports `autonomous_runtime_notice.required = true` or `execution_owner_guard.supervisor_only = true`, the study is already in a live managed runtime. At that point the user-visible surface is:
 
 - `browser_url`, `quest_session_api_url`, and `active_run_id` as the monitoring entry
-- `study-progress` for the plain-language phase, blockers, next action, and figure-loop / quality-guard alerts that are already known to `runtime_watch`
+- `study-progress` for the plain-language phase, current task intent, progress freshness, blockers, next action, and figure-loop / quality-guard alerts that are already known to `runtime_watch`
 - the host service behind `install-watch-runtime-service` keeping the supervisor heartbeat fresh, plus a supervisor-only foreground agent instead of direct writes into runtime-owned surfaces
 
 ## Documentation
