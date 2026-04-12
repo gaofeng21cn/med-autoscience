@@ -8,7 +8,7 @@
 - formal-entry matrix：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
 - 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内已落下 repo-side seam / real adapter
-- 当前入口真相：`CLI / MCP` 已经构成稳定的 `agent entry`；repo-tracked 轻量医学 `product-entry shell`（`workspace-cockpit` / `submit-study-task` / `launch-study`）已落地，其中 `workspace-cockpit` 现已承担当前用户 inbox，直接聚合 repo 主线快照、attention queue 与启动/下任务/看进度命令回路，并通过 `study-progress` 投影当前任务摘要、监管 freshness 与人话进度；但成熟的 direct user-facing `product entry` 仍未落地
+- 当前入口真相：`CLI / MCP` 已经构成稳定的 `agent entry`；repo-tracked 轻量医学 `product-entry shell`（`workspace-cockpit` / `submit-study-task` / `launch-study`）已落地，其中 `workspace-cockpit` 现已承担当前用户 inbox，直接聚合 repo 主线快照、5 阶段完善梯子、attention queue 与启动/下任务/看进度命令回路，并通过 `study-progress` 投影当前任务摘要、监管 freshness 与人话进度；但成熟的 direct user-facing `product entry` 仍未落地
 - 当前协作真相：`Hermes-Agent` 负责长期在线 runtime substrate / orchestration，`MedAutoScience` 负责研究入口与 outer-loop authority，`MedDeepScientist` 继续承载当前 research execution brain；这不要求现在就把 backend 内部依赖的 `Codex + skills` 全部替成 `Hermes`
 
 ## 目标

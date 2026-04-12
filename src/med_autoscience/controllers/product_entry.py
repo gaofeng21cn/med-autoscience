@@ -241,6 +241,7 @@ def _workspace_supervision_summary(
 def _mainline_snapshot() -> dict[str, Any]:
     payload = mainline_status.read_mainline_status()
     current_stage = dict(payload.get("current_stage") or {})
+    current_program_phase = dict(payload.get("current_program_phase") or {})
     next_focus = _normalized_strings(payload.get("next_focus") or [])
     explicitly_not_now = _normalized_strings(payload.get("explicitly_not_now") or [])
     return {
@@ -248,6 +249,9 @@ def _mainline_snapshot() -> dict[str, Any]:
         "current_stage_id": _non_empty_text(current_stage.get("id")),
         "current_stage_status": _non_empty_text(current_stage.get("status")),
         "current_stage_summary": _non_empty_text(current_stage.get("summary")),
+        "current_program_phase_id": _non_empty_text(current_program_phase.get("id")),
+        "current_program_phase_status": _non_empty_text(current_program_phase.get("status")),
+        "current_program_phase_summary": _non_empty_text(current_program_phase.get("summary")),
         "next_focus": list(next_focus),
         "explicitly_not_now": list(explicitly_not_now),
     }
@@ -542,6 +546,12 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- current_stage: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
         if mainline_snapshot.get("current_stage_summary"):
             lines.append(f"- stage_summary: {mainline_snapshot.get('current_stage_summary')}")
+        if mainline_snapshot.get("current_program_phase_id"):
+            lines.append(
+                f"- current_program_phase: `{mainline_snapshot.get('current_program_phase_id')}`"
+            )
+        if mainline_snapshot.get("current_program_phase_summary"):
+            lines.append(f"- phase_summary: {mainline_snapshot.get('current_program_phase_summary')}")
         next_focus = list(mainline_snapshot.get("next_focus") or [])
         if next_focus:
             lines.append(f"- next_focus: {next_focus[0]}")

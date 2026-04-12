@@ -8,6 +8,8 @@ SCHEMA_VERSION = 1
 PROGRAM_ID = "research-foundry-medical-mainline"
 CURRENT_STAGE_ID = "f4_blocker_closeout"
 CURRENT_STAGE_STATUS = "in_progress"
+CURRENT_PROGRAM_PHASE_ID = "phase_1_mainline_established"
+CURRENT_PROGRAM_PHASE_STATUS = "in_progress"
 
 
 def _utc_now() -> str:
@@ -15,6 +17,61 @@ def _utc_now() -> str:
 
 
 def read_mainline_status() -> dict[str, Any]:
+    phase_ladder = [
+        {
+            "id": "phase_1_mainline_established",
+            "title": "Phase 1 mainline established",
+            "status": "in_progress",
+            "summary": (
+                "先证明 MAS -> Hermes-Agent target outer substrate -> controlled MedDeepScientist backend 这条主线诚实成立，"
+                "并完成 F4 blocker 收口。"
+            ),
+            "focus": [
+                "close remaining study blockers without reopening seam-only work",
+                "keep runtime truth, recovery proof, and product-entry hardening aligned",
+            ],
+        },
+        {
+            "id": "phase_2_user_product_loop",
+            "title": "Phase 2 user product loop",
+            "status": "pending",
+            "summary": "把启动、下任务、持续看进度、看告警、看恢复建议收成稳定用户回路。",
+            "focus": [
+                "stabilize user-facing inbox, attention queue, and progress loop",
+                "make stuck-state, recovery suggestions, and supervision freshness continuously visible",
+            ],
+        },
+        {
+            "id": "phase_3_multi_workspace_host_clearance",
+            "title": "Phase 3 multi-workspace / host clearance",
+            "status": "pending",
+            "summary": "把当前 proof 从单机/单 workspace 扩到多 workspace、多宿主的真实长期稳定性。",
+            "focus": [
+                "prove service, recovery, and quality guards across more hosts and workspaces",
+                "clear broader external-runtime and workspace-specific blocker classes honestly",
+            ],
+        },
+        {
+            "id": "phase_4_backend_deconstruction",
+            "title": "Phase 4 backend deconstruction",
+            "status": "pending",
+            "summary": "在 outer runtime 与产品回路稳定后，再逐步解构 MedDeepScientist 中可迁出的通用能力。",
+            "focus": [
+                "move reusable runtime capability out of the controlled backend only with proof",
+                "keep executor replacement explicit and contract-driven instead of forced rewrites",
+            ],
+        },
+        {
+            "id": "phase_5_federation_platform_maturation",
+            "title": "Phase 5 federation and platform maturation",
+            "status": "pending",
+            "summary": "最后再考虑更大平台化工作，如 federation direct entry、monorepo 与 runtime core ingest。",
+            "focus": [
+                "land broader federation-facing direct entry only after earlier phases hold",
+                "treat monorepo and large physical restructures as strictly post-gate work",
+            ],
+        },
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -52,6 +109,15 @@ def read_mainline_status() -> dict[str, Any]:
                 "recovery/proof；当前主线进入 blocker 收口与 product-entry hardening，而不是回去继续做 seam-only 包装。"
             ),
         },
+        "current_program_phase": {
+            "id": CURRENT_PROGRAM_PHASE_ID,
+            "status": CURRENT_PROGRAM_PHASE_STATUS,
+            "title": "Phase 1 mainline established",
+            "summary": (
+                "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口继续收成真实产品回路。"
+            ),
+        },
+        "phase_ladder": phase_ladder,
         "completed_tranches": [
             {
                 "id": "positioning_frozen",
@@ -105,6 +171,7 @@ def read_mainline_status() -> dict[str, Any]:
             "docs/status.md",
             "docs/program/upstream_hermes_agent_fast_cutover_board.md",
             "docs/program/research_foundry_medical_mainline.md",
+            "docs/program/research_foundry_medical_phase_ladder.md",
             "docs/references/lightweight_product_entry_and_opl_handoff.md",
         ],
         "commands": {
@@ -117,6 +184,7 @@ def read_mainline_status() -> dict[str, Any]:
 
 def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
+    current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
     lines = [
         "# Mainline Status",
@@ -125,6 +193,8 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- current_stage: `{current_stage.get('id')}`",
         f"- stage_status: `{current_stage.get('status')}`",
         f"- stage_summary: {current_stage.get('summary')}",
+        f"- current_program_phase: `{current_program_phase.get('id')}`",
+        f"- phase_status: `{current_program_phase.get('status')}`",
         "",
         "## Ideal State",
         "",
@@ -133,9 +203,20 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- research_backend: {runtime_topology.get('research_backend')}",
         f"- entry_shape: {runtime_topology.get('entry_shape')}",
         "",
-        "## Completed Tranches",
+        "## Program Phases",
         "",
     ]
+    for item in payload.get("phase_ladder") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- `{item.get('id')}` [{item.get('status')}]: {item.get('summary')}"
+        )
+    lines.extend([
+        "",
+        "## Completed Tranches",
+        "",
+    ])
     for item in payload.get("completed_tranches") or []:
         if not isinstance(item, dict):
             continue

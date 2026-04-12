@@ -69,6 +69,7 @@
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
+- [Research Foundry 医学五阶段梯子](program/research_foundry_medical_phase_ladder.md)
 - [Integration Harness Activation Package](program/integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](program/hermes_backend_continuation_board.md)
 - [Hermes Backend Activation Package](program/hermes_backend_activation_package.md)

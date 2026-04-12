@@ -50,6 +50,11 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "status": "in_progress",
                 "summary": "当前主线仍在 blocker 收口与 product-entry hardening。",
             },
+            "current_program_phase": {
+                "id": "phase_1_mainline_established",
+                "status": "in_progress",
+                "summary": "当前仍在第一阶段尾声。",
+            },
             "next_focus": [
                 "continue hardening user-visible product-entry surfaces so task, progress, supervision, and stuck-state truth stay visible",
             ],
@@ -115,6 +120,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
 
     assert payload["workspace_status"] == "attention_required"
     assert payload["mainline_snapshot"]["current_stage_id"] == "f4_blocker_closeout"
+    assert payload["mainline_snapshot"]["current_program_phase_id"] == "phase_1_mainline_established"
     assert "MAS 外环监管存在缺口。" in payload["workspace_alerts"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in payload["workspace_alerts"]
     assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
@@ -135,6 +141,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "001-risk" in markdown
     assert "002-risk" in markdown
     assert "Mainline Snapshot" in markdown
+    assert "current_program_phase" in markdown
     assert "Attention Queue" in markdown
     assert "User Loop" in markdown
     assert "图表推进陷入重复打磨循环" in markdown

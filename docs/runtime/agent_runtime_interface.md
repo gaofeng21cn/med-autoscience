@@ -180,7 +180,7 @@
 
 前台 contract 要求：
 
-- `mainline-status` 应直接回答 repo 的理想形态、当前主线阶段、已完成 tranche、剩余缺口与 next focus，避免用户自己拼多份 program 文档
+- `mainline-status` 应直接回答 repo 的理想形态、当前主线阶段、5 阶段完善梯子、已完成 tranche、剩余缺口与 next focus，避免用户自己拼多份 program 文档
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
 - `workspace-cockpit` 应直接投影 repo 主线快照、workspace 级 readiness、latest task intake、watch-runtime service 在线态、stale / missing progress signal 聚合，以及按优先级排好的 workspace attention queue

@@ -72,6 +72,7 @@ Current frozen state:
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
+- [Research Foundry medical phase ladder](program/research_foundry_medical_phase_ladder.md)
 - [Integration harness activation package](program/integration_harness_activation_package.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)

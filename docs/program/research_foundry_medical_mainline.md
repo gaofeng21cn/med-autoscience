@@ -13,6 +13,7 @@
 如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
+- [Research Foundry Medical Phase Ladder](./research_foundry_medical_phase_ladder.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
@@ -54,6 +55,20 @@
 - 长线目标也不等于当前这一轮 activation package
 - 当前 absorbed tranche 完成后，默认不应回到“等人工逐棒点名”
 - 只有当 external runtime gate、cutover gate 或更高层产品判断阻塞时，才应诚实停车
+
+## 五阶段完善顺序
+
+当前主线已经不再适合继续用零散 tranche 名称做总体沟通，因此额外固定一条更直观的 5 阶段梯子：
+
+1. `Phase 1`：先让主线成立，并完成当前 `F4 blocker closeout`
+2. `Phase 2`：把启动 / 下任务 / 看进度 / 看告警收成真实用户回路
+3. `Phase 3`：把当前 proof 扩到更多 workspace / host 的真实 clearance
+4. `Phase 4`：在前面都稳定后，再继续解构 backend
+5. `Phase 5`：最后才考虑 federation direct entry、runtime core ingest、monorepo 等更大平台化工作
+
+这条 5 阶段梯子的详细口径见：
+
+- [Research Foundry Medical Phase Ladder](./research_foundry_medical_phase_ladder.md)
 
 ## 两层主线必须分开理解
 
@@ -207,10 +222,11 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 因此，当前真正的 next step 应理解为：
 
-1. 先完成 repo-side `Hermes` continuation truth、activation package 与 deconstruction map
-2. 同时继续把 external blocker 保持为 canonical package，见：
+1. 先继续把 `Phase 1` 收干净，也就是完成 repo-side `Hermes` continuation truth、activation package、deconstruction map 与 `F4 blocker closeout`
+2. 然后直接进入 `Phase 2`，把用户产品回路继续收成稳定入口
+3. 同时继续把 external blocker 保持为 canonical package，见：
    - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
-3. 只有 external runtime / workspace / human gate 真正放行后，才允许继续往更大的 `end-to-end harness / cutover readiness` 推进
+4. 只有 external runtime / workspace / human gate 真正放行后，才允许继续往 `Phase 3+` 推进
 
 ## 固定推进顺序
 

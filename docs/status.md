@@ -7,6 +7,7 @@
 - 仓库角色：医学 `Research Ops` 的 domain gateway 与 `Domain Harness OS`
 - 正式入口矩阵：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 当前产品主线：`Auto-only`
+- 当前总阶段：5 阶段梯子中的 `Phase 1 mainline established` 尾声；当前 repo stage 仍是 `F4 blocker closeout`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
 - 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
@@ -78,7 +79,7 @@
 
 ## 下一阶段
 
-1. 按 `docs/program/upstream_hermes_agent_fast_cutover_board.md` 从 `F3 real study soak / recovery proof` 进入 `F4 blocker 收口`：DM 与 NF 的 workspace/runtime host compatibility gap（`uv` / `Rscript` / `node`）已清掉，后续主线只继续收口各篇 active study 的 publication / completion / rerun truth。
-2. 保持 display 线与 runtime 主线严格分离，避免资产化支线反向污染主线 truth。
-3. 即使 F3 证据已成立，也不提前宣称 runtime owner 已完全切换完成；完整 upstream ownership、backend engine 替换与多宿主稳定性仍需继续验证。
-4. 在不突破 external gate 的前提下，继续把 `Med Auto Science Product Entry` 与 `OPL` handoff 所需合同写清，但不偷跑到 physical migration 或 product overclaim。
+1. 先完成 5 阶段梯子中的 `Phase 1` 收口：继续按 [Upstream Hermes-Agent Fast Cutover Board](program/upstream_hermes_agent_fast_cutover_board.md) 做 `F4 blocker 收口`，让剩余阻塞继续前移到 active study 的 publication / completion / human-gate truth。
+2. 紧接着进入 `Phase 2`：把当前 repo-tracked shell 继续收成稳定用户回路，重点是启动、下任务、持续看进度、看告警、看恢复建议。
+3. 再进入 `Phase 3`：把当前 proof 从开发宿主扩展到更多 workspace / host，继续做真实 clearance。
+4. `Phase 4` 与 `Phase 5` 都是后置阶段：先后分别是 backend deconstruction，以及 federation/platform maturation；在前面几段稳定前，不抢跑。

@@ -226,7 +226,7 @@ You can give your agent an instruction like this:
 
 For the current agent-operated path, the real user-facing loop is now a lightweight product-entry shell over the existing controller surfaces:
 
-- If you first need the repo-level truth about ideal state, current stage, and remaining gaps, read: `uv run python -m med_autoscience.cli mainline-status`
+- If you first need the repo-level truth about ideal state, current stage, the 5-phase improvement ladder, and remaining gaps, read: `uv run python -m med_autoscience.cli mainline-status`
 - Read the workspace-wide cockpit first: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
 - The cockpit now behaves like the current repo-tracked user inbox: it projects the repo mainline snapshot, the latest study task intent, whether the MAS watch-runtime service is visibly online, an attention queue for stale/missing progress or supervision gaps, and the exact command loop for start / task submission / progress watching.
 - Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
