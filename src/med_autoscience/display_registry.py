@@ -53,6 +53,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "subgroup_forest",
         "generalizability_subgroup_composite_panel",
         "shap_summary_beeswarm",
+        "shap_bar_importance",
         "shap_dependence_panel",
         "shap_waterfall_local_explanation_panel",
         "shap_force_like_summary_panel",

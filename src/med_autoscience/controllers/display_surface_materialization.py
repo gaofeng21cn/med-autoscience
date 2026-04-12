@@ -4835,6 +4835,82 @@ def _validate_partial_dependence_ice_panel_display_payload(
     }
 
 
+def _validate_shap_bar_importance_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    bars_payload = payload.get("bars")
+    if not isinstance(bars_payload, list) or not bars_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty bars list")
+
+    normalized_bars: list[dict[str, Any]] = []
+    seen_features: set[str] = set()
+    previous_rank = 0
+    previous_importance = float("inf")
+    for bar_index, bar_payload in enumerate(bars_payload):
+        if not isinstance(bar_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` bars[{bar_index}] must be an object")
+        rank = _require_non_negative_int(
+            bar_payload.get("rank"),
+            label=f"{path.name} display `{expected_display_id}` bars[{bar_index}].rank",
+            allow_zero=False,
+        )
+        if rank <= previous_rank:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` bars[{bar_index}].rank must be strictly increasing"
+            )
+        previous_rank = rank
+        feature = _require_non_empty_string(
+            bar_payload.get("feature"),
+            label=f"{path.name} display `{expected_display_id}` bars[{bar_index}].feature",
+        )
+        if feature in seen_features:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` bars[{bar_index}].feature must be unique"
+            )
+        seen_features.add(feature)
+        importance_value = _require_numeric_value(
+            bar_payload.get("importance_value"),
+            label=f"{path.name} display `{expected_display_id}` bars[{bar_index}].importance_value",
+        )
+        if not math.isfinite(importance_value) or importance_value < 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` bars[{bar_index}].importance_value must be finite and non-negative"
+            )
+        if importance_value > previous_importance + 1e-12:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` bars[{bar_index}].importance_value must stay sorted descending by rank"
+            )
+        previous_importance = importance_value
+        normalized_bars.append(
+            {
+                "rank": rank,
+                "feature": feature,
+                "importance_value": importance_value,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "bars": normalized_bars,
+    }
+
+
 def _validate_multicenter_generalizability_display_payload(
     *,
     path: Path,
@@ -5377,6 +5453,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_force_like_summary_panel_inputs_v1":
         return payload_path, _validate_shap_force_like_summary_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_bar_importance_inputs_v1":
+        return payload_path, _validate_shap_bar_importance_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

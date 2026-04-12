@@ -1168,6 +1168,26 @@ def test_partial_dependence_ice_panel_schema_contract_is_registered() -> None:
     assert "partial_dependence_ice_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_bar_importance_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    shap_bar = module.get_input_schema_contract("shap_bar_importance_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert shap_bar.template_ids == (_full_id("shap_bar_importance"),)
+    assert shap_bar.display_name == "SHAP Bar Importance Panel"
+    assert shap_bar.collection_required_fields["bars"] == ("rank", "feature", "importance_value")
+    assert "bars_must_be_non_empty" in shap_bar.additional_constraints
+    assert "bar_features_must_be_unique" in shap_bar.additional_constraints
+    assert "bar_ranks_must_be_strictly_increasing" in shap_bar.additional_constraints
+    assert "bar_importance_values_must_be_non_negative_finite" in shap_bar.additional_constraints
+    assert "bar_importance_values_must_be_sorted_descending_by_rank" in shap_bar.additional_constraints
+    assert _full_id("shap_bar_importance") in model_explanation_class.template_ids
+    assert "shap_bar_importance_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1230,6 +1250,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "celltype_signature_heatmap_inputs_v1" in markdown
     assert _full_id("shap_dependence_panel") in markdown
     assert "shap_dependence_panel_inputs_v1" in markdown
+    assert _full_id("shap_bar_importance") in markdown
+    assert "shap_bar_importance_inputs_v1" in markdown
     assert _full_id("shap_waterfall_local_explanation_panel") in markdown
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_force_like_summary_panel") in markdown

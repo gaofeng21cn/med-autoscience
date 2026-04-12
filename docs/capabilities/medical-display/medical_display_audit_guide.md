@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `39`
+- Implemented evidence figure templates: `40`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total implemented display templates: `46`
+- Total implemented display templates: `47`
 
 ### Evidence Classes
 
@@ -109,7 +109,7 @@ Current implemented display inventory:
 | Data Geometry | 7 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel` |
 | Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
-| Model Explanation | 5 | `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_partial_dependence_ice_panel` |
+| Model Explanation | 6 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_partial_dependence_ice_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
 | Generalizability | 2 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel` |
 
@@ -258,6 +258,7 @@ Authoritative contract:
 Templates:
 
 - `shap_summary_beeswarm`
+- `shap_bar_importance`
 - `shap_dependence_panel`
 - `shap_waterfall_local_explanation_panel`
 - `shap_force_like_summary_panel`
@@ -265,13 +266,13 @@ Templates:
 
 Audit purpose:
 
-- Ranked feature-attribution summary, multi-panel dependence explanation, patient-level additive waterfall paths, bounded force-like representative-case summaries, and bounded PDP+ICE panels under controlled point geometry, shared legend/colorbar governance, explicit zero/reference guides, directional positive/negative contribution lanes, and deterministic panel-level contract reconciliation.
+- Ranked feature-attribution summary, bounded global importance overview, multi-panel dependence explanation, patient-level additive waterfall paths, bounded force-like representative-case summaries, and bounded PDP+ICE panels under controlled point geometry, shared legend/colorbar governance, explicit zero/reference guides, directional positive/negative contribution lanes, and deterministic panel-level contract reconciliation.
 
 Authoritative contract:
 
-- Input schemas: `shap_summary_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`
+- Input schemas: `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`
 - Renderer family: `python`
-- QC: `publication_shap_summary`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_partial_dependence_ice_panel`
+- QC: `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_partial_dependence_ice_panel`
 
 ### 8. Model Audit
 

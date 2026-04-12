@@ -92,6 +92,7 @@ The current audited inventory is broader than the subset already proven against 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::shap_summary_beeswarm` | `evidence_figure` | `F. Model Explanation` | SHAP Summary Beeswarm | `python` | `shap_summary_inputs_v1` | `publication_shap_summary` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::shap_bar_importance` | `evidence_figure` | `F. Model Explanation` | SHAP Bar Importance Panel | `python` | `shap_bar_importance_inputs_v1` | `publication_shap_bar_importance` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_dependence_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Dependence Panel | `python` | `shap_dependence_panel_inputs_v1` | `publication_shap_dependence_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_waterfall_local_explanation_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Waterfall Local Explanation Panel | `python` | `shap_waterfall_local_explanation_panel_inputs_v1` | `publication_shap_waterfall_local_explanation_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_force_like_summary_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Force-like Summary Panel | `python` | `shap_force_like_summary_panel_inputs_v1` | `publication_shap_force_like_summary_panel` | `png`, `pdf` |
@@ -483,6 +484,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `rows.points` -> `shap_value`, `feature_value`
 - Optional nested collection fields: None
 - Additional constraints: `rows_must_be_non_empty`, `row_feature_must_be_non_empty`, `row_points_must_be_non_empty`, `shap_values_must_be_finite`, `feature_values_must_be_finite`
+
+### `shap_bar_importance_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: SHAP Bar Importance Panel
+- Templates: `fenggaolab.org.medical-display-core::shap_bar_importance`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `bars`
+- Optional display fields: `paper_role`
+- Required collection fields: `bars` -> `rank`, `feature`, `importance_value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `bars_must_be_non_empty`, `bar_features_must_be_unique`, `bar_ranks_must_be_strictly_increasing`, `bar_importance_values_must_be_non_negative_finite`, `bar_importance_values_must_be_sorted_descending_by_rank`
 
 ### `shap_dependence_panel_inputs_v1`
 

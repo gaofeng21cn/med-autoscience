@@ -7192,6 +7192,25 @@ def _make_partial_dependence_ice_panel_display(display_id: str = "Figure36") -> 
     }
 
 
+def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_bar_importance",
+        "title": "SHAP bar importance panel for audited global feature ranking",
+        "caption": (
+            "Bounded SHAP importance bars summarize the top global drivers of the audited model prediction "
+            "surface using a stable ranked-importance contract."
+        ),
+        "x_label": "Mean absolute SHAP value",
+        "bars": [
+            {"rank": 1, "feature": "Age", "importance_value": 0.184},
+            {"rank": 2, "feature": "Albumin", "importance_value": 0.133},
+            {"rank": 3, "feature": "Tumor size", "importance_value": 0.096},
+            {"rank": 4, "feature": "Platelet count", "importance_value": 0.071},
+        ],
+    }
+
+
 def _make_generalizability_subgroup_composite_panel_display(display_id: str = "Figure34") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7627,6 +7646,109 @@ def test_materialize_display_surface_generates_partial_dependence_ice_panel(tmp_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "partial_dependence_ice_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_partial_dependence_ice_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_duplicate_feature_for_shap_bar_importance(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_bar_importance_display()
+    display_payload["bars"][2]["feature"] = "Albumin"
+    dump_json(
+        paper_root / "shap_bar_importance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_bar_importance_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_bar_importance")
+
+    with pytest.raises(ValueError, match="feature must be unique"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure37",
+        )
+
+
+def test_materialize_display_surface_generates_shap_bar_importance(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_bar_importance",
+                    "catalog_id": "F37",
+                    "shell_path": "paper/figures/Figure37.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "template_id": "shap_bar_importance",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_bar_importance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_bar_importance_inputs_v1",
+            "displays": [_make_shap_bar_importance_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F37"]
+    assert (paper_root / "figures" / "generated" / "F37_shap_bar_importance.png").exists()
+    assert (paper_root / "figures" / "generated" / "F37_shap_bar_importance.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F37_shap_bar_importance.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 1
+    assert any(item["box_type"] == "importance_bar" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "feature_label" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "value_label" for item in layout_sidecar["layout_boxes"])
+    assert [item["feature"] for item in layout_sidecar["metrics"]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert layout_sidecar["metrics"]["bars"][0]["importance_value"] == 0.184
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F37"
+    assert figure_entry["template_id"] == full_id("shap_bar_importance")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_bar_importance_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_bar_importance"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

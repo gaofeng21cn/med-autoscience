@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`39`
+  - 证据型模板：`40`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`46`
+  - 总模板数：`47`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,7 +34,7 @@
 
 - Phase：`Phase 5 / integration / merge-back / monitor`
 - Family cluster：`F`
-- Capability cluster：`partial_dependence_ice_panel`
+- Capability cluster：`shap_bar_importance`
 - Owner worktree：当前专用 display worktree
 - 状态：`merge_back_ready`
 
@@ -42,22 +42,22 @@
 
 本轮要回答的是：
 
-> 如何在多特征 panel 中把 marginal response 与 individual-level trajectory 同时稳定表达出来，并把 `PDP mean`、`ICE curves`、reference line/label 与共享 legend 的 manuscript-facing lower bound 固化为可审计、可复用的 bounded panel contract。
+> 如何把 manuscript-facing 的全局特征重要性总览稳定表达成单 panel、可审计、可复用的 bounded contract，并把排序、唯一性、条形几何 containment、标签关联与 value-label 可读性一起固化进正式模板路径。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `bounded partial-dependence + ICE multi-panel explanation`
-2. `per-panel reference line / reference label governance`
-3. `shared legend + in-panel geometry containment for PDP mean and ICE curves`
+1. `bounded global SHAP importance overview`
+2. `strict bar-rank / feature-identity / non-negative-importance contract`
+3. `single-panel horizontal bar geometry + outboard label/value label QC governance`
 
 本轮明确不做：
 
 - workflow / design-evidence shells
 - 自由拼装式 explanation scene composition 系统
-- feature-importance overview 或 grouped-local-explanation follow-on
-- 超过 `3` 个 panel 的开放式 explanation scene
+- 多 cohort 对照或 signed 正负归因版本
+- grouped-local-explanation follow-on
 
 ## 预期写集
 
@@ -95,9 +95,9 @@
 
 ## 当前轮次结束后的候选
 
-只有在 `partial_dependence_ice_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
+只有在 `shap_bar_importance` 被 absorb 之后，才允许 reroute 到下一批候选：
 
-1. `F / richer partial-dependence variants or grouped-local-explanation follow-on`
+1. `F / grouped-local-explanation follow-on or signed feature-importance variants`
 2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 

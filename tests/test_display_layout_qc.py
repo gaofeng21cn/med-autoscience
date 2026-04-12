@@ -3705,6 +3705,114 @@ def test_run_display_layout_qc_fails_when_partial_dependence_ice_curve_leaves_pa
     assert any(issue["rule_id"] == "ice_point_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_bar_importance() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_bar_importance",
+        layout_sidecar={
+            "template_id": "shap_bar_importance",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("feature_label_2", "feature_label", x0=0.05, y0=0.34, x1=0.19, y1=0.39),
+                make_box("feature_label_3", "feature_label", x0=0.05, y0=0.46, x1=0.21, y1=0.51),
+                make_box("feature_label_4", "feature_label", x0=0.05, y0=0.58, x1=0.20, y1=0.63),
+                make_box("importance_bar_1", "importance_bar", x0=0.22, y0=0.22, x1=0.78, y1=0.27),
+                make_box("importance_bar_2", "importance_bar", x0=0.22, y0=0.34, x1=0.67, y1=0.39),
+                make_box("importance_bar_3", "importance_bar", x0=0.22, y0=0.46, x1=0.57, y1=0.51),
+                make_box("importance_bar_4", "importance_bar", x0=0.22, y0=0.58, x1=0.49, y1=0.63),
+                make_box("value_label_1", "value_label", x0=0.80, y0=0.22, x1=0.86, y1=0.27),
+                make_box("value_label_2", "value_label", x0=0.69, y0=0.34, x1=0.75, y1=0.39),
+                make_box("value_label_3", "value_label", x0=0.59, y0=0.46, x1=0.65, y1=0.51),
+                make_box("value_label_4", "value_label", x0=0.51, y0=0.58, x1=0.57, y1=0.63),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Age",
+                        "importance_value": 0.184,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    },
+                    {
+                        "rank": 2,
+                        "feature": "Albumin",
+                        "importance_value": 0.133,
+                        "bar_box_id": "importance_bar_2",
+                        "feature_label_box_id": "feature_label_2",
+                        "value_label_box_id": "value_label_2",
+                    },
+                    {
+                        "rank": 3,
+                        "feature": "Tumor size",
+                        "importance_value": 0.096,
+                        "bar_box_id": "importance_bar_3",
+                        "feature_label_box_id": "feature_label_3",
+                        "value_label_box_id": "value_label_3",
+                    },
+                    {
+                        "rank": 4,
+                        "feature": "Platelet count",
+                        "importance_value": 0.071,
+                        "bar_box_id": "importance_bar_4",
+                        "feature_label_box_id": "feature_label_4",
+                        "value_label_box_id": "value_label_4",
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_shap_bar_importance_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_bar_importance",
+        layout_sidecar={
+            "template_id": "shap_bar_importance",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("importance_bar_1", "importance_bar", x0=0.22, y0=0.22, x1=0.92, y1=0.27),
+                make_box("value_label_1", "value_label", x0=0.80, y0=0.22, x1=0.86, y1=0.27),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Age",
+                        "importance_value": 0.184,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    }
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "importance_bar_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

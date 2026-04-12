@@ -2,6 +2,8 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `shap_bar_importance` as the next audited `F` global-importance explanation slice in the core display pack.
+- Lock its pack-facing contract to `shap_bar_importance_inputs_v1`, `publication_shap_bar_importance`, and the Python single-panel horizontal-bar renderer path.
 - Add `spatial_niche_map_panel` as the first audited `D/E/G` tissue-coordinate spatial niche composite slice in the core display pack.
 - Lock its pack-facing contract to `spatial_niche_map_inputs_v1`, `publication_spatial_niche_map_panel`, and the Python spatial topography + niche-composition + marker/program renderer path.
 - Add `trajectory_progression_panel` as the first audited `D/E/G` trajectory progression composite slice in the core display pack.

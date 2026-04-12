@@ -147,6 +147,7 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         template_ids=_template_ids_for_evidence_class("model_explanation"),
         input_schema_ids=(
             "shap_summary_inputs_v1",
+            "shap_bar_importance_inputs_v1",
             "shap_dependence_panel_inputs_v1",
             "shap_waterfall_local_explanation_panel_inputs_v1",
             "shap_force_like_summary_panel_inputs_v1",
@@ -1024,6 +1025,23 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "row_points_must_be_non_empty",
             "shap_values_must_be_finite",
             "feature_values_must_be_finite",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="shap_bar_importance_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="SHAP Bar Importance Panel",
+        template_ids=_template_ids_for_input_schema("shap_bar_importance_inputs_v1"),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "bars"),
+        display_optional_fields=("paper_role",),
+        collection_required_fields={"bars": ("rank", "feature", "importance_value")},
+        additional_constraints=(
+            "bars_must_be_non_empty",
+            "bar_features_must_be_unique",
+            "bar_ranks_must_be_strictly_increasing",
+            "bar_importance_values_must_be_non_negative_finite",
+            "bar_importance_values_must_be_sorted_descending_by_rank",
         ),
     ),
     InputSchemaContract(
