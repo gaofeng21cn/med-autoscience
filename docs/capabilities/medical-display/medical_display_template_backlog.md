@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `42`
+- Evidence figure templates: `43`
 - Illustration shells: `2`
 - Table shells: `5`
-- Total audited templates: `49`
+- Total audited templates: `50`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -45,7 +45,7 @@
 当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
 
 - `F / richer partial-dependence variants beyond the bounded baseline`
-- `F / grouped-local-explanation follow-on`
+- `F / richer grouped-local-explanation variants beyond the first audited baseline`
 - `H / workflow_fact_sheet_panel`
 - `H / design_evidence_composite_shell`
 - `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`

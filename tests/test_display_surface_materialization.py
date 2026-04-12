@@ -7147,6 +7147,47 @@ def _make_shap_force_like_summary_panel_display(display_id: str = "Figure35") ->
     }
 
 
+def _make_shap_grouped_local_explanation_panel_display(display_id: str = "Figure40") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_grouped_local_explanation_panel",
+        "title": "SHAP grouped local explanation panel for representative phenotype comparison",
+        "caption": (
+            "Bounded grouped local explanation panels compare signed local feature contributions across "
+            "representative phenotypes while preserving shared feature-order governance."
+        ),
+        "x_label": "Local SHAP contribution to predicted risk",
+        "panels": [
+            {
+                "panel_id": "high_risk",
+                "panel_label": "A",
+                "title": "High-risk phenotype",
+                "group_label": "Phenotype 1 · immune-inflamed",
+                "baseline_value": 0.22,
+                "predicted_value": 0.34,
+                "contributions": [
+                    {"rank": 1, "feature": "Age", "shap_value": 0.14},
+                    {"rank": 2, "feature": "Albumin", "shap_value": -0.05},
+                    {"rank": 3, "feature": "Tumor size", "shap_value": 0.03},
+                ],
+            },
+            {
+                "panel_id": "low_risk",
+                "panel_label": "B",
+                "title": "Lower-risk phenotype",
+                "group_label": "Phenotype 2 · stromal-low",
+                "baseline_value": 0.18,
+                "predicted_value": 0.12,
+                "contributions": [
+                    {"rank": 1, "feature": "Age", "shap_value": -0.07},
+                    {"rank": 2, "feature": "Albumin", "shap_value": 0.02},
+                    {"rank": 3, "feature": "Tumor size", "shap_value": -0.01},
+                ],
+            },
+        ],
+    }
+
+
 def _make_partial_dependence_ice_panel_display(display_id: str = "Figure36") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7427,6 +7468,33 @@ def test_load_evidence_display_payload_rejects_unsorted_force_like_contributions
         )
 
 
+def test_load_evidence_display_payload_rejects_feature_order_mismatch_for_shap_grouped_local_explanation_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_grouped_local_explanation_panel_display()
+    display_payload["panels"][1]["contributions"][0]["feature"] = "Albumin"
+    display_payload["panels"][1]["contributions"][1]["feature"] = "Age"
+    dump_json(
+        paper_root / "shap_grouped_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_grouped_local_explanation_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_grouped_local_explanation_panel")
+
+    with pytest.raises(ValueError, match="contribution feature order must match across panels"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure40",
+        )
+
+
 def test_load_evidence_display_payload_rejects_ice_curve_grid_mismatch_for_partial_dependence_ice_panel(
     tmp_path: Path,
 ) -> None:
@@ -7633,6 +7701,92 @@ def test_materialize_display_surface_generates_shap_force_like_summary_panel(tmp
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_force_like_summary_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_force_like_summary_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_shap_grouped_local_explanation_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure40",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_grouped_local_explanation_panel",
+                    "catalog_id": "F40",
+                    "shell_path": "paper/figures/Figure40.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure40",
+                    "template_id": "shap_grouped_local_explanation_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_grouped_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_grouped_local_explanation_panel_inputs_v1",
+            "displays": [_make_shap_grouped_local_explanation_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F40"]
+    assert (paper_root / "figures" / "generated" / "F40_shap_grouped_local_explanation_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F40_shap_grouped_local_explanation_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F40_shap_grouped_local_explanation_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "zero_line"]) == 2
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Phenotype 1 · immune-inflamed",
+        "Phenotype 2 · stromal-low",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][0]["contributions"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][1]["contributions"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F40"
+    assert figure_entry["template_id"] == full_id("shap_grouped_local_explanation_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_grouped_local_explanation_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_grouped_local_explanation_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

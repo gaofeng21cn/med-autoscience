@@ -3470,6 +3470,194 @@ def test_run_display_layout_qc_passes_for_shap_force_like_summary_panel() -> Non
     assert result["issues"] == []
 
 
+def test_run_display_layout_qc_passes_for_shap_grouped_local_explanation_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_grouped_local_explanation_panel",
+        layout_sidecar={
+            "template_id": "shap_grouped_local_explanation_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.11, y0=0.87, x1=0.29, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.49, y0=0.87, x1=0.68, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.81, x1=0.13, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.49, y0=0.81, x1=0.51, y1=0.84),
+                make_box("group_label_A", "group_label", x0=0.15, y0=0.81, x1=0.29, y1=0.84),
+                make_box("group_label_B", "group_label", x0=0.53, y0=0.81, x1=0.68, y1=0.84),
+                make_box("baseline_label_A", "baseline_label", x0=0.15, y0=0.75, x1=0.22, y1=0.78),
+                make_box("baseline_label_B", "baseline_label", x0=0.53, y0=0.75, x1=0.60, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.24, y0=0.75, x1=0.31, y1=0.78),
+                make_box("prediction_label_B", "prediction_label", x0=0.61, y0=0.75, x1=0.69, y1=0.78),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.33, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.53, y0=0.10, x1=0.71, y1=0.13),
+                make_box("feature_label_A_1", "feature_label", x0=0.02, y0=0.62, x1=0.09, y1=0.67),
+                make_box("feature_label_A_2", "feature_label", x0=0.01, y0=0.48, x1=0.09, y1=0.53),
+                make_box("feature_label_A_3", "feature_label", x0=0.00, y0=0.34, x1=0.09, y1=0.39),
+                make_box("feature_label_B_1", "feature_label", x0=0.40, y0=0.62, x1=0.47, y1=0.67),
+                make_box("feature_label_B_2", "feature_label", x0=0.39, y0=0.48, x1=0.47, y1=0.53),
+                make_box("feature_label_B_3", "feature_label", x0=0.38, y0=0.34, x1=0.47, y1=0.39),
+                make_box("contribution_bar_A_1", "contribution_bar", x0=0.22, y0=0.62, x1=0.33, y1=0.67),
+                make_box("contribution_bar_A_2", "contribution_bar", x0=0.12, y0=0.48, x1=0.22, y1=0.53),
+                make_box("contribution_bar_A_3", "contribution_bar", x0=0.22, y0=0.34, x1=0.25, y1=0.39),
+                make_box("contribution_bar_B_1", "contribution_bar", x0=0.44, y0=0.62, x1=0.53, y1=0.67),
+                make_box("contribution_bar_B_2", "contribution_bar", x0=0.53, y0=0.48, x1=0.56, y1=0.53),
+                make_box("contribution_bar_B_3", "contribution_bar", x0=0.52, y0=0.34, x1=0.53, y1=0.39),
+                make_box("value_label_A_1", "value_label", x0=0.34, y0=0.62, x1=0.39, y1=0.67),
+                make_box("value_label_A_2", "value_label", x0=0.07, y0=0.48, x1=0.11, y1=0.53),
+                make_box("value_label_A_3", "value_label", x0=0.26, y0=0.34, x1=0.31, y1=0.39),
+                make_box("value_label_B_1", "value_label", x0=0.39, y0=0.62, x1=0.43, y1=0.67),
+                make_box("value_label_B_2", "value_label", x0=0.57, y0=0.48, x1=0.61, y1=0.53),
+                make_box("value_label_B_3", "value_label", x0=0.46, y0=0.34, x1=0.51, y1=0.39),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.39, y1=0.80),
+                make_box("panel_B", "panel", x0=0.50, y0=0.18, x1=0.77, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("zero_line_A", "zero_line", x0=0.22, y0=0.18, x1=0.221, y1=0.80),
+                make_box("zero_line_B", "zero_line", x0=0.53, y0=0.18, x1=0.531, y1=0.80),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "high_risk",
+                        "panel_label": "A",
+                        "title": "High-risk phenotype",
+                        "group_label": "Phenotype 1",
+                        "baseline_value": 0.22,
+                        "predicted_value": 0.34,
+                        "panel_box_id": "panel_A",
+                        "zero_line_box_id": "zero_line_A",
+                        "contributions": [
+                            {
+                                "rank": 1,
+                                "feature": "Age",
+                                "shap_value": 0.14,
+                                "bar_box_id": "contribution_bar_A_1",
+                                "feature_label_box_id": "feature_label_A_1",
+                                "value_label_box_id": "value_label_A_1",
+                            },
+                            {
+                                "rank": 2,
+                                "feature": "Albumin",
+                                "shap_value": -0.05,
+                                "bar_box_id": "contribution_bar_A_2",
+                                "feature_label_box_id": "feature_label_A_2",
+                                "value_label_box_id": "value_label_A_2",
+                            },
+                            {
+                                "rank": 3,
+                                "feature": "Tumor size",
+                                "shap_value": 0.03,
+                                "bar_box_id": "contribution_bar_A_3",
+                                "feature_label_box_id": "feature_label_A_3",
+                                "value_label_box_id": "value_label_A_3",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "low_risk",
+                        "panel_label": "B",
+                        "title": "Lower-risk phenotype",
+                        "group_label": "Phenotype 2",
+                        "baseline_value": 0.18,
+                        "predicted_value": 0.12,
+                        "panel_box_id": "panel_B",
+                        "zero_line_box_id": "zero_line_B",
+                        "contributions": [
+                            {
+                                "rank": 1,
+                                "feature": "Age",
+                                "shap_value": -0.07,
+                                "bar_box_id": "contribution_bar_B_1",
+                                "feature_label_box_id": "feature_label_B_1",
+                                "value_label_box_id": "value_label_B_1",
+                            },
+                            {
+                                "rank": 2,
+                                "feature": "Albumin",
+                                "shap_value": 0.02,
+                                "bar_box_id": "contribution_bar_B_2",
+                                "feature_label_box_id": "feature_label_B_2",
+                                "value_label_box_id": "value_label_B_2",
+                            },
+                            {
+                                "rank": 3,
+                                "feature": "Tumor size",
+                                "shap_value": -0.01,
+                                "bar_box_id": "contribution_bar_B_3",
+                                "feature_label_box_id": "feature_label_B_3",
+                                "value_label_box_id": "value_label_B_3",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_grouped_local_positive_bar_crosses_zero() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_grouped_local_explanation_panel",
+        layout_sidecar={
+            "template_id": "shap_grouped_local_explanation_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.11, y0=0.87, x1=0.29, y1=0.90),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.81, x1=0.13, y1=0.84),
+                make_box("group_label_A", "group_label", x0=0.15, y0=0.81, x1=0.29, y1=0.84),
+                make_box("baseline_label_A", "baseline_label", x0=0.15, y0=0.75, x1=0.22, y1=0.78),
+                make_box("prediction_label_A", "prediction_label", x0=0.24, y0=0.75, x1=0.31, y1=0.78),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.15, y0=0.10, x1=0.33, y1=0.13),
+                make_box("feature_label_A_1", "feature_label", x0=0.02, y0=0.62, x1=0.09, y1=0.67),
+                make_box("contribution_bar_A_1", "contribution_bar", x0=0.18, y0=0.62, x1=0.33, y1=0.67),
+                make_box("value_label_A_1", "value_label", x0=0.34, y0=0.62, x1=0.39, y1=0.67),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.39, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("zero_line_A", "zero_line", x0=0.22, y0=0.18, x1=0.221, y1=0.80),
+            ],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "high_risk",
+                        "panel_label": "A",
+                        "title": "High-risk phenotype",
+                        "group_label": "Phenotype 1",
+                        "baseline_value": 0.22,
+                        "predicted_value": 0.34,
+                        "panel_box_id": "panel_A",
+                        "zero_line_box_id": "zero_line_A",
+                        "contributions": [
+                            {
+                                "rank": 1,
+                                "feature": "Age",
+                                "shap_value": 0.14,
+                                "bar_box_id": "contribution_bar_A_1",
+                                "feature_label_box_id": "feature_label_A_1",
+                                "value_label_box_id": "value_label_A_1",
+                            },
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "positive_bar_crosses_zero" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_force_like_positive_segment_crosses_baseline() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

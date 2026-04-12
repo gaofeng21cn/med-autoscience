@@ -2,6 +2,8 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `shap_grouped_local_explanation_panel` as the next audited `F` grouped local-explanation comparison slice in the core display pack.
+- Lock its pack-facing contract to `shap_grouped_local_explanation_panel_inputs_v1`, `publication_shap_grouped_local_explanation_panel`, and the Python zero-centered multi-panel local-contribution comparison renderer path.
 - Add `shap_multicohort_importance_panel` as the next audited `F` cross-cohort global-importance explanation slice in the core display pack.
 - Lock its pack-facing contract to `shap_multicohort_importance_panel_inputs_v1`, `publication_shap_multicohort_importance_panel`, and the Python multi-panel horizontal-bar comparison renderer path.
 - Add `shap_signed_importance_panel` as the next audited `F` directional global-importance explanation slice in the core display pack.

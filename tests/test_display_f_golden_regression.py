@@ -360,6 +360,131 @@ def test_shap_force_like_summary_panel_preserves_f_force_like_contract(tmp_path:
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_shap_grouped_local_explanation_panel_preserves_f_grouped_local_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure40",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_grouped_local_explanation_panel",
+                    "catalog_id": "F40",
+                    "shell_path": "paper/figures/Figure40.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure40",
+                    "template_id": "shap_grouped_local_explanation_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_grouped_local_explanation_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_grouped_local_explanation_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure40",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_grouped_local_explanation_panel",
+                    "title": "SHAP grouped local explanation panel for phenotype-level comparison",
+                    "caption": "Regression lock for grouped manuscript-facing local explanation comparison.",
+                    "x_label": "Local SHAP contribution to predicted risk",
+                    "panels": [
+                        {
+                            "panel_id": "high_risk",
+                            "panel_label": "A",
+                            "title": "High-risk phenotype",
+                            "group_label": "Phenotype 1 · immune-inflamed",
+                            "baseline_value": 0.22,
+                            "predicted_value": 0.34,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": 0.14},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.05},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": 0.03},
+                            ],
+                        },
+                        {
+                            "panel_id": "low_risk",
+                            "panel_label": "B",
+                            "title": "Lower-risk phenotype",
+                            "group_label": "Phenotype 2 · stromal-low",
+                            "baseline_value": 0.18,
+                            "predicted_value": 0.12,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": -0.07},
+                                {"rank": 2, "feature": "Albumin", "shap_value": 0.02},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": -0.01},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F40_shap_grouped_local_explanation_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "zero_line"]) == 2
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Phenotype 1 · immune-inflamed",
+        "Phenotype 2 · stromal-low",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][0]["contributions"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][1]["contributions"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_partial_dependence_ice_panel_preserves_f_pdp_ice_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
