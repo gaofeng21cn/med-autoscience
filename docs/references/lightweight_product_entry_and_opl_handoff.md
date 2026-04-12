@@ -17,6 +17,12 @@
 - agent 再调用 `Med Auto Science`
 
 而不是已经存在一个完整稳定的医疗研究产品前台。
+不过现在 repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
+
+- `build-product-entry`
+  - 基于已有 durable study task intake 输出 `direct` / `opl-handoff` 共用 envelope
+  - 继续只覆盖 research 主线，不碰 display 支线
+  - 当缺少 durable intake 或 selector 不成立时保持 fail-closed
 
 ## 2. 目标形态
 
@@ -88,5 +94,5 @@
 ## 7. 下一步落地方向
 
 1. 继续保持 `CLI / MCP / controller` 的入口语义稳定。
-2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，直接聚合主线快照、attention queue 与 start / submit / watch loop，但这仍然只是 shell，不是成熟 direct entry。
+2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，`build-product-entry` 也已把 direct / `OPL` handoff envelope 收成 machine-readable shell，但这仍然只是 shell，不是成熟 direct entry。
 3. 等 external runtime gate 真正清除后，再把 product entry、runtime session、resume、watch、study progression 接成真实 direct entry。

@@ -101,6 +101,7 @@ A new repo-tracked lightweight product-entry shell is now present, but it is sti
 - `workspace-cockpit` for workspace-wide readiness, latest study task summaries, supervisor-service visibility, stale-progress alerts, and study supervision
 - `submit-study-task` for writing a durable study task intake and syncing it into the startup brief surface
 - `launch-study` for start/resume plus immediate monitoring, current task summary, and progress-signal links
+- `build-product-entry` for emitting the shared direct / `OPL` handoff envelope from a durable study task intake without touching the display line
 
 The target domain-facing shape is:
 
@@ -124,6 +125,7 @@ That handoff should keep one shared minimum envelope:
 This is still a target architecture note, not a claim that the product entry has already landed.
 Because the external runtime gate is still open, the current truthful user path remains agent-operated rather than a mature standalone product entry.
 The new shell closes the practical usability gap for launch / task submission / progress visibility without over-claiming that a full standalone product frontend already exists.
+`build-product-entry` extends that same shell into a machine-readable handoff surface, but it still does not mean the mature standalone medical product entry has landed.
 
 ### What `Hermes` Means Today
 
@@ -232,6 +234,7 @@ For the current agent-operated path, the real user-facing loop is now a lightwei
 - The cockpit now behaves like the current repo-tracked user inbox: it projects the repo mainline snapshot, the latest study task intent, whether the MAS watch-runtime service is visibly online, an attention queue for stale/missing progress or supervision gaps, and the exact command loop for start / task submission / progress watching.
 - Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - Start or resume the managed study and get the monitoring entry back immediately: `uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
+- Emit the shared direct / `OPL` handoff envelope when the task intake is ready: `uv run python -m med_autoscience.cli build-product-entry --profile <profile> --study-id <study_id> --entry-mode <direct|opl-handoff>`
 - Read the human-facing progress summary at any time: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
 - `study-progress` now includes the latest durable task-intake summary plus a progress-freshness signal, so “no progress” and “stuck/idle” stop looking like an opaque black box.
 - Refresh the MAS supervisor heartbeat: `uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`

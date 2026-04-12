@@ -5,7 +5,7 @@
 This bilingual index is the default public surface for `Med Auto Science`.
 Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
 Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
-The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, but it is not yet the same thing as a mature direct user-facing product.
+The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, and `build-product-entry` now emits the shared direct / `OPL` handoff envelope from that same shell, but this is still not the same thing as a mature direct user-facing product.
 
 ## Core Skeleton
 
@@ -32,6 +32,7 @@ Current frozen state:
 - Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
+- Current shared-envelope shell: `build-product-entry` now exports the same direct / `OPL` handoff envelope on top of the landed workspace/task/progress shell.
 - Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
 - Repo-level phase entry: `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
 - Current user inbox entry: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>` now folds repo mainline snapshot, workspace attention queue, and the practical start / submit-task / watch-progress loop into one surface.

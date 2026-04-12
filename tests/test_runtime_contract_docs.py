@@ -268,21 +268,26 @@ def test_entry_docs_freeze_lightweight_product_entry_and_opl_handoff_without_cro
 
     assert "`operator entry` and `agent entry`" in readme
     assert "`product entry`: not landed yet as a mature direct user-facing entry" in readme
+    assert "`build-product-entry`" in readme
     assert "`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`" in readme
     assert "`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`" in readme
 
     assert "`operator entry` 和 `agent entry`" in readme_zh
     assert "`product entry`：真正成熟的 direct user-facing 入口还没有落地" in readme_zh
+    assert "`build-product-entry`" in readme_zh
     assert "`OPL -> Med Auto Science`" in architecture
 
     assert "operator entry" in docs_index
     assert "lightweight medical direct entry" in docs_index
+    assert "build-product-entry" in docs_index
     assert "references/lightweight_product_entry_and_opl_handoff.md" in docs_index
     assert "operator entry" in docs_index_zh
     assert "轻量医学 `product entry`" in docs_index_zh
+    assert "build-product-entry" in docs_index_zh
     assert "references/lightweight_product_entry_and_opl_handoff.md" in docs_index_zh
 
     assert "lightweight medical `product entry`" in project
+    assert "build-product-entry" in project
     assert "target_domain_id" in architecture
     assert "study_id" in architecture
     assert "journal_target" in architecture
@@ -295,6 +300,7 @@ def test_entry_docs_freeze_lightweight_product_entry_and_opl_handoff_without_cro
     assert "workspace_locator" in handoff
     assert "runtime_session_contract" in handoff
     assert "return_surface_contract" in handoff
+    assert "build-product-entry" in handoff
     assert "study_id" in handoff
     assert "journal_target" in handoff
     assert "evidence_boundary" in handoff

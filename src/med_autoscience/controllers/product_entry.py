@@ -23,6 +23,9 @@ from med_autoscience.study_task_intake import (
 
 
 SCHEMA_VERSION = 1
+PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
+TARGET_DOMAIN_ID = "med-autoscience"
+SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_needs_physician_decision": 1,
@@ -96,6 +99,13 @@ def _profile_arg(profile_ref: str | Path | None) -> str:
 
 def _command_prefix(profile_ref: str | Path | None) -> str:
     return f"uv run python -m med_autoscience.cli"
+
+
+def _require_direct_entry_mode(value: str | None) -> str:
+    mode = _non_empty_text(value) or "direct"
+    if mode not in SUPPORTED_DIRECT_ENTRY_MODES:
+        raise ValueError(f"direct entry mode 不支持: {mode}")
+    return mode
 
 
 def _study_selector(*, study_id: str | None = None, study_root: Path | None = None) -> str:
@@ -721,6 +731,138 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
     for name, command in (payload.get("commands") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
     lines.append("")
+    return "\n".join(lines)
+
+
+def build_product_entry(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    direct_entry_mode: str | None = None,
+) -> dict[str, Any]:
+    resolved_study_id, resolved_study_root, study_payload = _resolve_study(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    selected_direct_entry_mode = _require_direct_entry_mode(direct_entry_mode)
+    execution = _execution_payload(study_payload, profile=profile)
+    latest_task_payload = read_latest_task_intake(study_root=resolved_study_root)
+    if latest_task_payload is None:
+        raise ValueError("build-product-entry 需要已有 durable study task intake；请先运行 submit-study-task。")
+
+    task_intent = _non_empty_text(latest_task_payload.get("task_intent"))
+    if task_intent is None:
+        raise ValueError("latest durable study task intake 缺少 task_intent。")
+
+    managed_entry_mode = (
+        _non_empty_text(latest_task_payload.get("entry_mode"))
+        or _non_empty_text(execution.get("default_entry_mode"))
+        or "full_research"
+    )
+    runtime_contract = dict(latest_task_payload.get("runtime_session_contract") or {})
+    return_contract = dict(latest_task_payload.get("return_surface_contract") or {})
+    commands = {
+        "workspace_cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
+        "submit_study_task": (
+            f"{_command_prefix(profile_ref)} submit-study-task --profile {_profile_arg(profile_ref)} "
+            f"{_study_selector(study_id=resolved_study_id)} --task-intent '<task_intent>'"
+        ),
+        "launch_study": (
+            f"{_command_prefix(profile_ref)} launch-study --profile {_profile_arg(profile_ref)} "
+            f"{_study_selector(study_id=resolved_study_id)}"
+        ),
+        "study_progress": (
+            f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
+            f"{_study_selector(study_id=resolved_study_id)}"
+        ),
+        "study_runtime_status": (
+            f"{_command_prefix(profile_ref)} study-runtime-status --profile {_profile_arg(profile_ref)} "
+            f"{_study_selector(study_id=resolved_study_id)}"
+        ),
+    }
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "entry_kind": PRODUCT_ENTRY_KIND,
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "task_intent": task_intent,
+        "entry_mode": selected_direct_entry_mode,
+        "workspace_locator": {
+            "workspace_surface_kind": "med_autoscience_study_workspace",
+            "profile_name": profile.name,
+            "workspace_root": str(profile.workspace_root),
+            "study_id": resolved_study_id,
+            "study_root": str(resolved_study_root),
+        },
+        "runtime_session_contract": {
+            "runtime_owner": "med_autoscience_gateway",
+            "runtime_substrate": "external_hermes_agent_target",
+            "managed_entry_mode": managed_entry_mode,
+            "managed_runtime_backend_id": runtime_contract.get("managed_runtime_backend_id") or profile.managed_runtime_backend_id,
+            "runtime_root": runtime_contract.get("runtime_root") or str(profile.runtime_root),
+            "hermes_agent_repo_root": runtime_contract.get("hermes_agent_repo_root"),
+            "hermes_home_root": runtime_contract.get("hermes_home_root") or str(profile.hermes_home_root),
+            "start_entry": "launch-study",
+            "resume_entry": "launch-study",
+        },
+        "return_surface_contract": {
+            "cockpit_command": commands["workspace_cockpit"],
+            "submit_task_command": commands["submit_study_task"],
+            "launch_command": commands["launch_study"],
+            "progress_command": commands["study_progress"],
+            "runtime_status_command": commands["study_runtime_status"],
+            "runtime_supervision_path": return_contract.get("runtime_supervision_path"),
+            "publication_eval_path": return_contract.get("publication_eval_path"),
+            "controller_decision_path": return_contract.get("controller_decision_path"),
+        },
+        "domain_payload": {
+            "study_id": resolved_study_id,
+            "journal_target": latest_task_payload.get("journal_target"),
+            "evidence_boundary": list(latest_task_payload.get("evidence_boundary") or []),
+            "trusted_inputs": list(latest_task_payload.get("trusted_inputs") or []),
+            "reference_papers": list(latest_task_payload.get("reference_papers") or []),
+            "first_cycle_outputs": list(latest_task_payload.get("first_cycle_outputs") or []),
+        },
+        "source_task_intake": {
+            "task_id": latest_task_payload.get("task_id"),
+            "emitted_at": latest_task_payload.get("emitted_at"),
+        },
+        "commands": commands,
+    }
+
+
+def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
+    commands = dict(payload.get("commands") or {})
+    return_surface_contract = dict(payload.get("return_surface_contract") or {})
+    domain_payload = dict(payload.get("domain_payload") or {})
+    lines = [
+        "# Build Product Entry",
+        "",
+        f"- target_domain_id: `{payload.get('target_domain_id')}`",
+        f"- entry_mode: `{payload.get('entry_mode')}`",
+        f"- task_intent: {payload.get('task_intent')}",
+        f"- study_id: `{domain_payload.get('study_id') or 'unknown'}`",
+        f"- journal_target: {domain_payload.get('journal_target') or 'none'}",
+        "",
+        "## Commands",
+        "",
+    ]
+    for name, command in commands.items():
+        lines.append(f"- `{name}`: `{command}`")
+    lines.extend(
+        [
+            "",
+            "## Return Surface",
+            "",
+            f"- runtime_supervision_path: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
+            f"- publication_eval_path: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
+            f"- controller_decision_path: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 

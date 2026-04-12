@@ -364,6 +364,13 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    build_product_entry_parser = subparsers.add_parser("build-product-entry")
+    build_product_entry_parser.add_argument("--profile", required=True)
+    build_product_entry_parser.add_argument("--study-id", type=str)
+    build_product_entry_parser.add_argument("--study-root", type=str)
+    build_product_entry_parser.add_argument("--entry-mode", choices=("direct", "opl-handoff"), default="direct")
+    build_product_entry_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     launch_study_parser = subparsers.add_parser("launch-study")
     launch_study_parser.add_argument("--profile", required=True)
     launch_study_parser.add_argument("--study-id", type=str)
@@ -554,6 +561,23 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(product_entry.render_workspace_cockpit_markdown(result), end="")
+        return 0
+
+    if args.command == "build-product-entry":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = product_entry.build_product_entry(
+            profile=profile,
+            profile_ref=Path(args.profile),
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            direct_entry_mode=args.entry_mode,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_build_product_entry_markdown(result), end="")
         return 0
 
     if args.command == "launch-study":

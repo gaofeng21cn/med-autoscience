@@ -252,6 +252,43 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
     assert payload["study_root"] == str(study_root)
 
 
+def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelope(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    study_root = write_study(profile.workspace_root, "001-risk")
+
+    task_payload = module.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="把当前研究推进到可投稿的 SCI-ready 稳态。",
+        entry_mode="full_research",
+        journal_target="JAMA Network Open",
+        evidence_boundary=("必须保留 publication gate",),
+        first_cycle_outputs=("study-progress", "runtime_watch"),
+    )
+
+    payload = module.build_product_entry(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id="001-risk",
+        direct_entry_mode="opl-handoff",
+    )
+
+    assert payload["target_domain_id"] == "med-autoscience"
+    assert payload["task_intent"] == task_payload["task_intent"]
+    assert payload["entry_mode"] == "opl-handoff"
+    assert payload["workspace_locator"]["study_id"] == "001-risk"
+    assert payload["workspace_locator"]["study_root"] == str(study_root)
+    assert payload["runtime_session_contract"]["managed_entry_mode"] == "full_research"
+    assert payload["runtime_session_contract"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
+    assert payload["domain_payload"]["journal_target"] == "JAMA Network Open"
+    assert payload["domain_payload"]["evidence_boundary"] == ["必须保留 publication gate"]
+    assert payload["return_surface_contract"]["progress_command"].endswith("--study-id 001-risk")
+    assert payload["commands"]["workspace_cockpit"].endswith("workspace-cockpit --profile " + str(profile_ref.resolve()))
+    assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
+
+
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     startup_module = importlib.import_module("med_autoscience.controllers.study_runtime_startup")
