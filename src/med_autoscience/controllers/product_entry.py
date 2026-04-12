@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers import mainline_status, study_progress, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.profiles import WorkspaceProfile
@@ -23,6 +23,14 @@ from med_autoscience.study_task_intake import (
 
 
 SCHEMA_VERSION = 1
+_ATTENTION_PRIORITIES = {
+    "workspace_supervisor_service_not_loaded": 0,
+    "study_needs_physician_decision": 1,
+    "study_supervision_gap": 2,
+    "study_progress_stale": 3,
+    "study_progress_missing": 4,
+    "study_blocked": 5,
+}
 
 
 def _utc_now() -> str:
@@ -230,6 +238,173 @@ def _workspace_supervision_summary(
     }
 
 
+def _mainline_snapshot() -> dict[str, Any]:
+    payload = mainline_status.read_mainline_status()
+    current_stage = dict(payload.get("current_stage") or {})
+    next_focus = _normalized_strings(payload.get("next_focus") or [])
+    explicitly_not_now = _normalized_strings(payload.get("explicitly_not_now") or [])
+    return {
+        "program_id": _non_empty_text(payload.get("program_id")),
+        "current_stage_id": _non_empty_text(current_stage.get("id")),
+        "current_stage_status": _non_empty_text(current_stage.get("status")),
+        "current_stage_summary": _non_empty_text(current_stage.get("summary")),
+        "next_focus": list(next_focus),
+        "explicitly_not_now": list(explicitly_not_now),
+    }
+
+
+def _attention_item(
+    *,
+    code: str,
+    title: str,
+    summary: str,
+    recommended_command: str | None,
+    scope: str,
+    study_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "priority": _ATTENTION_PRIORITIES.get(code, 999),
+        "scope": scope,
+        "study_id": study_id,
+        "code": code,
+        "title": title,
+        "summary": summary,
+        "recommended_command": recommended_command,
+    }
+
+
+def _attention_queue(
+    *,
+    workspace_status: str,
+    workspace_supervision: dict[str, Any],
+    studies: list[dict[str, Any]],
+    commands: dict[str, str],
+) -> list[dict[str, Any]]:
+    queue: list[dict[str, Any]] = []
+    service = dict(workspace_supervision.get("service") or {})
+    study_counts = dict(workspace_supervision.get("study_counts") or {})
+    service_loaded = bool(service.get("loaded"))
+    if not service_loaded and (
+        study_counts.get("supervisor_gap", 0) > 0
+        or study_counts.get("progress_stale", 0) > 0
+        or study_counts.get("progress_missing", 0) > 0
+    ):
+        queue.append(
+            _attention_item(
+                code="workspace_supervisor_service_not_loaded",
+                title="先恢复 MAS supervisor 常驻监管",
+                summary=_non_empty_text(service.get("summary"))
+                or "当前 workspace 还没有稳定的 MAS supervisor 常驻监管入口。",
+                recommended_command=commands.get("service_status") or commands.get("service_install"),
+                scope="workspace",
+            )
+        )
+
+    for item in studies:
+        study_id = _non_empty_text(item.get("study_id")) or "unknown-study"
+        monitoring = dict(item.get("monitoring") or {})
+        progress_freshness = dict(item.get("progress_freshness") or {})
+        blocker_list = list(item.get("current_blockers") or [])
+        progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
+        supervisor_tick_status = _non_empty_text(monitoring.get("supervisor_tick_status"))
+        progress_status = _non_empty_text(progress_freshness.get("status"))
+        current_stage_summary = _non_empty_text(item.get("current_stage_summary"))
+        next_system_action = _non_empty_text(item.get("next_system_action"))
+
+        if bool(item.get("needs_physician_decision")):
+            queue.append(
+                _attention_item(
+                    code="study_needs_physician_decision",
+                    title=f"{study_id} 需要医生或 PI 判断",
+                    summary=current_stage_summary or next_system_action or "当前 study 已到需要人工明确决策的节点。",
+                    recommended_command=progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if supervisor_tick_status in {"stale", "missing", "invalid"}:
+            queue.append(
+                _attention_item(
+                    code="study_supervision_gap",
+                    title=f"{study_id} 当前失去新鲜监管心跳",
+                    summary=current_stage_summary or "MAS 外环监管存在缺口。",
+                    recommended_command=commands.get("supervisor_tick") or progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if progress_status == "stale":
+            queue.append(
+                _attention_item(
+                    code="study_progress_stale",
+                    title=f"{study_id} 进度信号已陈旧",
+                    summary=_non_empty_text(progress_freshness.get("summary"))
+                    or "最近缺少新的明确研究推进记录，需要排查是否卡住或空转。",
+                    recommended_command=progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if progress_status == "missing":
+            queue.append(
+                _attention_item(
+                    code="study_progress_missing",
+                    title=f"{study_id} 缺少明确进度信号",
+                    summary=_non_empty_text(progress_freshness.get("summary"))
+                    or "当前还没有看到明确的研究推进记录。",
+                    recommended_command=progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if blocker_list or workspace_status in {"attention_required", "blocked"}:
+            queue.append(
+                _attention_item(
+                    code="study_blocked",
+                    title=f"{study_id} 仍有主线阻塞",
+                    summary=_non_empty_text(blocker_list[0] if blocker_list else None)
+                    or current_stage_summary
+                    or next_system_action
+                    or "当前 study 仍有待收口问题。",
+                    recommended_command=progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+
+    return sorted(
+        queue,
+        key=lambda item: (
+            int(item.get("priority", 999)),
+            str(item.get("study_id") or ""),
+            str(item.get("code") or ""),
+        ),
+    )
+
+
+def _user_loop(*, profile: WorkspaceProfile, profile_ref: str | Path | None) -> dict[str, str]:
+    profile_arg = _profile_arg(profile_ref)
+    prefix = _command_prefix(profile_ref)
+    return {
+        "mainline_status": f"{prefix} mainline-status",
+        "open_workspace_cockpit": f"{prefix} workspace-cockpit --profile {profile_arg}",
+        "submit_task_template": (
+            f"{prefix} submit-study-task --profile {profile_arg} --study-id <study_id> "
+            "--task-intent '<task_intent>'"
+        ),
+        "launch_study_template": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+        "watch_progress_template": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
+        "refresh_supervision": (
+            f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"--profile {profile_arg} --ensure-study-runtimes --apply"
+        ),
+    }
+
+
 def _study_item(
     *,
     progress_payload: dict[str, Any],
@@ -313,7 +488,9 @@ def read_workspace_cockpit(
         workspace_status = "blocked"
     else:
         workspace_status = "ready"
+    mainline_snapshot = _mainline_snapshot()
     commands = {
+        "mainline_status": f"{_command_prefix(profile_ref)} mainline-status",
         "doctor": f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}",
         "bootstrap": f"{_command_prefix(profile_ref)} bootstrap --profile {_profile_arg(profile_ref)}",
         "supervisor_tick": (
@@ -323,20 +500,30 @@ def read_workspace_cockpit(
         "service_install": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"),
         "service_status": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
     }
+    attention_queue = _attention_queue(
+        workspace_status=workspace_status,
+        workspace_supervision=workspace_supervision,
+        studies=studies,
+        commands=commands,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
         "profile_name": profile.name,
         "workspace_root": str(profile.workspace_root),
         "workspace_status": workspace_status,
+        "mainline_snapshot": mainline_snapshot,
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
+        "attention_queue": attention_queue,
+        "user_loop": _user_loop(profile=profile, profile_ref=profile_ref),
         "studies": studies,
         "commands": commands,
     }
 
 
 def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
+    mainline_snapshot = dict(payload.get("mainline_snapshot") or {})
     workspace_supervision = dict(payload.get("workspace_supervision") or {})
     service = dict(workspace_supervision.get("service") or {})
     study_counts = dict(workspace_supervision.get("study_counts") or {})
@@ -347,9 +534,24 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         f"- workspace_root: `{payload.get('workspace_root')}`",
         f"- workspace_status: `{payload.get('workspace_status')}`",
         "",
-        "## Workspace Supervision",
+        "## Mainline Snapshot",
         "",
     ]
+    if mainline_snapshot:
+        lines.append(f"- program_id: `{mainline_snapshot.get('program_id') or 'unknown'}`")
+        lines.append(f"- current_stage: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
+        if mainline_snapshot.get("current_stage_summary"):
+            lines.append(f"- stage_summary: {mainline_snapshot.get('current_stage_summary')}")
+        next_focus = list(mainline_snapshot.get("next_focus") or [])
+        if next_focus:
+            lines.append(f"- next_focus: {next_focus[0]}")
+    else:
+        lines.append("- 当前还没有 repo 主线快照。")
+    lines.extend([
+        "",
+        "## Workspace Supervision",
+        "",
+    ])
     if workspace_supervision:
         lines.append(f"- summary: {workspace_supervision.get('summary')}")
         if service.get("summary"):
@@ -376,6 +578,19 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {item}" for item in workspace_alerts)
     else:
         lines.append("- 当前没有新的 workspace 级硬告警。")
+    lines.extend(["", "## Attention Queue", ""])
+    attention_queue = list(payload.get("attention_queue") or [])
+    if attention_queue:
+        for item in attention_queue:
+            title = _non_empty_text(item.get("title")) or "未命名关注项"
+            lines.append(f"- {title}: {item.get('summary')}")
+            if item.get("recommended_command"):
+                lines.append(f"  command: `{item.get('recommended_command')}`")
+    else:
+        lines.append("- 当前没有新的 attention item。")
+    lines.extend(["", "## User Loop", ""])
+    for name, command in (payload.get("user_loop") or {}).items():
+        lines.append(f"- `{name}`: `{command}`")
     lines.extend(["", "## Commands", ""])
     for name, command in (payload.get("commands") or {}).items():
         lines.append(f"- `{name}`: `{command}`")

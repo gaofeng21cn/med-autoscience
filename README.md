@@ -228,7 +228,7 @@ For the current agent-operated path, the real user-facing loop is now a lightwei
 
 - If you first need the repo-level truth about ideal state, current stage, and remaining gaps, read: `uv run python -m med_autoscience.cli mainline-status`
 - Read the workspace-wide cockpit first: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
-- The cockpit now projects the latest study task intent, whether the MAS watch-runtime service is visibly online, and whether any study has gone stale or lost clear progress signals.
+- The cockpit now behaves like the current repo-tracked user inbox: it projects the repo mainline snapshot, the latest study task intent, whether the MAS watch-runtime service is visibly online, an attention queue for stale/missing progress or supervision gaps, and the exact command loop for start / task submission / progress watching.
 - Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - Start or resume the managed study and get the monitoring entry back immediately: `uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
 - Read the human-facing progress summary at any time: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`

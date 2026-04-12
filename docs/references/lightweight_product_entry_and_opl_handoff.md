@@ -88,5 +88,5 @@
 ## 7. 下一步落地方向
 
 1. 继续保持 `CLI / MCP / controller` 的入口语义稳定。
-2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清。
+2. 在 external gate 不突破的前提下，先把 product-entry shell 与 OPL handoff contract 写清；当前 repo 内已经把 `workspace-cockpit` 收成用户 inbox，直接聚合主线快照、attention queue 与 start / submit / watch loop，但这仍然只是 shell，不是成熟 direct entry。
 3. 等 external runtime gate 真正清除后，再把 product entry、runtime session、resume、watch、study progression 接成真实 direct entry。

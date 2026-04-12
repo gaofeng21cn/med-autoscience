@@ -40,6 +40,24 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             "summary": "MAS supervisor service 未常驻在线；如果要持续监管，请先安装或拉起 watch-runtime service。",
         },
     )
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {
+                "id": "f4_blocker_closeout",
+                "status": "in_progress",
+                "summary": "当前主线仍在 blocker 收口与 product-entry hardening。",
+            },
+            "next_focus": [
+                "continue hardening user-visible product-entry surfaces so task, progress, supervision, and stuck-state truth stay visible",
+            ],
+            "explicitly_not_now": [
+                "physical migration or cross-repo rewrite",
+            ],
+        },
+    )
 
     def fake_progress(*, profile, study_id: str | None = None, study_root: Path | None = None, entry_mode=None) -> dict:
         resolved_study_id = study_id or Path(study_root).name
@@ -96,19 +114,29 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert payload["workspace_status"] == "attention_required"
+    assert payload["mainline_snapshot"]["current_stage_id"] == "f4_blocker_closeout"
     assert "MAS 外环监管存在缺口。" in payload["workspace_alerts"]
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in payload["workspace_alerts"]
     assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
     assert payload["workspace_supervision"]["service"]["status"] == "not_loaded"
     assert payload["workspace_supervision"]["study_counts"]["progress_stale"] == 1
+    assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
+    assert payload["attention_queue"][0]["recommended_command"].endswith("watch-runtime-service-status")
+    assert any(item["study_id"] == "001-risk" and item["code"] == "study_supervision_gap" for item in payload["attention_queue"])
+    assert any(item["study_id"] == "002-risk" and item["code"] == "study_blocked" for item in payload["attention_queue"])
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
+    assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
+    assert "study-progress" in payload["user_loop"]["watch_progress_template"]
 
     markdown = module.render_workspace_cockpit_markdown(payload)
     assert "001-risk" in markdown
     assert "002-risk" in markdown
+    assert "Mainline Snapshot" in markdown
+    assert "Attention Queue" in markdown
+    assert "User Loop" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
     assert "The Lancet Digital Health" in markdown
     assert "MAS supervisor service 未常驻在线" in markdown
