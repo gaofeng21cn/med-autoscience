@@ -150,6 +150,16 @@ def test_shap_force_like_summary_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_shap_force_like_summary_panel"
 
 
+def test_shap_grouped_local_explanation_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("shap_grouped_local_explanation_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "shap_grouped_local_explanation_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_shap_grouped_local_explanation_panel"
+
+
 def test_shap_bar_importance_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("shap_bar_importance"))
 

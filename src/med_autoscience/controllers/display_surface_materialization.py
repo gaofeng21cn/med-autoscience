@@ -4652,6 +4652,175 @@ def _validate_shap_force_like_summary_panel_display_payload(
     }
 
 
+def _validate_shap_grouped_local_explanation_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty panels list")
+    if len(panels_payload) > 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` panels must contain at most three entries")
+
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    seen_group_labels: set[str] = set()
+    expected_feature_order: list[str] | None = None
+    for panel_index, panel_payload in enumerate(panels_payload):
+        if not isinstance(panel_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel_payload.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id must be unique"
+            )
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            panel_payload.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        group_label = _require_non_empty_string(
+            panel_payload.get("group_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].group_label",
+        )
+        if group_label in seen_group_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].group_label must be unique"
+            )
+        seen_group_labels.add(group_label)
+        baseline_value = _require_numeric_value(
+            panel_payload.get("baseline_value"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].baseline_value",
+        )
+        predicted_value = _require_numeric_value(
+            panel_payload.get("predicted_value"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].predicted_value",
+        )
+        if not all(math.isfinite(value) for value in (baseline_value, predicted_value)):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}] values must be finite"
+            )
+        contributions_payload = panel_payload.get("contributions")
+        if not isinstance(contributions_payload, list) or not contributions_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].contributions must be a non-empty list"
+            )
+
+        normalized_contributions: list[dict[str, Any]] = []
+        seen_features: set[str] = set()
+        previous_rank = 0
+        contribution_sum = 0.0
+        feature_order: list[str] = []
+        for contribution_index, contribution_payload in enumerate(contributions_payload):
+            if not isinstance(contribution_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].contributions[{contribution_index}] must be an object"
+                )
+            rank = _require_non_negative_int(
+                contribution_payload.get("rank"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].contributions[{contribution_index}].rank"
+                ),
+                allow_zero=False,
+            )
+            if rank <= previous_rank:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}] contribution ranks must be strictly increasing"
+                )
+            previous_rank = rank
+            feature = _require_non_empty_string(
+                contribution_payload.get("feature"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].contributions[{contribution_index}].feature"
+                ),
+            )
+            if feature in seen_features:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].contributions[{contribution_index}].feature must be unique within its panel"
+                )
+            seen_features.add(feature)
+            feature_order.append(feature)
+            shap_value = _require_numeric_value(
+                contribution_payload.get("shap_value"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].contributions[{contribution_index}].shap_value"
+                ),
+            )
+            if not math.isfinite(shap_value) or math.isclose(shap_value, 0.0, abs_tol=1e-12):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].contributions[{contribution_index}].shap_value must be finite and non-zero"
+                )
+            contribution_sum += shap_value
+            normalized_contributions.append(
+                {
+                    "rank": rank,
+                    "feature": feature,
+                    "shap_value": shap_value,
+                }
+            )
+
+        if expected_feature_order is None:
+            expected_feature_order = feature_order
+        elif tuple(feature_order) != tuple(expected_feature_order):
+            raise ValueError(f"{path.name} display `{expected_display_id}` contribution feature order must match across panels")
+
+        if not math.isclose(
+            predicted_value,
+            baseline_value + contribution_sum,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].predicted_value must equal baseline_value plus contribution sum"
+            )
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "title": _require_non_empty_string(
+                    panel_payload.get("title"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].title",
+                ),
+                "group_label": group_label,
+                "baseline_value": baseline_value,
+                "predicted_value": predicted_value,
+                "contributions": normalized_contributions,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "panels": normalized_panels,
+    }
+
+
 def _validate_partial_dependence_ice_panel_display_payload(
     *,
     path: Path,
@@ -5686,6 +5855,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "shap_force_like_summary_panel_inputs_v1":
         return payload_path, _validate_shap_force_like_summary_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "shap_grouped_local_explanation_panel_inputs_v1":
+        return payload_path, _validate_shap_grouped_local_explanation_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

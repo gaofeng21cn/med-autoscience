@@ -1138,6 +1138,48 @@ def test_shap_force_like_summary_schema_contract_is_registered() -> None:
     assert "shap_force_like_summary_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_grouped_local_explanation_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    grouped_local = module.get_input_schema_contract("shap_grouped_local_explanation_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert grouped_local.template_ids == (_full_id("shap_grouped_local_explanation_panel"),)
+    assert grouped_local.display_name == "SHAP Grouped Local Explanation Panel"
+    assert grouped_local.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "panels",
+    )
+    assert grouped_local.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "group_label",
+        "baseline_value",
+        "predicted_value",
+        "contributions",
+    )
+    assert grouped_local.nested_collection_required_fields["panels.contributions"] == (
+        "rank",
+        "feature",
+        "shap_value",
+    )
+    assert "panel_count_must_not_exceed_three" in grouped_local.additional_constraints
+    assert "panel_group_labels_must_be_unique" in grouped_local.additional_constraints
+    assert "panel_prediction_value_must_equal_baseline_plus_contributions" in grouped_local.additional_constraints
+    assert "panel_contribution_ranks_must_be_strictly_increasing" in grouped_local.additional_constraints
+    assert "panel_contribution_values_must_be_finite_and_non_zero" in grouped_local.additional_constraints
+    assert "panel_feature_orders_must_match_across_panels" in grouped_local.additional_constraints
+    assert _full_id("shap_grouped_local_explanation_panel") in model_explanation_class.template_ids
+    assert "shap_grouped_local_explanation_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_partial_dependence_ice_panel_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1335,6 +1377,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_force_like_summary_panel") in markdown
     assert "shap_force_like_summary_panel_inputs_v1" in markdown
+    assert _full_id("shap_grouped_local_explanation_panel") in markdown
+    assert "shap_grouped_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
