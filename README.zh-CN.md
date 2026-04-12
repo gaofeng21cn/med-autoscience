@@ -95,6 +95,12 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - `agent entry`：由 `Codex` 或其他 host-agent 调用的 `CLI + MCP`
 - `product entry`：真正成熟的 direct user-facing 入口还没有落地
 
+现在仓内已经补上一层 repo-tracked 的轻量 `product-entry shell`，但它仍然是克制收口的：
+
+- `workspace-cockpit`：先看 workspace readiness、全局告警和 study supervision
+- `submit-study-task`：把任务意图写成 durable study task intake，并同步进 startup brief surface
+- `launch-study`：启动/续跑 study，并立刻返回监控入口与进度面
+
 这个仓的目标 domain 级入口形态应是：
 
 `User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
@@ -116,6 +122,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 这里冻结的仍然只是目标架构，不是说产品入口已经完成落地。
 因为 external runtime gate 还没有清除，所以当前对用户最诚实的路径仍然是 agent-operated，而不是成熟的独立产品前台。
+新补上的这层 shell 解决的是“怎么启动、怎么下任务、怎么持续看进度”的实用缺口，但不把它写成已经完成的独立产品前台。
 
 ### 当前 `Hermes` 到底指什么
 
@@ -216,20 +223,27 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 ### 当前用户怎么启动、怎么看进度
 
-如果你现在就在 agent-operated 路径上继续一个真实 study，最核心的是四个 CLI 入口加一个可选的 host service 入口：
+如果你现在就在 agent-operated 路径上继续一个真实 study，最核心的用户循环已经收成一层轻量 product-entry shell：
 
-- 正式启动或续跑：`uv run python -m med_autoscience.cli ensure-study-runtime --profile <profile> --study-id <study_id>`
-- 看完整结构化状态与监控入口：`uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>`
-- 看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- 先看 workspace 全局 cockpit：`uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
+- 写入或刷新当前 study 的任务意图：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
+- 正式启动或续跑，并直接拿到监督入口：`uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
+- 随时看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
 - 刷新 MAS 外环监管心跳：`uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - 把 MAS supervisor loop 作为用户级服务常驻在线：`ops/medautoscience/bin/install-watch-runtime-service`
+
+更底层的兼容入口仍然保留：
+
+- `ensure-study-runtime`：直接做 controller-driven 的 runtime continuation
+- `study-runtime-status`：看完整结构化真相面
+- `watch`：做 supervisor tick 与 outer-loop reconciliation
 
 如果 workspace 是旧骨架初始化出来的，先重新跑一次 `init-workspace` 再安装 service。当前 controller 已能在不加 `--force` 的前提下，就地升级 service-critical managed entry scripts。
 
 如果 `study-runtime-status` 返回 `autonomous_runtime_notice.required = true` 或 `execution_owner_guard.supervisor_only = true`，就表示 study 已处于 live managed runtime。此时用户真正会看到的是：
 
 - `browser_url` / `quest_session_api_url` / `active_run_id` 这组监督入口
-- `study-progress` 输出的当前阶段、人话摘要、当前阻塞与下一步
+- `study-progress` 输出的当前阶段、人话摘要、当前阻塞、下一步，以及 runtime_watch 已发现的 figure-loop / 质量守卫告警
 - `install-watch-runtime-service` 背后持续在线的 supervisor heartbeat，以及前台 agent 自动切到 supervisor-only，而不是继续直接写 runtime-owned surface
 
 ## 文档入口

@@ -27,6 +27,11 @@ from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.startup_contract import compose_startup_contract
 from med_autoscience.study_charter import materialize_study_charter
+from med_autoscience.study_task_intake import (
+    latest_task_intake_json_path,
+    read_latest_task_intake,
+    render_task_intake_runtime_context,
+)
 from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
@@ -139,6 +144,12 @@ def _build_startup_contract(
     requested_launch_profile = str(execution.get("launch_profile") or "continue_existing_state").strip()
     requested_launch_profile = requested_launch_profile or "continue_existing_state"
     existing_brief = _read_optional_text(startup_brief_path)
+    latest_task_intake = read_latest_task_intake(study_root=study_root)
+    task_intake_context = (
+        render_task_intake_runtime_context(latest_task_intake)
+        if isinstance(latest_task_intake, dict)
+        else ""
+    )
     medical_analysis_contract_summary = medical_analysis_contract_controller.resolve_medical_analysis_contract_for_study(
         study_root=study_root,
         study_payload=study_payload,
@@ -156,6 +167,12 @@ def _build_startup_contract(
         execution=execution,
         required_first_anchor=startup_boundary_gate.required_first_anchor,
     )
+    custom_brief = startup_boundary_gate_controller.render_boundary_custom_brief(
+        existing_brief=existing_brief,
+        boundary_gate=boundary_gate,
+    )
+    if task_intake_context:
+        custom_brief = f"{custom_brief}\n\nCurrent managed task intake:\n\n{task_intake_context}".strip()
 
     if not startup_boundary_gate.allow_compute_stage:
         scope = "full_research"
@@ -214,10 +231,7 @@ def _build_startup_contract(
             "review_summary": "",
             "controller_first_policy_summary": render_controller_first_summary(),
             "automation_ready_summary": render_automation_ready_summary(),
-            "custom_brief": startup_boundary_gate_controller.render_boundary_custom_brief(
-                existing_brief=existing_brief,
-                boundary_gate=boundary_gate,
-            ),
+            "custom_brief": custom_brief,
             "study_charter_ref": study_charter_ref,
             "required_first_anchor": startup_boundary_gate.required_first_anchor,
             "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
@@ -232,6 +246,15 @@ def _build_startup_contract(
             "submission_targets": _serialize_submission_targets(profile, study_root)
             if _has_explicit_submission_targets(study_payload)
             else [],
+            "task_intake_ref": (
+                {
+                    "task_id": str(latest_task_intake.get("task_id") or "").strip(),
+                    "study_id": str(latest_task_intake.get("study_id") or study_id).strip(),
+                    "artifact_path": str(latest_task_intake_json_path(study_root=study_root)),
+                }
+                if isinstance(latest_task_intake, dict)
+                else None
+            ),
         },
     )
 

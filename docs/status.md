@@ -8,7 +8,7 @@
 - 正式入口矩阵：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 当前产品主线：`Auto-only`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
-- 当前入口真相：`operator entry` 与 `agent entry` 已存在；成熟的医学 `product entry` 仍未落地
+- 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
 
 ## 当前基线（repo-verified）
@@ -22,6 +22,9 @@
 - 旧 `Codex-default host-agent runtime` 已明确退为迁移期对照面，不再作为长期产品方向。
 - 当前 runtime / gateway / architecture 主线只推进上游 `Hermes-Agent` 目标 substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
 - `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 future outer-runtime seam 与 `MedDeepScientist` research backend 的分层语义。
+- `workspace-cockpit`、`submit-study-task`、`launch-study` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，而不是自己拼装底层 controller 命令。
+- `submit-study-task` 写出的 durable study task intake 已被 startup contract 真实消费，并同步进 startup brief surface；这意味着“下任务”不再只是口头描述，而是 study-owned durable truth。
+- `study-progress` 现已继续接住 `runtime_watch` 里的 figure-loop / 质量守卫告警，不再只显示 publication gate blocker。
 - `docs/program/med_deepscientist_deconstruction_map.md` 已冻结三类能力归属：迁入 `Hermes` substrate、暂留 backend、后续吸收/替换。
 - `managed_runtime_transport` 已作为 repo-side controller / guard / publication stop surface 的通用 authority 名称落盘；`med_deepscientist_transport` 仅继续保留兼容别名。
 - workspace onboarding 已把默认自动推进 wording 明确切到“上游 `Hermes-Agent` 目标 + repo-side managed runtime seam”，不再把 `med-deepscientist` 写成默认 outer runtime owner。
@@ -69,7 +72,7 @@
 - 对当前开发宿主，external runtime dependency gate 已通过，F2 real adapter 与至少一条 F3 real study recovery/progress proof 也都已成立；当前 honest next step 已转为 `F4 / blocker 收口`，而不是回去继续做 seam-only 包装。
 - 即便如此，当前仍不做 physical migration 或 cross-repo rewrite：研究执行依旧由 controlled `MedDeepScientist` backend 承担，其他宿主机与其他 workspace 仍可能因 external gate 或 human gate fail-closed。
 - 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。
-- `OPL -> Med Auto Science` handoff 与 lightweight product entry 目前只冻结到架构和合同语义；在 external gate 清除前，不得把它们写成已落地的独立产品前台。
+- `OPL -> Med Auto Science` handoff 与 lightweight product entry 目前仍不能写成已落地的独立产品前台；当前已落地的是 repo-tracked shell 与 handoff contract，不是完整 standalone UI。
 
 ## 下一阶段
 

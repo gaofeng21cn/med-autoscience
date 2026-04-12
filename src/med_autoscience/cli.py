@@ -60,6 +60,7 @@ medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_li
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
+product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
@@ -351,6 +352,33 @@ def build_parser() -> argparse.ArgumentParser:
     study_progress_parser.add_argument("--entry-mode", type=str)
     study_progress_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    workspace_cockpit_parser = subparsers.add_parser("workspace-cockpit")
+    workspace_cockpit_parser.add_argument("--profile", required=True)
+    workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
+    launch_study_parser = subparsers.add_parser("launch-study")
+    launch_study_parser.add_argument("--profile", required=True)
+    launch_study_parser.add_argument("--study-id", type=str)
+    launch_study_parser.add_argument("--study-root", type=str)
+    launch_study_parser.add_argument("--entry-mode", type=str)
+    launch_study_parser.add_argument("--allow-stopped-relaunch", action="store_true")
+    launch_study_parser.add_argument("--force", action="store_true")
+    launch_study_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
+    submit_study_task_parser = subparsers.add_parser("submit-study-task")
+    submit_study_task_parser.add_argument("--profile", required=True)
+    submit_study_task_parser.add_argument("--study-id", type=str)
+    submit_study_task_parser.add_argument("--study-root", type=str)
+    submit_study_task_parser.add_argument("--task-intent", required=True)
+    submit_study_task_parser.add_argument("--entry-mode", type=str)
+    submit_study_task_parser.add_argument("--journal-target", type=str)
+    submit_study_task_parser.add_argument("--constraint", action="append", default=[])
+    submit_study_task_parser.add_argument("--evidence-boundary", action="append", default=[])
+    submit_study_task_parser.add_argument("--trusted-input", action="append", default=[])
+    submit_study_task_parser.add_argument("--reference-paper", action="append", default=[])
+    submit_study_task_parser.add_argument("--first-cycle-output", action="append", default=[])
+    submit_study_task_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     bootstrap_parser = subparsers.add_parser("bootstrap")
     bootstrap_parser.add_argument("--profile", required=True)
 
@@ -490,6 +518,60 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(study_progress.render_study_progress_markdown(result), end="")
+        return 0
+
+    if args.command == "workspace-cockpit":
+        profile = load_profile(args.profile)
+        result = product_entry.read_workspace_cockpit(
+            profile=profile,
+            profile_ref=Path(args.profile),
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_workspace_cockpit_markdown(result), end="")
+        return 0
+
+    if args.command == "launch-study":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = product_entry.launch_study(
+            profile=profile,
+            profile_ref=Path(args.profile),
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            entry_mode=args.entry_mode,
+            allow_stopped_relaunch=bool(args.allow_stopped_relaunch),
+            force=bool(args.force),
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_launch_study_markdown(result), end="")
+        return 0
+
+    if args.command == "submit-study-task":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = product_entry.submit_study_task(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            task_intent=args.task_intent,
+            entry_mode=args.entry_mode,
+            journal_target=args.journal_target,
+            constraints=tuple(args.constraint or []),
+            evidence_boundary=tuple(args.evidence_boundary or []),
+            trusted_inputs=tuple(args.trusted_input or []),
+            reference_papers=tuple(args.reference_paper or []),
+            first_cycle_outputs=tuple(args.first_cycle_output or []),
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_submit_study_task_markdown(result), end="")
         return 0
 
     if args.command == "watch":

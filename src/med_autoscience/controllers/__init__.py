@@ -17,6 +17,7 @@ __all__ = [
     "publication_gate",
     "medical_publication_surface",
     "portfolio_memory",
+    "product_entry",
     "reference_papers",
     "runtime_reentry_gate",
     "runtime_watch",

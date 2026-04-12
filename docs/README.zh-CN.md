@@ -3,7 +3,7 @@
 [English](./README.md) | **中文**
 
 这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。对外文档必须提供中英双语镜像，内部技术与规划材料默认中文，除非明确提升到双语公开面。文档治理规则统一收口在 [`AGENTS.md`](../AGENTS.md)。
-当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。
+当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。仓内现在已经补上一层 repo-tracked 的轻量 `product-entry shell`，用来收口启动、下任务与进度可见性，但它还不是成熟的 direct user-facing 产品前台。
 
 ## 核心骨架
 

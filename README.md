@@ -96,6 +96,12 @@ That means:
 - `agent entry`: `CLI` plus `MCP`, called by `Codex` or another host-agent
 - `product entry`: not landed yet as a mature direct user-facing entry
 
+A new repo-tracked lightweight product-entry shell is now present, but it is still intentionally narrow:
+
+- `workspace-cockpit` for workspace-wide readiness, alerts, and study supervision
+- `submit-study-task` for writing a durable study task intake and syncing it into the startup brief surface
+- `launch-study` for start/resume plus immediate monitoring and progress links
+
 The target domain-facing shape is:
 
 `User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
@@ -117,6 +123,7 @@ That handoff should keep one shared minimum envelope:
 
 This is still a target architecture note, not a claim that the product entry has already landed.
 Because the external runtime gate is still open, the current truthful user path remains agent-operated rather than a mature standalone product entry.
+The new shell closes the practical usability gap for launch / task submission / progress visibility without over-claiming that a full standalone product frontend already exists.
 
 ### What `Hermes` Means Today
 
@@ -217,20 +224,27 @@ You can give your agent an instruction like this:
 
 ### How Users Start And Watch Progress Today
 
-For the current agent-operated path, four commands plus one optional host-service entry define the real user-facing loop:
+For the current agent-operated path, the real user-facing loop is now a lightweight product-entry shell over the existing controller surfaces:
 
-- Start or resume a managed study: `uv run python -m med_autoscience.cli ensure-study-runtime --profile <profile> --study-id <study_id>`
-- Inspect the full structured state and monitoring entry: `uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>`
-- Read the human-facing progress summary: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
+- Read the workspace-wide cockpit first: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>`
+- Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
+- Start or resume the managed study and get the monitoring entry back immediately: `uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
+- Read the human-facing progress summary at any time: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
 - Refresh the MAS supervisor heartbeat: `uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - Keep the MAS supervisor loop online as a user service: `ops/medautoscience/bin/install-watch-runtime-service`
+
+The lower-level compatibility surfaces remain available:
+
+- `ensure-study-runtime` for direct controller-driven runtime continuation
+- `study-runtime-status` for the full structured truth surface
+- `watch` for supervisor ticks and outer-loop reconciliation
 
 If a workspace was initialized from an older scaffold, re-run `init-workspace` once before installing the service. The controller now upgrades the service-critical managed entry scripts in place without requiring `--force`.
 
 When `study-runtime-status` reports `autonomous_runtime_notice.required = true` or `execution_owner_guard.supervisor_only = true`, the study is already in a live managed runtime. At that point the user-visible surface is:
 
 - `browser_url`, `quest_session_api_url`, and `active_run_id` as the monitoring entry
-- `study-progress` for the plain-language phase, blockers, and next action
+- `study-progress` for the plain-language phase, blockers, next action, and figure-loop / quality-guard alerts that are already known to `runtime_watch`
 - the host service behind `install-watch-runtime-service` keeping the supervisor heartbeat fresh, plus a supervisor-only foreground agent instead of direct writes into runtime-owned surfaces
 
 ## Documentation

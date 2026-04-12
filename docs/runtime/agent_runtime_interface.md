@@ -158,13 +158,20 @@
 
 ## 当前用户可见的启动与进度入口
 
-对当前 agent-operated 形态，用户真正会碰到的启动与监督入口是四个 CLI 加一个可选的 workspace service 入口：
+对当前 agent-operated 形态，用户真正会碰到的启动与监督入口已经先收成一层轻量 product-entry shell，再往下落到低层 controller 面：
 
-- 正式启动或续跑：`ensure-study-runtime --profile <profile> --study-id <study_id>`
-- 完整结构化真相：`study-runtime-status --profile <profile> --study-id <study_id>`
+- workspace cockpit：`workspace-cockpit --profile <profile>`
+- 写入 durable study task intake：`submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
+- 正式启动或续跑：`launch-study --profile <profile> --study-id <study_id>`
 - 人话进度投影：`study-progress --profile <profile> --study-id <study_id>`
 - MAS 外环监管心跳：`watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - MAS supervisor loop 常驻服务：`ops/medautoscience/bin/install-watch-runtime-service`
+
+低层兼容入口仍然保留：
+
+- `ensure-study-runtime`
+- `study-runtime-status`
+- `watch`
 
 如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。
 对于 legacy workspace，`init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中真实生效的 `MED_AUTOSCIENCE_PROFILE`；如果需要把 active profile 原位补齐到 Hermes-era contract，可显式传入 `--hermes-agent-repo-root` 与 `--hermes-home-root`，避免只在旁边生成一个不被当前 workspace 实际消费的 `.local.toml`。
@@ -174,7 +181,7 @@
 
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
-- `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前阻塞和下一步
+- `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
 - `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 - 如果 `study.yaml` 显式声明 `manual_finish` 且 `compatibility_guard_only = true`，`study-progress` 应把该 study 投影成 `manual_finishing`，表达“当前以人工收尾 + 兼容保护为主”，而不是继续误报成默认应自动续跑的活跃 runtime blocker
 

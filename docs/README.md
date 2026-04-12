@@ -5,7 +5,7 @@
 This bilingual index is the default public surface for `Med Auto Science`.
 Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
 Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
-The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate.
+The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, but it is not yet the same thing as a mature direct user-facing product.
 
 ## Core Skeleton
 

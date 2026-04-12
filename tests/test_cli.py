@@ -815,6 +815,171 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
     assert '"study_id": "001-risk"' in captured.out
 
 
+def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_read_workspace_cockpit(*, profile, profile_ref) -> dict:
+        called["profile"] = profile
+        called["profile_ref"] = profile_ref
+        return {"workspace_status": "ready", "workspace_alerts": [], "studies": []}
+
+    monkeypatch.setattr(cli.product_entry, "read_workspace_cockpit", fake_read_workspace_cockpit)
+
+    exit_code = cli.main(["workspace-cockpit", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == Path(profile_path)
+    assert json.loads(captured.out)["workspace_status"] == "ready"
+
+
+def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_launch(
+        *,
+        profile,
+        profile_ref,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+        allow_stopped_relaunch: bool,
+        force: bool,
+    ) -> dict:
+        called["profile"] = profile
+        called["profile_ref"] = profile_ref
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["entry_mode"] = entry_mode
+        called["allow_stopped_relaunch"] = allow_stopped_relaunch
+        called["force"] = force
+        return {
+            "study_id": study_id,
+            "runtime_status": {"decision": "resume"},
+            "progress": {"current_stage": "publication_supervision"},
+            "commands": {},
+        }
+
+    monkeypatch.setattr(cli.product_entry, "launch_study", fake_launch)
+
+    exit_code = cli.main(
+        [
+            "launch-study",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--entry-mode",
+            "full_research",
+            "--allow-stopped-relaunch",
+            "--force",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == Path(profile_path)
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["entry_mode"] == "full_research"
+    assert called["allow_stopped_relaunch"] is True
+    assert called["force"] is True
+    assert json.loads(captured.out)["runtime_status"]["decision"] == "resume"
+
+
+def test_submit_study_task_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_submit(
+        *,
+        profile,
+        study_id: str | None,
+        study_root: Path | None,
+        task_intent: str,
+        entry_mode: str | None,
+        journal_target: str | None,
+        constraints: tuple[str, ...],
+        evidence_boundary: tuple[str, ...],
+        trusted_inputs: tuple[str, ...],
+        reference_papers: tuple[str, ...],
+        first_cycle_outputs: tuple[str, ...],
+    ) -> dict:
+        called["profile"] = profile
+        called["study_id"] = study_id
+        called["study_root"] = study_root
+        called["task_intent"] = task_intent
+        called["entry_mode"] = entry_mode
+        called["journal_target"] = journal_target
+        called["constraints"] = constraints
+        called["evidence_boundary"] = evidence_boundary
+        called["trusted_inputs"] = trusted_inputs
+        called["reference_papers"] = reference_papers
+        called["first_cycle_outputs"] = first_cycle_outputs
+        return {
+            "study_id": study_id,
+            "task_intent": task_intent,
+            "artifacts": {"latest_json": "/tmp/latest.json", "latest_markdown": "/tmp/latest.md"},
+        }
+
+    monkeypatch.setattr(cli.product_entry, "submit_study_task", fake_submit)
+
+    exit_code = cli.main(
+        [
+            "submit-study-task",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+            "--task-intent",
+            "持续推进到投稿态",
+            "--entry-mode",
+            "full_research",
+            "--journal-target",
+            "JAMA",
+            "--constraint",
+            "中文汇报",
+            "--evidence-boundary",
+            "外部验证必须补齐",
+            "--trusted-input",
+            "study.yaml",
+            "--reference-paper",
+            "PMID:123456",
+            "--first-cycle-output",
+            "study-progress",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["study_id"] == "001-risk"
+    assert called["study_root"] is None
+    assert called["task_intent"] == "持续推进到投稿态"
+    assert called["entry_mode"] == "full_research"
+    assert called["journal_target"] == "JAMA"
+    assert called["constraints"] == ("中文汇报",)
+    assert called["evidence_boundary"] == ("外部验证必须补齐",)
+    assert called["trusted_inputs"] == ("study.yaml",)
+    assert called["reference_papers"] == ("PMID:123456",)
+    assert called["first_cycle_outputs"] == ("study-progress",)
+    assert json.loads(captured.out)["task_intent"] == "持续推进到投稿态"
+
+
 def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

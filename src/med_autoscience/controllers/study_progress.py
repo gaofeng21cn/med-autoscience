@@ -61,11 +61,29 @@ _REASON_LABELS = {
 _WATCH_BLOCKER_LABELS = {
     "missing_post_main_publishability_gate": "论文可发表性门控尚未放行。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
+    "claim_evidence_map_missing_or_incomplete": "关键 claim-to-evidence 对照仍不完整。",
+    "figure_loop_budget_exceeded": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
+    "figure_reopened_after_resolution": "已经收住的图表又被重新打开，当前 run 存在质量回退风险。",
+    "accepted_figure_reopened": "已接受的图表又被重新打开，当前 run 存在质量回退风险。",
+    "references_below_floor_during_figure_loop": "图表循环期间参考文献数量低于下限，当前稿件质量不达标。",
+    "reference_gaps_present": "关键参考文献仍有缺口。",
+    "missing_reporting_guideline_checklist": "报告规范核对表仍未补齐。",
+    "forbidden_manuscript_terms_present": "当前稿件仍含不允许的术语表达，需要清理。",
+    "figure_catalog_missing_or_incomplete": "关键图表目录仍不完整。",
+    "table_catalog_missing_or_incomplete": "关键表格目录仍不完整。",
+    "required_display_catalog_coverage_incomplete": "论文关键展示面覆盖仍不完整。",
+    "ama_pdf_defaults_missing": "AMA 稿件导出默认配置仍未补齐。",
+    "results_narrative_map_missing_or_incomplete": "结果叙事映射仍不完整。",
+    "methods_section_structure_missing_or_incomplete": "方法学章节结构仍不完整。",
+    "figure_semantics_manifest_missing_or_incomplete": "图表语义清单仍不完整。",
+    "derived_analysis_manifest_missing_or_incomplete": "衍生分析清单仍不完整。",
+    "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
 }
 _BLOCKER_LABELS = {
     "missing_submission_minimal": "缺少最小投稿包导出。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
     "forbidden_manuscript_terminology": "当前稿件仍含不允许的术语表达，需要清理。",
+    "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
 }
 _ACTION_LABELS = {
     "return_to_publishability_gate": "先补齐论文证据与叙事，再回到发表门控复核。",
@@ -731,11 +749,19 @@ def _current_blockers(
     for gap in (publication_eval_payload or {}).get("gaps") or []:
         if isinstance(gap, dict):
             _append_unique(blockers, _non_empty_text(gap.get("summary")))
-    controller_payload = ((runtime_watch_payload or {}).get("controllers") or {}).get("publication_gate")
-    if isinstance(controller_payload, dict):
-        for blocker in controller_payload.get("blockers") or []:
-            _append_unique(blockers, _watch_blocker_label(blocker))
-        _append_unique(blockers, _non_empty_text(controller_payload.get("controller_stage_note")))
+    controllers_payload = (runtime_watch_payload or {}).get("controllers") or {}
+    if isinstance(controllers_payload, dict):
+        for controller_payload in controllers_payload.values():
+            if not isinstance(controller_payload, dict):
+                continue
+            for blocker in controller_payload.get("blockers") or []:
+                _append_unique(blockers, _watch_blocker_label(blocker))
+            if _non_empty_text(controller_payload.get("status")) == "blocked":
+                _append_unique(
+                    blockers,
+                    _non_empty_text(controller_payload.get("controller_stage_note"))
+                    or _non_empty_text(controller_payload.get("controller_note")),
+                )
     _append_unique(blockers, _reason_label((runtime_escalation_payload or {}).get("reason")))
     return blockers
 
@@ -1165,7 +1191,13 @@ def read_study_progress(
 
 def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     latest_events = [dict(item) for item in (payload.get("latest_events") or []) if isinstance(item, dict)]
-    blockers = [(_blocker_label(item) or str(item)) for item in (payload.get("current_blockers") or []) if str(item).strip()]
+    blockers: list[str] = []
+    for item in payload.get("current_blockers") or []:
+        if not str(item).strip():
+            continue
+        label = _blocker_label(item) or str(item)
+        if label not in blockers:
+            blockers.append(label)
     continuation_state = dict(payload.get("continuation_state") or {})
     manual_finish_contract = (
         dict(payload.get("manual_finish_contract") or {})

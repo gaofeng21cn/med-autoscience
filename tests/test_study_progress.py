@@ -171,6 +171,22 @@ def _write_runtime_watch(quest_root: Path) -> Path:
                 "current_required_action": "return_to_publishability_gate",
                 "deferred_downstream_actions": ["submission_minimal"],
                 "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            },
+            "figure_loop_guard": {
+                "status": "blocked",
+                "action": "applied",
+                "blockers": [
+                    "figure_loop_budget_exceeded",
+                    "references_below_floor_during_figure_loop",
+                ],
+                "advisories": [],
+                "report_json": str(
+                    quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.json"
+                ),
+                "report_markdown": str(
+                    quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.md"
+                ),
+                "suppression_reason": None,
             }
         },
     }
@@ -1308,6 +1324,11 @@ def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_bloc
                 "missing_submission_minimal",
                 "medical_publication_surface_blocked",
                 "forbidden_manuscript_terminology",
+                "submission_checklist_contains_unclassified_blocking_items",
+                "submission checklist contains unclassified blocking items",
+                "claim evidence map missing or incomplete",
+                "figure catalog missing or incomplete",
+                "ama pdf defaults missing",
             ],
             "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
             "latest_events": [],
@@ -1328,3 +1349,57 @@ def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_bloc
     assert "论文可发表性" in markdown
     assert "最小投稿包" in markdown
     assert "术语" in markdown
+    assert "投稿检查清单里仍有未归类的硬阻塞。" in markdown
+    assert markdown.count("投稿检查清单里仍有未归类的硬阻塞。") == 1
+    assert "关键 claim-to-evidence 对照仍不完整。" in markdown
+    assert "关键图表目录仍不完整。" in markdown
+    assert "AMA 稿件导出默认配置仍未补齐。" in markdown
+
+
+def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_watch(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    quest_root.mkdir(parents=True, exist_ok=True)
+
+    _write_publication_eval(study_root, quest_root)
+    _write_controller_decision(study_root, quest_root)
+    _write_runtime_escalation(quest_root, study_root)
+    _write_runtime_watch(quest_root)
+
+    status_payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": str(study_root),
+        "entry_mode": "full_research",
+        "execution": {"quest_id": "quest-001", "auto_resume": True},
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_exists": True,
+        "quest_status": "running",
+        "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+        "runtime_binding_exists": True,
+        "study_completion_contract": {},
+        "decision": "resume",
+        "reason": "quest_marked_running_but_no_live_session",
+        "publication_supervisor_state": {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+        },
+        "supervisor_tick_audit": {
+            "required": True,
+            "status": "fresh",
+            "summary": "监管心跳新鲜。",
+        },
+    }
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **kwargs: status_payload)
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in result["current_blockers"]
+    assert "图表循环期间参考文献数量低于下限，当前稿件质量不达标。" in result["current_blockers"]

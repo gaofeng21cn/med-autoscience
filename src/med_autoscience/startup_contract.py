@@ -43,6 +43,7 @@ CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS: tuple[str, ...] = (
     "medical_reporting_contract_summary",
     "reporting_guideline_family",
     "submission_targets",
+    "task_intake_ref",
 )
 
 _RUNTIME_OWNED_STARTUP_CONTRACT_KEY_SET = frozenset(RUNTIME_OWNED_STARTUP_CONTRACT_KEYS)
