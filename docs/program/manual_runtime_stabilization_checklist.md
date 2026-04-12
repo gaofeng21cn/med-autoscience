@@ -24,6 +24,7 @@
 | 功能面 | 正式入口 / 命令 | 人工应核对的稳定信号 | repo-side 证据 / 落盘表面 | 当前阻断边界 |
 | --- | --- | --- | --- | --- |
 | workspace / profile 预检 | `doctor --profile <profile>` | profile、runtime contract、launcher contract、overlay readiness、blocking verdict 是否结构化输出 | `./external_runtime_dependency_gate.md`、`src/med_autoscience/doctor.py` | 通过 `doctor` 不等于 external runtime gate 已解除 |
+| external Hermes runtime 真证据预检 | `hermes-runtime-check --profile <profile>` 或 `hermes-runtime-check --hermes-agent-repo-root <repo_root> --hermes-home-root <home_root>` | external repo / launcher / `.venv` / `~/.hermes` state root / provider config / gateway service 是否结构化收口；当前缺的是 repo、provider 还是 gateway 必须可区分 | `./external_runtime_dependency_gate.md`、`src/med_autoscience/hermes_runtime_contract.py`、`src/med_autoscience/controllers/hermes_runtime_check.py` | repo-side 只能核对外部 Hermes 证据是否存在，不能替用户生成 provider 凭证或伪造 live gateway |
 | external runtime dependency gate 预检 | `med-deepscientist-upgrade-check --profile <profile> --refresh` | controlled fork、`MEDICAL_FORK_MANIFEST.json`、`behavior_equivalence_gate.yaml`、workspace contract 检查是否 fail-closed | `./external_runtime_dependency_gate.md`、`src/med_autoscience/controllers/med_deepscientist_upgrade_check.py` | external fork truth、workspace truth、human interaction 仍在仓外 |
 | managed study runtime 只读总表面 | `study-runtime-status --profile <profile> --study-id <study_id>` | `study_id` / `quest_id` / `active_run_id` 分离；`decision` / `reason`；`autonomous_runtime_notice`；`execution_owner_guard`；`publication_supervisor_state` | `study_runtime_status`；`studies/<study_id>/artifacts/runtime/last_launch_report.json` | `startup_boundary_gate`、`runtime_reentry_gate`、`waiting_for_user` 会 fail-closed |
 | managed study runtime 受控推进 | `ensure-study-runtime --profile <profile> --study-id <study_id>` | 只通过 controller action 进入 `create / resume / pause`；live managed runtime 时必须切 supervisor-only；不得旁路写 runtime-owned surface | `study_runtime_status`；`studies/<study_id>/artifacts/runtime/last_launch_report.json` | external runtime 未健康、human confirmation、startup boundary 未过时不得冒进 |
@@ -58,6 +59,8 @@
 当前这份清单对应的 repo-native regression surface 至少包括：
 
 - `tests/test_external_runtime_dependency_gate.py`
+- `tests/test_hermes_runtime_contract.py`
+- `tests/test_hermes_runtime_check.py`
 - `tests/test_runtime_contract_docs.py`
 - `tests/test_runtime_supervision_docs.py`
 - `tests/test_study_progress_docs.py`

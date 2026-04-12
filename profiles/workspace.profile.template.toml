@@ -18,6 +18,12 @@ med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepsci
 
 # 外部共享 med-deepscientist 源码仓库（仓库名 med-deepscientist），而不是 workspace 内再 clone 一份。
 med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"
+
+# 外部 Hermes-Agent 源码仓库；只用于 outer runtime substrate 审计与后续真实 adapter cutover。
+hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"
+
+# Hermes-Agent 的 state / config / gateway home，默认通常是 ~/.hermes。
+hermes_home_root = "~/.hermes"
 default_publication_profile = "general_medical_journal"
 default_citation_style = "AMA"
 enable_medical_overlay = true

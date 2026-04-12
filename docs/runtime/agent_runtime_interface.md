@@ -102,6 +102,7 @@
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](../program/merge_and_cutover_gates.md)
 - `Hermes` repo-side continuation：[`../program/hermes_backend_continuation_board.md`](../program/hermes_backend_continuation_board.md)
 - `Hermes` repo-side activation package：[`../program/hermes_backend_activation_package.md`](../program/hermes_backend_activation_package.md)
+- external `Hermes-Agent` runtime proof / readiness：先跑 `doctor`，再跑 `hermes-runtime-check`
 - `MedDeepScientist` 解构地图：[`../program/med_deepscientist_deconstruction_map.md`](../program/med_deepscientist_deconstruction_map.md)
 - external runtime blocker package：[`../program/external_runtime_dependency_gate.md`](../program/external_runtime_dependency_gate.md)
 - external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](../program/manual_runtime_stabilization_checklist.md)

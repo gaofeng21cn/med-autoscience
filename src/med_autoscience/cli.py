@@ -51,6 +51,7 @@ data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
 data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_asset_updates"))
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
+hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
@@ -364,6 +365,11 @@ def build_parser() -> argparse.ArgumentParser:
     med_deepscientist_upgrade_check_parser = subparsers.add_parser("med-deepscientist-upgrade-check")
     med_deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
     med_deepscientist_upgrade_check_parser.add_argument("--refresh", action="store_true")
+
+    hermes_runtime_check_parser = subparsers.add_parser("hermes-runtime-check")
+    hermes_runtime_check_parser.add_argument("--profile")
+    hermes_runtime_check_parser.add_argument("--hermes-agent-repo-root")
+    hermes_runtime_check_parser.add_argument("--hermes-home-root")
     return parser
 
 
@@ -419,6 +425,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "med-deepscientist-upgrade-check":
         profile = load_profile(args.profile)
         result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "hermes-runtime-check":
+        if not args.profile and not args.hermes_agent_repo_root:
+            parser.error("Specify at least one of --profile or --hermes-agent-repo-root")
+        profile = load_profile(args.profile) if args.profile else None
+        result = hermes_runtime_check.run_hermes_runtime_check(
+            profile=profile,
+            hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
+            hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

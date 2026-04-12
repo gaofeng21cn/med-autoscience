@@ -34,6 +34,8 @@ def write_profile(path: Path) -> None:
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
                 'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
                 'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
+                'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
+                'hermes_home_root = "~/.hermes"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -74,6 +76,7 @@ def test_doctor_command_reports_profile_and_paths(tmp_path: Path, capsys) -> Non
     assert exit_code == 0
     assert "profile: nfpitnet" in captured.out
     assert "workspace_root: /Users/gaofeng/workspace/Yang/无功能垂体瘤" in captured.out
+    assert "hermes_agent_repo_root: /Users/gaofeng/workspace/_external/hermes-agent" in captured.out
     assert "default_publication_profile: general_medical_journal" in captured.out
     assert "autofigure" not in captured.out.lower()
 
@@ -105,7 +108,37 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
         "mechanistic_sidecar_extension"
     ) in captured.out
     assert "medical_overlay_scope: workspace" in captured.out
+    assert "hermes_home_root: " in captured.out
     assert "autofigure" not in captured.out.lower()
+
+
+def test_hermes_runtime_check_command_prints_json(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    hermes_runtime_check = importlib.import_module("med_autoscience.controllers.hermes_runtime_check")
+
+    expected = {
+        "decision": "blocked_hermes_provider_not_configured",
+        "recommended_actions": ["configure_hermes_model_or_provider"],
+    }
+    monkeypatch.setattr(
+        hermes_runtime_check,
+        "run_hermes_runtime_check",
+        lambda **_: expected,
+    )
+
+    exit_code = cli.main(
+        [
+            "hermes-runtime-check",
+            "--hermes-agent-repo-root",
+            str(tmp_path / "hermes-agent"),
+            "--hermes-home-root",
+            str(tmp_path / ".hermes"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(captured.out) == expected
 
 def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, capsys) -> None:
     profile_path = tmp_path / "nfpitnet.local.toml"

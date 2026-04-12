@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import tomllib
 
@@ -51,6 +51,8 @@ class WorkspaceProfile:
     research_route_bias_policy: str
     preferred_study_archetypes: tuple[str, ...]
     default_submission_targets: tuple[dict[str, object], ...]
+    hermes_agent_repo_root: Path | None = None
+    hermes_home_root: Path = field(default_factory=lambda: (Path.home() / ".hermes").resolve())
     managed_runtime_backend_id: str = DEFAULT_MANAGED_RUNTIME_BACKEND_ID
     medical_overlay_bootstrap_mode: str = "ensure_ready"
     default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
@@ -219,6 +221,8 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     payload = tomllib.loads(profile_path.read_text(encoding="utf-8"))
     profile_dir = profile_path.parent
     med_deepscientist_repo_root = _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
+    hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
+    hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
     return WorkspaceProfile(
         name=_require_string(payload, "name"),
         workspace_root=_resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir),
@@ -230,6 +234,8 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             profile_dir=profile_dir,
         ),
         med_deepscientist_repo_root=med_deepscientist_repo_root,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+        hermes_home_root=hermes_home_root or (Path.home() / ".hermes").resolve(),
         managed_runtime_backend_id=_optional_managed_runtime_backend_id(payload),
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
@@ -269,6 +275,8 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "portfolio_root": str(profile.portfolio_root),
         "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
         "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
+        "hermes_home_root": str(profile.hermes_home_root),
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,
         "publication": {
             "default_publication_profile": profile.default_publication_profile,

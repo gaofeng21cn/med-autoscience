@@ -100,6 +100,13 @@
 - 哪些 blocker 仍然需要外部 workspace / human gate
 - 哪些才是下一轮 backend deconstruction board 的正式输入
 
+## 当前落点（2026-04-12）
+
+- F1 的 repo-side 证据面已落成可验证 contract：`hermes-runtime-check`、`inspect_hermes_runtime_contract(...)`、`doctor.external_runtime_contract`
+- 对真实外部环境执行检查后，已确认 external Hermes repo、launcher、managed `.venv`、`~/.hermes/state.db`、logs/sessions root 均存在
+- 当前 honest blocker 已缩窄为两项外部环境真问题：provider/model 未配置、gateway service 未加载
+- 因此下一棒不能诚实进入 F2 real adapter cutover，除非先由外部环境把这两个 blocker 清掉；repo-side 不应伪装成“已经完成 Hermes 接管”
+
 ## 默认验证
 
 - `scripts/verify.sh meta`

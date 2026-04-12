@@ -141,6 +141,8 @@ def _render_workspace_profile(
         f'portfolio_root = "{workspace_root / "portfolio"}"\n'
         f'med_deepscientist_runtime_root = "{layout.runtime_root}"\n'
         'med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"\n'
+        'hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"\n'
+        'hermes_home_root = "~/.hermes"\n'
         f'default_publication_profile = "{default_publication_profile}"\n'
         f'default_citation_style = "{default_citation_style}"\n'
         "enable_medical_overlay = true\n"

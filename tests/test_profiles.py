@@ -12,6 +12,8 @@ PROFILE_LINES = [
     'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
     'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
     'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
+    'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
+    'hermes_home_root = "~/.hermes"',
     'default_publication_profile = "general_medical_journal"',
     'default_citation_style = "AMA"',
     "enable_medical_overlay = true",
@@ -55,6 +57,8 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.name == "nfpitnet"
     assert profile.workspace_root == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
+    assert profile.hermes_agent_repo_root == Path("/Users/gaofeng/workspace/_external/hermes-agent")
+    assert profile.hermes_home_root == Path.home() / ".hermes"
     assert profile.managed_runtime_backend_id == "hermes"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
@@ -103,6 +107,8 @@ def test_load_profile_uses_default_medical_overlay_settings_when_missing(tmp_pat
     profile = profiles.load_profile(profile_path)
 
     assert profile.med_deepscientist_repo_root is None
+    assert profile.hermes_agent_repo_root is None
+    assert profile.hermes_home_root == Path.home() / ".hermes"
     assert profile.managed_runtime_backend_id == "hermes"
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "global"
@@ -161,6 +167,8 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["portfolio_root"] == str(profile.portfolio_root)
     assert contract["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
     assert contract["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
+    assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
+    assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
 
     publication = contract["publication"]
@@ -200,6 +208,8 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
                 'portfolio_root = "../workspace/portfolio"',
                 'med_deepscientist_runtime_root = "../workspace/ops/med-deepscientist/runtime"',
                 'med_deepscientist_repo_root = "../../med-deepscientist"',
+                'hermes_agent_repo_root = "../../_external/hermes-agent"',
+                'hermes_home_root = "../../.hermes-home"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -215,6 +225,8 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     assert profile.runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime/quests").resolve()
     assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime").resolve()
     assert profile.med_deepscientist_repo_root == (profile_dir / "../../med-deepscientist").resolve()
+    assert profile.hermes_agent_repo_root == (profile_dir / "../../_external/hermes-agent").resolve()
+    assert profile.hermes_home_root == (profile_dir / "../../.hermes-home").resolve()
 
 
 def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:

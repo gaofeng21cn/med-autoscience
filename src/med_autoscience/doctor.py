@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import json
 import platform
 
+from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
 from med_autoscience.workspace_contracts import inspect_workspace_contracts
@@ -23,6 +24,7 @@ class DoctorReport:
     runtime_contract: dict[str, object] = field(default_factory=dict)
     launcher_contract: dict[str, object] = field(default_factory=dict)
     behavior_gate: dict[str, object] = field(default_factory=dict)
+    external_runtime_contract: dict[str, object] = field(default_factory=dict)
 
 
 def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]:
@@ -60,6 +62,15 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
         runtime_contract=dict(workspace_contracts["runtime_contract"]),
         launcher_contract=dict(workspace_contracts["launcher_contract"]),
         behavior_gate=dict(workspace_contracts["behavior_gate"]),
+        external_runtime_contract=dict(
+            workspace_contracts.get(
+                "external_runtime_contract",
+                inspect_hermes_runtime_contract(
+                    hermes_agent_repo_root=profile.hermes_agent_repo_root,
+                    hermes_home_root=profile.hermes_home_root,
+                ),
+            )
+        ),
     )
 
 
@@ -73,6 +84,8 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"portfolio_root: {report.profile.portfolio_root}",
         f"med_deepscientist_runtime_root: {report.profile.med_deepscientist_runtime_root}",
         f"med_deepscientist_repo_root: {report.profile.med_deepscientist_repo_root or '<unset>'}",
+        f"hermes_agent_repo_root: {report.profile.hermes_agent_repo_root or '<unset>'}",
+        f"hermes_home_root: {report.profile.hermes_home_root}",
         f"default_publication_profile: {report.profile.default_publication_profile}",
         f"default_citation_style: {report.profile.default_citation_style}",
         (
@@ -99,6 +112,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"runtime_contract: {json.dumps(report.runtime_contract, ensure_ascii=False, sort_keys=True)}",
         f"launcher_contract: {json.dumps(report.launcher_contract, ensure_ascii=False, sort_keys=True)}",
         f"behavior_gate: {json.dumps(report.behavior_gate, ensure_ascii=False, sort_keys=True)}",
+        f"external_runtime_contract: {json.dumps(report.external_runtime_contract, ensure_ascii=False, sort_keys=True)}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -112,6 +126,8 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"portfolio_root: {profile.portfolio_root}",
         f"med_deepscientist_runtime_root: {profile.med_deepscientist_runtime_root}",
         f"med_deepscientist_repo_root: {profile.med_deepscientist_repo_root or '<unset>'}",
+        f"hermes_agent_repo_root: {profile.hermes_agent_repo_root or '<unset>'}",
+        f"hermes_home_root: {profile.hermes_home_root}",
         f"default_publication_profile: {profile.default_publication_profile}",
         f"default_citation_style: {profile.default_citation_style}",
         (

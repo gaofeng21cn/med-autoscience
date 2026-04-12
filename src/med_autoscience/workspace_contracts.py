@@ -5,6 +5,7 @@ from typing import Any
 
 import yaml
 
+from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
@@ -187,9 +188,14 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     }
 
     behavior_gate = inspect_behavior_equivalence_gate(layout.behavior_gate_path)
+    external_runtime_contract = inspect_hermes_runtime_contract(
+        hermes_agent_repo_root=profile.hermes_agent_repo_root,
+        hermes_home_root=profile.hermes_home_root,
+    )
     return {
         "runtime_contract": runtime_contract,
         "launcher_contract": launcher_contract,
         "behavior_gate": behavior_gate,
+        "external_runtime_contract": external_runtime_contract,
         "overall_ready": bool(runtime_contract["ready"] and launcher_contract["ready"] and behavior_gate["ready"]),
     }

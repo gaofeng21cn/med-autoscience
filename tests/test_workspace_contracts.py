@@ -146,6 +146,7 @@ def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> No
     assert "runtime_contract: " in rendered
     assert "launcher_contract: " in rendered
     assert "behavior_gate: " in rendered
+    assert "external_runtime_contract: " in rendered
 
 
 def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> None:
