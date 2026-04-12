@@ -40,7 +40,7 @@
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
 - 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
 - 保持上游 `Hermes-Agent` 作为目标 outer substrate owner 这条路线诚实成立，同时保留 external runtime repo / workspace / daemon truth 仍未进入本仓这一 blocker。
-- `2026-04-12` 对真实外部环境运行 `hermes-runtime-check` 后已确认：`/Users/gaofeng/workspace/_external/hermes-agent` 与 `~/.hermes/state.db` 存在，当前真实 blocker 已缩窄为 provider/model 未配置、gateway service 未加载，而不是 external repo 不存在。
+- `2026-04-12` 对真实外部环境运行 `doctor` 与 `hermes-runtime-check` 后已确认：`/Users/gaofeng/workspace/_external/hermes-agent`、其 `.venv` / launcher、以及 `~/.hermes/state.db` 均已存在，provider 凭证也已就绪；当前真实 blocker 已缩窄为 gateway 尚未进入标准 service 托管态，而不是 external repo 不存在或 provider/model 未配置。
 - 如果宿主机尚无 external `Hermes-Agent` runtime，本仓当前仍只有 repo-side seam：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 `Hermes-Agent` host 已脱离 `MedDeepScientist` 完整接管执行”。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
