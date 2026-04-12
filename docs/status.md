@@ -44,6 +44,6 @@
 
 ## 下一阶段
 
-1. 在 repo-side 继续推进 future outer-runtime seam、backend-generic durable surface 与 cutover evidence 收口。
+1. 按 `docs/program/upstream_hermes_agent_fast_cutover_board.md` 在 repo-side 继续推进真实 external `Hermes-Agent` 接入、future outer-runtime seam -> real adapter 切换、以及 backend-generic durable surface 与 cutover evidence 收口。
 2. 保持 display 线与 runtime 主线严格分离，避免资产化支线反向污染主线 truth。
 3. external gate 未清除前，只做 consumer-only convergence，不提前宣称 runtime owner 已切换完成。
