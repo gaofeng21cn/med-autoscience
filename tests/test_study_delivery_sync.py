@@ -258,6 +258,47 @@ def test_describe_submission_delivery_flags_stale_when_authority_source_disappea
     assert result["missing_source_paths"] != []
 
 
+def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    shutil.rmtree(paper_root / "submission_minimal")
+    write_text(paper_root / "submission_minimal" / "README.md", "# Placeholder\n")
+    write_text(paper_root / "submission_minimal" / "journal_declarations.md", "# Placeholder\n")
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+    stale_sync = module.materialize_submission_delivery_stale_notice(
+        paper_root=paper_root,
+        stale_reason=str(result["stale_reason"]),
+        missing_source_paths=list(result["missing_source_paths"]),
+    )
+
+    manuscript_root = study_root / "manuscript"
+    submission_package_root = manuscript_root / "submission_package"
+    status_path = manuscript_root / "delivery_status.json"
+
+    assert stale_sync["status"] == "stale_source_missing"
+    assert stale_sync["submission_package_root"] == str(submission_package_root)
+    assert not (manuscript_root / "manuscript.docx").exists()
+    assert not (manuscript_root / "paper.pdf").exists()
+    assert not (manuscript_root / "submission_manifest.json").exists()
+    assert not (manuscript_root / "submission_package.zip").exists()
+    assert (submission_package_root / "README.md").exists()
+    assert "current submission package mirror is unavailable" in (
+        submission_package_root / "README.md"
+    ).read_text(encoding="utf-8")
+    status_payload = json.loads(status_path.read_text(encoding="utf-8"))
+    assert status_payload["status"] == "stale_source_missing"
+    assert status_payload["stale_reason"] == "current_submission_source_missing"
+    assert status_payload["active_delivery_manifest_path"] == str(manuscript_root / "delivery_manifest.json")
+    assert status_payload["missing_source_paths"] != []
+
+
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     quest_paper_root, study_root = make_delivery_workspace(tmp_path)

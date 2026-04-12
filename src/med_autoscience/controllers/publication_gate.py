@@ -137,15 +137,22 @@ def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -
 def resolve_paper_root(
     *,
     main_result: dict[str, Any] | None,
+    paper_line_state: dict[str, Any] | None,
     paper_bundle_manifest_path: Path | None,
 ) -> Path | None:
+    worktree_root_value = str((main_result or {}).get("worktree_root") or "").strip()
+    if worktree_root_value:
+        candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
+        if candidate.exists():
+            return candidate
+    paper_line_root_value = str((paper_line_state or {}).get("paper_root") or "").strip()
+    if paper_line_root_value:
+        candidate = Path(paper_line_root_value).expanduser().resolve()
+        if candidate.exists():
+            return candidate
     if paper_bundle_manifest_path is not None:
         return paper_bundle_manifest_path.parent.resolve()
-    worktree_root_value = str((main_result or {}).get("worktree_root") or "").strip()
-    if not worktree_root_value:
-        return None
-    candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
-    return candidate if candidate.exists() else None
+    return None
 
 
 def collect_manuscript_surface_paths(paper_root: Path | None) -> list[Path]:
@@ -298,7 +305,11 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
     )
-    paper_root = resolve_paper_root(main_result=main_result, paper_bundle_manifest_path=paper_bundle_manifest_path)
+    paper_root = resolve_paper_root(
+        main_result=main_result,
+        paper_line_state=paper_line_state,
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+    )
     compile_report_path = resolve_compile_report_path(
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
@@ -836,6 +847,7 @@ def run_controller(
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
     draft_handoff_delivery_sync = None
+    study_delivery_stale_sync = None
     if (
         apply
         and report.get("draft_handoff_delivery_required") is True
@@ -846,6 +858,19 @@ def run_controller(
         draft_handoff_delivery_sync = study_delivery_sync.sync_study_delivery(
             paper_root=state.paper_root,
             stage="draft_handoff",
+        )
+        state = build_gate_state(quest_root)
+        report = build_gate_report(state)
+    if (
+        apply
+        and str(report.get("study_delivery_status") or "").strip().startswith("stale")
+        and state.paper_root is not None
+        and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
+    ):
+        study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
+            paper_root=state.paper_root,
+            stale_reason=str(report.get("study_delivery_stale_reason") or "current_submission_source_missing"),
+            missing_source_paths=list(report.get("study_delivery_missing_source_paths") or []),
         )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
@@ -870,6 +895,7 @@ def run_controller(
         "draft_handoff_delivery_status": report["draft_handoff_delivery_status"],
         "draft_handoff_delivery_manifest_path": report["draft_handoff_delivery_manifest_path"],
         "draft_handoff_delivery_sync": draft_handoff_delivery_sync,
+        "study_delivery_stale_sync": study_delivery_stale_sync,
         "intervention_enqueued": bool(intervention),
         "message_id": intervention.get("message_id") if intervention else None,
         "source": source,

@@ -187,6 +187,31 @@ def build_general_delivery_readme(*, study_id: str, stage: str) -> str:
     )
 
 
+def _submission_delivery_stale_reason_label(stale_reason: str | None) -> str:
+    normalized = str(stale_reason or "").strip()
+    if normalized == "current_submission_source_missing":
+        return "the current authority submission package has not been materialized"
+    if normalized == "delivery_manifest_sources_missing":
+        return "the recorded mirror still references sources that no longer exist"
+    if normalized == "delivery_manifest_source_mismatch":
+        return "the recorded mirror points at a different authority package root"
+    return normalized or "the current authority submission package is unavailable"
+
+
+def build_unavailable_general_delivery_readme(*, study_id: str, stale_reason: str | None) -> str:
+    return (
+        "# Study Final Delivery Unavailable\n\n"
+        f"- Study: `{study_id}`\n"
+        "- Status: current submission package mirror is unavailable\n"
+        f"- Reason: {_submission_delivery_stale_reason_label(stale_reason)}\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- Expected package root inside the authority surface: `paper/submission_minimal/`\n"
+        "- Human-facing delivery root: `manuscript/`\n\n"
+        "This directory was cleared because the previous study-level mirror became stale. "
+        "Wait for a fresh submission-minimal export before treating anything under `manuscript/` as the current package.\n"
+    )
+
+
 def build_manuscript_root_readme() -> str:
     return (
         "# Manuscript Delivery Surface\n\n"
@@ -218,6 +243,19 @@ def build_artifacts_finalize_readme(*, study_id: str, stage: str) -> str:
         "- Expected contents: finalize/manuscript build evidence such as `paper_bundle_manifest.json` and `compile_report.json`.\n"
         "- Figures/tables remain in `manuscript/submission_package/` for handoff, and in `paper/` as authority.\n\n"
         "Use this directory only for machine-generated finalization evidence only, not for human-facing display lookup.\n"
+    )
+
+
+def build_unavailable_submission_package_readme(*, study_id: str, stale_reason: str | None) -> str:
+    return (
+        "# Submission Package Unavailable\n\n"
+        f"- Study: `{study_id}`\n"
+        "- Status: current submission package mirror is unavailable\n"
+        f"- Reason: {_submission_delivery_stale_reason_label(stale_reason)}\n"
+        "- Canonical authority surface: `paper/submission_minimal/`\n"
+        "- This directory no longer represents a current handoff-ready package.\n\n"
+        "The previous mirror was cleared because the active authority package disappeared or no longer matches. "
+        "Wait for a fresh submission-minimal export before using this path for review or handoff.\n"
     )
 
 
@@ -592,6 +630,97 @@ def describe_submission_delivery(
         "delivery_manifest_path": str(delivery_manifest_path),
         "submission_package_root": str(submission_package_root),
         "missing_source_paths": missing_source_paths,
+    }
+
+
+def materialize_submission_delivery_stale_notice(
+    *,
+    paper_root: Path,
+    stale_reason: str,
+    missing_source_paths: list[str] | None = None,
+    publication_profile: str = "general_medical_journal",
+) -> dict[str, Any]:
+    if not can_sync_study_delivery(paper_root=paper_root):
+        return {
+            "applicable": False,
+            "status": "not_applicable",
+            "stale_reason": None,
+            "submission_package_root": None,
+            "delivery_status_path": None,
+            "missing_source_paths": [],
+            "cleared_paths": [],
+        }
+
+    context = _resolve_delivery_context(Path(paper_root).expanduser().resolve())
+    resolved_paper_root = context["paper_root"]
+    study_root = context["study_root"]
+    study_id = context["study_id"]
+    manuscript_root = study_root / "manuscript"
+    normalized_publication_profile = normalize_publication_profile(publication_profile)
+    submission_package_root = (
+        manuscript_root / "submission_package"
+        if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
+        else manuscript_root / "journal_packages" / normalized_publication_profile
+    )
+    submission_package_zip = (
+        manuscript_root / "submission_package.zip"
+        if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
+        else manuscript_root / f"{normalized_publication_profile}_submission_package.zip"
+    )
+    delivery_manifest_path = manuscript_root / "delivery_manifest.json"
+    delivery_status_path = manuscript_root / "delivery_status.json"
+    cleared_paths: list[str] = []
+
+    for mirrored_file in (
+        manuscript_root / "manuscript.docx",
+        manuscript_root / "paper.pdf",
+        manuscript_root / "submission_manifest.json",
+        submission_package_zip,
+    ):
+        if mirrored_file.exists():
+            mirrored_file.unlink()
+            cleared_paths.append(str(mirrored_file.resolve()))
+    if submission_package_root.exists():
+        remove_directory(submission_package_root)
+        cleared_paths.append(str(submission_package_root.resolve()))
+
+    manuscript_root.mkdir(parents=True, exist_ok=True)
+    reset_directory(submission_package_root)
+    write_text(
+        manuscript_root / "README.md",
+        build_unavailable_general_delivery_readme(study_id=study_id, stale_reason=stale_reason),
+    )
+    write_text(
+        submission_package_root / "README.md",
+        build_unavailable_submission_package_readme(study_id=study_id, stale_reason=stale_reason),
+    )
+    status_payload = {
+        "schema_version": 1,
+        "generated_at": utc_now(),
+        "study_id": study_id,
+        "publication_profile": normalized_publication_profile,
+        "status": "stale_source_missing",
+        "stale_reason": stale_reason,
+        "source": {
+            "paper_root": str(resolved_paper_root),
+            "expected_package_source_root": str(
+                build_submission_source_root(
+                    paper_root=resolved_paper_root,
+                    publication_profile=normalized_publication_profile,
+                )
+            ),
+        },
+        "active_delivery_manifest_path": str(delivery_manifest_path) if delivery_manifest_path.exists() else None,
+        "submission_package_root": str(submission_package_root),
+        "submission_package_zip": str(submission_package_zip),
+        "missing_source_paths": list(missing_source_paths or []),
+        "cleared_paths": cleared_paths,
+    }
+    dump_json(delivery_status_path, status_payload)
+    return {
+        "applicable": True,
+        **status_payload,
+        "delivery_status_path": str(delivery_status_path),
     }
 
 

@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+import shutil
 
 
 def dump_json(path: Path, payload: dict) -> None:
@@ -466,6 +467,54 @@ def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_mi
     assert report["current_required_action"] == "complete_bundle_stage"
 
 
+def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_manifest_is_projected(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(worktree_paper_root / "paper_bundle_manifest.json", projected_paper_root / "paper_bundle_manifest.json")
+    projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
+    projected_stat = projected_manifest.stat()
+    os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.paper_root == worktree_paper_root.resolve()
+
+
+def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_exists(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+    )
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(worktree_paper_root / "paper_bundle_manifest.json", projected_paper_root / "paper_bundle_manifest.json")
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(worktree_paper_root.resolve()),
+            "paper_branch": "paper/main",
+        },
+    )
+    projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
+    projected_stat = projected_manifest.stat()
+    os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.paper_root == worktree_paper_root.resolve()
+
+
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
     tmp_path: Path,
     monkeypatch,
@@ -582,6 +631,65 @@ def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metri
     assert result["intervention_enqueued"] is True
     assert len(queue["pending"]) == 1
     assert "missing_submission_minimal" in queue["pending"][0]["content"]
+
+
+def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enabled(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    calls: list[dict[str, object]] = []
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "draft_bundle_root": None,
+            "draft_bundle_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": True,
+            "status": "stale_source_missing",
+            "stale_reason": "current_submission_source_missing",
+            "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "missing_source_paths": [
+                "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "materialize_submission_delivery_stale_notice",
+        lambda **kwargs: calls.append(kwargs)
+        or {
+            "status": "stale_source_missing",
+            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+        },
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert len(calls) == 1
+    assert calls[0]["stale_reason"] == "current_submission_source_missing"
+    assert calls[0]["missing_source_paths"] == [
+        "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
+    ]
+    assert result["study_delivery_stale_sync"]["status"] == "stale_source_missing"
 
 
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
