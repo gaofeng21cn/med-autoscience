@@ -32,25 +32,25 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 5 / integration / merge-back / monitor`
+- Phase：`Phase 4 / next-cluster scouting and demand routing`
 - Family cluster：`F`
-- Capability cluster：`shap_grouped_local_explanation_panel`
-- Owner worktree：当前专用 display worktree
-- 状态：`merge_back_ready`
+- Capability cluster：`richer_partial_dependence_variants`
+- Owner worktree：`none`
+- 状态：`owner_brief_pending`
 
 ### 本轮核心问题
 
 本轮要回答的是：
 
-> 如何把 manuscript-facing 的 grouped local explanation comparison 稳定表达成多 panel、共享 feature 顺序、zero-centered signed contribution lane、可审计、可复用的 bounded contract，并把 group identity、prediction-value conservation、cross-panel feature-order governance、panel-label anchoring 与 bar/label row-alignment 一起固化进正式模板路径。
+> 在 `shap_grouped_local_explanation_panel` 已正式吸收进主线之后，下一步到底应该把哪一个更高价值但仍然 bounded 的 `F` 家族 follow-on 先推进成正式模板，并且如何在开工前先收口 owner brief，避免重新滑回自由拼装 explanation scene。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `bounded multi-panel SHAP grouped local explanation comparison`
-2. `strict panel-id / group-identity / signed-contribution / shared-feature-order contract`
-3. `zero-centered contribution geometry + panel-label / feature-label / value-label QC governance`
+1. `next F-cluster demand routing from real-paper / exemplar pressure`
+2. `minimal owner brief for richer partial-dependence variants beyond the bounded baseline`
+3. `write-set / verification-slice / stop-condition lock before opening the next owner worktree`
 
 本轮明确不做：
 
@@ -75,31 +75,29 @@
 
 ## 最低退出条件
 
-只有同时满足下面条件，当前 round 才能算 merge-back ready：
+只有同时满足下面条件，当前 scouting round 才能进入下一个 owner implementation round：
 
-1. 新的 bounded template contract 已端到端落地。
-2. deterministic QC 已能拦住本 cluster 已知的 lower-bound failure。
-3. 新模板已完成 registry / catalog / pack 对齐。
-4. focused regression 通过。
-5. publication-facing display contract 仍然一致。
-6. owner worktree clean，结果可吸收回 `main`。
+1. 下一候选 capability cluster 已固定。
+2. owner brief 已明确最小写集、最小验证面与不做事项。
+3. 已确认当前没有别的 active display owner worktree 与其写集冲突。
+4. 当前 round 不再依赖项目本地 `.omx/`、`.codex/` 状态。
 
 ## 最低验证要求
 
-每一轮 active round 至少要留下：
+每一轮 scouting / routing 至少要留下：
 
-- 新 capability 的 targeted template/runtime tests；
-- 对应 family cluster 的 relevant golden regression；
-- `scripts/verify.sh` 或经说明的更窄 display verification slice；
-- 提交信息或定向文档中的简短 merge-back 说明。
+- 下一候选的 paper question 与 exemplar 理由；
+- 最小实现边界；
+- 计划中的 targeted tests / golden regression slice；
+- 允许开新 owner worktree 的明确条件。
 
 ## 当前轮次结束后的候选
 
-只有在 `shap_grouped_local_explanation_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
+当前轮次结束后，下一批候选按下面顺序继续：
 
-1. `F / richer partial-dependence variants beyond the bounded baseline`
-2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
-3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
+1. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
+2. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
+3. `F / richer grouped-local-explanation variants beyond the first audited baseline`
 
 ## 明确不是执行面
 
