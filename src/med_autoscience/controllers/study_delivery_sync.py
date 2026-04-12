@@ -212,6 +212,20 @@ def build_unavailable_general_delivery_readme(*, study_id: str, stale_reason: st
     )
 
 
+def build_preview_general_delivery_readme(*, study_id: str, stale_reason: str | None) -> str:
+    return (
+        "# Study Delivery Audit Preview\n\n"
+        f"- Study: `{study_id}`\n"
+        "- Status: audit preview only; not submission-ready\n"
+        f"- Reason formal delivery is blocked: {_submission_delivery_stale_reason_label(stale_reason)}\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- Expected package root inside the authority surface: `paper/submission_minimal/`\n"
+        "- Human-facing review root: `manuscript/`\n\n"
+        "This directory now exposes the latest auditable manuscript-facing materials that are still available from the authority surface. "
+        "Treat it as a user review package only, not as a handoff-ready submission package.\n"
+    )
+
+
 def build_manuscript_root_readme() -> str:
     return (
         "# Manuscript Delivery Surface\n\n"
@@ -256,6 +270,18 @@ def build_unavailable_submission_package_readme(*, study_id: str, stale_reason: 
         "- This directory no longer represents a current handoff-ready package.\n\n"
         "The previous mirror was cleared because the active authority package disappeared or no longer matches. "
         "Wait for a fresh submission-minimal export before using this path for review or handoff.\n"
+    )
+
+
+def build_submission_package_audit_preview_readme(*, study_id: str, stale_reason: str | None) -> str:
+    return (
+        "# Submission Package Audit Preview\n\n"
+        f"- Study: `{study_id}`\n"
+        "- Status: audit preview only; not submission-ready\n"
+        f"- Reason formal delivery is blocked: {_submission_delivery_stale_reason_label(stale_reason)}\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- This package mirrors the latest still-available manuscript, figure, table, and audit materials for human review.\n"
+        "- Do not treat this directory as the formal submission handoff until a fresh `submission_minimal` export is materialized.\n"
     )
 
 
@@ -350,6 +376,50 @@ def _copy_relative_files(
             category=category,
             copied_files=copied_files,
         )
+
+
+def _copy_optional_file(
+    *,
+    source: Path,
+    target: Path,
+    category: str,
+    copied_files: list[dict[str, str]],
+) -> bool:
+    if not source.exists():
+        return False
+    copy_file(
+        source=source,
+        target=target,
+        category=category,
+        copied_files=copied_files,
+    )
+    return True
+
+
+def _copy_optional_tree(
+    *,
+    source_root: Path,
+    target_root: Path,
+    category: str,
+    copied_files: list[dict[str, str]],
+    ignore_suffixes: tuple[str, ...] = (),
+    ignore_filenames: tuple[str, ...] = (),
+) -> int:
+    if not source_root.exists():
+        return 0
+    relative_paths = _iter_relative_files(
+        source_root,
+        ignore_suffixes=ignore_suffixes,
+        ignore_filenames=ignore_filenames,
+    )
+    for relative_path in relative_paths:
+        copy_file(
+            source=source_root / relative_path,
+            target=target_root / relative_path,
+            category=category,
+            copied_files=copied_files,
+        )
+    return len(relative_paths)
 
 
 def _iter_relative_files(
@@ -669,7 +739,10 @@ def materialize_submission_delivery_stale_notice(
     )
     delivery_manifest_path = manuscript_root / "delivery_manifest.json"
     delivery_status_path = manuscript_root / "delivery_status.json"
+    audit_status_path = submission_package_root / "audit_status.json"
     cleared_paths: list[str] = []
+    copied_files: list[dict[str, str]] = []
+    generated_files: list[dict[str, str]] = []
 
     for mirrored_file in (
         manuscript_root / "manuscript.docx",
@@ -684,15 +757,109 @@ def materialize_submission_delivery_stale_notice(
         remove_directory(submission_package_root)
         cleared_paths.append(str(submission_package_root.resolve()))
 
+    expected_source_root = build_submission_source_root(
+        paper_root=resolved_paper_root,
+        publication_profile=normalized_publication_profile,
+    )
     manuscript_root.mkdir(parents=True, exist_ok=True)
     reset_directory(submission_package_root)
+    preview_file_count = 0
+    for name in ("manuscript.docx", "paper.pdf", "submission_manifest.json"):
+        if _copy_optional_file(
+            source=expected_source_root / name,
+            target=manuscript_root / name,
+            category="preview_delivery_root",
+            copied_files=copied_files,
+        ):
+            preview_file_count += 1
+            copy_file(
+                source=manuscript_root / name,
+                target=submission_package_root / name,
+                category="preview_submission_package",
+                copied_files=copied_files,
+            )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "build" / "review_manuscript.md",
+            target=submission_package_root / "review_manuscript.md",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "build" / "compile_report.json",
+            target=submission_package_root / "compile_report.json",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "review" / "submission_checklist.json",
+            target=submission_package_root / "submission_checklist.json",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "paper_bundle_manifest.json",
+            target=submission_package_root / "paper_bundle_manifest.json",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "figures" / "figure_catalog.json",
+            target=submission_package_root / "figures" / "figure_catalog.json",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += _copy_optional_tree(
+        source_root=resolved_paper_root / "figures" / "generated",
+        target_root=submission_package_root / "figures",
+        category="preview_submission_package",
+        copied_files=copied_files,
+        ignore_suffixes=(".layout.json",),
+        ignore_filenames=("README.md",),
+    )
+    preview_file_count += int(
+        _copy_optional_file(
+            source=resolved_paper_root / "tables" / "table_catalog.json",
+            target=submission_package_root / "tables" / "table_catalog.json",
+            category="preview_submission_package",
+            copied_files=copied_files,
+        )
+    )
+    preview_file_count += _copy_optional_tree(
+        source_root=resolved_paper_root / "tables" / "generated",
+        target_root=submission_package_root / "tables",
+        category="preview_submission_package",
+        copied_files=copied_files,
+        ignore_filenames=("README.md",),
+    )
     write_text(
         manuscript_root / "README.md",
-        build_unavailable_general_delivery_readme(study_id=study_id, stale_reason=stale_reason),
+        build_preview_general_delivery_readme(study_id=study_id, stale_reason=stale_reason),
+    )
+    generated_files.append(
+        {
+            "category": "preview_delivery_readme",
+            "path": str((manuscript_root / "README.md").resolve()),
+        }
     )
     write_text(
         submission_package_root / "README.md",
-        build_unavailable_submission_package_readme(study_id=study_id, stale_reason=stale_reason),
+        build_submission_package_audit_preview_readme(study_id=study_id, stale_reason=stale_reason),
+    )
+    generated_files.append(
+        {
+            "category": "preview_submission_package",
+            "path": str((submission_package_root / "README.md").resolve()),
+        }
     )
     status_payload = {
         "schema_version": 1,
@@ -701,22 +868,46 @@ def materialize_submission_delivery_stale_notice(
         "publication_profile": normalized_publication_profile,
         "status": "stale_source_missing",
         "stale_reason": stale_reason,
+        "preview_mode": "authority_audit_preview",
+        "submission_ready": False,
+        "preview_file_count": preview_file_count,
         "source": {
             "paper_root": str(resolved_paper_root),
-            "expected_package_source_root": str(
-                build_submission_source_root(
-                    paper_root=resolved_paper_root,
-                    publication_profile=normalized_publication_profile,
-                )
-            ),
+            "expected_package_source_root": str(expected_source_root),
         },
         "active_delivery_manifest_path": str(delivery_manifest_path) if delivery_manifest_path.exists() else None,
         "submission_package_root": str(submission_package_root),
         "submission_package_zip": str(submission_package_zip),
         "missing_source_paths": list(missing_source_paths or []),
         "cleared_paths": cleared_paths,
+        "copied_files": copied_files,
+        "generated_files": generated_files,
     }
+    generated_files.append(
+        {
+            "category": "preview_delivery_status",
+            "path": str(delivery_status_path.resolve()),
+        }
+    )
+    generated_files.append(
+        {
+            "category": "preview_submission_package",
+            "path": str(audit_status_path.resolve()),
+        }
+    )
+    dump_json(audit_status_path, status_payload)
+    build_zip_from_directory(
+        source_root=submission_package_root,
+        output_path=submission_package_zip,
+    )
+    generated_files.append(
+        {
+            "category": "preview_submission_package",
+            "path": str(submission_package_zip.resolve()),
+        }
+    )
     dump_json(delivery_status_path, status_payload)
+    dump_json(audit_status_path, status_payload)
     return {
         "applicable": True,
         **status_payload,

@@ -87,6 +87,57 @@ def make_delivery_workspace(
     write_png(paper_root / "submission_minimal" / "figures" / "Figure1.png")
     write_text(paper_root / "submission_minimal" / "tables" / "Table1.csv", "a,b\n1,2\n")
     write_text(paper_root / "submission_minimal" / "tables" / "Table1.md", "| a | b |\n| --- | --- |\n| 1 | 2 |\n")
+    write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent authority draft.\n")
+    dump_json(
+        paper_root / "review" / "submission_checklist.json",
+        {
+            "overall_status": "write_review_maintenance_nonfinal",
+            "handoff_ready": False,
+            "blocking_items": [
+                {
+                    "key": "figure_export_not_materialized_in_submission_minimal",
+                    "notes": "Preview only; formal submission export is incomplete.",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "export_paths": [
+                        "paper/figures/generated/F1_authority_preview.pdf",
+                        "paper/figures/generated/F1_authority_preview.png",
+                    ],
+                }
+            ],
+        },
+    )
+    write_text(paper_root / "figures" / "generated" / "F1_authority_preview.pdf", "%PDF-1.4\n")
+    write_png(paper_root / "figures" / "generated" / "F1_authority_preview.png")
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "table_id": "T1",
+                    "asset_paths": [
+                        "paper/tables/generated/T1_authority_preview.csv",
+                        "paper/tables/generated/T1_authority_preview.md",
+                    ],
+                }
+            ],
+        },
+    )
+    write_text(paper_root / "tables" / "generated" / "T1_authority_preview.csv", "x,y\n3,4\n")
+    write_text(
+        paper_root / "tables" / "generated" / "T1_authority_preview.md",
+        "| x | y |\n| --- | --- |\n| 3 | 4 |\n",
+    )
 
     write_text(paper_root / "final_claim_ledger.md", "# Final Claim Ledger\n")
     write_text(paper_root / "finalize_resume_packet.md", "# Finalize Resume Packet\n")
@@ -198,6 +249,14 @@ def make_draft_handoff_workspace(tmp_path: Path) -> tuple[Path, Path]:
     return paper_root, study_root
 
 
+def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path, Path]:
+    paper_root, study_root = make_draft_handoff_workspace(tmp_path)
+    write_text(paper_root / "paper.pdf", "%PDF-1.4\n%draft review manuscript\n")
+    write_text(paper_root / "manuscript.docx", "docx draft review manuscript")
+    write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent draft bundle.\n")
+    return paper_root, study_root
+
+
 def test_sync_study_delivery_for_submission_minimal_populates_study_final_directories(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -267,9 +326,8 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
         stage="submission_minimal",
     )
 
-    shutil.rmtree(paper_root / "submission_minimal")
-    write_text(paper_root / "submission_minimal" / "README.md", "# Placeholder\n")
-    write_text(paper_root / "submission_minimal" / "journal_declarations.md", "# Placeholder\n")
+    shutil.rmtree(paper_root / "submission_minimal" / "figures")
+    shutil.rmtree(paper_root / "submission_minimal" / "tables")
 
     result = module.describe_submission_delivery(paper_root=paper_root)
     stale_sync = module.materialize_submission_delivery_stale_notice(
@@ -281,22 +339,36 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     manuscript_root = study_root / "manuscript"
     submission_package_root = manuscript_root / "submission_package"
     status_path = manuscript_root / "delivery_status.json"
+    audit_status_path = submission_package_root / "audit_status.json"
 
     assert stale_sync["status"] == "stale_source_missing"
     assert stale_sync["submission_package_root"] == str(submission_package_root)
-    assert not (manuscript_root / "manuscript.docx").exists()
-    assert not (manuscript_root / "paper.pdf").exists()
-    assert not (manuscript_root / "submission_manifest.json").exists()
-    assert not (manuscript_root / "submission_package.zip").exists()
+    assert (manuscript_root / "manuscript.docx").exists()
+    assert (manuscript_root / "paper.pdf").exists()
+    assert (manuscript_root / "submission_manifest.json").exists()
+    assert (manuscript_root / "submission_package.zip").exists()
     assert (submission_package_root / "README.md").exists()
-    assert "current submission package mirror is unavailable" in (
+    assert "audit preview" in (
         submission_package_root / "README.md"
     ).read_text(encoding="utf-8")
+    assert (submission_package_root / "review_manuscript.md").exists()
+    assert (submission_package_root / "compile_report.json").exists()
+    assert (submission_package_root / "submission_checklist.json").exists()
+    assert (submission_package_root / "figures" / "figure_catalog.json").exists()
+    assert (submission_package_root / "figures" / "F1_authority_preview.pdf").exists()
+    assert (submission_package_root / "tables" / "table_catalog.json").exists()
+    assert (submission_package_root / "tables" / "T1_authority_preview.csv").exists()
+    assert audit_status_path.exists()
     status_payload = json.loads(status_path.read_text(encoding="utf-8"))
+    audit_status_payload = json.loads(audit_status_path.read_text(encoding="utf-8"))
     assert status_payload["status"] == "stale_source_missing"
-    assert status_payload["stale_reason"] == "current_submission_source_missing"
+    assert status_payload["stale_reason"] == "delivery_manifest_sources_missing"
+    assert status_payload["preview_mode"] == "authority_audit_preview"
+    assert status_payload["submission_ready"] is False
     assert status_payload["active_delivery_manifest_path"] == str(manuscript_root / "delivery_manifest.json")
     assert status_payload["missing_source_paths"] != []
+    assert audit_status_payload["preview_mode"] == "authority_audit_preview"
+    assert audit_status_payload["submission_ready"] is False
 
 
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
@@ -625,3 +697,23 @@ def test_describe_draft_handoff_delivery_detects_stale_sources(tmp_path: Path) -
 
     stale = module.describe_draft_handoff_delivery(paper_root=paper_root)
     assert stale["status"] == "stale"
+
+
+def test_sync_study_delivery_for_draft_handoff_copies_quick_review_manuscript_files_when_present(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_draft_handoff_workspace_with_quick_review(tmp_path)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="draft_handoff",
+    )
+
+    draft_bundle_root = study_root / "manuscript" / "draft_bundle"
+    assert (draft_bundle_root / "paper.pdf").exists()
+    assert (draft_bundle_root / "manuscript.docx").exists()
+    assert (draft_bundle_root / "build" / "review_manuscript.md").exists()
+    assert "paper.pdf" in manifest["source_relative_paths"]
+    assert "manuscript.docx" in manifest["source_relative_paths"]
+    assert "build/review_manuscript.md" in manifest["source_relative_paths"]
