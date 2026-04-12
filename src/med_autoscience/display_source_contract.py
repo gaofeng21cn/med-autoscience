@@ -27,9 +27,11 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
+    "shap_bar_importance_inputs_v1": "shap_bar_importance_inputs.json",
     "shap_dependence_panel_inputs_v1": "shap_dependence_panel_inputs.json",
     "shap_waterfall_local_explanation_panel_inputs_v1": "shap_waterfall_local_explanation_panel_inputs.json",
     "shap_force_like_summary_panel_inputs_v1": "shap_force_like_summary_panel_inputs.json",
+    "partial_dependence_ice_panel_inputs_v1": "partial_dependence_ice_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
 }
 

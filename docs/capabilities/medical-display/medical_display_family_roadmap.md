@@ -422,15 +422,16 @@ Current roadmap status:
 Current audited anchors:
 
 - `shap_summary_beeswarm`
+- `shap_bar_importance`
 - `shap_dependence_panel`
 - `shap_waterfall_local_explanation_panel`
 - `shap_force_like_summary_panel`
+- `partial_dependence_ice_panel`
 
 Current gap direction:
 
-- richer PDP families beyond the current summary + dependence + waterfall + force-like baseline
-- ICE
-- feature-importance or grouped-local-explanation follow-on views where real paper demand proves they are worth stabilizing
+- richer partial-dependence variants beyond the current summary + bar-importance + dependence + waterfall + force-like + bounded PDP/ICE baseline
+- grouped-local-explanation or signed / multi-cohort feature-importance follow-on views where real paper demand proves they are worth stabilizing
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类

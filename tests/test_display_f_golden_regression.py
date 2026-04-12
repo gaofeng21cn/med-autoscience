@@ -358,3 +358,221 @@ def test_shap_force_like_summary_panel_preserves_f_force_like_contract(tmp_path:
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_partial_dependence_ice_panel_preserves_f_pdp_ice_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure36",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_ice_panel",
+                    "catalog_id": "F36",
+                    "shell_path": "paper/figures/Figure36.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure36",
+                    "template_id": "partial_dependence_ice_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "partial_dependence_ice_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_ice_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure36",
+                    "template_id": "fenggaolab.org.medical-display-core::partial_dependence_ice_panel",
+                    "title": "Partial dependence and ICE panel for representative feature-response trajectories",
+                    "caption": "Regression lock for manuscript-facing bounded PDP and ICE explanation overlays.",
+                    "y_label": "Predicted response probability",
+                    "panels": [
+                        {
+                            "panel_id": "age_panel",
+                            "panel_label": "A",
+                            "title": "Age",
+                            "x_label": "Age (years)",
+                            "feature": "Age",
+                            "reference_value": 60.0,
+                            "reference_label": "Median age",
+                            "pdp_curve": {"x": [40.0, 50.0, 60.0, 70.0], "y": [0.16, 0.21, 0.27, 0.34]},
+                            "ice_curves": [
+                                {"curve_id": "age_case_1", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.14, 0.19, 0.25, 0.33]},
+                                {"curve_id": "age_case_2", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.17, 0.22, 0.29, 0.36]},
+                                {"curve_id": "age_case_3", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.18, 0.23, 0.28, 0.35]},
+                            ],
+                        },
+                        {
+                            "panel_id": "albumin_panel",
+                            "panel_label": "B",
+                            "title": "Albumin",
+                            "x_label": "Albumin (g/dL)",
+                            "feature": "Albumin",
+                            "reference_value": 3.8,
+                            "reference_label": "Median albumin",
+                            "pdp_curve": {"x": [2.8, 3.4, 4.0, 4.6], "y": [0.39, 0.31, 0.25, 0.20]},
+                            "ice_curves": [
+                                {"curve_id": "alb_case_1", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.41, 0.33, 0.26, 0.21]},
+                                {"curve_id": "alb_case_2", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.37, 0.30, 0.24, 0.18]},
+                                {"curve_id": "alb_case_3", "x": [2.8, 3.4, 4.0, 4.6], "y": [0.40, 0.32, 0.27, 0.22]},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F36_partial_dependence_ice_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_type"] == "legend_box" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "pdp_reference_line"]) == 2
+    assert layout_sidecar["metrics"]["legend_labels"] == ["ICE curves", "PDP mean"]
+    assert [item["reference_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Median age",
+        "Median albumin",
+    ]
+    assert layout_sidecar["metrics"]["panels"][0]["pdp_points"][0]["feature_value"] == 40.0
+    assert layout_sidecar["metrics"]["panels"][1]["ice_curves"][0]["curve_id"] == "alb_case_1"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_shap_bar_importance_preserves_f_global_importance_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_bar_importance",
+                    "catalog_id": "F37",
+                    "shell_path": "paper/figures/Figure37.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "template_id": "shap_bar_importance",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_bar_importance_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_bar_importance_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_bar_importance",
+                    "title": "SHAP bar importance panel for audited global feature ranking",
+                    "caption": "Regression lock for manuscript-facing global SHAP importance ranking.",
+                    "x_label": "Mean absolute SHAP value",
+                    "bars": [
+                        {"rank": 1, "feature": "Age", "importance_value": 0.184},
+                        {"rank": 2, "feature": "Albumin", "importance_value": 0.133},
+                        {"rank": 3, "feature": "Tumor size", "importance_value": 0.096},
+                        {"rank": 4, "feature": "Platelet count", "importance_value": 0.071},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F37_shap_bar_importance.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 1
+    assert [item["feature"] for item in layout_sidecar["metrics"]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert [item["rank"] for item in layout_sidecar["metrics"]["bars"]] == [1, 2, 3, 4]
+    assert layout_sidecar["metrics"]["bars"][0]["importance_value"] > layout_sidecar["metrics"]["bars"][1]["importance_value"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["template_id"] == "fenggaolab.org.medical-display-core::shap_bar_importance"
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

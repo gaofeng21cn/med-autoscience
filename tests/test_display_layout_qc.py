@@ -3527,6 +3527,292 @@ def test_run_display_layout_qc_fails_when_force_like_positive_segment_crosses_ba
     assert any(issue["rule_id"] == "positive_segment_crosses_baseline" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_partial_dependence_ice_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_ice_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_ice_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.28, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.46, y0=0.87, x1=0.66, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.51, y0=0.10, x1=0.68, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.81, x1=0.48, y1=0.84),
+                make_box("reference_label_A", "pdp_reference_label", x0=0.20, y0=0.76, x1=0.28, y1=0.79),
+                make_box("reference_label_B", "pdp_reference_label", x0=0.54, y0=0.76, x1=0.64, y1=0.79),
+                make_box("legend_box", "legend_box", x0=0.34, y0=0.03, x1=0.66, y1=0.08),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.45, y0=0.18, x1=0.70, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "pdp_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82),
+                make_box("reference_line_B", "pdp_reference_line", x0=0.58, y0=0.18, x1=0.581, y1=0.82),
+            ],
+            "metrics": {
+                "legend_labels": ["ICE curves", "PDP mean"],
+                "panels": [
+                    {
+                        "panel_id": "age_panel",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "pdp_points": [
+                            {"x": 0.15, "y": 0.30},
+                            {"x": 0.21, "y": 0.39},
+                            {"x": 0.24, "y": 0.48},
+                            {"x": 0.30, "y": 0.63},
+                        ],
+                        "ice_curves": [
+                            {
+                                "curve_id": "age_case_1",
+                                "points": [
+                                    {"x": 0.15, "y": 0.28},
+                                    {"x": 0.21, "y": 0.37},
+                                    {"x": 0.24, "y": 0.50},
+                                    {"x": 0.30, "y": 0.67},
+                                ],
+                            },
+                            {
+                                "curve_id": "age_case_2",
+                                "points": [
+                                    {"x": 0.15, "y": 0.33},
+                                    {"x": 0.21, "y": 0.41},
+                                    {"x": 0.24, "y": 0.46},
+                                    {"x": 0.30, "y": 0.61},
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "albumin_panel",
+                        "panel_label": "B",
+                        "title": "Albumin",
+                        "x_label": "Albumin (g/dL)",
+                        "feature": "Albumin",
+                        "reference_value": 3.8,
+                        "reference_label": "Median albumin",
+                        "panel_box_id": "panel_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "pdp_points": [
+                            {"x": 0.49, "y": 0.67},
+                            {"x": 0.55, "y": 0.55},
+                            {"x": 0.58, "y": 0.46},
+                            {"x": 0.65, "y": 0.34},
+                        ],
+                        "ice_curves": [
+                            {
+                                "curve_id": "alb_case_1",
+                                "points": [
+                                    {"x": 0.49, "y": 0.70},
+                                    {"x": 0.55, "y": 0.58},
+                                    {"x": 0.58, "y": 0.49},
+                                    {"x": 0.65, "y": 0.36},
+                                ],
+                            },
+                            {
+                                "curve_id": "alb_case_2",
+                                "points": [
+                                    {"x": 0.49, "y": 0.64},
+                                    {"x": 0.55, "y": 0.52},
+                                    {"x": 0.58, "y": 0.44},
+                                    {"x": 0.65, "y": 0.31},
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_partial_dependence_ice_curve_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_ice_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_ice_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.28, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.30, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("reference_label_A", "pdp_reference_label", x0=0.20, y0=0.76, x1=0.28, y1=0.79),
+                make_box("legend_box", "legend_box", x0=0.34, y0=0.03, x1=0.66, y1=0.08),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82)],
+            "guide_boxes": [
+                make_box("reference_line_A", "pdp_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82),
+            ],
+            "metrics": {
+                "legend_labels": ["ICE curves", "PDP mean"],
+                "panels": [
+                    {
+                        "panel_id": "age_panel",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "pdp_points": [
+                            {"x": 0.15, "y": 0.30},
+                            {"x": 0.21, "y": 0.39},
+                            {"x": 0.24, "y": 0.48},
+                            {"x": 0.30, "y": 0.63},
+                        ],
+                        "ice_curves": [
+                            {
+                                "curve_id": "age_case_1",
+                                "points": [
+                                    {"x": 0.15, "y": 0.28},
+                                    {"x": 0.21, "y": 0.37},
+                                    {"x": 0.38, "y": 0.50},
+                                    {"x": 0.30, "y": 0.67},
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "ice_point_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_shap_bar_importance() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_bar_importance",
+        layout_sidecar={
+            "template_id": "shap_bar_importance",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("feature_label_2", "feature_label", x0=0.05, y0=0.34, x1=0.19, y1=0.39),
+                make_box("feature_label_3", "feature_label", x0=0.05, y0=0.46, x1=0.21, y1=0.51),
+                make_box("feature_label_4", "feature_label", x0=0.05, y0=0.58, x1=0.20, y1=0.63),
+                make_box("importance_bar_1", "importance_bar", x0=0.22, y0=0.22, x1=0.78, y1=0.27),
+                make_box("importance_bar_2", "importance_bar", x0=0.22, y0=0.34, x1=0.67, y1=0.39),
+                make_box("importance_bar_3", "importance_bar", x0=0.22, y0=0.46, x1=0.57, y1=0.51),
+                make_box("importance_bar_4", "importance_bar", x0=0.22, y0=0.58, x1=0.49, y1=0.63),
+                make_box("value_label_1", "value_label", x0=0.80, y0=0.22, x1=0.86, y1=0.27),
+                make_box("value_label_2", "value_label", x0=0.69, y0=0.34, x1=0.75, y1=0.39),
+                make_box("value_label_3", "value_label", x0=0.59, y0=0.46, x1=0.65, y1=0.51),
+                make_box("value_label_4", "value_label", x0=0.51, y0=0.58, x1=0.57, y1=0.63),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Age",
+                        "importance_value": 0.184,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    },
+                    {
+                        "rank": 2,
+                        "feature": "Albumin",
+                        "importance_value": 0.133,
+                        "bar_box_id": "importance_bar_2",
+                        "feature_label_box_id": "feature_label_2",
+                        "value_label_box_id": "value_label_2",
+                    },
+                    {
+                        "rank": 3,
+                        "feature": "Tumor size",
+                        "importance_value": 0.096,
+                        "bar_box_id": "importance_bar_3",
+                        "feature_label_box_id": "feature_label_3",
+                        "value_label_box_id": "value_label_3",
+                    },
+                    {
+                        "rank": 4,
+                        "feature": "Platelet count",
+                        "importance_value": 0.071,
+                        "bar_box_id": "importance_bar_4",
+                        "feature_label_box_id": "feature_label_4",
+                        "value_label_box_id": "value_label_4",
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_shap_bar_importance_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_bar_importance",
+        layout_sidecar={
+            "template_id": "shap_bar_importance",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("x_axis_title", "x_axis_title", x0=0.36, y0=0.92, x1=0.64, y1=0.96),
+                make_box("feature_label_1", "feature_label", x0=0.05, y0=0.22, x1=0.16, y1=0.27),
+                make_box("importance_bar_1", "importance_bar", x0=0.22, y0=0.22, x1=0.92, y1=0.27),
+                make_box("value_label_1", "value_label", x0=0.80, y0=0.22, x1=0.86, y1=0.27),
+            ],
+            "panel_boxes": [
+                make_box("panel", "panel", x0=0.22, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "bars": [
+                    {
+                        "rank": 1,
+                        "feature": "Age",
+                        "importance_value": 0.184,
+                        "bar_box_id": "importance_bar_1",
+                        "feature_label_box_id": "feature_label_1",
+                        "value_label_box_id": "value_label_1",
+                    }
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "importance_bar_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

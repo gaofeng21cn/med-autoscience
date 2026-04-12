@@ -53,6 +53,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("subgroup_forest"),
         _full_id("generalizability_subgroup_composite_panel"),
         _full_id("shap_summary_beeswarm"),
+        _full_id("shap_bar_importance"),
         _full_id("shap_dependence_panel"),
         _full_id("shap_waterfall_local_explanation_panel"),
         _full_id("shap_force_like_summary_panel"),
@@ -147,6 +148,26 @@ def test_shap_force_like_summary_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "shap_force_like_summary_panel_inputs_v1"
     assert spec.layout_qc_profile == "publication_shap_force_like_summary_panel"
+
+
+def test_shap_bar_importance_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("shap_bar_importance"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "shap_bar_importance_inputs_v1"
+    assert spec.layout_qc_profile == "publication_shap_bar_importance"
+
+
+def test_partial_dependence_ice_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("partial_dependence_ice_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "partial_dependence_ice_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_partial_dependence_ice_panel"
 
 
 def test_generalizability_subgroup_composite_panel_is_registered() -> None:
@@ -256,6 +277,12 @@ def test_time_to_event_publication_surface_specs_are_registered() -> None:
     assert figure13c.renderer_family == "python"
     assert figure13c.input_schema_id == "shap_force_like_summary_panel_inputs_v1"
     assert figure13c.layout_qc_profile == "publication_shap_force_like_summary_panel"
+    figure13d = display_registry.get_evidence_figure_spec(_full_id("partial_dependence_ice_panel"))
+    assert figure13d.paper_family_ids == ("F",)
+    assert figure13d.evidence_class == "model_explanation"
+    assert figure13d.renderer_family == "python"
+    assert figure13d.input_schema_id == "partial_dependence_ice_panel_inputs_v1"
+    assert figure13d.layout_qc_profile == "publication_partial_dependence_ice_panel"
     assert figure14.renderer_family == "python"
     assert figure14.required_exports == ("png", "pdf")
     assert figure14.input_schema_id == "time_to_event_discrimination_calibration_inputs_v1"
