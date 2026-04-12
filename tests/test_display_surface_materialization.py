@@ -7232,6 +7232,45 @@ def _make_shap_signed_importance_panel_display(display_id: str = "Figure38") -> 
     }
 
 
+def _make_shap_multicohort_importance_panel_display(display_id: str = "Figure39") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_multicohort_importance_panel",
+        "title": "SHAP multicohort importance panel for audited cross-cohort feature ranking",
+        "caption": (
+            "Bounded multi-panel SHAP importance views compare stable ranked feature drivers across audited cohorts "
+            "without giving up deterministic panel contracts or manuscript-facing readability."
+        ),
+        "x_label": "Mean absolute SHAP value",
+        "panels": [
+            {
+                "panel_id": "derivation",
+                "panel_label": "A",
+                "title": "Derivation cohort",
+                "cohort_label": "Derivation",
+                "bars": [
+                    {"rank": 1, "feature": "Age", "importance_value": 0.184},
+                    {"rank": 2, "feature": "Albumin", "importance_value": 0.133},
+                    {"rank": 3, "feature": "Tumor size", "importance_value": 0.096},
+                    {"rank": 4, "feature": "Platelet count", "importance_value": 0.071},
+                ],
+            },
+            {
+                "panel_id": "validation",
+                "panel_label": "B",
+                "title": "External validation cohort",
+                "cohort_label": "Validation",
+                "bars": [
+                    {"rank": 1, "feature": "Age", "importance_value": 0.171},
+                    {"rank": 2, "feature": "Albumin", "importance_value": 0.121},
+                    {"rank": 3, "feature": "Tumor size", "importance_value": 0.089},
+                    {"rank": 4, "feature": "Platelet count", "importance_value": 0.067},
+                ],
+            },
+        ],
+    }
+
+
 def _make_generalizability_subgroup_composite_panel_display(display_id: str = "Figure34") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7722,6 +7761,33 @@ def test_load_evidence_display_payload_rejects_zero_signed_importance_for_shap_s
         )
 
 
+def test_load_evidence_display_payload_rejects_feature_order_mismatch_for_shap_multicohort_importance_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_multicohort_importance_panel_display()
+    display_payload["panels"][1]["bars"][1]["feature"] = "Platelet count"
+    display_payload["panels"][1]["bars"][3]["feature"] = "Albumin"
+    dump_json(
+        paper_root / "shap_multicohort_importance_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multicohort_importance_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_multicohort_importance_panel")
+
+    with pytest.raises(ValueError, match="bars feature order must match across panels"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure39",
+        )
+
+
 def test_materialize_display_surface_generates_shap_bar_importance(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"
@@ -7879,6 +7945,91 @@ def test_materialize_display_surface_generates_shap_signed_importance_panel(tmp_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_signed_importance_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_signed_importance_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_shap_multicohort_importance_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multicohort_importance_panel",
+                    "catalog_id": "F39",
+                    "shell_path": "paper/figures/Figure39.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "template_id": "shap_multicohort_importance_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_multicohort_importance_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multicohort_importance_panel_inputs_v1",
+            "displays": [_make_shap_multicohort_importance_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F39"]
+    assert (paper_root / "figures" / "generated" / "F39_shap_multicohort_importance_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F39_shap_multicohort_importance_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F39_shap_multicohort_importance_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert [item["cohort_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Derivation",
+        "Validation",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][0]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"][1]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F39"
+    assert figure_entry["template_id"] == full_id("shap_multicohort_importance_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "shap_multicohort_importance_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_multicohort_importance_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`41`
+  - 证据型模板：`42`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`48`
+  - 总模板数：`49`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,7 +34,7 @@
 
 - Phase：`Phase 5 / integration / merge-back / monitor`
 - Family cluster：`F`
-- Capability cluster：`shap_signed_importance_panel`
+- Capability cluster：`shap_multicohort_importance_panel`
 - Owner worktree：当前专用 display worktree
 - 状态：`merge_back_ready`
 
@@ -42,22 +42,22 @@
 
 本轮要回答的是：
 
-> 如何把 manuscript-facing 的全局特征重要性方向性总览稳定表达成零线居中的单 panel、可审计、可复用的 bounded contract，并把绝对值排序、方向极性、零线侧约束、标签关联与 value-label 可读性一起固化进正式模板路径。
+> 如何把 manuscript-facing 的跨 cohort 全局特征重要性对照稳定表达成多 panel、共享 feature 顺序、共享 x 语义、可审计、可复用的 bounded contract，并把 cohort identity、rank strict order、cross-panel feature-order governance、panel label anchoring 与 value-label containment 一起固化进正式模板路径。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `bounded global signed SHAP importance overview`
-2. `strict bar-rank / feature-identity / polarity / absolute-magnitude contract`
-3. `single-panel divergent horizontal bar geometry + zero-line / direction-label / value-label QC governance`
+1. `bounded multi-panel SHAP multicohort importance overview`
+2. `strict panel-id / cohort-identity / bar-rank / shared-feature-order contract`
+3. `parallel horizontal bar geometry + panel-label / feature-label / value-label QC governance`
 
 本轮明确不做：
 
 - workflow / design-evidence shells
 - 自由拼装式 explanation scene composition 系统
-- 多 cohort 对照或 grouped-local-explanation 复合场景
 - grouped-local-explanation follow-on
+- 自由拼装的 explanation scene composition
 
 ## 预期写集
 
@@ -95,9 +95,9 @@
 
 ## 当前轮次结束后的候选
 
-只有在 `shap_signed_importance_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
+只有在 `shap_multicohort_importance_panel` 被 absorb 之后，才允许 reroute 到下一批候选：
 
-1. `F / grouped-local-explanation follow-on or multi-cohort feature-importance variants`
+1. `F / grouped-local-explanation follow-on`
 2. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 3. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 

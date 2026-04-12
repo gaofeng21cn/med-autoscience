@@ -425,6 +425,7 @@ Current audited anchors:
 - `shap_summary_beeswarm`
 - `shap_bar_importance`
 - `shap_signed_importance_panel`
+- `shap_multicohort_importance_panel`
 - `shap_dependence_panel`
 - `shap_waterfall_local_explanation_panel`
 - `shap_force_like_summary_panel`
@@ -432,8 +433,8 @@ Current audited anchors:
 
 Current gap direction:
 
-- richer partial-dependence variants beyond the current summary + bar-importance + signed bar-importance + dependence + waterfall + force-like + bounded PDP/ICE baseline
-- grouped-local-explanation or multi-cohort feature-importance follow-on views where real paper demand proves they are worth stabilizing
+- richer partial-dependence variants beyond the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + bounded PDP/ICE baseline
+- grouped-local-explanation follow-on views where real paper demand proves they are worth stabilizing
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类

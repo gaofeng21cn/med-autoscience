@@ -1218,6 +1218,51 @@ def test_shap_signed_importance_panel_schema_contract_is_registered() -> None:
     assert "shap_signed_importance_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_multicohort_importance_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    multicohort_panel = module.get_input_schema_contract("shap_multicohort_importance_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert multicohort_panel.template_ids == (_full_id("shap_multicohort_importance_panel"),)
+    assert multicohort_panel.display_name == "SHAP Multicohort Importance Panel"
+    assert multicohort_panel.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "panels",
+    )
+    assert multicohort_panel.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "cohort_label",
+        "bars",
+    )
+    assert multicohort_panel.nested_collection_required_fields["panels.bars"] == (
+        "rank",
+        "feature",
+        "importance_value",
+    )
+    assert "panels_must_be_non_empty" in multicohort_panel.additional_constraints
+    assert "panel_count_must_not_exceed_three" in multicohort_panel.additional_constraints
+    assert "panel_ids_must_be_unique" in multicohort_panel.additional_constraints
+    assert "panel_labels_must_be_unique" in multicohort_panel.additional_constraints
+    assert "panel_cohort_labels_must_be_unique" in multicohort_panel.additional_constraints
+    assert "panel_bars_must_be_non_empty" in multicohort_panel.additional_constraints
+    assert "panel_bar_features_must_be_unique_within_panel" in multicohort_panel.additional_constraints
+    assert "panel_bar_ranks_must_be_strictly_increasing" in multicohort_panel.additional_constraints
+    assert "panel_bar_importance_values_must_be_non_negative_finite" in multicohort_panel.additional_constraints
+    assert "panel_bar_importance_values_must_be_sorted_descending_by_rank" in multicohort_panel.additional_constraints
+    assert "panel_feature_orders_must_match_across_panels" in multicohort_panel.additional_constraints
+    assert _full_id("shap_multicohort_importance_panel") in model_explanation_class.template_ids
+    assert "shap_multicohort_importance_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_generalizability_subgroup_composite_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1284,6 +1329,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_bar_importance_inputs_v1" in markdown
     assert _full_id("shap_signed_importance_panel") in markdown
     assert "shap_signed_importance_panel_inputs_v1" in markdown
+    assert _full_id("shap_multicohort_importance_panel") in markdown
+    assert "shap_multicohort_importance_panel_inputs_v1" in markdown
     assert _full_id("shap_waterfall_local_explanation_panel") in markdown
     assert "shap_waterfall_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_force_like_summary_panel") in markdown

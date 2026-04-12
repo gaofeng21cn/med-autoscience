@@ -680,3 +680,137 @@ def test_shap_signed_importance_panel_preserves_f_directional_global_importance_
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["template_id"] == "fenggaolab.org.medical-display-core::shap_signed_importance_panel"
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_shap_multicohort_importance_panel_preserves_f_cross_cohort_global_importance_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multicohort_importance_panel",
+                    "catalog_id": "F39",
+                    "shell_path": "paper/figures/Figure39.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "template_id": "shap_multicohort_importance_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_multicohort_importance_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multicohort_importance_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_multicohort_importance_panel",
+                    "title": "SHAP multicohort importance panel for audited cross-cohort feature ranking",
+                    "caption": "Regression lock for manuscript-facing cross-cohort SHAP global importance comparison.",
+                    "x_label": "Mean absolute SHAP value",
+                    "panels": [
+                        {
+                            "panel_id": "derivation",
+                            "panel_label": "A",
+                            "title": "Derivation cohort",
+                            "cohort_label": "Derivation",
+                            "bars": [
+                                {"rank": 1, "feature": "Age", "importance_value": 0.184},
+                                {"rank": 2, "feature": "Albumin", "importance_value": 0.133},
+                                {"rank": 3, "feature": "Tumor size", "importance_value": 0.096},
+                                {"rank": 4, "feature": "Platelet count", "importance_value": 0.071},
+                            ],
+                        },
+                        {
+                            "panel_id": "validation",
+                            "panel_label": "B",
+                            "title": "External validation cohort",
+                            "cohort_label": "Validation",
+                            "bars": [
+                                {"rank": 1, "feature": "Age", "importance_value": 0.171},
+                                {"rank": 2, "feature": "Albumin", "importance_value": 0.121},
+                                {"rank": 3, "feature": "Tumor size", "importance_value": 0.089},
+                                {"rank": 4, "feature": "Platelet count", "importance_value": 0.067},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F39_shap_multicohort_importance_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert [panel["panel_label"] for panel in layout_sidecar["metrics"]["panels"]] == ["A", "B"]
+    assert [panel["cohort_label"] for panel in layout_sidecar["metrics"]["panels"]] == [
+        "Derivation",
+        "Validation",
+    ]
+    assert [bar["feature"] for bar in layout_sidecar["metrics"]["panels"][0]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert [bar["feature"] for bar in layout_sidecar["metrics"]["panels"][1]["bars"]] == [
+        "Age",
+        "Albumin",
+        "Tumor size",
+        "Platelet count",
+    ]
+    assert (
+        layout_sidecar["metrics"]["panels"][0]["bars"][0]["importance_value"]
+        > layout_sidecar["metrics"]["panels"][0]["bars"][1]["importance_value"]
+    )
+    assert (
+        layout_sidecar["metrics"]["panels"][1]["bars"][0]["importance_value"]
+        > layout_sidecar["metrics"]["panels"][1]["bars"][1]["importance_value"]
+    )
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["template_id"] == "fenggaolab.org.medical-display-core::shap_multicohort_importance_panel"
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

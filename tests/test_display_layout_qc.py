@@ -3934,6 +3934,167 @@ def test_run_display_layout_qc_fails_when_signed_importance_bar_crosses_wrong_si
     assert any(issue["rule_id"] == "signed_importance_bar_wrong_side_of_zero" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_multicohort_importance_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_multicohort_importance_panel",
+        layout_sidecar={
+            "template_id": "shap_multicohort_importance_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.16, y0=0.77, x1=0.19, y1=0.81),
+                make_box("panel_label_B", "panel_label", x0=0.61, y0=0.77, x1=0.64, y1=0.81),
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.88, x1=0.34, y1=0.92),
+                make_box("panel_title_B", "panel_title", x0=0.61, y0=0.88, x1=0.85, y1=0.92),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.20, y0=0.08, x1=0.39, y1=0.12),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.65, y0=0.08, x1=0.84, y1=0.12),
+                make_box("feature_label_A_1", "feature_label", x0=0.05, y0=0.22, x1=0.13, y1=0.27),
+                make_box("feature_label_A_2", "feature_label", x0=0.03, y0=0.34, x1=0.14, y1=0.39),
+                make_box("feature_label_A_3", "feature_label", x0=0.00, y0=0.46, x1=0.14, y1=0.51),
+                make_box("feature_label_A_4", "feature_label", x0=0.00, y0=0.58, x1=0.14, y1=0.63),
+                make_box("feature_label_B_1", "feature_label", x0=0.50, y0=0.22, x1=0.58, y1=0.27),
+                make_box("feature_label_B_2", "feature_label", x0=0.48, y0=0.34, x1=0.59, y1=0.39),
+                make_box("feature_label_B_3", "feature_label", x0=0.45, y0=0.46, x1=0.59, y1=0.51),
+                make_box("feature_label_B_4", "feature_label", x0=0.45, y0=0.58, x1=0.59, y1=0.63),
+                make_box("importance_bar_A_1", "importance_bar", x0=0.15, y0=0.22, x1=0.41, y1=0.27),
+                make_box("importance_bar_A_2", "importance_bar", x0=0.15, y0=0.34, x1=0.35, y1=0.39),
+                make_box("importance_bar_A_3", "importance_bar", x0=0.15, y0=0.46, x1=0.29, y1=0.51),
+                make_box("importance_bar_A_4", "importance_bar", x0=0.15, y0=0.58, x1=0.25, y1=0.63),
+                make_box("importance_bar_B_1", "importance_bar", x0=0.60, y0=0.22, x1=0.84, y1=0.27),
+                make_box("importance_bar_B_2", "importance_bar", x0=0.60, y0=0.34, x1=0.77, y1=0.39),
+                make_box("importance_bar_B_3", "importance_bar", x0=0.60, y0=0.46, x1=0.72, y1=0.51),
+                make_box("importance_bar_B_4", "importance_bar", x0=0.60, y0=0.58, x1=0.69, y1=0.63),
+                make_box("value_label_A_1", "value_label", x0=0.42, y0=0.22, x1=0.47, y1=0.27),
+                make_box("value_label_A_2", "value_label", x0=0.36, y0=0.34, x1=0.41, y1=0.39),
+                make_box("value_label_A_3", "value_label", x0=0.30, y0=0.46, x1=0.35, y1=0.51),
+                make_box("value_label_A_4", "value_label", x0=0.26, y0=0.58, x1=0.31, y1=0.63),
+                make_box("value_label_B_1", "value_label", x0=0.85, y0=0.22, x1=0.90, y1=0.27),
+                make_box("value_label_B_2", "value_label", x0=0.78, y0=0.34, x1=0.83, y1=0.39),
+                make_box("value_label_B_3", "value_label", x0=0.73, y0=0.46, x1=0.78, y1=0.51),
+                make_box("value_label_B_4", "value_label", x0=0.70, y0=0.58, x1=0.75, y1=0.63),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.15, y0=0.18, x1=0.45, y1=0.82),
+                make_box("panel_B", "panel", x0=0.60, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "derivation",
+                        "panel_label": "A",
+                        "title": "Derivation cohort",
+                        "cohort_label": "Derivation",
+                        "panel_box_id": "panel_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "bars": [
+                            {"rank": 1, "feature": "Age", "importance_value": 0.184, "bar_box_id": "importance_bar_A_1", "feature_label_box_id": "feature_label_A_1", "value_label_box_id": "value_label_A_1"},
+                            {"rank": 2, "feature": "Albumin", "importance_value": 0.133, "bar_box_id": "importance_bar_A_2", "feature_label_box_id": "feature_label_A_2", "value_label_box_id": "value_label_A_2"},
+                            {"rank": 3, "feature": "Tumor size", "importance_value": 0.096, "bar_box_id": "importance_bar_A_3", "feature_label_box_id": "feature_label_A_3", "value_label_box_id": "value_label_A_3"},
+                            {"rank": 4, "feature": "Platelet count", "importance_value": 0.071, "bar_box_id": "importance_bar_A_4", "feature_label_box_id": "feature_label_A_4", "value_label_box_id": "value_label_A_4"},
+                        ],
+                    },
+                    {
+                        "panel_id": "validation",
+                        "panel_label": "B",
+                        "title": "External validation cohort",
+                        "cohort_label": "Validation",
+                        "panel_box_id": "panel_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "bars": [
+                            {"rank": 1, "feature": "Age", "importance_value": 0.171, "bar_box_id": "importance_bar_B_1", "feature_label_box_id": "feature_label_B_1", "value_label_box_id": "value_label_B_1"},
+                            {"rank": 2, "feature": "Albumin", "importance_value": 0.121, "bar_box_id": "importance_bar_B_2", "feature_label_box_id": "feature_label_B_2", "value_label_box_id": "value_label_B_2"},
+                            {"rank": 3, "feature": "Tumor size", "importance_value": 0.089, "bar_box_id": "importance_bar_B_3", "feature_label_box_id": "feature_label_B_3", "value_label_box_id": "value_label_B_3"},
+                            {"rank": 4, "feature": "Platelet count", "importance_value": 0.067, "bar_box_id": "importance_bar_B_4", "feature_label_box_id": "feature_label_B_4", "value_label_box_id": "value_label_B_4"},
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_multicohort_feature_order_drifts() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_multicohort_importance_panel",
+        layout_sidecar={
+            "template_id": "shap_multicohort_importance_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.16, y0=0.77, x1=0.19, y1=0.81),
+                make_box("panel_label_B", "panel_label", x0=0.61, y0=0.77, x1=0.64, y1=0.81),
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.88, x1=0.34, y1=0.92),
+                make_box("panel_title_B", "panel_title", x0=0.61, y0=0.88, x1=0.85, y1=0.92),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.20, y0=0.08, x1=0.39, y1=0.12),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.65, y0=0.08, x1=0.84, y1=0.12),
+                make_box("feature_label_A_1", "feature_label", x0=0.05, y0=0.22, x1=0.13, y1=0.27),
+                make_box("feature_label_A_2", "feature_label", x0=0.03, y0=0.34, x1=0.14, y1=0.39),
+                make_box("feature_label_B_1", "feature_label", x0=0.50, y0=0.22, x1=0.58, y1=0.27),
+                make_box("feature_label_B_2", "feature_label", x0=0.48, y0=0.34, x1=0.59, y1=0.39),
+                make_box("importance_bar_A_1", "importance_bar", x0=0.15, y0=0.22, x1=0.41, y1=0.27),
+                make_box("importance_bar_A_2", "importance_bar", x0=0.15, y0=0.34, x1=0.35, y1=0.39),
+                make_box("importance_bar_B_1", "importance_bar", x0=0.60, y0=0.22, x1=0.84, y1=0.27),
+                make_box("importance_bar_B_2", "importance_bar", x0=0.60, y0=0.34, x1=0.77, y1=0.39),
+                make_box("value_label_A_1", "value_label", x0=0.42, y0=0.22, x1=0.47, y1=0.27),
+                make_box("value_label_A_2", "value_label", x0=0.36, y0=0.34, x1=0.41, y1=0.39),
+                make_box("value_label_B_1", "value_label", x0=0.85, y0=0.22, x1=0.90, y1=0.27),
+                make_box("value_label_B_2", "value_label", x0=0.78, y0=0.34, x1=0.83, y1=0.39),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.15, y0=0.18, x1=0.45, y1=0.82),
+                make_box("panel_B", "panel", x0=0.60, y0=0.18, x1=0.88, y1=0.82),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "panels": [
+                    {
+                        "panel_id": "derivation",
+                        "panel_label": "A",
+                        "title": "Derivation cohort",
+                        "cohort_label": "Derivation",
+                        "panel_box_id": "panel_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "bars": [
+                            {"rank": 1, "feature": "Age", "importance_value": 0.184, "bar_box_id": "importance_bar_A_1", "feature_label_box_id": "feature_label_A_1", "value_label_box_id": "value_label_A_1"},
+                            {"rank": 2, "feature": "Albumin", "importance_value": 0.133, "bar_box_id": "importance_bar_A_2", "feature_label_box_id": "feature_label_A_2", "value_label_box_id": "value_label_A_2"},
+                        ],
+                    },
+                    {
+                        "panel_id": "validation",
+                        "panel_label": "B",
+                        "title": "External validation cohort",
+                        "cohort_label": "Validation",
+                        "panel_box_id": "panel_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "bars": [
+                            {"rank": 1, "feature": "Albumin", "importance_value": 0.171, "bar_box_id": "importance_bar_B_1", "feature_label_box_id": "feature_label_B_1", "value_label_box_id": "value_label_B_1"},
+                            {"rank": 2, "feature": "Age", "importance_value": 0.121, "bar_box_id": "importance_bar_B_2", "feature_label_box_id": "feature_label_B_2", "value_label_box_id": "value_label_B_2"},
+                        ],
+                    },
+                ]
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "multicohort_feature_order_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
