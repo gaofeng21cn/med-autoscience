@@ -867,11 +867,18 @@ def run_controller(
         and state.paper_root is not None
         and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
     ):
-        study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
-            paper_root=state.paper_root,
-            stale_reason=str(report.get("study_delivery_stale_reason") or "current_submission_source_missing"),
-            missing_source_paths=list(report.get("study_delivery_missing_source_paths") or []),
-        )
+        stale_reason = str(report.get("study_delivery_stale_reason") or "current_submission_source_missing")
+        if stale_reason == "delivery_projection_missing":
+            study_delivery_stale_sync = study_delivery_sync.sync_study_delivery(
+                paper_root=state.paper_root,
+                stage="submission_minimal",
+            )
+        else:
+            study_delivery_stale_sync = study_delivery_sync.materialize_submission_delivery_stale_notice(
+                paper_root=state.paper_root,
+                stale_reason=stale_reason,
+                missing_source_paths=list(report.get("study_delivery_missing_source_paths") or []),
+            )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
     json_path, md_path = write_gate_files(quest_root, report)

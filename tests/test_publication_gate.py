@@ -692,6 +692,96 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
     assert result["study_delivery_stale_sync"]["status"] == "stale_source_missing"
 
 
+def test_run_controller_resyncs_delivery_when_only_current_package_projection_is_missing(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    describe_calls = iter(
+        [
+            {
+                "applicable": True,
+                "status": "stale_projection_missing",
+                "stale_reason": "delivery_projection_missing",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+                "missing_source_paths": [],
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "stale_reason": None,
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+                "missing_source_paths": [],
+            },
+        ]
+    )
+    sync_calls: list[tuple[str, str, bool]] = []
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "draft_bundle_root": None,
+            "draft_bundle_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": next(describe_calls),
+    )
+
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+        promote_to_final: bool = False,
+    ) -> dict[str, object]:
+        sync_calls.append((stage, publication_profile, promote_to_final))
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {
+                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            },
+        }
+
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "materialize_submission_delivery_stale_notice",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("projection-missing should use sync_study_delivery")),
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
+    assert result["status"] == "clear"
+    assert result["study_delivery_stale_sync"] == {
+        "stage": "submission_minimal",
+        "publication_profile": "general_medical_journal",
+        "targets": {
+            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
+        },
+    }
+
+
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
