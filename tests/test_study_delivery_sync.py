@@ -162,6 +162,42 @@ runtime_reentry_gate:
     return paper_root, study_root
 
 
+def make_draft_handoff_workspace(tmp_path: Path) -> tuple[Path, Path]:
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    shutil.rmtree(paper_root / "submission_minimal")
+    write_text(paper_root / "draft.md", "# Draft\n\nCurrent draft bundle.\n")
+    write_text(paper_root / "references.bib", "@article{ref1,title={Example}}\n")
+    write_text(paper_root / "review" / "review.md", "# Review\n")
+    write_text(paper_root / "review" / "revision_log.md", "# Revision Log\n")
+    dump_json(
+        paper_root / "review" / "submission_checklist.json",
+        {
+            "overall_status": "display_materialized_slice_handoff_not_submission_ready",
+            "handoff_ready": True,
+            "blocking_items": [
+                {
+                    "key": "placeholder_heavy_branch_local_draft",
+                    "notes": "Current draft is still placeholder-heavy.",
+                }
+            ],
+        },
+    )
+    write_text(paper_root / "proofing" / "proofing_report.md", "# Proofing Report\n")
+    write_text(paper_root / "proofing" / "language_issues.md", "# Language Issues\n")
+    write_text(paper_root / "figures" / "figure_catalog.json", "{}\n")
+    write_text(paper_root / "figures" / "F1_cohort_flow.pdf", "%PDF-1.4\n")
+    write_png(paper_root / "figures" / "F1_cohort_flow.png")
+    write_text(paper_root / "figures" / "cohort_flow.shell.json", "{}\n")
+    write_text(paper_root / "tables" / "table_catalog.json", "{}\n")
+    write_text(paper_root / "tables" / "T1_baseline_characteristics.csv", "a,b\n1,2\n")
+    write_text(
+        paper_root / "tables" / "T1_baseline_characteristics.md",
+        "| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    )
+    write_text(paper_root / "tables" / "baseline_characteristics.shell.json", "{}\n")
+    return paper_root, study_root
+
+
 def test_sync_study_delivery_for_submission_minimal_populates_study_final_directories(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
@@ -197,6 +233,29 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "auxiliary_evidence_root": None,
         "journal_submission_mirror_root": None,
     }
+
+
+def test_describe_submission_delivery_flags_stale_when_authority_source_disappears(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    shutil.rmtree(paper_root / "submission_minimal")
+    write_text(paper_root / "submission_minimal" / "README.md", "# Placeholder\n")
+    write_text(paper_root / "submission_minimal" / "journal_declarations.md", "# Placeholder\n")
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["applicable"] is True
+    assert result["status"] == "stale_source_missing"
+    assert result["stale_reason"] == "current_submission_source_missing"
+    assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
+    assert result["submission_package_root"] == str(study_root / "manuscript" / "submission_package")
+    assert result["missing_source_paths"] != []
 
 
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
@@ -483,3 +542,45 @@ def test_sync_study_delivery_maps_reentry_quest_back_to_study_root(tmp_path: Pat
     assert (study_root / "manuscript" / "manuscript.docx").exists()
     assert (study_root / "manuscript" / "submission_package.zip").exists()
     assert manifest["study_id"] == "002-early-residual-risk"
+
+
+def test_sync_study_delivery_for_draft_handoff_populates_study_draft_bundle(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_draft_handoff_workspace(tmp_path)
+
+    manifest = module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="draft_handoff",
+    )
+
+    draft_bundle_root = study_root / "manuscript" / "draft_bundle"
+    assert (draft_bundle_root / "draft.md").exists()
+    assert (draft_bundle_root / "review" / "submission_checklist.json").exists()
+    assert (draft_bundle_root / "proofing" / "proofing_report.md").exists()
+    assert (draft_bundle_root / "figures" / "F1_cohort_flow.pdf").exists()
+    assert (draft_bundle_root / "tables" / "T1_baseline_characteristics.csv").exists()
+    assert not (draft_bundle_root / "figures" / "cohort_flow.shell.json").exists()
+    assert not (draft_bundle_root / "tables" / "baseline_characteristics.shell.json").exists()
+    assert (study_root / "manuscript" / "draft_bundle.zip").exists()
+    assert manifest["stage"] == "draft_handoff"
+    assert manifest["targets"]["draft_bundle_root"] == str(draft_bundle_root)
+    assert manifest["targets"]["draft_bundle_zip"] == str(study_root / "manuscript" / "draft_bundle.zip")
+
+
+def test_describe_draft_handoff_delivery_detects_stale_sources(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_draft_handoff_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="draft_handoff",
+    )
+
+    current = module.describe_draft_handoff_delivery(paper_root=paper_root)
+    assert current["status"] == "current"
+    assert current["draft_bundle_root"] == str(study_root / "manuscript" / "draft_bundle")
+
+    write_text(paper_root / "draft.md", "# Draft\n\nUpdated draft bundle.\n")
+
+    stale = module.describe_draft_handoff_delivery(paper_root=paper_root)
+    assert stale["status"] == "stale"

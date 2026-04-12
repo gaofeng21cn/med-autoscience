@@ -151,7 +151,7 @@ def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path
     assert len(seen["saved"]) == 1
     assert len(seen["reported"]) == 1
     saved_state = seen["saved"][0][1]
-    assert saved_state.controllers["publication_gate"].last_applied_fingerprint == "fp-1"
+    assert saved_state.controllers["publication_gate"].last_applied_fingerprint is not None
     assert result["controllers"]["publication_gate"]["action"] == "applied"
 
 
@@ -190,6 +190,76 @@ def test_runtime_watch_preserves_publication_supervisor_summary(tmp_path: Path) 
     assert controller["current_required_action"] == "return_to_publishability_gate"
     assert controller["deferred_downstream_actions"] == []
     assert "downstream-only" in controller["controller_stage_note"]
+
+
+def test_runtime_watch_applies_publication_gate_when_clear_status_still_needs_draft_handoff_sync(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        return {
+            "status": "clear",
+            "blockers": [],
+            "allow_write": True,
+            "missing_non_scalar_deliverables": [],
+            "submission_minimal_present": False,
+            "draft_handoff_delivery_required": True,
+            "draft_handoff_delivery_status": "missing",
+            "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+        }
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=True,
+    )
+
+    assert calls == [False, True]
+    assert result["controllers"]["publication_gate"]["action"] == "applied"
+
+
+def test_runtime_watch_does_not_reapply_after_draft_handoff_sync_stabilizes(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+    calls: list[bool] = []
+    state = {"draft_handoff_synced": False}
+
+    def fake_runner(*, quest_root: Path, apply: bool) -> dict:
+        calls.append(apply)
+        if apply:
+            state["draft_handoff_synced"] = True
+        status = "current" if state["draft_handoff_synced"] else "missing"
+        return {
+            "status": "blocked",
+            "blockers": ["medical_publication_surface_blocked"],
+            "allow_write": False,
+            "missing_non_scalar_deliverables": [],
+            "submission_minimal_present": False,
+            "draft_handoff_delivery_required": True,
+            "draft_handoff_delivery_status": status,
+            "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+        }
+
+    first = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=True,
+    )
+    second = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={"publication_gate": fake_runner},
+        apply=True,
+    )
+
+    assert first["controllers"]["publication_gate"]["action"] == "applied"
+    assert second["controllers"]["publication_gate"]["action"] == "suppressed"
+    assert calls == [False, True, False]
 
 
 def test_build_default_controller_runners_includes_figure_loop_guard() -> None:

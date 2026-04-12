@@ -283,6 +283,144 @@ def test_build_gate_report_keeps_handoff_ready_bundle_blocked_for_unknown_submis
     assert report["current_required_action"] == "return_to_publishability_gate"
 
 
+def test_build_gate_report_marks_draft_handoff_sync_missing_when_bundle_is_handoff_ready(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        submission_checklist={
+            "overall_status": "display_materialized_slice_handoff_not_submission_ready",
+            "blocking_items": [
+                {
+                    "key": "placeholder_heavy_branch_local_draft",
+                    "notes": "Current draft is still placeholder-heavy.",
+                }
+            ],
+            "handoff_ready": True,
+        },
+    )
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": True,
+            "status": "missing",
+            "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
+            "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": False,
+            "status": "not_applicable",
+            "stale_reason": None,
+            "delivery_manifest_path": None,
+            "submission_package_root": None,
+            "missing_source_paths": [],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["draft_handoff_delivery_required"] is True
+    assert report["draft_handoff_delivery_status"] == "missing"
+    assert report["draft_handoff_delivery_manifest_path"] is None
+
+
+def test_run_controller_syncs_draft_handoff_surface_when_missing(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        submission_checklist={
+            "overall_status": "display_materialized_slice_handoff_not_submission_ready",
+            "blocking_items": [
+                {
+                    "key": "placeholder_heavy_branch_local_draft",
+                    "notes": "Current draft is still placeholder-heavy.",
+                }
+            ],
+            "handoff_ready": True,
+        },
+    )
+    describe_calls = iter(
+        [
+            {
+                "applicable": True,
+                "status": "missing",
+                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
+                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+                "delivery_manifest_path": None,
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
+                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/draft_bundle/delivery_manifest.json",
+            },
+        ]
+    )
+    sync_calls: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: next(describe_calls),
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": False,
+            "status": "not_applicable",
+            "stale_reason": None,
+            "delivery_manifest_path": None,
+            "submission_package_root": None,
+            "missing_source_paths": [],
+        },
+    )
+
+    def fake_sync(*, paper_root: Path, stage: str, publication_profile: str = "general_medical_journal", promote_to_final: bool = False) -> dict[str, object]:
+        sync_calls.append((stage, publication_profile))
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {
+                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
+                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+            },
+        }
+
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [("draft_handoff", "general_medical_journal")]
+    assert result["draft_handoff_delivery_status"] == "current"
+    assert result["draft_handoff_delivery_sync"] == {
+        "stage": "draft_handoff",
+        "publication_profile": "general_medical_journal",
+        "targets": {
+            "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
+            "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+        },
+    }
+
+
 def test_build_gate_report_blocks_finalize_only_bundle_when_surface_report_is_stale(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -326,6 +464,55 @@ def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_mi
     assert report["supervisor_phase"] == "bundle_stage_blocked"
     assert report["bundle_tasks_downstream_only"] is False
     assert report["current_required_action"] == "complete_bundle_stage"
+
+
+def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "draft_bundle_root": None,
+            "draft_bundle_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": {
+            "applicable": True,
+            "status": "stale_source_missing",
+            "stale_reason": "current_submission_source_missing",
+            "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "missing_source_paths": [
+                "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
+            ],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert "missing_submission_minimal" in report["blockers"]
+    assert "stale_study_delivery_mirror" in report["blockers"]
+    assert report["study_delivery_status"] == "stale_source_missing"
+    assert report["study_delivery_stale_reason"] == "current_submission_source_missing"
+    assert report["study_delivery_manifest_path"] == "/tmp/studies/002/manuscript/delivery_manifest.json"
 
 
 def test_build_gate_report_marks_bundle_tasks_downstream_when_publication_anchor_is_missing(tmp_path: Path) -> None:

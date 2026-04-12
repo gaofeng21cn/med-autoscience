@@ -87,6 +87,8 @@ def build_fingerprint(controller_name: str, result: dict[str, Any]) -> str:
             "blockers": result.get("blockers") or [],
             "missing_non_scalar_deliverables": result.get("missing_non_scalar_deliverables") or [],
             "submission_minimal_present": result.get("submission_minimal_present"),
+            "draft_handoff_delivery_required": result.get("draft_handoff_delivery_required"),
+            "draft_handoff_delivery_status": result.get("draft_handoff_delivery_status"),
             "supervisor_phase": result.get("supervisor_phase"),
             "phase_owner": result.get("phase_owner"),
             "upstream_scientific_anchor_ready": result.get("upstream_scientific_anchor_ready"),
@@ -347,6 +349,13 @@ def run_watch_for_quest(
         intervention_statuses = {"blocked"}
         if name == "data_asset_gate":
             intervention_statuses.add("advisory")
+        if (
+            name == "publication_gate"
+            and dry_run_result.get("draft_handoff_delivery_required") is True
+            and str(dry_run_result.get("draft_handoff_delivery_status") or "").strip() in {"missing", "stale", "invalid"}
+            and str(dry_run_result.get("status") or "").strip()
+        ):
+            intervention_statuses.add(str(dry_run_result.get("status") or "").strip())
         plan = runtime_watch_protocol.plan_controller_intervention(
             previous_controller_state=previous,
             dry_run_result=dry_run_result,
@@ -358,14 +367,24 @@ def run_watch_for_quest(
         final_result = dry_run_result
         if plan.should_apply:
             final_result = _invoke_controller_runner(runner, quest_root=quest_root, apply=True)
-        controller_state[name] = plan.controller_state
-        status = dry_run_result.get("status")
+            final_fingerprint = build_fingerprint(name, final_result)
+            controller_state[name] = runtime_watch_protocol.RuntimeWatchControllerState(
+                last_seen_fingerprint=final_fingerprint,
+                last_applied_fingerprint=final_fingerprint,
+                last_applied_at=report["scanned_at"],
+                last_status=str(final_result.get("status") or "").strip() or None,
+                last_suppression_reason=None,
+            )
+        else:
+            controller_state[name] = plan.controller_state
+        report_result = final_result if plan.should_apply else dry_run_result
+        status = report_result.get("status")
         suppression_reason = plan.suppression_reason
         report["controllers"][name] = {
             "status": status,
             "action": plan.action.value,
-            "blockers": dry_run_result.get("blockers") or [],
-            "advisories": dry_run_result.get("advisories") or [],
+            "blockers": report_result.get("blockers") or [],
+            "advisories": report_result.get("advisories") or [],
             "report_json": final_result.get("report_json"),
             "report_markdown": final_result.get("report_markdown"),
             "suppression_reason": suppression_reason,
@@ -373,13 +392,15 @@ def run_watch_for_quest(
         if name == "publication_gate":
             report["controllers"][name].update(
                 {
-                    "supervisor_phase": dry_run_result.get("supervisor_phase"),
-                    "phase_owner": dry_run_result.get("phase_owner"),
-                    "upstream_scientific_anchor_ready": dry_run_result.get("upstream_scientific_anchor_ready"),
-                    "bundle_tasks_downstream_only": dry_run_result.get("bundle_tasks_downstream_only"),
-                    "current_required_action": dry_run_result.get("current_required_action"),
-                    "deferred_downstream_actions": dry_run_result.get("deferred_downstream_actions") or [],
-                    "controller_stage_note": dry_run_result.get("controller_stage_note"),
+                    "supervisor_phase": report_result.get("supervisor_phase"),
+                    "phase_owner": report_result.get("phase_owner"),
+                    "upstream_scientific_anchor_ready": report_result.get("upstream_scientific_anchor_ready"),
+                    "bundle_tasks_downstream_only": report_result.get("bundle_tasks_downstream_only"),
+                    "current_required_action": report_result.get("current_required_action"),
+                    "deferred_downstream_actions": report_result.get("deferred_downstream_actions") or [],
+                    "controller_stage_note": report_result.get("controller_stage_note"),
+                    "draft_handoff_delivery_required": report_result.get("draft_handoff_delivery_required"),
+                    "draft_handoff_delivery_status": report_result.get("draft_handoff_delivery_status"),
                 }
             )
 

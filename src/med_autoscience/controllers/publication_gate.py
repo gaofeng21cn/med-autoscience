@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
@@ -68,6 +69,8 @@ class GateState:
     archived_submission_surface_roots: list[str]
     unmanaged_submission_surface_roots: list[str]
     manuscript_terminology_violations: list[dict[str, str]]
+    study_delivery: dict[str, Any] | None
+    draft_handoff_delivery: dict[str, Any] | None
 
 
 def utc_now() -> str:
@@ -83,6 +86,11 @@ def load_json(path: Path, default: Any = None) -> Any:
 def dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 def find_latest(paths: list[Path]) -> Path | None:
@@ -330,6 +338,16 @@ def build_gate_state(quest_root: Path) -> GateState:
         else []
     )
     manuscript_terminology_violations = detect_manuscript_terminology_violations(paper_root)
+    study_delivery = (
+        study_delivery_sync.describe_submission_delivery(paper_root=paper_root)
+        if paper_root is not None and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
+        else None
+    )
+    draft_handoff_delivery = (
+        study_delivery_sync.describe_draft_handoff_delivery(paper_root=paper_root)
+        if paper_root is not None and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
+        else None
+    )
     return GateState(
         quest_root=quest_root,
         runtime_state=runtime_state,
@@ -363,6 +381,8 @@ def build_gate_state(quest_root: Path) -> GateState:
         archived_submission_surface_roots=archived_submission_surface_roots,
         unmanaged_submission_surface_roots=unmanaged_submission_surface_roots,
         manuscript_terminology_violations=manuscript_terminology_violations,
+        study_delivery=study_delivery,
+        draft_handoff_delivery=draft_handoff_delivery,
     )
 
 
@@ -393,6 +413,17 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         item for item in submission_checklist_blocking_items if item not in _NON_SCIENTIFIC_HANDOFF_BLOCKING_ITEM_KEYS
     ]
     closure_bundle_ready = submission_checklist_handoff_ready and not submission_checklist_unclassified_blocking_items
+    study_delivery = state.study_delivery or {}
+    study_delivery_status = str(study_delivery.get("status") or "").strip() or "not_applicable"
+    draft_handoff_delivery = state.draft_handoff_delivery or {}
+    draft_handoff_delivery_required = bool(
+        submission_checklist_handoff_ready
+        and state.submission_minimal_manifest is None
+        and draft_handoff_delivery.get("applicable") is True
+    )
+    draft_handoff_delivery_status = (
+        str(draft_handoff_delivery.get("status") or "").strip() or "not_applicable"
+    )
     blockers: list[str] = []
     if state.anchor_kind == "main_result":
         allow_write = gate_allows_write(state.latest_gate, state.latest_gate_path, state.main_result_path)
@@ -445,6 +476,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         conclusion = (state.paper_bundle_manifest or {}).get("summary") or (state.compile_report or {}).get("summary")
     if state.unmanaged_submission_surface_roots:
         blockers.append("unmanaged_submission_surface_present")
+    if study_delivery_status.startswith("stale"):
+        blockers.append("stale_study_delivery_mirror")
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
     if medical_publication_surface_status and medical_publication_surface_status != "clear":
         blockers.append("medical_publication_surface_blocked")
@@ -511,6 +544,16 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "submission_minimal_present": state.submission_minimal_manifest is not None,
         "submission_minimal_docx_present": state.submission_minimal_docx_present,
         "submission_minimal_pdf_present": state.submission_minimal_pdf_present,
+        "study_delivery_status": study_delivery_status,
+        "study_delivery_stale_reason": _non_empty_text(study_delivery.get("stale_reason")),
+        "study_delivery_manifest_path": _non_empty_text(study_delivery.get("delivery_manifest_path")),
+        "study_delivery_submission_package_root": _non_empty_text(study_delivery.get("submission_package_root")),
+        "study_delivery_missing_source_paths": list(study_delivery.get("missing_source_paths") or []),
+        "draft_handoff_delivery_required": draft_handoff_delivery_required,
+        "draft_handoff_delivery_status": draft_handoff_delivery_status,
+        "draft_handoff_delivery_manifest_path": _non_empty_text(draft_handoff_delivery.get("delivery_manifest_path")),
+        "draft_handoff_delivery_root": _non_empty_text(draft_handoff_delivery.get("draft_bundle_root")),
+        "draft_handoff_delivery_zip": _non_empty_text(draft_handoff_delivery.get("draft_bundle_zip")),
         "medical_publication_surface_status": medical_publication_surface_status or None,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
@@ -663,6 +706,9 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `submission_minimal_present`: `{str(report.get('submission_minimal_present')).lower()}`",
             f"- `submission_minimal_docx_present`: `{str(report.get('submission_minimal_docx_present')).lower()}`",
             f"- `submission_minimal_pdf_present`: `{str(report.get('submission_minimal_pdf_present')).lower()}`",
+            f"- `draft_handoff_delivery_required`: `{str(report.get('draft_handoff_delivery_required')).lower()}`",
+            f"- `draft_handoff_delivery_status`: `{report.get('draft_handoff_delivery_status')}`",
+            f"- `draft_handoff_delivery_manifest_path`: `{report.get('draft_handoff_delivery_manifest_path')}`",
             f"- `medical_publication_surface_report_path`: `{report.get('medical_publication_surface_report_path')}`",
             f"- `medical_publication_surface_status`: `{report.get('medical_publication_surface_status')}`",
             f"- `medical_publication_surface_current`: `{str(report.get('medical_publication_surface_current')).lower()}`",
@@ -789,6 +835,20 @@ def run_controller(
 ) -> dict[str, Any]:
     state = build_gate_state(quest_root)
     report = build_gate_report(state)
+    draft_handoff_delivery_sync = None
+    if (
+        apply
+        and report.get("draft_handoff_delivery_required") is True
+        and report.get("draft_handoff_delivery_status") in {"missing", "stale", "invalid"}
+        and state.paper_root is not None
+        and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
+    ):
+        draft_handoff_delivery_sync = study_delivery_sync.sync_study_delivery(
+            paper_root=state.paper_root,
+            stage="draft_handoff",
+        )
+        state = build_gate_state(quest_root)
+        report = build_gate_report(state)
     json_path, md_path = write_gate_files(quest_root, report)
     intervention = None
     if apply and report["blockers"]:
@@ -806,6 +866,10 @@ def run_controller(
         "blockers": report["blockers"],
         "missing_non_scalar_deliverables": report["missing_non_scalar_deliverables"],
         "submission_minimal_present": report["submission_minimal_present"],
+        "draft_handoff_delivery_required": report["draft_handoff_delivery_required"],
+        "draft_handoff_delivery_status": report["draft_handoff_delivery_status"],
+        "draft_handoff_delivery_manifest_path": report["draft_handoff_delivery_manifest_path"],
+        "draft_handoff_delivery_sync": draft_handoff_delivery_sync,
         "intervention_enqueued": bool(intervention),
         "message_id": intervention.get("message_id") if intervention else None,
         "source": source,

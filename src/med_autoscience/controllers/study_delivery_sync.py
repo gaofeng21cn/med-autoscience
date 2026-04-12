@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import zipfile
@@ -16,7 +17,7 @@ from med_autoscience.publication_profiles import (
 from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
 
 
-SYNC_STAGES = ("submission_minimal", "finalize")
+SYNC_STAGES = ("draft_handoff", "submission_minimal", "finalize")
 
 
 def utc_now() -> str:
@@ -293,6 +294,378 @@ def build_zip_from_directory(*, source_root: Path, output_path: Path) -> None:
             if not source.is_file():
                 continue
             archive.write(source, source.relative_to(source_root).as_posix())
+
+
+def _copy_relative_files(
+    *,
+    source_root: Path,
+    relative_paths: tuple[Path, ...],
+    target_root: Path,
+    category: str,
+    copied_files: list[dict[str, str]],
+) -> None:
+    for relative_path in relative_paths:
+        source = source_root / relative_path
+        copy_file(
+            source=source,
+            target=target_root / relative_path,
+            category=category,
+            copied_files=copied_files,
+        )
+
+
+def _iter_relative_files(
+    source_root: Path,
+    *,
+    ignore_suffixes: tuple[str, ...] = (),
+    ignore_filenames: tuple[str, ...] = (),
+) -> tuple[Path, ...]:
+    relative_paths: list[Path] = []
+    for path in sorted(source_root.rglob("*")):
+        if not path.is_file():
+            continue
+        if path.name in ignore_filenames:
+            continue
+        if any(path.name.endswith(suffix) for suffix in ignore_suffixes):
+            continue
+        relative_paths.append(path.relative_to(source_root))
+    return tuple(relative_paths)
+
+
+def _draft_handoff_source_relative_paths(*, paper_root: Path) -> tuple[Path, ...]:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    required_files = (
+        Path("draft.md"),
+        Path("paper_bundle_manifest.json"),
+    )
+    missing_required = [str(path) for path in required_files if not (resolved_paper_root / path).exists()]
+    if missing_required:
+        raise FileNotFoundError(
+            "missing draft handoff source files: " + ", ".join(missing_required)
+        )
+
+    relative_paths: list[Path] = list(required_files)
+    optional_files = (
+        Path("references.bib"),
+        Path("build/compile_report.json"),
+        Path("review/review.md"),
+        Path("review/revision_log.md"),
+        Path("review/submission_checklist.json"),
+        Path("proofing/proofing_report.md"),
+        Path("proofing/language_issues.md"),
+        Path("proofing/page_images_manifest.json"),
+        Path("selected_outline.json"),
+        Path("claim_evidence_map.json"),
+        Path("evidence_ledger.json"),
+    )
+    relative_paths.extend(path for path in optional_files if (resolved_paper_root / path).exists())
+    if (resolved_paper_root / "figures").is_dir():
+        relative_paths.extend(
+            Path("figures") / path
+            for path in _iter_relative_files(
+                resolved_paper_root / "figures",
+                ignore_suffixes=(".shell.json",),
+            )
+        )
+    if (resolved_paper_root / "tables").is_dir():
+        relative_paths.extend(
+            Path("tables") / path
+            for path in _iter_relative_files(
+                resolved_paper_root / "tables",
+                ignore_suffixes=(".shell.json",),
+            )
+        )
+    deduped = sorted({path.as_posix(): path for path in relative_paths}.values(), key=lambda item: item.as_posix())
+    return tuple(deduped)
+
+
+def _draft_handoff_source_signature(*, paper_root: Path, relative_paths: tuple[Path, ...]) -> str:
+    resolved_paper_root = Path(paper_root).expanduser().resolve()
+    fingerprint_payload = []
+    for relative_path in relative_paths:
+        source = resolved_paper_root / relative_path
+        stat = source.stat()
+        fingerprint_payload.append(
+            {
+                "path": relative_path.as_posix(),
+                "mtime_ns": stat.st_mtime_ns,
+                "size": stat.st_size,
+            }
+        )
+    canonical = json.dumps(fingerprint_payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def build_draft_handoff_readme(*, study_id: str) -> str:
+    return (
+        "# Draft Handoff Bundle\n\n"
+        f"- Study: `{study_id}`\n"
+        "- Sync stage: `draft_handoff`\n"
+        "- Status: review-only draft surface; not a submission-ready package\n"
+        "- Canonical authority surface: `paper/`\n"
+        "- Human-facing mirror: `manuscript/draft_bundle/`\n\n"
+        "This bundle mirrors the latest human-reviewable paper draft into the study shallow path. "
+        "It does not relax the publication gate, and it must not be treated as a formal submission package.\n"
+    )
+
+
+def describe_draft_handoff_delivery(*, paper_root: Path) -> dict[str, Any]:
+    if not can_sync_study_delivery(paper_root=paper_root):
+        return {
+            "applicable": False,
+            "status": "not_applicable",
+            "draft_bundle_root": None,
+            "draft_bundle_zip": None,
+            "delivery_manifest_path": None,
+        }
+
+    context = _resolve_delivery_context(Path(paper_root).expanduser().resolve())
+    resolved_paper_root = context["paper_root"]
+    study_root = context["study_root"]
+    draft_bundle_root = study_root / "manuscript" / "draft_bundle"
+    draft_bundle_zip = study_root / "manuscript" / "draft_bundle.zip"
+    delivery_manifest_path = draft_bundle_root / "delivery_manifest.json"
+    if not delivery_manifest_path.exists():
+        return {
+            "applicable": True,
+            "status": "missing",
+            "draft_bundle_root": str(draft_bundle_root),
+            "draft_bundle_zip": str(draft_bundle_zip),
+            "delivery_manifest_path": None,
+        }
+    try:
+        manifest = json.loads(delivery_manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "draft_bundle_root": str(draft_bundle_root),
+            "draft_bundle_zip": str(draft_bundle_zip),
+            "delivery_manifest_path": str(delivery_manifest_path),
+        }
+    if not isinstance(manifest, dict):
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "draft_bundle_root": str(draft_bundle_root),
+            "draft_bundle_zip": str(draft_bundle_zip),
+            "delivery_manifest_path": str(delivery_manifest_path),
+        }
+
+    try:
+        relative_paths = _draft_handoff_source_relative_paths(paper_root=resolved_paper_root)
+        source_signature = _draft_handoff_source_signature(
+            paper_root=resolved_paper_root,
+            relative_paths=relative_paths,
+        )
+    except FileNotFoundError:
+        return {
+            "applicable": True,
+            "status": "stale",
+            "draft_bundle_root": str(draft_bundle_root),
+            "draft_bundle_zip": str(draft_bundle_zip),
+            "delivery_manifest_path": str(delivery_manifest_path),
+        }
+
+    recorded_surface_roles = manifest.get("surface_roles") or {}
+    recorded_source_signature = str(manifest.get("source_signature") or "").strip()
+    recorded_source_root = str((recorded_surface_roles or {}).get("controller_authorized_paper_root") or "").strip()
+    status = (
+        "current"
+        if recorded_source_signature == source_signature and recorded_source_root == str(resolved_paper_root)
+        else "stale"
+    )
+    return {
+        "applicable": True,
+        "status": status,
+        "draft_bundle_root": str(draft_bundle_root),
+        "draft_bundle_zip": str(draft_bundle_zip),
+        "delivery_manifest_path": str(delivery_manifest_path),
+    }
+
+
+def describe_submission_delivery(
+    *,
+    paper_root: Path,
+    publication_profile: str = "general_medical_journal",
+) -> dict[str, Any]:
+    if not can_sync_study_delivery(paper_root=paper_root):
+        return {
+            "applicable": False,
+            "status": "not_applicable",
+            "stale_reason": None,
+            "delivery_manifest_path": None,
+            "submission_package_root": None,
+            "missing_source_paths": [],
+        }
+
+    context = _resolve_delivery_context(Path(paper_root).expanduser().resolve())
+    resolved_paper_root = context["paper_root"]
+    study_root = context["study_root"]
+    manuscript_root = study_root / "manuscript"
+    delivery_manifest_path = manuscript_root / "delivery_manifest.json"
+    normalized_publication_profile = normalize_publication_profile(publication_profile)
+    submission_package_root = (
+        manuscript_root / "submission_package"
+        if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE
+        else manuscript_root / "journal_packages" / normalized_publication_profile
+    )
+    if not delivery_manifest_path.exists():
+        return {
+            "applicable": True,
+            "status": "missing",
+            "stale_reason": None,
+            "delivery_manifest_path": None,
+            "submission_package_root": str(submission_package_root),
+            "missing_source_paths": [],
+        }
+    try:
+        manifest = json.loads(delivery_manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "stale_reason": "delivery_manifest_invalid",
+            "delivery_manifest_path": str(delivery_manifest_path),
+            "submission_package_root": str(submission_package_root),
+            "missing_source_paths": [],
+        }
+    if not isinstance(manifest, dict):
+        return {
+            "applicable": True,
+            "status": "invalid",
+            "stale_reason": "delivery_manifest_invalid",
+            "delivery_manifest_path": str(delivery_manifest_path),
+            "submission_package_root": str(submission_package_root),
+            "missing_source_paths": [],
+        }
+
+    expected_source_root = build_submission_source_root(
+        paper_root=resolved_paper_root,
+        publication_profile=normalized_publication_profile,
+    )
+    expected_manifest_path = expected_source_root / "submission_manifest.json"
+    if not expected_manifest_path.exists():
+        missing_source_paths = sorted(
+            {
+                str(Path(item.get("source_path")).expanduser())
+                for item in (manifest.get("copied_files") or [])
+                if isinstance(item, dict) and str(item.get("source_path") or "").strip()
+            }
+        )
+        return {
+            "applicable": True,
+            "status": "stale_source_missing",
+            "stale_reason": "current_submission_source_missing",
+            "delivery_manifest_path": str(delivery_manifest_path),
+            "submission_package_root": str(submission_package_root),
+            "missing_source_paths": missing_source_paths,
+        }
+
+    recorded_surface_roles = manifest.get("surface_roles") or {}
+    recorded_source_root = (
+        str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
+        or str(((manifest.get("source") or {}) if isinstance(manifest.get("source"), dict) else {}).get("package_source_root") or "").strip()
+    )
+    missing_source_paths = sorted(
+        {
+            str(Path(item.get("source_path")).expanduser().resolve())
+            for item in (manifest.get("copied_files") or [])
+            if isinstance(item, dict)
+            and str(item.get("source_path") or "").strip()
+            and not Path(str(item.get("source_path"))).expanduser().exists()
+        }
+    )
+    if missing_source_paths:
+        status = "stale_source_missing"
+        stale_reason = "delivery_manifest_sources_missing"
+    elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
+        status = "stale_source_mismatch"
+        stale_reason = "delivery_manifest_source_mismatch"
+    else:
+        status = "current"
+        stale_reason = None
+    return {
+        "applicable": True,
+        "status": status,
+        "stale_reason": stale_reason,
+        "delivery_manifest_path": str(delivery_manifest_path),
+        "submission_package_root": str(submission_package_root),
+        "missing_source_paths": missing_source_paths,
+    }
+
+
+def sync_draft_handoff_delivery(
+    *,
+    paper_root: Path,
+    study_id: str,
+    study_root: Path,
+) -> dict[str, Any]:
+    manuscript_root = study_root / "manuscript"
+    draft_bundle_root = manuscript_root / "draft_bundle"
+    draft_bundle_zip = manuscript_root / "draft_bundle.zip"
+    ensure_manuscript_root_readme(manuscript_root=manuscript_root)
+
+    copied_files: list[dict[str, str]] = []
+    generated_files: list[dict[str, str]] = []
+    relative_paths = _draft_handoff_source_relative_paths(paper_root=paper_root)
+    source_signature = _draft_handoff_source_signature(
+        paper_root=paper_root,
+        relative_paths=relative_paths,
+    )
+
+    reset_directory(draft_bundle_root)
+    _copy_relative_files(
+        source_root=paper_root,
+        relative_paths=relative_paths,
+        target_root=draft_bundle_root,
+        category="draft_handoff",
+        copied_files=copied_files,
+    )
+
+    readme_path = draft_bundle_root / "README.md"
+    write_text(readme_path, build_draft_handoff_readme(study_id=study_id))
+    generated_files.append(
+        {
+            "category": "draft_handoff",
+            "path": str(readme_path.resolve()),
+        }
+    )
+    build_zip_from_directory(source_root=draft_bundle_root, output_path=draft_bundle_zip)
+    generated_files.append(
+        {
+            "category": "draft_handoff",
+            "path": str(draft_bundle_zip.resolve()),
+        }
+    )
+
+    manifest = {
+        "schema_version": 1,
+        "generated_at": utc_now(),
+        "stage": "draft_handoff",
+        "study_id": study_id,
+        "quest_id": study_id,
+        "source_signature": source_signature,
+        "source_relative_paths": [path.as_posix() for path in relative_paths],
+        "source": {
+            "paper_root": str(paper_root),
+        },
+        "surface_roles": {
+            "controller_authorized_paper_root": str(paper_root),
+            "human_facing_draft_bundle_root": str(draft_bundle_root),
+            "human_facing_draft_bundle_zip": str(draft_bundle_zip),
+        },
+        "targets": {
+            "study_root": str(study_root),
+            "manuscript_root": str(manuscript_root),
+            "draft_bundle_root": str(draft_bundle_root),
+            "draft_bundle_zip": str(draft_bundle_zip),
+        },
+        "copied_files": copied_files,
+        "generated_files": generated_files,
+    }
+    dump_json(draft_bundle_root / "delivery_manifest.json", manifest)
+    return manifest
 
 
 def sync_general_delivery(
@@ -898,6 +1271,15 @@ def sync_study_delivery(
     worktree_root = context["worktree_root"]
     study_id = context["study_id"]
     study_root = context["study_root"]
+
+    if normalized_stage == "draft_handoff":
+        if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:
+            raise ValueError("draft_handoff only supports the general_medical_journal profile")
+        return sync_draft_handoff_delivery(
+            paper_root=paper_root,
+            study_id=study_id,
+            study_root=study_root,
+        )
 
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         return sync_general_delivery(
