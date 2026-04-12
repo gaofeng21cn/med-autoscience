@@ -29,3 +29,9 @@
 - 决策：仓内保留的 `Hermes` 命名，只能表示 repo-side outer-runtime seam / shim / contract owner，不得写成“上游 `Hermes-Agent` 已成为当前 runtime owner”。
 - 理由：当前真实长时执行仍通过受控 `MedDeepScientist` backend 完成；文档与命名必须诚实反映这一点。
 - 影响：后续所有 runtime 文档都必须把“目标中的上游 `Hermes-Agent`”与“当前仓内的 repo-side seam”拆开表述；display / paper-facing asset packaging 独立线继续排除在当前 tranche 外。
+
+## 2026-04-12：固定 runtime substrate 与 research executor 分层
+
+- 决策：`Hermes-Agent` 在这条主线里优先承担 runtime substrate / orchestration owner，而不是立刻替代 `MedDeepScientist` 内部所有研究执行脑。
+- 理由：当前真正高风险的不是“没有统一执行脑”，而是“没有统一长期在线 runtime substrate”。若在外层 runtime ownership 尚未稳定前，就强制把 backend 内部的 `Codex + skills` 执行生态整体替掉，最容易出现功能降级。
+- 影响：后续解构 `MedDeepScientist` 时，必须按 executor route 逐类迁移，并用显式 contract + proof 决定是否替换；不允许把“接入 Hermes”偷换成“已完成单步执行器替换”。

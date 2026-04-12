@@ -103,9 +103,9 @@
 ## 当前落点（2026-04-12）
 
 - F1 的 repo-side 证据面已落成可验证 contract：`hermes-runtime-check`、`inspect_hermes_runtime_contract(...)`、`doctor.external_runtime_contract`
-- 对真实外部环境执行检查后，已确认 external Hermes repo、launcher、managed `.venv`、`~/.hermes/state.db`、logs/sessions root 均存在
-- 当前 honest blocker 已缩窄为两项外部环境真问题：provider/model 未配置、gateway service 未加载
-- 因此下一棒不能诚实进入 F2 real adapter cutover，除非先由外部环境把这两个 blocker 清掉；repo-side 不应伪装成“已经完成 Hermes 接管”
+- 对当前开发宿主执行检查后，已确认 external Hermes repo、launcher、managed `.venv`、`~/.hermes/state.db`、logs/sessions root、provider 配置与 launchd gateway service 均已就绪
+- 因此当前开发宿主上的 honest next step 已进入 `F2 / real adapter cutover`
+- 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”；只有 real adapter proof 与真实 study soak / recovery proof 成立后，才可继续上收这条切换
 
 ## 默认验证
 

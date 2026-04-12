@@ -109,6 +109,30 @@
 - 这套“及时干预”本身也受外环监管约束：只要 `supervisor_tick_audit` 变成 `missing / stale / invalid`，`study_progress` 就必须把当前状态投影成 `managed_runtime_supervision_gap`，明确说明 MAS 已不能保证及时发现掉线和自动恢复。
 - 阶段性成果的人话汇报当前由 `study_progress` 只读组合 `runtime_supervision/latest.json`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`bash_exec summary`、`details projection`，而不是直接抓 inner runtime 原始日志拼装一个黑盒摘要。
 
+## Runtime substrate 与 research executor 的分层
+
+当前这条迁移线统一采用：
+
+- `Hermes-Agent` 管长期在线 runtime substrate / orchestration
+- `MedAutoScience` 管研究入口、authority、outer-loop judgment
+- `MedDeepScientist` 管当前仍保留的 research executor / backend execution
+
+这意味着“接入 Hermes”不等于“每个研究动作都必须由 Hermes 自己重新执行”。
+
+在当前阶段，只要 backend contract 没变，inner-loop execution 仍可以继续复用受控 backend 里已经工作的执行生态，例如：
+
+- backend 内部 agent/tool routing
+- `Codex` 与其技能生态
+- 受控 bash / code execution / paper worktree side effects
+
+后续如果要继续解构 `MedDeepScientist`，正确顺序也不是先强制换脑，而是：
+
+1. 先让 `Hermes-Agent` 稳定持有 session / run / watch / recovery / scheduling
+2. 再把研究执行里的某一类动作通过显式 contract 迁到新的 executor adapter
+3. 只有当新的 executor route 拿到等价 proof 时，才允许替换旧 backend path
+
+因此，这条线当前追求的是“runtime substrate owner 切换”，不是“单步执行器立刻单一化”。
+
 ## 当前还不能诚实宣称的事
 
 - 当前 `med_autoscience.runtime_transport.hermes` 仍是 consumer-only outer substrate seam，底层 quest create / pause / resume / control 还是经由 controlled `MedDeepScientist` stable transport 完成。

@@ -9,6 +9,7 @@
 - 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
 - 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内仅有 repo-side seam / shim
 - 当前入口真相：`CLI / MCP` 已经构成稳定的 `agent entry`，但轻量医学 `product entry` 仍未落地
+- 当前协作真相：`Hermes-Agent` 负责长期在线 runtime substrate / orchestration，`MedAutoScience` 负责研究入口与 outer-loop authority，`MedDeepScientist` 继续承载当前 research execution brain；这不要求现在就把 backend 内部依赖的 `Codex + skills` 全部替成 `Hermes`
 
 ## 目标
 

@@ -9,6 +9,7 @@
 - 当前产品主线：`Auto-only`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
 - 当前入口真相：`operator entry` 与 `agent entry` 已存在；成熟的医学 `product entry` 仍未落地
+- 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
 
 ## 当前基线（repo-verified）
 
@@ -40,16 +41,16 @@
 - 保持 `MedAutoScience` 对 `MedDeepScientist` native runtime truth 的消费不回退，不再让 controller 覆盖 quest-owned `runtime_events/*`。
 - 保持 `runtime backend interface` 已冻结：`MedAutoScience` controller 只认 backend contract，不再把 `med-deepscientist` 模块名当作 managed runtime 判定真相。
 - 保持上游 `Hermes-Agent` 作为目标 outer substrate owner 这条路线诚实成立，同时保留 external runtime repo / workspace / daemon truth 仍未进入本仓这一 blocker。
-- `2026-04-12` 对真实外部环境运行 `doctor` 与 `hermes-runtime-check` 后已确认：`/Users/gaofeng/workspace/_external/hermes-agent`、其 `.venv` / launcher、以及 `~/.hermes/state.db` 均已存在，provider 凭证也已就绪；当前真实 blocker 已缩窄为 gateway 尚未进入标准 service 托管态，而不是 external repo 不存在或 provider/model 未配置。
-- 如果宿主机尚无 external `Hermes-Agent` runtime，本仓当前仍只有 repo-side seam：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 `Hermes-Agent` host 已脱离 `MedDeepScientist` 完整接管执行”。
+- `2026-04-12` 对真实外部环境运行 `doctor`、`hermes-runtime-check` 与 `hermes gateway status` 后已确认：`/Users/gaofeng/workspace/_external/hermes-agent`、其 `.venv` / launcher、`~/.hermes/state.db` 与 launchd gateway service 均已就绪；当前开发宿主上的 honest next step 已转为 `future outer-runtime seam -> real adapter cutover`，而不再是 external runtime bring-up。
+- 如果其他宿主机尚无 external `Hermes-Agent` runtime，本仓当前仍只能提供 repo-side seam：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 `Hermes-Agent` host 已脱离 `MedDeepScientist` 完整接管执行”。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
-- `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
+- 对当前开发宿主，external runtime dependency gate 已通过；但在 real adapter cutover proof、external workspace truth 与 human gate 进一步放行前，仍不做 physical migration 或 cross-repo rewrite。
 - 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。
 - `OPL -> Med Auto Science` handoff 与 lightweight product entry 目前只冻结到架构和合同语义；在 external gate 清除前，不得把它们写成已落地的独立产品前台。
 
 ## 下一阶段
 
-1. 按 `docs/program/upstream_hermes_agent_fast_cutover_board.md` 在 repo-side 继续推进真实 external `Hermes-Agent` 接入、future outer-runtime seam -> real adapter 切换、以及 backend-generic durable surface 与 cutover evidence 收口。
+1. 按 `docs/program/upstream_hermes_agent_fast_cutover_board.md` 从 `future outer-runtime seam -> real adapter cutover` 继续推进，并补齐 backend-generic durable surface 与 cutover evidence。
 2. 保持 display 线与 runtime 主线严格分离，避免资产化支线反向污染主线 truth。
-3. external gate 未清除前，只做 consumer-only convergence，不提前宣称 runtime owner 已切换完成。
+3. 在 real adapter proof 未成立前，只做受控 cutover，不提前宣称 runtime owner 已切换完成。
 4. 在不突破 external gate 的前提下，继续把 `Med Auto Science Product Entry` 与 `OPL` handoff 所需合同写清，但不偷跑到 physical migration 或 product overclaim。
