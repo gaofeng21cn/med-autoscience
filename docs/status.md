@@ -8,6 +8,7 @@
 - 正式入口矩阵：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 当前产品主线：`Auto-only`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
+- 当前入口真相：`operator entry` 与 `agent entry` 已存在；成熟的医学 `product entry` 仍未落地
 
 ## 当前基线（repo-verified）
 
@@ -44,9 +45,11 @@
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
 - `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 仍然成立；external runtime / workspace / human gate 未清除前，不做 physical migration 或 cross-repo rewrite。
 - 医学展示 / 论文配图资产化是独立 owner line；不得与主线 runtime / gateway 迁移混写。
+- `OPL -> Med Auto Science` handoff 与 lightweight product entry 目前只冻结到架构和合同语义；在 external gate 清除前，不得把它们写成已落地的独立产品前台。
 
 ## 下一阶段
 
 1. 按 `docs/program/upstream_hermes_agent_fast_cutover_board.md` 在 repo-side 继续推进真实 external `Hermes-Agent` 接入、future outer-runtime seam -> real adapter 切换、以及 backend-generic durable surface 与 cutover evidence 收口。
 2. 保持 display 线与 runtime 主线严格分离，避免资产化支线反向污染主线 truth。
 3. external gate 未清除前，只做 consumer-only convergence，不提前宣称 runtime owner 已切换完成。
+4. 在不突破 external gate 的前提下，继续把 `Med Auto Science Product Entry` 与 `OPL` handoff 所需合同写清，但不偷跑到 physical migration 或 product overclaim。

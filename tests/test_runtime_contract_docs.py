@@ -254,3 +254,49 @@ def test_core_docs_explain_hermes_integrated_research_progression_without_overcl
     assert "不是把判断继续藏在 inner runtime 里" in runtime_interface
     assert "consumer-only outer substrate seam" in runtime_interface
     assert "独立安装的 Hermes daemon" in runtime_interface
+
+
+def test_entry_docs_freeze_lightweight_product_entry_and_opl_handoff_without_crossing_external_gate() -> None:
+    readme = _read("README.md")
+    readme_zh = _read("README.zh-CN.md")
+    docs_index = _read("docs/README.md")
+    docs_index_zh = _read("docs/README.zh-CN.md")
+    project = _read("docs/project.md")
+    architecture = _read("docs/architecture.md")
+    status = _read("docs/status.md")
+    handoff = _read("docs/references/lightweight_product_entry_and_opl_handoff.md")
+
+    assert "`operator entry` and `agent entry`" in readme
+    assert "`product entry`: not landed yet as a mature direct user-facing entry" in readme
+    assert "`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`" in readme
+    assert "`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`" in readme
+
+    assert "`operator entry` 和 `agent entry`" in readme_zh
+    assert "`product entry`：真正成熟的 direct user-facing 入口还没有落地" in readme_zh
+    assert "`OPL -> Med Auto Science`" in architecture
+
+    assert "operator entry" in docs_index
+    assert "lightweight medical direct entry" in docs_index
+    assert "references/lightweight_product_entry_and_opl_handoff.md" in docs_index
+    assert "operator entry" in docs_index_zh
+    assert "轻量医学 `product entry`" in docs_index_zh
+    assert "references/lightweight_product_entry_and_opl_handoff.md" in docs_index_zh
+
+    assert "lightweight medical `product entry`" in project
+    assert "target_domain_id" in architecture
+    assert "study_id" in architecture
+    assert "journal_target" in architecture
+    assert "evidence_boundary" in architecture
+    assert "OPL -> Med Auto Science" in status
+
+    assert "target_domain_id" in handoff
+    assert "task_intent" in handoff
+    assert "entry_mode" in handoff
+    assert "workspace_locator" in handoff
+    assert "runtime_session_contract" in handoff
+    assert "return_surface_contract" in handoff
+    assert "study_id" in handoff
+    assert "journal_target" in handoff
+    assert "evidence_boundary" in handoff
+    assert "真实 external runtime gate" in handoff
+    assert "不能把 repo-side seam 写成“上游 `Hermes-Agent` 已经完整接管”" in handoff

@@ -87,6 +87,37 @@ The long-line target runtime topology is:
 
 The current repo-side seam is frozen behind a single `runtime backend interface` contract. Today, this repository has **not** landed a true upstream `Hermes-Agent` integration yet: the controller, outer loop, transport, and durable surface can already carry the future outer-runtime boundary, but real long-running execution still goes through the controlled `MedDeepScientist` backend.
 
+## Entry Modes And Product Boundary
+
+Today, the stable repo-verified surfaces are still `operator entry` and `agent entry`.
+That means:
+
+- `operator entry`: workspace preparation, debugging, inspection, and manual governance done by a human operator
+- `agent entry`: `CLI` plus `MCP`, called by `Codex` or another host-agent
+- `product entry`: not landed yet as a mature direct user-facing entry
+
+The target domain-facing shape is:
+
+`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
+
+Inside the broader `OPL` family, the compatible top-level route is:
+
+`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
+
+That handoff should keep one shared minimum envelope:
+
+- `target_domain_id`
+- `task_intent`
+- `entry_mode`
+- `workspace_locator`
+- `runtime_session_contract`
+- `return_surface_contract`
+
+`Med Auto Science` then adds research payload such as `study_id`, `journal_target`, and `evidence_boundary`.
+
+This is still a target architecture note, not a claim that the product entry has already landed.
+Because the external runtime gate is still open, the current truthful user path remains agent-operated rather than a mature standalone product entry.
+
 ### What `Hermes` Means Today
 
 - In this repository, `Hermes` currently names the repo-side outer-runtime seam for the mainline, not a landed upstream `Hermes-Agent` runtime.
@@ -186,6 +217,7 @@ You can give your agent an instruction like this:
 ## Documentation
 
 - [Docs index](docs/README.md)
+- [Lightweight product entry and OPL handoff](docs/references/lightweight_product_entry_and_opl_handoff.md) (Chinese only)
 
 Detailed operator docs stay repo-tracked, but they are not part of the default bilingual public surface unless they ship with synchronized English and Chinese mirrors.
 

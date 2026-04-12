@@ -87,6 +87,36 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 
 当前 repo-side seam 已经冻结到单一 `runtime backend interface` contract 后面。需要明确的是：本仓**还没有**真正完成上游 `Hermes-Agent` 集成。现在落下来的，是 future outer-runtime boundary、outer-loop contract、watch / supervision / durable surface 的 repo-side 收口；真实长时执行仍然通过受控 `MedDeepScientist` backend 完成。
 
+## 入口分层与产品边界
+
+当前稳定、可验证的入口仍然是 `operator entry` 和 `agent entry`，也就是说：
+
+- `operator entry`：给人类操作同事使用的 workspace 准备、调试、检查和人工治理入口
+- `agent entry`：由 `Codex` 或其他 host-agent 调用的 `CLI + MCP`
+- `product entry`：真正成熟的 direct user-facing 入口还没有落地
+
+这个仓的目标 domain 级入口形态应是：
+
+`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
+
+而在更大的 `OPL` 家族入口里，应兼容：
+
+`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
+
+这条 handoff 至少共享下面这组最小 envelope：
+
+- `target_domain_id`
+- `task_intent`
+- `entry_mode`
+- `workspace_locator`
+- `runtime_session_contract`
+- `return_surface_contract`
+
+在这层共享 envelope 之上，`Med Auto Science` 再补充研究域 payload，例如 `study_id`、`journal_target`、`evidence_boundary`。
+
+这里冻结的仍然只是目标架构，不是说产品入口已经完成落地。
+因为 external runtime gate 还没有清除，所以当前对用户最诚实的路径仍然是 agent-operated，而不是成熟的独立产品前台。
+
 ### 当前 `Hermes` 到底指什么
 
 - 在当前仓内，`Hermes` 首先指 repo-side outer runtime seam 与当前主线的集成边界，不等于上游 `Hermes-Agent` runtime 已经落地。
@@ -186,6 +216,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 ## 文档入口
 
 - [文档索引](docs/README.zh-CN.md)
+- [轻量产品入口与 OPL Handoff](docs/references/lightweight_product_entry_and_opl_handoff.md)
 
 更细的操作文档继续保留在仓库中，但默认属于内部中文文档；只有被提升到双语公开面时，才会同步补齐英文与中文镜像。
 

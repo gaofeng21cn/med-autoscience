@@ -8,6 +8,7 @@
 - formal-entry matrix：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
 - 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内仅有 repo-side seam / shim
+- 当前入口真相：`CLI / MCP` 已经构成稳定的 `agent entry`，但轻量医学 `product entry` 仍未落地
 
 ## 目标
 
@@ -16,6 +17,7 @@
 - 把 controller / outer-loop / transport / durable surface 全链收紧到 backend-generic contract，避免继续把 `MedDeepScientist` 视作默认不可替代 runtime truth。
 - 维护稳定的 runtime contract 与 delivery surface，确保可验证、可迭代。
 - 把研究推进收口成一串通往 SCI-ready 投稿态的 fail-closed gate，而不是依赖一次长对话或单个 backend 自行兜底。
+- 在 runtime gate 清除后，补齐可直接进入、也可被 `OPL` handoff 调起的 lightweight medical `product entry`。
 
 ## 目标中的 Hermes-Agent 与当前 seam
 

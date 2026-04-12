@@ -5,6 +5,7 @@
 This bilingual index is the default public surface for `Med Auto Science`.
 Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
 Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
+The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate.
 
 ## Core Skeleton
 
@@ -30,6 +31,7 @@ Current frozen state:
 
 - Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
+- Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
 - Fastest cutover board: [Upstream Hermes-Agent fast cutover board](program/upstream_hermes_agent_fast_cutover_board.md) (Chinese only)
 - Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
 - `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
@@ -94,6 +96,7 @@ Current frozen state:
 - [Disease workspace quickstart](references/disease_workspace_quickstart.md)
 - [Codex plugin integration](references/codex_plugin.md)
 - [Codex plugin release guide](references/codex_plugin_release.md)
+- [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md) (Chinese only)
 
 ## Stable Internal Rules
 

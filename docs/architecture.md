@@ -20,6 +20,38 @@
 
 入口只描述 Agent 进入 runtime 的方式，不改变 repo-tracked 主线的 `Auto-only` 定义。
 
+## 入口 taxonomy 与 OPL handoff
+
+当前需要明确区分三层入口：
+
+- `operator entry`
+  - 给人类操作同事使用的 workspace 准备、调试、检查和治理入口
+- `agent entry`
+  - 给 `Codex`、Claude Code、OpenClaw 等 host-agent 使用的 `CLI` / `MCP`
+- `product entry`
+  - 给最终用户直接进入的产品入口
+
+当前真实状态是：前两层已存在，第三层还没有成熟落地。
+
+目标中的 domain 级链路应是：
+
+`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
+
+与 `OPL` 的家族级衔接应是：
+
+`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
+
+`OPL -> Med Auto Science` 的最小 handoff envelope 至少包括：
+
+- `target_domain_id`
+- `task_intent`
+- `entry_mode`
+- `workspace_locator`
+- `runtime_session_contract`
+- `return_surface_contract`
+
+在这层公共 envelope 之上，医学研究域继续补充 `study_id`、`journal_target`、`evidence_boundary` 等 domain payload。
+
 ## 权威与 durable surface
 
 可审计真相必须落在 repo-tracked contract 与明确的 durable surface。关键身份与运行面包括：
