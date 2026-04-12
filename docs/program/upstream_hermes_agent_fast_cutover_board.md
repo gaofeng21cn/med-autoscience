@@ -129,6 +129,7 @@
   - 同日继续补上了一条更深一层的 host-env fix：`med-deepscientist` launcher `ds.js` 在 launchd 最小 `PATH` 下会因为 `#!/usr/bin/env node` 失败；repo-side `init-workspace`、workspace `config.env` 与 `runtime_transport.med_deepscientist` 现在都已显式消费 `MED_AUTOSCIENCE_NODE_BIN`。对真实 DM / NF workspace 回灌并重装 service 后，两边 launchd supervisor 都已显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`
   - 之后 `002-early-residual-risk` 的 completion contract 漂移也已被修正，不再卡在缺失 final evidence path；当前 blocker 已回落为 publication gate
   - 之后 `003-endocrine-burden-followup` 又拿到一条新的 fresh proof：`ensure-study-runtime` 不再报 `env: node: No such file or directory`，当前 fresh blocker 已从 launcher host gap 前移到 `quest_parked_on_unchanged_finalize_state` 与题名页/投稿声明最终元数据等待用户决策
+  - repo-side 又补上一条 blocker 收口：对于这类 finalize 停车且只剩外部元数据确认的 managed study，`study-progress` 现在会诚实投影“等待医生或 PI 判断”，不再把人类决策面埋成 generic recovering wording
   - 之后 `004-invasive-architecture` 已通过 `ensure-study-runtime --allow-stopped-relaunch` 加 `watch --loop` 回到 live managed runtime，当前 `active_run_id = run-bc987174`
 - 因此当前开发宿主上的 honest next step 已从 `F3 / real study soak / recovery proof` 转为 `F4 / blocker 收口`
 - 但 repo-side 仍不能伪装成“已经完成 Hermes 接管”：研究执行仍经由 controlled backend，当前 blocker 已明确回落为各 study 自身 truth，而不是 repo-side adapter gap

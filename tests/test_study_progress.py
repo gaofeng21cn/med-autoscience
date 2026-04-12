@@ -754,6 +754,141 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
+def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    _write_json(
+        launch_report_path,
+        {
+            "recorded_at": "2026-04-10T09:05:00+00:00",
+            "source": "controller",
+            "decision": "resume",
+            "reason": "quest_parked_on_unchanged_finalize_state",
+            "quest_status": "active",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "active",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_parked_on_unchanged_finalize_state",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "paper bundle exists, but the active blockers still belong to the publishability surface; bundle suggestions stay downstream-only until the gate clears",
+            },
+            "pending_user_interaction": {
+                "interaction_id": "progress-finalize-001",
+                "kind": "progress",
+                "waiting_interaction_id": "progress-finalize-001",
+                "default_reply_interaction_id": "progress-finalize-001",
+                "pending_decisions": ["progress-finalize-001"],
+                "blocking": True,
+                "reply_mode": "blocking",
+                "expects_reply": True,
+                "allow_free_text": True,
+                "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
+                "summary": "请确认最终作者顺序、单位映射与声明文案。",
+                "reply_schema": {
+                    "type": "object",
+                    "properties": {
+                        "choice": {"type": "string"},
+                        "metadata": {"type": "object"},
+                    },
+                    "required": ["choice"],
+                },
+                "decision_type": None,
+                "options_count": 3,
+                "guidance_requires_user_decision": True,
+                "source_artifact_path": str(
+                    quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
+                ),
+                "relay_required": True,
+            },
+            "interaction_arbitration": {
+                "classification": "invalid_blocking",
+                "action": "resume",
+                "reason_code": "blocking_requires_structured_decision_request",
+                "requires_user_input": False,
+                "valid_blocking": False,
+                "kind": "progress",
+                "decision_type": None,
+                "source_artifact_path": str(
+                    quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
+                ),
+                "controller_stage_note": (
+                    "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
+                    "runtime blocking is rejected unless it is a valid structured decision request."
+                ),
+            },
+            "continuation_state": {
+                "quest_status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+            },
+            "runtime_supervision": {
+                "health_status": "recovering",
+                "summary": "系统正在自动启动或恢复托管运行。",
+                "next_action_summary": "等待下一次巡检确认 worker 已重新上线并恢复 live。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "waiting_physician_decision"
+    assert result["needs_physician_decision"] is True
+    assert result["physician_decision_summary"] == "请确认最终作者顺序、单位映射与声明文案。"
+    assert "等待医生/PI 明确确认" in result["next_system_action"]
+    assert any("作者顺序" in item for item in result["current_blockers"])
+    assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
 def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(
     monkeypatch,
     tmp_path: Path,

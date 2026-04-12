@@ -426,6 +426,8 @@ def _current_stage(
         return "study_completed"
     if bool((manual_finish_contract or {}).get("compatibility_guard_only")) and runtime_reason == "quest_stopped_requires_explicit_rerun":
         return "manual_finishing"
+    if needs_physician_decision:
+        return "waiting_physician_decision"
     if runtime_health_status == "recovering":
         return "managed_runtime_recovering"
     if runtime_health_status == "degraded":
@@ -434,8 +436,6 @@ def _current_stage(
         return "managed_runtime_escalated"
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return "managed_runtime_supervision_gap"
-    if needs_physician_decision:
-        return "waiting_physician_decision"
     if decision == "blocked":
         return "runtime_blocked"
     if isinstance(publication_supervisor_state, dict) and _non_empty_text(
@@ -541,6 +541,29 @@ def _interaction_arbitration_action(interaction_arbitration: dict[str, Any] | No
     return _non_empty_text((interaction_arbitration or {}).get("action"))
 
 
+def _resume_arbitration_external_metadata_wait(
+    *,
+    status: dict[str, Any],
+    pending_user_interaction: dict[str, Any],
+    interaction_arbitration: dict[str, Any] | None,
+) -> bool:
+    if _interaction_arbitration_action(interaction_arbitration) != "resume":
+        return False
+    if _non_empty_text(status.get("reason")) != "quest_parked_on_unchanged_finalize_state":
+        return False
+    if _non_empty_text((pending_user_interaction or {}).get("kind")) != "progress":
+        return False
+    if _non_empty_text((pending_user_interaction or {}).get("decision_type")) is not None:
+        return False
+    if not bool((pending_user_interaction or {}).get("relay_required")):
+        return False
+    if not bool((pending_user_interaction or {}).get("guidance_requires_user_decision")):
+        return False
+    if not bool((pending_user_interaction or {}).get("expects_reply")):
+        return False
+    return True
+
+
 def _supervisor_tick_gap_present(supervisor_tick_audit: dict[str, Any]) -> bool:
     if not bool((supervisor_tick_audit or {}).get("required")):
         return False
@@ -548,12 +571,20 @@ def _supervisor_tick_gap_present(supervisor_tick_audit: dict[str, Any]) -> bool:
 
 
 def _needs_physician_decision(
+    *,
+    status: dict[str, Any],
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
 ) -> bool:
     controller_requires = bool((controller_decision_payload or {}).get("requires_human_confirmation"))
     if controller_requires:
+        return True
+    if _resume_arbitration_external_metadata_wait(
+        status=status,
+        pending_user_interaction=pending_user_interaction,
+        interaction_arbitration=interaction_arbitration,
+    ):
         return True
     arbitration_action = _interaction_arbitration_action(interaction_arbitration)
     if arbitration_action == "resume":
@@ -572,12 +603,21 @@ def _needs_physician_decision(
 
 def _physician_decision_summary(
     *,
+    status: dict[str, Any],
     controller_decision_payload: dict[str, Any] | None,
     pending_user_interaction: dict[str, Any],
     interaction_arbitration: dict[str, Any] | None,
 ) -> str | None:
     if bool((controller_decision_payload or {}).get("requires_human_confirmation")):
         return "控制面已经形成正式下一步建议，但该动作需要医生/PI 先确认，系统会停在监管态等待。"
+    if _resume_arbitration_external_metadata_wait(
+        status=status,
+        pending_user_interaction=pending_user_interaction,
+        interaction_arbitration=interaction_arbitration,
+    ):
+        return _non_empty_text((pending_user_interaction or {}).get("summary")) or _non_empty_text(
+            (pending_user_interaction or {}).get("message")
+        )
     if _interaction_arbitration_action(interaction_arbitration) == "resume":
         return None
     interaction_summary = _non_empty_text((pending_user_interaction or {}).get("summary"))
@@ -605,6 +645,13 @@ def _next_system_action(
             _non_empty_text((manual_finish_contract or {}).get("next_action_summary"))
             or "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。"
         )
+    if needs_physician_decision:
+        controller_actions = list((controller_decision_payload or {}).get("controller_actions") or [])
+        first_action = controller_actions[0] if controller_actions else {}
+        action_type = _controller_action_label(first_action.get("action_type"))
+        if action_type is not None:
+            return f"等待医生/PI 确认后，再{action_type}。"
+        return "等待医生/PI 明确确认后，再继续下一步托管推进。"
     supervisor_tick_next_action = _non_empty_text((supervisor_tick_audit or {}).get("next_action_summary"))
     if _supervisor_tick_gap_present(supervisor_tick_audit) and supervisor_tick_next_action is not None:
         return supervisor_tick_next_action
@@ -612,13 +659,6 @@ def _next_system_action(
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if runtime_health_status in {"recovering", "degraded", "escalated"} and runtime_next_action is not None:
         return runtime_next_action
-    controller_actions = list((controller_decision_payload or {}).get("controller_actions") or [])
-    first_action = controller_actions[0] if controller_actions else {}
-    action_type = _controller_action_label(first_action.get("action_type"))
-    if needs_physician_decision:
-        if action_type is not None:
-            return f"等待医生/PI 确认后，再{action_type}。"
-        return "等待医生/PI 明确确认后，再继续下一步托管推进。"
     decision = _non_empty_text(status.get("decision"))
     if decision == "blocked":
         reason = _reason_label(status.get("reason"))
@@ -650,6 +690,11 @@ def _current_blockers(
 ) -> list[str]:
     blockers: list[str] = []
     manual_finish_active = _manual_finish_active(manual_finish_contract)
+    metadata_wait = _resume_arbitration_external_metadata_wait(
+        status=status,
+        pending_user_interaction=pending_user_interaction,
+        interaction_arbitration=interaction_arbitration,
+    )
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         _append_unique(
             blockers,
@@ -669,6 +714,12 @@ def _current_blockers(
         )
     if bool((controller_decision_payload or {}).get("requires_human_confirmation")):
         _append_unique(blockers, "当前控制面决策需要医生/PI 确认，系统不会自动越权继续。")
+    if metadata_wait:
+        _append_unique(
+            blockers,
+            _non_empty_text((pending_user_interaction or {}).get("summary"))
+            or _non_empty_text((pending_user_interaction or {}).get("message")),
+        )
     if _interaction_arbitration_action(interaction_arbitration) != "resume" and bool(
         (pending_user_interaction or {}).get("blocking")
     ):
@@ -966,9 +1017,10 @@ def build_study_progress_projection(
         )
 
     needs_physician_decision = _needs_physician_decision(
-        controller_decision_payload,
-        pending_user_interaction,
-        interaction_arbitration,
+        status=status,
+        controller_decision_payload=controller_decision_payload,
+        pending_user_interaction=pending_user_interaction,
+        interaction_arbitration=interaction_arbitration,
     )
     current_stage = _current_stage(
         status=status,
@@ -1047,6 +1099,7 @@ def build_study_progress_projection(
         )) or "",
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": _display_text(_physician_decision_summary(
+            status=status,
             controller_decision_payload=controller_decision_payload,
             pending_user_interaction=pending_user_interaction,
             interaction_arbitration=interaction_arbitration,

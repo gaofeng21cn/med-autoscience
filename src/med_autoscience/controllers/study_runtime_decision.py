@@ -213,9 +213,9 @@ def _waiting_submission_metadata_only(quest_root: Path) -> bool:
     if not isinstance(payload, dict):
         return False
     blocking_item_ids = _normalize_submission_blocking_item_ids(payload)
-    if not blocking_item_ids:
-        return False
-    return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS for item_id in blocking_item_ids)
+    if blocking_item_ids:
+        return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS for item_id in blocking_item_ids)
+    return paper_artifacts.submission_checklist_requires_external_metadata(payload)
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
@@ -808,6 +808,14 @@ def _pending_user_interaction_payload(
     if not isinstance(reply_schema, dict):
         reply_schema = {}
     reply_mode = str(artifact_payload.get("reply_mode") or "").strip() or None
+    submission_metadata_only = _waiting_submission_metadata_only(quest_root)
+    guidance_requires_user_decision = (
+        artifact_payload.get("guidance_vm", {}).get("requires_user_decision")
+        if isinstance(artifact_payload.get("guidance_vm"), dict)
+        else None
+    )
+    if submission_metadata_only and guidance_requires_user_decision is not True:
+        guidance_requires_user_decision = True
     return {
         "interaction_id": interaction_id,
         "kind": str(artifact_payload.get("kind") or "").strip() or None,
@@ -827,11 +835,7 @@ def _pending_user_interaction_payload(
             if isinstance(artifact_payload.get("options"), list)
             else 0
         ),
-        "guidance_requires_user_decision": (
-            artifact_payload.get("guidance_vm", {}).get("requires_user_decision")
-            if isinstance(artifact_payload.get("guidance_vm"), dict)
-            else None
-        ),
+        "guidance_requires_user_decision": guidance_requires_user_decision,
         "source_artifact_path": str(interaction_artifact_path) if interaction_artifact_path is not None else None,
         "relay_required": True,
     }

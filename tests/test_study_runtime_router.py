@@ -6040,6 +6040,92 @@ def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_r
     assert result["quest_status"] == "waiting_for_user"
 
 
+def test_study_runtime_status_treats_external_metadata_gap_status_as_submission_metadata_only(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    write_text(
+        paper_root / "paper_bundle_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "paper_branch": "paper/main",
+                "compile_report_path": str(paper_root / "build" / "compile_report.json"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        paper_root / "build" / "compile_report.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "success",
+                "author_metadata_status": "placeholder_external_input_required",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        paper_root / "review" / "submission_checklist.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "overall_status": "pituitary_target_package_rebuilt_with_external_metadata_gap",
+                "package_status": "auditable_package_ready_with_external_metadata_blocker",
+                "blocking_items": [
+                    "The title-page packet still needs externally confirmed final author order."
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "waiting_for_user"
+
+
 def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
     monkeypatch,
     tmp_path: Path,
@@ -6150,6 +6236,171 @@ def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(
             "runtime blocking is rejected unless it is a valid structured decision request."
         ),
     }
+
+
+def test_study_runtime_status_marks_finalize_metadata_gap_progress_as_user_decision_signal(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            }
+        )
+        + "\n",
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    write_text(
+        paper_root / "paper_bundle_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "paper_branch": "paper/main",
+                "compile_report_path": str(paper_root / "build" / "compile_report.json"),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        paper_root / "review" / "submission_checklist.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "overall_status": "pituitary_target_package_rebuilt_with_external_metadata_gap",
+                "package_status": "auditable_package_ready_with_external_metadata_blocker",
+                "blocking_items": [
+                    "The title-page packet still needs externally confirmed final author order."
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    interaction_id = "progress-finalize-001"
+    write_text(
+        quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / f"{interaction_id}.json",
+        json.dumps(
+            {
+                "kind": "progress",
+                "schema_version": 1,
+                "artifact_id": interaction_id,
+                "id": interaction_id,
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "status": "active",
+                "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
+                "summary": "请确认最终作者顺序、单位映射与声明文案。",
+                "interaction_phase": "ack",
+                "importance": "info",
+                "interaction_id": interaction_id,
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "options": [
+                    {"id": "1", "label": "完整元数据"},
+                    {"id": "2", "label": "最小字段"},
+                    {"id": "3", "label": "继续等待"},
+                ],
+                "allow_free_text": True,
+                "reply_schema": {
+                    "type": "object",
+                    "properties": {
+                        "choice": {"type": "string"},
+                        "metadata": {"type": "object"},
+                    },
+                    "required": ["choice"],
+                },
+                "guidance_vm": {"requires_user_decision": False},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "none",
+            "source": "local_runtime_state_contract",
+            "active_run_id": None,
+            "runner_live": False,
+            "bash_live": False,
+            "runtime_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "bash_session_audit": {"ok": False, "status": "unknown", "error": "daemon unavailable"},
+            "local_runtime_state": {
+                "status": "active",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            },
+            "probe_error": "daemon unavailable | daemon unavailable",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": interaction_id,
+                "default_reply_interaction_id": interaction_id,
+                "pending_decisions": [interaction_id],
+                "active_interaction_id": interaction_id,
+            },
+        },
+        raising=False,
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_parked_on_unchanged_finalize_state"
+    assert result["pending_user_interaction"]["guidance_requires_user_decision"] is True
+    assert result["interaction_arbitration"]["action"] == "resume"
 
 
 def test_study_runtime_status_auto_resumes_premature_completion_request_when_publication_gate_is_blocked(

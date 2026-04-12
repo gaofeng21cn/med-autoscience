@@ -29,6 +29,11 @@ SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = frozenset(
         "acknowledgments",
     }
 )
+_SUBMISSION_METADATA_ONLY_STATUS_TOKENS = (
+    "external_metadata_gap",
+    "external_metadata_blocker",
+    "author_metadata_and_submission_declarations_pending",
+)
 
 
 def resolve_latest_paper_root(quest_root: Path) -> Path:
@@ -89,6 +94,21 @@ def normalize_submission_checklist_blocking_item_keys(payload: dict[str, Any] | 
         if item_key:
             normalized.append(item_key)
     return tuple(normalized)
+
+
+def submission_checklist_requires_external_metadata(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    blocking_item_ids = normalize_submission_checklist_blocking_item_keys(payload)
+    if blocking_item_ids:
+        return all(item_id in SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS for item_id in blocking_item_ids)
+    for key in ("overall_status", "package_status", "status"):
+        normalized = str(payload.get(key) or "").strip().lower()
+        if not normalized:
+            continue
+        if any(token in normalized for token in _SUBMISSION_METADATA_ONLY_STATUS_TOKENS):
+            return True
+    return False
 
 
 def load_submission_surface_manifest(surface_root: Path) -> dict[str, Any] | None:

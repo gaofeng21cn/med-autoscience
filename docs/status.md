@@ -62,6 +62,7 @@
 - `002-dm-china-us-mortality-attribution` 的 current fresh truth 也已重新收口：历史上的 live `run-bed9deed` recovery proof 继续保留为 F3 成立证据，但 `2026-04-12` fresh supervisor tick 现在把它投影为 `quest_marked_running_but_no_live_session`。当前 `ensure_managed_daemon(...)` 对 DM runtime 已返回 `healthy=true / identity_match=true / url=http://127.0.0.1:20999`，因此剩余 gap 已从 host/env 兼容问题前移到 study-local recovery / publication surface，而不是 Hermes adapter 或 node launcher contract。
 - `002-early-residual-risk` 的 completion evidence 路径漂移也已在真实 workspace 收口：`study_completion_contract.ready` 现已回到 `true`，剩余阻塞不再是 contract 缺件，而是 publication gate 仍未放行。
 - `003-endocrine-burden-followup` 的 fresh truth 也已从 host blocker 前移：`analysis_bundle.ready=true` 与 Node contract 修复后，`last_launch_report.json` 不再出现 `env: node: No such file or directory`，当前阻塞回落为 publication gate / 用户最终元数据决策。
+- 同日继续收口了一条用户面 truth gap：对于 `003-endocrine-burden-followup` 这类 `quest_parked_on_unchanged_finalize_state` 且只剩题名页 / 投稿声明最终元数据的 study，`study-progress` 现在会把它诚实投影成“等待医生或 PI 判断”，而不再只是笼统地显示“托管运行恢复中”。
 - `004-invasive-architecture` 已通过 `ensure-study-runtime --allow-stopped-relaunch` 加短周期 `watch --loop` 回到 live managed runtime；当前 `study-progress` 已暴露 `browser_url = http://127.0.0.1:21001` 与 `active_run_id = run-bc987174`，说明 rerun/relaunch 决策点已经跨过。
 - 如果其他宿主机尚无 external `Hermes-Agent` runtime，本仓当前 adapter 会 fail-closed：可以检测掉线、请求恢复、升级告警与输出人话进度，但不能伪造成“独立 `Hermes-Agent` host 已脱离 `MedDeepScientist` 完整接管执行”。
 - 维护 workspace canonical literature / reference-context contract，不让 quest-local literature surface 重新退回 authority root。
