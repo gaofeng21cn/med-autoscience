@@ -20,10 +20,15 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`46`
+  - 证据型模板：`49`
   - 插图壳层：`4`
   - 表格壳层：`5`
-  - 总模板数：`55`
+  - 总模板数：`58`
+- 最近一次已吸收完成的 capability cluster：
+  - `F / higher-order partial-dependence follow-on burst`
+  - `partial_dependence_interaction_slice_panel`
+  - `partial_dependence_subgroup_comparison_panel`
+  - `accumulated_local_effects_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -33,31 +38,31 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting / owner-brief routing`
-- Family cluster：`F`
-- Capability cluster：`higher-order partial-dependence follow-on`
-- Owner worktree：`未开启（等待 owner brief 固定后再新开唯一 worktree）`
+- Family cluster：`D/E/G`
+- Capability cluster：`richer atlas-spatial-trajectory multi-view follow-on beyond the current atlas/spatial/trajectory lower bound`
+- Owner worktree：`未开启（等待下一轮 owner brief 固定后再新开唯一 worktree）`
 - 状态：`routing_ready`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `partial_dependence_ice_panel` 与 `partial_dependence_interaction_contour_panel` 已经入库的前提下，如何为 `F` 家族选定一个仍然 bounded、可审计、不会滑向自由 explanation scene 的更高阶 partial-dependence follow-on，并先把 owner brief 收口干净。
+> 在 `single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel` 与 `trajectory_progression_panel` 已经入库的前提下，如何为 `D/E/G` 选定下一个仍然 bounded、可审计、不会滑向自由 multi-view scene 的复合 follow-on，并先把 owner brief 收口干净。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 固定 `F` 家族下一候选 capability cluster，不在多个 explanation scene 之间来回摆动
+1. 固定 `D/E/G` 家族下一候选 capability cluster，不在 atlas / spatial / trajectory 多种复合 scene 之间来回摆动
 2. 写清 owner brief：最小写集、最小验证面、golden regression slice、明确不做事项
 3. 在开新 owner worktree 之前，锁定 reroute 口径与 secondary candidate 顺序
 
 本轮明确不做：
 
-- 重开已经 absorb 的 `atlas_spatial_bridge_panel` round
-- 没有 owner brief 就直接开 `F` 家族实现 worktree
-- `D/E/G` 更大的 atlas / spatial / trajectory 多视图复合图式
+- 重开刚刚 absorb 的 `F / higher-order partial-dependence follow-on burst`
+- 没有 owner brief 就直接开新的 `D/E/G` 家族实现 worktree
 - `H` 家族更广的 baseline-balance / missingness / QC-shell follow-on
+- `C/H` 更广的 coefficient-path / compact estimate follow-on
 
 ## 预期写集
 
@@ -72,10 +77,10 @@
 
 只有同时满足下面条件，当前 scouting round 才能进入下一个 owner implementation round：
 
-1. `F` 家族下一候选 capability cluster 已固定。
+1. `D/E/G` 家族下一候选 capability cluster 已固定。
 2. owner brief 已明确最小写集、最小验证面与不做事项。
 3. 已确认当前没有别的 active display owner worktree 与其写集冲突。
-4. `atlas_spatial_bridge_panel` 这一轮已 absorb、验证、清理完成。
+4. `F / higher-order partial-dependence follow-on burst` 这一轮已 absorb、验证、清理完成。
 
 ## 最低验证要求
 
@@ -90,9 +95,9 @@
 
 当前轮次结束后，secondary 候选按下面顺序继续：
 
-1. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on beyond atlas_spatial_bridge_panel`
-2. `H / baseline-balance / missingness / QC-shell follow-on`
-3. `C/H / coefficient-path or compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
+1. `H / baseline-balance / missingness / QC-shell follow-on`
+2. `C/H / coefficient-path or compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
+3. `F / richer explanation scenes beyond the current higher-order partial-dependence lower bound`
 
 ## 明确不是执行面
 

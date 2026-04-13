@@ -103,6 +103,9 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::shap_grouped_decision_path_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Grouped Decision Path Panel | `python` | `shap_grouped_decision_path_panel_inputs_v1` | `publication_shap_grouped_decision_path_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_ice_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence and ICE Panel | `python` | `partial_dependence_ice_panel_inputs_v1` | `publication_partial_dependence_ice_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Interaction Contour Panel | `python` | `partial_dependence_interaction_contour_panel_inputs_v1` | `publication_partial_dependence_interaction_contour_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::partial_dependence_interaction_slice_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Interaction Slice Panel | `python` | `partial_dependence_interaction_slice_panel_inputs_v1` | `publication_partial_dependence_interaction_slice_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::partial_dependence_subgroup_comparison_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Subgroup Comparison Panel | `python` | `partial_dependence_subgroup_comparison_panel_inputs_v1` | `publication_partial_dependence_subgroup_comparison_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::accumulated_local_effects_panel` | `evidence_figure` | `F. Model Explanation` | Accumulated Local Effects Panel | `python` | `accumulated_local_effects_panel_inputs_v1` | `publication_accumulated_local_effects_panel` | `png`, `pdf` |
 
 ### Model Audit
 
@@ -657,6 +660,51 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `panels.observed_points` -> `point_id`, `x`, `y`
 - Optional nested collection fields: None
 - Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_two`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_feature_pairs_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_x_grids_must_be_strictly_increasing`, `panel_y_grids_must_be_strictly_increasing`, `panel_response_grids_must_match_declared_axes`, `panel_response_values_must_be_finite`, `panel_observed_points_must_be_non_empty`, `panel_observed_point_ids_must_be_unique_within_panel`, `panel_observed_points_must_be_finite`, `panel_observed_points_must_fall_within_declared_grid_range`, `panel_reference_point_must_fall_within_declared_grid_range`
+
+### `partial_dependence_interaction_slice_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Partial Dependence Interaction Slice Panel
+- Templates: `fenggaolab.org.medical-display-core::partial_dependence_interaction_slice_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `legend_title`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `x_feature`, `slice_feature`, `reference_value`, `reference_label`, `slice_curves`
+- Optional collection fields: None
+- Required nested collection fields: `panels.slice_curves` -> `slice_id`, `slice_label`, `conditioning_value`, `x`, `y`
+- Optional nested collection fields: None
+- Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_two`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_feature_pairs_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_reference_values_must_be_finite`, `panel_slice_curves_must_have_at_least_two_entries`, `panel_slice_curve_ids_must_be_unique_within_panel`, `panel_slice_curve_labels_must_be_unique_within_panel`, `panel_slice_curve_x_y_lengths_must_match`, `panel_slice_curve_x_must_be_strictly_increasing`, `panel_slice_curve_values_must_be_finite`, `panel_slice_curve_x_grids_must_match_within_panel`, `panel_reference_values_must_fall_within_slice_curve_range`, `panel_slice_label_sets_must_match_across_panels`
+
+### `partial_dependence_subgroup_comparison_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Partial Dependence Subgroup Comparison Panel
+- Templates: `fenggaolab.org.medical-display-core::partial_dependence_subgroup_comparison_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `subgroup_panel_label`, `subgroup_panel_title`, `subgroup_x_label`, `panels`, `subgroup_rows`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `subgroup_label`, `title`, `x_label`, `feature`, `reference_value`, `reference_label`, `pdp_curve`, `ice_curves`<br>`subgroup_rows` -> `row_id`, `panel_id`, `row_label`, `estimate`, `lower`, `upper`, `support_n`
+- Optional collection fields: None
+- Required nested collection fields: `panels.pdp_curve` -> `x`, `y`<br>`panels.ice_curves` -> `curve_id`, `x`, `y`
+- Optional nested collection fields: None
+- Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_three`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_subgroup_labels_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_reference_values_must_be_finite`, `panel_pdp_curve_must_have_matching_x_y_lengths`, `panel_pdp_curve_x_must_be_strictly_increasing`, `panel_pdp_curve_values_must_be_finite`, `panel_ice_curves_must_be_non_empty`, `panel_ice_curve_ids_must_be_unique_within_panel`, `panel_ice_curve_x_y_lengths_must_match`, `panel_ice_curve_x_grids_must_match_pdp_curve_x`, `panel_ice_curve_values_must_be_finite`, `panel_reference_values_must_fall_within_pdp_curve_range`, `subgroup_rows_must_be_non_empty`, `subgroup_panel_label_must_be_distinct_from_top_panel_labels`, `subgroup_rows_must_match_panels_by_panel_id`, `subgroup_row_ids_must_be_unique`, `subgroup_row_labels_must_be_unique`, `subgroup_row_intervals_must_wrap_estimate`, `subgroup_row_support_n_must_be_positive`
+
+### `accumulated_local_effects_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Accumulated Local Effects Panel
+- Templates: `fenggaolab.org.medical-display-core::accumulated_local_effects_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `feature`, `reference_value`, `reference_label`, `ale_curve`, `local_effect_bins`
+- Optional collection fields: None
+- Required nested collection fields: `panels.ale_curve` -> `x`, `y`<br>`panels.local_effect_bins` -> `bin_id`, `bin_left`, `bin_right`, `bin_center`, `local_effect`, `support_count`
+- Optional nested collection fields: None
+- Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_three`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_features_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_reference_values_must_be_finite`, `panel_ale_curve_must_have_matching_x_y_lengths`, `panel_ale_curve_x_must_be_strictly_increasing`, `panel_ale_curve_values_must_be_finite`, `panel_local_effect_bins_must_be_non_empty`, `panel_local_effect_bin_ids_must_be_unique_within_panel`, `panel_local_effect_bins_must_be_strictly_ordered_and_non_overlapping`, `panel_local_effect_values_must_be_finite`, `panel_local_effect_support_counts_must_be_positive`, `panel_ale_curve_x_must_match_bin_centers`, `panel_ale_curve_must_match_cumulative_local_effects`, `panel_reference_values_must_fall_within_declared_bin_range`
 
 ### `multicenter_generalizability_inputs_v1`
 

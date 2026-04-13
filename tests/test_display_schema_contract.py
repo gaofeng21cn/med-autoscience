@@ -1457,6 +1457,159 @@ def test_partial_dependence_interaction_contour_panel_schema_contract_is_registe
     assert "partial_dependence_interaction_contour_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_partial_dependence_interaction_slice_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    interaction_slice = module.get_input_schema_contract("partial_dependence_interaction_slice_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert interaction_slice.template_ids == (_full_id("partial_dependence_interaction_slice_panel"),)
+    assert interaction_slice.display_name == "Partial Dependence Interaction Slice Panel"
+    assert interaction_slice.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "legend_title",
+        "panels",
+    )
+    assert interaction_slice.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "x_feature",
+        "slice_feature",
+        "reference_value",
+        "reference_label",
+        "slice_curves",
+    )
+    assert interaction_slice.nested_collection_required_fields["panels.slice_curves"] == (
+        "slice_id",
+        "slice_label",
+        "conditioning_value",
+        "x",
+        "y",
+    )
+    assert "panels_must_be_non_empty" in interaction_slice.additional_constraints
+    assert "panel_count_must_not_exceed_two" in interaction_slice.additional_constraints
+    assert "panel_feature_pairs_must_be_unique" in interaction_slice.additional_constraints
+    assert "panel_slice_curves_must_have_at_least_two_entries" in interaction_slice.additional_constraints
+    assert "panel_slice_curve_x_grids_must_match_within_panel" in interaction_slice.additional_constraints
+    assert "panel_reference_values_must_fall_within_slice_curve_range" in interaction_slice.additional_constraints
+    assert "panel_slice_label_sets_must_match_across_panels" in interaction_slice.additional_constraints
+    assert _full_id("partial_dependence_interaction_slice_panel") in model_explanation_class.template_ids
+    assert "partial_dependence_interaction_slice_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
+def test_partial_dependence_subgroup_comparison_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    subgroup_panel = module.get_input_schema_contract("partial_dependence_subgroup_comparison_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert subgroup_panel.template_ids == (_full_id("partial_dependence_subgroup_comparison_panel"),)
+    assert subgroup_panel.display_name == "Partial Dependence Subgroup Comparison Panel"
+    assert subgroup_panel.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "subgroup_panel_label",
+        "subgroup_panel_title",
+        "subgroup_x_label",
+        "panels",
+        "subgroup_rows",
+    )
+    assert subgroup_panel.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "subgroup_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "pdp_curve",
+        "ice_curves",
+    )
+    assert subgroup_panel.collection_required_fields["subgroup_rows"] == (
+        "row_id",
+        "panel_id",
+        "row_label",
+        "estimate",
+        "lower",
+        "upper",
+        "support_n",
+    )
+    assert subgroup_panel.nested_collection_required_fields["panels.pdp_curve"] == ("x", "y")
+    assert subgroup_panel.nested_collection_required_fields["panels.ice_curves"] == ("curve_id", "x", "y")
+    assert "panel_count_must_not_exceed_three" in subgroup_panel.additional_constraints
+    assert "panel_subgroup_labels_must_be_unique" in subgroup_panel.additional_constraints
+    assert "subgroup_panel_label_must_be_distinct_from_top_panel_labels" in subgroup_panel.additional_constraints
+    assert "subgroup_rows_must_match_panels_by_panel_id" in subgroup_panel.additional_constraints
+    assert "subgroup_row_intervals_must_wrap_estimate" in subgroup_panel.additional_constraints
+    assert "panel_ice_curve_x_grids_must_match_pdp_curve_x" in subgroup_panel.additional_constraints
+    assert _full_id("partial_dependence_subgroup_comparison_panel") in model_explanation_class.template_ids
+    assert "partial_dependence_subgroup_comparison_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
+def test_accumulated_local_effects_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    ale_panel = module.get_input_schema_contract("accumulated_local_effects_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert ale_panel.template_ids == (_full_id("accumulated_local_effects_panel"),)
+    assert ale_panel.display_name == "Accumulated Local Effects Panel"
+    assert ale_panel.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "panels",
+    )
+    assert ale_panel.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "ale_curve",
+        "local_effect_bins",
+    )
+    assert ale_panel.nested_collection_required_fields["panels.ale_curve"] == ("x", "y")
+    assert ale_panel.nested_collection_required_fields["panels.local_effect_bins"] == (
+        "bin_id",
+        "bin_left",
+        "bin_right",
+        "bin_center",
+        "local_effect",
+        "support_count",
+    )
+    assert "panels_must_be_non_empty" in ale_panel.additional_constraints
+    assert "panel_count_must_not_exceed_three" in ale_panel.additional_constraints
+    assert "panel_features_must_be_unique" in ale_panel.additional_constraints
+    assert "panel_local_effect_bins_must_be_non_empty" in ale_panel.additional_constraints
+    assert "panel_local_effect_bins_must_be_strictly_ordered_and_non_overlapping" in ale_panel.additional_constraints
+    assert "panel_ale_curve_x_must_match_bin_centers" in ale_panel.additional_constraints
+    assert "panel_ale_curve_must_match_cumulative_local_effects" in ale_panel.additional_constraints
+    assert "panel_reference_values_must_fall_within_declared_bin_range" in ale_panel.additional_constraints
+    assert _full_id("accumulated_local_effects_panel") in model_explanation_class.template_ids
+    assert "accumulated_local_effects_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
