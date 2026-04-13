@@ -324,6 +324,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     )
 
     assert payload["surface_kind"] == "product_entry_manifest"
+    assert payload["manifest_version"] == 2
     assert payload["manifest_kind"] == "med_autoscience_product_entry_manifest"
     assert payload["target_domain_id"] == "med-autoscience"
     assert payload["formal_entry"]["default"] == "CLI"
@@ -390,6 +391,31 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["shared_handoff"]["opl_handoff_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode opl-handoff"
     )
+    assert payload["family_orchestration"]["human_gates"] == [
+        {
+            "gate_id": "study_physician_decision_gate",
+            "title": "Study physician decision gate",
+        },
+        {
+            "gate_id": "publication_release_gate",
+            "title": "Publication release gate",
+        },
+    ]
+    assert payload["family_orchestration"]["resume_contract"] == {
+        "surface_kind": "launch_study",
+        "session_locator_field": "study_id",
+        "checkpoint_locator_field": "controller_decision_path",
+    }
+    assert payload["family_orchestration"]["event_envelope_surface"] == {
+        "ref_kind": "workspace_locator",
+        "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+        "label": "runtime watch event companion",
+    }
+    assert payload["family_orchestration"]["checkpoint_lineage_surface"] == {
+        "ref_kind": "workspace_locator",
+        "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+        "label": "controller checkpoint lineage companion",
+    }
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
 
 
@@ -429,7 +455,10 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["summary"]["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
+    assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
+    assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_physician_decision_gate"
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
+    assert payload["product_entry_manifest"]["manifest_version"] == 2
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
