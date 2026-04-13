@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
+import textwrap
 from typing import Any
 
 import matplotlib
@@ -17,12 +19,14 @@ from .shared import (
     _bbox_to_layout_box,
     _build_submission_graphical_abstract_arrow_lane_spec,
     _choose_shared_submission_graphical_abstract_arrow_lane,
+    _data_box_to_layout_box,
     _flow_box_to_normalized,
     _flow_html_label_for_node,
     _flow_union_box,
     _measure_flow_text_width_pt,
     _prepare_python_illustration_output_paths,
     _require_namespaced_registry_id,
+    _require_numeric_value,
     _require_non_empty_string,
     _run_graphviz_layout,
     _wrap_figure_title_to_width,
@@ -566,6 +570,229 @@ def _validate_design_evidence_composite_shell_payload(path: Path, payload: dict[
     }
 
 
+def _validate_baseline_missingness_qc_panel_payload(path: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    expected_shell_id = display_registry.get_illustration_shell_spec("baseline_missingness_qc_panel").shell_id
+    shell_id = _require_non_empty_string(payload.get("shell_id"), label=f"{path.name} shell_id")
+    if shell_id != expected_shell_id:
+        raise ValueError(f"{path.name} shell_id must be `{expected_shell_id}`")
+    display_id = _require_non_empty_string(payload.get("display_id"), label=f"{path.name} display_id")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} title")
+    balance_panel_title = _require_non_empty_string(
+        payload.get("balance_panel_title"),
+        label=f"{path.name} balance_panel_title",
+    )
+    balance_x_label = _require_non_empty_string(
+        payload.get("balance_x_label"),
+        label=f"{path.name} balance_x_label",
+    )
+    balance_threshold = _require_numeric_value(
+        payload.get("balance_threshold"),
+        label=f"{path.name} balance_threshold",
+    )
+    if not math.isfinite(balance_threshold) or balance_threshold <= 0.0:
+        raise ValueError(f"{path.name} balance_threshold must be positive and finite")
+    primary_balance_label = _require_non_empty_string(
+        payload.get("primary_balance_label"),
+        label=f"{path.name} primary_balance_label",
+    )
+    secondary_balance_label = str(payload.get("secondary_balance_label") or "").strip()
+
+    balance_payload = payload.get("balance_variables")
+    if not isinstance(balance_payload, list) or not balance_payload:
+        raise ValueError(f"{path.name} balance_variables must be a non-empty list")
+    seen_balance_ids: set[str] = set()
+    seen_balance_labels: set[str] = set()
+    normalized_balance_variables: list[dict[str, Any]] = []
+    saw_secondary_values = False
+    for index, item in enumerate(balance_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} balance_variables[{index}] must be an object")
+        variable_id = _require_non_empty_string(
+            item.get("variable_id"),
+            label=f"{path.name} balance_variables[{index}].variable_id",
+        )
+        label = _require_non_empty_string(
+            item.get("label"),
+            label=f"{path.name} balance_variables[{index}].label",
+        )
+        if variable_id in seen_balance_ids:
+            raise ValueError(f"{path.name} balance_variables[{index}].variable_id must be unique")
+        if label in seen_balance_labels:
+            raise ValueError(f"{path.name} balance_variables[{index}].label must be unique")
+        seen_balance_ids.add(variable_id)
+        seen_balance_labels.add(label)
+        primary_value = _require_numeric_value(
+            item.get("primary_value"),
+            label=f"{path.name} balance_variables[{index}].primary_value",
+        )
+        if not math.isfinite(primary_value) or primary_value < 0.0:
+            raise ValueError(f"{path.name} balance_variables[{index}].primary_value must be finite and non-negative")
+        normalized_item = {
+            "variable_id": variable_id,
+            "label": label,
+            "primary_value": float(primary_value),
+        }
+        if item.get("secondary_value") is not None:
+            secondary_value = _require_numeric_value(
+                item.get("secondary_value"),
+                label=f"{path.name} balance_variables[{index}].secondary_value",
+            )
+            if not secondary_balance_label:
+                raise ValueError(f"{path.name} secondary_balance_label is required when secondary_value is present")
+            if not math.isfinite(secondary_value) or secondary_value < 0.0:
+                raise ValueError(
+                    f"{path.name} balance_variables[{index}].secondary_value must be finite and non-negative"
+                )
+            normalized_item["secondary_value"] = float(secondary_value)
+            saw_secondary_values = True
+        normalized_balance_variables.append(normalized_item)
+    if secondary_balance_label and not saw_secondary_values:
+        secondary_balance_label = ""
+
+    missingness_panel_title = _require_non_empty_string(
+        payload.get("missingness_panel_title"),
+        label=f"{path.name} missingness_panel_title",
+    )
+    missingness_x_label = _require_non_empty_string(
+        payload.get("missingness_x_label"),
+        label=f"{path.name} missingness_x_label",
+    )
+    missingness_y_label = _require_non_empty_string(
+        payload.get("missingness_y_label"),
+        label=f"{path.name} missingness_y_label",
+    )
+    rows_payload = payload.get("missingness_rows")
+    if not isinstance(rows_payload, list) or not rows_payload:
+        raise ValueError(f"{path.name} missingness_rows must be a non-empty list")
+    row_labels: list[str] = []
+    seen_row_labels: set[str] = set()
+    for index, row in enumerate(rows_payload):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path.name} missingness_rows[{index}] must be an object")
+        label = _require_non_empty_string(
+            row.get("label"),
+            label=f"{path.name} missingness_rows[{index}].label",
+        )
+        if label in seen_row_labels:
+            raise ValueError(f"{path.name} missingness_rows[{index}].label must be unique")
+        seen_row_labels.add(label)
+        row_labels.append(label)
+
+    columns_payload = payload.get("missingness_columns")
+    if not isinstance(columns_payload, list) or not columns_payload:
+        raise ValueError(f"{path.name} missingness_columns must be a non-empty list")
+    column_labels: list[str] = []
+    seen_column_labels: set[str] = set()
+    for index, column in enumerate(columns_payload):
+        if not isinstance(column, dict):
+            raise ValueError(f"{path.name} missingness_columns[{index}] must be an object")
+        label = _require_non_empty_string(
+            column.get("label"),
+            label=f"{path.name} missingness_columns[{index}].label",
+        )
+        if label in seen_column_labels:
+            raise ValueError(f"{path.name} missingness_columns[{index}].label must be unique")
+        seen_column_labels.add(label)
+        column_labels.append(label)
+
+    cells_payload = payload.get("missingness_cells")
+    if not isinstance(cells_payload, list) or not cells_payload:
+        raise ValueError(f"{path.name} missingness_cells must be a non-empty list")
+    normalized_cells: list[dict[str, Any]] = []
+    seen_coordinates: set[tuple[str, str]] = set()
+    expected_rows = set(row_labels)
+    expected_columns = set(column_labels)
+    observed_rows: set[str] = set()
+    observed_columns: set[str] = set()
+    for index, cell in enumerate(cells_payload):
+        if not isinstance(cell, dict):
+            raise ValueError(f"{path.name} missingness_cells[{index}] must be an object")
+        column_label = _require_non_empty_string(
+            cell.get("x"),
+            label=f"{path.name} missingness_cells[{index}].x",
+        )
+        row_label = _require_non_empty_string(
+            cell.get("y"),
+            label=f"{path.name} missingness_cells[{index}].y",
+        )
+        if column_label not in expected_columns:
+            raise ValueError(f"{path.name} missingness_cells[{index}].x must reference a declared missingness column")
+        if row_label not in expected_rows:
+            raise ValueError(f"{path.name} missingness_cells[{index}].y must reference a declared missingness row")
+        coordinate = (column_label, row_label)
+        if coordinate in seen_coordinates:
+            raise ValueError(f"{path.name} missingness_cells[{index}] duplicates coordinate {coordinate}")
+        seen_coordinates.add(coordinate)
+        observed_rows.add(row_label)
+        observed_columns.add(column_label)
+        value = _require_numeric_value(
+            cell.get("value"),
+            label=f"{path.name} missingness_cells[{index}].value",
+        )
+        if not math.isfinite(value) or value < 0.0 or value > 1.0:
+            raise ValueError(f"{path.name} missingness_cells[{index}].value must stay within [0, 1]")
+        normalized_cells.append({"x": column_label, "y": row_label, "value": float(value)})
+    if observed_rows != expected_rows or observed_columns != expected_columns:
+        raise ValueError(f"{path.name} missingness_cells must cover the declared row/column labels")
+    if len(seen_coordinates) != len(row_labels) * len(column_labels):
+        raise ValueError(f"{path.name} missingness_cells must provide a complete missingness grid")
+
+    qc_panel_title = _require_non_empty_string(
+        payload.get("qc_panel_title"),
+        label=f"{path.name} qc_panel_title",
+    )
+    qc_cards_payload = payload.get("qc_cards")
+    if not isinstance(qc_cards_payload, list) or not qc_cards_payload:
+        raise ValueError(f"{path.name} qc_cards must be a non-empty list")
+    seen_card_ids: set[str] = set()
+    normalized_qc_cards: list[dict[str, Any]] = []
+    for index, card in enumerate(qc_cards_payload):
+        if not isinstance(card, dict):
+            raise ValueError(f"{path.name} qc_cards[{index}] must be an object")
+        card_id = _require_non_empty_string(
+            card.get("card_id"),
+            label=f"{path.name} qc_cards[{index}].card_id",
+        )
+        if card_id in seen_card_ids:
+            raise ValueError(f"{path.name} qc_cards[{index}].card_id must be unique")
+        seen_card_ids.add(card_id)
+        normalized_qc_cards.append(
+            {
+                "card_id": card_id,
+                "label": _require_non_empty_string(
+                    card.get("label"),
+                    label=f"{path.name} qc_cards[{index}].label",
+                ),
+                "value": _require_non_empty_string(
+                    card.get("value"),
+                    label=f"{path.name} qc_cards[{index}].value",
+                ),
+                "detail": str(card.get("detail") or "").strip(),
+            }
+        )
+
+    return {
+        "shell_id": shell_id,
+        "display_id": display_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "balance_panel_title": balance_panel_title,
+        "balance_x_label": balance_x_label,
+        "balance_threshold": float(balance_threshold),
+        "primary_balance_label": primary_balance_label,
+        "secondary_balance_label": secondary_balance_label,
+        "balance_variables": normalized_balance_variables,
+        "missingness_panel_title": missingness_panel_title,
+        "missingness_x_label": missingness_x_label,
+        "missingness_y_label": missingness_y_label,
+        "missingness_rows": [{"label": label} for label in row_labels],
+        "missingness_columns": [{"label": label} for label in column_labels],
+        "missingness_cells": normalized_cells,
+        "qc_panel_title": qc_panel_title,
+        "qc_cards": normalized_qc_cards,
+    }
+
+
 def _render_workflow_fact_sheet_panel(
     *,
     output_svg_path: Path,
@@ -927,6 +1154,399 @@ def _render_workflow_fact_sheet_panel(
             "guide_boxes": [],
             "metrics": {
                 "sections": metrics_sections,
+            },
+            "render_context": render_context_payload,
+        },
+    )
+
+    fig.savefig(output_svg_path, format="svg")
+    fig.savefig(output_png_path, format="png", dpi=240)
+    plt.close(fig)
+
+
+def _render_baseline_missingness_qc_panel(
+    *,
+    output_svg_path: Path,
+    output_png_path: Path,
+    output_layout_path: Path,
+    shell_payload: dict[str, Any],
+    render_context: dict[str, Any],
+) -> None:
+    render_context_payload = dict(render_context or {})
+    palette = dict(render_context_payload.get("palette") or {})
+    style_roles = dict(render_context_payload.get("style_roles") or {})
+    typography = dict(render_context_payload.get("typography") or {})
+
+    def resolve_color(style_key: str, palette_key: str, default: str) -> str:
+        style_value = str(style_roles.get(style_key) or "").strip()
+        if style_value:
+            return style_value
+        palette_value = str(palette.get(palette_key) or "").strip()
+        return palette_value or default
+
+    def read_float(mapping: dict[str, Any], key: str, default: float) -> float:
+        value = mapping.get(key, default)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        return float(default)
+
+    _prepare_python_illustration_output_paths(
+        output_png_path=output_png_path,
+        output_svg_path=output_svg_path,
+        layout_sidecar_path=output_layout_path,
+    )
+
+    neutral_color = resolve_color("reference_line", "neutral", "#475569")
+    primary_color = resolve_color("model_curve", "primary", "#245A6B")
+    secondary_color = resolve_color("comparator_curve", "secondary", "#B89A6D")
+    audit_color = str(palette.get("audit") or "#8B3A3A").strip() or "#8B3A3A"
+    light_fill = str(palette.get("light") or "#EEF4F7").strip() or "#EEF4F7"
+    qc_fill = str(palette.get("primary_soft") or "#EEF3F1").strip() or "#EEF3F1"
+
+    title_size = max(11.6, read_float(typography, "axis_title_size", 11.0) + 0.6)
+    tick_size = max(9.2, read_float(typography, "tick_size", 10.0))
+    panel_label_size = max(12.0, read_float(typography, "panel_label_size", 11.0) + 1.0)
+    card_label_size = max(9.2, tick_size - 0.2)
+    card_value_size = max(11.0, tick_size + 0.9)
+    card_detail_size = max(8.4, tick_size - 1.0)
+
+    balance_variables = list(shell_payload["balance_variables"])
+    missingness_rows = list(shell_payload["missingness_rows"])
+    missingness_columns = list(shell_payload["missingness_columns"])
+    missingness_cells = list(shell_payload["missingness_cells"])
+    qc_cards = list(shell_payload["qc_cards"])
+    has_secondary = any(item.get("secondary_value") is not None for item in balance_variables)
+
+    fig = plt.figure(figsize=(13.6, 8.2))
+    fig.patch.set_facecolor("white")
+    grid = fig.add_gridspec(2, 2, width_ratios=[1.18, 1.0], height_ratios=[1.0, 0.82])
+    balance_axes = fig.add_subplot(grid[:, 0])
+    missingness_axes = fig.add_subplot(grid[0, 1])
+    qc_axes = fig.add_subplot(grid[1, 1])
+    fig.subplots_adjust(left=0.17, right=0.92, top=0.90, bottom=0.12, wspace=0.34, hspace=0.38)
+
+    ordered_balance = list(reversed(balance_variables))
+    wrapped_balance_labels = [
+        textwrap.fill(str(item["label"]), width=18, break_long_words=False, break_on_hyphens=False)
+        for item in ordered_balance
+    ]
+    y_positions = list(range(len(ordered_balance)))
+    primary_values = [float(item["primary_value"]) for item in ordered_balance]
+    secondary_values = [
+        float(item["secondary_value"])
+        for item in ordered_balance
+        if item.get("secondary_value") is not None
+    ]
+    threshold = float(shell_payload["balance_threshold"])
+    max_balance_value = max(primary_values + secondary_values + [threshold, 0.10])
+    balance_xmax = max(0.25, max_balance_value * 1.22 + 0.02)
+    primary_y_positions = [float(index) + (0.11 if has_secondary else 0.0) for index in y_positions]
+    secondary_y_positions = [float(index) - 0.11 for index in y_positions]
+
+    threshold_line = balance_axes.axvline(
+        threshold,
+        color=audit_color,
+        linewidth=1.5,
+        linestyle="--",
+        alpha=0.9,
+    )
+    for index, item in enumerate(ordered_balance):
+        if item.get("secondary_value") is None:
+            continue
+        balance_axes.plot(
+            [float(item["secondary_value"]), float(item["primary_value"])],
+            [secondary_y_positions[index], primary_y_positions[index]],
+            color=neutral_color,
+            linewidth=1.1,
+            alpha=0.45,
+            zorder=2,
+        )
+    primary_scatter = balance_axes.scatter(
+        primary_values,
+        primary_y_positions,
+        s=74,
+        color=primary_color,
+        edgecolors="white",
+        linewidths=0.8,
+        label=str(shell_payload["primary_balance_label"]),
+        zorder=3,
+    )
+    secondary_scatter = None
+    if has_secondary:
+        secondary_scatter = balance_axes.scatter(
+            [float(item.get("secondary_value") or 0.0) for item in ordered_balance],
+            secondary_y_positions,
+            s=66,
+            color=secondary_color,
+            edgecolors="white",
+            linewidths=0.8,
+            label=str(shell_payload["secondary_balance_label"]),
+            zorder=3,
+        )
+    balance_axes.set_title(str(shell_payload["balance_panel_title"]), fontsize=title_size, fontweight="bold", color=neutral_color)
+    balance_axes.set_xlabel(str(shell_payload["balance_x_label"]), fontsize=title_size, fontweight="bold", color=neutral_color)
+    balance_axes.set_yticks(y_positions)
+    balance_axes.set_yticklabels(wrapped_balance_labels, fontsize=tick_size, color=neutral_color)
+    balance_axes.tick_params(axis="x", labelsize=tick_size, colors=neutral_color)
+    balance_axes.tick_params(axis="y", length=0)
+    balance_axes.set_xlim(0.0, balance_xmax)
+    balance_axes.set_ylim(-0.55, len(ordered_balance) - 0.45)
+    balance_axes.grid(axis="x", color=light_fill, linewidth=0.8, linestyle=":")
+    balance_axes.grid(axis="y", visible=False)
+    balance_axes.spines["top"].set_visible(False)
+    balance_axes.spines["right"].set_visible(False)
+    if has_secondary and secondary_scatter is not None:
+        balance_axes.legend(
+            handles=[primary_scatter, secondary_scatter, threshold_line],
+            labels=[
+                str(shell_payload["primary_balance_label"]),
+                str(shell_payload["secondary_balance_label"]),
+                f"Threshold = {threshold:.2f}",
+            ],
+            loc="lower right",
+            frameon=False,
+            fontsize=max(tick_size - 0.4, 8.8),
+        )
+    else:
+        balance_axes.legend(
+            handles=[primary_scatter, threshold_line],
+            labels=[
+                str(shell_payload["primary_balance_label"]),
+                f"Threshold = {threshold:.2f}",
+            ],
+            loc="lower right",
+            frameon=False,
+            fontsize=max(tick_size - 0.4, 8.8),
+        )
+
+    missingness_row_labels = [str(item["label"]) for item in missingness_rows]
+    missingness_column_labels = [str(item["label"]) for item in missingness_columns]
+    missingness_lookup = {
+        (str(item["x"]), str(item["y"])): float(item["value"]) for item in missingness_cells
+    }
+    missingness_matrix = [
+        [missingness_lookup[(column_label, row_label)] for column_label in missingness_column_labels]
+        for row_label in missingness_row_labels
+    ]
+    heatmap = missingness_axes.imshow(
+        missingness_matrix,
+        aspect="auto",
+        cmap="Blues",
+        vmin=0.0,
+        vmax=max(max((item["value"] for item in missingness_cells), default=0.0), 0.12),
+    )
+    missingness_axes.set_title(
+        str(shell_payload["missingness_panel_title"]),
+        fontsize=title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    missingness_axes.set_xlabel(
+        str(shell_payload["missingness_x_label"]),
+        fontsize=title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    missingness_axes.set_ylabel(
+        str(shell_payload["missingness_y_label"]),
+        fontsize=title_size,
+        fontweight="bold",
+        color=neutral_color,
+    )
+    missingness_axes.set_xticks(range(len(missingness_column_labels)))
+    missingness_axes.set_xticklabels(
+        [textwrap.fill(label, width=12, break_long_words=False, break_on_hyphens=False) for label in missingness_column_labels],
+        fontsize=tick_size,
+        rotation=18,
+        ha="right",
+        color=neutral_color,
+    )
+    missingness_axes.set_yticks(range(len(missingness_row_labels)))
+    missingness_axes.set_yticklabels(
+        [textwrap.fill(label, width=14, break_long_words=False, break_on_hyphens=False) for label in missingness_row_labels],
+        fontsize=tick_size,
+        color=neutral_color,
+    )
+    missingness_axes.tick_params(axis="both", length=0)
+    for row_index, row_label in enumerate(missingness_row_labels):
+        for column_index, column_label in enumerate(missingness_column_labels):
+            value = missingness_lookup[(column_label, row_label)]
+            missingness_axes.text(
+                column_index,
+                row_index,
+                f"{value * 100:.0f}%",
+                ha="center",
+                va="center",
+                fontsize=max(tick_size - 1.0, 8.2),
+                color="#0f172a",
+            )
+    missingness_axes.spines["top"].set_visible(False)
+    missingness_axes.spines["right"].set_visible(False)
+    colorbar = fig.colorbar(heatmap, ax=missingness_axes, fraction=0.046, pad=0.04)
+    colorbar.set_label("Missing rate", fontsize=max(tick_size - 0.2, 9.0), color=neutral_color)
+    colorbar.ax.tick_params(labelsize=max(tick_size - 1.0, 8.4), colors=neutral_color)
+
+    qc_axes.set_title(str(shell_payload["qc_panel_title"]), fontsize=title_size, fontweight="bold", color=neutral_color)
+    qc_axes.set_xlim(0.0, 1.0)
+    qc_axes.set_ylim(0.0, 1.0)
+    qc_axes.axis("off")
+    card_artists: list[tuple[str, str, Any]] = []
+    card_gap = 0.06
+    available_height = 0.74
+    card_height = min(0.24, (available_height - card_gap * max(len(qc_cards) - 1, 0)) / max(len(qc_cards), 1))
+    card_top = 0.84
+    for index, card in enumerate(qc_cards):
+        card_y1 = card_top - index * (card_height + card_gap)
+        card_y0 = card_y1 - card_height
+        card_patch = FancyBboxPatch(
+            (0.06, card_y0),
+            0.88,
+            card_height,
+            transform=qc_axes.transAxes,
+            boxstyle="round,pad=0.012,rounding_size=0.03",
+            linewidth=1.1,
+            edgecolor=neutral_color,
+            facecolor=qc_fill,
+        )
+        qc_axes.add_patch(card_patch)
+        label_artist = qc_axes.text(
+            0.10,
+            card_y1 - 0.04,
+            str(card["label"]),
+            transform=qc_axes.transAxes,
+            fontsize=card_label_size,
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+        value_artist = qc_axes.text(
+            0.10,
+            card_y0 + card_height * 0.48,
+            str(card["value"]),
+            transform=qc_axes.transAxes,
+            fontsize=card_value_size,
+            fontweight="bold",
+            color=primary_color,
+            ha="left",
+            va="center",
+        )
+        card_artists.append((f"qc_card_label_{card['card_id']}", "card_label", label_artist))
+        card_artists.append((f"qc_card_value_{card['card_id']}", "card_value", value_artist))
+        detail_text = str(card.get("detail") or "").strip()
+        if detail_text:
+            detail_artist = qc_axes.text(
+                0.42,
+                card_y0 + card_height * 0.48,
+                textwrap.fill(detail_text, width=28, break_long_words=False, break_on_hyphens=False),
+                transform=qc_axes.transAxes,
+                fontsize=card_detail_size,
+                color=neutral_color,
+                ha="left",
+                va="center",
+            )
+            card_artists.append((f"qc_card_detail_{card['card_id']}", "card_detail", detail_artist))
+
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    def add_panel_label(*, axes_item: Any, label: str) -> Any:
+        panel_bbox = axes_item.get_window_extent(renderer=renderer)
+        panel_x0, panel_y0 = fig.transFigure.inverted().transform((panel_bbox.x0, panel_bbox.y0))
+        panel_x1, panel_y1 = fig.transFigure.inverted().transform((panel_bbox.x1, panel_bbox.y1))
+        panel_width = float(panel_x1 - panel_x0)
+        panel_height = float(panel_y1 - panel_y0)
+        return fig.text(
+            panel_x0 + min(max(panel_width * 0.018, 0.006), 0.014),
+            panel_y1 - min(max(panel_height * 0.032, 0.008), 0.016),
+            label,
+            transform=fig.transFigure,
+            fontsize=panel_label_size,
+            fontweight="bold",
+            color=neutral_color,
+            ha="left",
+            va="top",
+        )
+
+    panel_label_a = add_panel_label(axes_item=balance_axes, label="A")
+    panel_label_b = add_panel_label(axes_item=missingness_axes, label="B")
+    panel_label_c = add_panel_label(axes_item=qc_axes, label="C")
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    layout_boxes = [
+        _bbox_to_layout_box(figure=fig, bbox=balance_axes.title.get_window_extent(renderer=renderer), box_id="balance_panel_title", box_type="panel_title"),
+        _bbox_to_layout_box(figure=fig, bbox=balance_axes.xaxis.label.get_window_extent(renderer=renderer), box_id="balance_x_axis_title", box_type="subplot_x_axis_title"),
+        _bbox_to_layout_box(figure=fig, bbox=missingness_axes.title.get_window_extent(renderer=renderer), box_id="missingness_panel_title", box_type="panel_title"),
+        _bbox_to_layout_box(figure=fig, bbox=missingness_axes.xaxis.label.get_window_extent(renderer=renderer), box_id="missingness_x_axis_title", box_type="subplot_x_axis_title"),
+        _bbox_to_layout_box(figure=fig, bbox=missingness_axes.yaxis.label.get_window_extent(renderer=renderer), box_id="missingness_y_axis_title", box_type="subplot_y_axis_title"),
+        _bbox_to_layout_box(figure=fig, bbox=qc_axes.title.get_window_extent(renderer=renderer), box_id="qc_panel_title", box_type="panel_title"),
+        _bbox_to_layout_box(figure=fig, bbox=panel_label_a.get_window_extent(renderer=renderer), box_id="panel_label_A", box_type="panel_label"),
+        _bbox_to_layout_box(figure=fig, bbox=panel_label_b.get_window_extent(renderer=renderer), box_id="panel_label_B", box_type="panel_label"),
+        _bbox_to_layout_box(figure=fig, bbox=panel_label_c.get_window_extent(renderer=renderer), box_id="panel_label_C", box_type="panel_label"),
+    ]
+    for box_id, box_type, artist in card_artists:
+        layout_boxes.append(
+            _bbox_to_layout_box(
+                figure=fig,
+                bbox=artist.get_window_extent(renderer=renderer),
+                box_id=box_id,
+                box_type=box_type,
+            )
+        )
+
+    panel_boxes = [
+        _bbox_to_layout_box(figure=fig, bbox=balance_axes.get_window_extent(renderer=renderer), box_id="panel_balance", box_type="panel"),
+        _bbox_to_layout_box(figure=fig, bbox=missingness_axes.get_window_extent(renderer=renderer), box_id="panel_missingness", box_type="panel"),
+        _bbox_to_layout_box(figure=fig, bbox=qc_axes.get_window_extent(renderer=renderer), box_id="panel_qc", box_type="panel"),
+    ]
+    threshold_half_width = max(balance_xmax * 0.003, 0.0015)
+    guide_boxes = [
+        _data_box_to_layout_box(
+            axes=balance_axes,
+            figure=fig,
+            x0=threshold - threshold_half_width,
+            y0=-0.45,
+            x1=threshold + threshold_half_width,
+            y1=max(len(ordered_balance) - 0.55, 0.45),
+            box_id="balance_threshold",
+            box_type="reference_line",
+        ),
+        _bbox_to_layout_box(
+            figure=fig,
+            bbox=colorbar.ax.get_window_extent(renderer=renderer),
+            box_id="missingness_colorbar",
+            box_type="colorbar",
+        ),
+    ]
+
+    metrics_qc_cards: list[dict[str, Any]] = []
+    for card in qc_cards:
+        metrics_qc_cards.append(
+            {
+                "card_id": str(card["card_id"]),
+                "label_box_id": f"qc_card_label_{card['card_id']}",
+                "value_box_id": f"qc_card_value_{card['card_id']}",
+            }
+        )
+
+    dump_json(
+        output_layout_path,
+        {
+            "template_id": "baseline_missingness_qc_panel",
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": layout_boxes,
+            "panel_boxes": panel_boxes,
+            "guide_boxes": guide_boxes,
+            "metrics": {
+                "primary_balance_label": str(shell_payload["primary_balance_label"]),
+                "secondary_balance_label": str(shell_payload.get("secondary_balance_label") or "").strip(),
+                "balance_threshold": float(shell_payload["balance_threshold"]),
+                "balance_variables": list(shell_payload["balance_variables"]),
+                "missingness_rows": list(shell_payload["missingness_rows"]),
+                "missingness_columns": list(shell_payload["missingness_columns"]),
+                "missingness_cells": list(shell_payload["missingness_cells"]),
+                "qc_cards": metrics_qc_cards,
             },
             "render_context": render_context_payload,
         },
@@ -3294,6 +3914,19 @@ def render_illustration_shell(
     if template_short_id == "design_evidence_composite_shell":
         normalized_shell_payload = _validate_design_evidence_composite_shell_payload(resolved_payload_path, shell_payload)
         _render_design_evidence_composite_shell(
+            output_svg_path=output_svg_path,
+            output_png_path=output_png_path,
+            output_layout_path=output_layout_path,
+            shell_payload=normalized_shell_payload,
+            render_context=render_context,
+        )
+        return {
+            "title": str(normalized_shell_payload.get("title") or "").strip(),
+            "caption": str(normalized_shell_payload.get("caption") or "").strip(),
+        }
+    if template_short_id == "baseline_missingness_qc_panel":
+        normalized_shell_payload = _validate_baseline_missingness_qc_panel_payload(resolved_payload_path, shell_payload)
+        _render_baseline_missingness_qc_panel(
             output_svg_path=output_svg_path,
             output_png_path=output_png_path,
             output_layout_path=output_layout_path,

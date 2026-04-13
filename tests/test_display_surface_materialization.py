@@ -1253,6 +1253,56 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ],
             },
         }
+    if template_short_id == "baseline_missingness_qc_panel":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.06, "y0": 0.08, "x1": 0.09, "y1": 0.12},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.58, "y0": 0.08, "x1": 0.61, "y1": 0.12},
+                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.58, "y0": 0.58, "x1": 0.61, "y1": 0.62},
+                {"box_id": "balance_panel_title", "box_type": "panel_title", "x0": 0.10, "y0": 0.08, "x1": 0.34, "y1": 0.12},
+                {"box_id": "balance_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.14, "y0": 0.84, "x1": 0.40, "y1": 0.88},
+                {"box_id": "missingness_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.08, "x1": 0.88, "y1": 0.12},
+                {"box_id": "missingness_x_axis_title", "box_type": "subplot_x_axis_title", "x0": 0.66, "y0": 0.45, "x1": 0.89, "y1": 0.49},
+                {"box_id": "missingness_y_axis_title", "box_type": "subplot_y_axis_title", "x0": 0.56, "y0": 0.18, "x1": 0.60, "y1": 0.38},
+                {"box_id": "qc_panel_title", "box_type": "panel_title", "x0": 0.63, "y0": 0.58, "x1": 0.84, "y1": 0.62},
+                {"box_id": "qc_card_label_retained", "box_type": "card_label", "x0": 0.63, "y0": 0.68, "x1": 0.74, "y1": 0.71},
+                {"box_id": "qc_card_value_retained", "box_type": "card_value", "x0": 0.63, "y0": 0.72, "x1": 0.74, "y1": 0.77},
+                {"box_id": "qc_card_label_missing", "box_type": "card_label", "x0": 0.77, "y0": 0.68, "x1": 0.89, "y1": 0.71},
+                {"box_id": "qc_card_value_missing", "box_type": "card_value", "x0": 0.77, "y0": 0.72, "x1": 0.89, "y1": 0.77},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_balance", "box_type": "panel", "x0": 0.04, "y0": 0.06, "x1": 0.48, "y1": 0.90},
+                {"box_id": "panel_missingness", "box_type": "panel", "x0": 0.56, "y0": 0.06, "x1": 0.94, "y1": 0.50},
+                {"box_id": "panel_qc", "box_type": "panel", "x0": 0.56, "y0": 0.56, "x1": 0.94, "y1": 0.90},
+            ],
+            "guide_boxes": [
+                {"box_id": "balance_threshold", "box_type": "reference_line", "x0": 0.24, "y0": 0.16, "x1": 0.25, "y1": 0.82},
+                {"box_id": "missingness_colorbar", "box_type": "colorbar", "x0": 0.90, "y0": 0.14, "x1": 0.92, "y1": 0.42},
+            ],
+            "metrics": {
+                "primary_balance_label": "Pre-adjustment SMD",
+                "secondary_balance_label": "Post-adjustment SMD",
+                "balance_threshold": 0.10,
+                "balance_variables": [
+                    {"variable_id": "age", "label": "Age", "primary_value": 0.24, "secondary_value": 0.08},
+                    {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11, "secondary_value": 0.04},
+                ],
+                "missingness_rows": [{"label": "Age"}, {"label": "HbA1c"}],
+                "missingness_columns": [{"label": "Train"}, {"label": "Validation"}],
+                "missingness_cells": [
+                    {"x": "Train", "y": "Age", "value": 0.01},
+                    {"x": "Validation", "y": "Age", "value": 0.03},
+                    {"x": "Train", "y": "HbA1c", "value": 0.08},
+                    {"x": "Validation", "y": "HbA1c", "value": 0.11},
+                ],
+                "qc_cards": [
+                    {"card_id": "retained", "label_box_id": "qc_card_label_retained", "value_box_id": "qc_card_value_retained"},
+                    {"card_id": "max_missing", "label_box_id": "qc_card_label_missing", "value_box_id": "qc_card_value_missing"},
+                ],
+            },
+        }
     if template_short_id == "design_evidence_composite_shell":
         return {
             "template_id": template_id,
@@ -3273,6 +3323,56 @@ def _make_design_evidence_composite_shell_payload() -> dict[str, object]:
     }
 
 
+def _make_baseline_missingness_qc_panel_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "shell_id": "baseline_missingness_qc_panel",
+        "display_id": "Figure4",
+        "title": "Baseline balance, missingness, and QC overview",
+        "caption": "Bounded cohort-quality overview combining baseline balance, missingness, and QC summary evidence.",
+        "balance_panel_title": "Baseline balance",
+        "balance_x_label": "Absolute standardized mean difference",
+        "balance_threshold": 0.10,
+        "primary_balance_label": "Pre-adjustment SMD",
+        "secondary_balance_label": "Post-adjustment SMD",
+        "balance_variables": [
+            {"variable_id": "age", "label": "Age", "primary_value": 0.24, "secondary_value": 0.08},
+            {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11, "secondary_value": 0.04},
+            {"variable_id": "tumor_size", "label": "Tumor size", "primary_value": 0.19, "secondary_value": 0.07},
+        ],
+        "missingness_panel_title": "Missingness map",
+        "missingness_x_label": "Dataset split",
+        "missingness_y_label": "Variable",
+        "missingness_rows": [
+            {"label": "Age"},
+            {"label": "HbA1c"},
+            {"label": "BMI"},
+        ],
+        "missingness_columns": [
+            {"label": "Train"},
+            {"label": "Validation"},
+            {"label": "External"},
+        ],
+        "missingness_cells": [
+            {"x": "Train", "y": "Age", "value": 0.01},
+            {"x": "Validation", "y": "Age", "value": 0.03},
+            {"x": "External", "y": "Age", "value": 0.04},
+            {"x": "Train", "y": "HbA1c", "value": 0.08},
+            {"x": "Validation", "y": "HbA1c", "value": 0.10},
+            {"x": "External", "y": "HbA1c", "value": 0.13},
+            {"x": "Train", "y": "BMI", "value": 0.05},
+            {"x": "Validation", "y": "BMI", "value": 0.06},
+            {"x": "External", "y": "BMI", "value": 0.09},
+        ],
+        "qc_panel_title": "QC summary",
+        "qc_cards": [
+            {"card_id": "retained", "label": "Retained", "value": "92%", "detail": "1,284 / 1,396 records"},
+            {"card_id": "max_missing", "label": "Max missing", "value": "13%", "detail": "HbA1c in external cohort"},
+            {"card_id": "batch", "label": "QC batches", "value": "3", "detail": "No site failed pre-specified checks"},
+        ],
+    }
+
+
 def test_materialize_display_surface_generates_workflow_fact_sheet_panel(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -3343,6 +3443,42 @@ def test_materialize_display_surface_generates_design_evidence_composite_shell(t
     assert figures_by_id["F3"]["input_schema_id"] == "design_evidence_composite_shell_inputs_v1"
     assert figures_by_id["F3"]["qc_profile"] == "publication_design_evidence_composite_shell"
     assert figures_by_id["F3"]["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_baseline_missingness_qc_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure4",
+                    "display_kind": "figure",
+                    "requirement_key": "baseline_missingness_qc_panel",
+                    "catalog_id": "F4",
+                    "shell_path": "paper/figures/Figure4.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "baseline_missingness_qc_panel.json", _make_baseline_missingness_qc_panel_payload())
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F4"]
+    assert (paper_root / "figures" / "generated" / "F4_baseline_missingness_qc_panel.svg").exists()
+    assert (paper_root / "figures" / "generated" / "F4_baseline_missingness_qc_panel.png").exists()
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["F4"]["template_id"] == full_id("baseline_missingness_qc_panel")
+    assert figures_by_id["F4"]["pack_id"] == "fenggaolab.org.medical-display-core"
+    assert figures_by_id["F4"]["input_schema_id"] == "baseline_missingness_qc_panel_inputs_v1"
+    assert figures_by_id["F4"]["qc_profile"] == "publication_baseline_missingness_qc_panel"
+    assert figures_by_id["F4"]["qc_result"]["status"] == "pass"
 
 
 def test_materialize_display_surface_uses_pack_runtime_for_workflow_fact_sheet_panel(
@@ -3457,6 +3593,63 @@ def test_materialize_display_surface_uses_pack_runtime_for_design_evidence_compo
     assert result["status"] == "materialized"
     assert render_calls == [full_id("design_evidence_composite_shell")]
     assert (paper_root / "figures" / "generated" / "F3_design_evidence_composite_shell.svg").exists()
+
+
+def test_materialize_display_surface_uses_pack_runtime_for_baseline_missingness_qc_panel(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure4",
+                    "display_kind": "figure",
+                    "requirement_key": "baseline_missingness_qc_panel",
+                    "catalog_id": "F4",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "baseline_missingness_qc_panel.json", _make_baseline_missingness_qc_panel_payload())
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_shell_renderer(
+        *,
+        template_id: str,
+        shell_payload: dict[str, object],
+        payload_path: Path | None = None,
+        render_context: dict[str, object],
+        output_svg_path: Path,
+        output_png_path: Path,
+        output_layout_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
+        if template_id == full_id("baseline_missingness_qc_panel"):
+            return fake_shell_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("baseline_missingness_qc_panel")]
+    assert (paper_root / "figures" / "generated" / "F4_baseline_missingness_qc_panel.svg").exists()
 
 
 def test_materialize_display_surface_uses_pack_runtime_for_submission_graphical_abstract(

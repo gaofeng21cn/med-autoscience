@@ -141,3 +141,90 @@ def test_generalizability_subgroup_composite_panel_preserves_ch_bounded_contract
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_baseline_missingness_qc_panel_preserves_h_bounded_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure44",
+                    "display_kind": "figure",
+                    "requirement_key": "baseline_missingness_qc_panel",
+                    "catalog_id": "F44",
+                    "shell_path": "paper/figures/Figure44.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "baseline_missingness_qc_panel.json",
+        {
+            "schema_version": 1,
+            "shell_id": "fenggaolab.org.medical-display-core::baseline_missingness_qc_panel",
+            "display_id": "Figure44",
+            "title": "Baseline balance, missingness, and QC overview",
+            "caption": "Regression lock for bounded cohort-quality evidence.",
+            "balance_panel_title": "Baseline balance",
+            "balance_x_label": "Absolute standardized mean difference",
+            "balance_threshold": 0.10,
+            "primary_balance_label": "Pre-adjustment SMD",
+            "secondary_balance_label": "Post-adjustment SMD",
+            "balance_variables": [
+                {"variable_id": "age", "label": "Age", "primary_value": 0.24, "secondary_value": 0.08},
+                {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11, "secondary_value": 0.04},
+                {"variable_id": "tumor_size", "label": "Tumor size", "primary_value": 0.19, "secondary_value": 0.07},
+            ],
+            "missingness_panel_title": "Missingness map",
+            "missingness_x_label": "Dataset split",
+            "missingness_y_label": "Variable",
+            "missingness_rows": [{"label": "Age"}, {"label": "HbA1c"}, {"label": "BMI"}],
+            "missingness_columns": [{"label": "Train"}, {"label": "Validation"}, {"label": "External"}],
+            "missingness_cells": [
+                {"x": "Train", "y": "Age", "value": 0.01},
+                {"x": "Validation", "y": "Age", "value": 0.03},
+                {"x": "External", "y": "Age", "value": 0.04},
+                {"x": "Train", "y": "HbA1c", "value": 0.08},
+                {"x": "Validation", "y": "HbA1c", "value": 0.10},
+                {"x": "External", "y": "HbA1c", "value": 0.13},
+                {"x": "Train", "y": "BMI", "value": 0.05},
+                {"x": "Validation", "y": "BMI", "value": 0.06},
+                {"x": "External", "y": "BMI", "value": 0.09},
+            ],
+            "qc_panel_title": "QC summary",
+            "qc_cards": [
+                {"card_id": "retained", "label": "Retained", "value": "92%", "detail": "1,284 / 1,396 records"},
+                {"card_id": "max_missing", "label": "Max missing", "value": "13%", "detail": "HbA1c in external cohort"},
+                {"card_id": "batch", "label": "QC batches", "value": "3", "detail": "No site failed pre-specified checks"},
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F44_baseline_missingness_qc_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert [item["label"] for item in layout_sidecar["metrics"]["missingness_rows"]] == ["Age", "HbA1c", "BMI"]
+    assert [item["label"] for item in layout_sidecar["metrics"]["missingness_columns"]] == [
+        "Train",
+        "Validation",
+        "External",
+    ]
+    assert layout_sidecar["metrics"]["balance_threshold"] == 0.10
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

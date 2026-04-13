@@ -14,6 +14,8 @@
 - Lock its pack-facing contract to `design_evidence_composite_shell_inputs_v1`, `publication_design_evidence_composite_shell`, and the Python fixed workflow-ribbon plus three-summary-panel renderer path.
 - Add `workflow_fact_sheet_panel` as the next audited `H` workflow / study-design illustration shell in the core display pack.
 - Lock its pack-facing contract to `workflow_fact_sheet_panel_inputs_v1`, `publication_workflow_fact_sheet_panel`, and the Python fixed 2x2 workflow fact-sheet renderer path.
+- Add `baseline_missingness_qc_panel` as the next audited `H` baseline-balance + missingness + QC illustration shell in the core display pack.
+- Lock its pack-facing contract to `baseline_missingness_qc_panel_inputs_v1`, `publication_baseline_missingness_qc_panel`, and the Python bounded three-panel baseline/missingness/QC renderer path.
 - Add `shap_grouped_decision_path_panel` as the next audited `F` grouped decision-path explanation slice in the core display pack.
 - Lock its pack-facing contract to `shap_grouped_decision_path_panel_inputs_v1`, `publication_shap_grouped_decision_path_panel`, and the Python shared-baseline grouped decision-path renderer path.
 - Add `partial_dependence_interaction_contour_panel` as the next audited `F` pairwise partial-dependence interaction slice in the core display pack.

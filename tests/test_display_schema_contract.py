@@ -70,6 +70,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     submission_graphical_abstract = module.get_input_schema_contract("submission_graphical_abstract_inputs_v1")
     workflow_fact_sheet = module.get_input_schema_contract("workflow_fact_sheet_panel_inputs_v1")
     design_evidence_composite = module.get_input_schema_contract("design_evidence_composite_shell_inputs_v1")
+    baseline_missingness_qc = module.get_input_schema_contract("baseline_missingness_qc_panel_inputs_v1")
     time_to_event_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "time_to_event"
     )
@@ -1009,6 +1010,65 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert "summary_panels_must_contain_exactly_three_items" in design_evidence_composite.additional_constraints
     assert "summary_panel_layout_roles_must_match_three_panel_composite" in design_evidence_composite.additional_constraints
     assert "summary_panel_cards_must_be_non_empty" in design_evidence_composite.additional_constraints
+    assert baseline_missingness_qc.template_ids == (_full_id("baseline_missingness_qc_panel"),)
+    assert baseline_missingness_qc.required_top_level_fields == (
+        "schema_version",
+        "shell_id",
+        "display_id",
+        "title",
+        "balance_panel_title",
+        "balance_x_label",
+        "balance_threshold",
+        "primary_balance_label",
+        "balance_variables",
+        "missingness_panel_title",
+        "missingness_x_label",
+        "missingness_y_label",
+        "missingness_rows",
+        "missingness_columns",
+        "missingness_cells",
+        "qc_panel_title",
+        "qc_cards",
+    )
+    assert baseline_missingness_qc.optional_top_level_fields == (
+        "caption",
+        "secondary_balance_label",
+    )
+    assert baseline_missingness_qc.collection_required_fields["balance_variables"] == (
+        "variable_id",
+        "label",
+        "primary_value",
+    )
+    assert baseline_missingness_qc.collection_optional_fields["balance_variables"] == ("secondary_value",)
+    assert baseline_missingness_qc.collection_required_fields["missingness_rows"] == ("label",)
+    assert baseline_missingness_qc.collection_required_fields["missingness_columns"] == ("label",)
+    assert baseline_missingness_qc.collection_required_fields["missingness_cells"] == ("x", "y", "value")
+    assert baseline_missingness_qc.collection_required_fields["qc_cards"] == (
+        "card_id",
+        "label",
+        "value",
+    )
+    assert baseline_missingness_qc.collection_optional_fields["qc_cards"] == ("detail",)
+    assert baseline_missingness_qc.additional_constraints == (
+        "balance_variables_must_be_non_empty",
+        "balance_variable_ids_must_be_unique",
+        "balance_variable_labels_must_be_unique",
+        "balance_primary_values_must_be_finite_non_negative",
+        "balance_secondary_values_require_secondary_label",
+        "balance_secondary_values_must_be_finite_non_negative",
+        "balance_threshold_must_be_positive_finite",
+        "missingness_rows_must_be_non_empty",
+        "missingness_row_labels_must_be_unique",
+        "missingness_columns_must_be_non_empty",
+        "missingness_column_labels_must_be_unique",
+        "missingness_cells_must_be_non_empty",
+        "missingness_cell_values_must_be_probability",
+        "declared_missingness_rows_must_match_cells",
+        "declared_missingness_columns_must_match_cells",
+        "declared_missingness_grid_must_be_complete_and_unique",
+        "qc_cards_must_be_non_empty",
+        "qc_card_ids_must_be_unique",
+    )
     cohort_flow_shell = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     assert cohort_flow_shell.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
     assert cohort_flow_shell.optional_top_level_fields == (

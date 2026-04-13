@@ -81,6 +81,7 @@ _ILLUSTRATION_SHELL_ORDER = tuple(
         "submission_graphical_abstract",
         "workflow_fact_sheet_panel",
         "design_evidence_composite_shell",
+        "baseline_missingness_qc_panel",
     )
 )
 _TABLE_SHELL_ORDER = tuple(

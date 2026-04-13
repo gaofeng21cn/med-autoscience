@@ -520,7 +520,7 @@ Primary mapped audit families:
 
 Current roadmap status:
 
-- `partial`
+- `expanding`
 
 Current audited anchors:
 
@@ -528,6 +528,7 @@ Current audited anchors:
 - `submission_graphical_abstract`
 - `workflow_fact_sheet_panel`
 - `design_evidence_composite_shell`
+- `baseline_missingness_qc_panel`
 - `table1_baseline_characteristics`
 - `table2_time_to_event_performance_summary`
 - `table3_clinical_interpretation_summary`
@@ -536,10 +537,10 @@ Current audited anchors:
 
 Current gap direction:
 
-- baseline balance plots
-- missingness maps
-- explicit QC/batch-effect display families
-- broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, the bounded workflow-ribbon-plus-summary composite shell, and the first bounded generalizability + subgroup composite baseline
+- broader balance / missingness governance beyond the first bounded balance-missingness-QC composite shell
+- explicit QC and batch-effect display families beyond the first bounded manuscript-facing QC summary shell
+- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline
+- broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, the bounded workflow-ribbon-plus-summary composite shell, the first bounded balance-missingness-QC composite shell, and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families
 

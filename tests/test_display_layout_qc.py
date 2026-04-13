@@ -898,6 +898,120 @@ def test_run_display_layout_qc_fails_when_design_evidence_composite_shell_panel_
     assert any(issue["rule_id"] == "panel_label_missing" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_baseline_missingness_qc_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_baseline_missingness_qc_panel",
+        layout_sidecar={
+            "template_id": "baseline_missingness_qc_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.06, y0=0.08, x1=0.09, y1=0.12),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.08, x1=0.61, y1=0.12),
+                make_box("panel_label_C", "panel_label", x0=0.58, y0=0.58, x1=0.61, y1=0.62),
+                make_box("balance_panel_title", "panel_title", x0=0.10, y0=0.08, x1=0.33, y1=0.12),
+                make_box("balance_x_axis_title", "subplot_x_axis_title", x0=0.14, y0=0.84, x1=0.40, y1=0.88),
+                make_box("missingness_panel_title", "panel_title", x0=0.63, y0=0.08, x1=0.86, y1=0.12),
+                make_box("missingness_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.44, x1=0.88, y1=0.48),
+                make_box("missingness_y_axis_title", "subplot_y_axis_title", x0=0.56, y0=0.18, x1=0.60, y1=0.38),
+                make_box("qc_panel_title", "panel_title", x0=0.63, y0=0.58, x1=0.82, y1=0.62),
+                make_box("qc_card_label_retained", "card_label", x0=0.63, y0=0.68, x1=0.74, y1=0.71),
+                make_box("qc_card_value_retained", "card_value", x0=0.63, y0=0.72, x1=0.74, y1=0.77),
+                make_box("qc_card_label_missing", "card_label", x0=0.77, y0=0.68, x1=0.89, y1=0.71),
+                make_box("qc_card_value_missing", "card_value", x0=0.77, y0=0.72, x1=0.89, y1=0.77),
+            ],
+            "panel_boxes": [
+                make_box("panel_balance", "panel", x0=0.04, y0=0.06, x1=0.48, y1=0.90),
+                make_box("panel_missingness", "panel", x0=0.56, y0=0.06, x1=0.94, y1=0.50),
+                make_box("panel_qc", "panel", x0=0.56, y0=0.56, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [
+                make_box("balance_threshold", "reference_line", x0=0.24, y0=0.16, x1=0.25, y1=0.82),
+                make_box("missingness_colorbar", "colorbar", x0=0.90, y0=0.14, x1=0.92, y1=0.42),
+            ],
+            "metrics": {
+                "primary_balance_label": "Pre-adjustment SMD",
+                "secondary_balance_label": "Post-adjustment SMD",
+                "balance_threshold": 0.10,
+                "balance_variables": [
+                    {"variable_id": "age", "label": "Age", "primary_value": 0.24, "secondary_value": 0.08},
+                    {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11, "secondary_value": 0.04},
+                ],
+                "missingness_rows": [{"label": "Age"}, {"label": "HbA1c"}],
+                "missingness_columns": [{"label": "Train"}, {"label": "Validation"}],
+                "missingness_cells": [
+                    {"x": "Train", "y": "Age", "value": 0.01},
+                    {"x": "Validation", "y": "Age", "value": 0.03},
+                    {"x": "Train", "y": "HbA1c", "value": 0.08},
+                    {"x": "Validation", "y": "HbA1c", "value": 0.11},
+                ],
+                "qc_cards": [
+                    {"card_id": "retained", "label_box_id": "qc_card_label_retained", "value_box_id": "qc_card_value_retained"},
+                    {"card_id": "max_missing", "label_box_id": "qc_card_label_missing", "value_box_id": "qc_card_value_missing"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_baseline_missingness_qc_grid_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_baseline_missingness_qc_panel",
+        layout_sidecar={
+            "template_id": "baseline_missingness_qc_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.06, y0=0.08, x1=0.09, y1=0.12),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.08, x1=0.61, y1=0.12),
+                make_box("panel_label_C", "panel_label", x0=0.58, y0=0.58, x1=0.61, y1=0.62),
+                make_box("balance_panel_title", "panel_title", x0=0.10, y0=0.08, x1=0.33, y1=0.12),
+                make_box("balance_x_axis_title", "subplot_x_axis_title", x0=0.14, y0=0.84, x1=0.40, y1=0.88),
+                make_box("missingness_panel_title", "panel_title", x0=0.63, y0=0.08, x1=0.86, y1=0.12),
+                make_box("missingness_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.44, x1=0.88, y1=0.48),
+                make_box("missingness_y_axis_title", "subplot_y_axis_title", x0=0.56, y0=0.18, x1=0.60, y1=0.38),
+                make_box("qc_panel_title", "panel_title", x0=0.63, y0=0.58, x1=0.82, y1=0.62),
+                make_box("qc_card_label_retained", "card_label", x0=0.63, y0=0.68, x1=0.74, y1=0.71),
+                make_box("qc_card_value_retained", "card_value", x0=0.63, y0=0.72, x1=0.74, y1=0.77),
+            ],
+            "panel_boxes": [
+                make_box("panel_balance", "panel", x0=0.04, y0=0.06, x1=0.48, y1=0.90),
+                make_box("panel_missingness", "panel", x0=0.56, y0=0.06, x1=0.94, y1=0.50),
+                make_box("panel_qc", "panel", x0=0.56, y0=0.56, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [
+                make_box("balance_threshold", "reference_line", x0=0.24, y0=0.16, x1=0.25, y1=0.82),
+            ],
+            "metrics": {
+                "primary_balance_label": "Pre-adjustment SMD",
+                "balance_threshold": 0.10,
+                "balance_variables": [
+                    {"variable_id": "age", "label": "Age", "primary_value": 0.24},
+                    {"variable_id": "sex", "label": "Female sex", "primary_value": 0.11},
+                ],
+                "missingness_rows": [{"label": "Age"}, {"label": "HbA1c"}],
+                "missingness_columns": [{"label": "Train"}, {"label": "Validation"}],
+                "missingness_cells": [
+                    {"x": "Train", "y": "Age", "value": 0.01},
+                    {"x": "Validation", "y": "Age", "value": 0.03},
+                    {"x": "Train", "y": "HbA1c", "value": 0.08},
+                ],
+                "qc_cards": [
+                    {"card_id": "retained", "label_box_id": "qc_card_label_retained", "value_box_id": "qc_card_value_retained"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "declared_missingness_grid_incomplete" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

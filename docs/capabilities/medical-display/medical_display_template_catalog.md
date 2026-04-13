@@ -129,6 +129,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Workflow Fact Sheet Panel | `python` | `workflow_fact_sheet_panel_inputs_v1` | `publication_workflow_fact_sheet_panel` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::design_evidence_composite_shell` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Design Evidence Composite Shell | `python` | `design_evidence_composite_shell_inputs_v1` | `publication_design_evidence_composite_shell` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Baseline Missingness QC Panel | `python` | `baseline_missingness_qc_panel_inputs_v1` | `publication_baseline_missingness_qc_panel` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary` | `table_shell` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary` | `table_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
@@ -811,6 +812,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `summary_panels.cards` -> `card_id`, `label`, `value`
 - Optional nested collection fields: `workflow_stages` -> `detail`<br>`summary_panels.cards` -> `detail`
 - Additional constraints: `workflow_stages_must_contain_three_or_four_items`, `workflow_stage_ids_must_be_unique`, `summary_panels_must_contain_exactly_three_items`, `summary_panel_ids_must_be_unique`, `summary_panel_labels_must_be_unique`, `summary_panel_layout_roles_must_match_three_panel_composite`, `summary_panel_cards_must_be_non_empty`, `summary_panel_card_ids_must_be_unique_within_panel`
+
+### `baseline_missingness_qc_panel_inputs_v1`
+
+- Display kind: `illustration_shell`
+- Display name: Baseline Missingness QC Panel
+- Templates: `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel`
+- Required top-level fields: `schema_version`, `shell_id`, `display_id`, `title`, `balance_panel_title`, `balance_x_label`, `balance_threshold`, `primary_balance_label`, `balance_variables`, `missingness_panel_title`, `missingness_x_label`, `missingness_y_label`, `missingness_rows`, `missingness_columns`, `missingness_cells`, `qc_panel_title`, `qc_cards`
+- Optional top-level fields: `caption`, `secondary_balance_label`
+- Required display fields: None
+- Optional display fields: None
+- Required collection fields: `balance_variables` -> `variable_id`, `label`, `primary_value`<br>`missingness_rows` -> `label`<br>`missingness_columns` -> `label`<br>`missingness_cells` -> `x`, `y`, `value`<br>`qc_cards` -> `card_id`, `label`, `value`
+- Optional collection fields: `balance_variables` -> `secondary_value`<br>`qc_cards` -> `detail`
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `balance_variables_must_be_non_empty`, `balance_variable_ids_must_be_unique`, `balance_variable_labels_must_be_unique`, `balance_primary_values_must_be_finite_non_negative`, `balance_secondary_values_require_secondary_label`, `balance_secondary_values_must_be_finite_non_negative`, `balance_threshold_must_be_positive_finite`, `missingness_rows_must_be_non_empty`, `missingness_row_labels_must_be_unique`, `missingness_columns_must_be_non_empty`, `missingness_column_labels_must_be_unique`, `missingness_cells_must_be_non_empty`, `missingness_cell_values_must_be_probability`, `declared_missingness_rows_must_match_cells`, `declared_missingness_columns_must_match_cells`, `declared_missingness_grid_must_be_complete_and_unique`, `qc_cards_must_be_non_empty`, `qc_card_ids_must_be_unique`
 
 ### `baseline_characteristics_schema_v1`
 
