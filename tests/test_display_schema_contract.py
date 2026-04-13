@@ -1210,6 +1210,43 @@ def test_partial_dependence_ice_panel_schema_contract_is_registered() -> None:
     assert "partial_dependence_ice_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_partial_dependence_interaction_contour_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    pdp_interaction = module.get_input_schema_contract("partial_dependence_interaction_contour_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert pdp_interaction.template_ids == (_full_id("partial_dependence_interaction_contour_panel"),)
+    assert pdp_interaction.display_name == "Partial Dependence Interaction Contour Panel"
+    assert pdp_interaction.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "y_label",
+        "x_feature",
+        "y_feature",
+        "reference_x_value",
+        "reference_y_value",
+        "reference_label",
+        "x_grid",
+        "y_grid",
+        "response_grid",
+        "observed_points",
+    )
+    assert pdp_interaction.nested_collection_required_fields["panels.observed_points"] == ("point_id", "x", "y")
+    assert "panel_count_must_not_exceed_two" in pdp_interaction.additional_constraints
+    assert "panel_x_grids_must_be_strictly_increasing" in pdp_interaction.additional_constraints
+    assert "panel_y_grids_must_be_strictly_increasing" in pdp_interaction.additional_constraints
+    assert "panel_response_grids_must_match_declared_axes" in pdp_interaction.additional_constraints
+    assert "panel_observed_points_must_fall_within_declared_grid_range" in pdp_interaction.additional_constraints
+    assert "panel_reference_point_must_fall_within_declared_grid_range" in pdp_interaction.additional_constraints
+    assert _full_id("partial_dependence_interaction_contour_panel") in model_explanation_class.template_ids
+    assert "partial_dependence_interaction_contour_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1381,6 +1418,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_grouped_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
+    assert _full_id("partial_dependence_interaction_contour_panel") in markdown
+    assert "partial_dependence_interaction_contour_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

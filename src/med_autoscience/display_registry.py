@@ -61,6 +61,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "shap_force_like_summary_panel",
         "shap_grouped_local_explanation_panel",
         "partial_dependence_ice_panel",
+        "partial_dependence_interaction_contour_panel",
         "time_to_event_discrimination_calibration_panel",
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",

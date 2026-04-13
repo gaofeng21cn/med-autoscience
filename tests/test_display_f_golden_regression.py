@@ -485,6 +485,155 @@ def test_shap_grouped_local_explanation_panel_preserves_f_grouped_local_contract
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_partial_dependence_interaction_contour_panel_preserves_f_pairwise_interaction_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_interaction_contour_panel",
+                    "catalog_id": "F41",
+                    "shell_path": "paper/figures/Figure41.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "template_id": "partial_dependence_interaction_contour_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "partial_dependence_interaction_contour_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_interaction_contour_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "template_id": "fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel",
+                    "title": "Partial dependence interaction contour panel for joint feature-response surfaces",
+                    "caption": "Regression lock for manuscript-facing bounded pairwise partial dependence interactions.",
+                    "colorbar_label": "Predicted response probability",
+                    "panels": [
+                        {
+                            "panel_id": "age_albumin",
+                            "panel_label": "A",
+                            "title": "Age x Albumin",
+                            "x_label": "Age (years)",
+                            "y_label": "Albumin (g/dL)",
+                            "x_feature": "Age",
+                            "y_feature": "Albumin",
+                            "reference_x_value": 60.0,
+                            "reference_y_value": 3.8,
+                            "reference_label": "Median profile",
+                            "x_grid": [40.0, 50.0, 60.0, 70.0],
+                            "y_grid": [2.8, 3.4, 4.0, 4.6],
+                            "response_grid": [
+                                [0.44, 0.37, 0.31, 0.27],
+                                [0.35, 0.29, 0.24, 0.20],
+                                [0.28, 0.23, 0.19, 0.16],
+                                [0.24, 0.20, 0.17, 0.14],
+                            ],
+                            "observed_points": [
+                                {"point_id": "case_1", "x": 43.0, "y": 3.0},
+                                {"point_id": "case_2", "x": 51.0, "y": 3.5},
+                                {"point_id": "case_3", "x": 60.0, "y": 3.8},
+                                {"point_id": "case_4", "x": 67.0, "y": 4.2},
+                            ],
+                        },
+                        {
+                            "panel_id": "tumor_platelet",
+                            "panel_label": "B",
+                            "title": "Tumor size x Platelets",
+                            "x_label": "Tumor size (cm)",
+                            "y_label": "Platelets (10^9/L)",
+                            "x_feature": "Tumor size",
+                            "y_feature": "Platelet count",
+                            "reference_x_value": 6.0,
+                            "reference_y_value": 160.0,
+                            "reference_label": "Reference profile",
+                            "x_grid": [2.0, 4.0, 6.0, 8.0],
+                            "y_grid": [80.0, 120.0, 160.0, 200.0],
+                            "response_grid": [
+                                [0.18, 0.21, 0.25, 0.29],
+                                [0.22, 0.27, 0.31, 0.36],
+                                [0.27, 0.33, 0.39, 0.45],
+                                [0.31, 0.38, 0.45, 0.52],
+                            ],
+                            "observed_points": [
+                                {"point_id": "case_5", "x": 2.6, "y": 92.0},
+                                {"point_id": "case_6", "x": 4.8, "y": 138.0},
+                                {"point_id": "case_7", "x": 6.1, "y": 164.0},
+                                {"point_id": "case_8", "x": 7.5, "y": 188.0},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root
+            / "figures"
+            / "generated"
+            / "F41_partial_dependence_interaction_contour_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_type"] == "colorbar" for box in layout_sidecar["guide_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "interaction_reference_vertical"]) == 2
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "interaction_reference_horizontal"]) == 2
+    assert layout_sidecar["metrics"]["colorbar_label"] == "Predicted response probability"
+    assert [item["reference_label"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "Median profile",
+        "Reference profile",
+    ]
+    assert layout_sidecar["metrics"]["panels"][0]["response_grid"][0][0] == 0.44
+    assert layout_sidecar["metrics"]["panels"][1]["observed_points"][-1]["point_id"] == "case_8"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_partial_dependence_ice_panel_preserves_f_pdp_ice_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

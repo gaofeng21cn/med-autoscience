@@ -7233,6 +7233,75 @@ def _make_partial_dependence_ice_panel_display(display_id: str = "Figure36") -> 
     }
 
 
+def _make_partial_dependence_interaction_contour_panel_display(
+    display_id: str = "Figure41",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "partial_dependence_interaction_contour_panel",
+        "title": "Partial dependence interaction contour panel for joint feature-response surfaces",
+        "caption": (
+            "Bounded pairwise partial dependence contours summarize how coupled feature regimes move the audited "
+            "model prediction across clinically plausible combinations."
+        ),
+        "colorbar_label": "Predicted response probability",
+        "panels": [
+            {
+                "panel_id": "age_albumin",
+                "panel_label": "A",
+                "title": "Age x Albumin",
+                "x_label": "Age (years)",
+                "y_label": "Albumin (g/dL)",
+                "x_feature": "Age",
+                "y_feature": "Albumin",
+                "reference_x_value": 60.0,
+                "reference_y_value": 3.8,
+                "reference_label": "Median profile",
+                "x_grid": [40.0, 50.0, 60.0, 70.0],
+                "y_grid": [2.8, 3.4, 4.0, 4.6],
+                "response_grid": [
+                    [0.44, 0.37, 0.31, 0.27],
+                    [0.35, 0.29, 0.24, 0.20],
+                    [0.28, 0.23, 0.19, 0.16],
+                    [0.24, 0.20, 0.17, 0.14],
+                ],
+                "observed_points": [
+                    {"point_id": "case_1", "x": 43.0, "y": 3.0},
+                    {"point_id": "case_2", "x": 51.0, "y": 3.5},
+                    {"point_id": "case_3", "x": 60.0, "y": 3.8},
+                    {"point_id": "case_4", "x": 67.0, "y": 4.2},
+                ],
+            },
+            {
+                "panel_id": "tumor_platelet",
+                "panel_label": "B",
+                "title": "Tumor size x Platelets",
+                "x_label": "Tumor size (cm)",
+                "y_label": "Platelets (10^9/L)",
+                "x_feature": "Tumor size",
+                "y_feature": "Platelet count",
+                "reference_x_value": 6.0,
+                "reference_y_value": 160.0,
+                "reference_label": "Reference profile",
+                "x_grid": [2.0, 4.0, 6.0, 8.0],
+                "y_grid": [80.0, 120.0, 160.0, 200.0],
+                "response_grid": [
+                    [0.18, 0.21, 0.25, 0.29],
+                    [0.22, 0.27, 0.31, 0.36],
+                    [0.27, 0.33, 0.39, 0.45],
+                    [0.31, 0.38, 0.45, 0.52],
+                ],
+                "observed_points": [
+                    {"point_id": "case_5", "x": 2.6, "y": 92.0},
+                    {"point_id": "case_6", "x": 4.8, "y": 138.0},
+                    {"point_id": "case_7", "x": 6.1, "y": 164.0},
+                    {"point_id": "case_8", "x": 7.5, "y": 188.0},
+                ],
+            },
+        ],
+    }
+
+
 def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -7860,6 +7929,82 @@ def test_materialize_display_surface_generates_partial_dependence_ice_panel(tmp_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "partial_dependence_ice_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_partial_dependence_ice_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_partial_dependence_interaction_contour_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_interaction_contour_panel",
+                    "catalog_id": "F41",
+                    "shell_path": "paper/figures/Figure41.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "template_id": "partial_dependence_interaction_contour_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "partial_dependence_interaction_contour_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_interaction_contour_panel_inputs_v1",
+            "displays": [_make_partial_dependence_interaction_contour_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F41"]
+    assert (paper_root / "figures" / "generated" / "F41_partial_dependence_interaction_contour_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F41_partial_dependence_interaction_contour_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F41_partial_dependence_interaction_contour_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_type"] == "colorbar" for item in layout_sidecar["guide_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "interaction_reference_vertical"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "interaction_reference_horizontal"]) == 2
+    assert layout_sidecar["metrics"]["colorbar_label"] == "Predicted response probability"
+    assert [item["x_feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Age", "Tumor size"]
+    assert layout_sidecar["metrics"]["panels"][0]["observed_points"][0]["point_id"] == "case_1"
+    assert layout_sidecar["metrics"]["panels"][1]["response_grid"][3][3] == 0.52
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F41"
+    assert figure_entry["template_id"] == full_id("partial_dependence_interaction_contour_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "partial_dependence_interaction_contour_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_partial_dependence_interaction_contour_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

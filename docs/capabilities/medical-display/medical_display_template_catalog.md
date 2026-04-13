@@ -100,6 +100,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::shap_force_like_summary_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Force-like Summary Panel | `python` | `shap_force_like_summary_panel_inputs_v1` | `publication_shap_force_like_summary_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_grouped_local_explanation_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Grouped Local Explanation Panel | `python` | `shap_grouped_local_explanation_panel_inputs_v1` | `publication_shap_grouped_local_explanation_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_ice_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence and ICE Panel | `python` | `partial_dependence_ice_panel_inputs_v1` | `publication_partial_dependence_ice_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Interaction Contour Panel | `python` | `partial_dependence_interaction_contour_panel_inputs_v1` | `publication_partial_dependence_interaction_contour_panel` | `png`, `pdf` |
 
 ### Model Audit
 
@@ -607,6 +608,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `panels.pdp_curve` -> `x`, `y`<br>`panels.ice_curves` -> `curve_id`, `x`, `y`
 - Optional nested collection fields: None
 - Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_three`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_features_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_reference_values_must_be_finite`, `panel_pdp_curve_must_have_matching_x_y_lengths`, `panel_pdp_curve_x_must_be_strictly_increasing`, `panel_pdp_curve_values_must_be_finite`, `panel_ice_curves_must_be_non_empty`, `panel_ice_curve_ids_must_be_unique_within_panel`, `ice_curve_x_y_lengths_must_match`, `ice_curve_x_grids_must_match_pdp_curve_x`, `ice_curve_values_must_be_finite`, `panel_reference_values_must_fall_within_pdp_curve_range`
+
+### `partial_dependence_interaction_contour_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Partial Dependence Interaction Contour Panel
+- Templates: `fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `colorbar_label`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `x_label`, `y_label`, `x_feature`, `y_feature`, `reference_x_value`, `reference_y_value`, `reference_label`, `x_grid`, `y_grid`, `response_grid`, `observed_points`
+- Optional collection fields: None
+- Required nested collection fields: `panels.observed_points` -> `point_id`, `x`, `y`
+- Optional nested collection fields: None
+- Additional constraints: `panels_must_be_non_empty`, `panel_count_must_not_exceed_two`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `panel_feature_pairs_must_be_unique`, `panel_reference_labels_must_be_non_empty`, `panel_x_grids_must_be_strictly_increasing`, `panel_y_grids_must_be_strictly_increasing`, `panel_response_grids_must_match_declared_axes`, `panel_response_values_must_be_finite`, `panel_observed_points_must_be_non_empty`, `panel_observed_point_ids_must_be_unique_within_panel`, `panel_observed_points_must_be_finite`, `panel_observed_points_must_fall_within_declared_grid_range`, `panel_reference_point_must_fall_within_declared_grid_range`
 
 ### `multicenter_generalizability_inputs_v1`
 

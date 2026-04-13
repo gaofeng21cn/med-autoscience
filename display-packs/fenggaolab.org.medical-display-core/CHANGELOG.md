@@ -2,6 +2,8 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `partial_dependence_interaction_contour_panel` as the next audited `F` pairwise partial-dependence interaction slice in the core display pack.
+- Lock its pack-facing contract to `partial_dependence_interaction_contour_panel_inputs_v1`, `publication_partial_dependence_interaction_contour_panel`, and the Python bounded pairwise interaction-contour renderer path.
 - Add `shap_grouped_local_explanation_panel` as the next audited `F` grouped local-explanation comparison slice in the core display pack.
 - Lock its pack-facing contract to `shap_grouped_local_explanation_panel_inputs_v1`, `publication_shap_grouped_local_explanation_panel`, and the Python zero-centered multi-panel local-contribution comparison renderer path.
 - Add `shap_multicohort_importance_panel` as the next audited `F` cross-cohort global-importance explanation slice in the core display pack.

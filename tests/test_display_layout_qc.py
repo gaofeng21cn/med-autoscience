@@ -3893,6 +3893,171 @@ def test_run_display_layout_qc_fails_when_partial_dependence_ice_curve_leaves_pa
     assert any(issue["rule_id"] == "ice_point_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_partial_dependence_interaction_contour_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_interaction_contour_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_interaction_contour_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.11, y0=0.87, x1=0.30, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.47, y0=0.87, x1=0.71, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.52, y0=0.10, x1=0.69, y1=0.13),
+                make_box("y_axis_title_A", "subplot_y_axis_title", x0=0.07, y0=0.33, x1=0.09, y1=0.69),
+                make_box("y_axis_title_B", "subplot_y_axis_title", x0=0.43, y0=0.31, x1=0.45, y1=0.70),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.81, x1=0.13, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.47, y0=0.81, x1=0.49, y1=0.84),
+                make_box("reference_label_A", "interaction_reference_label", x0=0.21, y0=0.76, x1=0.30, y1=0.79),
+                make_box("reference_label_B", "interaction_reference_label", x0=0.58, y0=0.76, x1=0.69, y1=0.79),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.46, y0=0.18, x1=0.72, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("colorbar", "colorbar", x0=0.82, y0=0.24, x1=0.85, y1=0.76),
+                make_box("reference_vertical_A", "interaction_reference_vertical", x0=0.23, y0=0.18, x1=0.231, y1=0.82),
+                make_box("reference_horizontal_A", "interaction_reference_horizontal", x0=0.10, y0=0.47, x1=0.34, y1=0.471),
+                make_box("reference_vertical_B", "interaction_reference_vertical", x0=0.60, y0=0.18, x1=0.601, y1=0.82),
+                make_box("reference_horizontal_B", "interaction_reference_horizontal", x0=0.46, y0=0.49, x1=0.72, y1=0.491),
+            ],
+            "metrics": {
+                "colorbar_label": "Predicted response probability",
+                "panels": [
+                    {
+                        "panel_id": "age_albumin",
+                        "panel_label": "A",
+                        "title": "Age x Albumin",
+                        "x_label": "Age (years)",
+                        "y_label": "Albumin (g/dL)",
+                        "x_feature": "Age",
+                        "y_feature": "Albumin",
+                        "reference_x_value": 60.0,
+                        "reference_y_value": 3.8,
+                        "reference_label": "Median profile",
+                        "panel_box_id": "panel_A",
+                        "reference_vertical_box_id": "reference_vertical_A",
+                        "reference_horizontal_box_id": "reference_horizontal_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "x_grid": [40.0, 50.0, 60.0, 70.0],
+                        "y_grid": [2.8, 3.4, 4.0, 4.6],
+                        "response_grid": [
+                            [0.44, 0.37, 0.31, 0.27],
+                            [0.35, 0.29, 0.24, 0.20],
+                            [0.28, 0.23, 0.19, 0.16],
+                            [0.24, 0.20, 0.17, 0.14],
+                        ],
+                        "observed_points": [
+                            {"point_id": "case_1", "x": 0.14, "y": 0.28},
+                            {"point_id": "case_2", "x": 0.19, "y": 0.40},
+                            {"point_id": "case_3", "x": 0.23, "y": 0.47},
+                            {"point_id": "case_4", "x": 0.30, "y": 0.61},
+                        ],
+                    },
+                    {
+                        "panel_id": "tumor_platelet",
+                        "panel_label": "B",
+                        "title": "Tumor size x Platelets",
+                        "x_label": "Tumor size (cm)",
+                        "y_label": "Platelets (10^9/L)",
+                        "x_feature": "Tumor size",
+                        "y_feature": "Platelet count",
+                        "reference_x_value": 6.0,
+                        "reference_y_value": 160.0,
+                        "reference_label": "Reference profile",
+                        "panel_box_id": "panel_B",
+                        "reference_vertical_box_id": "reference_vertical_B",
+                        "reference_horizontal_box_id": "reference_horizontal_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "x_grid": [2.0, 4.0, 6.0, 8.0],
+                        "y_grid": [80.0, 120.0, 160.0, 200.0],
+                        "response_grid": [
+                            [0.18, 0.21, 0.25, 0.29],
+                            [0.22, 0.27, 0.31, 0.36],
+                            [0.27, 0.33, 0.39, 0.45],
+                            [0.31, 0.38, 0.45, 0.52],
+                        ],
+                        "observed_points": [
+                            {"point_id": "case_5", "x": 0.50, "y": 0.29},
+                            {"point_id": "case_6", "x": 0.56, "y": 0.43},
+                            {"point_id": "case_7", "x": 0.60, "y": 0.50},
+                            {"point_id": "case_8", "x": 0.67, "y": 0.64},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_partial_dependence_interaction_support_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_interaction_contour_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_interaction_contour_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.11, y0=0.87, x1=0.30, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.30, y1=0.13),
+                make_box("y_axis_title_A", "subplot_y_axis_title", x0=0.07, y0=0.33, x1=0.09, y1=0.69),
+                make_box("panel_label_A", "panel_label", x0=0.11, y0=0.81, x1=0.13, y1=0.84),
+                make_box("reference_label_A", "interaction_reference_label", x0=0.21, y0=0.76, x1=0.30, y1=0.79),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.34, y1=0.82)],
+            "guide_boxes": [
+                make_box("colorbar", "colorbar", x0=0.82, y0=0.24, x1=0.85, y1=0.76),
+                make_box("reference_vertical_A", "interaction_reference_vertical", x0=0.23, y0=0.18, x1=0.231, y1=0.82),
+                make_box("reference_horizontal_A", "interaction_reference_horizontal", x0=0.10, y0=0.47, x1=0.34, y1=0.471),
+            ],
+            "metrics": {
+                "colorbar_label": "Predicted response probability",
+                "panels": [
+                    {
+                        "panel_id": "age_albumin",
+                        "panel_label": "A",
+                        "title": "Age x Albumin",
+                        "x_label": "Age (years)",
+                        "y_label": "Albumin (g/dL)",
+                        "x_feature": "Age",
+                        "y_feature": "Albumin",
+                        "reference_x_value": 60.0,
+                        "reference_y_value": 3.8,
+                        "reference_label": "Median profile",
+                        "panel_box_id": "panel_A",
+                        "reference_vertical_box_id": "reference_vertical_A",
+                        "reference_horizontal_box_id": "reference_horizontal_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "x_grid": [40.0, 50.0, 60.0, 70.0],
+                        "y_grid": [2.8, 3.4, 4.0, 4.6],
+                        "response_grid": [
+                            [0.44, 0.37, 0.31, 0.27],
+                            [0.35, 0.29, 0.24, 0.20],
+                            [0.28, 0.23, 0.19, 0.16],
+                            [0.24, 0.20, 0.17, 0.14],
+                        ],
+                        "observed_points": [
+                            {"point_id": "case_1", "x": 0.14, "y": 0.28},
+                            {"point_id": "case_2", "x": 0.38, "y": 0.40},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "observed_point_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_shap_bar_importance() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
