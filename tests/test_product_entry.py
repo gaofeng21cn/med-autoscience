@@ -361,6 +361,22 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["operator_loop_actions"]["inspect_progress"]["command"].endswith(
         "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
+    assert payload["product_entry_quickstart"]["surface_kind"] == "product_entry_quickstart"
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
+    assert [step["step_id"] for step in payload["product_entry_quickstart"]["steps"]] == [
+        "open_frontdesk",
+        "submit_task",
+        "continue_study",
+        "inspect_progress",
+    ]
+    assert payload["product_entry_quickstart"]["steps"][0]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_quickstart"]["steps"][1]["requires"] == ["study_id", "task_intent"]
+    assert payload["product_entry_quickstart"]["steps"][2]["command"].endswith(
+        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+    )
+    assert payload["product_entry_quickstart"]["steps"][3]["surface_kind"] == "study_progress"
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["repo_mainline"]["current_stage_summary"] == "继续收口 blocker 并把用户入口壳压实。"
@@ -416,6 +432,11 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
         "label": "controller checkpoint lineage companion",
     }
+    assert payload["product_entry_quickstart"]["resume_contract"] == payload["family_orchestration"]["resume_contract"]
+    assert payload["product_entry_quickstart"]["human_gate_ids"] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
 
 
@@ -455,6 +476,9 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["summary"]["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
+    assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
     assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
     assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_physician_decision_gate"
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"

@@ -849,6 +849,54 @@ def build_product_entry_manifest(
             "label": "controller checkpoint lineage companion",
         },
     }
+    product_entry_quickstart = {
+        "surface_kind": "product_entry_quickstart",
+        "recommended_step_id": "open_frontdesk",
+        "summary": (
+            "先从 product frontdesk 进入当前 research frontdoor，"
+            "需要新任务时先写 durable study task intake，再继续某个 study 或读取进度。"
+        ),
+        "steps": [
+            {
+                "step_id": "open_frontdesk",
+                "title": "Open research frontdesk",
+                "command": product_entry_shell["product_frontdesk"]["command"],
+                "surface_kind": PRODUCT_FRONTDESK_KIND,
+                "summary": product_entry_shell["product_frontdesk"]["purpose"],
+                "requires": [],
+            },
+            {
+                "step_id": "submit_task",
+                "title": "Write durable study task",
+                "command": product_entry_shell["submit_study_task"]["command"],
+                "surface_kind": "study_task_intake",
+                "summary": operator_loop_actions["submit_task"]["summary"],
+                "requires": list(operator_loop_actions["submit_task"]["requires"]),
+            },
+            {
+                "step_id": "continue_study",
+                "title": "Continue or relaunch a study",
+                "command": product_entry_shell["launch_study"]["command"],
+                "surface_kind": "launch_study",
+                "summary": operator_loop_actions["continue_study"]["summary"],
+                "requires": list(operator_loop_actions["continue_study"]["requires"]),
+            },
+            {
+                "step_id": "inspect_progress",
+                "title": "Inspect current study progress",
+                "command": product_entry_shell["study_progress"]["command"],
+                "surface_kind": "study_progress",
+                "summary": operator_loop_actions["inspect_progress"]["summary"],
+                "requires": list(operator_loop_actions["inspect_progress"]["requires"]),
+            },
+        ],
+        "resume_contract": dict(family_orchestration["resume_contract"]),
+        "human_gate_ids": [
+            gate["gate_id"]
+            for gate in family_orchestration["human_gates"]
+            if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
+        ],
+    }
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -918,6 +966,7 @@ def build_product_entry_manifest(
         },
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
+        "product_entry_quickstart": product_entry_quickstart,
         "family_orchestration": family_orchestration,
         "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
         "notes": [
@@ -994,6 +1043,7 @@ def build_product_frontdesk(
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
         "product_entry_manifest": manifest,
         "entry_surfaces": {
