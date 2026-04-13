@@ -101,7 +101,7 @@ A new repo-tracked lightweight product-entry shell is now present, but it is sti
 - `workspace-cockpit` for workspace-wide readiness, latest study task summaries, supervisor-service visibility, stale-progress alerts, and study supervision
 - `submit-study-task` for writing a durable study task intake and syncing it into the startup brief surface
 - `launch-study` for start/resume plus immediate monitoring, current task summary, and progress-signal links
-- `product-entry-manifest` for freezing the current research-side product-entry shell as a machine-readable discovery surface without touching the display line
+- `product-entry-manifest` for freezing the current research-side product-entry shell as a machine-readable discovery surface without touching the display line, and now also surfacing the family-orchestration companion preview for human gates / resume / checkpoint lineage
 - `build-product-entry` for emitting the shared direct / `OPL` handoff envelope from a durable study task intake without touching the display line
 
 The target domain-facing shape is:

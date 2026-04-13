@@ -822,9 +822,37 @@ def build_product_entry_manifest(
             "requires": ["study_id"],
         },
     }
+    family_orchestration = {
+        "human_gates": [
+            {
+                "gate_id": "study_physician_decision_gate",
+                "title": "Study physician decision gate",
+            },
+            {
+                "gate_id": "publication_release_gate",
+                "title": "Publication release gate",
+            },
+        ],
+        "resume_contract": {
+            "surface_kind": "launch_study",
+            "session_locator_field": "study_id",
+            "checkpoint_locator_field": "controller_decision_path",
+        },
+        "event_envelope_surface": {
+            "ref_kind": "workspace_locator",
+            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+            "label": "runtime watch event companion",
+        },
+        "checkpoint_lineage_surface": {
+            "ref_kind": "workspace_locator",
+            "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+            "label": "controller checkpoint lineage companion",
+        },
+    }
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "manifest_version": 2,
         "surface_kind": "product_entry_manifest",
         "manifest_kind": PRODUCT_ENTRY_MANIFEST_KIND,
         "target_domain_id": TARGET_DOMAIN_ID,
@@ -890,6 +918,7 @@ def build_product_entry_manifest(
         },
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
+        "family_orchestration": family_orchestration,
         "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
         "notes": [
             "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
@@ -965,6 +994,7 @@ def build_product_frontdesk(
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "family_orchestration": dict(manifest.get("family_orchestration") or {}),
         "product_entry_manifest": manifest,
         "entry_surfaces": {
             "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),

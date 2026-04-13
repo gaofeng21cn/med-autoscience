@@ -100,7 +100,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - `workspace-cockpit`：先看 workspace readiness、最新任务摘要、supervisor service 在线态、stale progress 告警和 study supervision
 - `submit-study-task`：把任务意图写成 durable study task intake，并同步进 startup brief surface
 - `launch-study`：启动/续跑 study，并立刻返回监控入口、当前任务摘要和进度信号
-- `product-entry-manifest`：把当前 research 主线的 product-entry shell 冻结成 machine-readable discovery surface，同时不碰 display 支线
+- `product-entry-manifest`：把当前 research 主线的 product-entry shell 冻结成 machine-readable discovery surface，同时不碰 display 支线；现在也会额外带出 family-orchestration companion preview，用来暴露 human gate / resume / checkpoint lineage 摘要
 - `build-product-entry`：在已有 durable study task intake 的前提下，输出 shared direct / `OPL` handoff envelope，同时不碰 display 支线
 
 这个仓的目标 domain 级入口形态应是：
