@@ -580,6 +580,165 @@ def test_run_display_layout_qc_passes_for_submission_graphical_abstract() -> Non
     assert result["issues"] == []
 
 
+def test_run_display_layout_qc_passes_for_workflow_fact_sheet_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_workflow_fact_sheet_panel",
+        layout_sidecar={
+            "template_id": "workflow_fact_sheet_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.07, y0=0.10, x1=0.10, y1=0.14),
+                make_box("panel_label_B", "panel_label", x0=0.55, y0=0.10, x1=0.58, y1=0.14),
+                make_box("panel_label_C", "panel_label", x0=0.07, y0=0.54, x1=0.10, y1=0.58),
+                make_box("panel_label_D", "panel_label", x0=0.55, y0=0.54, x1=0.58, y1=0.58),
+                make_box("section_title_A", "section_title", x0=0.11, y0=0.10, x1=0.34, y1=0.14),
+                make_box("section_title_B", "section_title", x0=0.59, y0=0.10, x1=0.82, y1=0.14),
+                make_box("section_title_C", "section_title", x0=0.11, y0=0.54, x1=0.34, y1=0.58),
+                make_box("section_title_D", "section_title", x0=0.59, y0=0.54, x1=0.82, y1=0.58),
+                make_box("fact_label_A_1", "fact_label", x0=0.11, y0=0.18, x1=0.24, y1=0.22),
+                make_box("fact_value_A_1", "fact_value", x0=0.26, y0=0.18, x1=0.42, y1=0.22),
+                make_box("fact_label_B_1", "fact_label", x0=0.59, y0=0.18, x1=0.72, y1=0.22),
+                make_box("fact_value_B_1", "fact_value", x0=0.74, y0=0.18, x1=0.90, y1=0.22),
+                make_box("fact_label_C_1", "fact_label", x0=0.11, y0=0.62, x1=0.24, y1=0.66),
+                make_box("fact_value_C_1", "fact_value", x0=0.26, y0=0.62, x1=0.42, y1=0.66),
+                make_box("fact_label_D_1", "fact_label", x0=0.59, y0=0.62, x1=0.72, y1=0.66),
+                make_box("fact_value_D_1", "fact_value", x0=0.74, y0=0.62, x1=0.90, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.06, y0=0.08, x1=0.46, y1=0.46),
+                make_box("panel_B", "panel", x0=0.54, y0=0.08, x1=0.94, y1=0.46),
+                make_box("panel_C", "panel", x0=0.06, y0=0.52, x1=0.46, y1=0.90),
+                make_box("panel_D", "panel", x0=0.54, y0=0.52, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "sections": [
+                    {
+                        "section_id": "cohort",
+                        "panel_label": "A",
+                        "layout_role": "top_left",
+                        "panel_box_id": "panel_A",
+                        "title_box_id": "section_title_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "facts": [{"fact_id": "cohort_n", "label_box_id": "fact_label_A_1", "value_box_id": "fact_value_A_1"}],
+                    },
+                    {
+                        "section_id": "endpoint",
+                        "panel_label": "B",
+                        "layout_role": "top_right",
+                        "panel_box_id": "panel_B",
+                        "title_box_id": "section_title_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "facts": [{"fact_id": "endpoint", "label_box_id": "fact_label_B_1", "value_box_id": "fact_value_B_1"}],
+                    },
+                    {
+                        "section_id": "workflow",
+                        "panel_label": "C",
+                        "layout_role": "bottom_left",
+                        "panel_box_id": "panel_C",
+                        "title_box_id": "section_title_C",
+                        "panel_label_box_id": "panel_label_C",
+                        "facts": [{"fact_id": "model_family", "label_box_id": "fact_label_C_1", "value_box_id": "fact_value_C_1"}],
+                    },
+                    {
+                        "section_id": "validation",
+                        "panel_label": "D",
+                        "layout_role": "bottom_right",
+                        "panel_box_id": "panel_D",
+                        "title_box_id": "section_title_D",
+                        "panel_label_box_id": "panel_label_D",
+                        "facts": [{"fact_id": "validation_scheme", "label_box_id": "fact_label_D_1", "value_box_id": "fact_value_D_1"}],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_workflow_fact_sheet_panel_label_is_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_workflow_fact_sheet_panel",
+        layout_sidecar={
+            "template_id": "workflow_fact_sheet_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.07, y0=0.10, x1=0.10, y1=0.14),
+                make_box("panel_label_B", "panel_label", x0=0.55, y0=0.10, x1=0.58, y1=0.14),
+                make_box("panel_label_C", "panel_label", x0=0.07, y0=0.54, x1=0.10, y1=0.58),
+                make_box("section_title_A", "section_title", x0=0.11, y0=0.10, x1=0.34, y1=0.14),
+                make_box("section_title_B", "section_title", x0=0.59, y0=0.10, x1=0.82, y1=0.14),
+                make_box("section_title_C", "section_title", x0=0.11, y0=0.54, x1=0.34, y1=0.58),
+                make_box("section_title_D", "section_title", x0=0.59, y0=0.54, x1=0.82, y1=0.58),
+                make_box("fact_label_A_1", "fact_label", x0=0.11, y0=0.18, x1=0.24, y1=0.22),
+                make_box("fact_value_A_1", "fact_value", x0=0.26, y0=0.18, x1=0.42, y1=0.22),
+                make_box("fact_label_B_1", "fact_label", x0=0.59, y0=0.18, x1=0.72, y1=0.22),
+                make_box("fact_value_B_1", "fact_value", x0=0.74, y0=0.18, x1=0.90, y1=0.22),
+                make_box("fact_label_C_1", "fact_label", x0=0.11, y0=0.62, x1=0.24, y1=0.66),
+                make_box("fact_value_C_1", "fact_value", x0=0.26, y0=0.62, x1=0.42, y1=0.66),
+                make_box("fact_label_D_1", "fact_label", x0=0.59, y0=0.62, x1=0.72, y1=0.66),
+                make_box("fact_value_D_1", "fact_value", x0=0.74, y0=0.62, x1=0.90, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.06, y0=0.08, x1=0.46, y1=0.46),
+                make_box("panel_B", "panel", x0=0.54, y0=0.08, x1=0.94, y1=0.46),
+                make_box("panel_C", "panel", x0=0.06, y0=0.52, x1=0.46, y1=0.90),
+                make_box("panel_D", "panel", x0=0.54, y0=0.52, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "sections": [
+                    {
+                        "section_id": "cohort",
+                        "panel_label": "A",
+                        "layout_role": "top_left",
+                        "panel_box_id": "panel_A",
+                        "title_box_id": "section_title_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "facts": [{"fact_id": "cohort_n", "label_box_id": "fact_label_A_1", "value_box_id": "fact_value_A_1"}],
+                    },
+                    {
+                        "section_id": "endpoint",
+                        "panel_label": "B",
+                        "layout_role": "top_right",
+                        "panel_box_id": "panel_B",
+                        "title_box_id": "section_title_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "facts": [{"fact_id": "endpoint", "label_box_id": "fact_label_B_1", "value_box_id": "fact_value_B_1"}],
+                    },
+                    {
+                        "section_id": "workflow",
+                        "panel_label": "C",
+                        "layout_role": "bottom_left",
+                        "panel_box_id": "panel_C",
+                        "title_box_id": "section_title_C",
+                        "panel_label_box_id": "panel_label_C",
+                        "facts": [{"fact_id": "model_family", "label_box_id": "fact_label_C_1", "value_box_id": "fact_value_C_1"}],
+                    },
+                    {
+                        "section_id": "validation",
+                        "panel_label": "D",
+                        "layout_role": "bottom_right",
+                        "panel_box_id": "panel_D",
+                        "title_box_id": "section_title_D",
+                        "panel_label_box_id": "panel_label_D",
+                        "facts": [{"fact_id": "validation_scheme", "label_box_id": "fact_label_D_1", "value_box_id": "fact_value_D_1"}],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "panel_label_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

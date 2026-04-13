@@ -70,7 +70,8 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
     )
 )
 _ILLUSTRATION_SHELL_ORDER = tuple(
-    _full_id(item) for item in ("cohort_flow_figure", "submission_graphical_abstract")
+    _full_id(item)
+    for item in ("cohort_flow_figure", "submission_graphical_abstract", "workflow_fact_sheet_panel")
 )
 _TABLE_SHELL_ORDER = tuple(
     _full_id(item)

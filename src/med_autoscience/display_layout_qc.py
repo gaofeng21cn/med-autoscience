@@ -5728,6 +5728,312 @@ def _check_submission_graphical_abstract(sidecar: LayoutSidecar) -> list[dict[st
     return issues
 
 
+def _check_publication_workflow_fact_sheet_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(
+        _check_required_box_types(
+            all_boxes,
+            required_box_types=("panel", "panel_label", "section_title", "fact_label", "fact_value"),
+        )
+    )
+
+    panel_boxes = _boxes_of_type(sidecar.panel_boxes, "panel")
+    if len(panel_boxes) != 4:
+        issues.append(
+            _issue(
+                rule_id="composite_panels_missing",
+                message="workflow fact sheet requires exactly four panel boxes",
+                target="panel_boxes",
+                expected={"count": 4},
+                observed={"count": len(panel_boxes)},
+            )
+        )
+    issues.extend(_check_pairwise_non_overlap(panel_boxes, rule_id="panel_overlap", target="panel"))
+
+    text_boxes = tuple(
+        box
+        for box in sidecar.layout_boxes
+        if box.box_type in {"panel_label", "section_title", "fact_label", "fact_value"}
+    )
+    issues.extend(_check_pairwise_non_overlap(text_boxes, rule_id="text_box_overlap", target="text"))
+
+    sections = sidecar.metrics.get("sections")
+    if not isinstance(sections, list) or not sections:
+        issues.append(
+            _issue(
+                rule_id="sections_missing",
+                message="workflow fact sheet qc requires non-empty section metrics",
+                target="metrics.sections",
+            )
+        )
+        return issues
+
+    if len(sections) != 4:
+        issues.append(
+            _issue(
+                rule_id="section_count_mismatch",
+                message="workflow fact sheet requires exactly four declared sections",
+                target="metrics.sections",
+                expected={"count": 4},
+                observed={"count": len(sections)},
+            )
+        )
+
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    panel_boxes_by_id = {box.box_id: box for box in panel_boxes}
+    expected_layout_roles = {"top_left", "top_right", "bottom_left", "bottom_right"}
+    seen_section_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    seen_layout_roles: set[str] = set()
+
+    for section_index, section in enumerate(sections):
+        if not isinstance(section, dict):
+            raise ValueError(f"layout_sidecar.metrics.sections[{section_index}] must be an object")
+        section_target = f"metrics.sections[{section_index}]"
+        section_id = str(section.get("section_id") or "").strip()
+        panel_label = str(section.get("panel_label") or "").strip()
+        layout_role = str(section.get("layout_role") or "").strip()
+        panel_box_id = str(section.get("panel_box_id") or "").strip()
+        title_box_id = str(section.get("title_box_id") or "").strip()
+        panel_label_box_id = str(section.get("panel_label_box_id") or "").strip()
+
+        if not section_id:
+            issues.append(
+                _issue(
+                    rule_id="section_id_missing",
+                    message="workflow fact sheet sections require non-empty section_id",
+                    target=f"{section_target}.section_id",
+                )
+            )
+        elif section_id in seen_section_ids:
+            issues.append(
+                _issue(
+                    rule_id="duplicate_section_id",
+                    message="workflow fact sheet section_id values must be unique",
+                    target="metrics.sections",
+                    observed=section_id,
+                )
+            )
+        else:
+            seen_section_ids.add(section_id)
+
+        if not panel_label:
+            issues.append(
+                _issue(
+                    rule_id="panel_label_missing",
+                    message="workflow fact sheet sections require non-empty panel_label metrics",
+                    target=f"{section_target}.panel_label",
+                )
+            )
+        elif panel_label in seen_panel_labels:
+            issues.append(
+                _issue(
+                    rule_id="duplicate_panel_label",
+                    message="workflow fact sheet panel labels must be unique",
+                    target="metrics.sections",
+                    observed=panel_label,
+                )
+            )
+        else:
+            seen_panel_labels.add(panel_label)
+
+        if not layout_role:
+            issues.append(
+                _issue(
+                    rule_id="layout_role_missing",
+                    message="workflow fact sheet sections require non-empty layout_role",
+                    target=f"{section_target}.layout_role",
+                )
+            )
+        elif layout_role not in expected_layout_roles:
+            issues.append(
+                _issue(
+                    rule_id="section_layout_role_invalid",
+                    message="workflow fact sheet layout_role must match the fixed four-panel grid",
+                    target=f"{section_target}.layout_role",
+                    observed=layout_role,
+                    expected=sorted(expected_layout_roles),
+                )
+            )
+        elif layout_role in seen_layout_roles:
+            issues.append(
+                _issue(
+                    rule_id="duplicate_layout_role",
+                    message="workflow fact sheet layout_role values must be unique",
+                    target="metrics.sections",
+                    observed=layout_role,
+                )
+            )
+        else:
+            seen_layout_roles.add(layout_role)
+
+        parent_panel = panel_boxes_by_id.get(panel_box_id)
+        if parent_panel is None:
+            issues.append(
+                _issue(
+                    rule_id="panel_box_missing",
+                    message="workflow fact sheet sections must reference an existing panel box",
+                    target=f"{section_target}.panel_box_id",
+                    expected=panel_box_id,
+                )
+            )
+
+        title_box = layout_boxes_by_id.get(title_box_id)
+        if title_box is None:
+            issues.append(
+                _issue(
+                    rule_id="section_title_missing",
+                    message="workflow fact sheet sections must reference an existing section_title box",
+                    target=f"{section_target}.title_box_id",
+                    expected=title_box_id,
+                )
+            )
+        elif parent_panel is not None and not _box_within_box(title_box, parent_panel):
+            issues.append(
+                _issue(
+                    rule_id="section_title_out_of_panel",
+                    message="workflow fact sheet section titles must stay within the parent panel",
+                    target="section_title",
+                    box_refs=(title_box.box_id, parent_panel.box_id),
+                )
+            )
+
+        label_box = layout_boxes_by_id.get(panel_label_box_id)
+        if label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="panel_label_missing",
+                    message="workflow fact sheet sections must reference an existing panel label box",
+                    target=f"{section_target}.panel_label_box_id",
+                    expected=panel_label_box_id,
+                )
+            )
+        elif parent_panel is not None:
+            panel_width = max(parent_panel.x1 - parent_panel.x0, 1e-9)
+            panel_height = max(parent_panel.y1 - parent_panel.y0, 1e-9)
+            if not _box_within_box(label_box, parent_panel):
+                issues.append(
+                    _issue(
+                        rule_id="panel_label_out_of_panel",
+                        message="workflow fact sheet panel labels must stay within the parent panel",
+                        target="panel_label",
+                        box_refs=(label_box.box_id, parent_panel.box_id),
+                    )
+                )
+            else:
+                anchored_near_left = label_box.x0 <= parent_panel.x0 + panel_width * 0.10
+                anchored_near_top = (
+                    label_box.y0 <= parent_panel.y0 + panel_height * 0.12
+                    or label_box.y1 >= parent_panel.y1 - panel_height * 0.10
+                )
+                if anchored_near_left and anchored_near_top:
+                    pass
+                else:
+                    issues.append(
+                        _issue(
+                            rule_id="panel_label_anchor_drift",
+                            message="workflow fact sheet panel labels must stay near the parent panel top-left anchor",
+                            target="panel_label",
+                            box_refs=(label_box.box_id, parent_panel.box_id),
+                        )
+                    )
+
+        facts = section.get("facts")
+        if not isinstance(facts, list) or not facts:
+            issues.append(
+                _issue(
+                    rule_id="facts_missing",
+                    message="workflow fact sheet sections require a non-empty facts list",
+                    target=f"{section_target}.facts",
+                )
+            )
+            continue
+
+        seen_fact_ids: set[str] = set()
+        for fact_index, fact in enumerate(facts):
+            if not isinstance(fact, dict):
+                raise ValueError(f"{section_target}.facts[{fact_index}] must be an object")
+            fact_target = f"{section_target}.facts[{fact_index}]"
+            fact_id = str(fact.get("fact_id") or "").strip()
+            if not fact_id:
+                issues.append(
+                    _issue(
+                        rule_id="fact_id_missing",
+                        message="workflow fact sheet facts require non-empty fact_id",
+                        target=f"{fact_target}.fact_id",
+                    )
+                )
+            elif fact_id in seen_fact_ids:
+                issues.append(
+                    _issue(
+                        rule_id="duplicate_fact_id",
+                        message="workflow fact sheet fact_id values must be unique within each section",
+                        target=f"{section_target}.facts",
+                        observed=fact_id,
+                    )
+                )
+            else:
+                seen_fact_ids.add(fact_id)
+
+            label_box_id = str(fact.get("label_box_id") or "").strip()
+            value_box_id = str(fact.get("value_box_id") or "").strip()
+            fact_label_box = layout_boxes_by_id.get(label_box_id)
+            fact_value_box = layout_boxes_by_id.get(value_box_id)
+
+            if fact_label_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="fact_label_missing",
+                        message="workflow fact sheet facts must reference an existing fact label box",
+                        target=f"{fact_target}.label_box_id",
+                        expected=label_box_id,
+                    )
+                )
+            elif parent_panel is not None and not _box_within_box(fact_label_box, parent_panel):
+                issues.append(
+                    _issue(
+                        rule_id="fact_box_out_of_panel",
+                        message="workflow fact sheet fact labels must stay within the parent panel",
+                        target="fact_label",
+                        box_refs=(fact_label_box.box_id, parent_panel.box_id),
+                    )
+                )
+
+            if fact_value_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="fact_value_missing",
+                        message="workflow fact sheet facts must reference an existing fact value box",
+                        target=f"{fact_target}.value_box_id",
+                        expected=value_box_id,
+                    )
+                )
+            elif parent_panel is not None and not _box_within_box(fact_value_box, parent_panel):
+                issues.append(
+                    _issue(
+                        rule_id="fact_box_out_of_panel",
+                        message="workflow fact sheet fact values must stay within the parent panel",
+                        target="fact_value",
+                        box_refs=(fact_value_box.box_id, parent_panel.box_id),
+                    )
+                )
+
+    if seen_layout_roles and seen_layout_roles != expected_layout_roles:
+        issues.append(
+            _issue(
+                rule_id="section_layout_roles_incomplete",
+                message="workflow fact sheet must cover the complete fixed four-panel grid",
+                target="metrics.sections",
+                observed=sorted(seen_layout_roles),
+                expected=sorted(expected_layout_roles),
+            )
+        )
+
+    return issues
+
+
 def _check_publication_shap_waterfall_local_explanation_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -7933,6 +8239,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_generalizability_subgroup_composite_panel(normalized_sidecar)
     elif normalized_profile == "submission_graphical_abstract":
         layout_issues = _check_submission_graphical_abstract(normalized_sidecar)
+    elif normalized_profile == "publication_workflow_fact_sheet_panel":
+        layout_issues = _check_publication_workflow_fact_sheet_panel(normalized_sidecar)
     elif normalized_profile == "publication_shap_summary":
         layout_issues = _check_publication_shap_summary(normalized_sidecar)
     elif normalized_profile == "publication_shap_bar_importance":

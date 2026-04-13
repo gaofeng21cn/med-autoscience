@@ -1183,6 +1183,76 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ],
             },
         }
+    if template_short_id == "workflow_fact_sheet_panel":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.07, "y0": 0.10, "x1": 0.10, "y1": 0.14},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.55, "y0": 0.10, "x1": 0.58, "y1": 0.14},
+                {"box_id": "panel_label_C", "box_type": "panel_label", "x0": 0.07, "y0": 0.54, "x1": 0.10, "y1": 0.58},
+                {"box_id": "panel_label_D", "box_type": "panel_label", "x0": 0.55, "y0": 0.54, "x1": 0.58, "y1": 0.58},
+                {"box_id": "section_title_A", "box_type": "section_title", "x0": 0.11, "y0": 0.10, "x1": 0.34, "y1": 0.14},
+                {"box_id": "section_title_B", "box_type": "section_title", "x0": 0.59, "y0": 0.10, "x1": 0.82, "y1": 0.14},
+                {"box_id": "section_title_C", "box_type": "section_title", "x0": 0.11, "y0": 0.54, "x1": 0.34, "y1": 0.58},
+                {"box_id": "section_title_D", "box_type": "section_title", "x0": 0.59, "y0": 0.54, "x1": 0.82, "y1": 0.58},
+                {"box_id": "fact_label_A_1", "box_type": "fact_label", "x0": 0.11, "y0": 0.18, "x1": 0.24, "y1": 0.22},
+                {"box_id": "fact_value_A_1", "box_type": "fact_value", "x0": 0.26, "y0": 0.18, "x1": 0.42, "y1": 0.22},
+                {"box_id": "fact_label_B_1", "box_type": "fact_label", "x0": 0.59, "y0": 0.18, "x1": 0.72, "y1": 0.22},
+                {"box_id": "fact_value_B_1", "box_type": "fact_value", "x0": 0.74, "y0": 0.18, "x1": 0.90, "y1": 0.22},
+                {"box_id": "fact_label_C_1", "box_type": "fact_label", "x0": 0.11, "y0": 0.62, "x1": 0.24, "y1": 0.66},
+                {"box_id": "fact_value_C_1", "box_type": "fact_value", "x0": 0.26, "y0": 0.62, "x1": 0.42, "y1": 0.66},
+                {"box_id": "fact_label_D_1", "box_type": "fact_label", "x0": 0.59, "y0": 0.62, "x1": 0.72, "y1": 0.66},
+                {"box_id": "fact_value_D_1", "box_type": "fact_value", "x0": 0.74, "y0": 0.62, "x1": 0.90, "y1": 0.66},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_A", "box_type": "panel", "x0": 0.06, "y0": 0.08, "x1": 0.46, "y1": 0.46},
+                {"box_id": "panel_B", "box_type": "panel", "x0": 0.54, "y0": 0.08, "x1": 0.94, "y1": 0.46},
+                {"box_id": "panel_C", "box_type": "panel", "x0": 0.06, "y0": 0.52, "x1": 0.46, "y1": 0.90},
+                {"box_id": "panel_D", "box_type": "panel", "x0": 0.54, "y0": 0.52, "x1": 0.94, "y1": 0.90},
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "sections": [
+                    {
+                        "section_id": "cohort",
+                        "panel_label": "A",
+                        "layout_role": "top_left",
+                        "panel_box_id": "panel_A",
+                        "title_box_id": "section_title_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "facts": [{"fact_id": "cohort_n", "label_box_id": "fact_label_A_1", "value_box_id": "fact_value_A_1"}],
+                    },
+                    {
+                        "section_id": "endpoint",
+                        "panel_label": "B",
+                        "layout_role": "top_right",
+                        "panel_box_id": "panel_B",
+                        "title_box_id": "section_title_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "facts": [{"fact_id": "endpoint", "label_box_id": "fact_label_B_1", "value_box_id": "fact_value_B_1"}],
+                    },
+                    {
+                        "section_id": "workflow",
+                        "panel_label": "C",
+                        "layout_role": "bottom_left",
+                        "panel_box_id": "panel_C",
+                        "title_box_id": "section_title_C",
+                        "panel_label_box_id": "panel_label_C",
+                        "facts": [{"fact_id": "model_family", "label_box_id": "fact_label_C_1", "value_box_id": "fact_value_C_1"}],
+                    },
+                    {
+                        "section_id": "validation",
+                        "panel_label": "D",
+                        "layout_role": "bottom_right",
+                        "panel_box_id": "panel_D",
+                        "title_box_id": "section_title_D",
+                        "panel_label_box_id": "panel_label_D",
+                        "facts": [{"fact_id": "validation_scheme", "label_box_id": "fact_label_D_1", "value_box_id": "fact_value_D_1"}],
+                    },
+                ],
+            },
+        }
     if template_short_id in {
         "roc_curve_binary",
         "pr_curve_binary",
@@ -3050,6 +3120,139 @@ def test_materialize_display_surface_materializes_optional_submission_graphical_
     assert figures_by_id["GA1"]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert figures_by_id["GA1"]["qc_profile"] == "submission_graphical_abstract"
     assert figures_by_id["GA1"]["qc_result"]["status"] == "pass"
+
+
+def _make_workflow_fact_sheet_panel_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "shell_id": "workflow_fact_sheet_panel",
+        "display_id": "Figure2",
+        "title": "Study workflow fact sheet",
+        "caption": "Structured study-design and workflow summary for the audited manuscript-facing surface.",
+        "sections": [
+            {
+                "section_id": "cohort",
+                "panel_label": "A",
+                "title": "Cohort and window",
+                "layout_role": "top_left",
+                "facts": [{"fact_id": "cohort_n", "label": "Cohort", "value": "n = 409", "detail": "Primary analysis cohort"}],
+            },
+            {
+                "section_id": "endpoint",
+                "panel_label": "B",
+                "title": "Endpoint and target",
+                "layout_role": "top_right",
+                "facts": [{"fact_id": "target", "label": "Target", "value": "Early residual / non-GTR", "detail": "Formal audited endpoint"}],
+            },
+            {
+                "section_id": "workflow",
+                "panel_label": "C",
+                "title": "Model workflow",
+                "layout_role": "bottom_left",
+                "facts": [{"fact_id": "family", "label": "Model family", "value": "Gradient boosting", "detail": "Structured preoperative model"}],
+            },
+            {
+                "section_id": "validation",
+                "panel_label": "D",
+                "title": "Validation and boundary",
+                "layout_role": "bottom_right",
+                "facts": [{"fact_id": "validation_scheme", "label": "Validation", "value": "Repeated nested CV", "detail": "5 outer folds x 20 repeats"}],
+            },
+        ],
+    }
+
+
+def test_materialize_display_surface_generates_workflow_fact_sheet_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure2",
+                    "display_kind": "figure",
+                    "requirement_key": "workflow_fact_sheet_panel",
+                    "catalog_id": "F2",
+                    "shell_path": "paper/figures/Figure2.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "workflow_fact_sheet_panel.json", _make_workflow_fact_sheet_panel_payload())
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F2"]
+    assert (paper_root / "figures" / "generated" / "F2_workflow_fact_sheet_panel.svg").exists()
+    assert (paper_root / "figures" / "generated" / "F2_workflow_fact_sheet_panel.png").exists()
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figures_by_id = {item["figure_id"]: item for item in figure_catalog["figures"]}
+    assert figures_by_id["F2"]["template_id"] == full_id("workflow_fact_sheet_panel")
+    assert figures_by_id["F2"]["pack_id"] == "fenggaolab.org.medical-display-core"
+    assert figures_by_id["F2"]["input_schema_id"] == "workflow_fact_sheet_panel_inputs_v1"
+    assert figures_by_id["F2"]["qc_profile"] == "publication_workflow_fact_sheet_panel"
+    assert figures_by_id["F2"]["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_uses_pack_runtime_for_workflow_fact_sheet_panel(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure2",
+                    "display_kind": "figure",
+                    "requirement_key": "workflow_fact_sheet_panel",
+                    "catalog_id": "F2",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "workflow_fact_sheet_panel.json", _make_workflow_fact_sheet_panel_payload())
+    original_loader = module.display_pack_runtime.load_python_plugin_callable
+    render_calls: list[str] = []
+
+    def fake_shell_renderer(
+        *,
+        template_id: str,
+        shell_payload: dict[str, object],
+        payload_path: Path | None = None,
+        render_context: dict[str, object],
+        output_svg_path: Path,
+        output_png_path: Path,
+        output_layout_path: Path,
+    ) -> None:
+        _ensure_output_parents(output_svg_path, output_png_path, output_layout_path)
+        output_svg_path.write_text("<svg />", encoding="utf-8")
+        output_png_path.write_text("PNG", encoding="utf-8")
+        output_layout_path.write_text(
+            json.dumps(_minimal_layout_sidecar_for_template(template_id), ensure_ascii=False),
+            encoding="utf-8",
+        )
+        render_calls.append(template_id)
+
+    def fake_loader(*, repo_root: Path, template_id: str, paper_root: Path | None = None):
+        if template_id == full_id("workflow_fact_sheet_panel"):
+            return fake_shell_renderer
+        return original_loader(repo_root=repo_root, template_id=template_id, paper_root=paper_root)
+
+    monkeypatch.setattr(module.display_pack_runtime, "load_python_plugin_callable", fake_loader)
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert render_calls == [full_id("workflow_fact_sheet_panel")]
+    assert (paper_root / "figures" / "generated" / "F2_workflow_fact_sheet_panel.svg").exists()
 
 
 def test_materialize_display_surface_uses_pack_runtime_for_submission_graphical_abstract(
