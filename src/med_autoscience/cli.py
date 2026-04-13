@@ -364,6 +364,10 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_cockpit_parser.add_argument("--profile", required=True)
     workspace_cockpit_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
+    product_frontdesk_parser = subparsers.add_parser("product-frontdesk")
+    product_frontdesk_parser.add_argument("--profile", required=True)
+    product_frontdesk_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+
     product_entry_manifest_parser = subparsers.add_parser("product-entry-manifest")
     product_entry_manifest_parser.add_argument("--profile", required=True)
     product_entry_manifest_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
@@ -565,6 +569,18 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(product_entry.render_workspace_cockpit_markdown(result), end="")
+        return 0
+
+    if args.command == "product-frontdesk":
+        profile = load_profile(args.profile)
+        result = product_entry.build_product_frontdesk(
+            profile=profile,
+            profile_ref=Path(args.profile),
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(product_entry.render_product_frontdesk_markdown(result), end="")
         return 0
 
     if args.command == "product-entry-manifest":

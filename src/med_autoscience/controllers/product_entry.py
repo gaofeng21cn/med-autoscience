@@ -25,6 +25,7 @@ from med_autoscience.study_task_intake import (
 SCHEMA_VERSION = 1
 PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
 PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
+PRODUCT_FRONTDESK_KIND = "product_frontdesk"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _ATTENTION_PRIORITIES = {
@@ -747,6 +748,10 @@ def build_product_entry_manifest(
     workspace_root = str(profile.workspace_root)
 
     product_entry_shell = {
+        "product_frontdesk": {
+            "command": f"{prefix} product-frontdesk --profile {profile_arg}",
+            "purpose": "当前 research product frontdesk，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
+        },
         "workspace_cockpit": {
             "command": f"{prefix} workspace-cockpit --profile {profile_arg}",
             "purpose": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
@@ -855,10 +860,10 @@ def build_product_entry_manifest(
         "recommended_shell": "workspace_cockpit",
         "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
         "frontdesk_surface": {
-            "shell_key": "workspace_cockpit",
-            "command": product_entry_shell["workspace_cockpit"]["command"],
-            "surface_kind": "workspace_cockpit",
-            "summary": product_entry_shell["workspace_cockpit"]["purpose"],
+            "shell_key": "product_frontdesk",
+            "command": product_entry_shell["product_frontdesk"]["command"],
+            "surface_kind": PRODUCT_FRONTDESK_KIND,
+            "summary": product_entry_shell["product_frontdesk"]["purpose"],
         },
         "operator_loop_surface": {
             "shell_key": "workspace_cockpit",
@@ -932,6 +937,77 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {item}" for item in remaining_gaps)
     else:
         lines.append("- none")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_product_frontdesk(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    manifest = build_product_entry_manifest(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+    product_entry_shell = dict(manifest.get("product_entry_shell") or {})
+    shared_handoff = dict(manifest.get("shared_handoff") or {})
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": PRODUCT_FRONTDESK_KIND,
+        "recommended_action": "inspect_or_prepare_research_loop",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "workspace_locator": dict(manifest.get("workspace_locator") or {}),
+        "runtime": dict(manifest.get("runtime") or {}),
+        "executor_defaults": dict(manifest.get("executor_defaults") or {}),
+        "product_entry_status": dict(manifest.get("product_entry_status") or {}),
+        "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
+        "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
+        "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "product_entry_manifest": manifest,
+        "entry_surfaces": {
+            "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
+            "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
+            "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
+            "launch_study": dict(product_entry_shell.get("launch_study") or {}),
+            "study_progress": dict(product_entry_shell.get("study_progress") or {}),
+            "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
+            "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
+            "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
+            "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
+        },
+        "summary": {
+            "frontdesk_command": _non_empty_text((manifest.get("frontdesk_surface") or {}).get("command")),
+            "recommended_command": _non_empty_text(manifest.get("recommended_command")),
+            "operator_loop_command": _non_empty_text((manifest.get("operator_loop_surface") or {}).get("command")),
+        },
+        "notes": [
+            "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
+            "It does not claim that a mature standalone medical frontend is already landed.",
+            "It does not include the display / paper-figure asset line.",
+        ],
+    }
+
+
+def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
+    entry_surfaces = dict(payload.get("entry_surfaces") or {})
+    lines = [
+        "# Product Frontdesk",
+        "",
+        f"- target_domain_id: `{payload.get('target_domain_id')}`",
+        f"- recommended_action: `{payload.get('recommended_action')}`",
+        f"- frontdesk_command: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
+        f"- recommended_command: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
+        f"- operator_loop_command: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
+        "",
+        "## Entry Surfaces",
+        "",
+    ]
+    for name, item in entry_surfaces.items():
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{name}`: `{item.get('command') or 'none'}`")
     lines.append("")
     return "\n".join(lines)
 

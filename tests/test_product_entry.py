@@ -343,10 +343,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
-    assert payload["frontdesk_surface"]["shell_key"] == "workspace_cockpit"
-    assert payload["frontdesk_surface"]["command"] == payload["recommended_command"]
-    assert payload["frontdesk_surface"]["surface_kind"] == "workspace_cockpit"
-    assert "workspace 级用户 inbox" in payload["frontdesk_surface"]["summary"]
+    assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
+    assert payload["frontdesk_surface"]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["frontdesk_surface"]["surface_kind"] == "product_frontdesk"
+    assert "research product frontdesk" in payload["frontdesk_surface"]["summary"]
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
     assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"
@@ -373,6 +375,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
+    assert payload["product_entry_shell"]["product_frontdesk"]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
     assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
         "submit-study-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
     )
@@ -386,6 +391,45 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode opl-handoff"
     )
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
+
+
+def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile_ref = tmp_path / "profile.local.toml"
+    profile = make_profile(tmp_path)
+
+    payload = module.build_product_frontdesk(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+
+    assert payload["surface_kind"] == "product_frontdesk"
+    assert payload["recommended_action"] == "inspect_or_prepare_research_loop"
+    assert payload["target_domain_id"] == "med-autoscience"
+    assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
+    assert payload["frontdesk_surface"]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
+    assert payload["operator_loop_actions"]["open_loop"]["command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["entry_surfaces"]["frontdesk"]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["entry_surfaces"]["cockpit"]["command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["entry_surfaces"]["direct_entry_builder"]["command"].endswith(
+        "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
+    )
+    assert payload["summary"]["frontdesk_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["summary"]["recommended_command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
