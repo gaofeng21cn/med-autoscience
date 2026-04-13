@@ -794,6 +794,7 @@ def build_product_entry_manifest(
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "surface_kind": "product_entry_manifest",
         "manifest_kind": PRODUCT_ENTRY_MANIFEST_KIND,
         "target_domain_id": TARGET_DOMAIN_ID,
         "formal_entry": {
@@ -801,12 +802,20 @@ def build_product_entry_manifest(
             "supported_protocols": ["MCP"],
             "internal_surface": "controller",
         },
+        "runtime": {
+            "runtime_owner": "med_autoscience_gateway",
+            "runtime_substrate": "external_hermes_agent_target",
+            "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+            "runtime_root": str(profile.runtime_root),
+            "hermes_home_root": str(profile.hermes_home_root),
+        },
         "workspace_locator": {
             "workspace_surface_kind": "med_autoscience_workspace_profile",
             "profile_name": profile.name,
             "workspace_root": workspace_root,
             "profile_ref": str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else None,
         },
+        "recommended_shell": "workspace_cockpit",
         "repo_mainline": {
             "program_id": mainline_snapshot.get("program_id"),
             "current_stage_id": mainline_snapshot.get("current_stage_id"),

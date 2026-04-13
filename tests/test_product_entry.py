@@ -320,11 +320,15 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         profile_ref=profile_ref,
     )
 
+    assert payload["surface_kind"] == "product_entry_manifest"
     assert payload["manifest_kind"] == "med_autoscience_product_entry_manifest"
     assert payload["target_domain_id"] == "med-autoscience"
     assert payload["formal_entry"]["default"] == "CLI"
     assert payload["formal_entry"]["supported_protocols"] == ["MCP"]
+    assert payload["runtime"]["runtime_owner"] == "med_autoscience_gateway"
+    assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
     assert payload["workspace_locator"]["profile_name"] == profile.name
+    assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
