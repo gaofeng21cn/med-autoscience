@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `49`
+- Implemented evidence figure templates: `50`
 - Illustration shells: `4`
 - Table shells: `5`
-- Total implemented display templates: `58`
+- Total implemented display templates: `59`
 
 ### Evidence Classes
 
@@ -106,7 +106,7 @@ Current implemented display inventory:
 | Prediction Performance | 3 | `binary_prediction_curve_inputs_v1` | `publication_evidence_curve` |
 | Clinical Utility | 4 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
-| Data Geometry | 8 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel` |
+| Data Geometry | 9 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel` |
 | Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
 | Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
 | Model Explanation | 14 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel` |
@@ -206,16 +206,17 @@ Templates:
 - `atlas_spatial_bridge_panel`
 - `spatial_niche_map_panel`
 - `trajectory_progression_panel`
+- `atlas_spatial_trajectory_storyboard_panel`
 
 Audit purpose:
 
-- Structured latent-space, atlas-to-spatial bridge, tissue-coordinate niche, or trajectory-progression evidence under grouped labeling, including composite panels that must keep declared state/region/branch vocabularies, atlas and spatial point domains, composition summaries, pseudotime bins, and marker-program heatmap grids fail-closed together.
+- Structured latent-space, atlas-to-spatial bridge, tissue-coordinate niche, trajectory-progression, or atlas-spatial-trajectory storyboard evidence under grouped labeling, including composite panels that must keep declared state/region/branch vocabularies, atlas and spatial point domains, trajectory branches, composition summaries, pseudotime bins, and marker-program heatmap grids fail-closed together.
 
 Authoritative contract:
 
-- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`
+- Input schemas: `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`
+- QC: `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`
 
 ### 5. Matrix Pattern
 

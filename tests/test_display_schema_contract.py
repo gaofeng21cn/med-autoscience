@@ -1249,6 +1249,51 @@ def test_trajectory_progression_schema_contract_is_registered() -> None:
     assert "trajectory_progression_inputs_v1" in data_geometry_class.input_schema_ids
 
 
+def test_atlas_spatial_trajectory_storyboard_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    storyboard = module.get_input_schema_contract("atlas_spatial_trajectory_storyboard_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert storyboard.template_ids == (_full_id("atlas_spatial_trajectory_storyboard_panel"),)
+    assert storyboard.display_name == "Atlas-Spatial Trajectory Storyboard Panel"
+    assert storyboard.collection_required_fields["atlas_points"] == ("x", "y", "state_label")
+    assert storyboard.collection_required_fields["spatial_points"] == ("x", "y", "state_label")
+    assert storyboard.collection_required_fields["trajectory_points"] == (
+        "x",
+        "y",
+        "branch_label",
+        "state_label",
+        "pseudotime",
+    )
+    assert storyboard.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "state_proportions",
+    )
+    assert storyboard.collection_required_fields["progression_bins"] == (
+        "bin_label",
+        "bin_order",
+        "pseudotime_start",
+        "pseudotime_end",
+        "branch_weights",
+    )
+    assert storyboard.nested_collection_required_fields["composition_groups.state_proportions"] == (
+        "state_label",
+        "proportion",
+    )
+    assert storyboard.nested_collection_required_fields["progression_bins.branch_weights"] == (
+        "branch_label",
+        "proportion",
+    )
+    assert "declared_state_labels_must_match_atlas_states" in storyboard.additional_constraints
+    assert "declared_state_labels_must_match_spatial_states" in storyboard.additional_constraints
+    assert "declared_state_labels_must_match_trajectory_states" in storyboard.additional_constraints
+    assert "declared_column_labels_must_match_progression_bins" in storyboard.additional_constraints
+    assert _full_id("atlas_spatial_trajectory_storyboard_panel") in data_geometry_class.template_ids
+    assert "atlas_spatial_trajectory_storyboard_inputs_v1" in data_geometry_class.input_schema_ids
+
+
 def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
