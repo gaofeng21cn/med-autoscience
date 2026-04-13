@@ -60,6 +60,22 @@
 
 在这层公共 envelope 之上，医学研究域继续补充 `study_id`、`journal_target`、`evidence_boundary` 等 domain payload。
 
+## OPL family orchestration contracts 吸收方向
+
+OPL 顶层将冻结 5 类 family contracts：
+
+- family event envelope
+- family checkpoint lineage
+- family action graph
+- family human gate
+- family product-entry manifest v2
+
+对 MAS 来说，本轮优先吸收 runtime-oriented 那一半：`family event envelope`、`family checkpoint lineage`、`family human gate`。
+它们将进入 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json` 的主线 contract 与 durable surface 语义，约束运行事件、恢复链路与人审门控的统一定义。
+`family product-entry manifest v2` 作为 family discovery companion 使用，辅助 product-entry shell / handoff 的对齐与发现，不改变 MAS 的运行底座所有权。
+
+MAS 仍保持 domain-owned durable truth；运行底座与执行器边界继续分层，吸收 family contracts 不等于把 `OPL` 写成 runtime owner，也不构成跨仓 runtime core ingest 的既成事实。
+
 ## 权威与 durable surface
 
 可审计真相必须落在 repo-tracked contract 与明确的 durable surface。关键身份与运行面包括：

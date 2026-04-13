@@ -15,6 +15,7 @@
 - family 默认 concrete executor 是 `codex_cli_autonomous`；`default_model` 与 `default_reasoning_effort` 继承本机 Codex 默认。
 - `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
 - `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+- OPL family orchestration contracts 将冻结 5 类：family event envelope、family checkpoint lineage、family action graph、family human gate、family product-entry manifest v2；本轮 MAS 优先吸收 runtime-oriented 半侧（event envelope / checkpoint lineage / human gate），进入 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json` 主线；`product-entry manifest v2` 作为 family discovery companion，对齐 product-entry shell / handoff，但不改变 MAS 的 domain-owned durable truth 与 runtime/executor 分层，也不构成跨仓 runtime core ingest 的既成事实
 
 ## 当前基线（repo-verified）
 
@@ -89,3 +90,4 @@
 2. 紧接着进入 `Phase 2`：把当前 repo-tracked shell 继续收成稳定用户回路，重点是启动、下任务、持续看进度、看告警、看恢复建议。
 3. 再进入 `Phase 3`：把当前 proof 从开发宿主扩展到更多 workspace / host，继续做真实 clearance。
 4. `Phase 4` 与 `Phase 5` 都是后置阶段：先后分别是 backend deconstruction，以及 federation/platform maturation；在前面几段稳定前，不抢跑。
+5. 对齐 family contracts 的下一步：把运行事件、恢复链路、人审门控对齐到 family contracts，并稳定映射进 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json`。
