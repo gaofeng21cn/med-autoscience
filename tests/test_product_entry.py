@@ -674,6 +674,23 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "study_physician_decision_gate",
         "publication_release_gate",
     ]
+    assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
+    assert payload["product_entry_start"]["recommended_mode_id"] == "open_frontdesk"
+    assert [mode["mode_id"] for mode in payload["product_entry_start"]["modes"]] == [
+        "open_frontdesk",
+        "submit_task",
+        "continue_study",
+    ]
+    assert payload["product_entry_start"]["modes"][0]["command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
+    assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"
+    assert payload["product_entry_start"]["resume_surface"] == payload["family_orchestration"]["resume_contract"]
+    assert payload["product_entry_start"]["human_gate_ids"] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
 
 
@@ -761,6 +778,15 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
+    assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
+    assert payload["product_entry_start"]["recommended_mode_id"] == "open_frontdesk"
+    assert payload["product_entry_start"]["modes"][1]["mode_id"] == "submit_task"
+    assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
+    assert payload["product_entry_start"]["resume_surface"]["surface_kind"] == "launch_study"
+    assert payload["product_entry_start"]["human_gate_ids"] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
     assert payload["family_orchestration"]["action_graph_ref"]["ref"] == "/family_orchestration/action_graph"
     assert payload["family_orchestration"]["action_graph"]["graph_id"] == (
         "mas_workspace_frontdoor_study_runtime_graph"
@@ -773,6 +799,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
+    assert payload["product_entry_manifest"]["product_entry_start"] == payload["product_entry_start"]
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:

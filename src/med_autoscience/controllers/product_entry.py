@@ -298,6 +298,54 @@ def _build_product_entry_preflight(
     }
 
 
+def _build_product_entry_start(
+    *,
+    product_entry_shell: dict[str, Any],
+    operator_loop_actions: dict[str, Any],
+    family_orchestration: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "product_entry_start",
+        "summary": (
+            "先从 MAS research frontdesk 进入当前 workspace frontdoor；"
+            "需要新任务时先写 durable study task intake，已有 study 时直接恢复研究运行。"
+        ),
+        "recommended_mode_id": "open_frontdesk",
+        "modes": [
+            {
+                "mode_id": "open_frontdesk",
+                "title": "Open research frontdesk",
+                "command": product_entry_shell["product_frontdesk"]["command"],
+                "surface_kind": PRODUCT_FRONTDESK_KIND,
+                "summary": product_entry_shell["product_frontdesk"]["purpose"],
+                "requires": [],
+            },
+            {
+                "mode_id": "submit_task",
+                "title": "Write durable study task",
+                "command": product_entry_shell["submit_study_task"]["command"],
+                "surface_kind": "study_task_intake",
+                "summary": operator_loop_actions["submit_task"]["summary"],
+                "requires": list(operator_loop_actions["submit_task"]["requires"]),
+            },
+            {
+                "mode_id": "continue_study",
+                "title": "Continue or relaunch a study",
+                "command": product_entry_shell["launch_study"]["command"],
+                "surface_kind": "launch_study",
+                "summary": operator_loop_actions["continue_study"]["summary"],
+                "requires": list(operator_loop_actions["continue_study"]["requires"]),
+            },
+        ],
+        "resume_surface": dict(family_orchestration["resume_contract"]),
+        "human_gate_ids": [
+            gate["gate_id"]
+            for gate in family_orchestration["human_gates"]
+            if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
+        ],
+    }
+
+
 def _workspace_supervision_summary(
     *,
     studies: list[dict[str, Any]],
@@ -1088,6 +1136,11 @@ def build_product_entry_manifest(
             if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
         ],
     }
+    product_entry_start = _build_product_entry_start(
+        product_entry_shell=product_entry_shell,
+        operator_loop_actions=operator_loop_actions,
+        family_orchestration=family_orchestration,
+    )
     product_entry_overview = {
         "surface_kind": "product_entry_overview",
         "summary": (
@@ -1201,6 +1254,7 @@ def build_product_entry_manifest(
         },
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
+        "product_entry_start": product_entry_start,
         "product_entry_overview": product_entry_overview,
         "product_entry_preflight": product_entry_preflight,
         "product_entry_readiness": product_entry_readiness,
@@ -1281,6 +1335,7 @@ def build_product_frontdesk(
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "product_entry_start": dict(manifest.get("product_entry_start") or {}),
         "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
         "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
         "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
@@ -1325,6 +1380,8 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         "## Product Entry Overview",
         "",
         f"- summary: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
+        f"- start_summary: `{(payload.get('product_entry_start') or {}).get('summary') or 'none'}`",
+        f"- start_resume_command: `{((payload.get('product_entry_start') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         f"- preflight_ready: `{(payload.get('product_entry_preflight') or {}).get('ready_to_try_now')}`",
         f"- preflight_check_command: `{(payload.get('product_entry_preflight') or {}).get('recommended_check_command') or 'none'}`",
         f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
@@ -1353,6 +1410,18 @@ def build_product_entry_preflight(
     )
 
 
+def build_product_entry_start(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    manifest = build_product_entry_manifest(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+    return dict(manifest.get("product_entry_start") or {})
+
+
 def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Product Entry Preflight",
@@ -1377,6 +1446,34 @@ def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:
                 + f"(blocking={check.get('blocking')}) "
                 + f"{check.get('summary') or ''} "
                 + f"`{check.get('command') or 'none'}`"
+            )
+    else:
+        lines.append("- none")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_product_entry_start_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Product Entry Start",
+        "",
+        f"- summary: `{payload.get('summary') or 'none'}`",
+        f"- recommended_mode_id: `{payload.get('recommended_mode_id') or 'none'}`",
+        f"- resume_surface: `{((payload.get('resume_surface') or {}).get('surface_kind') or 'none')}`",
+        "",
+        "## Modes",
+        "",
+    ]
+    modes = list(payload.get("modes") or [])
+    if modes:
+        for mode in modes:
+            if not isinstance(mode, dict):
+                continue
+            lines.append(
+                "- "
+                + f"`{mode.get('mode_id')}` "
+                + f"`{mode.get('command') or 'none'}` "
+                + f"{mode.get('summary') or ''}"
             )
     else:
         lines.append("- none")

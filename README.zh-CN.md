@@ -101,6 +101,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - `submit-study-task`：把任务意图写成 durable study task intake，并同步进 startup brief surface
 - `launch-study`：启动/续跑 study，并立刻返回监控入口、当前任务摘要和进度信号
 - `product-preflight`：在打开 controller-owned research frontdoor 之前先暴露诚实的开机前检查
+- `product-start`：先读取统一的启动 companion，查看推荐启动模式、可选模式、resume surface 与 human gate 摘要，再决定从哪条入口进入
 - `product-entry-manifest`：把当前 research 主线的 product-entry shell 冻结成 machine-readable discovery surface，同时不碰 display 支线；现在也会额外带出 family-orchestration companion preview，用来暴露 human gate / resume / checkpoint lineage 摘要
 - `build-product-entry`：在已有 durable study task intake 的前提下，输出 shared direct / `OPL` handoff envelope，同时不碰 display 支线
 
@@ -236,6 +237,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - 写入或刷新当前 study 的任务意图：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑，并直接拿到监督入口：`uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
 - 在打开 frontdoor 前先做当前 startup preflight：`uv run python -m med_autoscience.cli product-preflight --profile <profile> --format <markdown|json>`
+- 如果你想先拿到统一的 machine-readable 启动面，再决定走哪条入口：`uv run python -m med_autoscience.cli product-start --profile <profile> --format <markdown|json>`
 - 先读取当前 research product-entry shell 的 manifest：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format <markdown|json>`
 - 当 task intake 已准备好时，输出 shared direct / `OPL` handoff envelope：`uv run python -m med_autoscience.cli build-product-entry --profile <profile> --study-id <study_id> --entry-mode <direct|opl-handoff>`
 - 随时看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
