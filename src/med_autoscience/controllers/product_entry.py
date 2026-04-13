@@ -24,6 +24,7 @@ from med_autoscience.study_task_intake import (
 
 SCHEMA_VERSION = 1
 PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
+PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _ATTENTION_PRIORITIES = {
@@ -730,6 +731,133 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## Commands", ""])
     for name, command in (payload.get("commands") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_product_entry_manifest(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    mainline_payload = mainline_status.read_mainline_status()
+    mainline_snapshot = _mainline_snapshot()
+    profile_arg = _profile_arg(profile_ref)
+    prefix = _command_prefix(profile_ref)
+    workspace_root = str(profile.workspace_root)
+
+    product_entry_shell = {
+        "workspace_cockpit": {
+            "command": f"{prefix} workspace-cockpit --profile {profile_arg}",
+            "purpose": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
+        },
+        "submit_study_task": {
+            "command": (
+                f"{prefix} submit-study-task --profile {profile_arg} "
+                "--study-id <study_id> --task-intent '<task_intent>'"
+            ),
+            "purpose": "先把用户任务写成 durable study task intake，再启动研究执行。",
+        },
+        "launch_study": {
+            "command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+            "purpose": "创建或恢复 study runtime，并进入当前研究主线。",
+        },
+        "study_progress": {
+            "command": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
+            "purpose": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
+        },
+        "mainline_status": {
+            "command": f"{prefix} mainline-status",
+            "purpose": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
+        },
+        "mainline_phase": {
+            "command": f"{prefix} mainline-phase --phase <current|next|phase_id>",
+            "purpose": "查看某一阶段当前可用入口、退出条件与关键文档。",
+        },
+    }
+    shared_handoff = {
+        "direct_entry_builder": {
+            "command": (
+                f"{prefix} build-product-entry --profile {profile_arg} "
+                "--study-id <study_id> --entry-mode direct"
+            ),
+            "entry_mode": "direct",
+        },
+        "opl_handoff_builder": {
+            "command": (
+                f"{prefix} build-product-entry --profile {profile_arg} "
+                "--study-id <study_id> --entry-mode opl-handoff"
+            ),
+            "entry_mode": "opl-handoff",
+        },
+    }
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "manifest_kind": PRODUCT_ENTRY_MANIFEST_KIND,
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "formal_entry": {
+            "default": "CLI",
+            "supported_protocols": ["MCP"],
+            "internal_surface": "controller",
+        },
+        "workspace_locator": {
+            "workspace_surface_kind": "med_autoscience_workspace_profile",
+            "profile_name": profile.name,
+            "workspace_root": workspace_root,
+            "profile_ref": str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else None,
+        },
+        "repo_mainline": {
+            "program_id": mainline_snapshot.get("program_id"),
+            "current_stage_id": mainline_snapshot.get("current_stage_id"),
+            "current_stage_status": mainline_snapshot.get("current_stage_status"),
+            "current_program_phase_id": mainline_snapshot.get("current_program_phase_id"),
+            "current_program_phase_status": mainline_snapshot.get("current_program_phase_status"),
+        },
+        "product_entry_shell": product_entry_shell,
+        "shared_handoff": shared_handoff,
+        "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
+        "notes": [
+            "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
+            "It does not include the display / paper-figure asset line.",
+            "It does not claim that a mature standalone medical frontend is already landed.",
+        ],
+    }
+
+
+def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
+    workspace_locator = dict(payload.get("workspace_locator") or {})
+    repo_mainline = dict(payload.get("repo_mainline") or {})
+    product_entry_shell = dict(payload.get("product_entry_shell") or {})
+    shared_handoff = dict(payload.get("shared_handoff") or {})
+    lines = [
+        "# Product Entry Manifest",
+        "",
+        f"- manifest_kind: `{payload.get('manifest_kind')}`",
+        f"- target_domain_id: `{payload.get('target_domain_id')}`",
+        f"- profile_name: `{workspace_locator.get('profile_name')}`",
+        f"- workspace_root: `{workspace_locator.get('workspace_root')}`",
+        f"- current_program_phase: `{repo_mainline.get('current_program_phase_id')}`",
+        f"- current_stage: `{repo_mainline.get('current_stage_id')}`",
+        "",
+        "## Product Entry Shell",
+        "",
+    ]
+    for name, item in product_entry_shell.items():
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend(["", "## Shared Handoff", ""])
+    for name, item in shared_handoff.items():
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend(["", "## Remaining Gaps", ""])
+    remaining_gaps = list(payload.get("remaining_gaps") or [])
+    if remaining_gaps:
+        lines.extend(f"- {item}" for item in remaining_gaps)
+    else:
+        lines.append("- none")
     lines.append("")
     return "\n".join(lines)
 

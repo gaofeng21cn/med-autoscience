@@ -100,6 +100,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - `workspace-cockpit`：先看 workspace readiness、最新任务摘要、supervisor service 在线态、stale progress 告警和 study supervision
 - `submit-study-task`：把任务意图写成 durable study task intake，并同步进 startup brief surface
 - `launch-study`：启动/续跑 study，并立刻返回监控入口、当前任务摘要和进度信号
+- `product-entry-manifest`：把当前 research 主线的 product-entry shell 冻结成 machine-readable discovery surface，同时不碰 display 支线
 - `build-product-entry`：在已有 durable study task intake 的前提下，输出 shared direct / `OPL` handoff envelope，同时不碰 display 支线
 
 这个仓的目标 domain 级入口形态应是：
@@ -124,7 +125,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 这里冻结的仍然只是目标架构，不是说产品入口已经完成落地。
 因为 external runtime gate 还没有清除，所以当前对用户最诚实的路径仍然是 agent-operated，而不是成熟的独立产品前台。
 新补上的这层 shell 解决的是“怎么启动、怎么下任务、怎么持续看进度”的实用缺口，但不把它写成已经完成的独立产品前台。
-`build-product-entry` 进一步把这层 shell 延伸成 machine-readable handoff surface，但这同样不等于成熟独立前台已经落地。
+`product-entry-manifest` 会先把当前 research 主线 shell 冻结成 machine-readable discovery surface，`build-product-entry` 再把这层 shell 延伸成 machine-readable handoff surface；这两者都不等于成熟独立前台已经落地。
 
 ### 当前 `Hermes` 到底指什么
 
@@ -233,6 +234,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 - cockpit 现在会更像当前 repo-tracked 的用户 inbox：它会直接投影 repo 主线快照、每篇 study 最近一次 durable task intake、MAS watch-runtime service 是否 visibly online、哪些 study 已经 stale / 缺少明确进度信号，以及“启动 / 下任务 / 持续看进度”这一整条命令回路。
 - 写入或刷新当前 study 的任务意图：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑，并直接拿到监督入口：`uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
+- 先读取当前 research product-entry shell 的 manifest：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format <markdown|json>`
 - 当 task intake 已准备好时，输出 shared direct / `OPL` handoff envelope：`uv run python -m med_autoscience.cli build-product-entry --profile <profile> --study-id <study_id> --entry-mode <direct|opl-handoff>`
 - 随时看医生/PI 能直接读的人话进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
 - `study-progress` 现在还会带上最新 durable task intake 摘要与 progress freshness signal，尽量把“没进度 / 卡住 / 空转”早点暴露出来，而不是变成黑盒。

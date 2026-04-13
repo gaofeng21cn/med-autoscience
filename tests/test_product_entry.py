@@ -289,6 +289,62 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
 
 
+def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_templates(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {
+                "id": "f4_blocker_closeout",
+                "status": "in_progress",
+                "summary": "继续收口 blocker 并把用户入口壳压实。",
+            },
+            "current_program_phase": {
+                "id": "phase_2_user_product_loop",
+                "status": "in_progress",
+                "summary": "把用户 inbox 与持续进度回路收成稳定壳。",
+            },
+            "remaining_gaps": [
+                "mature standalone medical product entry is still not landed",
+            ],
+        },
+    )
+
+    payload = module.build_product_entry_manifest(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+
+    assert payload["manifest_kind"] == "med_autoscience_product_entry_manifest"
+    assert payload["target_domain_id"] == "med-autoscience"
+    assert payload["formal_entry"]["default"] == "CLI"
+    assert payload["formal_entry"]["supported_protocols"] == ["MCP"]
+    assert payload["workspace_locator"]["profile_name"] == profile.name
+    assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
+    assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
+    assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
+        "submit-study-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
+    )
+    assert payload["product_entry_shell"]["launch_study"]["command"].endswith(
+        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+    )
+    assert payload["shared_handoff"]["direct_entry_builder"]["command"].endswith(
+        "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
+    )
+    assert payload["shared_handoff"]["opl_handoff_builder"]["command"].endswith(
+        "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode opl-handoff"
+    )
+    assert "standalone medical product entry" in payload["remaining_gaps"][0]
+
+
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     startup_module = importlib.import_module("med_autoscience.controllers.study_runtime_startup")

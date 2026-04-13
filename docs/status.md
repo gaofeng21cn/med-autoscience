@@ -9,7 +9,7 @@
 - 当前产品主线：`Auto-only`
 - 当前总阶段：5 阶段梯子中的 `Phase 1 mainline established` 尾声；当前 repo stage 仍是 `F4 blocker closeout`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
-- 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `build-product-entry` 现在会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
+- 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `product-entry-manifest` 现在会冻结当前 research 主线 shell，`build-product-entry` 会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
 
 ## 当前基线（repo-verified）
@@ -23,7 +23,7 @@
 - 旧 `Codex-default host-agent runtime` 已明确退为迁移期对照面，不再作为长期产品方向。
 - 当前 runtime / gateway / architecture 主线只推进上游 `Hermes-Agent` 目标 substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
 - `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 future outer-runtime seam 与 `MedDeepScientist` research backend 的分层语义。
-- `workspace-cockpit`、`submit-study-task`、`launch-study`、`build-product-entry` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，或者输出 shared direct / `OPL` handoff envelope，而不是自己拼装底层 controller 命令。
+- `workspace-cockpit`、`submit-study-task`、`launch-study`、`product-entry-manifest`、`build-product-entry` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，先读取当前 research 主线 shell manifest，或者输出 shared direct / `OPL` handoff envelope，而不是自己拼装底层 controller 命令。
 - `mainline-status` 已作为 repo-level 正式状态入口落地：现在可以直接读取 MAS 在 OPL / Research Foundry / runtime mainline 里的理想形态、当前阶段、已完成 tranche、剩余缺口与 next focus，而不必手工拼多份 program 文档。
 - `mainline-phase` 已作为 repo-level 阶段入口落地：现在可以直接读取 5 阶段梯子中任一阶段的当前可用入口、退出条件与关键文档，而不是只在 program 文档里手工搜索。
 - `submit-study-task` 写出的 durable study task intake 已被 startup contract 真实消费，并同步进 startup brief surface；这意味着“下任务”不再只是口头描述，而是 study-owned durable truth。
