@@ -791,6 +791,32 @@ def build_product_entry_manifest(
             "entry_mode": "opl-handoff",
         },
     }
+    operator_loop_actions = {
+        "open_loop": {
+            "command": product_entry_shell["workspace_cockpit"]["command"],
+            "surface_kind": "workspace_cockpit",
+            "summary": "先进入当前 workspace 级用户 inbox。",
+            "requires": [],
+        },
+        "submit_task": {
+            "command": product_entry_shell["submit_study_task"]["command"],
+            "surface_kind": "study_task_intake",
+            "summary": "先把新的研究任务写成 durable study task intake。",
+            "requires": ["study_id", "task_intent"],
+        },
+        "continue_study": {
+            "command": product_entry_shell["launch_study"]["command"],
+            "surface_kind": "launch_study",
+            "summary": "创建或恢复某个 study runtime，并回到当前研究主线。",
+            "requires": ["study_id"],
+        },
+        "inspect_progress": {
+            "command": product_entry_shell["study_progress"]["command"],
+            "surface_kind": "study_progress",
+            "summary": "读取某个 study 的当前阶段、阻塞和监督 freshness。",
+            "requires": ["study_id"],
+        },
+    }
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -823,6 +849,7 @@ def build_product_entry_manifest(
             "surface_kind": "workspace_cockpit",
             "summary": product_entry_shell["workspace_cockpit"]["purpose"],
         },
+        "operator_loop_actions": operator_loop_actions,
         "repo_mainline": {
             "program_id": mainline_snapshot.get("program_id"),
             "current_stage_id": mainline_snapshot.get("current_stage_id"),
@@ -869,6 +896,11 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         "",
     ]
     for name, item in product_entry_shell.items():
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend(["", "## Operator Loop Actions", ""])
+    for name, item in (payload.get("operator_loop_actions") or {}).items():
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")

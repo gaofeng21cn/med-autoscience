@@ -339,6 +339,13 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
     assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"
     assert "workspace 级用户 inbox" in payload["operator_loop_surface"]["summary"]
+    assert payload["operator_loop_actions"]["open_loop"]["command"] == payload["recommended_command"]
+    assert payload["operator_loop_actions"]["open_loop"]["surface_kind"] == "workspace_cockpit"
+    assert payload["operator_loop_actions"]["submit_task"]["requires"] == ["study_id", "task_intent"]
+    assert payload["operator_loop_actions"]["continue_study"]["requires"] == ["study_id"]
+    assert payload["operator_loop_actions"]["inspect_progress"]["command"].endswith(
+        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+    )
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["repo_mainline"]["current_stage_summary"] == "继续收口 blocker 并把用户入口壳压实。"
