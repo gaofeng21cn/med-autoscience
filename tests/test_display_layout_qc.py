@@ -4673,6 +4673,545 @@ def test_run_display_layout_qc_fails_when_partial_dependence_interaction_support
     assert any(issue["rule_id"] == "observed_point_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_partial_dependence_interaction_slice_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_interaction_slice_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_interaction_slice_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.31, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.46, y0=0.87, x1=0.72, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.31, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.52, y0=0.10, x1=0.70, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.46, y0=0.81, x1=0.48, y1=0.84),
+                make_box("reference_label_A", "slice_reference_label", x0=0.23, y0=0.76, x1=0.30, y1=0.79),
+                make_box("reference_label_B", "slice_reference_label", x0=0.58, y0=0.76, x1=0.68, y1=0.79),
+                make_box("legend_title", "legend_title", x0=0.36, y0=0.05, x1=0.50, y1=0.08),
+                make_box("legend_box", "legend_box", x0=0.28, y0=0.02, x1=0.70, y1=0.08),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.35, y1=0.82),
+                make_box("panel_B", "panel", x0=0.45, y0=0.18, x1=0.72, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "slice_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82),
+                make_box("reference_line_B", "slice_reference_line", x0=0.59, y0=0.18, x1=0.591, y1=0.82),
+            ],
+            "metrics": {
+                "legend_title": "Conditioning profile",
+                "legend_labels": ["Low conditioning", "High conditioning"],
+                "panels": [
+                    {
+                        "panel_id": "age_by_albumin",
+                        "panel_label": "A",
+                        "title": "Age conditioned on albumin",
+                        "x_label": "Age (years)",
+                        "x_feature": "Age",
+                        "slice_feature": "Albumin",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "slice_curves": [
+                            {
+                                "slice_id": "albumin_low",
+                                "slice_label": "Low conditioning",
+                                "conditioning_value": 3.2,
+                                "points": [
+                                    {"x": 0.15, "y": 0.33},
+                                    {"x": 0.21, "y": 0.39},
+                                    {"x": 0.24, "y": 0.47},
+                                    {"x": 0.30, "y": 0.57},
+                                ],
+                            },
+                            {
+                                "slice_id": "albumin_high",
+                                "slice_label": "High conditioning",
+                                "conditioning_value": 4.4,
+                                "points": [
+                                    {"x": 0.15, "y": 0.26},
+                                    {"x": 0.21, "y": 0.32},
+                                    {"x": 0.24, "y": 0.39},
+                                    {"x": 0.30, "y": 0.49},
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "tumor_by_platelet",
+                        "panel_label": "B",
+                        "title": "Tumor size conditioned on platelets",
+                        "x_label": "Tumor size (cm)",
+                        "x_feature": "Tumor size",
+                        "slice_feature": "Platelet count",
+                        "reference_value": 6.0,
+                        "reference_label": "Reference tumor size",
+                        "panel_box_id": "panel_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "slice_curves": [
+                            {
+                                "slice_id": "platelet_low",
+                                "slice_label": "Low conditioning",
+                                "conditioning_value": 110.0,
+                                "points": [
+                                    {"x": 0.49, "y": 0.28},
+                                    {"x": 0.55, "y": 0.39},
+                                    {"x": 0.59, "y": 0.50},
+                                    {"x": 0.67, "y": 0.62},
+                                ],
+                            },
+                            {
+                                "slice_id": "platelet_high",
+                                "slice_label": "High conditioning",
+                                "conditioning_value": 210.0,
+                                "points": [
+                                    {"x": 0.49, "y": 0.22},
+                                    {"x": 0.55, "y": 0.31},
+                                    {"x": 0.59, "y": 0.40},
+                                    {"x": 0.67, "y": 0.49},
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_partial_dependence_interaction_slice_curve_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_interaction_slice_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_interaction_slice_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.31, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.31, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("reference_label_A", "slice_reference_label", x0=0.23, y0=0.76, x1=0.30, y1=0.79),
+                make_box("legend_title", "legend_title", x0=0.36, y0=0.05, x1=0.50, y1=0.08),
+                make_box("legend_box", "legend_box", x0=0.28, y0=0.02, x1=0.70, y1=0.08),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.35, y1=0.82)],
+            "guide_boxes": [make_box("reference_line_A", "slice_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82)],
+            "metrics": {
+                "legend_title": "Conditioning profile",
+                "legend_labels": ["Low conditioning", "High conditioning"],
+                "panels": [
+                    {
+                        "panel_id": "age_by_albumin",
+                        "panel_label": "A",
+                        "title": "Age conditioned on albumin",
+                        "x_label": "Age (years)",
+                        "x_feature": "Age",
+                        "slice_feature": "Albumin",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "slice_curves": [
+                            {
+                                "slice_id": "albumin_low",
+                                "slice_label": "Low conditioning",
+                                "conditioning_value": 3.2,
+                                "points": [
+                                    {"x": 0.15, "y": 0.33},
+                                    {"x": 0.21, "y": 0.39},
+                                    {"x": 0.39, "y": 0.47},
+                                    {"x": 0.30, "y": 0.57},
+                                ],
+                            },
+                            {
+                                "slice_id": "albumin_high",
+                                "slice_label": "High conditioning",
+                                "conditioning_value": 4.4,
+                                "points": [
+                                    {"x": 0.15, "y": 0.26},
+                                    {"x": 0.21, "y": 0.32},
+                                    {"x": 0.24, "y": 0.39},
+                                    {"x": 0.30, "y": 0.49},
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "slice_point_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_partial_dependence_subgroup_comparison_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_subgroup_comparison_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_subgroup_comparison_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.88, x1=0.28, y1=0.91),
+                make_box("panel_title_B", "panel_title", x0=0.40, y0=0.88, x1=0.58, y1=0.91),
+                make_box("subgroup_panel_title_C", "subgroup_panel_title", x0=0.16, y0=0.42, x1=0.48, y1=0.45),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.52, x1=0.26, y1=0.55),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.44, y0=0.52, x1=0.56, y1=0.55),
+                make_box("subgroup_x_axis_title_C", "subgroup_x_axis_title", x0=0.24, y0=0.08, x1=0.46, y1=0.11),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.58, x1=0.07, y1=0.84),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.82, x1=0.12, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.40, y0=0.82, x1=0.42, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.10, y0=0.38, x1=0.12, y1=0.41),
+                make_box("reference_label_A", "pdp_reference_label", x0=0.17, y0=0.77, x1=0.25, y1=0.80),
+                make_box("reference_label_B", "pdp_reference_label", x0=0.47, y0=0.77, x1=0.55, y1=0.80),
+                make_box("subgroup_row_label_1", "subgroup_row_label", x0=0.12, y0=0.30, x1=0.21, y1=0.33),
+                make_box("subgroup_row_label_2", "subgroup_row_label", x0=0.12, y0=0.22, x1=0.20, y1=0.25),
+                make_box("legend_box", "legend_box", x0=0.62, y0=0.70, x1=0.90, y1=0.78),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.09, y0=0.56, x1=0.30, y1=0.83),
+                make_box("panel_B", "panel", x0=0.39, y0=0.56, x1=0.60, y1=0.83),
+                make_box("panel_C", "subgroup_panel", x0=0.24, y0=0.16, x1=0.62, y1=0.36),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "pdp_reference_line", x0=0.19, y0=0.56, x1=0.191, y1=0.83),
+                make_box("reference_line_B", "pdp_reference_line", x0=0.49, y0=0.56, x1=0.491, y1=0.83),
+                make_box("subgroup_ci_segment_1", "subgroup_ci_segment", x0=0.33, y0=0.31, x1=0.47, y1=0.315),
+                make_box("subgroup_ci_segment_2", "subgroup_ci_segment", x0=0.29, y0=0.23, x1=0.41, y1=0.235),
+                make_box("subgroup_estimate_marker_1", "subgroup_estimate_marker", x0=0.39, y0=0.298, x1=0.405, y1=0.318),
+                make_box("subgroup_estimate_marker_2", "subgroup_estimate_marker", x0=0.34, y0=0.218, x1=0.355, y1=0.238),
+            ],
+            "metrics": {
+                "legend_labels": ["ICE curves", "PDP mean", "Subgroup interval"],
+                "panels": [
+                    {
+                        "panel_id": "immune_high",
+                        "panel_label": "A",
+                        "subgroup_label": "Immune-high",
+                        "title": "Immune-high subgroup",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "pdp_points": [
+                            {"x": 0.12, "y": 0.63},
+                            {"x": 0.17, "y": 0.69},
+                            {"x": 0.19, "y": 0.74},
+                            {"x": 0.25, "y": 0.79},
+                        ],
+                        "ice_curves": [
+                            {"curve_id": "immune_high_case_1", "points": [{"x": 0.12, "y": 0.61}, {"x": 0.17, "y": 0.67}, {"x": 0.19, "y": 0.73}, {"x": 0.25, "y": 0.80}]},
+                            {"curve_id": "immune_high_case_2", "points": [{"x": 0.12, "y": 0.64}, {"x": 0.17, "y": 0.70}, {"x": 0.19, "y": 0.76}, {"x": 0.25, "y": 0.81}]},
+                        ],
+                    },
+                    {
+                        "panel_id": "immune_low",
+                        "panel_label": "B",
+                        "subgroup_label": "Immune-low",
+                        "title": "Immune-low subgroup",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "pdp_points": [
+                            {"x": 0.42, "y": 0.60},
+                            {"x": 0.47, "y": 0.65},
+                            {"x": 0.49, "y": 0.69},
+                            {"x": 0.55, "y": 0.74},
+                        ],
+                        "ice_curves": [
+                            {"curve_id": "immune_low_case_1", "points": [{"x": 0.42, "y": 0.58}, {"x": 0.47, "y": 0.63}, {"x": 0.49, "y": 0.68}, {"x": 0.55, "y": 0.73}]},
+                            {"curve_id": "immune_low_case_2", "points": [{"x": 0.42, "y": 0.61}, {"x": 0.47, "y": 0.66}, {"x": 0.49, "y": 0.70}, {"x": 0.55, "y": 0.75}]},
+                        ],
+                    },
+                ],
+                "subgroup_panel": {
+                    "panel_label": "C",
+                    "title": "Subgroup-level absolute risk contrast",
+                    "x_label": "Mean predicted risk difference",
+                    "panel_box_id": "panel_C",
+                    "rows": [
+                        {
+                            "row_id": "immune_high_row",
+                            "panel_id": "immune_high",
+                            "row_label": "Immune-high",
+                            "estimate": 0.31,
+                            "lower": 0.24,
+                            "upper": 0.38,
+                            "support_n": 142,
+                            "label_box_id": "subgroup_row_label_1",
+                            "ci_segment_box_id": "subgroup_ci_segment_1",
+                            "estimate_marker_box_id": "subgroup_estimate_marker_1",
+                        },
+                        {
+                            "row_id": "immune_low_row",
+                            "panel_id": "immune_low",
+                            "row_label": "Immune-low",
+                            "estimate": 0.22,
+                            "lower": 0.16,
+                            "upper": 0.28,
+                            "support_n": 151,
+                            "label_box_id": "subgroup_row_label_2",
+                            "ci_segment_box_id": "subgroup_ci_segment_2",
+                            "estimate_marker_box_id": "subgroup_estimate_marker_2",
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_partial_dependence_subgroup_estimate_marker_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_partial_dependence_subgroup_comparison_panel",
+        layout_sidecar={
+            "template_id": "partial_dependence_subgroup_comparison_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.88, x1=0.28, y1=0.91),
+                make_box("subgroup_panel_title_C", "subgroup_panel_title", x0=0.16, y0=0.42, x1=0.48, y1=0.45),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.52, x1=0.26, y1=0.55),
+                make_box("subgroup_x_axis_title_C", "subgroup_x_axis_title", x0=0.24, y0=0.08, x1=0.46, y1=0.11),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.58, x1=0.07, y1=0.84),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.82, x1=0.12, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.10, y0=0.38, x1=0.12, y1=0.41),
+                make_box("reference_label_A", "pdp_reference_label", x0=0.17, y0=0.77, x1=0.25, y1=0.80),
+                make_box("subgroup_row_label_1", "subgroup_row_label", x0=0.12, y0=0.30, x1=0.21, y1=0.33),
+                make_box("legend_box", "legend_box", x0=0.62, y0=0.70, x1=0.90, y1=0.78),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.09, y0=0.56, x1=0.30, y1=0.83),
+                make_box("panel_C", "subgroup_panel", x0=0.24, y0=0.16, x1=0.62, y1=0.36),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "pdp_reference_line", x0=0.19, y0=0.56, x1=0.191, y1=0.83),
+                make_box("subgroup_ci_segment_1", "subgroup_ci_segment", x0=0.33, y0=0.31, x1=0.47, y1=0.315),
+                make_box("subgroup_estimate_marker_1", "subgroup_estimate_marker", x0=0.65, y0=0.298, x1=0.665, y1=0.318),
+            ],
+            "metrics": {
+                "legend_labels": ["ICE curves", "PDP mean", "Subgroup interval"],
+                "panels": [
+                    {
+                        "panel_id": "immune_high",
+                        "panel_label": "A",
+                        "subgroup_label": "Immune-high",
+                        "title": "Immune-high subgroup",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "pdp_points": [{"x": 0.12, "y": 0.63}, {"x": 0.17, "y": 0.69}, {"x": 0.19, "y": 0.74}],
+                        "ice_curves": [{"curve_id": "immune_high_case_1", "points": [{"x": 0.12, "y": 0.61}, {"x": 0.17, "y": 0.67}, {"x": 0.19, "y": 0.73}]}],
+                    },
+                ],
+                "subgroup_panel": {
+                    "panel_label": "C",
+                    "title": "Subgroup-level absolute risk contrast",
+                    "x_label": "Mean predicted risk difference",
+                    "panel_box_id": "panel_C",
+                    "rows": [
+                        {
+                            "row_id": "immune_high_row",
+                            "panel_id": "immune_high",
+                            "row_label": "Immune-high",
+                            "estimate": 0.31,
+                            "lower": 0.24,
+                            "upper": 0.38,
+                            "support_n": 142,
+                            "label_box_id": "subgroup_row_label_1",
+                            "ci_segment_box_id": "subgroup_ci_segment_1",
+                            "estimate_marker_box_id": "subgroup_estimate_marker_1",
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "subgroup_estimate_marker_outside_panel" for issue in result["issues"])
+
+
+def test_run_display_layout_qc_passes_for_accumulated_local_effects_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_accumulated_local_effects_panel",
+        layout_sidecar={
+            "template_id": "accumulated_local_effects_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.22, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.47, y0=0.87, x1=0.58, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.28, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.52, y0=0.10, x1=0.67, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.47, y0=0.81, x1=0.49, y1=0.84),
+                make_box("reference_label_A", "ale_reference_label", x0=0.21, y0=0.76, x1=0.28, y1=0.79),
+                make_box("reference_label_B", "ale_reference_label", x0=0.56, y0=0.76, x1=0.66, y1=0.79),
+                make_box("legend_box", "legend_box", x0=0.28, y0=0.03, x1=0.71, y1=0.08),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.46, y0=0.18, x1=0.72, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "ale_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82),
+                make_box("reference_line_B", "ale_reference_line", x0=0.59, y0=0.18, x1=0.591, y1=0.82),
+                make_box("ale_bin_A_1", "local_effect_bin", x0=0.14, y0=0.46, x1=0.17, y1=0.52),
+                make_box("ale_bin_A_2", "local_effect_bin", x0=0.19, y0=0.46, x1=0.22, y1=0.60),
+                make_box("ale_bin_A_3", "local_effect_bin", x0=0.24, y0=0.46, x1=0.27, y1=0.57),
+                make_box("ale_bin_A_4", "local_effect_bin", x0=0.29, y0=0.46, x1=0.32, y1=0.62),
+                make_box("ale_bin_B_1", "local_effect_bin", x0=0.49, y0=0.44, x1=0.52, y1=0.50),
+                make_box("ale_bin_B_2", "local_effect_bin", x0=0.55, y0=0.38, x1=0.58, y1=0.44),
+                make_box("ale_bin_B_3", "local_effect_bin", x0=0.60, y0=0.33, x1=0.63, y1=0.38),
+                make_box("ale_bin_B_4", "local_effect_bin", x0=0.66, y0=0.30, x1=0.69, y1=0.34),
+            ],
+            "metrics": {
+                "legend_labels": ["Accumulated local effect", "Local effect per bin"],
+                "panels": [
+                    {
+                        "panel_id": "age_ale",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "ale_points": [
+                            {"x": 0.15, "y": 0.50},
+                            {"x": 0.20, "y": 0.56},
+                            {"x": 0.25, "y": 0.61},
+                            {"x": 0.30, "y": 0.67},
+                        ],
+                        "local_effect_bins": [
+                            {"bin_id": "age_bin_1", "bin_box_id": "ale_bin_A_1", "bin_center": 45.0, "local_effect": 0.02, "support_count": 84},
+                            {"bin_id": "age_bin_2", "bin_box_id": "ale_bin_A_2", "bin_center": 55.0, "local_effect": 0.05, "support_count": 91},
+                            {"bin_id": "age_bin_3", "bin_box_id": "ale_bin_A_3", "bin_center": 65.0, "local_effect": 0.04, "support_count": 88},
+                            {"bin_id": "age_bin_4", "bin_box_id": "ale_bin_A_4", "bin_center": 75.0, "local_effect": 0.05, "support_count": 73},
+                        ],
+                    },
+                    {
+                        "panel_id": "albumin_ale",
+                        "panel_label": "B",
+                        "title": "Albumin",
+                        "x_label": "Albumin (g/dL)",
+                        "feature": "Albumin",
+                        "reference_value": 3.8,
+                        "reference_label": "Median albumin",
+                        "panel_box_id": "panel_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "ale_points": [
+                            {"x": 0.50, "y": 0.47},
+                            {"x": 0.56, "y": 0.41},
+                            {"x": 0.61, "y": 0.36},
+                            {"x": 0.67, "y": 0.32},
+                        ],
+                        "local_effect_bins": [
+                            {"bin_id": "alb_bin_1", "bin_box_id": "ale_bin_B_1", "bin_center": 3.0, "local_effect": -0.03, "support_count": 81},
+                            {"bin_id": "alb_bin_2", "bin_box_id": "ale_bin_B_2", "bin_center": 3.4, "local_effect": -0.04, "support_count": 87},
+                            {"bin_id": "alb_bin_3", "bin_box_id": "ale_bin_B_3", "bin_center": 3.8, "local_effect": -0.03, "support_count": 96},
+                            {"bin_id": "alb_bin_4", "bin_box_id": "ale_bin_B_4", "bin_center": 4.2, "local_effect": -0.02, "support_count": 78},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_accumulated_local_effect_bin_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_accumulated_local_effects_panel",
+        layout_sidecar={
+            "template_id": "accumulated_local_effects_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.22, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.28, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.32, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("reference_label_A", "ale_reference_label", x0=0.21, y0=0.76, x1=0.28, y1=0.79),
+                make_box("legend_box", "legend_box", x0=0.28, y0=0.03, x1=0.71, y1=0.08),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82)],
+            "guide_boxes": [
+                make_box("reference_line_A", "ale_reference_line", x0=0.24, y0=0.18, x1=0.241, y1=0.82),
+                make_box("ale_bin_A_1", "local_effect_bin", x0=0.14, y0=0.46, x1=0.17, y1=0.52),
+                make_box("ale_bin_A_2", "local_effect_bin", x0=0.36, y0=0.46, x1=0.39, y1=0.60),
+            ],
+            "metrics": {
+                "legend_labels": ["Accumulated local effect", "Local effect per bin"],
+                "panels": [
+                    {
+                        "panel_id": "age_ale",
+                        "panel_label": "A",
+                        "title": "Age",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "ale_points": [{"x": 0.15, "y": 0.50}, {"x": 0.20, "y": 0.56}],
+                        "local_effect_bins": [
+                            {"bin_id": "age_bin_1", "bin_box_id": "ale_bin_A_1", "bin_center": 45.0, "local_effect": 0.02, "support_count": 84},
+                            {"bin_id": "age_bin_2", "bin_box_id": "ale_bin_A_2", "bin_center": 55.0, "local_effect": 0.05, "support_count": 91},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "local_effect_bin_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_shap_bar_importance() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

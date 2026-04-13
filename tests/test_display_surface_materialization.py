@@ -7914,6 +7914,195 @@ def _make_partial_dependence_interaction_contour_panel_display(
     }
 
 
+def _make_partial_dependence_interaction_slice_panel_display(
+    display_id: str = "Figure43",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "partial_dependence_interaction_slice_panel",
+        "title": "Partial dependence interaction slice panel for clinically bounded conditioning profiles",
+        "caption": (
+            "Bounded interaction slices summarize how clinically meaningful conditioning profiles reshape the "
+            "partial-dependence trajectory for the audited model."
+        ),
+        "y_label": "Predicted response probability",
+        "legend_title": "Conditioning profile",
+        "panels": [
+            {
+                "panel_id": "age_by_albumin",
+                "panel_label": "A",
+                "title": "Age conditioned on albumin",
+                "x_label": "Age (years)",
+                "x_feature": "Age",
+                "slice_feature": "Albumin",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "slice_curves": [
+                    {
+                        "slice_id": "albumin_low",
+                        "slice_label": "Low conditioning",
+                        "conditioning_value": 3.2,
+                        "x": [40.0, 50.0, 60.0, 70.0],
+                        "y": [0.24, 0.28, 0.33, 0.39],
+                    },
+                    {
+                        "slice_id": "albumin_high",
+                        "slice_label": "High conditioning",
+                        "conditioning_value": 4.4,
+                        "x": [40.0, 50.0, 60.0, 70.0],
+                        "y": [0.15, 0.19, 0.24, 0.30],
+                    },
+                ],
+            },
+            {
+                "panel_id": "tumor_by_platelet",
+                "panel_label": "B",
+                "title": "Tumor size conditioned on platelets",
+                "x_label": "Tumor size (cm)",
+                "x_feature": "Tumor size",
+                "slice_feature": "Platelet count",
+                "reference_value": 6.0,
+                "reference_label": "Reference tumor size",
+                "slice_curves": [
+                    {
+                        "slice_id": "platelet_low",
+                        "slice_label": "Low conditioning",
+                        "conditioning_value": 110.0,
+                        "x": [2.0, 4.0, 6.0, 8.0],
+                        "y": [0.20, 0.27, 0.36, 0.47],
+                    },
+                    {
+                        "slice_id": "platelet_high",
+                        "slice_label": "High conditioning",
+                        "conditioning_value": 210.0,
+                        "x": [2.0, 4.0, 6.0, 8.0],
+                        "y": [0.13, 0.19, 0.27, 0.35],
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def _make_partial_dependence_subgroup_comparison_panel_display(
+    display_id: str = "Figure44",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "partial_dependence_subgroup_comparison_panel",
+        "title": "Partial dependence subgroup comparison panel for audited sensitivity heterogeneity",
+        "caption": (
+            "Bounded subgroup comparison panels couple subgroup-specific PDP/ICE trajectories with a compact "
+            "interval summary so the manuscript-facing explanation remains auditable."
+        ),
+        "y_label": "Predicted response probability",
+        "subgroup_panel_label": "C",
+        "subgroup_panel_title": "Subgroup-level absolute risk contrast",
+        "subgroup_x_label": "Mean predicted risk difference",
+        "panels": [
+            {
+                "panel_id": "immune_high",
+                "panel_label": "A",
+                "subgroup_label": "Immune-high",
+                "title": "Immune-high subgroup",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "pdp_curve": {"x": [40.0, 50.0, 60.0, 70.0], "y": [0.18, 0.24, 0.31, 0.39]},
+                "ice_curves": [
+                    {"curve_id": "immune_high_case_1", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.16, 0.22, 0.30, 0.40]},
+                    {"curve_id": "immune_high_case_2", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.19, 0.25, 0.33, 0.41]},
+                ],
+            },
+            {
+                "panel_id": "immune_low",
+                "panel_label": "B",
+                "subgroup_label": "Immune-low",
+                "title": "Immune-low subgroup",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "pdp_curve": {"x": [40.0, 50.0, 60.0, 70.0], "y": [0.13, 0.17, 0.22, 0.28]},
+                "ice_curves": [
+                    {"curve_id": "immune_low_case_1", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.12, 0.16, 0.21, 0.27]},
+                    {"curve_id": "immune_low_case_2", "x": [40.0, 50.0, 60.0, 70.0], "y": [0.14, 0.18, 0.23, 0.29]},
+                ],
+            },
+        ],
+        "subgroup_rows": [
+            {
+                "row_id": "immune_high_row",
+                "panel_id": "immune_high",
+                "row_label": "Immune-high",
+                "estimate": 0.31,
+                "lower": 0.24,
+                "upper": 0.38,
+                "support_n": 142,
+            },
+            {
+                "row_id": "immune_low_row",
+                "panel_id": "immune_low",
+                "row_label": "Immune-low",
+                "estimate": 0.22,
+                "lower": 0.16,
+                "upper": 0.28,
+                "support_n": 151,
+            },
+        ],
+    }
+
+
+def _make_accumulated_local_effects_panel_display(
+    display_id: str = "Figure45",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "accumulated_local_effects_panel",
+        "title": "Accumulated local effects panel for bounded feature-response accumulation",
+        "caption": (
+            "Bounded ALE panels summarize local-effect bins and the corresponding accumulated effect curves "
+            "without opening an unconstrained explanation scene."
+        ),
+        "y_label": "Accumulated local effect",
+        "panels": [
+            {
+                "panel_id": "age_ale",
+                "panel_label": "A",
+                "title": "Age",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "ale_curve": {"x": [45.0, 55.0, 65.0, 75.0], "y": [0.02, 0.07, 0.11, 0.16]},
+                "local_effect_bins": [
+                    {"bin_id": "age_bin_1", "bin_left": 40.0, "bin_right": 50.0, "bin_center": 45.0, "local_effect": 0.02, "support_count": 84},
+                    {"bin_id": "age_bin_2", "bin_left": 50.0, "bin_right": 60.0, "bin_center": 55.0, "local_effect": 0.05, "support_count": 91},
+                    {"bin_id": "age_bin_3", "bin_left": 60.0, "bin_right": 70.0, "bin_center": 65.0, "local_effect": 0.04, "support_count": 88},
+                    {"bin_id": "age_bin_4", "bin_left": 70.0, "bin_right": 80.0, "bin_center": 75.0, "local_effect": 0.05, "support_count": 73},
+                ],
+            },
+            {
+                "panel_id": "albumin_ale",
+                "panel_label": "B",
+                "title": "Albumin",
+                "x_label": "Albumin (g/dL)",
+                "feature": "Albumin",
+                "reference_value": 3.8,
+                "reference_label": "Median albumin",
+                "ale_curve": {"x": [3.0, 3.4, 3.8, 4.2], "y": [-0.03, -0.07, -0.10, -0.12]},
+                "local_effect_bins": [
+                    {"bin_id": "alb_bin_1", "bin_left": 2.8, "bin_right": 3.2, "bin_center": 3.0, "local_effect": -0.03, "support_count": 81},
+                    {"bin_id": "alb_bin_2", "bin_left": 3.2, "bin_right": 3.6, "bin_center": 3.4, "local_effect": -0.04, "support_count": 87},
+                    {"bin_id": "alb_bin_3", "bin_left": 3.6, "bin_right": 4.0, "bin_center": 3.8, "local_effect": -0.03, "support_count": 96},
+                    {"bin_id": "alb_bin_4", "bin_left": 4.0, "bin_right": 4.4, "bin_center": 4.2, "local_effect": -0.02, "support_count": 78},
+                ],
+            },
+        ],
+    }
+
+
 def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -8239,6 +8428,94 @@ def test_load_evidence_display_payload_rejects_ice_curve_grid_mismatch_for_parti
             paper_root=paper_root,
             spec=spec,
             display_id="Figure36",
+        )
+
+
+def test_load_evidence_display_payload_rejects_slice_curve_grid_mismatch_for_partial_dependence_interaction_slice_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_partial_dependence_interaction_slice_panel_display()
+    display_payload["panels"][0]["slice_curves"][1]["x"] = [40.0, 51.0, 60.0, 70.0]
+    dump_json(
+        paper_root / "partial_dependence_interaction_slice_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_interaction_slice_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("partial_dependence_interaction_slice_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="slice_curves\\[1\\]\\.x must match the first slice x grid within each panel",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure43",
+        )
+
+
+def test_load_evidence_display_payload_rejects_invalid_interval_for_partial_dependence_subgroup_comparison_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_partial_dependence_subgroup_comparison_panel_display()
+    display_payload["subgroup_rows"][1]["estimate"] = 0.35
+    display_payload["subgroup_rows"][1]["upper"] = 0.28
+    dump_json(
+        paper_root / "partial_dependence_subgroup_comparison_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_subgroup_comparison_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("partial_dependence_subgroup_comparison_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="subgroup_rows\\[1\\] must satisfy lower <= estimate <= upper",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure44",
+        )
+
+
+def test_load_evidence_display_payload_rejects_non_cumulative_ale_for_accumulated_local_effects_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_accumulated_local_effects_panel_display()
+    display_payload["panels"][0]["ale_curve"]["y"][2] = 0.13
+    dump_json(
+        paper_root / "accumulated_local_effects_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "accumulated_local_effects_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("accumulated_local_effects_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="ale_curve.y must equal the cumulative sum of local_effect_bins within each panel",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure45",
         )
 
 
@@ -8731,6 +9008,233 @@ def test_materialize_display_surface_generates_partial_dependence_interaction_co
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "partial_dependence_interaction_contour_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_partial_dependence_interaction_contour_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_partial_dependence_interaction_slice_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure43",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_interaction_slice_panel",
+                    "catalog_id": "F43",
+                    "shell_path": "paper/figures/Figure43.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure43",
+                    "template_id": "partial_dependence_interaction_slice_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "partial_dependence_interaction_slice_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_interaction_slice_panel_inputs_v1",
+            "displays": [_make_partial_dependence_interaction_slice_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F43"]
+    assert (paper_root / "figures" / "generated" / "F43_partial_dependence_interaction_slice_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F43_partial_dependence_interaction_slice_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F43_partial_dependence_interaction_slice_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_type"] == "legend_box" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "legend_title" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "slice_reference_line"]) == 2
+    assert layout_sidecar["metrics"]["legend_title"] == "Conditioning profile"
+    assert layout_sidecar["metrics"]["legend_labels"] == ["Low conditioning", "High conditioning"]
+    assert [item["slice_feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Albumin", "Platelet count"]
+    assert layout_sidecar["metrics"]["panels"][0]["slice_curves"][0]["slice_id"] == "albumin_low"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F43"
+    assert figure_entry["template_id"] == full_id("partial_dependence_interaction_slice_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "partial_dependence_interaction_slice_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_partial_dependence_interaction_slice_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_partial_dependence_subgroup_comparison_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure44",
+                    "display_kind": "figure",
+                    "requirement_key": "partial_dependence_subgroup_comparison_panel",
+                    "catalog_id": "F44",
+                    "shell_path": "paper/figures/Figure44.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure44",
+                    "template_id": "partial_dependence_subgroup_comparison_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "partial_dependence_subgroup_comparison_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "partial_dependence_subgroup_comparison_panel_inputs_v1",
+            "displays": [_make_partial_dependence_subgroup_comparison_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F44"]
+    assert (paper_root / "figures" / "generated" / "F44_partial_dependence_subgroup_comparison_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F44_partial_dependence_subgroup_comparison_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F44_partial_dependence_subgroup_comparison_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len([item for item in layout_sidecar["panel_boxes"] if item["box_type"] == "panel"]) == 2
+    assert len([item for item in layout_sidecar["panel_boxes"] if item["box_type"] == "subgroup_panel"]) == 1
+    assert any(item["box_id"] == "panel_label_C" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "subgroup_ci_segment"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "subgroup_estimate_marker"]) == 2
+    assert layout_sidecar["metrics"]["legend_labels"] == ["ICE curves", "PDP mean", "Subgroup interval"]
+    assert layout_sidecar["metrics"]["subgroup_panel"]["panel_label"] == "C"
+    assert layout_sidecar["metrics"]["subgroup_panel"]["rows"][0]["panel_id"] == "immune_high"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F44"
+    assert figure_entry["template_id"] == full_id("partial_dependence_subgroup_comparison_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "partial_dependence_subgroup_comparison_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_partial_dependence_subgroup_comparison_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_accumulated_local_effects_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure45",
+                    "display_kind": "figure",
+                    "requirement_key": "accumulated_local_effects_panel",
+                    "catalog_id": "F45",
+                    "shell_path": "paper/figures/Figure45.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure45",
+                    "template_id": "accumulated_local_effects_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "accumulated_local_effects_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "accumulated_local_effects_panel_inputs_v1",
+            "displays": [_make_accumulated_local_effects_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F45"]
+    assert (paper_root / "figures" / "generated" / "F45_accumulated_local_effects_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F45_accumulated_local_effects_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F45_accumulated_local_effects_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_type"] == "legend_box" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "ale_reference_line"]) == 2
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "local_effect_bin"]) == 8
+    assert layout_sidecar["metrics"]["legend_labels"] == ["Accumulated local effect", "Local effect per bin"]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Age", "Albumin"]
+    assert layout_sidecar["metrics"]["panels"][0]["local_effect_bins"][1]["bin_id"] == "age_bin_2"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F45"
+    assert figure_entry["template_id"] == full_id("accumulated_local_effects_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "accumulated_local_effects_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_accumulated_local_effects_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

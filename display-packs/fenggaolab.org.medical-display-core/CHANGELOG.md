@@ -2,6 +2,12 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `partial_dependence_interaction_slice_panel` as the next audited `F` higher-order partial-dependence slice in the core display pack.
+- Lock its pack-facing contract to `partial_dependence_interaction_slice_panel_inputs_v1`, `publication_partial_dependence_interaction_slice_panel`, and the Python bounded multi-panel interaction-slice renderer path.
+- Add `partial_dependence_subgroup_comparison_panel` as the next audited `F` subgroup-conditioned partial-dependence comparison slice in the core display pack.
+- Lock its pack-facing contract to `partial_dependence_subgroup_comparison_panel_inputs_v1`, `publication_partial_dependence_subgroup_comparison_panel`, and the Python bounded subgroup-comparison renderer path.
+- Add `accumulated_local_effects_panel` as the next audited `F` accumulated-local-effects explanation slice in the core display pack.
+- Lock its pack-facing contract to `accumulated_local_effects_panel_inputs_v1`, `publication_accumulated_local_effects_panel`, and the Python bounded ALE renderer path.
 - Add `design_evidence_composite_shell` as the next audited `H` manuscript-facing design-evidence illustration shell in the core display pack.
 - Lock its pack-facing contract to `design_evidence_composite_shell_inputs_v1`, `publication_design_evidence_composite_shell`, and the Python fixed workflow-ribbon plus three-summary-panel renderer path.
 - Add `workflow_fact_sheet_panel` as the next audited `H` workflow / study-design illustration shell in the core display pack.

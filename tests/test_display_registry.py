@@ -235,6 +235,36 @@ def test_partial_dependence_interaction_contour_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_partial_dependence_interaction_contour_panel"
 
 
+def test_partial_dependence_interaction_slice_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("partial_dependence_interaction_slice_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "partial_dependence_interaction_slice_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_partial_dependence_interaction_slice_panel"
+
+
+def test_partial_dependence_subgroup_comparison_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("partial_dependence_subgroup_comparison_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "partial_dependence_subgroup_comparison_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_partial_dependence_subgroup_comparison_panel"
+
+
+def test_accumulated_local_effects_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("accumulated_local_effects_panel"))
+
+    assert spec.paper_family_ids == ("F",)
+    assert spec.evidence_class == "model_explanation"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "accumulated_local_effects_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_accumulated_local_effects_panel"
+
+
 def test_generalizability_subgroup_composite_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("generalizability_subgroup_composite_panel"))
 

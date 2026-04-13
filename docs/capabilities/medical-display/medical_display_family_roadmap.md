@@ -412,6 +412,9 @@ Representative displays:
 - grouped decision path
 - PDP
 - ICE
+- interaction slice
+- subgroup comparison
+- ALE
 - feature importance
 - signed feature importance
 
@@ -437,12 +440,15 @@ Current audited anchors:
 - `shap_grouped_decision_path_panel`
 - `partial_dependence_ice_panel`
 - `partial_dependence_interaction_contour_panel`
+- `partial_dependence_interaction_slice_panel`
+- `partial_dependence_subgroup_comparison_panel`
+- `accumulated_local_effects_panel`
 
 Current gap direction:
 
-- richer partial-dependence variants beyond the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + grouped-local + grouped decision-path + bounded PDP/ICE baseline + bounded pairwise interaction-contour lower bound
+- higher-order explanation scenes only when real paper demand proves the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + grouped-local + grouped decision-path + bounded PDP/ICE baseline + bounded pairwise interaction-contour lower bound + interaction slice + subgroup comparison + ALE lower bound is insufficient
 - more complex grouped-local / decision-path scenes only when real paper demand proves the current two-group shared-baseline lower bound should expand
-- stronger explanation-panel readability and annotation contracts
+- stronger explanation-panel readability, support-domain, subgroup-legend, and annotation contracts
 
 ### G. 生物信息与组学证据类
 
