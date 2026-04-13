@@ -816,6 +816,7 @@ def build_product_entry_manifest(
             "profile_ref": str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else None,
         },
         "recommended_shell": "workspace_cockpit",
+        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
         "repo_mainline": {
             "program_id": mainline_snapshot.get("program_id"),
             "current_stage_id": mainline_snapshot.get("current_stage_id"),

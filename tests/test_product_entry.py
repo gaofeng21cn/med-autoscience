@@ -329,6 +329,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
+    assert payload["recommended_command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
