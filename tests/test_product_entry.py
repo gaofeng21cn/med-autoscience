@@ -389,6 +389,42 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["product_entry_status"]["next_focus"] == [
         "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
     ]
+    assert payload["product_entry_overview"]["surface_kind"] == "product_entry_overview"
+    assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
+    assert payload["product_entry_overview"]["frontdesk_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_overview"]["recommended_command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_overview"]["progress_surface"] == {
+        "surface_kind": "study_progress",
+        "command": (
+            "uv run python -m med_autoscience.cli study-progress --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id>"
+        ),
+        "step_id": "inspect_progress",
+    }
+    assert payload["product_entry_overview"]["resume_surface"] == {
+        "surface_kind": "launch_study",
+        "command": (
+            "uv run python -m med_autoscience.cli launch-study --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id>"
+        ),
+        "session_locator_field": "study_id",
+        "checkpoint_locator_field": "controller_decision_path",
+    }
+    assert payload["product_entry_overview"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["product_entry_overview"]["next_focus"] == [
+        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
+    ]
+    assert payload["product_entry_overview"]["remaining_gaps_count"] == 1
+    assert payload["product_entry_overview"]["human_gate_ids"] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
@@ -475,6 +511,12 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     )
     assert payload["summary"]["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
+    assert payload["product_entry_overview"]["progress_surface"]["surface_kind"] == "study_progress"
+    assert payload["product_entry_overview"]["resume_surface"]["surface_kind"] == "launch_study"
+    assert payload["product_entry_overview"]["resume_surface"]["command"].endswith(
+        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"

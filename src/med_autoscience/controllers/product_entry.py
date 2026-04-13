@@ -897,6 +897,31 @@ def build_product_entry_manifest(
             if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
         ],
     }
+    product_entry_overview = {
+        "surface_kind": "product_entry_overview",
+        "summary": (
+            mainline_snapshot.get("current_stage_summary")
+            or mainline_snapshot.get("current_program_phase_summary")
+        ),
+        "frontdesk_command": product_entry_shell["product_frontdesk"]["command"],
+        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
+        "operator_loop_command": product_entry_shell["workspace_cockpit"]["command"],
+        "progress_surface": {
+            "surface_kind": "study_progress",
+            "command": product_entry_shell["study_progress"]["command"],
+            "step_id": "inspect_progress",
+        },
+        "resume_surface": {
+            "surface_kind": family_orchestration["resume_contract"]["surface_kind"],
+            "command": product_entry_shell["launch_study"]["command"],
+            "session_locator_field": family_orchestration["resume_contract"]["session_locator_field"],
+            "checkpoint_locator_field": family_orchestration["resume_contract"]["checkpoint_locator_field"],
+        },
+        "recommended_step_id": product_entry_quickstart["recommended_step_id"],
+        "next_focus": list(mainline_snapshot.get("next_focus") or []),
+        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
+        "human_gate_ids": list(product_entry_quickstart["human_gate_ids"]),
+    }
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -966,6 +991,7 @@ def build_product_entry_manifest(
         },
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
+        "product_entry_overview": product_entry_overview,
         "product_entry_quickstart": product_entry_quickstart,
         "family_orchestration": family_orchestration,
         "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
@@ -1043,6 +1069,7 @@ def build_product_frontdesk(
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
         "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
         "product_entry_manifest": manifest,
@@ -1080,6 +1107,12 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         f"- frontdesk_command: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
         f"- recommended_command: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
         f"- operator_loop_command: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
+        "",
+        "## Product Entry Overview",
+        "",
+        f"- summary: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
+        f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
+        f"- resume_command: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         "",
         "## Entry Surfaces",
         "",
