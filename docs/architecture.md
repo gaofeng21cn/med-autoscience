@@ -19,6 +19,11 @@
 - family 默认 concrete executor 是 `codex_cli_autonomous`；默认 model / reasoning 继承本机 Codex 默认（`inherit_local_codex_default`）。
 - `chat-only executor` 在 contract 上是 forbidden（`chat_completion_only_executor_forbidden = true`）。
 - `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+- 同一个 executor-adapter contract 上还显式挂了 `hermes_native_proof` opt-in lane：
+  - 只有 caller 显式请求 `executor_kind = hermes_native_proof` 时才会启用
+  - pass-through 到 `MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation`
+  - 默认 model / reasoning 同样继承本机 Hermes 默认配置，而不是 repo-local pin
+  - 它当前只作为 full-agent-loop proof lane，不构成 family 默认执行器替换
 
 ## 入口与控制面
 

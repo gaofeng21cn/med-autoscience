@@ -732,7 +732,11 @@ def _record_family_orchestration_companion(
         surface_kind="study_runtime_status",
         surface_id="study_runtime_status",
         event_name=f"study_runtime_status.{runtime_decision or 'observed'}",
-        source_surface=str(status.execution.get("executor") or "codex_cli_autonomous"),
+        source_surface=str(
+            status.execution.get("executor_kind")
+            or status.execution.get("executor")
+            or "codex_cli_autonomous"
+        ),
         session_id=f"study-runtime:{status.study_id}",
         program_id=family_orchestration.resolve_program_id(status.execution),
         study_id=status.study_id,

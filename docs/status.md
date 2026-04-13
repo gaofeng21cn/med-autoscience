@@ -15,6 +15,7 @@
 - family 默认 concrete executor 是 `codex_cli_autonomous`；`default_model` 与 `default_reasoning_effort` 继承本机 Codex 默认。
 - `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
 - `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+- 当前也会把一个显式 opt-in proof lane 暴露给 caller：`executor_kind = hermes_native_proof` 时，真实底层链路是 `med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation`；它仍不是默认执行器替换。
 - OPL family orchestration contracts 将冻结 5 类：family event envelope、family checkpoint lineage、family action graph、family human gate、family product-entry manifest v2；本轮 MAS 优先吸收 runtime-oriented 半侧（event envelope / checkpoint lineage / human gate），进入 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json` 主线；`product-entry manifest v2` 作为 family discovery companion，对齐 product-entry shell / handoff，但不改变 MAS 的 domain-owned durable truth 与 runtime/executor 分层，也不构成跨仓 runtime core ingest 的既成事实
 
 ## 当前基线（repo-verified）

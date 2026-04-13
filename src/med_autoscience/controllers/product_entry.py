@@ -1214,6 +1214,15 @@ def build_product_entry_manifest(
                 "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
                 "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
             ],
+            "optional_executor_proofs": [
+                {
+                    "executor_kind": "hermes_native_proof",
+                    "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                    "requires_full_agent_loop": True,
+                    "default_model": "inherit_local_hermes_default",
+                    "default_reasoning_effort": "inherit_local_hermes_default",
+                }
+            ],
         },
         "workspace_locator": {
             "workspace_surface_kind": "med_autoscience_workspace_profile",

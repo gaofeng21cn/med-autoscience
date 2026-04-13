@@ -353,6 +353,15 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["executor_defaults"]["current_backend_chain"][1].endswith(
         "codex exec autonomous agent loop"
     )
+    assert payload["executor_defaults"]["optional_executor_proofs"] == [
+        {
+            "executor_kind": "hermes_native_proof",
+            "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+            "requires_full_agent_loop": True,
+            "default_model": "inherit_local_hermes_default",
+            "default_reasoning_effort": "inherit_local_hermes_default",
+        }
+    ]
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(
