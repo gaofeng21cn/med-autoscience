@@ -5,9 +5,9 @@
 这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。对外文档必须提供中英双语镜像，内部技术与规划材料默认中文，除非明确提升到双语公开面。文档治理规则统一收口在 [`AGENTS.md`](../AGENTS.md)。
 当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。仓内现在已经补上一层 repo-tracked 的轻量 `product-entry shell`，用来收口启动、下任务与进度可见性；`product-entry-manifest` 现在会把同一层 research 主线 shell 冻结成 machine-readable discovery surface，`product-frontdesk` 现在又把这层 shell 上方的 controller-owned frontdoor 冻结下来，`build-product-entry` 则会从这层 shell 输出 shared direct / `OPL` handoff envelope，但它们仍然不是成熟的 direct user-facing 产品前台。
 
-## 核心骨架
+## 核心维护工作集
 
-以下五份是稳定知识骨架（默认中文，除非补齐双语镜像）：
+先读这里，再进入 runtime、capability 或 program 细节：
 
 - [项目概览](project.md)
 - [架构概览](architecture.md)
@@ -18,6 +18,8 @@
 ## 默认对外双语公开面
 
 - [仓库首页](../README.zh-CN.md)
+
+这份索引和仓库首页共同构成默认 GitHub 对外双语入口。任何面向公众的细节说明，都应落在这里并提供中英双语镜像。
 
 ## 当前基线、长线目标与任务层级
 
@@ -39,6 +41,8 @@
 - 当前用户 inbox 入口：`uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>` 现在会把 repo 主线快照、workspace attention queue，以及“启动 / 下任务 / 持续看进度”的实际命令回路收在同一处。
 - 独立支线：`medical display / 论文配图资产化` 与 runtime 主线严格分离。
 - `external_runtime_dependency_gate.md` 仍然属于 blocker package，并作为 `P2` 内剩余的外部 gate 继续跟踪。
+
+## 仓库跟踪的内部文档
 
 ## Runtime 合同与控制面
 
@@ -112,7 +116,7 @@
 - [研究路线偏置规则](policies/research_route_bias_policy.md)
 - [发表门控规则](policies/publication_gate_policy.md)
 
-## 历史归档
+## 仓库历史
 
 - [OMX 历史资料索引](history/omx/README.zh-CN.md)（仅历史参考，不是当前 active workflow 入口）
 

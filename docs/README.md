@@ -7,9 +7,9 @@ Public pages must ship with synchronized English and Chinese mirrors. Internal t
 Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
 The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, `product-entry-manifest` now freezes that same research-side shell as a machine-readable discovery surface, `product-frontdesk` freezes the controller-owned front door above it, and `build-product-entry` emits the shared direct / `OPL` handoff envelope from it; this is still not the same thing as a mature direct user-facing product.
 
-## Core Skeleton
+## Core Maintainer Working Set
 
-These five pages are the stable knowledge backbone (Chinese only unless mirrored):
+Start here before reading detailed runtime, capability, or program briefs:
 
 - [Project](project.md)
 - [Architecture](architecture.md)
@@ -17,9 +17,11 @@ These five pages are the stable knowledge backbone (Chinese only unless mirrored
 - [Decisions](decisions.md)
 - [Status](status.md)
 
-## External Bilingual Surface
+## Default Public Bilingual Surface
 
 - [Repository home](../README.md)
+
+This index together with the repository home forms the default GitHub-facing bilingual surface. Any externally presented detail should land here with synchronized English and Chinese variants.
 
 ## Current Baseline, Long-Line Target, And Task Ladder
 
@@ -42,6 +44,8 @@ Current frozen state:
 - Fastest cutover board: [Upstream Hermes-Agent fast cutover board](program/upstream_hermes_agent_fast_cutover_board.md) (Chinese only)
 - Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
 - `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
+
+## Repo-Tracked Internal Docs
 
 ## Runtime Contracts And Control Surface
 
@@ -115,7 +119,7 @@ Current frozen state:
 - [Research route bias policy](policies/research_route_bias_policy.md)
 - [Publication gate policy](policies/publication_gate_policy.md)
 
-## History
+## Repository History
 
 - [OMX historical archive](history/omx/README.md) (historical reference only; not an active workflow entry)
 

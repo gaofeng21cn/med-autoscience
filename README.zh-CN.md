@@ -18,7 +18,7 @@
       从专病数据出发、希望把研究稳定推进到论文交付的医学团队与研究者
     </td>
     <td width="33%" valign="top">
-      <strong>对外角色</strong><br/>
+      <strong>公开角色</strong><br/>
       共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` gateway 与 `Domain Harness OS`
     </td>
     <td width="33%" valign="top">
