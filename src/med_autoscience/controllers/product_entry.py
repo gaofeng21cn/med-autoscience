@@ -203,6 +203,101 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
     return alerts
 
 
+def _build_product_entry_preflight(
+    *,
+    doctor_report: Any,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
+    start_command = f"{_command_prefix(profile_ref)} product-frontdesk --profile {_profile_arg(profile_ref)}"
+    checks = [
+        {
+            "check_id": "workspace_root_exists",
+            "title": "Workspace Root Exists",
+            "status": "pass" if doctor_report.workspace_exists else "fail",
+            "blocking": True,
+            "summary": "workspace 根目录已就位。" if doctor_report.workspace_exists else "workspace 根目录不存在。",
+            "command": doctor_command,
+        },
+        {
+            "check_id": "runtime_root_exists",
+            "title": "Runtime Root Exists",
+            "status": "pass" if doctor_report.runtime_exists else "fail",
+            "blocking": True,
+            "summary": "runtime root 已就位。" if doctor_report.runtime_exists else "runtime root 不存在。",
+            "command": doctor_command,
+        },
+        {
+            "check_id": "studies_root_exists",
+            "title": "Studies Root Exists",
+            "status": "pass" if doctor_report.studies_exists else "fail",
+            "blocking": True,
+            "summary": "studies 根目录已就位。" if doctor_report.studies_exists else "studies 根目录不存在。",
+            "command": doctor_command,
+        },
+        {
+            "check_id": "portfolio_root_exists",
+            "title": "Portfolio Root Exists",
+            "status": "pass" if doctor_report.portfolio_exists else "fail",
+            "blocking": True,
+            "summary": "portfolio 根目录已就位。" if doctor_report.portfolio_exists else "portfolio 根目录不存在。",
+            "command": doctor_command,
+        },
+        {
+            "check_id": "research_backend_runtime_ready",
+            "title": "Research Backend Runtime Ready",
+            "status": "pass" if doctor_report.med_deepscientist_runtime_exists else "fail",
+            "blocking": True,
+            "summary": (
+                "受控 research backend runtime 已就位。"
+                if doctor_report.med_deepscientist_runtime_exists
+                else "受控 research backend runtime 尚未就位。"
+            ),
+            "command": doctor_command,
+        },
+        {
+            "check_id": "medical_overlay_ready",
+            "title": "Medical Overlay Ready",
+            "status": "pass" if doctor_report.medical_overlay_ready else "fail",
+            "blocking": True,
+            "summary": "medical overlay 已 ready。" if doctor_report.medical_overlay_ready else "medical overlay 尚未 ready。",
+            "command": doctor_command,
+        },
+        {
+            "check_id": "external_runtime_contract_ready",
+            "title": "External Runtime Contract Ready",
+            "status": "pass" if bool((doctor_report.external_runtime_contract or {}).get("ready")) else "fail",
+            "blocking": True,
+            "summary": (
+                "external Hermes runtime contract 已 ready。"
+                if bool((doctor_report.external_runtime_contract or {}).get("ready"))
+                else "external Hermes runtime contract 尚未 ready。"
+            ),
+            "command": doctor_command,
+        },
+    ]
+    blocking_check_ids = [
+        check["check_id"]
+        for check in checks
+        if check["blocking"] and check["status"] != "pass"
+    ]
+    ready_to_try_now = not blocking_check_ids
+    summary = (
+        "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research frontdesk。"
+        if ready_to_try_now
+        else "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime contract 再进入 research frontdesk。"
+    )
+    return {
+        "surface_kind": "product_entry_preflight",
+        "summary": summary,
+        "ready_to_try_now": ready_to_try_now,
+        "recommended_check_command": doctor_command,
+        "recommended_start_command": start_command,
+        "blocking_check_ids": blocking_check_ids,
+        "checks": checks,
+    }
+
+
 def _workspace_supervision_summary(
     *,
     studies: list[dict[str, Any]],
@@ -743,6 +838,11 @@ def build_product_entry_manifest(
 ) -> dict[str, Any]:
     mainline_payload = mainline_status.read_mainline_status()
     mainline_snapshot = _mainline_snapshot()
+    doctor_report = build_doctor_report(profile)
+    product_entry_preflight = _build_product_entry_preflight(
+        doctor_report=doctor_report,
+        profile_ref=profile_ref,
+    )
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
@@ -1102,6 +1202,7 @@ def build_product_entry_manifest(
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
         "product_entry_overview": product_entry_overview,
+        "product_entry_preflight": product_entry_preflight,
         "product_entry_readiness": product_entry_readiness,
         "product_entry_quickstart": product_entry_quickstart,
         "family_orchestration": family_orchestration,
@@ -1181,6 +1282,7 @@ def build_product_frontdesk(
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
         "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
+        "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
         "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
         "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
@@ -1223,6 +1325,8 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         "## Product Entry Overview",
         "",
         f"- summary: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
+        f"- preflight_ready: `{(payload.get('product_entry_preflight') or {}).get('ready_to_try_now')}`",
+        f"- preflight_check_command: `{(payload.get('product_entry_preflight') or {}).get('recommended_check_command') or 'none'}`",
         f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
         f"- resume_command: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         "",
@@ -1233,6 +1337,49 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{name}`: `{item.get('command') or 'none'}`")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_product_entry_preflight(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    doctor_report = build_doctor_report(profile)
+    return _build_product_entry_preflight(
+        doctor_report=doctor_report,
+        profile_ref=profile_ref,
+    )
+
+
+def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Product Entry Preflight",
+        "",
+        f"- ready_to_try_now: `{payload.get('ready_to_try_now')}`",
+        f"- summary: `{payload.get('summary') or 'none'}`",
+        f"- recommended_check_command: `{payload.get('recommended_check_command') or 'none'}`",
+        f"- recommended_start_command: `{payload.get('recommended_start_command') or 'none'}`",
+        "",
+        "## Checks",
+        "",
+    ]
+    checks = list(payload.get("checks") or [])
+    if checks:
+        for check in checks:
+            if not isinstance(check, dict):
+                continue
+            lines.append(
+                "- "
+                + f"`{check.get('check_id')}` "
+                + f"[{check.get('status')}] "
+                + f"(blocking={check.get('blocking')}) "
+                + f"{check.get('summary') or ''} "
+                + f"`{check.get('command') or 'none'}`"
+            )
+    else:
+        lines.append("- none")
     lines.append("")
     return "\n".join(lines)
 

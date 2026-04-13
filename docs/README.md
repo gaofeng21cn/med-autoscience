@@ -32,8 +32,9 @@ Current frozen state:
 - Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
-- Current discovery surface: `uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` now projects the current research-side shell without including the independent display line.
-- Current frontdoor surface: `uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` now packages the controller-owned front door above the same research shell.
+- Current preflight surface: `uv run python -m med_autoscience.cli product-preflight --profile <profile>` now exposes the real startup checks before opening the research frontdoor.
+- Current discovery surface: `uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` now projects the current research-side shell without including the independent display line, and now carries the same `product_entry_preflight` companion.
+- Current frontdoor surface: `uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` now packages the controller-owned front door above the same research shell and surfaces the same preflight companion for direct callers.
 - Current shared-envelope shell: `build-product-entry` now exports the same direct / `OPL` handoff envelope on top of the landed workspace/task/progress shell.
 - Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
 - Repo-level phase entry: `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`

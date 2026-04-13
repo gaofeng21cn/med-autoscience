@@ -30,8 +30,9 @@
 - 当前 repo-verified 基线：`MedAutoScience` 是唯一研究入口，`MedDeepScientist` 仍是当前受控 research backend；上游 `Hermes-Agent` 仍是目标 runtime substrate，而不是已落地事实。
 - 长线目标：上游 `Hermes-Agent` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
 - 产品入口目标：补出一个既可被用户直接进入、也可被 `OPL` handoff 调起的轻量医学 `product entry`，同时不改写当前研究 authority boundary。
-- 当前发现面：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` 现在会把当前 research 主线 shell 投影出来，同时明确它不覆盖 display 独立支线。
-- 当前前台入口面：`uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` 现在会把同一层 research shell 上方的 controller-owned frontdoor 投影出来。
+- 当前 preflight 面：`uv run python -m med_autoscience.cli product-preflight --profile <profile>` 现在会先暴露进入 research frontdoor 之前的真实开机检查。
+- 当前发现面：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` 现在会把当前 research 主线 shell 投影出来，同时明确它不覆盖 display 独立支线，并携带同一份 `product_entry_preflight` companion。
+- 当前前台入口面：`uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` 现在会把同一层 research shell 上方的 controller-owned frontdoor 投影出来，同时带出同一份 preflight companion，供 direct caller 直接消费。
 - 当前 shared-envelope shell：`build-product-entry` 现在已经能在已 landed 的 workspace/task/progress shell 之上导出 direct / `OPL` handoff envelope。
 - repo 主线状态入口：`uv run python -m med_autoscience.cli mainline-status`
 - repo 阶段入口：`uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`

@@ -101,6 +101,7 @@ A new repo-tracked lightweight product-entry shell is now present, but it is sti
 - `workspace-cockpit` for workspace-wide readiness, latest study task summaries, supervisor-service visibility, stale-progress alerts, and study supervision
 - `submit-study-task` for writing a durable study task intake and syncing it into the startup brief surface
 - `launch-study` for start/resume plus immediate monitoring, current task summary, and progress-signal links
+- `product-preflight` for exposing the honest startup checks before opening the controller-owned research frontdoor
 - `product-entry-manifest` for freezing the current research-side product-entry shell as a machine-readable discovery surface without touching the display line, and now also surfacing the family-orchestration companion preview for human gates / resume / checkpoint lineage
 - `build-product-entry` for emitting the shared direct / `OPL` handoff envelope from a durable study task intake without touching the display line
 
@@ -235,6 +236,7 @@ For the current agent-operated path, the real user-facing loop is now a lightwei
 - The cockpit now behaves like the current repo-tracked user inbox: it projects the repo mainline snapshot, the latest study task intent, whether the MAS watch-runtime service is visibly online, an attention queue for stale/missing progress or supervision gaps, and the exact command loop for start / task submission / progress watching.
 - Submit or refresh the study task intent: `uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - Start or resume the managed study and get the monitoring entry back immediately: `uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
+- Run the current startup preflight before opening the front door: `uv run python -m med_autoscience.cli product-preflight --profile <profile> --format <markdown|json>`
 - Read the current research product-entry shell manifest: `uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format <markdown|json>`
 - Emit the shared direct / `OPL` handoff envelope when the task intake is ready: `uv run python -m med_autoscience.cli build-product-entry --profile <profile> --study-id <study_id> --entry-mode <direct|opl-handoff>`
 - Read the human-facing progress summary at any time: `uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`

@@ -295,6 +295,20 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     profile_ref = tmp_path / "profile.local.toml"
 
     monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+        ),
+    )
+
+    monkeypatch.setattr(
         module.mainline_status,
         "read_mainline_status",
         lambda: {
@@ -450,6 +464,99 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
     }
+    assert payload["product_entry_preflight"] == {
+        "surface_kind": "product_entry_preflight",
+        "summary": "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research frontdesk。",
+        "ready_to_try_now": True,
+        "recommended_check_command": (
+            "uv run python -m med_autoscience.cli doctor --profile "
+            + str(profile_ref.resolve())
+        ),
+        "recommended_start_command": (
+            "uv run python -m med_autoscience.cli product-frontdesk --profile "
+            + str(profile_ref.resolve())
+        ),
+        "blocking_check_ids": [],
+        "checks": [
+            {
+                "check_id": "workspace_root_exists",
+                "title": "Workspace Root Exists",
+                "status": "pass",
+                "blocking": True,
+                "summary": "workspace 根目录已就位。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "runtime_root_exists",
+                "title": "Runtime Root Exists",
+                "status": "pass",
+                "blocking": True,
+                "summary": "runtime root 已就位。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "studies_root_exists",
+                "title": "Studies Root Exists",
+                "status": "pass",
+                "blocking": True,
+                "summary": "studies 根目录已就位。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "portfolio_root_exists",
+                "title": "Portfolio Root Exists",
+                "status": "pass",
+                "blocking": True,
+                "summary": "portfolio 根目录已就位。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "research_backend_runtime_ready",
+                "title": "Research Backend Runtime Ready",
+                "status": "pass",
+                "blocking": True,
+                "summary": "受控 research backend runtime 已就位。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "medical_overlay_ready",
+                "title": "Medical Overlay Ready",
+                "status": "pass",
+                "blocking": True,
+                "summary": "medical overlay 已 ready。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "check_id": "external_runtime_contract_ready",
+                "title": "External Runtime Contract Ready",
+                "status": "pass",
+                "blocking": True,
+                "summary": "external Hermes runtime contract 已 ready。",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+        ],
+    }
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
@@ -570,10 +677,24 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
 
 
-def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(tmp_path: Path) -> None:
+def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
     profile = make_profile(tmp_path)
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+        ),
+    )
 
     payload = module.build_product_frontdesk(
         profile=profile,
@@ -616,6 +737,24 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_readiness"]["verdict"] == "runtime_ready_not_standalone_product"
     assert payload["product_entry_readiness"]["usable_now"] is True
     assert payload["product_entry_readiness"]["good_to_use_now"] is False
+    assert payload["product_entry_preflight"]["surface_kind"] == "product_entry_preflight"
+    assert payload["product_entry_preflight"]["ready_to_try_now"] is True
+    assert payload["product_entry_preflight"]["recommended_check_command"].endswith(
+        "doctor --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_preflight"]["recommended_start_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["product_entry_preflight"]["blocking_check_ids"] == []
+    assert [check["check_id"] for check in payload["product_entry_preflight"]["checks"]] == [
+        "workspace_root_exists",
+        "runtime_root_exists",
+        "studies_root_exists",
+        "portfolio_root_exists",
+        "research_backend_runtime_ready",
+        "medical_overlay_ready",
+        "external_runtime_contract_ready",
+    ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
@@ -633,6 +772,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
+    assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
