@@ -425,6 +425,31 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "study_physician_decision_gate",
         "publication_release_gate",
     ]
+    assert payload["product_entry_readiness"] == {
+        "surface_kind": "product_entry_readiness",
+        "verdict": "runtime_ready_not_standalone_product",
+        "usable_now": True,
+        "good_to_use_now": False,
+        "fully_automatic": False,
+        "summary": (
+            "当前可以作为 research frontdesk / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
+            "但还不是成熟的独立医学产品前台。"
+        ),
+        "recommended_start_surface": "product_frontdesk",
+        "recommended_start_command": (
+            "uv run python -m med_autoscience.cli product-frontdesk --profile "
+            + str(profile_ref.resolve())
+        ),
+        "recommended_loop_surface": "workspace_cockpit",
+        "recommended_loop_command": (
+            "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+            + str(profile_ref.resolve())
+        ),
+        "blocking_gaps": [
+            "独立医学前台 / hosted product entry 仍未 landed。",
+            "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
+        ],
+    }
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
@@ -587,6 +612,13 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_overview"]["resume_surface"]["command"].endswith(
         "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
+    assert payload["product_entry_readiness"]["surface_kind"] == "product_entry_readiness"
+    assert payload["product_entry_readiness"]["verdict"] == "runtime_ready_not_standalone_product"
+    assert payload["product_entry_readiness"]["usable_now"] is True
+    assert payload["product_entry_readiness"]["good_to_use_now"] is False
+    assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
@@ -600,6 +632,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_physician_decision_gate"
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
+    assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
