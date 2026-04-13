@@ -312,8 +312,8 @@ def test_build_gate_report_marks_draft_handoff_sync_missing_when_bundle_is_hando
         lambda *, paper_root: {
             "applicable": True,
             "status": "missing",
-            "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
-            "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
             "delivery_manifest_path": None,
         },
     )
@@ -325,7 +325,7 @@ def test_build_gate_report_marks_draft_handoff_sync_missing_when_bundle_is_hando
             "status": "not_applicable",
             "stale_reason": None,
             "delivery_manifest_path": None,
-            "submission_package_root": None,
+            "current_package_root": None,
             "missing_source_paths": [],
         },
     )
@@ -361,16 +361,16 @@ def test_run_controller_syncs_draft_handoff_surface_when_missing(tmp_path: Path,
             {
                 "applicable": True,
                 "status": "missing",
-                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
-                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
                 "delivery_manifest_path": None,
             },
             {
                 "applicable": True,
                 "status": "current",
-                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
-                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
-                "delivery_manifest_path": "/tmp/studies/002/manuscript/draft_bundle/delivery_manifest.json",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
             },
         ]
     )
@@ -390,7 +390,7 @@ def test_run_controller_syncs_draft_handoff_surface_when_missing(tmp_path: Path,
             "status": "not_applicable",
             "stale_reason": None,
             "delivery_manifest_path": None,
-            "submission_package_root": None,
+            "current_package_root": None,
             "missing_source_paths": [],
         },
     )
@@ -401,8 +401,8 @@ def test_run_controller_syncs_draft_handoff_surface_when_missing(tmp_path: Path,
             "stage": stage,
             "publication_profile": publication_profile,
             "targets": {
-                "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
-                "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
             },
         }
 
@@ -416,8 +416,8 @@ def test_run_controller_syncs_draft_handoff_surface_when_missing(tmp_path: Path,
         "stage": "draft_handoff",
         "publication_profile": "general_medical_journal",
         "targets": {
-            "draft_bundle_root": "/tmp/studies/002/manuscript/draft_bundle",
-            "draft_bundle_zip": "/tmp/studies/002/manuscript/draft_bundle.zip",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
 
@@ -534,8 +534,8 @@ def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_pack
         lambda *, paper_root: {
             "applicable": False,
             "status": "not_applicable",
-            "draft_bundle_root": None,
-            "draft_bundle_zip": None,
+            "current_package_root": None,
+            "current_package_zip": None,
             "delivery_manifest_path": None,
         },
     )
@@ -547,7 +547,7 @@ def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_pack
             "status": "stale_source_missing",
             "stale_reason": "current_submission_source_missing",
             "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
-            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
             "missing_source_paths": [
                 "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
             ],
@@ -653,8 +653,8 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
         lambda *, paper_root: {
             "applicable": False,
             "status": "not_applicable",
-            "draft_bundle_root": None,
-            "draft_bundle_zip": None,
+            "current_package_root": None,
+            "current_package_zip": None,
             "delivery_manifest_path": None,
         },
     )
@@ -666,7 +666,7 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
             "status": "stale_source_missing",
             "stale_reason": "current_submission_source_missing",
             "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
-            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
             "missing_source_paths": [
                 "/tmp/runtime/quests/002/paper/submission_minimal/submission_manifest.json",
             ],
@@ -678,7 +678,7 @@ def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enab
         lambda **kwargs: calls.append(kwargs)
         or {
             "status": "stale_source_missing",
-            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
         },
     )
 
@@ -711,7 +711,7 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
                 "status": "stale_projection_missing",
                 "stale_reason": "delivery_projection_missing",
                 "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
-                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
                 "missing_source_paths": [],
             },
             {
@@ -719,7 +719,7 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
                 "status": "current",
                 "stale_reason": None,
                 "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
-                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
                 "missing_source_paths": [],
             },
         ]
@@ -733,8 +733,8 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
         lambda *, paper_root: {
             "applicable": False,
             "status": "not_applicable",
-            "draft_bundle_root": None,
-            "draft_bundle_zip": None,
+            "current_package_root": None,
+            "current_package_zip": None,
             "delivery_manifest_path": None,
         },
     )
@@ -756,8 +756,8 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
             "stage": stage,
             "publication_profile": publication_profile,
             "targets": {
-                "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
                 "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
             },
         }
 
@@ -776,8 +776,8 @@ def test_run_controller_resyncs_delivery_when_only_current_package_projection_is
         "stage": "submission_minimal",
         "publication_profile": "general_medical_journal",
         "targets": {
-            "submission_package_root": "/tmp/studies/002/manuscript/submission_package",
             "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
 

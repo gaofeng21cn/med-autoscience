@@ -57,8 +57,8 @@
 
 - `study_root/manuscript/`
 - `study_root/artifacts/final/`
-- `study_root/manuscript/submission_package/`
-- `study_root/manuscript/submission_package.zip`
+- `study_root/manuscript/current_package/`
+- `study_root/manuscript/current_package.zip`
 - `study_root/manuscript/journal_package_mirrors/<publication_profile>/`
 - `quest_root/artifacts/reports/publishability_gate/*.json`
 - `quest_root/artifacts/reports/runtime_watch/*.json`

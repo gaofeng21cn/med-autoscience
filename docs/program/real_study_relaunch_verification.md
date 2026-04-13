@@ -83,8 +83,8 @@ uv run --python 3.14 python -m med_autoscience.cli sync-study-delivery --paper-r
 `sync-study-delivery --stage submission_minimal` 成功把 controller-authorized `paper/submission_minimal/` materialize 到：
 
 - `studies/001-dm-cvd-mortality-risk/manuscript/`
-- `studies/001-dm-cvd-mortality-risk/manuscript/submission_package/`
-- `studies/001-dm-cvd-mortality-risk/manuscript/submission_package.zip`
+- `studies/001-dm-cvd-mortality-risk/manuscript/current_package/`
+- `studies/001-dm-cvd-mortality-risk/manuscript/current_package.zip`
 - `studies/001-dm-cvd-mortality-risk/manuscript/delivery_manifest.json`
 
 因此本轮已确认：

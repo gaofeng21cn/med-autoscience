@@ -278,10 +278,8 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         study_root / "artifacts" / "README.md"
     ).read_text(encoding="utf-8")
     assert not (study_root / "artifacts" / "final").exists()
-    assert not (study_root / "manuscript" / "submission_package" / "figures" / "README.md").exists()
-    assert not (study_root / "manuscript" / "submission_package" / "tables" / "README.md").exists()
-    assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.pdf").exists()
-    assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert not (study_root / "manuscript" / "submission_package").exists()
+    assert not (study_root / "manuscript" / "submission_package.zip").exists()
     assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.pdf").exists()
     assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
@@ -290,8 +288,6 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
         "controller_authorized_paper_root": str(paper_root),
         "controller_authorized_package_source_root": str(paper_root / "submission_minimal"),
         "human_facing_delivery_root": str(study_root / "manuscript"),
-        "human_facing_submission_package_root": str(study_root / "manuscript" / "submission_package"),
-        "human_facing_submission_package_zip": str(study_root / "manuscript" / "submission_package.zip"),
         "human_facing_current_package_root": str(study_root / "manuscript" / "current_package"),
         "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
         "auxiliary_evidence_root": None,
@@ -318,7 +314,7 @@ def test_describe_submission_delivery_flags_stale_when_authority_source_disappea
     assert result["status"] == "stale_source_missing"
     assert result["stale_reason"] == "current_submission_source_missing"
     assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
-    assert result["submission_package_root"] == str(study_root / "manuscript" / "submission_package")
+    assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
     assert result["missing_source_paths"] != []
 
 
@@ -360,40 +356,34 @@ def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(
     )
 
     manuscript_root = study_root / "manuscript"
-    submission_package_root = manuscript_root / "submission_package"
     status_path = manuscript_root / "delivery_status.json"
-    audit_status_path = submission_package_root / "audit_status.json"
 
     assert stale_sync["status"] == "stale_source_missing"
-    assert stale_sync["submission_package_root"] == str(submission_package_root)
+    assert stale_sync["current_package_root"] == str(manuscript_root / "current_package")
     assert (manuscript_root / "manuscript.docx").exists()
     assert (manuscript_root / "paper.pdf").exists()
     assert (manuscript_root / "submission_manifest.json").exists()
-    assert (manuscript_root / "submission_package.zip").exists()
-    assert (submission_package_root / "README.md").exists()
+    assert not (manuscript_root / "submission_package").exists()
+    assert not (manuscript_root / "submission_package.zip").exists()
     assert (manuscript_root / "current_package" / "README.md").exists()
     assert (manuscript_root / "current_package.zip").exists()
     assert "audit preview" in (
-        submission_package_root / "README.md"
+        manuscript_root / "current_package" / "README.md"
     ).read_text(encoding="utf-8")
-    assert (submission_package_root / "review_manuscript.md").exists()
-    assert (submission_package_root / "compile_report.json").exists()
-    assert (submission_package_root / "submission_checklist.json").exists()
-    assert (submission_package_root / "figures" / "figure_catalog.json").exists()
-    assert (submission_package_root / "figures" / "F1_authority_preview.pdf").exists()
-    assert (submission_package_root / "tables" / "table_catalog.json").exists()
-    assert (submission_package_root / "tables" / "T1_authority_preview.csv").exists()
-    assert audit_status_path.exists()
+    assert (manuscript_root / "current_package" / "review_manuscript.md").exists()
+    assert (manuscript_root / "current_package" / "compile_report.json").exists()
+    assert (manuscript_root / "current_package" / "submission_checklist.json").exists()
+    assert (manuscript_root / "current_package" / "figures" / "figure_catalog.json").exists()
+    assert (manuscript_root / "current_package" / "figures" / "F1_authority_preview.pdf").exists()
+    assert (manuscript_root / "current_package" / "tables" / "table_catalog.json").exists()
+    assert (manuscript_root / "current_package" / "tables" / "T1_authority_preview.csv").exists()
     status_payload = json.loads(status_path.read_text(encoding="utf-8"))
-    audit_status_payload = json.loads(audit_status_path.read_text(encoding="utf-8"))
     assert status_payload["status"] == "stale_source_missing"
     assert status_payload["stale_reason"] == "delivery_manifest_sources_missing"
     assert status_payload["preview_mode"] == "authority_audit_preview"
     assert status_payload["submission_ready"] is False
     assert status_payload["active_delivery_manifest_path"] == str(manuscript_root / "delivery_manifest.json")
     assert status_payload["missing_source_paths"] != []
-    assert audit_status_payload["preview_mode"] == "authority_audit_preview"
-    assert audit_status_payload["submission_ready"] is False
 
 
 def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> None:
@@ -408,7 +398,7 @@ def test_sync_study_delivery_accepts_study_owned_paper_root(tmp_path: Path) -> N
     )
 
     assert (study_root / "manuscript" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
     assert not (study_root / "artifacts" / "final").exists()
 
 
@@ -509,8 +499,6 @@ def test_sync_study_delivery_for_frontiers_family_creates_family_package_without
             paper_root / "journal_submissions" / "frontiers_family_harvard"
         ),
         "human_facing_delivery_root": str(study_root / "manuscript"),
-        "human_facing_submission_package_root": None,
-        "human_facing_submission_package_zip": None,
         "human_facing_current_package_root": str(study_root / "manuscript" / "current_package"),
         "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
         "auxiliary_evidence_root": None,
@@ -581,10 +569,11 @@ def test_sync_study_delivery_can_promote_primary_journal_package_into_study_fina
     assert (study_root / "manuscript" / "manuscript.docx").read_text(encoding="utf-8") == (
         "frontiers manuscript"
     )
-    assert (study_root / "manuscript" / "submission_package" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "submission_package.zip").exists()
-    assert (study_root / "manuscript" / "submission_package" / "figures" / "Figure1.svg").exists()
-    assert (study_root / "manuscript" / "submission_package" / "tables" / "Table1.csv").exists()
+    assert not (study_root / "manuscript" / "submission_package").exists()
+    assert not (study_root / "manuscript" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "current_package" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "current_package" / "figures" / "Figure1.svg").exists()
+    assert (study_root / "manuscript" / "current_package" / "tables" / "Table1.csv").exists()
     assert not (study_root / "artifacts" / "final").exists()
     assert (
         study_root
@@ -680,11 +669,11 @@ def test_sync_study_delivery_maps_reentry_quest_back_to_study_root(tmp_path: Pat
     )
 
     assert (study_root / "manuscript" / "manuscript.docx").exists()
-    assert (study_root / "manuscript" / "submission_package.zip").exists()
+    assert (study_root / "manuscript" / "current_package.zip").exists()
     assert manifest["study_id"] == "002-early-residual-risk"
 
 
-def test_sync_study_delivery_for_draft_handoff_populates_study_draft_bundle(tmp_path: Path) -> None:
+def test_sync_study_delivery_for_draft_handoff_populates_current_human_package(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_draft_handoff_workspace(tmp_path)
 
@@ -693,21 +682,17 @@ def test_sync_study_delivery_for_draft_handoff_populates_study_draft_bundle(tmp_
         stage="draft_handoff",
     )
 
-    draft_bundle_root = study_root / "manuscript" / "draft_bundle"
-    assert (draft_bundle_root / "draft.md").exists()
-    assert (draft_bundle_root / "review" / "submission_checklist.json").exists()
-    assert (draft_bundle_root / "proofing" / "proofing_report.md").exists()
-    assert (draft_bundle_root / "figures" / "F1_cohort_flow.pdf").exists()
-    assert (draft_bundle_root / "tables" / "T1_baseline_characteristics.csv").exists()
-    assert not (draft_bundle_root / "figures" / "cohort_flow.shell.json").exists()
-    assert not (draft_bundle_root / "tables" / "baseline_characteristics.shell.json").exists()
-    assert (study_root / "manuscript" / "draft_bundle.zip").exists()
+    assert not (study_root / "manuscript" / "draft_bundle").exists()
+    assert not (study_root / "manuscript" / "draft_bundle.zip").exists()
     assert (study_root / "manuscript" / "current_package" / "draft.md").exists()
+    assert (study_root / "manuscript" / "current_package" / "review" / "submission_checklist.json").exists()
+    assert (study_root / "manuscript" / "current_package" / "proofing" / "proofing_report.md").exists()
     assert (study_root / "manuscript" / "current_package" / "figures" / "F1_cohort_flow.pdf").exists()
+    assert (study_root / "manuscript" / "current_package" / "tables" / "T1_baseline_characteristics.csv").exists()
+    assert not (study_root / "manuscript" / "current_package" / "figures" / "cohort_flow.shell.json").exists()
+    assert not (study_root / "manuscript" / "current_package" / "tables" / "baseline_characteristics.shell.json").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
     assert manifest["stage"] == "draft_handoff"
-    assert manifest["targets"]["draft_bundle_root"] == str(draft_bundle_root)
-    assert manifest["targets"]["draft_bundle_zip"] == str(study_root / "manuscript" / "draft_bundle.zip")
     assert manifest["targets"]["current_package_root"] == str(study_root / "manuscript" / "current_package")
     assert manifest["targets"]["current_package_zip"] == str(study_root / "manuscript" / "current_package.zip")
 
@@ -723,7 +708,7 @@ def test_describe_draft_handoff_delivery_detects_stale_sources(tmp_path: Path) -
 
     current = module.describe_draft_handoff_delivery(paper_root=paper_root)
     assert current["status"] == "current"
-    assert current["draft_bundle_root"] == str(study_root / "manuscript" / "draft_bundle")
+    assert current["current_package_root"] == str(study_root / "manuscript" / "current_package")
 
     write_text(paper_root / "draft.md", "# Draft\n\nUpdated draft bundle.\n")
 
@@ -752,10 +737,9 @@ def test_sync_study_delivery_for_draft_handoff_copies_quick_review_manuscript_fi
         stage="draft_handoff",
     )
 
-    draft_bundle_root = study_root / "manuscript" / "draft_bundle"
-    assert (draft_bundle_root / "paper.pdf").exists()
-    assert (draft_bundle_root / "manuscript.docx").exists()
-    assert (draft_bundle_root / "build" / "review_manuscript.md").exists()
+    assert (study_root / "manuscript" / "current_package" / "paper.pdf").exists()
+    assert (study_root / "manuscript" / "current_package" / "manuscript.docx").exists()
+    assert (study_root / "manuscript" / "current_package" / "build" / "review_manuscript.md").exists()
     assert "paper.pdf" in manifest["source_relative_paths"]
     assert "manuscript.docx" in manifest["source_relative_paths"]
     assert "build/review_manuscript.md" in manifest["source_relative_paths"]
