@@ -822,7 +822,98 @@ def build_product_entry_manifest(
             "requires": ["study_id"],
         },
     }
+    family_action_graph = {
+        "version": "family-action-graph.v1",
+        "graph_id": "mas_workspace_frontdoor_study_runtime_graph",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "graph_kind": "study_runtime_orchestration",
+        "graph_version": "2026-04-13",
+        "nodes": [
+            {
+                "node_id": "step:open_frontdesk",
+                "node_kind": "operator_step",
+                "title": "Open research frontdesk",
+                "surface_kind": PRODUCT_FRONTDESK_KIND,
+            },
+            {
+                "node_id": "step:submit_task",
+                "node_kind": "operator_step",
+                "title": "Write durable study task",
+                "surface_kind": "study_task_intake",
+                "produces_checkpoint": True,
+            },
+            {
+                "node_id": "step:continue_study",
+                "node_kind": "operator_step",
+                "title": "Continue or relaunch a study",
+                "surface_kind": "launch_study",
+                "produces_checkpoint": True,
+            },
+            {
+                "node_id": "step:inspect_progress",
+                "node_kind": "operator_step",
+                "title": "Inspect current study progress",
+                "surface_kind": "study_progress",
+                "produces_checkpoint": True,
+            },
+        ],
+        "edges": [
+            {
+                "from": "step:open_frontdesk",
+                "to": "step:submit_task",
+                "on": "new_task",
+            },
+            {
+                "from": "step:open_frontdesk",
+                "to": "step:continue_study",
+                "on": "resume_study",
+            },
+            {
+                "from": "step:open_frontdesk",
+                "to": "step:inspect_progress",
+                "on": "inspect_status",
+            },
+            {
+                "from": "step:submit_task",
+                "to": "step:continue_study",
+                "on": "task_written",
+            },
+            {
+                "from": "step:continue_study",
+                "to": "step:inspect_progress",
+                "on": "progress_refresh",
+            },
+        ],
+        "entry_nodes": ["step:open_frontdesk"],
+        "exit_nodes": ["step:continue_study", "step:inspect_progress"],
+        "human_gates": [
+            {
+                "gate_id": "study_physician_decision_gate",
+                "trigger_nodes": ["step:continue_study"],
+                "blocking": True,
+            },
+            {
+                "gate_id": "publication_release_gate",
+                "trigger_nodes": ["step:inspect_progress"],
+                "blocking": True,
+            },
+        ],
+        "checkpoint_policy": {
+            "mode": "explicit_nodes",
+            "checkpoint_nodes": [
+                "step:submit_task",
+                "step:continue_study",
+                "step:inspect_progress",
+            ],
+        },
+    }
     family_orchestration = {
+        "action_graph_ref": {
+            "ref_kind": "json_pointer",
+            "ref": "/family_orchestration/action_graph",
+            "label": "mas family action graph",
+        },
+        "action_graph": family_action_graph,
         "human_gates": [
             {
                 "gate_id": "study_physician_decision_gate",

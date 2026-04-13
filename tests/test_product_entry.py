@@ -453,6 +453,75 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "title": "Publication release gate",
         },
     ]
+    assert payload["family_orchestration"]["action_graph_ref"] == {
+        "ref_kind": "json_pointer",
+        "ref": "/family_orchestration/action_graph",
+        "label": "mas family action graph",
+    }
+    assert payload["family_orchestration"]["action_graph"]["graph_id"] == (
+        "mas_workspace_frontdoor_study_runtime_graph"
+    )
+    assert payload["family_orchestration"]["action_graph"]["target_domain_id"] == "med-autoscience"
+    assert [node["node_id"] for node in payload["family_orchestration"]["action_graph"]["nodes"]] == [
+        "step:open_frontdesk",
+        "step:submit_task",
+        "step:continue_study",
+        "step:inspect_progress",
+    ]
+    assert payload["family_orchestration"]["action_graph"]["edges"] == [
+        {
+            "from": "step:open_frontdesk",
+            "to": "step:submit_task",
+            "on": "new_task",
+        },
+        {
+            "from": "step:open_frontdesk",
+            "to": "step:continue_study",
+            "on": "resume_study",
+        },
+        {
+            "from": "step:open_frontdesk",
+            "to": "step:inspect_progress",
+            "on": "inspect_status",
+        },
+        {
+            "from": "step:submit_task",
+            "to": "step:continue_study",
+            "on": "task_written",
+        },
+        {
+            "from": "step:continue_study",
+            "to": "step:inspect_progress",
+            "on": "progress_refresh",
+        },
+    ]
+    assert payload["family_orchestration"]["action_graph"]["entry_nodes"] == [
+        "step:open_frontdesk",
+    ]
+    assert payload["family_orchestration"]["action_graph"]["exit_nodes"] == [
+        "step:continue_study",
+        "step:inspect_progress",
+    ]
+    assert payload["family_orchestration"]["action_graph"]["human_gates"] == [
+        {
+            "gate_id": "study_physician_decision_gate",
+            "trigger_nodes": ["step:continue_study"],
+            "blocking": True,
+        },
+        {
+            "gate_id": "publication_release_gate",
+            "trigger_nodes": ["step:inspect_progress"],
+            "blocking": True,
+        },
+    ]
+    assert payload["family_orchestration"]["action_graph"]["checkpoint_policy"] == {
+        "mode": "explicit_nodes",
+        "checkpoint_nodes": [
+            "step:submit_task",
+            "step:continue_study",
+            "step:inspect_progress",
+        ],
+    }
     assert payload["family_orchestration"]["resume_contract"] == {
         "surface_kind": "launch_study",
         "session_locator_field": "study_id",
@@ -521,6 +590,12 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
+    assert payload["family_orchestration"]["action_graph_ref"]["ref"] == "/family_orchestration/action_graph"
+    assert payload["family_orchestration"]["action_graph"]["graph_id"] == (
+        "mas_workspace_frontdoor_study_runtime_graph"
+    )
+    assert len(payload["family_orchestration"]["action_graph"]["nodes"]) == 4
+    assert len(payload["family_orchestration"]["action_graph"]["edges"]) == 5
     assert payload["family_orchestration"]["resume_contract"]["surface_kind"] == "launch_study"
     assert payload["family_orchestration"]["human_gates"][0]["gate_id"] == "study_physician_decision_gate"
     assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
