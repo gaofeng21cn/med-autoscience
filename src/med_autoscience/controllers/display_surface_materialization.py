@@ -35,11 +35,13 @@ _ILLUSTRATION_INPUT_FILENAME_BY_SCHEMA_ID = {
     "cohort_flow_shell_inputs_v1": "cohort_flow.json",
     "submission_graphical_abstract_inputs_v1": "submission_graphical_abstract.json",
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
+    "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
 }
 _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": "cohort_flow",
     "submission_graphical_abstract": "graphical_abstract",
     "workflow_fact_sheet_panel": "workflow_fact_sheet_panel",
+    "design_evidence_composite_shell": "design_evidence_composite_shell",
 }
 _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": (
@@ -53,6 +55,10 @@ _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "workflow_fact_sheet_panel": (
         "Study workflow fact sheet",
         "Structured study-design and workflow summary for the audited manuscript-facing surface.",
+    ),
+    "design_evidence_composite_shell": (
+        "Study design evidence composite",
+        "Bounded study-design overview with workflow ribbon and manuscript-facing summary panels.",
     ),
 }
 _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {

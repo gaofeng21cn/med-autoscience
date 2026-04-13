@@ -21,9 +21,9 @@
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
   - 证据型模板：`45`
-  - 插图壳层：`3`
+  - 插图壳层：`4`
   - 表格壳层：`5`
-  - 总模板数：`53`
+  - 总模板数：`54`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,30 +34,30 @@
 
 - Phase：`Phase 5 / integration / merge-back / reroute`
 - Family cluster：`H`
-- Capability cluster：`workflow_fact_sheet_panel`
-- Owner worktree：`.worktrees/medical-display-workflow-fact-sheet-20260413T022754Z`
+- Capability cluster：`design_evidence_composite_shell`
+- Owner worktree：`.worktrees/medical-display-design-evidence-composite-20260413T054244Z`
 - 状态：`merge_back_ready`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 如何把 `workflow_fact_sheet_panel` 作为固定 `2x2` 的 bounded illustration shell 正式落进 registry / schema / materialization / QC / catalog truth，并在 merge-back 前锁定它不会重新滑回自由拼装式 design-evidence scene。
+> 如何把 `design_evidence_composite_shell` 作为固定 `workflow ribbon + three summary panels` 的 bounded illustration shell 正式落进 registry / schema / materialization / QC / catalog truth，并在 merge-back 前锁定它不会滑回自由拼装式 design-evidence scene。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `workflow_fact_sheet_panel` 的 manifest / schema / renderer / QC / materialization 闭环
+1. `design_evidence_composite_shell` 的 manifest / schema / renderer / QC / materialization 闭环
 2. 与新 shell 对应的 tracked docs / catalog sync
 3. merge-back 前最低验证面与 reroute 入口锁定
 
 本轮明确不做：
 
 - 自由拼装式 workflow / design-evidence scene composition 系统
-- `H / design_evidence_composite_shell`
 - `D/E/G` 更大的 atlas / spatial / trajectory 多视图复合图式
 - `F` 家族更高阶 partial-dependence follow-on
+- `H` 家族更广的 baseline-balance / missingness / QC-shell follow-on
 
 ## 预期写集
 
@@ -98,6 +98,7 @@
 1. `H / design_evidence_composite_shell`
 2. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 3. `F / higher-order partial-dependence follow-on beyond the grouped-decision-path lower bound`
+4. `H / baseline-balance / missingness / QC-shell follow-on`
 
 ## 明确不是执行面
 

@@ -739,6 +739,165 @@ def test_run_display_layout_qc_fails_when_workflow_fact_sheet_panel_label_is_mis
     assert any(issue["rule_id"] == "panel_label_missing" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_design_evidence_composite_shell() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_design_evidence_composite_shell",
+        layout_sidecar={
+            "template_id": "design_evidence_composite_shell",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("stage_title_1", "stage_title", x0=0.08, y0=0.08, x1=0.24, y1=0.12),
+                make_box("stage_detail_1", "stage_detail", x0=0.08, y0=0.13, x1=0.24, y1=0.18),
+                make_box("stage_title_2", "stage_title", x0=0.39, y0=0.08, x1=0.55, y1=0.12),
+                make_box("stage_detail_2", "stage_detail", x0=0.39, y0=0.13, x1=0.55, y1=0.18),
+                make_box("stage_title_3", "stage_title", x0=0.70, y0=0.08, x1=0.86, y1=0.12),
+                make_box("stage_detail_3", "stage_detail", x0=0.70, y0=0.13, x1=0.86, y1=0.18),
+                make_box("panel_label_A", "panel_label", x0=0.07, y0=0.38, x1=0.10, y1=0.42),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.38, x1=0.41, y1=0.42),
+                make_box("panel_label_C", "panel_label", x0=0.69, y0=0.38, x1=0.72, y1=0.42),
+                make_box("summary_title_A", "summary_title", x0=0.11, y0=0.38, x1=0.28, y1=0.42),
+                make_box("summary_title_B", "summary_title", x0=0.42, y0=0.38, x1=0.59, y1=0.42),
+                make_box("summary_title_C", "summary_title", x0=0.73, y0=0.38, x1=0.90, y1=0.42),
+                make_box("card_label_A_1", "card_label", x0=0.09, y0=0.48, x1=0.18, y1=0.51),
+                make_box("card_value_A_1", "card_value", x0=0.09, y0=0.52, x1=0.20, y1=0.57),
+                make_box("card_label_B_1", "card_label", x0=0.40, y0=0.48, x1=0.49, y1=0.51),
+                make_box("card_value_B_1", "card_value", x0=0.40, y0=0.52, x1=0.51, y1=0.57),
+                make_box("card_label_C_1", "card_label", x0=0.71, y0=0.48, x1=0.80, y1=0.51),
+                make_box("card_value_C_1", "card_value", x0=0.71, y0=0.52, x1=0.82, y1=0.57),
+            ],
+            "panel_boxes": [
+                make_box("workflow_stage_1", "workflow_stage", x0=0.05, y0=0.05, x1=0.28, y1=0.21),
+                make_box("workflow_stage_2", "workflow_stage", x0=0.36, y0=0.05, x1=0.59, y1=0.21),
+                make_box("workflow_stage_3", "workflow_stage", x0=0.67, y0=0.05, x1=0.90, y1=0.21),
+                make_box("summary_panel_A", "panel", x0=0.05, y0=0.34, x1=0.30, y1=0.88),
+                make_box("summary_panel_B", "panel", x0=0.36, y0=0.34, x1=0.61, y1=0.88),
+                make_box("summary_panel_C", "panel", x0=0.67, y0=0.34, x1=0.92, y1=0.88),
+            ],
+            "guide_boxes": [
+                make_box("stage_arrow_1", "arrow_connector", x0=0.29, y0=0.11, x1=0.35, y1=0.15),
+                make_box("stage_arrow_2", "arrow_connector", x0=0.60, y0=0.11, x1=0.66, y1=0.15),
+            ],
+            "metrics": {
+                "workflow_stages": [
+                    {"stage_id": "cohort", "stage_box_id": "workflow_stage_1", "title_box_id": "stage_title_1", "detail_box_id": "stage_detail_1"},
+                    {"stage_id": "modeling", "stage_box_id": "workflow_stage_2", "title_box_id": "stage_title_2", "detail_box_id": "stage_detail_2"},
+                    {"stage_id": "validation", "stage_box_id": "workflow_stage_3", "title_box_id": "stage_title_3", "detail_box_id": "stage_detail_3"},
+                ],
+                "summary_panels": [
+                    {
+                        "panel_id": "cohort_summary",
+                        "panel_label": "A",
+                        "layout_role": "left",
+                        "panel_box_id": "summary_panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "title_box_id": "summary_title_A",
+                        "cards": [{"card_id": "train_n", "label_box_id": "card_label_A_1", "value_box_id": "card_value_A_1"}],
+                    },
+                    {
+                        "panel_id": "endpoint_summary",
+                        "panel_label": "B",
+                        "layout_role": "center",
+                        "panel_box_id": "summary_panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "title_box_id": "summary_title_B",
+                        "cards": [{"card_id": "endpoint", "label_box_id": "card_label_B_1", "value_box_id": "card_value_B_1"}],
+                    },
+                    {
+                        "panel_id": "evidence_summary",
+                        "panel_label": "C",
+                        "layout_role": "right",
+                        "panel_box_id": "summary_panel_C",
+                        "panel_label_box_id": "panel_label_C",
+                        "title_box_id": "summary_title_C",
+                        "cards": [{"card_id": "auc", "label_box_id": "card_label_C_1", "value_box_id": "card_value_C_1"}],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_design_evidence_composite_shell_panel_label_is_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_design_evidence_composite_shell",
+        layout_sidecar={
+            "template_id": "design_evidence_composite_shell",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("stage_title_1", "stage_title", x0=0.08, y0=0.08, x1=0.24, y1=0.12),
+                make_box("stage_title_2", "stage_title", x0=0.39, y0=0.08, x1=0.55, y1=0.12),
+                make_box("stage_title_3", "stage_title", x0=0.70, y0=0.08, x1=0.86, y1=0.12),
+                make_box("panel_label_A", "panel_label", x0=0.07, y0=0.38, x1=0.10, y1=0.42),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.38, x1=0.41, y1=0.42),
+                make_box("summary_title_A", "summary_title", x0=0.11, y0=0.38, x1=0.28, y1=0.42),
+                make_box("summary_title_B", "summary_title", x0=0.42, y0=0.38, x1=0.59, y1=0.42),
+                make_box("summary_title_C", "summary_title", x0=0.73, y0=0.38, x1=0.90, y1=0.42),
+                make_box("card_label_A_1", "card_label", x0=0.09, y0=0.48, x1=0.18, y1=0.51),
+                make_box("card_value_A_1", "card_value", x0=0.09, y0=0.52, x1=0.20, y1=0.57),
+                make_box("card_label_B_1", "card_label", x0=0.40, y0=0.48, x1=0.49, y1=0.51),
+                make_box("card_value_B_1", "card_value", x0=0.40, y0=0.52, x1=0.51, y1=0.57),
+                make_box("card_label_C_1", "card_label", x0=0.71, y0=0.48, x1=0.80, y1=0.51),
+                make_box("card_value_C_1", "card_value", x0=0.71, y0=0.52, x1=0.82, y1=0.57),
+            ],
+            "panel_boxes": [
+                make_box("workflow_stage_1", "workflow_stage", x0=0.05, y0=0.05, x1=0.28, y1=0.21),
+                make_box("workflow_stage_2", "workflow_stage", x0=0.36, y0=0.05, x1=0.59, y1=0.21),
+                make_box("workflow_stage_3", "workflow_stage", x0=0.67, y0=0.05, x1=0.90, y1=0.21),
+                make_box("summary_panel_A", "panel", x0=0.05, y0=0.34, x1=0.30, y1=0.88),
+                make_box("summary_panel_B", "panel", x0=0.36, y0=0.34, x1=0.61, y1=0.88),
+                make_box("summary_panel_C", "panel", x0=0.67, y0=0.34, x1=0.92, y1=0.88),
+            ],
+            "guide_boxes": [],
+            "metrics": {
+                "workflow_stages": [
+                    {"stage_id": "cohort", "stage_box_id": "workflow_stage_1", "title_box_id": "stage_title_1"},
+                    {"stage_id": "modeling", "stage_box_id": "workflow_stage_2", "title_box_id": "stage_title_2"},
+                    {"stage_id": "validation", "stage_box_id": "workflow_stage_3", "title_box_id": "stage_title_3"},
+                ],
+                "summary_panels": [
+                    {
+                        "panel_id": "cohort_summary",
+                        "panel_label": "A",
+                        "layout_role": "left",
+                        "panel_box_id": "summary_panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "title_box_id": "summary_title_A",
+                        "cards": [{"card_id": "train_n", "label_box_id": "card_label_A_1", "value_box_id": "card_value_A_1"}],
+                    },
+                    {
+                        "panel_id": "endpoint_summary",
+                        "panel_label": "B",
+                        "layout_role": "center",
+                        "panel_box_id": "summary_panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "title_box_id": "summary_title_B",
+                        "cards": [{"card_id": "endpoint", "label_box_id": "card_label_B_1", "value_box_id": "card_value_B_1"}],
+                    },
+                    {
+                        "panel_id": "evidence_summary",
+                        "panel_label": "C",
+                        "layout_role": "right",
+                        "panel_box_id": "summary_panel_C",
+                        "panel_label_box_id": "panel_label_C",
+                        "title_box_id": "summary_title_C",
+                        "cards": [{"card_id": "auc", "label_box_id": "card_label_C_1", "value_box_id": "card_value_C_1"}],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "panel_label_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

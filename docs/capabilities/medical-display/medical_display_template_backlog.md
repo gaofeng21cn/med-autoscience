@@ -38,6 +38,7 @@
 - `003 grouped risk event summary`
 - `Figure 1 unified shell upgrade`
 - `H / workflow_fact_sheet_panel`
+- `H / design_evidence_composite_shell`
 
 这些条目保留在这里，只是为了说明它们已经出队，不应再持续污染当前判断。
 
@@ -45,13 +46,14 @@
 
 当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
 
-- `H / design_evidence_composite_shell`
 - `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
 - `F / higher-order partial-dependence follow-on beyond the grouped-decision-path lower bound`
+- `H / baseline-balance / missingness / QC-shell follow-on`
 
 其中：
 
 - `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
+- `H / design_evidence_composite_shell` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 已在本轮收口为 `shap_grouped_decision_path_panel`，不再保留为当前候选。
 
 这些候选不等于必须立即实现。

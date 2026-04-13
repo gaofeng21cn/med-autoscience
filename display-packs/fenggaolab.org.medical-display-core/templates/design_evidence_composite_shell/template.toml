@@ -1,0 +1,14 @@
+template_id = "design_evidence_composite_shell"
+full_template_id = "fenggaolab.org.medical-display-core::design_evidence_composite_shell"
+kind = "illustration_shell"
+display_name = "Design Evidence Composite Shell"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "design_evidence_composite_shell_inputs_v1"
+qc_profile_ref = "publication_design_evidence_composite_shell"
+required_exports = ["png", "svg"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+paper_proven = false
