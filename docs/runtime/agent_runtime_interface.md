@@ -33,6 +33,17 @@
 - `controller` 属于内部控制面，不与 `CLI`、`MCP` 并列作为对外 formal entry
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate
 
+## 执行真相（product-entry contract 对齐）
+
+以下口径以 `src/med_autoscience/controllers/product_entry.py::build_product_entry_manifest` 及 `tests/test_product_entry.py` 的断言为准：
+
+- `MedAutoScience` 自己不直接打模型。
+- 当前底层链路固定为：`med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
+- family 默认 concrete executor：`codex_cli_autonomous`。
+- 默认 model / reasoning：继承本机 Codex 默认（`inherit_local_codex_default`）。
+- `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
+- `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+
 ## 当前主线与 monorepo 长线的关系
 
 当前这条 repo-tracked 主线，优先级应按下面顺序理解：

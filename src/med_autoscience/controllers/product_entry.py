@@ -835,6 +835,17 @@ def build_product_entry_manifest(
             "runtime_root": str(profile.runtime_root),
             "hermes_home_root": str(profile.hermes_home_root),
         },
+        "executor_defaults": {
+            "default_executor": "codex_cli_autonomous",
+            "default_model": "inherit_local_codex_default",
+            "default_reasoning_effort": "inherit_local_codex_default",
+            "chat_completion_only_executor_forbidden": True,
+            "hermes_native_requires_full_agent_loop": True,
+            "current_backend_chain": [
+                "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
+                "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+            ],
+        },
         "workspace_locator": {
             "workspace_surface_kind": "med_autoscience_workspace_profile",
             "profile_name": profile.name,

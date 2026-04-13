@@ -330,6 +330,14 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["formal_entry"]["supported_protocols"] == ["MCP"]
     assert payload["runtime"]["runtime_owner"] == "med_autoscience_gateway"
     assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
+    assert payload["executor_defaults"]["default_executor"] == "codex_cli_autonomous"
+    assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
+    assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"
+    assert payload["executor_defaults"]["chat_completion_only_executor_forbidden"] is True
+    assert payload["executor_defaults"]["hermes_native_requires_full_agent_loop"] is True
+    assert payload["executor_defaults"]["current_backend_chain"][1].endswith(
+        "codex exec autonomous agent loop"
+    )
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(

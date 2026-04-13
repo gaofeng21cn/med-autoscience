@@ -12,6 +12,14 @@
 
 旧 `Codex-default host-agent runtime` 当前承担迁移期对照面与回归参考角色。
 
+## 当前执行链路真相（family 默认）
+
+- `MedAutoScience` 是 gateway / authority / outer-loop owner，不直接打模型。
+- 当前底层执行链路固定为：`med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
+- family 默认 concrete executor 是 `codex_cli_autonomous`；默认 model / reasoning 继承本机 Codex 默认（`inherit_local_codex_default`）。
+- `chat-only executor` 在 contract 上是 forbidden（`chat_completion_only_executor_forbidden = true`）。
+- `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
+
 ## 入口与控制面
 
 - 默认正式入口：`CLI`

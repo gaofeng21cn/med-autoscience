@@ -11,6 +11,10 @@
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
 - 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `product-entry-manifest` 现在会冻结当前 research 主线 shell，并显式导出 `operator_loop_surface`、`operator_loop_actions`、`recommended_shell / recommended_command`、repo mainline 摘要以及 `product_entry_status` 状态摘要；当前 operator loop 明确收口为 `workspace-cockpit`，并把 `open_loop / submit_task / continue_study / inspect_progress` 冻结成当前用户可执行的标准动作面；`build-product-entry` 会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
+- 当前执行真相（以 `build_product_entry_manifest` contract 为准）：`MedAutoScience` 自己不直接打模型；当前底层链路固定为 `med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
+- family 默认 concrete executor 是 `codex_cli_autonomous`；`default_model` 与 `default_reasoning_effort` 继承本机 Codex 默认。
+- `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
+- `Hermes-native` 只有 full agent loop 才算（`hermes_native_requires_full_agent_loop = true`）。
 
 ## 当前基线（repo-verified）
 
