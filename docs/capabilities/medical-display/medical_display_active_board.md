@@ -21,12 +21,12 @@
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
   - 证据型模板：`50`
-  - 插图壳层：`4`
+  - 插图壳层：`5`
   - 表格壳层：`5`
-  - 总模板数：`59`
+  - 总模板数：`60`
 - 最近一次已吸收完成的 capability cluster：
-  - `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
-  - `atlas_spatial_trajectory_storyboard_panel`
+  - `H / baseline-balance / missingness / QC-shell follow-on`
+  - `baseline_missingness_qc_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -36,31 +36,31 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting / owner-brief routing`
-- Family cluster：`H`
-- Capability cluster：`baseline-balance / missingness / QC-shell follow-on beyond the current workflow and design-evidence shells`
-- Owner worktree：`未开启（等待当前 D/E/G storyboard round absorb / cleanup 后再新开唯一 worktree）`
+- Family cluster：`C/H`
+- Capability cluster：`coefficient-path / compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
+- Owner worktree：`未开启（上一轮 H / baseline_missingness_qc_panel 已 absorb；下一轮待 fresh route 后再开唯一 owner worktree）`
 - 状态：`routing_ready`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `workflow_fact_sheet_panel` 与 `design_evidence_composite_shell` 已经入库的前提下，如何为 `H` 家族选定下一个仍然 bounded、可审计、不会滑向自由 manuscript scene 的 follow-on，并先把 owner brief 收口干净。
+> 在 `generalizability_subgroup_composite_panel` 与 `baseline_missingness_qc_panel` 已经入库的前提下，如何为 `C/H` 家族选定下一个仍然 bounded、可审计、不会滑向自由 coefficient / estimate dashboard scene 的 follow-on，并先把 owner brief 收口干净。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 固定 `H` 家族下一候选 capability cluster，不在 baseline-balance、missingness、QC-shell 多种 follow-on 之间来回摆动
+1. 固定 `C/H` 家族下一候选 capability cluster，不在 coefficient-path、compact estimate、heterogeneity summary 多种 follow-on 之间来回摆动
 2. 写清 owner brief：最小写集、最小验证面、golden regression slice、明确不做事项
 3. 在开新 owner worktree 之前，锁定 reroute 口径与 secondary candidate 顺序
 
 本轮明确不做：
 
-- 重开刚刚 absorb 的 `D/E/G / atlas_spatial_trajectory_storyboard_panel`
-- 没有 owner brief 就直接开新的 `H` 家族实现 worktree
+- 重开刚刚 absorb 的 `H / baseline_missingness_qc_panel`
+- 没有 owner brief 就直接开新的 `C/H` 家族实现 worktree
 - `D/E/G` 更大的 atlas / spatial / trajectory 自由 multi-view scene
-- `C/H` 更广的 coefficient-path / compact estimate follow-on
+- `F` 更大的 explanation free-form scene
 
 ## 预期写集
 
@@ -75,10 +75,10 @@
 
 只有同时满足下面条件，当前 scouting round 才能进入下一个 owner implementation round：
 
-1. `H` 家族下一候选 capability cluster 已固定。
+1. `C/H` 家族下一候选 capability cluster 已固定。
 2. owner brief 已明确最小写集、最小验证面与不做事项。
 3. 已确认当前没有别的 active display owner worktree 与其写集冲突。
-4. `D/E/G / atlas_spatial_trajectory_storyboard_panel` 这一轮已 absorb、验证、清理完成。
+4. `H / baseline_missingness_qc_panel` 这一轮已 absorb、验证、清理完成。
 
 ## 最低验证要求
 
@@ -93,9 +93,9 @@
 
 当前轮次结束后，secondary 候选按下面顺序继续：
 
-1. `C/H / coefficient-path or compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
-2. `F / richer explanation scenes beyond the current higher-order partial-dependence lower bound`
-3. `D/E/G / larger atlas-spatial-trajectory multi-view follow-on beyond the current storyboard lower bound`
+1. `F / richer explanation scenes beyond the current higher-order partial-dependence lower bound`
+2. `D/E/G / larger atlas-spatial-trajectory multi-view follow-on beyond the current storyboard lower bound`
+3. `H / broader QC / batch-effect / transportability shell follow-on beyond the first baseline-missingness-QC composite shell`
 
 ## 明确不是执行面
 
