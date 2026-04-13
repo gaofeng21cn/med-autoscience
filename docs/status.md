@@ -11,6 +11,7 @@
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
 - 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `product-entry-manifest` 现在会冻结当前 research 主线 shell，并显式导出 `frontdesk_surface`、`operator_loop_surface`、`operator_loop_actions`、`recommended_shell / recommended_command`、repo mainline 摘要以及 `product_entry_status` 状态摘要；当前 direct frontdesk 与 operator loop 都明确收口为 `workspace-cockpit`，并把 `open_loop / submit_task / continue_study / inspect_progress` 冻结成当前用户可执行的标准动作面；`build-product-entry` 会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
+- OPL family orchestration contracts 将冻结 5 类：family event envelope、family checkpoint lineage、family action graph、family human gate、family product-entry manifest v2；本轮 MAS 优先吸收 runtime-oriented 半侧（event envelope / checkpoint lineage / human gate），进入 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json` 主线；`product-entry manifest v2` 作为 family discovery companion，对齐 product-entry shell / handoff，但不改变 MAS 的 domain-owned durable truth 与 runtime/executor 分层，也不构成跨仓 runtime core ingest 的既成事实
 
 ## 当前基线（repo-verified）
 
@@ -85,3 +86,4 @@
 2. 紧接着进入 `Phase 2`：把当前 repo-tracked shell 继续收成稳定用户回路，重点是启动、下任务、持续看进度、看告警、看恢复建议。
 3. 再进入 `Phase 3`：把当前 proof 从开发宿主扩展到更多 workspace / host，继续做真实 clearance。
 4. `Phase 4` 与 `Phase 5` 都是后置阶段：先后分别是 backend deconstruction，以及 federation/platform maturation；在前面几段稳定前，不抢跑。
+5. 对齐 family contracts 的下一步：把运行事件、恢复链路、人审门控对齐到 family contracts，并稳定映射进 `study_runtime_status`、`runtime_watch`、`controller_decisions/latest.json`。
