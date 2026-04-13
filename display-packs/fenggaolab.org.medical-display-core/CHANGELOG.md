@@ -2,6 +2,8 @@
 
 ## Unreleased - 2026-04-11
 
+- Add `design_evidence_composite_shell` as the next audited `H` manuscript-facing design-evidence illustration shell in the core display pack.
+- Lock its pack-facing contract to `design_evidence_composite_shell_inputs_v1`, `publication_design_evidence_composite_shell`, and the Python fixed workflow-ribbon plus three-summary-panel renderer path.
 - Add `workflow_fact_sheet_panel` as the next audited `H` workflow / study-design illustration shell in the core display pack.
 - Lock its pack-facing contract to `workflow_fact_sheet_panel_inputs_v1`, `publication_workflow_fact_sheet_panel`, and the Python fixed 2x2 workflow fact-sheet renderer path.
 - Add `shap_grouped_decision_path_panel` as the next audited `F` grouped decision-path explanation slice in the core display pack.

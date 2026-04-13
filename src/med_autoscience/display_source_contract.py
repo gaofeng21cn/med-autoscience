@@ -39,6 +39,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "partial_dependence_interaction_contour_panel_inputs_v1": "partial_dependence_interaction_contour_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
+    "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
 }
 
 

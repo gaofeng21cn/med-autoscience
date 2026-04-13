@@ -95,9 +95,9 @@ Current implemented display inventory:
 
 - Evidence figure classes: `9`
 - Implemented evidence figure templates: `45`
-- Illustration shells: `3`
+- Illustration shells: `4`
 - Table shells: `5`
-- Total implemented display templates: `53`
+- Total implemented display templates: `54`
 
 ### Evidence Classes
 
@@ -117,7 +117,7 @@ Current implemented display inventory:
 
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
-| Illustration Shell | 3 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1` | shell profile + catalog contract |
+| Illustration Shell | 4 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1`, `design_evidence_composite_shell_inputs_v1` | shell profile + catalog contract |
 | Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Current Audit-Family Map
@@ -328,6 +328,10 @@ Authoritative contract:
   - Input schema: `workflow_fact_sheet_panel_inputs_v1`
   - Required exports: `png`, `svg`
   - Role: bounded manuscript-facing workflow / study-design fact sheet shell with fixed 2x2 section governance
+- `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
+  - Input schema: `design_evidence_composite_shell_inputs_v1`
+  - Required exports: `png`, `svg`
+  - Role: bounded manuscript-facing design-evidence composite shell with a fixed workflow ribbon plus three summary panels
 
 ### Table Shells
 
@@ -366,6 +370,7 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 - `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel`
 - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel`
+- `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
 - lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, legend title/label semantics, tick-label readability, arrow-lane placement, and catalog/package routing consistency
 
 ### D/E/G composite atlas lane
