@@ -45,6 +45,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("atlas_spatial_bridge_panel"),
         _full_id("spatial_niche_map_panel"),
         _full_id("trajectory_progression_panel"),
+        _full_id("atlas_spatial_trajectory_storyboard_panel"),
         _full_id("heatmap_group_comparison"),
         _full_id("performance_heatmap"),
         _full_id("correlation_heatmap"),
@@ -143,6 +144,16 @@ def test_trajectory_progression_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "trajectory_progression_inputs_v1"
     assert spec.layout_qc_profile == "publication_trajectory_progression_panel"
+
+
+def test_atlas_spatial_trajectory_storyboard_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("atlas_spatial_trajectory_storyboard_panel"))
+
+    assert spec.paper_family_ids == ("D", "E", "G")
+    assert spec.evidence_class == "data_geometry"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "atlas_spatial_trajectory_storyboard_inputs_v1"
+    assert spec.layout_qc_profile == "publication_atlas_spatial_trajectory_storyboard_panel"
 
 
 def test_shap_waterfall_local_explanation_panel_is_registered() -> None:
