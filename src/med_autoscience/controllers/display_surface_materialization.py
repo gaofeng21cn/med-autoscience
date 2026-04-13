@@ -34,10 +34,12 @@ _TABLE_INPUT_FILENAME_BY_SCHEMA_ID = TABLE_INPUT_FILENAME_BY_SCHEMA_ID
 _ILLUSTRATION_INPUT_FILENAME_BY_SCHEMA_ID = {
     "cohort_flow_shell_inputs_v1": "cohort_flow.json",
     "submission_graphical_abstract_inputs_v1": "submission_graphical_abstract.json",
+    "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
 }
 _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": "cohort_flow",
     "submission_graphical_abstract": "graphical_abstract",
+    "workflow_fact_sheet_panel": "workflow_fact_sheet_panel",
 }
 _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": (
@@ -47,6 +49,10 @@ _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "submission_graphical_abstract": (
         "Submission graphical abstract",
         "",
+    ),
+    "workflow_fact_sheet_panel": (
+        "Study workflow fact sheet",
+        "Structured study-design and workflow summary for the audited manuscript-facing surface.",
     ),
 }
 _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
@@ -7363,11 +7369,23 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         elif display_kind == "table" and display_registry.is_table_shell(requirement_key):
             requirement_short_id = get_template_short_id(display_registry.get_table_shell_spec(requirement_key).shell_id)
 
-        if requirement_short_id == "cohort_flow_figure":
-            if display_kind != "figure":
-                raise ValueError("cohort_flow_figure must be registered as a figure display")
+        if (
+            display_kind == "figure"
+            and display_registry.is_illustration_shell(requirement_key)
+            and requirement_short_id != "submission_graphical_abstract"
+        ):
             spec = display_registry.get_illustration_shell_spec(requirement_key)
-            pack_id, _ = _require_namespaced_registry_id(spec.shell_id, label="cohort_flow_figure shell_id")
+            pack_id, template_short_id = _require_namespaced_registry_id(
+                spec.shell_id,
+                label=f"{requirement_key} shell_id",
+            )
+            output_stem = _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID.get(template_short_id)
+            if output_stem is None:
+                raise ValueError(f"unsupported illustration shell output stem for `{spec.shell_id}`")
+            default_title, default_caption = _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID.get(
+                template_short_id,
+                ("", ""),
+            )
             if style_profile is None:
                 style_profile = publication_display_contract.load_publication_style_profile(
                     resolved_paper_root / "publication_style_profile.json"
@@ -7382,12 +7400,22 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 display_id=display_id,
                 template_id=spec.shell_id,
             )
-            payload_path = resolved_paper_root / "cohort_flow.json"
-            payload = load_json(payload_path)
+            payload_path = _illustration_payload_path(
+                paper_root=resolved_paper_root,
+                input_schema_id=spec.input_schema_id,
+            )
+            shell_payload = load_json(payload_path)
+            paper_role = str(shell_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
+            if paper_role not in spec.allowed_paper_roles:
+                allowed_roles = ", ".join(spec.allowed_paper_roles)
+                raise ValueError(
+                    f"display `{display_id}` paper_role `{paper_role}` is not allowed for illustration shell `{spec.shell_id}`; "
+                    f"allowed: {allowed_roles}"
+                )
             figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
-            output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_cohort_flow.svg"
-            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_cohort_flow.png"
-            output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_cohort_flow.layout.json"
+            output_svg_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.svg"
+            output_png_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.png"
+            output_layout_path = resolved_paper_root / "figures" / "generated" / f"{figure_id}_{output_stem}.layout.json"
             _prepare_python_illustration_output_paths(
                 output_png_path=output_png_path,
                 output_svg_path=output_svg_path,
@@ -7401,7 +7429,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             render_result = dict(
                 render_callable(
                     template_id=spec.shell_id,
-                    shell_payload=payload,
+                    shell_payload=shell_payload,
                     payload_path=payload_path,
                     render_context=render_context,
                     output_svg_path=output_svg_path,
@@ -7410,11 +7438,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 )
                 or {}
             )
-            title = str(render_result.get("title") or "Cohort flow").strip() or "Cohort flow"
-            caption = str(
-                render_result.get("caption") or "Study cohort flow and analysis population accounting."
-            ).strip()
-            layout_sidecar = load_json(output_layout_path)
+            layout_sidecar = _load_layout_sidecar_or_raise(path=output_layout_path, template_id=spec.shell_id)
+            layout_sidecar["render_context"] = render_context
             dump_json(output_layout_path, layout_sidecar)
             qc_result = display_layout_qc.run_display_layout_qc(
                 qc_profile=spec.shell_qc_profile,
@@ -7427,12 +7452,13 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "template_id": spec.shell_id,
                 "pack_id": pack_id,
                 "renderer_family": spec.renderer_family,
-                "paper_role": spec.allowed_paper_roles[0],
+                "paper_role": paper_role,
                 "input_schema_id": spec.input_schema_id,
                 "qc_profile": spec.shell_qc_profile,
                 "qc_result": qc_result,
-                "title": title,
-                "caption": caption,
+                "title": str(render_result.get("title") or shell_payload.get("title") or default_title).strip()
+                or default_title,
+                "caption": str(render_result.get("caption") or shell_payload.get("caption") or default_caption).strip(),
                 "export_paths": [
                     _paper_relative_path(output_svg_path, paper_root=resolved_paper_root),
                     _paper_relative_path(output_png_path, paper_root=resolved_paper_root),
@@ -7441,6 +7467,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],
                 "claim_ids": [],
+                "render_context": render_context,
             }
             figure_catalog["figures"] = _replace_catalog_entry(
                 list(figure_catalog.get("figures") or []),

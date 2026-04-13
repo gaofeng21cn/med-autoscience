@@ -184,6 +184,7 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         input_schema_ids=(
             "cohort_flow_shell_inputs_v1",
             "submission_graphical_abstract_inputs_v1",
+            "workflow_fact_sheet_panel_inputs_v1",
             "baseline_characteristics_schema_v1",
             "time_to_event_performance_summary_v1",
             "clinical_interpretation_summary_v1",
@@ -1475,6 +1476,31 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "graphical_abstract_rows_must_be_non_empty",
             "graphical_abstract_cards_must_be_non_empty",
             "graphical_abstract_footer_pills_must_reference_known_panels_when_present",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="workflow_fact_sheet_panel_inputs_v1",
+        display_kind="illustration_shell",
+        display_name="Workflow Fact Sheet Panel",
+        template_ids=_template_ids_for_input_schema("workflow_fact_sheet_panel_inputs_v1"),
+        required_top_level_fields=("schema_version", "shell_id", "display_id", "title", "sections"),
+        optional_top_level_fields=("caption",),
+        collection_required_fields={
+            "sections": ("section_id", "panel_label", "title", "layout_role", "facts"),
+        },
+        nested_collection_required_fields={
+            "sections.facts": ("fact_id", "label", "value"),
+        },
+        nested_collection_optional_fields={
+            "sections.facts": ("detail",),
+        },
+        additional_constraints=(
+            "sections_must_contain_exactly_four_items",
+            "section_ids_must_be_unique",
+            "section_panel_labels_must_be_unique",
+            "section_layout_roles_must_match_four_panel_fact_sheet_grid",
+            "section_facts_must_be_non_empty",
+            "section_fact_ids_must_be_unique_within_section",
         ),
     ),
     InputSchemaContract(

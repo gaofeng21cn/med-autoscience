@@ -67,6 +67,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
     assert {item.shell_id for item in illustration_specs} == {
         _full_id("cohort_flow_figure"),
         _full_id("submission_graphical_abstract"),
+        _full_id("workflow_fact_sheet_panel"),
     }
     assert {item.shell_id for item in table_specs} >= {
         _full_id("table1_baseline_characteristics"),
@@ -230,6 +231,15 @@ def test_generalizability_subgroup_composite_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "generalizability_subgroup_composite_inputs_v1"
     assert spec.layout_qc_profile == "publication_generalizability_subgroup_composite_panel"
+
+
+def test_workflow_fact_sheet_panel_is_registered() -> None:
+    spec = display_registry.get_illustration_shell_spec(_full_id("workflow_fact_sheet_panel"))
+
+    assert spec.paper_family_ids == ("H",)
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "workflow_fact_sheet_panel_inputs_v1"
+    assert spec.shell_qc_profile == "publication_workflow_fact_sheet_panel"
 
 
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:

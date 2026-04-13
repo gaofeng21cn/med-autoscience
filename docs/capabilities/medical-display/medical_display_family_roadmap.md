@@ -514,6 +514,7 @@ Current audited anchors:
 
 - `cohort_flow_figure`
 - `submission_graphical_abstract`
+- `workflow_fact_sheet_panel`
 - `table1_baseline_characteristics`
 - `table2_time_to_event_performance_summary`
 - `table3_clinical_interpretation_summary`
@@ -525,7 +526,7 @@ Current gap direction:
 - baseline balance plots
 - missingness maps
 - explicit QC/batch-effect display families
-- broader design-evidence shells beyond current paper tables and the first bounded generalizability + subgroup composite baseline
+- broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families
 
