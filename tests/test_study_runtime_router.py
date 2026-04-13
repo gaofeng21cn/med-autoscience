@@ -4879,6 +4879,113 @@ def test_ensure_study_runtime_uses_native_runtime_event_ref_after_managed_transi
     assert result["runtime_event"] == native_event
 
 
+def test_study_runtime_status_emits_family_orchestration_companion_fields(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running","active_run_id":"run-native"}\n')
+    native_event = _write_native_runtime_event_for_status_test(
+        quest_root=quest_root,
+        quest_id="001-risk",
+        quest_status="running",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-native",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "active_run_id": "run-native",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "active_run_id": "run-native",
+                "worker_running": True,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {"quest_id": quest_id, "active_run_id": "run-native"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-native",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_ref": {
+                "event_id": str(native_event["event_id"]),
+                "artifact_path": str(native_event["artifact_path"]),
+                "summary_ref": str(native_event["summary_ref"]),
+            },
+            "runtime_event": native_event,
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    envelope = result["family_event_envelope"]
+    checkpoint = result["family_checkpoint_lineage"]
+    assert envelope["version"] == "family-event-envelope.v1"
+    assert envelope["target_domain_id"] == "medautoscience"
+    assert envelope["session"]["study_id"] == "001-risk"
+    assert envelope["session"]["quest_id"] == "001-risk"
+    assert envelope["session"]["active_run_id"] == "run-native"
+    assert envelope["payload"]["runtime_decision"] == result["decision"]
+    assert checkpoint["version"] == "family-checkpoint-lineage.v1"
+    assert checkpoint["session"]["active_run_id"] == "run-native"
+    assert checkpoint["producer"]["event_envelope_id"] == envelope["envelope_id"]
+    assert checkpoint["resume_contract"]["resume_mode"] == "resume_from_checkpoint"
+    assert result["family_human_gates"] == []
+
+
 @pytest.mark.parametrize(
     ("launch_report_overrides", "expected_mismatch_reason"),
     [
@@ -5892,6 +5999,14 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
             "runtime blocking is rejected unless it is a valid structured decision request."
         ),
     }
+    assert result["family_event_envelope"]["version"] == "family-event-envelope.v1"
+    assert result["family_event_envelope"]["session"]["study_id"] == "001-risk"
+    assert result["family_event_envelope"]["human_gate_hint"]["status"] == "requested"
+    assert result["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
+    assert result["family_checkpoint_lineage"]["resume_contract"]["human_gate_required"] is True
+    assert result["family_human_gates"][0]["version"] == "family-human-gate.v1"
+    assert result["family_human_gates"][0]["gate_kind"] == "runtime_pending_user_interaction"
+    assert result["family_human_gates"][0]["decision_options"] == ["progress-standby-001"]
 
 
 def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(

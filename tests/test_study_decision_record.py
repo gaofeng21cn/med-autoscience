@@ -134,3 +134,35 @@ def test_study_decision_record_rejects_unsupported_stop_after_current_step_actio
 
     with pytest.raises(ValueError, match="unknown study decision controller action"):
         module.StudyDecisionRecord.from_payload(payload)
+
+
+def test_study_decision_record_accepts_family_orchestration_companion_fields() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["family_event_envelope"] = {
+        "version": "family-event-envelope.v1",
+        "envelope_id": "evt-001",
+    }
+    payload["family_checkpoint_lineage"] = {
+        "version": "family-checkpoint-lineage.v1",
+        "lineage_id": "lineage-001",
+    }
+    payload["family_human_gates"] = [
+        {
+            "version": "family-human-gate.v1",
+            "gate_id": "gate-001",
+            "status": "requested",
+        }
+    ]
+
+    record = module.StudyDecisionRecord.from_payload(payload)
+
+    assert record.to_dict()["family_event_envelope"]["envelope_id"] == "evt-001"
+    assert record.to_dict()["family_checkpoint_lineage"]["lineage_id"] == "lineage-001"
+    assert record.to_dict()["family_human_gates"] == [
+        {
+            "version": "family-human-gate.v1",
+            "gate_id": "gate-001",
+            "status": "requested",
+        }
+    ]

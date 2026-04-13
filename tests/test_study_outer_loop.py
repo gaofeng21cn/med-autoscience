@@ -254,6 +254,13 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
+    assert payload["family_event_envelope"]["version"] == "family-event-envelope.v1"
+    assert payload["family_event_envelope"]["target_domain_id"] == "medautoscience"
+    assert payload["family_event_envelope"]["session"]["study_id"] == "001-risk"
+    assert payload["family_event_envelope"]["session"]["quest_id"] == "quest-001"
+    assert payload["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
+    assert payload["family_checkpoint_lineage"]["producer"]["event_envelope_id"] == payload["family_event_envelope"]["envelope_id"]
+    assert payload["family_human_gates"] == []
     assert latest_payload == payload
 
 
@@ -728,6 +735,11 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
+    assert payload["family_event_envelope"]["version"] == "family-event-envelope.v1"
+    assert payload["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
+    assert payload["family_human_gates"][0]["version"] == "family-human-gate.v1"
+    assert payload["family_human_gates"][0]["status"] == "requested"
+    assert payload["family_human_gates"][0]["gate_kind"] == "controller_human_confirmation"
 
 
 def test_study_outer_loop_tick_dispatches_explicit_stopped_relaunch_action(monkeypatch, tmp_path: Path) -> None:

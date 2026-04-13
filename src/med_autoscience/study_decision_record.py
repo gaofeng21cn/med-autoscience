@@ -21,6 +21,9 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "requires_human_confirmation",
         "controller_actions",
         "reason",
+        "family_event_envelope",
+        "family_checkpoint_lineage",
+        "family_human_gates",
         "artifact_path",
     }
 )
@@ -118,6 +121,37 @@ def _payload_object_sequence(payload: dict[str, Any], field_name: str, label: st
         if not isinstance(item, dict):
             raise ValueError(f"{label} {field_name} entries must be mappings")
     return raw_value
+
+
+def _optional_payload_mapping(payload: dict[str, Any], field_name: str, label: str) -> dict[str, Any] | None:
+    if field_name not in payload:
+        return None
+    raw_value = payload.get(field_name)
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, dict):
+        raise ValueError(f"{label} {field_name} must be a mapping when provided")
+    return dict(raw_value)
+
+
+def _optional_payload_mapping_sequence(
+    payload: dict[str, Any],
+    field_name: str,
+    label: str,
+) -> tuple[dict[str, Any], ...]:
+    if field_name not in payload:
+        return ()
+    raw_value = payload.get(field_name)
+    if raw_value is None:
+        return ()
+    if not isinstance(raw_value, list):
+        raise ValueError(f"{label} {field_name} must be a list when provided")
+    normalized: list[dict[str, Any]] = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            raise ValueError(f"{label} {field_name} entries must be mappings")
+        normalized.append(dict(item))
+    return tuple(normalized)
 
 
 @dataclass(frozen=True)
@@ -238,6 +272,9 @@ class StudyDecisionRecord:
     requires_human_confirmation: bool
     controller_actions: tuple[StudyDecisionControllerAction, ...]
     reason: str
+    family_event_envelope: dict[str, Any] | None = None
+    family_checkpoint_lineage: dict[str, Any] | None = None
+    family_human_gates: tuple[dict[str, Any], ...] = ()
     artifact_path: str | None = None
 
     def __post_init__(self) -> None:
@@ -279,6 +316,18 @@ class StudyDecisionRecord:
             raise ValueError("study decision record controller_actions must not be empty")
         object.__setattr__(self, "controller_actions", normalized_actions)
         object.__setattr__(self, "reason", _require_text("study decision record", "reason", self.reason))
+        if self.family_event_envelope is not None and not isinstance(self.family_event_envelope, dict):
+            raise TypeError("study decision record family_event_envelope must be mapping or None")
+        if self.family_checkpoint_lineage is not None and not isinstance(self.family_checkpoint_lineage, dict):
+            raise TypeError("study decision record family_checkpoint_lineage must be mapping or None")
+        normalized_family_human_gates = tuple(
+            dict(gate) if isinstance(gate, dict) else dict(gate)
+            for gate in self.family_human_gates
+        )
+        for gate in normalized_family_human_gates:
+            if not isinstance(gate, dict):
+                raise TypeError("study decision record family_human_gates entries must be mappings")
+        object.__setattr__(self, "family_human_gates", normalized_family_human_gates)
         if self.artifact_path is not None:
             object.__setattr__(self, "artifact_path", _require_text("study decision record", "artifact_path", self.artifact_path))
 
@@ -296,6 +345,11 @@ class StudyDecisionRecord:
             requires_human_confirmation=self.requires_human_confirmation,
             controller_actions=self.controller_actions,
             reason=self.reason,
+            family_event_envelope=dict(self.family_event_envelope) if isinstance(self.family_event_envelope, dict) else None,
+            family_checkpoint_lineage=(
+                dict(self.family_checkpoint_lineage) if isinstance(self.family_checkpoint_lineage, dict) else None
+            ),
+            family_human_gates=tuple(dict(gate) for gate in self.family_human_gates),
             artifact_path=artifact_path,
         )
 
@@ -322,6 +376,12 @@ class StudyDecisionRecord:
             "controller_actions": [action.to_dict() for action in self.controller_actions],
             "reason": self.reason,
         }
+        if self.family_event_envelope is not None:
+            payload["family_event_envelope"] = dict(self.family_event_envelope)
+        if self.family_checkpoint_lineage is not None:
+            payload["family_checkpoint_lineage"] = dict(self.family_checkpoint_lineage)
+        if self.family_human_gates or self.family_event_envelope is not None or self.family_checkpoint_lineage is not None:
+            payload["family_human_gates"] = [dict(gate) for gate in self.family_human_gates]
         if self.artifact_path is not None:
             payload["artifact_path"] = self.artifact_path
         return payload
@@ -353,5 +413,16 @@ class StudyDecisionRecord:
                 for action in _payload_object_sequence(payload, "controller_actions", "study decision record")
             ),
             reason=_payload_text(payload, "reason", "study decision record"),
+            family_event_envelope=_optional_payload_mapping(payload, "family_event_envelope", "study decision record"),
+            family_checkpoint_lineage=_optional_payload_mapping(
+                payload,
+                "family_checkpoint_lineage",
+                "study decision record",
+            ),
+            family_human_gates=_optional_payload_mapping_sequence(
+                payload,
+                "family_human_gates",
+                "study decision record",
+            ),
             artifact_path=str(payload.get("artifact_path") or "").strip() or None,
         )

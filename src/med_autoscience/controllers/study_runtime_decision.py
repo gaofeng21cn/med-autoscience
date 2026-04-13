@@ -10,6 +10,7 @@ from med_autoscience.controllers import (
     publication_gate as publication_gate_controller,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
+    study_runtime_family_orchestration as family_orchestration,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
@@ -623,6 +624,196 @@ def _runtime_event_outer_loop_input(status: StudyRuntimeStatus) -> dict[str, obj
     }
 
 
+def _status_family_human_gates(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    event_time: str,
+) -> list[dict[str, object]]:
+    gates: list[dict[str, object]] = []
+    pending_interaction = status.extras.get("pending_user_interaction")
+    pending_interaction_id = (
+        str(pending_interaction.get("interaction_id") or "").strip()
+        if isinstance(pending_interaction, dict)
+        else ""
+    )
+    pending_interaction_ref = (
+        str(pending_interaction.get("source_artifact_path") or "").strip()
+        if isinstance(pending_interaction, dict)
+        else ""
+    )
+    if pending_interaction_id:
+        pending_decisions = (
+            [
+                str(item).strip()
+                for item in (pending_interaction.get("pending_decisions") or [])
+                if str(item).strip()
+            ]
+            if isinstance(pending_interaction, dict)
+            else []
+        )
+        gates.append(
+            family_orchestration.build_family_human_gate(
+                gate_id=f"status-waiting-{status.study_id}-{pending_interaction_id}",
+                gate_kind="runtime_pending_user_interaction",
+                requested_at=event_time,
+                request_surface_kind="study_runtime_status",
+                request_surface_id="study_runtime_status",
+                evidence_refs=[
+                    {
+                        "ref_kind": "repo_path",
+                        "ref": pending_interaction_ref,
+                        "label": "pending_user_interaction",
+                    }
+                ]
+                if pending_interaction_ref
+                else [],
+                decision_options=pending_decisions or ["reply"],
+            )
+        )
+
+    controller_requires_human_confirmation = _controller_decision_requires_human_confirmation(study_root=study_root)
+    publication_requires_human_confirmation = _publication_supervisor_requires_human_confirmation(status)
+    if controller_requires_human_confirmation or publication_requires_human_confirmation:
+        gates.append(
+            family_orchestration.build_family_human_gate(
+                gate_id=f"status-human-confirmation-{status.study_id}",
+                gate_kind="controller_human_confirmation",
+                requested_at=event_time,
+                request_surface_kind="study_runtime_status",
+                request_surface_id="study_runtime_status",
+                evidence_refs=[
+                    {
+                        "ref_kind": "repo_path",
+                        "ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                        "label": "controller_decision_latest",
+                    }
+                ],
+                decision_options=["approve", "request_changes", "reject"],
+            )
+        )
+    return gates
+
+
+def _record_family_orchestration_companion(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    runtime_context: study_runtime_protocol.StudyRuntimeContext,
+) -> None:
+    event_time = _router_module()._utc_now()
+    snapshot = _runtime_event_status_snapshot(status)
+    runtime_decision = status.decision.value if status.decision is not None else None
+    runtime_reason = status.reason.value if status.reason is not None else None
+    active_run_id = family_orchestration.resolve_active_run_id(
+        snapshot.get("active_run_id"),
+        ((status.extras.get("autonomous_runtime_notice") or {}) if isinstance(status.extras.get("autonomous_runtime_notice"), dict) else {}).get("active_run_id"),
+        ((status.extras.get("execution_owner_guard") or {}) if isinstance(status.extras.get("execution_owner_guard"), dict) else {}).get("active_run_id"),
+    )
+    quest_root = Path(status.quest_root).expanduser().resolve()
+    runtime_event_ref = status.extras.get("runtime_event_ref")
+    runtime_event_artifact_path = (
+        str(runtime_event_ref.get("artifact_path") or "").strip()
+        if isinstance(runtime_event_ref, dict)
+        else ""
+    )
+    runtime_escalation_ref = status.extras.get("runtime_escalation_ref")
+    runtime_escalation_path = (
+        str(runtime_escalation_ref.get("artifact_path") or "").strip()
+        if isinstance(runtime_escalation_ref, dict)
+        else ""
+    )
+    human_gates = _status_family_human_gates(
+        status=status,
+        study_root=study_root,
+        event_time=event_time,
+    )
+    family_payload = family_orchestration.build_family_orchestration_companion(
+        surface_kind="study_runtime_status",
+        surface_id="study_runtime_status",
+        event_name=f"study_runtime_status.{runtime_decision or 'observed'}",
+        source_surface=str(status.execution.get("executor") or "codex_cli_autonomous"),
+        session_id=f"study-runtime:{status.study_id}",
+        program_id=family_orchestration.resolve_program_id(status.execution),
+        study_id=status.study_id,
+        quest_id=status.quest_id,
+        active_run_id=active_run_id,
+        runtime_decision=runtime_decision,
+        runtime_reason=runtime_reason,
+        payload={
+            "entry_mode": status.entry_mode,
+            "quest_status": status.quest_status.value if status.quest_status is not None else None,
+            "runtime_liveness_status": snapshot.get("runtime_liveness_status"),
+            "supervisor_tick_status": snapshot.get("supervisor_tick_status"),
+            "controller_owned_finalize_parking": snapshot.get("controller_owned_finalize_parking"),
+        },
+        event_time=event_time,
+        checkpoint_id=f"study-runtime-status:{status.study_id}:{runtime_decision or 'unknown'}",
+        checkpoint_label="study_runtime_status snapshot",
+        audit_refs=[
+            {
+                "ref_kind": "repo_path",
+                "ref": runtime_event_artifact_path,
+                "label": "runtime_event_latest",
+            }
+            if runtime_event_artifact_path
+            else {},
+            {
+                "ref_kind": "repo_path",
+                "ref": runtime_escalation_path,
+                "label": "runtime_escalation_record",
+            }
+            if runtime_escalation_path
+            else {},
+            {
+                "ref_kind": "repo_path",
+                "ref": str(quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"),
+                "label": "runtime_watch_latest",
+            },
+        ],
+        state_refs=[
+            {
+                "role": "status",
+                "ref_kind": "repo_path",
+                "ref": str(runtime_context.launch_report_path),
+                "label": "last_launch_report",
+            },
+            {
+                "role": "audit",
+                "ref_kind": "repo_path",
+                "ref": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
+                "label": "runtime_supervision_latest",
+            },
+            {
+                "role": "controller",
+                "ref_kind": "repo_path",
+                "ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                "label": "controller_decisions_latest",
+            },
+        ],
+        restoration_evidence=[
+            {
+                "role": "artifact",
+                "ref_kind": "repo_path",
+                "ref": runtime_event_artifact_path,
+                "label": "runtime_event",
+            }
+        ]
+        if runtime_event_artifact_path
+        else [],
+        action_graph_id="mas_runtime_orchestration",
+        node_id="study_runtime_status",
+        gate_id=(human_gates[0].get("gate_id") if human_gates else None),
+        resume_mode="reenter_human_gate" if human_gates else "resume_from_checkpoint",
+        resume_handle=f"study_runtime_status:{status.study_id}:{runtime_decision or 'unknown'}",
+        human_gate_required=bool(human_gates),
+        human_gates=human_gates,
+    )
+    status.extras["family_event_envelope"] = family_payload["family_event_envelope"]
+    status.extras["family_checkpoint_lineage"] = family_payload["family_checkpoint_lineage"]
+    status.extras["family_human_gates"] = family_payload["family_human_gates"]
+
+
 def _launch_report_runtime_liveness_status(payload: dict[str, object]) -> str | None:
     runtime_liveness_audit = payload.get("runtime_liveness_audit")
     if isinstance(runtime_liveness_audit, dict):
@@ -1039,6 +1230,11 @@ def _status_state(
             status=result,
             runtime_context=runtime_context,
             runtime_backend=managed_runtime_backend,
+        )
+        _record_family_orchestration_companion(
+            status=result,
+            study_root=study_root,
+            runtime_context=runtime_context,
         )
         return result
 

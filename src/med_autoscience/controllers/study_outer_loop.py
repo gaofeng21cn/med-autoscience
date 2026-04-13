@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
@@ -93,6 +94,47 @@ def _runtime_status_summary_from_runtime_event(
         "supervisor_tick_status": supervisor_tick_status,
         "runtime_event_id": runtime_event_ref.event_id,
     }
+
+
+def _runtime_status_active_run_id(status: dict[str, Any], runtime_status: dict[str, str]) -> str | None:
+    return family_orchestration.resolve_active_run_id(
+        runtime_status.get("active_run_id"),
+        status.get("active_run_id"),
+        ((status.get("execution_owner_guard") or {}) if isinstance(status.get("execution_owner_guard"), dict) else {}).get(
+            "active_run_id"
+        ),
+        ((status.get("autonomous_runtime_notice") or {}) if isinstance(status.get("autonomous_runtime_notice"), dict) else {}).get(
+            "active_run_id"
+        ),
+    )
+
+
+def _build_family_human_gates_for_decision_record(
+    *,
+    requires_human_confirmation: bool,
+    emitted_at: str,
+    study_id: str,
+    evidence_refs: list[dict[str, str]],
+    controller_actions: tuple[StudyDecisionControllerAction, ...],
+) -> list[dict[str, Any]]:
+    if not requires_human_confirmation:
+        return []
+    decision_options = [action.action_type.value for action in controller_actions] or [
+        "approve",
+        "request_changes",
+        "reject",
+    ]
+    return [
+        family_orchestration.build_family_human_gate(
+            gate_id=f"controller-human-confirmation-{study_id}",
+            gate_kind="controller_human_confirmation",
+            requested_at=emitted_at,
+            request_surface_kind="controller_decisions",
+            request_surface_id="controller_decisions/latest.json",
+            evidence_refs=evidence_refs,
+            decision_options=decision_options,
+        )
+    ]
 
 
 def _resolve_charter_ref(
@@ -400,6 +442,76 @@ def study_outer_loop_tick(
         else StudyDecisionControllerAction.from_payload(action)
         for action in (controller_actions or [])
     )
+    family_evidence_refs = [
+        {
+            "ref_kind": "repo_path",
+            "ref": normalized_charter_ref.artifact_path,
+            "label": "study_charter",
+        },
+        {
+            "ref_kind": "repo_path",
+            "ref": normalized_publication_eval_ref.artifact_path,
+            "label": "publication_eval_latest",
+        },
+        {
+            "ref_kind": "repo_path",
+            "ref": runtime_escalation_ref.artifact_path,
+            "label": "runtime_escalation_record",
+        },
+    ]
+    family_human_gates = _build_family_human_gates_for_decision_record(
+        requires_human_confirmation=requires_human_confirmation,
+        emitted_at=emitted_at,
+        study_id=resolved_study_id,
+        evidence_refs=family_evidence_refs,
+        controller_actions=normalized_controller_actions,
+    )
+    family_companion = family_orchestration.build_family_orchestration_companion(
+        surface_kind="controller_decisions",
+        surface_id="controller_decisions/latest.json",
+        event_name=f"study_outer_loop.{decision_type}",
+        source_surface="study_outer_loop_tick",
+        session_id=f"study-outer-loop:{resolved_study_id}",
+        program_id=family_orchestration.resolve_program_id(
+            status.get("execution") if isinstance(status.get("execution"), dict) else None
+        ),
+        study_id=resolved_study_id,
+        quest_id=quest_id,
+        active_run_id=_runtime_status_active_run_id(status, runtime_status),
+        runtime_decision=runtime_status.get("decision"),
+        runtime_reason=runtime_status.get("reason"),
+        payload={
+            "decision_type": decision_type,
+            "requires_human_confirmation": requires_human_confirmation,
+            "controller_reason": reason,
+        },
+        event_time=emitted_at,
+        checkpoint_id=f"controller-decision:{resolved_study_id}:{decision_type}",
+        checkpoint_label="controller decision checkpoint",
+        audit_refs=family_evidence_refs,
+        state_refs=[
+            {
+                "role": "controller",
+                "ref_kind": "repo_path",
+                "ref": str(resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                "label": "controller_decisions_latest",
+            },
+            {
+                "role": "publication",
+                "ref_kind": "repo_path",
+                "ref": normalized_publication_eval_ref.artifact_path,
+                "label": "publication_eval_latest",
+            },
+        ],
+        restoration_evidence=family_evidence_refs,
+        action_graph_id="mas_runtime_orchestration",
+        node_id="study_outer_loop_tick",
+        gate_id=(family_human_gates[0].get("gate_id") if family_human_gates else None),
+        resume_mode="reenter_human_gate" if requires_human_confirmation else "resume_from_checkpoint",
+        resume_handle=f"study_outer_loop:{resolved_study_id}:{decision_type}",
+        human_gate_required=requires_human_confirmation,
+        human_gates=family_human_gates,
+    )
     written_record = study_runtime_protocol.write_study_decision_record(
         study_root=resolved_study_root,
         record=StudyDecisionRecord(
@@ -420,6 +532,9 @@ def study_outer_loop_tick(
             requires_human_confirmation=requires_human_confirmation,
             controller_actions=normalized_controller_actions,
             reason=reason,
+            family_event_envelope=family_companion["family_event_envelope"],
+            family_checkpoint_lineage=family_companion["family_checkpoint_lineage"],
+            family_human_gates=tuple(family_companion["family_human_gates"]),
         ),
     )
     if requires_human_confirmation:

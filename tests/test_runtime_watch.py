@@ -932,6 +932,88 @@ def test_watch_quest_writes_latest_runtime_watch_alias(tmp_path: Path) -> None:
     assert latest_markdown.exists()
 
 
+def test_watch_quest_emits_family_orchestration_companion_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    quest_root = make_quest(tmp_path, "q001", status="running")
+
+    result = module.run_watch_for_quest(
+        quest_root=quest_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "clear",
+                "blockers": [],
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+    )
+
+    assert result["family_event_envelope"]["version"] == "family-event-envelope.v1"
+    assert result["family_event_envelope"]["session"]["quest_id"] == "q001"
+    assert result["family_event_envelope"]["session"]["active_run_id"] == "run-1"
+    assert result["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
+    assert result["family_checkpoint_lineage"]["session"]["active_run_id"] == "run-1"
+    assert result["family_human_gates"] == []
+
+
+def test_watch_runtime_emits_family_orchestration_companion_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    runtime_root = tmp_path / "runtime" / "quests"
+    make_quest(tmp_path, "q001", status="running")
+
+    result = module.run_watch_for_runtime(
+        runtime_root=runtime_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "clear",
+                "blockers": [],
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+    )
+
+    assert result["family_event_envelope"]["version"] == "family-event-envelope.v1"
+    assert result["family_event_envelope"]["payload"]["scanned_quest_count"] == 1
+    assert result["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
+    assert result["family_human_gates"] == []
+
+
+def test_watch_runtime_aggregates_publication_gate_human_confirmation_into_family_gates(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    runtime_root = tmp_path / "runtime" / "quests"
+    make_quest(tmp_path, "q001", status="running")
+
+    result = module.run_watch_for_runtime(
+        runtime_root=runtime_root,
+        controller_runners={
+            "publication_gate": lambda *, quest_root, apply: {
+                "status": "blocked",
+                "blockers": ["human_confirmation_required"],
+                "current_required_action": "human_confirmation_required",
+                "report_json": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "report_markdown": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.md"),
+            }
+        },
+        apply=False,
+    )
+
+    quest_report = result["reports"][0]
+    quest_gate = quest_report["family_human_gates"][0]
+    runtime_gate = result["family_human_gates"][0]
+
+    assert quest_gate["version"] == "family-human-gate.v1"
+    assert quest_gate["gate_kind"] == "publication_gate_human_confirmation"
+    assert quest_gate["request_surface"]["surface_kind"] == "runtime_watch"
+    assert runtime_gate == quest_gate
+    assert result["family_event_envelope"]["human_gate_hint"]["gate_id"] == quest_gate["gate_id"]
+    assert result["family_checkpoint_lineage"]["resume_contract"]["human_gate_required"] is True
+
+
 def test_watch_runtime_writes_study_supervision_report_and_escalates_after_consecutive_failures(
     tmp_path: Path,
     monkeypatch,

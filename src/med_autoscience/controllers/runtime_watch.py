@@ -17,6 +17,7 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_supervision,
+    study_runtime_family_orchestration as family_orchestration,
     study_runtime_router,
 )
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
@@ -266,6 +267,164 @@ def _write_latest_watch_alias(*, report_dir: Path, report: Mapping[str, Any], ma
     return latest_json, latest_markdown
 
 
+def _watch_human_gates_for_quest_report(
+    *,
+    report: Mapping[str, Any],
+    scanned_at: str,
+) -> list[dict[str, Any]]:
+    publication_gate_payload = report.get("controllers", {}).get("publication_gate")
+    if not isinstance(publication_gate_payload, Mapping):
+        return []
+    if str(publication_gate_payload.get("current_required_action") or "").strip() != "human_confirmation_required":
+        return []
+    evidence_ref = str(publication_gate_payload.get("report_json") or "").strip()
+    return [
+        family_orchestration.build_family_human_gate(
+            gate_id=f"watch-gate-{_stable_gate_id_seed(report)}",
+            gate_kind="publication_gate_human_confirmation",
+            requested_at=scanned_at,
+            request_surface_kind="runtime_watch",
+            request_surface_id="runtime_watch",
+            evidence_refs=[
+                {
+                    "ref_kind": "repo_path",
+                    "ref": evidence_ref,
+                    "label": "publication_gate_report",
+                }
+            ]
+            if evidence_ref
+            else [],
+            decision_options=["approve", "request_changes", "reject"],
+        )
+    ]
+
+
+def _stable_gate_id_seed(report: Mapping[str, Any]) -> str:
+    quest_root = str(report.get("quest_root") or "").strip()
+    scanned_at = str(report.get("scanned_at") or "").strip()
+    return family_orchestration.resolve_active_run_id(quest_root, scanned_at) or "runtime-watch"
+
+
+def _attach_family_companion_to_quest_report(report: dict[str, Any], *, quest_root: Path) -> None:
+    runtime_state = quest_state.load_runtime_state(quest_root)
+    active_run_id = family_orchestration.resolve_active_run_id(runtime_state.get("active_run_id"))
+    scanned_at = str(report.get("scanned_at") or "").strip() or utc_now()
+    human_gates = _watch_human_gates_for_quest_report(report=report, scanned_at=scanned_at)
+    controller_refs = []
+    for name, payload in (report.get("controllers") or {}).items():
+        if not isinstance(payload, Mapping):
+            continue
+        report_json = str(payload.get("report_json") or "").strip()
+        if not report_json:
+            continue
+        controller_refs.append(
+            {
+                "ref_kind": "repo_path",
+                "ref": report_json,
+                "label": f"{name}_report",
+            }
+        )
+    companion = family_orchestration.build_family_orchestration_companion(
+        surface_kind="runtime_watch",
+        surface_id="runtime_watch/latest.json",
+        event_name="runtime_watch.quest_scanned",
+        source_surface="runtime_watch",
+        session_id=f"runtime-watch:{quest_root.name}",
+        program_id=None,
+        study_id=quest_root.name,
+        quest_id=quest_root.name,
+        active_run_id=active_run_id,
+        runtime_decision=None,
+        runtime_reason=None,
+        payload={
+            "quest_status": report.get("quest_status"),
+            "controller_count": len(report.get("controllers") or {}),
+        },
+        event_time=scanned_at,
+        checkpoint_id=f"runtime-watch-quest:{quest_root.name}:{report.get('quest_status')}",
+        checkpoint_label="runtime watch quest scan",
+        audit_refs=controller_refs,
+        state_refs=[
+            {
+                "role": "audit",
+                "ref_kind": "repo_path",
+                "ref": str(quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"),
+                "label": "runtime_watch_latest",
+            }
+        ],
+        restoration_evidence=controller_refs,
+        action_graph_id="mas_runtime_orchestration",
+        node_id="runtime_watch_quest_scan",
+        gate_id=(human_gates[0].get("gate_id") if human_gates else None),
+        resume_mode="reenter_human_gate" if human_gates else "resume_from_checkpoint",
+        resume_handle=f"runtime_watch:{quest_root.name}",
+        human_gate_required=bool(human_gates),
+        human_gates=human_gates,
+    )
+    report["family_event_envelope"] = companion["family_event_envelope"]
+    report["family_checkpoint_lineage"] = companion["family_checkpoint_lineage"]
+    report["family_human_gates"] = companion["family_human_gates"]
+
+
+def _attach_family_companion_to_runtime_report(report: dict[str, Any], *, runtime_root: Path) -> None:
+    scanned_at = str(report.get("scanned_at") or "").strip() or utc_now()
+    human_gates: list[dict[str, Any]] = []
+    for quest_report in report.get("reports") or []:
+        if not isinstance(quest_report, Mapping):
+            continue
+        for gate in quest_report.get("family_human_gates") or []:
+            if isinstance(gate, Mapping):
+                human_gates.append(dict(gate))
+    companion = family_orchestration.build_family_orchestration_companion(
+        surface_kind="runtime_watch",
+        surface_id="runtime_watch/runtime_tick",
+        event_name="runtime_watch.runtime_scanned",
+        source_surface="runtime_watch",
+        session_id=f"runtime-watch:{runtime_root}",
+        program_id=None,
+        study_id=None,
+        quest_id=None,
+        active_run_id=None,
+        runtime_decision=None,
+        runtime_reason=None,
+        payload={
+            "scanned_quest_count": len(report.get("scanned_quests") or []),
+            "managed_study_action_count": len(report.get("managed_study_actions") or []),
+            "managed_study_auto_recovery_count": len(report.get("managed_study_auto_recoveries") or []),
+        },
+        event_time=scanned_at,
+        checkpoint_id=f"runtime-watch-runtime:{runtime_root.name}:{len(report.get('scanned_quests') or [])}",
+        checkpoint_label="runtime watch runtime scan",
+        audit_refs=[
+            {
+                "ref_kind": "repo_path",
+                "ref": str(item.get("latest_report_json") or item.get("report_json") or "").strip(),
+                "label": "runtime_watch_quest_report",
+            }
+            for item in (report.get("reports") or [])
+            if isinstance(item, Mapping) and str(item.get("latest_report_json") or item.get("report_json") or "").strip()
+        ],
+        state_refs=[
+            {
+                "role": "workspace",
+                "ref_kind": "repo_path",
+                "ref": str(runtime_root),
+                "label": "runtime_root",
+            }
+        ],
+        action_graph_id="mas_runtime_orchestration",
+        node_id="runtime_watch_runtime_scan",
+        gate_id=(human_gates[0].get("gate_id") if human_gates else None),
+        resume_mode="reenter_human_gate" if human_gates else "resume_from_checkpoint",
+        resume_handle=f"runtime_watch:{runtime_root}",
+        human_gate_required=bool(human_gates),
+        human_gates=human_gates,
+    )
+    report["family_event_envelope"] = companion["family_event_envelope"]
+    report["family_checkpoint_lineage"] = companion["family_checkpoint_lineage"]
+    report["family_human_gates"] = companion["family_human_gates"]
+
+
 def render_watch_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Runtime Watch Report",
@@ -404,6 +563,7 @@ def run_watch_for_quest(
                 }
             )
 
+    _attach_family_companion_to_quest_report(report, quest_root=quest_root)
     runtime_watch_protocol.save_watch_state(
         quest_root=quest_root,
         payload=runtime_watch_protocol.RuntimeWatchState(
@@ -501,7 +661,7 @@ def run_watch_for_runtime(
         )
         if supervision_report is not None:
             managed_study_supervision.append(supervision_report)
-    return {
+    runtime_report = {
         "schema_version": 1,
         "scanned_at": utc_now(),
         "runtime_root": str(runtime_root),
@@ -511,6 +671,8 @@ def run_watch_for_runtime(
         "managed_study_supervision": managed_study_supervision,
         "reports": reports,
     }
+    _attach_family_companion_to_runtime_report(runtime_report, runtime_root=Path(runtime_root).expanduser().resolve())
+    return runtime_report
 
 
 def run_watch_loop(
