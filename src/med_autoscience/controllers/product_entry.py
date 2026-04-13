@@ -843,6 +843,12 @@ def build_product_entry_manifest(
         },
         "recommended_shell": "workspace_cockpit",
         "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
+        "frontdesk_surface": {
+            "shell_key": "workspace_cockpit",
+            "command": product_entry_shell["workspace_cockpit"]["command"],
+            "surface_kind": "workspace_cockpit",
+            "summary": product_entry_shell["workspace_cockpit"]["purpose"],
+        },
         "operator_loop_surface": {
             "shell_key": "workspace_cockpit",
             "command": product_entry_shell["workspace_cockpit"]["command"],

@@ -335,6 +335,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
+    assert payload["frontdesk_surface"]["shell_key"] == "workspace_cockpit"
+    assert payload["frontdesk_surface"]["command"] == payload["recommended_command"]
+    assert payload["frontdesk_surface"]["surface_kind"] == "workspace_cockpit"
+    assert "workspace 级用户 inbox" in payload["frontdesk_surface"]["summary"]
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
     assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"
