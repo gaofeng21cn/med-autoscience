@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`44`
+  - 证据型模板：`45`
   - 插图壳层：`2`
   - 表格壳层：`5`
-  - 总模板数：`51`
+  - 总模板数：`52`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -33,8 +33,8 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting and demand routing`
-- Family cluster：`F`
-- Capability cluster：`richer_grouped_local_explanation_variants`
+- Family cluster：`H`
+- Capability cluster：`workflow_fact_sheet_panel_or_design_evidence_composite_shell`
 - Owner worktree：`none`
 - 状态：`owner_brief_pending`
 
@@ -42,22 +42,22 @@
 
 当前这一轮要回答的是：
 
-> 在 `partial_dependence_interaction_contour_panel` 已正式吸收进主线之后，`F` 家族下一步到底应该把哪一个更高价值但仍然 bounded 的 grouped-local follow-on 先推进成正式模板，并且如何在开工前先收口 owner brief，避免重新滑回自由拼装 explanation scene。
+> 在 `shap_grouped_decision_path_panel` 已正式吸收进主线之后，`H` 家族下一步应该先把 `workflow_fact_sheet_panel` 还是 `design_evidence_composite_shell` 收口成更高价值但仍然 bounded 的壳层能力，并且如何在开工前先锁定 owner brief，避免重新滑回自由拼装的研究设计拼图。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `next F-cluster demand routing from real-paper / exemplar pressure`
-2. `minimal owner brief for richer grouped-local-explanation variants beyond the first audited baseline`
+1. `next H-cluster demand routing from real-paper / exemplar pressure`
+2. `minimal owner brief for workflow_fact_sheet_panel_or_design_evidence_composite_shell`
 3. `write-set / verification-slice / stop-condition lock before opening the next owner worktree`
 
 本轮明确不做：
 
-- workflow / design-evidence shells
-- 自由拼装式 explanation scene composition 系统
-- richer higher-order partial-dependence scene composition
-- 自由拼装的 explanation scene composition
+- `F` 家族更高阶 partial-dependence follow-on
+- `D/E/G` 更大的 atlas / spatial / trajectory 多视图复合图式
+- 自由拼装式 workflow / design-evidence scene composition 系统
+- 任何脱离显式 schema / shell contract 的临时论文拼图
 
 ## 预期写集
 
@@ -97,7 +97,7 @@
 
 1. `H / workflow_fact_sheet_panel` 或 `design_evidence_composite_shell`
 2. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
-3. `F / higher-order partial-dependence follow-on beyond the interaction-contour lower bound`
+3. `F / higher-order partial-dependence follow-on beyond the grouped-decision-path lower bound`
 
 ## 明确不是执行面
 

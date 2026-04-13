@@ -3658,6 +3658,151 @@ def test_run_display_layout_qc_fails_when_grouped_local_positive_bar_crosses_zer
     assert any(issue["rule_id"] == "positive_bar_crosses_zero" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_shap_grouped_decision_path_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_grouped_decision_path_panel",
+        layout_sidecar={
+            "template_id": "shap_grouped_decision_path_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title", "panel_title", x0=0.22, y0=0.88, x1=0.62, y1=0.91),
+                make_box("x_axis_title", "subplot_x_axis_title", x0=0.33, y0=0.10, x1=0.58, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.06, y0=0.30, x1=0.09, y1=0.76),
+                make_box("legend_title", "legend_title", x0=0.71, y0=0.22, x1=0.82, y1=0.25),
+                make_box("legend_box", "legend_box", x0=0.69, y0=0.19, x1=0.89, y1=0.33),
+                make_box("feature_label_1", "feature_label", x0=0.11, y0=0.67, x1=0.18, y1=0.71),
+                make_box("feature_label_2", "feature_label", x0=0.09, y0=0.49, x1=0.18, y1=0.53),
+                make_box("feature_label_3", "feature_label", x0=0.08, y0=0.31, x1=0.18, y1=0.35),
+                make_box("decision_path_line_immune_inflamed", "decision_path_line", x0=0.31, y0=0.24, x1=0.66, y1=0.72),
+                make_box("decision_path_line_stromal_low", "decision_path_line", x0=0.24, y0=0.24, x1=0.56, y1=0.72),
+                make_box("prediction_label_immune_inflamed", "prediction_label", x0=0.60, y0=0.21, x1=0.73, y1=0.25),
+                make_box("prediction_label_stromal_low", "prediction_label", x0=0.36, y0=0.21, x1=0.50, y1=0.25),
+            ],
+            "panel_boxes": [
+                make_box("panel_decision_path", "panel", x0=0.20, y0=0.18, x1=0.67, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("baseline_reference_line", "baseline_reference_line", x0=0.33, y0=0.18, x1=0.331, y1=0.82),
+                make_box("prediction_marker_immune_inflamed", "prediction_marker", x0=0.62, y0=0.22, x1=0.628, y1=0.24),
+                make_box("prediction_marker_stromal_low", "prediction_marker", x0=0.41, y0=0.22, x1=0.418, y1=0.24),
+            ],
+            "metrics": {
+                "panel_box_id": "panel_decision_path",
+                "baseline_line_box_id": "baseline_reference_line",
+                "baseline_value": 0.19,
+                "legend_title": "Phenotype",
+                "feature_order": ["Age", "Albumin", "Tumor size"],
+                "feature_label_box_ids": ["feature_label_1", "feature_label_2", "feature_label_3"],
+                "groups": [
+                    {
+                        "group_id": "immune_inflamed",
+                        "group_label": "Phenotype 1",
+                        "predicted_value": 0.34,
+                        "line_box_id": "decision_path_line_immune_inflamed",
+                        "prediction_marker_box_id": "prediction_marker_immune_inflamed",
+                        "prediction_label_box_id": "prediction_label_immune_inflamed",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": 0.10, "start_value": 0.19, "end_value": 0.29},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.03, "start_value": 0.29, "end_value": 0.26},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": 0.08, "start_value": 0.26, "end_value": 0.34},
+                        ],
+                    },
+                    {
+                        "group_id": "stromal_low",
+                        "group_label": "Phenotype 2",
+                        "predicted_value": 0.08,
+                        "line_box_id": "decision_path_line_stromal_low",
+                        "prediction_marker_box_id": "prediction_marker_stromal_low",
+                        "prediction_label_box_id": "prediction_label_stromal_low",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": -0.04, "start_value": 0.19, "end_value": 0.15},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.02, "start_value": 0.15, "end_value": 0.13},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": -0.05, "start_value": 0.13, "end_value": 0.08},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_shap_grouped_decision_path_lacks_legend() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_shap_grouped_decision_path_panel",
+        layout_sidecar={
+            "template_id": "shap_grouped_decision_path_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title", "panel_title", x0=0.22, y0=0.88, x1=0.62, y1=0.91),
+                make_box("x_axis_title", "subplot_x_axis_title", x0=0.33, y0=0.10, x1=0.58, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.06, y0=0.30, x1=0.09, y1=0.76),
+                make_box("feature_label_1", "feature_label", x0=0.11, y0=0.67, x1=0.18, y1=0.71),
+                make_box("feature_label_2", "feature_label", x0=0.09, y0=0.49, x1=0.18, y1=0.53),
+                make_box("feature_label_3", "feature_label", x0=0.08, y0=0.31, x1=0.18, y1=0.35),
+                make_box("decision_path_line_immune_inflamed", "decision_path_line", x0=0.31, y0=0.24, x1=0.66, y1=0.72),
+                make_box("decision_path_line_stromal_low", "decision_path_line", x0=0.24, y0=0.24, x1=0.56, y1=0.72),
+                make_box("prediction_label_immune_inflamed", "prediction_label", x0=0.60, y0=0.21, x1=0.73, y1=0.25),
+                make_box("prediction_label_stromal_low", "prediction_label", x0=0.36, y0=0.21, x1=0.50, y1=0.25),
+            ],
+            "panel_boxes": [
+                make_box("panel_decision_path", "panel", x0=0.20, y0=0.18, x1=0.67, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("baseline_reference_line", "baseline_reference_line", x0=0.33, y0=0.18, x1=0.331, y1=0.82),
+                make_box("prediction_marker_immune_inflamed", "prediction_marker", x0=0.62, y0=0.22, x1=0.628, y1=0.24),
+                make_box("prediction_marker_stromal_low", "prediction_marker", x0=0.41, y0=0.22, x1=0.418, y1=0.24),
+            ],
+            "metrics": {
+                "panel_box_id": "panel_decision_path",
+                "baseline_line_box_id": "baseline_reference_line",
+                "baseline_value": 0.19,
+                "legend_title": "Phenotype",
+                "feature_order": ["Age", "Albumin", "Tumor size"],
+                "feature_label_box_ids": ["feature_label_1", "feature_label_2", "feature_label_3"],
+                "groups": [
+                    {
+                        "group_id": "immune_inflamed",
+                        "group_label": "Phenotype 1",
+                        "predicted_value": 0.34,
+                        "line_box_id": "decision_path_line_immune_inflamed",
+                        "prediction_marker_box_id": "prediction_marker_immune_inflamed",
+                        "prediction_label_box_id": "prediction_label_immune_inflamed",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": 0.10, "start_value": 0.19, "end_value": 0.29},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.03, "start_value": 0.29, "end_value": 0.26},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": 0.08, "start_value": 0.26, "end_value": 0.34},
+                        ],
+                    },
+                    {
+                        "group_id": "stromal_low",
+                        "group_label": "Phenotype 2",
+                        "predicted_value": 0.08,
+                        "line_box_id": "decision_path_line_stromal_low",
+                        "prediction_marker_box_id": "prediction_marker_stromal_low",
+                        "prediction_label_box_id": "prediction_label_stromal_low",
+                        "contributions": [
+                            {"rank": 1, "feature": "Age", "shap_value": -0.04, "start_value": 0.19, "end_value": 0.15},
+                            {"rank": 2, "feature": "Albumin", "shap_value": -0.02, "start_value": 0.15, "end_value": 0.13},
+                            {"rank": 3, "feature": "Tumor size", "shap_value": -0.05, "start_value": 0.13, "end_value": 0.08},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "legend_box_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_force_like_positive_segment_crosses_baseline() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

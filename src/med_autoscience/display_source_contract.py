@@ -34,6 +34,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "shap_waterfall_local_explanation_panel_inputs_v1": "shap_waterfall_local_explanation_panel_inputs.json",
     "shap_force_like_summary_panel_inputs_v1": "shap_force_like_summary_panel_inputs.json",
     "shap_grouped_local_explanation_panel_inputs_v1": "shap_grouped_local_explanation_panel_inputs.json",
+    "shap_grouped_decision_path_panel_inputs_v1": "shap_grouped_decision_path_panel_inputs.json",
     "partial_dependence_ice_panel_inputs_v1": "partial_dependence_ice_panel_inputs.json",
     "partial_dependence_interaction_contour_panel_inputs_v1": "partial_dependence_interaction_contour_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",

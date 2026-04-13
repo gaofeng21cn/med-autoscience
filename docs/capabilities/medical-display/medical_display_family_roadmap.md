@@ -407,6 +407,7 @@ Representative displays:
 - waterfall
 - force-like summary
 - grouped local explanation
+- grouped decision path
 - PDP
 - ICE
 - feature importance
@@ -431,13 +432,14 @@ Current audited anchors:
 - `shap_waterfall_local_explanation_panel`
 - `shap_force_like_summary_panel`
 - `shap_grouped_local_explanation_panel`
+- `shap_grouped_decision_path_panel`
 - `partial_dependence_ice_panel`
 - `partial_dependence_interaction_contour_panel`
 
 Current gap direction:
 
-- richer partial-dependence variants beyond the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + grouped-local + bounded PDP/ICE baseline + bounded pairwise interaction-contour lower bound
-- richer grouped-local-explanation variants where real paper demand proves the first audited baseline should expand
+- richer partial-dependence variants beyond the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + grouped-local + grouped decision-path + bounded PDP/ICE baseline + bounded pairwise interaction-contour lower bound
+- more complex grouped-local / decision-path scenes only when real paper demand proves the current two-group shared-baseline lower bound should expand
 - stronger explanation-panel readability and annotation contracts
 
 ### G. 生物信息与组学证据类

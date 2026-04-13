@@ -60,6 +60,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "shap_waterfall_local_explanation_panel",
         "shap_force_like_summary_panel",
         "shap_grouped_local_explanation_panel",
+        "shap_grouped_decision_path_panel",
         "partial_dependence_ice_panel",
         "partial_dependence_interaction_contour_panel",
         "time_to_event_discrimination_calibration_panel",
