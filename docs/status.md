@@ -9,7 +9,7 @@
 - 当前产品主线：`Auto-only`
 - 当前总阶段：5 阶段梯子中的 `Phase 1 mainline established` 尾声；当前 repo stage 仍是 `F4 blocker closeout`
 - 当前研究入口边界：`MedAutoScience` 是唯一研究入口；上游 `Hermes-Agent` 是目标 outer runtime substrate；当前真实执行仍落在受控 `MedDeepScientist` backend
-- 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `product-entry-manifest` 现在会冻结当前 research 主线 shell，并显式导出 `recommended_shell / recommended_command`、repo mainline 摘要以及 `product_entry_status` 状态摘要；`build-product-entry` 会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
+- 当前入口真相：`operator entry` 与 `agent entry` 已存在；repo-tracked 轻量 `product-entry shell` 已落地，其中 `product-entry-manifest` 现在会冻结当前 research 主线 shell，并显式导出 `operator_loop_surface`、`recommended_shell / recommended_command`、repo mainline 摘要以及 `product_entry_status` 状态摘要；当前 operator loop 明确收口为 `workspace-cockpit`；`build-product-entry` 会输出 shared direct / `OPL` handoff envelope，但成熟的医学 `product entry` 仍未落地
 - 当前协作模型：`Hermes-Agent` 负责产品级长期在线 runtime substrate / orchestration，`MedAutoScience` 负责 gateway / authority / outer-loop，`MedDeepScientist` 继续作为当前 research executor；单步执行器替换不是当前 tranche 的默认目标
 
 ## 当前基线（repo-verified）
