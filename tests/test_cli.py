@@ -837,6 +837,28 @@ def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypat
     assert json.loads(captured.out)["workspace_status"] == "ready"
 
 
+def test_product_frontdesk_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_build_product_frontdesk(*, profile, profile_ref) -> dict:
+        called["profile"] = profile
+        called["profile_ref"] = profile_ref
+        return {"surface_kind": "product_frontdesk", "summary": {"frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk"}}
+
+    monkeypatch.setattr(cli.product_entry, "build_product_frontdesk", fake_build_product_frontdesk)
+
+    exit_code = cli.main(["product-frontdesk", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == Path(profile_path)
+    assert json.loads(captured.out)["surface_kind"] == "product_frontdesk"
+
+
 def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

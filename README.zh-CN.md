@@ -125,7 +125,7 @@ formal-entry matrix 继续固定为：默认正式入口 `CLI`、支持协议层
 这里冻结的仍然只是目标架构，不是说产品入口已经完成落地。
 因为 external runtime gate 还没有清除，所以当前对用户最诚实的路径仍然是 agent-operated，而不是成熟的独立产品前台。
 新补上的这层 shell 解决的是“怎么启动、怎么下任务、怎么持续看进度”的实用缺口，但不把它写成已经完成的独立产品前台。
-`product-entry-manifest` 会先把当前 research 主线 shell 冻结成 machine-readable discovery surface，`build-product-entry` 再把这层 shell 延伸成 machine-readable handoff surface；这两者都不等于成熟独立前台已经落地。
+`product-entry-manifest` 会先把当前 research 主线 shell 冻结成 machine-readable discovery surface，`product-frontdesk` 现在又把这层 shell 上方的 controller-owned frontdoor 冻结下来，`build-product-entry` 再把同一层 shell 延伸成 machine-readable handoff surface；它们都不等于成熟独立前台已经落地。
 
 ### 当前 `Hermes` 到底指什么
 

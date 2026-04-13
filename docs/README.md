@@ -5,7 +5,7 @@
 This bilingual index is the default public surface for `Med Auto Science`.
 Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
 Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
-The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, `product-entry-manifest` now freezes that same research-side shell as a machine-readable discovery surface, and `build-product-entry` emits the shared direct / `OPL` handoff envelope from it; this is still not the same thing as a mature direct user-facing product.
+The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, `product-entry-manifest` now freezes that same research-side shell as a machine-readable discovery surface, `product-frontdesk` freezes the controller-owned front door above it, and `build-product-entry` emits the shared direct / `OPL` handoff envelope from it; this is still not the same thing as a mature direct user-facing product.
 
 ## Core Skeleton
 
@@ -33,6 +33,7 @@ Current frozen state:
 - Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
 - Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
 - Current discovery surface: `uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` now projects the current research-side shell without including the independent display line.
+- Current frontdoor surface: `uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` now packages the controller-owned front door above the same research shell.
 - Current shared-envelope shell: `build-product-entry` now exports the same direct / `OPL` handoff envelope on top of the landed workspace/task/progress shell.
 - Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
 - Repo-level phase entry: `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`

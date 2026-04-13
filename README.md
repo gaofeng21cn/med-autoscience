@@ -126,7 +126,7 @@ That handoff should keep one shared minimum envelope:
 This is still a target architecture note, not a claim that the product entry has already landed.
 Because the external runtime gate is still open, the current truthful user path remains agent-operated rather than a mature standalone product entry.
 The new shell closes the practical usability gap for launch / task submission / progress visibility without over-claiming that a full standalone product frontend already exists.
-`product-entry-manifest` freezes the current research-side shell as a machine-readable discovery surface, and `build-product-entry` extends that same shell into a machine-readable handoff surface; neither of them means the mature standalone medical product entry has landed.
+`product-entry-manifest` freezes the current research-side shell as a machine-readable discovery surface, `product-frontdesk` now freezes the controller-owned front door above that shell, and `build-product-entry` extends the same shell into a machine-readable handoff surface; none of them means the mature standalone medical product entry has landed.
 
 ### What `Hermes` Means Today
 

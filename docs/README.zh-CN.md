@@ -3,7 +3,7 @@
 [English](./README.md) | **中文**
 
 这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。对外文档必须提供中英双语镜像，内部技术与规划材料默认中文，除非明确提升到双语公开面。文档治理规则统一收口在 [`AGENTS.md`](../AGENTS.md)。
-当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。仓内现在已经补上一层 repo-tracked 的轻量 `product-entry shell`，用来收口启动、下任务与进度可见性；`product-entry-manifest` 现在会把同一层 research 主线 shell 冻结成 machine-readable discovery surface，`build-product-entry` 则会从这层 shell 输出 shared direct / `OPL` handoff envelope，但它们仍然不是成熟的 direct user-facing 产品前台。
+当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。仓内现在已经补上一层 repo-tracked 的轻量 `product-entry shell`，用来收口启动、下任务与进度可见性；`product-entry-manifest` 现在会把同一层 research 主线 shell 冻结成 machine-readable discovery surface，`product-frontdesk` 现在又把这层 shell 上方的 controller-owned frontdoor 冻结下来，`build-product-entry` 则会从这层 shell 输出 shared direct / `OPL` handoff envelope，但它们仍然不是成熟的 direct user-facing 产品前台。
 
 ## 核心骨架
 
@@ -31,6 +31,7 @@
 - 长线目标：上游 `Hermes-Agent` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
 - 产品入口目标：补出一个既可被用户直接进入、也可被 `OPL` handoff 调起的轻量医学 `product entry`，同时不改写当前研究 authority boundary。
 - 当前发现面：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` 现在会把当前 research 主线 shell 投影出来，同时明确它不覆盖 display 独立支线。
+- 当前前台入口面：`uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` 现在会把同一层 research shell 上方的 controller-owned frontdoor 投影出来。
 - 当前 shared-envelope shell：`build-product-entry` 现在已经能在已 landed 的 workspace/task/progress shell 之上导出 direct / `OPL` handoff envelope。
 - repo 主线状态入口：`uv run python -m med_autoscience.cli mainline-status`
 - repo 阶段入口：`uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
