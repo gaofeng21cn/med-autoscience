@@ -29,7 +29,7 @@
 - 当前 runtime / gateway / architecture 主线只推进上游 `Hermes-Agent` 目标 substrate、`MedAutoScience` gateway、`MedDeepScientist` controlled backend 这条迁移，不碰 display / paper-facing asset packaging 独立线。
 - `runtime_binding.yaml`、`study_runtime_status`、`runtime_watch`、outer-loop controller action 已同步写入 future outer-runtime seam 与 `MedDeepScientist` research backend 的分层语义。
 - `workspace-cockpit`、`submit-study-task`、`launch-study`、`product-entry-manifest`、`build-product-entry` 已作为 repo-tracked 轻量 product-entry shell 落地：用户现在可以先看 workspace cockpit，再写 study task intake，再直接启动/续跑并拿到监督入口，先读取当前 research 主线 shell manifest，或者输出 shared direct / `OPL` handoff envelope，而不是自己拼装底层 controller 命令。
-- 同轮已把 `product-entry-manifest` 提升到 family product-entry manifest v2 companion 层：现在它会额外导出 `family_orchestration.human_gates / resume_contract / event_envelope_surface / checkpoint_lineage_surface`，方便顶层 `OPL` 或其他 caller 看懂 MAS 研究 loop 的人审与续跑边界。
+- 同轮已把 `product-entry-manifest` 提升到 family product-entry manifest v2 companion 层：现在它会额外导出 `family_orchestration.action_graph / human_gates / resume_contract / event_envelope_surface / checkpoint_lineage_surface`，方便顶层 `OPL` 或其他 caller 看懂 MAS 研究 loop 的 frontdoor graph、人审与续跑边界。
 - 同轮又把 direct frontdoor 从 loop 中拆了出来：`product-frontdesk` 现在作为 controller-owned 的前台入口合同，显式指向当前 frontdoor；`workspace-cockpit` 继续保留为真实 operator loop。
 - 同轮继续把 manifest 收成更诚实的用户动作面：当前 `product-entry-manifest` 不再只告诉用户“当前 loop 是 workspace-cockpit”，还会显式给出 `open_loop / submit_task / continue_study / inspect_progress` 四个标准动作，便于 `OPL` 顶层或其他 caller 直接消费，而不是自己猜命令拼法。
 - `mainline-status` 已作为 repo-level 正式状态入口落地：现在可以直接读取 MAS 在 OPL / Research Foundry / runtime mainline 里的理想形态、当前阶段、已完成 tranche、剩余缺口与 next focus，而不必手工拼多份 program 文档。
