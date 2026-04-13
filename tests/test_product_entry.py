@@ -309,6 +309,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "status": "in_progress",
                 "summary": "把用户 inbox 与持续进度回路收成稳定壳。",
             },
+            "next_focus": [
+                "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
+            ],
             "remaining_gaps": [
                 "mature standalone medical product entry is still not landed",
             ],
@@ -334,6 +337,16 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     )
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
+    assert payload["repo_mainline"]["current_stage_summary"] == "继续收口 blocker 并把用户入口壳压实。"
+    assert payload["repo_mainline"]["current_program_phase_summary"] == "把用户 inbox 与持续进度回路收成稳定壳。"
+    assert payload["repo_mainline"]["next_focus"] == [
+        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
+    ]
+    assert payload["product_entry_status"]["summary"] == "继续收口 blocker 并把用户入口壳压实。"
+    assert payload["product_entry_status"]["remaining_gaps_count"] == 1
+    assert payload["product_entry_status"]["next_focus"] == [
+        "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
+    ]
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )

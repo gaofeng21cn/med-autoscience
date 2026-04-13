@@ -821,8 +821,17 @@ def build_product_entry_manifest(
             "program_id": mainline_snapshot.get("program_id"),
             "current_stage_id": mainline_snapshot.get("current_stage_id"),
             "current_stage_status": mainline_snapshot.get("current_stage_status"),
+            "current_stage_summary": mainline_snapshot.get("current_stage_summary"),
             "current_program_phase_id": mainline_snapshot.get("current_program_phase_id"),
             "current_program_phase_status": mainline_snapshot.get("current_program_phase_status"),
+            "current_program_phase_summary": mainline_snapshot.get("current_program_phase_summary"),
+            "next_focus": list(mainline_snapshot.get("next_focus") or []),
+        },
+        "product_entry_status": {
+            "summary": mainline_snapshot.get("current_stage_summary")
+            or mainline_snapshot.get("current_program_phase_summary"),
+            "next_focus": list(mainline_snapshot.get("next_focus") or []),
+            "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
         },
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
