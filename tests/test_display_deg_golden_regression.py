@@ -529,3 +529,145 @@ def test_trajectory_progression_panel_preserves_deg_trajectory_contract(tmp_path
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_atlas_spatial_bridge_panel_preserves_deg_bridge_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_bridge_panel",
+                    "catalog_id": "F30",
+                    "shell_path": "paper/figures/Figure30.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "atlas_spatial_bridge_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_bridge_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel",
+                    "title": "Atlas occupancy, spatial state topography, region composition, and marker-program bridge",
+                    "caption": "Composite bridge regression lock for atlas-spatial-program coupling.",
+                    "atlas_panel_title": "Atlas occupancy",
+                    "atlas_x_label": "UMAP 1",
+                    "atlas_y_label": "UMAP 2",
+                    "atlas_points": [
+                        {"x": -2.0, "y": 1.1, "state_label": "T cells", "group_label": "Tumor"},
+                        {"x": -1.7, "y": 0.8, "state_label": "T cells", "group_label": "Adjacent"},
+                        {"x": 1.4, "y": -0.5, "state_label": "Myeloid", "group_label": "Tumor"},
+                        {"x": 1.9, "y": -0.8, "state_label": "Myeloid", "group_label": "Adjacent"},
+                    ],
+                    "spatial_panel_title": "Spatial state topography",
+                    "spatial_x_label": "Tissue x coordinate",
+                    "spatial_y_label": "Tissue y coordinate",
+                    "spatial_points": [
+                        {"x": 0.10, "y": 0.78, "state_label": "T cells", "region_label": "Tumor core"},
+                        {"x": 0.18, "y": 0.70, "state_label": "T cells", "region_label": "Tumor core"},
+                        {"x": 0.74, "y": 0.26, "state_label": "Myeloid", "region_label": "Invasive margin"},
+                        {"x": 0.82, "y": 0.18, "state_label": "Myeloid", "region_label": "Invasive margin"},
+                    ],
+                    "composition_panel_title": "Region-wise state composition",
+                    "composition_x_label": "Cell-state composition",
+                    "composition_y_label": "Region",
+                    "composition_groups": [
+                        {
+                            "group_label": "Tumor core",
+                            "group_order": 1,
+                            "state_proportions": [
+                                {"state_label": "T cells", "proportion": 0.64},
+                                {"state_label": "Myeloid", "proportion": 0.36},
+                            ],
+                        },
+                        {
+                            "group_label": "Invasive margin",
+                            "group_order": 2,
+                            "state_proportions": [
+                                {"state_label": "T cells", "proportion": 0.42},
+                                {"state_label": "Myeloid", "proportion": 0.58},
+                            ],
+                        },
+                    ],
+                    "heatmap_panel_title": "Marker-program definition",
+                    "heatmap_x_label": "Cell state",
+                    "heatmap_y_label": "Marker / program",
+                    "score_method": "AUCell",
+                    "row_order": [{"label": "CXCL13 program"}, {"label": "TGF-beta program"}],
+                    "column_order": [{"label": "T cells"}, {"label": "Myeloid"}],
+                    "cells": [
+                        {"x": "T cells", "y": "CXCL13 program", "value": 0.78},
+                        {"x": "Myeloid", "y": "CXCL13 program", "value": -0.14},
+                        {"x": "T cells", "y": "TGF-beta program", "value": -0.21},
+                        {"x": "Myeloid", "y": "TGF-beta program", "value": 0.66},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F30_atlas_spatial_bridge_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_atlas",
+        "panel_spatial",
+        "panel_composition",
+        "panel_heatmap",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_D" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["score_method"] == "AUCell"
+    assert sorted(layout_sidecar["metrics"]["state_labels"]) == ["Myeloid", "T cells"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

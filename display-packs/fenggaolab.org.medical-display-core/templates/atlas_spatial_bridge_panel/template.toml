@@ -1,0 +1,19 @@
+template_id = "atlas_spatial_bridge_panel"
+full_template_id = "fenggaolab.org.medical-display-core::atlas_spatial_bridge_panel"
+kind = "evidence_figure"
+display_name = "Atlas-Spatial Bridge Panel"
+paper_family_ids = ["D", "E", "G"]
+audit_family = "Data Geometry"
+renderer_family = "python"
+input_schema_ref = "atlas_spatial_bridge_panel_inputs_v1"
+qc_profile_ref = "publication_atlas_spatial_bridge_panel"
+required_exports = ["png", "pdf"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+paper_proven = false
+exemplar_refs = [
+  "https://www.nature.com/articles/s41591-024-03215-z",
+  "https://www.nature.com/articles/s41591-025-03920-3",
+  "https://www.nature.com/articles/s41467-025-58511-0",
+]

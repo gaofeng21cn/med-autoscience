@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`45`
+  - 证据型模板：`46`
   - 插图壳层：`4`
   - 表格壳层：`5`
-  - 总模板数：`54`
+  - 总模板数：`55`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -32,55 +32,50 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 5 / integration / merge-back / reroute`
-- Family cluster：`H`
-- Capability cluster：`design_evidence_composite_shell`
-- Owner worktree：`.worktrees/medical-display-design-evidence-composite-20260413T054244Z`
-- 状态：`merge_back_ready`
+- Phase：`Phase 4 / next-cluster scouting / owner-brief routing`
+- Family cluster：`F`
+- Capability cluster：`higher-order partial-dependence follow-on`
+- Owner worktree：`未开启（等待 owner brief 固定后再新开唯一 worktree）`
+- 状态：`routing_ready`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 如何把 `design_evidence_composite_shell` 作为固定 `workflow ribbon + three summary panels` 的 bounded illustration shell 正式落进 registry / schema / materialization / QC / catalog truth，并在 merge-back 前锁定它不会滑回自由拼装式 design-evidence scene。
+> 在 `partial_dependence_ice_panel` 与 `partial_dependence_interaction_contour_panel` 已经入库的前提下，如何为 `F` 家族选定一个仍然 bounded、可审计、不会滑向自由 explanation scene 的更高阶 partial-dependence follow-on，并先把 owner brief 收口干净。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. `design_evidence_composite_shell` 的 manifest / schema / renderer / QC / materialization 闭环
-2. 与新 shell 对应的 tracked docs / catalog sync
-3. merge-back 前最低验证面与 reroute 入口锁定
+1. 固定 `F` 家族下一候选 capability cluster，不在多个 explanation scene 之间来回摆动
+2. 写清 owner brief：最小写集、最小验证面、golden regression slice、明确不做事项
+3. 在开新 owner worktree 之前，锁定 reroute 口径与 secondary candidate 顺序
 
 本轮明确不做：
 
-- 自由拼装式 workflow / design-evidence scene composition 系统
+- 重开已经 absorb 的 `atlas_spatial_bridge_panel` round
+- 没有 owner brief 就直接开 `F` 家族实现 worktree
 - `D/E/G` 更大的 atlas / spatial / trajectory 多视图复合图式
-- `F` 家族更高阶 partial-dependence follow-on
 - `H` 家族更广的 baseline-balance / missingness / QC-shell follow-on
 
 ## 预期写集
 
-当前 round 只应触碰实现新 capability cluster 所需的最小写集，通常包括：
+当前 routing round 只应触碰定向路由所需的最小写集，通常包括：
 
-- `display-packs/fenggaolab.org.medical-display-core/templates/...`
-- `display-packs/fenggaolab.org.medical-display-core/src/...`
-- `src/med_autoscience/display_registry.py`
-- `src/med_autoscience/display_schema_contract.py`
-- `src/med_autoscience/controllers/display_surface_materialization.py`
-- `src/med_autoscience/display_layout_qc.py`
-- 仅在必要时触碰 pack runtime / catalog sync 相关 surface
-- 反映新审计真相的定向文档
-- 定向回归测试
+- `docs/capabilities/medical-display/medical_display_active_board.md`
+- `docs/capabilities/medical-display/medical_display_template_backlog.md`
+- 仅在候选与 inventory 真相变化时触碰 roadmap / arsenal / audit guide
+- 在 owner brief 固定前，不触碰新的核心 display 实现文件
 
 ## 最低退出条件
 
 只有同时满足下面条件，当前 scouting round 才能进入下一个 owner implementation round：
 
-1. 下一候选 capability cluster 已固定。
+1. `F` 家族下一候选 capability cluster 已固定。
 2. owner brief 已明确最小写集、最小验证面与不做事项。
 3. 已确认当前没有别的 active display owner worktree 与其写集冲突。
-4. 当前 round 不再依赖项目本地 `.omx/`、`.codex/` 状态。
+4. `atlas_spatial_bridge_panel` 这一轮已 absorb、验证、清理完成。
 
 ## 最低验证要求
 
@@ -93,12 +88,11 @@
 
 ## 当前轮次结束后的候选
 
-当前轮次结束后，下一批候选按下面顺序继续：
+当前轮次结束后，secondary 候选按下面顺序继续：
 
-1. `H / design_evidence_composite_shell`
-2. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
-3. `F / higher-order partial-dependence follow-on beyond the grouped-decision-path lower bound`
-4. `H / baseline-balance / missingness / QC-shell follow-on`
+1. `D/E/G / richer atlas-spatial-trajectory multi-view follow-on beyond atlas_spatial_bridge_panel`
+2. `H / baseline-balance / missingness / QC-shell follow-on`
+3. `C/H / coefficient-path or compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
 
 ## 明确不是执行面
 

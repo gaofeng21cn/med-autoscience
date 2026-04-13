@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `45`
-- Illustration shells: `3`
+- Evidence figure templates: `46`
+- Illustration shells: `4`
 - Table shells: `5`
-- Total audited templates: `53`
+- Total audited templates: `55`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,14 +46,15 @@
 
 当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
 
-- `D/E/G / richer atlas-spatial-trajectory multi-view follow-on`
-- `F / higher-order partial-dependence follow-on beyond the grouped-decision-path lower bound`
+- `F / higher-order partial-dependence follow-on beyond the current PDP + interaction-contour lower bound`
+- `D/E/G / richer atlas-spatial-trajectory multi-view follow-on beyond atlas_spatial_bridge_panel`
 - `H / baseline-balance / missingness / QC-shell follow-on`
 
 其中：
 
 - `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `H / design_evidence_composite_shell` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
+- `D/E/G / atlas_spatial_bridge_panel` 已在本轮正式提升为 audited four-block bridge baseline，不再保留为当前候选。
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 已在本轮收口为 `shap_grouped_decision_path_panel`，不再保留为当前候选。
 
 这些候选不等于必须立即实现。

@@ -4395,6 +4395,75 @@ def _make_single_cell_atlas_overview_display(display_id: str = "Figure27") -> di
     }
 
 
+def _make_atlas_spatial_bridge_display(display_id: str = "Figure30") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "atlas_spatial_bridge_panel",
+        "title": "Atlas occupancy, spatial state topography, region composition, and marker-program bridge",
+        "caption": (
+            "Atlas embedding, spatial state localization, region-wise state composition, and marker-program "
+            "definition remain bound inside one audited bridge contract."
+        ),
+        "atlas_panel_title": "Atlas occupancy",
+        "atlas_x_label": "UMAP 1",
+        "atlas_y_label": "UMAP 2",
+        "atlas_points": [
+            {"x": -2.0, "y": 1.1, "state_label": "T cells", "group_label": "Tumor"},
+            {"x": -1.7, "y": 0.8, "state_label": "T cells", "group_label": "Adjacent"},
+            {"x": 1.4, "y": -0.5, "state_label": "Myeloid", "group_label": "Tumor"},
+            {"x": 1.9, "y": -0.8, "state_label": "Myeloid", "group_label": "Adjacent"},
+        ],
+        "spatial_panel_title": "Spatial state topography",
+        "spatial_x_label": "Tissue x coordinate",
+        "spatial_y_label": "Tissue y coordinate",
+        "spatial_points": [
+            {"x": 0.10, "y": 0.78, "state_label": "T cells", "region_label": "Tumor core"},
+            {"x": 0.18, "y": 0.70, "state_label": "T cells", "region_label": "Tumor core"},
+            {"x": 0.74, "y": 0.26, "state_label": "Myeloid", "region_label": "Invasive margin"},
+            {"x": 0.82, "y": 0.18, "state_label": "Myeloid", "region_label": "Invasive margin"},
+        ],
+        "composition_panel_title": "Region-wise state composition",
+        "composition_x_label": "Cell-state composition",
+        "composition_y_label": "Region",
+        "composition_groups": [
+            {
+                "group_label": "Tumor core",
+                "group_order": 1,
+                "state_proportions": [
+                    {"state_label": "T cells", "proportion": 0.64},
+                    {"state_label": "Myeloid", "proportion": 0.36},
+                ],
+            },
+            {
+                "group_label": "Invasive margin",
+                "group_order": 2,
+                "state_proportions": [
+                    {"state_label": "T cells", "proportion": 0.42},
+                    {"state_label": "Myeloid", "proportion": 0.58},
+                ],
+            },
+        ],
+        "heatmap_panel_title": "Marker-program definition",
+        "heatmap_x_label": "Cell state",
+        "heatmap_y_label": "Marker / program",
+        "score_method": "AUCell",
+        "row_order": [
+            {"label": "CXCL13 program"},
+            {"label": "TGF-beta program"},
+        ],
+        "column_order": [
+            {"label": "T cells"},
+            {"label": "Myeloid"},
+        ],
+        "cells": [
+            {"x": "T cells", "y": "CXCL13 program", "value": 0.78},
+            {"x": "Myeloid", "y": "CXCL13 program", "value": -0.14},
+            {"x": "T cells", "y": "TGF-beta program", "value": -0.21},
+            {"x": "Myeloid", "y": "TGF-beta program", "value": 0.66},
+        ],
+    }
+
+
 def _make_spatial_niche_map_display(display_id: str = "Figure28") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -4591,6 +4660,103 @@ def test_load_evidence_display_payload_rejects_incomplete_composition_for_spatia
             paper_root=paper_root,
             spec=spec,
             display_id="Figure28",
+        )
+
+
+def test_materialize_display_surface_generates_atlas_spatial_bridge_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_bridge_panel",
+                    "catalog_id": "F30",
+                    "shell_path": "paper/figures/Figure30.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure30",
+                    "template_id": full_id("atlas_spatial_bridge_panel"),
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "atlas_spatial_bridge_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_bridge_panel_inputs_v1",
+            "displays": [_make_atlas_spatial_bridge_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    figure_entry = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))["figures"][0]
+    assert figure_entry["figure_id"] == "F30"
+    assert figure_entry["template_id"] == full_id("atlas_spatial_bridge_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "atlas_spatial_bridge_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_atlas_spatial_bridge_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_atlas_spatial_bridge_when_spatial_states_drift(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_atlas_spatial_bridge_display()
+    display_payload["spatial_points"][1]["state_label"] = "Fibroblast"
+    dump_json(
+        paper_root / "atlas_spatial_bridge_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_bridge_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("atlas_spatial_bridge_panel")
+
+    with pytest.raises(ValueError, match="column_order labels must match spatial point state labels"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure30",
         )
 
 

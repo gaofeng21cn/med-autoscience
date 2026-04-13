@@ -2102,6 +2102,158 @@ def test_run_display_layout_qc_fails_when_single_cell_atlas_overview_composition
     assert any(issue["rule_id"] == "composition_group_sum_invalid" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_atlas_spatial_bridge_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_bridge_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_bridge_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("atlas_panel_title", "panel_title", x0=0.20, y0=0.88, x1=0.30, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.22, y0=0.52, x1=0.28, y1=0.54),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.68, x1=0.05, y1=0.77),
+                make_box("spatial_panel_title", "panel_title", x0=0.65, y0=0.88, x1=0.81, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.52, x1=0.79, y1=0.54),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.51, y0=0.62, x1=0.53, y1=0.83),
+                make_box("composition_panel_title", "panel_title", x0=0.15, y0=0.47, x1=0.35, y1=0.50),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.18, y0=0.12, x1=0.32, y1=0.15),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.29, x1=0.05, y1=0.36),
+                make_box("heatmap_panel_title", "panel_title", x0=0.63, y0=0.47, x1=0.80, y1=0.50),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.68, y0=0.11, x1=0.75, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.43, y0=0.23, x1=0.45, y1=0.42),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.83, x1=0.09, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.54, y0=0.83, x1=0.55, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.08, y0=0.40, x1=0.09, y1=0.42),
+                make_box("panel_label_D", "panel_label", x0=0.54, y0=0.40, x1=0.55, y1=0.42),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.07, y0=0.54, x1=0.44, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.53, y0=0.54, x1=0.88, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.07, y0=0.18, x1=0.44, y1=0.44),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.53, y0=0.18, x1=0.88, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.16, y0=0.02, x1=0.42, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.90, y0=0.18, x1=0.94, y1=0.44),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.14, "y": 0.74, "state_label": "T cells"},
+                    {"x": 0.29, "y": 0.62, "state_label": "Myeloid"},
+                ],
+                "spatial_points": [
+                    {"x": 0.60, "y": 0.76, "state_label": "T cells"},
+                    {"x": 0.78, "y": 0.62, "state_label": "Myeloid"},
+                ],
+                "state_labels": ["T cells", "Myeloid"],
+                "row_labels": ["CXCL13 program", "TGF-beta program"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "state_proportions": [
+                            {"state_label": "T cells", "proportion": 0.64},
+                            {"state_label": "Myeloid", "proportion": 0.36},
+                        ],
+                    },
+                    {
+                        "group_label": "Invasive margin",
+                        "group_order": 2,
+                        "state_proportions": [
+                            {"state_label": "T cells", "proportion": 0.42},
+                            {"state_label": "Myeloid", "proportion": 0.58},
+                        ],
+                    },
+                ],
+                "matrix_cells": [
+                    {"x": "T cells", "y": "CXCL13 program", "value": 0.74},
+                    {"x": "Myeloid", "y": "CXCL13 program", "value": -0.16},
+                    {"x": "T cells", "y": "TGF-beta program", "value": -0.19},
+                    {"x": "Myeloid", "y": "TGF-beta program", "value": 0.69},
+                ],
+                "score_method": "AUCell",
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_atlas_spatial_bridge_spatial_states_drift() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_bridge_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_bridge_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("atlas_panel_title", "panel_title", x0=0.20, y0=0.88, x1=0.30, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.22, y0=0.52, x1=0.28, y1=0.54),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.68, x1=0.05, y1=0.77),
+                make_box("spatial_panel_title", "panel_title", x0=0.65, y0=0.88, x1=0.81, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.52, x1=0.79, y1=0.54),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.51, y0=0.62, x1=0.53, y1=0.83),
+                make_box("composition_panel_title", "panel_title", x0=0.15, y0=0.47, x1=0.35, y1=0.50),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.18, y0=0.12, x1=0.32, y1=0.15),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.29, x1=0.05, y1=0.36),
+                make_box("heatmap_panel_title", "panel_title", x0=0.63, y0=0.47, x1=0.80, y1=0.50),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.68, y0=0.11, x1=0.75, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.43, y0=0.23, x1=0.45, y1=0.42),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.83, x1=0.09, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.54, y0=0.83, x1=0.55, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.08, y0=0.40, x1=0.09, y1=0.42),
+                make_box("panel_label_D", "panel_label", x0=0.54, y0=0.40, x1=0.55, y1=0.42),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.07, y0=0.54, x1=0.44, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.53, y0=0.54, x1=0.88, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.07, y0=0.18, x1=0.44, y1=0.44),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.53, y0=0.18, x1=0.88, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.16, y0=0.02, x1=0.42, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.90, y0=0.18, x1=0.94, y1=0.44),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.14, "y": 0.74, "state_label": "T cells"},
+                    {"x": 0.29, "y": 0.62, "state_label": "Myeloid"},
+                ],
+                "spatial_points": [
+                    {"x": 0.60, "y": 0.76, "state_label": "T cells"},
+                    {"x": 0.78, "y": 0.62, "state_label": "Fibroblast"},
+                ],
+                "state_labels": ["T cells", "Myeloid"],
+                "row_labels": ["CXCL13 program", "TGF-beta program"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "state_proportions": [
+                            {"state_label": "T cells", "proportion": 0.64},
+                            {"state_label": "Myeloid", "proportion": 0.36},
+                        ],
+                    }
+                ],
+                "matrix_cells": [
+                    {"x": "T cells", "y": "CXCL13 program", "value": 0.74},
+                    {"x": "Myeloid", "y": "CXCL13 program", "value": -0.16},
+                    {"x": "T cells", "y": "TGF-beta program", "value": -0.19},
+                    {"x": "Myeloid", "y": "TGF-beta program", "value": 0.69},
+                ],
+                "score_method": "AUCell",
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "spatial_point_state_label_unknown" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_spatial_niche_map_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
