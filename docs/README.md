@@ -109,6 +109,7 @@ Current frozen state:
 - [Codex plugin integration](references/codex_plugin.md)
 - [Codex plugin release guide](references/codex_plugin_release.md)
 - [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md) (Chinese only)
+- [Series doc governance checklist](references/series-doc-governance-checklist.md) (Chinese only)
 
 ## Stable Internal Rules
 
@@ -130,3 +131,4 @@ Current frozen state:
 - `docs/policies/`: stable internal rules, Chinese by default.
 - `docs/history/omx/`: OMX historical archive entry only; never an active workflow surface.
 - `docs/superpowers/`: existing repo-tracked historical design material may remain as internal archive, but new local AI / Superpowers drafts should stay untracked by default.
+- `docs/references/series-doc-governance-checklist.md`: repo-scoped checklist for keeping this repository aligned with the four-repo series.

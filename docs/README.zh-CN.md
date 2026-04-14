@@ -106,6 +106,7 @@
 - [Codex plugin 接入](references/codex_plugin.md)
 - [Codex plugin 发布说明](references/codex_plugin_release.md)
 - [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
+- [系列项目文档治理清单](references/series-doc-governance-checklist.md)
 
 ## 稳定内部规则
 
@@ -127,3 +128,4 @@
 - `docs/policies/`：稳定内部规则，默认中文维护。
 - `docs/history/omx/`：OMX 历史资料入口，只做归档，不再承担活跃 workflow。
 - `docs/superpowers/`：存量 repo-tracked 历史设计材料可保留为内部档案；新增本地 AI/Superpowers 草稿默认不进入跟踪。
+- `docs/references/series-doc-governance-checklist.md`：当前仓与四仓系列项目保持一致时使用的 repo-scope 文档巡检清单。

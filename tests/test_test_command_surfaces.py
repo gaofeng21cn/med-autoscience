@@ -66,3 +66,25 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-full" in verify_script
+
+
+def test_docs_indexes_link_series_doc_governance_checklist() -> None:
+    docs_readme = _read("docs/README.md")
+    docs_readme_zh = _read("docs/README.zh-CN.md")
+    checklist = _read("docs/references/series-doc-governance-checklist.md")
+
+    assert "series-doc-governance-checklist.md" in docs_readme
+    assert "series-doc-governance-checklist.md" in docs_readme_zh
+
+    for label in ("One Person Lab", "Med Auto Science", "Med Auto Grant", "RedCube AI"):
+        assert label in checklist
+
+    for doc_name in ("project.md", "status.md", "architecture.md", "invariants.md", "decisions.md"):
+        assert doc_name in checklist
+
+    assert "docs/runtime/**" in checklist
+    assert "docs/program/**" in checklist
+    assert "docs/capabilities/**" in checklist
+    assert "docs/policies/**" in checklist
+    assert "scripts/verify.sh meta" in checklist
+    assert "make test-meta" in checklist
