@@ -2,130 +2,129 @@
 
 [English](./README.md) | **中文**
 
-这里是 `Med Auto Science` 的双语文档索引，也是默认的 GitHub 对外入口。对外文档必须提供中英双语镜像，内部技术与规划材料默认中文，除非明确提升到双语公开面。文档治理规则现在统一冻结在 [series-doc-governance-checklist.md](references/series-doc-governance-checklist.md)、核心维护工作集，以及当前 contract/doc surface 中，而不再只写在 `AGENTS.md`。
-当前入口真相也已经明确：现在真实存在的是 `operator entry` 与 `agent entry`，而成熟的医学 `product entry` 仍然要放在 runtime gate 清除之后。仓内现在已经补上一层 repo-tracked 的轻量 `product-entry shell`，用来收口启动、下任务与进度可见性；`product-entry-manifest` 现在会把同一层 research 主线 shell 冻结成 machine-readable discovery surface，`product-frontdesk` 现在又把这层 shell 上方的 controller-owned frontdoor 冻结下来，`build-product-entry` 则会从这层 shell 输出 shared direct / `OPL` handoff envelope，但它们仍然不是成熟的 direct user-facing 产品前台。
+这个目录是 `Med Auto Science` 的第二层技术阅读面。
+仓库首页应优先写给医生、医学专家和潜在用户。
+而这里负责承接其后的 runtime、program、能力线和治理材料。
 
-## 核心维护工作集
+## 按读者类型进入
 
-先读这里，再进入 runtime、capability 或 program 细节：
+| 读者 | 建议起点 | 目的 |
+| --- | --- | --- |
+| 潜在用户、医生、医学专家 | [仓库首页](../README.zh-CN.md) | 先理解系统是干什么的，再决定是否进入技术细节 |
+| 技术规划者、架构读者、方向同步读者 | [项目概览](./project.md)、[当前状态](./status.md)、[架构](./architecture.md)、[不可变约束](./invariants.md)、[关键决策](./decisions.md) | 快速抓住当前真相、边界和主线方向 |
+| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、`docs/history/omx/` | 查看实现相关材料、操作说明和历史记录 |
 
-- [项目概览](project.md)
-- [架构概览](architecture.md)
-- [不可变约束](invariants.md)
-- [关键决策记录](decisions.md)
-- [当前状态](status.md)
+## 当前基线
 
-## 默认对外双语公开面
+- `Med Auto Science` 是 `Research Foundry` 家族里的医学 `Research Ops` gateway 与 domain 主线。
+- 当前最诚实的使用路径仍是 Agent 协作或 operator 协作；轻量 `product-entry` shell 已有，但成熟独立医疗前台尚未落地。
+- `Med Auto Science` 继续持有研究入口与 outer-loop authority，`MedDeepScientist` 继续是受控研究后端。
+- 上游 `Hermes-Agent` 仍是目标 outer runtime substrate，而不是本仓已经完整落地的独立 runtime owner。
+- 医学展示支线继续与 runtime 主线分开维护。
+- 当前 tranche 仍按 `P0 runtime native truth`、`P1 workspace canonical literature / knowledge truth`、`P2 controlled cutover -> physical monorepo migration` 理解。
+- external runtime gate 仍属于 blocker package。
+
+## 技术工作集
+
+开始改仓库状态前，先读这些文件：
+
+- [项目概览](./project.md)
+- [当前状态](./status.md)
+- [架构](./architecture.md)
+- [不可变约束](./invariants.md)
+- [关键决策](./decisions.md)
+
+## 默认公开入口
 
 - [仓库首页](../README.zh-CN.md)
 
-这份索引和仓库首页共同构成默认 GitHub 对外双语入口。任何面向公众的细节说明，都应落在这里并提供中英双语镜像。
+仓库首页和这份索引共同构成默认公开入口。
+对外文档应继续保持中英双语镜像。
 
-## 当前基线、长线目标与任务层级
+## 仓库跟踪的技术文档
 
-当前冻结状态如下：
-
-- `P0 runtime native truth`：已在 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 完成
-- `P1 workspace canonical literature / knowledge truth`：已在本仓完成
-- `P2 controlled cutover -> physical monorepo migration`：仍是当前 active tranche
-
-- 当前 repo-verified 基线：`MedAutoScience` 是唯一研究入口，`MedDeepScientist` 仍是当前受控 research backend；上游 `Hermes-Agent` 仍是目标 runtime substrate，而不是已落地事实。
-- 长线目标：上游 `Hermes-Agent` 承担外层 runtime substrate，`MedDeepScientist` 逐步收敛为 research backend 并解构可迁移的通用 runtime 能力。
-- 产品入口目标：补出一个既可被用户直接进入、也可被 `OPL` handoff 调起的轻量医学 `product entry`，同时不改写当前研究 authority boundary。
-- 当前 preflight 面：`uv run python -m med_autoscience.cli product-preflight --profile <profile>` 现在会先暴露进入 research frontdoor 之前的真实开机检查。
-- 当前发现面：`uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` 现在会把当前 research 主线 shell 投影出来，同时明确它不覆盖 display 独立支线，并携带同一份 `product_entry_preflight` companion。
-- 当前前台入口面：`uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` 现在会把同一层 research shell 上方的 controller-owned frontdoor 投影出来，同时带出同一份 preflight companion，供 direct caller 直接消费。
-- 当前 shared-envelope shell：`build-product-entry` 现在已经能在已 landed 的 workspace/task/progress shell 之上导出 direct / `OPL` handoff envelope。
-- repo 主线状态入口：`uv run python -m med_autoscience.cli mainline-status`
-- repo 阶段入口：`uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
-- 当前用户 inbox 入口：`uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>` 现在会把 repo 主线快照、workspace attention queue，以及“启动 / 下任务 / 持续看进度”的实际命令回路收在同一处。
-- 独立支线：`medical display / 论文配图资产化` 与 runtime 主线严格分离。
-- `external_runtime_dependency_gate.md` 仍然属于 blocker package，并作为 `P2` 内剩余的外部 gate 继续跟踪。
-
-## 仓库跟踪的内部文档
-
-## Runtime 合同与控制面
+### Runtime 合同与控制面
 
 - [Agent 运行接口](runtime/agent_runtime_interface.md)
 - [Agent 入口模式](runtime/agent_entry_modes.md)
 - [运行句柄与持久表面合同](runtime/runtime_handle_and_durable_surface_contract.md)
 - [Runtime backend interface 合同](runtime/runtime_backend_interface_contract.md)
-- [运行时事件与 Outer-Loop 输入合同](runtime/runtime_event_and_outer_loop_input_contract.md)
-- [运行时事件与 Outer-Loop 输入实施计划](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
-- [Runtime Core 收敛与受控 Cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
-- [Runtime Core 收敛与受控 Cutover 实施计划](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
-- [Workspace 知识与文献合同](runtime/workspace_knowledge_and_literature_contract.md)
-- [Workspace 知识与文献实施计划](runtime/workspace_knowledge_and_literature_implementation_plan.md)
+- [运行事件与 outer-loop 输入合同](runtime/runtime_event_and_outer_loop_input_contract.md)
+- [运行事件与 outer-loop 输入实施计划](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
+- [运行边界](runtime/runtime_boundary.md)
+- [Runtime 核心收敛与受控 cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
+- [Runtime 核心收敛与受控 cutover 实施计划](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
 - [运行时监督外环](runtime/runtime_supervision_loop.md)
 - [Study runtime 控制面](runtime/study_runtime_control_surface.md)
 - [Study runtime 编排](runtime/study_runtime_orchestration.md)
-- [Outer-Loop 唤醒与决策循环](runtime/outer_loop_wakeup_and_decision_loop.md)
-- [交付面合同地图](runtime/delivery_plane_contract_map.md)
-- [运行边界](runtime/runtime_boundary.md)
+- [Workspace knowledge 与 literature 合同](runtime/workspace_knowledge_and_literature_contract.md)
+- [Workspace knowledge 与 literature 实施计划](runtime/workspace_knowledge_and_literature_implementation_plan.md)
 
-## 能力族
-
-### 医学展示（Medical display）
+### 能力线文档
 
 - [医学展示平台主线](capabilities/medical-display/medical_display_platform_mainline.md)
 - [医学展示面审计指南](capabilities/medical-display/medical_display_audit_guide.md)
 - [医学展示面模板目录](capabilities/medical-display/medical_display_template_catalog.md)
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
 - [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
-- [Sidecar 图表路线](capabilities/medical-display/sidecar_figure_routes.md)
 
-## Program 与 Gates
+### Program 与 gates
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
 - [Research Foundry 医学五阶段梯子](program/research_foundry_medical_phase_ladder.md)
-- [Integration Harness Activation Package](program/integration_harness_activation_package.md)
-- [Hermes Backend Continuation Board](program/hermes_backend_continuation_board.md)
-- [Hermes Backend Activation Package](program/hermes_backend_activation_package.md)
-- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
-- [Open Harness OS 冻结计划](program/open_harness_os_freeze_plan.md)
-- [主线集成与清理节奏](program/mainline_integration_and_cleanup.md)
-- [上游 Intake 指南](program/upstream_intake.md)
+- [项目修复优先级地图](program/project_repair_priority_map.md)
+- [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
+- [Hermes backend activation package](program/hermes_backend_activation_package.md)
+- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
+- [手动 runtime 稳定化清单](program/manual_runtime_stabilization_checklist.md)
 - [仓库 CI 预检](program/repository_ci_preflight.md)
 - [真实课题 relaunch 验证记录](program/real_study_relaunch_verification.md)
-- [项目修补优先级图](program/project_repair_priority_map.md)
-- [研究进度投影](program/study_progress_projection.md)
-- [手工测试与运行面稳定化清单](program/manual_runtime_stabilization_checklist.md)
+- [Study progress projection](program/study_progress_projection.md)
 
-## 参考资料
+`P2 controlled cutover -> physical monorepo migration` 仍未关闭，Hermes backend continuation / activation 这组材料继续属于 blocker package，而不是对外宣称 cutover 已经完成。
+
+### 入口与 handoff 参考
+
+- 当前诚实的公开入口仍是 `operator entry` 与 `agent entry`。
+- 当前轻量医学 `product entry` 继续通过 `build-product-entry` 保持窄而可机读。
+- [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
+
+### 参考资料
 
 - [Domain Harness OS 定位](references/domain-harness-os-positioning.md)
-- [Domain gateway 与 Harness OS 概览](references/domain_gateway_harness_os.md)
 - [Research Foundry 定位](references/research_foundry_positioning.md)
 - [Research Foundry 与 Med Auto Science 的仓库拆分边界](references/repo_split_between_research_foundry_and_med_autoscience.md)
-- [Open Harness OS 架构边界](references/open_harness_os_architecture.md)
 - [工作区架构](references/workspace_architecture.md)
 - [病种 workspace 快速起步](references/disease_workspace_quickstart.md)
-- [Codex plugin 接入](references/codex_plugin.md)
-- [Codex plugin 发布说明](references/codex_plugin_release.md)
 - [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
 - [系列项目文档治理清单](references/series-doc-governance-checklist.md)
 
-## 稳定内部规则
+### 稳定内部规则
 
 - [内部规则索引](policies/README.md)
 - [运行模型规则](policies/platform_operating_model.md)
 - [数据资产管理](policies/data_asset_management.md)
-- [研究场景类型](policies/study_archetypes.md)
 - [研究路线偏置规则](policies/research_route_bias_policy.md)
 - [发表门控规则](policies/publication_gate_policy.md)
 
-## 仓库历史
+### 仓库历史
 
-- [OMX 历史资料索引](history/omx/README.zh-CN.md)（仅历史参考，不是当前 active workflow 入口）
+- [OMX 历史资料索引](history/omx/README.zh-CN.md)
 
-## 文档边界
+## 文档规则
 
-- `README*` 与 `docs/README*`：默认对外双语公开面。
-- `docs/capabilities/`、`docs/program/`、`docs/runtime/`、`docs/references/`：仓库跟踪的操作文档，默认中文维护。
-- `docs/policies/`：稳定内部规则，默认中文维护。
-- `docs/history/omx/`：OMX 历史资料入口，只做归档，不再承担活跃 workflow。
-- `docs/superpowers/`：存量 repo-tracked 历史设计材料可保留为内部档案；新增本地 AI/Superpowers 草稿默认不进入跟踪。
-- `docs/references/series-doc-governance-checklist.md`：当前仓与四仓系列项目保持一致时使用的 repo-scope 文档巡检清单。
+- 继续把 [仓库首页](../README.zh-CN.md) 保持成医生和非技术专家可读的入口。
+- 继续把公开文档保持成中英双语镜像。
+- runtime、program、能力线和 policy 文档可以技术化，但不要再反客为主占据公开首页。
+- 历史材料可以保留，但不能再写成当前默认 workflow。
+
+## 治理说明
+
+- 文档治理统一冻结在 [系列项目文档治理清单](references/series-doc-governance-checklist.md)、技术工作集和仓库跟踪的 contract/doc surface 中，而不再只写在 `AGENTS.md`。
+- `README*` 与 `docs/README*` 是默认公开入口。
+- `docs/runtime/`、`docs/program/`、`docs/capabilities/` 与 `docs/references/` 是仓库跟踪的技术材料。
+- `docs/policies/` 收口稳定内部规则。
+- `docs/history/omx/` 只作为历史归档入口。

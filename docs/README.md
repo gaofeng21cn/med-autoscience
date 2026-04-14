@@ -1,53 +1,49 @@
-# Docs
+# Docs Guide
 
 **English** | [中文](./README.zh-CN.md)
 
-This bilingual index is the default public surface for `Med Auto Science`.
-Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
-Documentation governance now freezes in the repo-tracked [series doc governance checklist](references/series-doc-governance-checklist.md), the core maintainer working set, and current contract/doc surfaces rather than in `AGENTS.md` alone.
-The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, `product-entry-manifest` now freezes that same research-side shell as a machine-readable discovery surface, `product-frontdesk` freezes the controller-owned front door above it, and `build-product-entry` emits the shared direct / `OPL` handoff envelope from it; this is still not the same thing as a mature direct user-facing product.
+This directory is the technical reading layer for `Med Auto Science`.
+The repository home should stay readable for medical experts and potential users.
+This guide is for readers who need the repo-tracked runtime, program, capability, and governance material behind that public entry.
 
-## Core Maintainer Working Set
+## Start Here By Audience
 
-Start here before reading detailed runtime, capability, or program briefs:
+| Audience | Start here | Why |
+| --- | --- | --- |
+| Potential users and medical experts | [Repository home](../README.md) | Understand what the system is for before reading technical internals |
+| Technical readers and planners | [Project](./project.md), [Status](./status.md), [Architecture](./architecture.md), [Invariants](./invariants.md), [Decisions](./decisions.md) | Get the current truth, boundaries, and mainline direction quickly |
+| Developers and maintainers | `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, `docs/policies/`, `docs/history/omx/` | Inspect implementation-facing material, operator guidance, and historical records |
 
-- [Project](project.md)
-- [Architecture](architecture.md)
-- [Invariants](invariants.md)
-- [Decisions](decisions.md)
-- [Status](status.md)
+## Current Baseline
 
-## Default Public Bilingual Surface
+- `Med Auto Science` is the medical `Research Ops` gateway and domain line in the `Research Foundry` family.
+- The current honest user path is still agent-assisted or operator-assisted; a lightweight product-entry shell exists, but a mature direct medical frontend has not landed.
+- `Med Auto Science` keeps research entry and outer-loop authority, while `MedDeepScientist` remains the controlled research backend.
+- upstream `Hermes-Agent` is still the target outer runtime substrate rather than a fully landed standalone runtime owner in this repo.
+- The medical display line stays separate from the runtime mainline.
+- The active tranche map is still `P0 runtime native truth`, `P1 workspace canonical literature / knowledge truth`, and `P2 controlled cutover -> physical monorepo migration`.
+- The external runtime gate remains part of the blocker package for `P2`.
+
+## Technical Working Set
+
+Read these first before changing repo state:
+
+- [Project](./project.md)
+- [Status](./status.md)
+- [Architecture](./architecture.md)
+- [Invariants](./invariants.md)
+- [Decisions](./decisions.md)
+
+## Default Public Surface
 
 - [Repository home](../README.md)
 
-This index together with the repository home forms the default GitHub-facing bilingual surface. Any externally presented detail should land here with synchronized English and Chinese variants.
+The repository home plus this guide are the default public entry surfaces.
+Public-facing material should stay mirrored in English and Chinese.
 
-## Current Baseline, Long-Line Target, And Task Ladder
+## Repo-Tracked Technical Docs
 
-Current frozen state:
-
-- `P0 runtime native truth`: completed upstream in `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
-- `P1 workspace canonical literature / knowledge truth`: completed in this repo
-- `P2 controlled cutover -> physical monorepo migration`: still active
-
-- Current repo-verified baseline: `MedAutoScience` is the sole research entry while `MedDeepScientist` remains the controlled research backend; upstream `Hermes-Agent` is still a target runtime substrate, not a landed fact.
-- Long-line target: upstream `Hermes-Agent` owns the outer runtime substrate, while `MedDeepScientist` is reduced toward a research backend and gradually sheds reusable runtime capabilities.
-- Product-entry target: add a lightweight medical direct entry that can be reached directly or through `OPL` handoff without rewriting the current research authority boundary.
-- Current preflight surface: `uv run python -m med_autoscience.cli product-preflight --profile <profile>` now exposes the real startup checks before opening the research frontdoor.
-- Current discovery surface: `uv run python -m med_autoscience.cli product-entry-manifest --profile <profile>` now projects the current research-side shell without including the independent display line, and now carries the same `product_entry_preflight` companion.
-- Current frontdoor surface: `uv run python -m med_autoscience.cli product-frontdesk --profile <profile>` now packages the controller-owned front door above the same research shell and surfaces the same preflight companion for direct callers.
-- Current shared-envelope shell: `build-product-entry` now exports the same direct / `OPL` handoff envelope on top of the landed workspace/task/progress shell.
-- Repo-level status entry: `uv run python -m med_autoscience.cli mainline-status`
-- Repo-level phase entry: `uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>`
-- Current user inbox entry: `uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>` now folds repo mainline snapshot, workspace attention queue, and the practical start / submit-task / watch-progress loop into one surface.
-- Fastest cutover board: [Upstream Hermes-Agent fast cutover board](program/upstream_hermes_agent_fast_cutover_board.md) (Chinese only)
-- Independent side line: `medical display / paper-figure assetization` stays isolated from the runtime mainline.
-- `external_runtime_dependency_gate.md` remains part of the blocker package, but it is no longer the whole-project stop state.
-
-## Repo-Tracked Internal Docs
-
-## Runtime Contracts And Control Surface
+### Runtime contracts and control surface
 
 - [Agent runtime interface](runtime/agent_runtime_interface.md)
 - [Agent entry modes](runtime/agent_entry_modes.md)
@@ -55,80 +51,80 @@ Current frozen state:
 - [Runtime backend interface contract](runtime/runtime_backend_interface_contract.md)
 - [Runtime event and outer-loop input contract](runtime/runtime_event_and_outer_loop_input_contract.md)
 - [Runtime event and outer-loop input implementation plan](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
+- [Runtime boundary](runtime/runtime_boundary.md)
 - [Runtime core convergence and controlled cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
 - [Runtime core convergence and controlled cutover implementation plan](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
-- [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)
-- [Workspace knowledge and literature implementation plan](runtime/workspace_knowledge_and_literature_implementation_plan.md)
 - [Runtime supervision loop](runtime/runtime_supervision_loop.md)
 - [Study runtime control surface](runtime/study_runtime_control_surface.md)
 - [Study runtime orchestration](runtime/study_runtime_orchestration.md)
-- [Outer-loop wakeup and decision loop](runtime/outer_loop_wakeup_and_decision_loop.md)
-- [Delivery plane contract map](runtime/delivery_plane_contract_map.md)
-- [Runtime boundary](runtime/runtime_boundary.md)
+- [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)
+- [Workspace knowledge and literature implementation plan](runtime/workspace_knowledge_and_literature_implementation_plan.md)
 
-## Capabilities
-
-### Medical display
+### Capability docs
 
 - [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
 - [Medical display audit guide](capabilities/medical-display/medical_display_audit_guide.md)
 - [Medical display template catalog](capabilities/medical-display/medical_display_template_catalog.md)
 - [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
 - [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
-- [Sidecar figure routes](capabilities/medical-display/sidecar_figure_routes.md)
 
-## Program And Gates
+### Program and gates
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
 - [Research Foundry medical phase ladder](program/research_foundry_medical_phase_ladder.md)
-- [Integration harness activation package](program/integration_harness_activation_package.md)
+- [External runtime dependency gate](program/external_runtime_dependency_gate.md)
+- [Merge and cutover gates](program/merge_and_cutover_gates.md)
+- [Project repair priority map](program/project_repair_priority_map.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
-- [External runtime dependency gate](program/external_runtime_dependency_gate.md)
-- [Merge and cutover gates](program/merge_and_cutover_gates.md)
-- [Open Harness OS freeze plan](program/open_harness_os_freeze_plan.md)
-- [Mainline integration and cleanup cadence](program/mainline_integration_and_cleanup.md)
-- [Upstream intake guide](program/upstream_intake.md)
+- [Manual runtime stabilization checklist](program/manual_runtime_stabilization_checklist.md)
 - [Repository CI preflight](program/repository_ci_preflight.md)
 - [Real study relaunch verification](program/real_study_relaunch_verification.md)
-- [Project repair priority map](program/project_repair_priority_map.md)
 - [Study progress projection](program/study_progress_projection.md)
-- [Manual runtime stabilization checklist](program/manual_runtime_stabilization_checklist.md) (Chinese only)
 
-## References
+`P2 controlled cutover -> physical monorepo migration` remains open, and the Hermes backend continuation / activation material is still part of the blocker package rather than a public claim that the cutover is already complete.
+
+### Entry and handoff references
+
+- `operator entry` and `agent entry` remain the honest public surfaces today.
+- The current lightweight medical direct entry stays narrow and machine-readable through `build-product-entry`.
+- [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
+
+### References
 
 - [Domain Harness OS positioning](references/domain-harness-os-positioning.md)
-- [Domain gateway and harness OS overview](references/domain_gateway_harness_os.md)
 - [Research Foundry positioning](references/research_foundry_positioning.md)
 - [Repo split between Research Foundry and Med Auto Science](references/repo_split_between_research_foundry_and_med_autoscience.md)
-- [Open Harness OS architecture boundary](references/open_harness_os_architecture.md)
 - [Workspace architecture](references/workspace_architecture.md)
 - [Disease workspace quickstart](references/disease_workspace_quickstart.md)
-- [Codex plugin integration](references/codex_plugin.md)
-- [Codex plugin release guide](references/codex_plugin_release.md)
-- [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md) (Chinese only)
-- [Series doc governance checklist](references/series-doc-governance-checklist.md) (Chinese only)
+- [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
+- [Series doc governance checklist](references/series-doc-governance-checklist.md)
 
-## Stable Internal Rules
+### Stable internal rules
 
 - [Policies index](policies/README.md)
 - [Platform operating model](policies/platform_operating_model.md)
 - [Data asset management](policies/data_asset_management.md)
-- [Study archetypes](policies/study_archetypes.md)
 - [Research route bias policy](policies/research_route_bias_policy.md)
 - [Publication gate policy](policies/publication_gate_policy.md)
 
-## Repository History
+### Repository history
 
-- [OMX historical archive](history/omx/README.md) (historical reference only; not an active workflow entry)
+- [OMX historical archive](history/omx/README.md)
 
-## Documentation Boundary
+## Documentation Rules
 
-- `README*` and `docs/README*`: default bilingual public surface.
-- `docs/capabilities/`, `docs/program/`, `docs/runtime/`, `docs/references/`: repo-tracked operator docs, Chinese by default unless promoted.
-- `docs/policies/`: stable internal rules, Chinese by default.
-- `docs/history/omx/`: OMX historical archive entry only; never an active workflow surface.
-- `docs/superpowers/`: existing repo-tracked historical design material may remain as internal archive, but new local AI / Superpowers drafts should stay untracked by default.
-- `docs/references/series-doc-governance-checklist.md`: repo-scoped checklist for keeping this repository aligned with the four-repo series.
+- Keep [Repository home](../README.md) understandable for clinicians and non-technical experts.
+- Keep public-facing docs mirrored in English and Chinese.
+- Keep runtime, program, capability, and policy material technical and repo-tracked without letting it take over the public home page.
+- Keep historical material readable, but never present it as the active default workflow.
+
+## Governance
+
+- Documentation governance freezes in [series doc governance checklist](references/series-doc-governance-checklist.md), the technical working set, and the repo-tracked contract/doc surfaces rather than in `AGENTS.md` alone.
+- `README*` and `docs/README*` are the default public entry.
+- `docs/runtime/`, `docs/program/`, `docs/capabilities/`, and `docs/references/` are repo-tracked technical material.
+- `docs/policies/` holds stable internal rules.
+- `docs/history/omx/` is historical archive only.
