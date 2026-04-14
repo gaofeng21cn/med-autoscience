@@ -4,7 +4,7 @@
 
 This bilingual index is the default public surface for `Med Auto Science`.
 Public pages must ship with synchronized English and Chinese mirrors. Internal technical and planning material defaults to Chinese unless explicitly promoted.
-Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md).
+Documentation governance now freezes in the repo-tracked [series doc governance checklist](references/series-doc-governance-checklist.md), the core maintainer working set, and current contract/doc surfaces rather than in `AGENTS.md` alone.
 The current entry truth is also explicit: `operator entry` and `agent entry` are real today, while a mature medical `product entry` still remains future work behind the runtime gate. A repo-tracked lightweight product-entry shell now exists for launch / task submission / progress visibility, `product-entry-manifest` now freezes that same research-side shell as a machine-readable discovery surface, `product-frontdesk` freezes the controller-owned front door above it, and `build-product-entry` emits the shared direct / `OPL` handoff envelope from it; this is still not the same thing as a mature direct user-facing product.
 
 ## Core Maintainer Working Set

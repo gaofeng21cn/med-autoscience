@@ -72,6 +72,20 @@ def test_docs_indexes_link_series_doc_governance_checklist() -> None:
     docs_readme = _read("docs/README.md")
     docs_readme_zh = _read("docs/README.zh-CN.md")
     checklist = _read("docs/references/series-doc-governance-checklist.md")
+    previous_index = -1
+
+    for heading in (
+        "## 目标",
+        "## 一、默认入口",
+        "## 二、核心五件套",
+        "## 三、公开层与内部层",
+        "## 四、系列一致性检查",
+        "## 五、默认验证",
+    ):
+        current_index = checklist.find(heading)
+        assert current_index >= 0
+        assert current_index > previous_index
+        previous_index = current_index
 
     assert "series-doc-governance-checklist.md" in docs_readme
     assert "series-doc-governance-checklist.md" in docs_readme_zh
@@ -86,5 +100,10 @@ def test_docs_indexes_link_series_doc_governance_checklist() -> None:
     assert "docs/program/**" in checklist
     assert "docs/capabilities/**" in checklist
     assert "docs/policies/**" in checklist
+    assert "Hermes-Agent" in checklist
+    assert "AGENTS.md" in checklist
+    assert "第二真相源" in checklist
     assert "scripts/verify.sh meta" in checklist
     assert "make test-meta" in checklist
+    assert "Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md)." not in docs_readme
+    assert "文档治理规则统一收口在 [`AGENTS.md`](../AGENTS.md)。" not in docs_readme_zh

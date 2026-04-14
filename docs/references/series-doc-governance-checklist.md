@@ -28,7 +28,7 @@
 - `docs/runtime/**`、`docs/program/**`、`docs/capabilities/**`、`docs/references/**` 继续承担 repo-tracked operator docs；默认中文维护，除非明确提升到公开双语面。
 - `docs/policies/**` 继续承担稳定内部规则。
 - `docs/history/omx/` 只保留历史归档入口，不重新承担当前 workflow。
-- 长期规则要冻结进核心文档、policy、reference 或 contract surface，不继续只靠 `AGENTS.md` 口头维持。
+- 长期规则要冻结进核心文档、policy、reference 或 contract surface；不要把 `AGENTS.md` 继续当第二真相源。
 
 ## 四、系列一致性检查
 
