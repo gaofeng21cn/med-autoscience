@@ -1238,6 +1238,37 @@ def test_build_report_blocks_when_results_section_lacks_subsection_structure(tmp
     assert any(hit["pattern_id"] == "results_section_structure" for hit in report["top_hits"])
 
 
+def test_build_report_accepts_quick_review_with_top_level_main_sections(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    review_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "paper"
+        / "build"
+        / "review_manuscript.md"
+    )
+    review_text = review_path.read_text(encoding="utf-8")
+    review_text = review_text.replace("\n## Introduction\n", "\n# Introduction\n")
+    review_text = review_text.replace("\n## Materials and Methods\n", "\n# Materials and Methods\n")
+    review_text = review_text.replace("\n## Results\n", "\n# Results\n")
+    review_path.write_text(review_text, encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "introduction_structure_missing_or_incomplete" not in report["blockers"]
+    assert "methods_section_structure_missing_or_incomplete" not in report["blockers"]
+    assert "results_section_structure_missing_or_incomplete" not in report["blockers"]
+
+
 def test_build_report_blocks_when_non_formal_question_sentence_appears(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

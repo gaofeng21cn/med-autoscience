@@ -33,6 +33,7 @@ _BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
         "unmanaged_submission_surface_present",
     }
 )
+_DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES = 4
 
 
 @dataclass
@@ -110,6 +111,37 @@ def find_latest_medical_publication_surface_report(quest_root: Path) -> Path | N
 def detect_write_drift(lines: list[str]) -> bool:
     merged = "\n".join(lines)
     return any(re.search(pattern, merged, flags=re.IGNORECASE) for pattern in publication_gate_policy.WRITE_DRIFT_PATTERNS)
+
+
+def _paper_line_open_supplementary_count(paper_line_state: dict[str, Any] | None) -> int:
+    if not isinstance(paper_line_state, dict):
+        return 0
+    raw_value = paper_line_state.get("open_supplementary_count")
+    try:
+        return max(0, int(raw_value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _paper_line_recommended_action(paper_line_state: dict[str, Any] | None) -> str | None:
+    if not isinstance(paper_line_state, dict):
+        return None
+    return _non_empty_text(paper_line_state.get("recommended_action"))
+
+
+def _paper_line_blocking_reasons(paper_line_state: dict[str, Any] | None) -> list[str]:
+    if not isinstance(paper_line_state, dict):
+        return []
+    reasons = paper_line_state.get("blocking_reasons")
+    if not isinstance(reasons, list):
+        return []
+    return [text for item in reasons if (text := _non_empty_text(item))]
+
+
+def _paper_line_requires_required_supplementary(paper_line_state: dict[str, Any] | None) -> bool:
+    if _paper_line_open_supplementary_count(paper_line_state) > 0:
+        return True
+    return _paper_line_recommended_action(paper_line_state) == "complete_required_supplementary"
 
 
 def _dedupe_resolved_paths(paths: list[Path]) -> list[Path]:
@@ -191,6 +223,46 @@ def detect_manuscript_terminology_violations(paper_root: Path | None) -> list[di
                     }
                 )
     return violations
+
+
+def _load_catalog_entries(
+    *,
+    paper_root: Path | None,
+    relative_path: str,
+    collection_key: str,
+) -> list[dict[str, Any]] | None:
+    if paper_root is None:
+        return None
+    catalog_path = paper_root / relative_path
+    if not catalog_path.exists():
+        return None
+    payload = load_json(catalog_path, default={})
+    if not isinstance(payload, dict):
+        return None
+    entries = payload.get(collection_key)
+    if not isinstance(entries, list):
+        return None
+    return [item for item in entries if isinstance(item, dict)]
+
+
+def active_manuscript_figure_count(paper_root: Path | None) -> int | None:
+    entries = _load_catalog_entries(
+        paper_root=paper_root,
+        relative_path="figures/figure_catalog.json",
+        collection_key="figures",
+    )
+    if entries is None:
+        return None
+    count = 0
+    for item in entries:
+        paper_role = str(item.get("paper_role") or "").strip().lower()
+        manuscript_status = str(item.get("manuscript_status") or "").strip().lower()
+        if paper_role in {"appendix_legacy_inactive", "reference_only", "deprecated"}:
+            continue
+        if manuscript_status in {"appendix_context_only", "reference_only", "deprecated"}:
+            continue
+        count += 1
+    return count
 
 
 def collect_submission_surface_qc_failures(submission_minimal_manifest: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -427,6 +499,10 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     study_delivery = state.study_delivery or {}
     study_delivery_status = str(study_delivery.get("status") or "").strip() or "not_applicable"
     draft_handoff_delivery = state.draft_handoff_delivery or {}
+    paper_line_open_supplementary_count = _paper_line_open_supplementary_count(state.paper_line_state)
+    paper_line_recommended_action = _paper_line_recommended_action(state.paper_line_state)
+    paper_line_blocking_reasons = _paper_line_blocking_reasons(state.paper_line_state)
+    active_figure_count = active_manuscript_figure_count(state.paper_root)
     draft_handoff_delivery_required = bool(
         submission_checklist_handoff_ready
         and state.submission_minimal_manifest is None
@@ -472,6 +548,13 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             blockers.append("missing_submission_minimal")
         if not medical_publication_surface_current and not closure_bundle_ready:
             blockers.append("missing_current_medical_publication_surface_report")
+        if _paper_line_requires_required_supplementary(state.paper_line_state):
+            blockers.append("paper_line_required_supplementary_pending")
+        if (
+            active_figure_count is not None
+            and active_figure_count < _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES
+        ):
+            blockers.append("submission_grade_active_figure_floor_unmet")
     else:
         allow_write = False
         blockers.append("missing_publication_anchor")
@@ -566,6 +649,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "draft_handoff_delivery_manifest_path": _non_empty_text(draft_handoff_delivery.get("delivery_manifest_path")),
         "draft_handoff_current_package_root": _non_empty_text(draft_handoff_delivery.get("current_package_root")),
         "draft_handoff_current_package_zip": _non_empty_text(draft_handoff_delivery.get("current_package_zip")),
+        "paper_line_open_supplementary_count": paper_line_open_supplementary_count,
+        "paper_line_recommended_action": paper_line_recommended_action,
+        "paper_line_blocking_reasons": paper_line_blocking_reasons,
+        "active_manuscript_figure_count": active_figure_count,
+        "submission_grade_min_active_figures": _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES,
         "medical_publication_surface_status": medical_publication_surface_status or None,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),
@@ -722,12 +810,26 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             f"- `draft_handoff_delivery_status`: `{report.get('draft_handoff_delivery_status')}`",
             f"- `draft_handoff_delivery_manifest_path`: `{report.get('draft_handoff_delivery_manifest_path')}`",
             f"- `draft_handoff_current_package_root`: `{report.get('draft_handoff_current_package_root')}`",
+            f"- `paper_line_open_supplementary_count`: `{report.get('paper_line_open_supplementary_count')}`",
+            f"- `paper_line_recommended_action`: `{report.get('paper_line_recommended_action')}`",
+            f"- `active_manuscript_figure_count`: `{report.get('active_manuscript_figure_count')}`",
+            f"- `submission_grade_min_active_figures`: `{report.get('submission_grade_min_active_figures')}`",
             f"- `study_delivery_current_package_root`: `{report.get('study_delivery_current_package_root')}`",
             f"- `medical_publication_surface_report_path`: `{report.get('medical_publication_surface_report_path')}`",
             f"- `medical_publication_surface_status`: `{report.get('medical_publication_surface_status')}`",
             f"- `medical_publication_surface_current`: `{str(report.get('medical_publication_surface_current')).lower()}`",
         ]
     )
+    paper_line_blocking_reasons = report.get("paper_line_blocking_reasons") or []
+    if paper_line_blocking_reasons:
+        lines.extend(
+            [
+                "",
+                "## Paper-Line Scientific Blockers",
+                "",
+                *[f"- `{item}`" for item in paper_line_blocking_reasons],
+            ]
+        )
     if non_scientific_handoff_gaps:
         lines.extend(
             [

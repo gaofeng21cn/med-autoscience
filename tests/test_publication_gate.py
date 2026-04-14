@@ -24,6 +24,8 @@ def make_quest(
     medical_publication_surface_status: str = "clear",
     manuscript_files: dict[str, str] | None = None,
     submission_checklist: dict[str, object] | None = None,
+    paper_line_state: dict[str, object] | None = None,
+    figure_catalog: dict[str, object] | None = None,
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
@@ -80,6 +82,16 @@ def make_quest(
             "author_metadata_status": "placeholder_external_input_required",
         },
     )
+    if paper_line_state is not None:
+        dump_json(
+            worktree_root / "paper" / "paper_line_state.json",
+            paper_line_state,
+        )
+    if figure_catalog is not None:
+        dump_json(
+            worktree_root / "paper" / "figures" / "figure_catalog.json",
+            figure_catalog,
+        )
     if submission_checklist is not None:
         dump_json(
             worktree_root / "paper" / "review" / "submission_checklist.json",
@@ -465,6 +477,83 @@ def test_build_gate_report_keeps_bundle_stage_when_only_submission_minimal_is_mi
     assert report["supervisor_phase"] == "bundle_stage_blocked"
     assert report["bundle_tasks_downstream_only"] is False
     assert report["current_required_action"] == "complete_bundle_stage"
+
+
+def test_build_gate_report_blocks_bundle_when_paper_line_requires_supplementary_completion(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        paper_line_state={
+            "paper_root": str(
+                (
+                    tmp_path
+                    / "runtime"
+                    / "quests"
+                    / "002-early-residual-risk"
+                    / ".ds"
+                    / "worktrees"
+                    / "paper-run-1"
+                    / "paper"
+                ).resolve()
+            ),
+            "open_supplementary_count": 2,
+            "recommended_action": "complete_required_supplementary",
+            "blocking_reasons": ["paper-facing supplementary slices are still pending"],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert "paper_line_required_supplementary_pending" in report["blockers"]
+    assert report["paper_line_open_supplementary_count"] == 2
+    assert report["paper_line_recommended_action"] == "complete_required_supplementary"
+    assert report["paper_line_blocking_reasons"] == ["paper-facing supplementary slices are still pending"]
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
+
+
+def test_build_gate_report_blocks_bundle_when_active_figure_floor_is_unmet(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={
+            "schema_version": "2.1.0",
+            "figures": [
+                {"figure_id": "F1", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {"figure_id": "F2", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {"figure_id": "F3", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+                {
+                    "figure_id": "F4",
+                    "paper_role": "appendix_legacy_inactive",
+                    "manuscript_status": "appendix_context_only",
+                },
+            ],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert report["allow_write"] is False
+    assert "submission_grade_active_figure_floor_unmet" in report["blockers"]
+    assert report["active_manuscript_figure_count"] == 3
+    assert report["submission_grade_min_active_figures"] == 4
+    assert report["supervisor_phase"] == "publishability_gate_blocked"
+    assert report["bundle_tasks_downstream_only"] is True
+    assert report["current_required_action"] == "return_to_publishability_gate"
 
 
 def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_manifest_is_projected(

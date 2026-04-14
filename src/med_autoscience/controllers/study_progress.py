@@ -62,6 +62,7 @@ _REASON_LABELS = {
 _WATCH_BLOCKER_LABELS = {
     "missing_post_main_publishability_gate": "论文可发表性门控尚未放行。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
+    "registry_contract_mismatch": "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。",
     "claim_evidence_map_missing_or_incomplete": "关键 claim-to-evidence 对照仍不完整。",
     "figure_loop_budget_exceeded": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
     "figure_reopened_after_resolution": "已经收住的图表又被重新打开，当前 run 存在质量回退风险。",
@@ -84,6 +85,8 @@ _WATCH_BLOCKER_LABELS = {
 }
 _BLOCKER_LABELS = {
     "missing_submission_minimal": "缺少最小投稿包导出。",
+    "submission_grade_active_figure_floor_unmet": "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。",
+    "registry_contract_mismatch": "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。",
     "stale_study_delivery_mirror": "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
     "forbidden_manuscript_terminology": "当前稿件仍含不允许的术语表达，需要清理。",
@@ -384,6 +387,31 @@ def _append_unique(items: list[str], message: str | None) -> None:
         return
     if message not in items:
         items.append(message)
+
+
+def _publication_supervisor_state_marker(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    supervisor_phase = _non_empty_text(payload.get("supervisor_phase"))
+    if supervisor_phase is None:
+        return None
+    return {
+        "supervisor_phase": supervisor_phase,
+        "bundle_tasks_downstream_only": bool(payload.get("bundle_tasks_downstream_only")),
+        "current_required_action": _non_empty_text(payload.get("current_required_action")),
+    }
+
+
+def _publication_supervisor_state_conflicts(
+    *,
+    current: dict[str, Any],
+    candidate: dict[str, Any] | None,
+) -> bool:
+    current_marker = _publication_supervisor_state_marker(current)
+    candidate_marker = _publication_supervisor_state_marker(candidate)
+    if current_marker is None or candidate_marker is None:
+        return False
+    return any(candidate_marker[key] != current_marker[key] for key in current_marker)
 
 
 def _latest_runtime_watch_report(quest_root: Path | None) -> Path | None:
@@ -966,6 +994,7 @@ def _latest_events(
     details_projection_path: Path | None,
     bash_summary_payload: dict[str, Any] | None,
     bash_summary_path: Path | None,
+    publication_supervisor_state: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     if runtime_supervision_payload is not None:
@@ -1033,7 +1062,11 @@ def _latest_events(
             events.append(item)
     if publication_eval_payload is not None:
         verdict = (publication_eval_payload.get("verdict") or {}) if isinstance(publication_eval_payload, dict) else {}
-        verdict_summary = _non_empty_text(verdict.get("summary")) or "发表评估已更新。"
+        verdict_summary = (
+            _display_text(_non_empty_text(verdict.get("summary")))
+            or _non_empty_text(verdict.get("summary"))
+            or "发表评估已更新。"
+        )
         item = _event(
             timestamp=_non_empty_text(publication_eval_payload.get("emitted_at")),
             category="publication_eval",
@@ -1046,29 +1079,33 @@ def _latest_events(
             events.append(item)
     if runtime_watch_payload is not None:
         publication_gate = ((runtime_watch_payload.get("controllers") or {}).get("publication_gate"))
-        watch_summary = "系统完成一次研究运行巡检。"
-        if isinstance(publication_gate, dict):
-            controller_note = _non_empty_text(publication_gate.get("controller_stage_note"))
-            if controller_note is not None:
-                watch_summary = controller_note
-            else:
-                blockers = [
-                    _watch_blocker_label(item)
-                    for item in (publication_gate.get("blockers") or [])
-                ]
-                blockers = [item for item in blockers if item]
-                if blockers:
-                    watch_summary = blockers[0]
-        item = _event(
-            timestamp=_non_empty_text(runtime_watch_payload.get("scanned_at")),
-            category="runtime_watch",
-            title="运行时巡检完成",
-            summary=watch_summary,
-            source="runtime_watch",
-            artifact_path=runtime_watch_path,
-        )
-        if item is not None:
-            events.append(item)
+        if not _publication_supervisor_state_conflicts(
+            current=publication_supervisor_state,
+            candidate=publication_gate if isinstance(publication_gate, dict) else None,
+        ):
+            watch_summary = "系统完成一次研究运行巡检。"
+            if isinstance(publication_gate, dict):
+                controller_note = _non_empty_text(publication_gate.get("controller_stage_note"))
+                if controller_note is not None:
+                    watch_summary = _display_text(controller_note) or controller_note
+                else:
+                    blockers = [
+                        _watch_blocker_label(item)
+                        for item in (publication_gate.get("blockers") or [])
+                    ]
+                    blockers = [item for item in blockers if item]
+                    if blockers:
+                        watch_summary = blockers[0]
+            item = _event(
+                timestamp=_non_empty_text(runtime_watch_payload.get("scanned_at")),
+                category="runtime_watch",
+                title="运行时巡检完成",
+                summary=watch_summary,
+                source="runtime_watch",
+                artifact_path=runtime_watch_path,
+            )
+            if item is not None:
+                events.append(item)
     if runtime_escalation_payload is not None:
         summary = _reason_label(runtime_escalation_payload.get("reason")) or "运行时已把问题升级回控制面。"
         item = _event(
@@ -1091,16 +1128,24 @@ def _latest_events(
         summary = f"最近一次运行状态回写结论：{decision}。"
         if reason is not None:
             summary += f" {reason}"
-        item = _event(
-            timestamp=_non_empty_text(launch_report_payload.get("recorded_at")),
-            category="launch_report",
-            title="研究运行状态回写",
-            summary=summary,
-            source="launch_report",
-            artifact_path=launch_report_path,
-        )
-        if item is not None:
-            events.append(item)
+        if not _publication_supervisor_state_conflicts(
+            current=publication_supervisor_state,
+            candidate=(
+                launch_report_payload.get("publication_supervisor_state")
+                if isinstance(launch_report_payload.get("publication_supervisor_state"), dict)
+                else None
+            ),
+        ):
+            item = _event(
+                timestamp=_non_empty_text(launch_report_payload.get("recorded_at")),
+                category="launch_report",
+                title="研究运行状态回写",
+                summary=summary,
+                source="launch_report",
+                artifact_path=launch_report_path,
+            )
+            if item is not None:
+                events.append(item)
     events.sort(key=lambda item: item["timestamp"], reverse=True)
     # “最近进展”优先展示具体推进，再展示轮询/状态回写类摘要。
     events.sort(key=lambda item: _latest_event_display_tier(item.get("category")))
@@ -1288,6 +1333,7 @@ def build_study_progress_projection(
             details_projection_path=details_projection_path,
             bash_summary_payload=bash_summary_payload,
             bash_summary_path=bash_summary_path,
+            publication_supervisor_state=publication_supervisor_state,
         ),
         "current_blockers": _humanized_blockers(
             _current_blockers(

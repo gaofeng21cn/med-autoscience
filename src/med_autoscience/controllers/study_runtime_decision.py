@@ -887,6 +887,11 @@ def _sync_runtime_summary_if_needed(
     current_active_run_id = str(current_snapshot.get("active_run_id") or "").strip() or None
     current_runtime_liveness_status = str(current_snapshot.get("runtime_liveness_status") or "").strip() or None
     current_supervisor_tick_status = str(current_snapshot.get("supervisor_tick_status") or "").strip() or None
+    current_publication_supervisor_state = (
+        dict(status.extras.get("publication_supervisor_state") or {})
+        if isinstance(status.extras.get("publication_supervisor_state"), dict)
+        else {}
+    )
     launch_report_path = runtime_context.launch_report_path
     launch_report_payload = _load_json_dict(launch_report_path) if launch_report_path.exists() else {}
     launch_report_exists = launch_report_path.exists()
@@ -894,11 +899,17 @@ def _sync_runtime_summary_if_needed(
     launch_report_active_run_id = str(launch_report_payload.get("active_run_id") or "").strip() or None
     launch_report_runtime_liveness_status = _launch_report_runtime_liveness_status(launch_report_payload)
     launch_report_supervisor_tick_status = _launch_report_supervisor_tick_status(launch_report_payload)
+    launch_report_publication_supervisor_state = (
+        dict(launch_report_payload.get("publication_supervisor_state") or {})
+        if isinstance(launch_report_payload.get("publication_supervisor_state"), dict)
+        else {}
+    )
     aligned = launch_report_exists and (
         launch_report_quest_status == current_quest_status
         and launch_report_active_run_id == current_active_run_id
         and launch_report_runtime_liveness_status == current_runtime_liveness_status
         and launch_report_supervisor_tick_status == current_supervisor_tick_status
+        and launch_report_publication_supervisor_state == current_publication_supervisor_state
     )
     mismatch_reason: str | None = None
     if not launch_report_exists:
@@ -911,6 +922,8 @@ def _sync_runtime_summary_if_needed(
         mismatch_reason = "launch_report_runtime_liveness_status_mismatch"
     elif launch_report_supervisor_tick_status != current_supervisor_tick_status:
         mismatch_reason = "launch_report_supervisor_tick_status_mismatch"
+    elif launch_report_publication_supervisor_state != current_publication_supervisor_state:
+        mismatch_reason = "launch_report_publication_supervisor_state_mismatch"
     status_sync_applied = False
     if not aligned:
         study_runtime_protocol.persist_runtime_artifacts(

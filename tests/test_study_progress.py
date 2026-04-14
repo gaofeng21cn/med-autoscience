@@ -1532,3 +1532,161 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_watch(m
 
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in result["current_blockers"]
     assert "图表循环期间参考文献数量低于下限，当前稿件质量不达标。" in result["current_blockers"]
+
+
+def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "004-invasive-architecture")
+    quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
+    quest_root.mkdir(parents=True, exist_ok=True)
+
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "emitted_at": "2026-04-14T01:36:57+00:00",
+            "verdict": {
+                "summary": (
+                    "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                    "bundle suggestions stay downstream-only until the gate clears"
+                )
+            },
+            "gaps": [
+                {
+                    "summary": "submission_grade_active_figure_floor_unmet",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-04-14T01:34:45+00:00",
+            "health_status": "live",
+            "summary": "托管运行时在线，研究仍在自动推进。",
+        },
+    )
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    _write_json(
+        launch_report_path,
+        {
+            "recorded_at": "2026-04-14T01:34:45+00:00",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "quest_status": "running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+        },
+    )
+    runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
+    _write_json(
+        runtime_watch_path,
+        {
+            "schema_version": 1,
+            "scanned_at": "2026-04-14T01:34:45+00:00",
+            "controllers": {
+                "publication_gate": {
+                    "status": "clear",
+                    "blockers": [],
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "supervisor_phase": "bundle_stage_ready",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": False,
+                    "current_required_action": "continue_bundle_stage",
+                    "deferred_downstream_actions": [],
+                },
+                "medical_reporting_audit": {
+                    "status": "blocked",
+                    "blockers": ["registry_contract_mismatch"],
+                },
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": "004-invasive-architecture",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "004-invasive-architecture-managed-20260408", "auto_resume": True},
+            "quest_id": "004-invasive-architecture-managed-20260408",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": (
+                    "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                    "bundle suggestions stay downstream-only until the gate clears"
+                ),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "notice_key": "notice-004",
+                "notification_reason": "detected_existing_live_managed_runtime",
+                "quest_id": "004-invasive-architecture-managed-20260408",
+                "quest_status": "running",
+                "active_run_id": "run-17ca96fb",
+                "browser_url": "http://127.0.0.1:21001",
+                "quest_api_url": "http://127.0.0.1:21001/api/quests/004-invasive-architecture-managed-20260408",
+                "quest_session_api_url": "http://127.0.0.1:21001/api/quests/004-invasive-architecture-managed-20260408/session",
+                "monitoring_available": True,
+                "monitoring_error": None,
+                "launch_report_path": str(launch_report_path),
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "guard_reason": "live_managed_runtime",
+                "active_run_id": "run-17ca96fb",
+                "current_required_action": "supervise_managed_runtime",
+                "allowed_actions": ["read_runtime_status"],
+                "forbidden_actions": ["direct_bundle_build"],
+                "runtime_owned_roots": [str(quest_root)],
+                "takeover_required": True,
+                "takeover_action": "pause_runtime_then_explicit_human_takeover",
+                "publication_gate_allows_direct_write": False,
+                "controller_stage_note": "live managed runtime owns study-local execution",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
+
+    assert result["latest_events"][0]["category"] == "publication_eval"
+    assert result["latest_events"][0]["summary"] == (
+        "论文包雏形已经存在，但当前硬阻塞仍在论文可发表性面；在门控放行前，投稿包相关建议都只是后续件。"
+    )
+    assert all(item["category"] != "runtime_watch" for item in result["latest_events"])
+    assert all(item["category"] != "launch_report" for item in result["latest_events"])
+    assert "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。" in result["current_blockers"]
+    assert "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in result["current_blockers"]

@@ -1186,6 +1186,19 @@ def find_heading_block(
     return None
 
 
+def find_heading_block_with_fallback_levels(
+    blocks: list[MarkdownHeadingBlock],
+    *,
+    levels: tuple[int, ...],
+    headings: tuple[str, ...],
+) -> MarkdownHeadingBlock | None:
+    for level in levels:
+        block = find_heading_block(blocks, level=level, headings=headings)
+        if block is not None:
+            return block
+    return None
+
+
 def child_heading_blocks(
     blocks: list[MarkdownHeadingBlock],
     *,
@@ -1208,7 +1221,11 @@ def inspect_introduction_structure(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
-    introduction_block = find_heading_block(blocks, level=2, headings=("Introduction",))
+    introduction_block = find_heading_block_with_fallback_levels(
+        blocks,
+        levels=(2, 1),
+        headings=("Introduction",),
+    )
     if introduction_block is None:
         return [
             {
@@ -1241,9 +1258,9 @@ def inspect_methods_section_structure(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
-    methods_block = find_heading_block(
+    methods_block = find_heading_block_with_fallback_levels(
         blocks,
-        level=2,
+        levels=(2, 1),
         headings=("Materials and Methods", "Materials & Methods", "Methods"),
     )
     if methods_block is None:
@@ -1284,7 +1301,11 @@ def inspect_results_section_structure(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
-    results_block = find_heading_block(blocks, level=2, headings=("Results",))
+    results_block = find_heading_block_with_fallback_levels(
+        blocks,
+        levels=(2, 1),
+        headings=("Results",),
+    )
     if results_block is None:
         return [
             {

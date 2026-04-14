@@ -5116,6 +5116,20 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
             {"supervisor_tick_audit": {"status": "stale"}},
             "launch_report_supervisor_tick_status_mismatch",
         ),
+        (
+            {
+                "publication_supervisor_state": {
+                    "supervisor_phase": "bundle_stage_ready",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": False,
+                    "current_required_action": "continue_bundle_stage",
+                    "deferred_downstream_actions": [],
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                }
+            },
+            "launch_report_publication_supervisor_state_mismatch",
+        ),
     ],
 )
 def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_mismatch(
@@ -5162,6 +5176,18 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         "active_run_id": "run-live",
         "runtime_liveness_audit": {"status": "live", "active_run_id": "run-live"},
         "supervisor_tick_audit": {"status": "fresh"},
+        "publication_supervisor_state": {
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": (
+                "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                "bundle suggestions stay downstream-only until the gate clears"
+            ),
+        },
         "recorded_at": "2026-04-10T09:20:00+00:00",
     }
     launch_report_payload.update(launch_report_overrides)
@@ -5223,6 +5249,24 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
         "_supervisor_tick_now",
         lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
     )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": (
+                "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                "bundle suggestions stay downstream-only until the gate clears"
+            ),
+        },
+    )
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
@@ -5237,6 +5281,8 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
     assert refreshed_launch_report["active_run_id"] == "run-live"
     assert refreshed_launch_report["runtime_liveness_audit"]["status"] == "live"
     assert refreshed_launch_report["supervisor_tick_audit"]["status"] == "fresh"
+    assert refreshed_launch_report["publication_supervisor_state"]["supervisor_phase"] == "publishability_gate_blocked"
+    assert refreshed_launch_report["publication_supervisor_state"]["bundle_tasks_downstream_only"] is True
 
 
 def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypatch, tmp_path: Path) -> None:
