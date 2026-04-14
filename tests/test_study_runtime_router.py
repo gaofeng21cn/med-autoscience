@@ -35,6 +35,20 @@ def _write_requested_baseline_ref(study_root: Path, requested_baseline_ref: dict
     )
 
 
+def _write_execution_overrides(study_root: Path, **overrides: object) -> None:
+    study_payload = yaml.safe_load(study_root.joinpath("study.yaml").read_text(encoding="utf-8"))
+    if not isinstance(study_payload, dict):
+        raise TypeError("study payload must be a mapping")
+    execution = study_payload.get("execution")
+    if not isinstance(execution, dict):
+        raise TypeError("study execution payload must be a mapping")
+    execution.update(overrides)
+    write_text(
+        study_root / "study.yaml",
+        yaml.safe_dump(study_payload, allow_unicode=True, sort_keys=False),
+    )
+
+
 def _managed_runtime_transport(module: object):
     transport = module.managed_runtime_transport
     assert transport is module.med_deepscientist_transport
@@ -4984,6 +4998,110 @@ def test_study_runtime_status_emits_family_orchestration_companion_fields(monkey
     assert checkpoint["producer"]["event_envelope_id"] == envelope["envelope_id"]
     assert checkpoint["resume_contract"]["resume_mode"] == "resume_from_checkpoint"
     assert result["family_human_gates"] == []
+
+
+def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    _write_execution_overrides(
+        study_root,
+        executor="codex_cli_autonomous",
+        executor_kind="hermes_native_proof",
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running","active_run_id":"run-native"}\n')
+    native_event = _write_native_runtime_event_for_status_test(
+        quest_root=quest_root,
+        quest_id="001-risk",
+        quest_status="running",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "daemon_turn_worker",
+            "active_run_id": "run-native",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "active_run_id": "run-native",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "active_run_id": "run-native",
+                "worker_running": True,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {"quest_id": quest_id, "active_run_id": "run-native"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-native",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_ref": {
+                "event_id": str(native_event["event_id"]),
+                "artifact_path": str(native_event["artifact_path"]),
+                "summary_ref": str(native_event["summary_ref"]),
+            },
+            "runtime_event": native_event,
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    envelope = result["family_event_envelope"]
+    assert envelope["session"]["source_surface"] == "hermes_native_proof"
 
 
 @pytest.mark.parametrize(
