@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "med-autoscience/contracts/schemas/v1/product-entry-manifest.schema.json",
+  "title": "MedAutoScience Product Entry Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "manifest_version",
+    "surface_kind",
+    "manifest_kind",
+    "schema_ref",
+    "target_domain_id",
+    "workspace_locator",
+    "domain_entry_contract",
+    "gateway_interaction_contract",
+    "frontdesk_surface",
+    "operator_loop_surface"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "product_entry_manifest"
+    },
+    "schema_ref": {
+      "const": "contracts/schemas/v1/product-entry-manifest.schema.json"
+    },
+    "domain_entry_contract": {
+      "$ref": "#/$defs/domainEntryContract"
+    },
+    "gateway_interaction_contract": {
+      "$ref": "#/$defs/gatewayInteractionContract"
+    }
+  },
+  "$defs": {
+    "domainEntryContract": {
+      "type": "object",
+      "required": [
+        "entry_adapter",
+        "service_safe_surface_kind",
+        "product_entry_builder_command",
+        "supported_entry_modes",
+        "supported_commands",
+        "command_contracts"
+      ],
+      "properties": {
+        "entry_adapter": {
+          "type": "string"
+        },
+        "service_safe_surface_kind": {
+          "type": "string"
+        },
+        "product_entry_builder_command": {
+          "type": "string"
+        },
+        "supported_entry_modes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "supported_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command_contracts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["command", "required_fields", "optional_fields"]
+          }
+        }
+      }
+    },
+    "gatewayInteractionContract": {
+      "type": "object",
+      "required": [
+        "surface_kind",
+        "frontdoor_owner",
+        "user_interaction_mode",
+        "user_commands_required",
+        "command_surfaces_for_agent_consumption_only",
+        "shared_downstream_entry",
+        "shared_handoff_envelope"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "gateway_interaction_contract"
+        },
+        "frontdoor_owner": {
+          "type": "string"
+        },
+        "user_interaction_mode": {
+          "type": "string"
+        },
+        "user_commands_required": {
+          "type": "boolean"
+        },
+        "command_surfaces_for_agent_consumption_only": {
+          "type": "boolean"
+        },
+        "shared_downstream_entry": {
+          "type": "string"
+        },
+        "shared_handoff_envelope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

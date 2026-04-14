@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "med-autoscience/contracts/schemas/v1/product-frontdesk.schema.json",
+  "title": "MedAutoScience Product Frontdesk",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "surface_kind",
+    "schema_ref",
+    "recommended_action",
+    "target_domain_id",
+    "domain_entry_contract",
+    "gateway_interaction_contract",
+    "frontdesk_surface",
+    "operator_loop_surface",
+    "product_entry_manifest"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "product_frontdesk"
+    },
+    "schema_ref": {
+      "const": "contracts/schemas/v1/product-frontdesk.schema.json"
+    },
+    "domain_entry_contract": {
+      "$ref": "./product-entry-manifest.schema.json#/$defs/domainEntryContract"
+    },
+    "gateway_interaction_contract": {
+      "$ref": "./product-entry-manifest.schema.json#/$defs/gatewayInteractionContract"
+    }
+  }
+}

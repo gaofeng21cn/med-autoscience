@@ -7,10 +7,17 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers import mainline_status, study_progress, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
+from med_autoscience.domain_entry_contract import (
+    PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
+    PRODUCT_FRONTDESK_SCHEMA_REF,
+    SERVICE_SAFE_ENTRY_ADAPTER,
+    build_domain_entry_contract as _build_domain_entry_contract,
+    build_gateway_interaction_contract as _build_gateway_interaction_contract,
+)
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
@@ -36,6 +43,87 @@ _ATTENTION_PRIORITIES = {
     "study_progress_missing": 4,
     "study_blocked": 5,
 }
+
+
+def _require_mapping(payload: Mapping[str, Any], field: str, *, context: str) -> Mapping[str, Any]:
+    value = payload.get(field)
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{context} 缺少合法 mapping 字段: {field}")
+    return value
+
+
+def _require_nonempty_string_from_mapping(payload: Mapping[str, Any], field: str, *, context: str) -> str:
+    value = payload.get(field)
+    text = _non_empty_text(value)
+    if text is None:
+        raise ValueError(f"{context} 缺少合法字符串字段: {field}")
+    return text
+
+
+def _validate_domain_entry_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
+    if not isinstance(contract, Mapping):
+        raise ValueError(f"{context} 必须是 mapping。")
+    _require_nonempty_string_from_mapping(contract, "entry_adapter", context=context)
+    _require_nonempty_string_from_mapping(contract, "service_safe_surface_kind", context=context)
+    _require_nonempty_string_from_mapping(contract, "product_entry_builder_command", context=context)
+    supported_commands = contract.get("supported_commands")
+    if not isinstance(supported_commands, list) or not supported_commands:
+        raise ValueError(f"{context} 缺少 supported_commands。")
+    command_contracts = contract.get("command_contracts")
+    if not isinstance(command_contracts, list) or not command_contracts:
+        raise ValueError(f"{context} 缺少 command_contracts。")
+    for index, item in enumerate(command_contracts):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{context}.command_contracts[{index}] 必须是 mapping。")
+        _require_nonempty_string_from_mapping(
+            item,
+            "command",
+            context=f"{context}.command_contracts[{index}]",
+        )
+        for field_name in ("required_fields", "optional_fields"):
+            value = item.get(field_name)
+            if not isinstance(value, list):
+                raise ValueError(f"{context}.command_contracts[{index}].{field_name} 必须是 list。")
+
+
+def _validate_gateway_interaction_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
+    if not isinstance(contract, Mapping):
+        raise ValueError(f"{context} 必须是 mapping。")
+    _require_nonempty_string_from_mapping(contract, "surface_kind", context=context)
+    _require_nonempty_string_from_mapping(contract, "frontdoor_owner", context=context)
+    _require_nonempty_string_from_mapping(contract, "user_interaction_mode", context=context)
+    if not isinstance(contract.get("user_commands_required"), bool):
+        raise ValueError(f"{context}.user_commands_required 必须是 bool。")
+    if not isinstance(contract.get("command_surfaces_for_agent_consumption_only"), bool):
+        raise ValueError(f"{context}.command_surfaces_for_agent_consumption_only 必须是 bool。")
+    _require_nonempty_string_from_mapping(contract, "shared_downstream_entry", context=context)
+    shared_handoff_envelope = contract.get("shared_handoff_envelope")
+    if not isinstance(shared_handoff_envelope, list) or not shared_handoff_envelope:
+        raise ValueError(f"{context}.shared_handoff_envelope 必须是非空 list。")
+
+
+def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> None:
+    _require_nonempty_string_from_mapping(payload, "schema_ref", context="product_entry_manifest")
+    _validate_domain_entry_contract_shape(
+        _require_mapping(payload, "domain_entry_contract", context="product_entry_manifest"),
+        context="product_entry_manifest.domain_entry_contract",
+    )
+    _validate_gateway_interaction_contract_shape(
+        _require_mapping(payload, "gateway_interaction_contract", context="product_entry_manifest"),
+        context="product_entry_manifest.gateway_interaction_contract",
+    )
+
+
+def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
+    _require_nonempty_string_from_mapping(payload, "schema_ref", context="product_frontdesk")
+    _validate_domain_entry_contract_shape(
+        _require_mapping(payload, "domain_entry_contract", context="product_frontdesk"),
+        context="product_frontdesk.domain_entry_contract",
+    )
+    _validate_gateway_interaction_contract_shape(
+        _require_mapping(payload, "gateway_interaction_contract", context="product_frontdesk"),
+        context="product_frontdesk.gateway_interaction_contract",
+    )
 
 
 def _utc_now() -> str:
@@ -891,6 +979,16 @@ def build_product_entry_manifest(
         doctor_report=doctor_report,
         profile_ref=profile_ref,
     )
+    domain_entry_contract = _build_domain_entry_contract()
+    gateway_interaction_contract = _build_gateway_interaction_contract()
+    _validate_domain_entry_contract_shape(
+        domain_entry_contract,
+        context="product_entry_manifest.domain_entry_contract",
+    )
+    _validate_gateway_interaction_contract_shape(
+        gateway_interaction_contract,
+        context="product_entry_manifest.gateway_interaction_contract",
+    )
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
     workspace_root = str(profile.workspace_root)
@@ -1186,11 +1284,12 @@ def build_product_entry_manifest(
         ],
     }
 
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "manifest_version": 2,
         "surface_kind": "product_entry_manifest",
         "manifest_kind": PRODUCT_ENTRY_MANIFEST_KIND,
+        "schema_ref": PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
         "target_domain_id": TARGET_DOMAIN_ID,
         "formal_entry": {
             "default": "CLI",
@@ -1230,6 +1329,8 @@ def build_product_entry_manifest(
             "workspace_root": workspace_root,
             "profile_ref": str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else None,
         },
+        "domain_entry_contract": domain_entry_contract,
+        "gateway_interaction_contract": gateway_interaction_contract,
         "recommended_shell": "workspace_cockpit",
         "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
         "frontdesk_surface": {
@@ -1276,6 +1377,8 @@ def build_product_entry_manifest(
             "It does not claim that a mature standalone medical frontend is already landed.",
         ],
     }
+    _validate_product_entry_manifest_contract(payload)
+    return payload
 
 
 def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
@@ -1283,15 +1386,19 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     repo_mainline = dict(payload.get("repo_mainline") or {})
     product_entry_shell = dict(payload.get("product_entry_shell") or {})
     shared_handoff = dict(payload.get("shared_handoff") or {})
+    gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
     lines = [
         "# Product Entry Manifest",
         "",
         f"- manifest_kind: `{payload.get('manifest_kind')}`",
+        f"- schema_ref: `{payload.get('schema_ref')}`",
         f"- target_domain_id: `{payload.get('target_domain_id')}`",
         f"- profile_name: `{workspace_locator.get('profile_name')}`",
         f"- workspace_root: `{workspace_locator.get('workspace_root')}`",
         f"- current_program_phase: `{repo_mainline.get('current_program_phase_id')}`",
         f"- current_stage: `{repo_mainline.get('current_stage_id')}`",
+        f"- frontdoor_owner: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
+        f"- user_interaction_mode: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
         "",
         "## Product Entry Shell",
         "",
@@ -1332,14 +1439,17 @@ def build_product_frontdesk(
     product_entry_shell = dict(manifest.get("product_entry_shell") or {})
     shared_handoff = dict(manifest.get("shared_handoff") or {})
 
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": PRODUCT_FRONTDESK_KIND,
+        "schema_ref": PRODUCT_FRONTDESK_SCHEMA_REF,
         "recommended_action": "inspect_or_prepare_research_loop",
         "target_domain_id": TARGET_DOMAIN_ID,
         "workspace_locator": dict(manifest.get("workspace_locator") or {}),
         "runtime": dict(manifest.get("runtime") or {}),
         "executor_defaults": dict(manifest.get("executor_defaults") or {}),
+        "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
+        "gateway_interaction_contract": dict(manifest.get("gateway_interaction_contract") or {}),
         "product_entry_status": dict(manifest.get("product_entry_status") or {}),
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
@@ -1373,15 +1483,21 @@ def build_product_frontdesk(
             "It does not include the display / paper-figure asset line.",
         ],
     }
+    _validate_product_frontdesk_contract(payload)
+    return payload
 
 
 def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
+    gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
     lines = [
         "# Product Frontdesk",
         "",
         f"- target_domain_id: `{payload.get('target_domain_id')}`",
+        f"- schema_ref: `{payload.get('schema_ref') or 'none'}`",
         f"- recommended_action: `{payload.get('recommended_action')}`",
+        f"- frontdoor_owner: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
+        f"- user_interaction_mode: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
         f"- frontdesk_command: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
         f"- recommended_command: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
         f"- operator_loop_command: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
@@ -1540,7 +1656,7 @@ def build_product_entry(
         ),
     }
 
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "entry_kind": PRODUCT_ENTRY_KIND,
         "target_domain_id": TARGET_DOMAIN_ID,
@@ -1565,6 +1681,11 @@ def build_product_entry(
             "resume_entry": "launch-study",
         },
         "return_surface_contract": {
+            "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
+            "default_formal_entry": "CLI",
+            "supported_entry_modes": list(SUPPORTED_DIRECT_ENTRY_MODES),
+            "domain_entry_contract": _build_domain_entry_contract(),
+            "gateway_interaction_contract": _build_gateway_interaction_contract(),
             "cockpit_command": commands["workspace_cockpit"],
             "submit_task_command": commands["submit_study_task"],
             "launch_command": commands["launch_study"],
@@ -1588,6 +1709,15 @@ def build_product_entry(
         },
         "commands": commands,
     }
+    _validate_domain_entry_contract_shape(
+        payload["return_surface_contract"]["domain_entry_contract"],
+        context="build_product_entry.return_surface_contract.domain_entry_contract",
+    )
+    _validate_gateway_interaction_contract_shape(
+        payload["return_surface_contract"]["gateway_interaction_contract"],
+        context="build_product_entry.return_surface_contract.gateway_interaction_contract",
+    )
+    return payload
 
 
 def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:

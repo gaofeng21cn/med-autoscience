@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
@@ -284,6 +286,40 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["runtime_session_contract"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
     assert payload["domain_payload"]["journal_target"] == "JAMA Network Open"
     assert payload["domain_payload"]["evidence_boundary"] == ["必须保留 publication gate"]
+    assert payload["return_surface_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
+    assert payload["return_surface_contract"]["default_formal_entry"] == "CLI"
+    assert payload["return_surface_contract"]["supported_entry_modes"] == ["direct", "opl-handoff"]
+    assert payload["return_surface_contract"]["domain_entry_contract"]["service_safe_surface_kind"] == (
+        "med_autoscience_service_safe_domain_entry"
+    )
+    assert payload["return_surface_contract"]["domain_entry_contract"]["supported_commands"] == [
+        "workspace-cockpit",
+        "product-frontdesk",
+        "product-preflight",
+        "product-start",
+        "product-entry-manifest",
+        "study-progress",
+        "study-runtime-status",
+        "launch-study",
+        "submit-study-task",
+        "build-product-entry",
+    ]
+    assert payload["return_surface_contract"]["gateway_interaction_contract"] == {
+        "surface_kind": "gateway_interaction_contract",
+        "frontdoor_owner": "opl_gateway_or_domain_gui",
+        "user_interaction_mode": "natural_language_frontdoor",
+        "user_commands_required": False,
+        "command_surfaces_for_agent_consumption_only": True,
+        "shared_downstream_entry": "MedAutoScienceDomainEntry",
+        "shared_handoff_envelope": [
+            "target_domain_id",
+            "task_intent",
+            "entry_mode",
+            "workspace_locator",
+            "runtime_session_contract",
+            "return_surface_contract",
+        ],
+    }
     assert payload["return_surface_contract"]["progress_command"].endswith("--study-id 001-risk")
     assert payload["commands"]["workspace_cockpit"].endswith("workspace-cockpit --profile " + str(profile_ref.resolve()))
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
@@ -367,6 +403,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
+    assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-manifest.schema.json"
+    assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
+    assert payload["domain_entry_contract"]["product_entry_builder_command"] == "build-product-entry"
+    assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
+    assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
+    assert payload["gateway_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
     assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
     assert payload["frontdesk_surface"]["command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
@@ -730,6 +772,11 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["surface_kind"] == "product_frontdesk"
     assert payload["recommended_action"] == "inspect_or_prepare_research_loop"
     assert payload["target_domain_id"] == "med-autoscience"
+    assert payload["schema_ref"] == "contracts/schemas/v1/product-frontdesk.schema.json"
+    assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
+    assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
+    assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
+    assert payload["gateway_interaction_contract"]["user_commands_required"] is False
     assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
     assert payload["frontdesk_surface"]["command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
@@ -809,6 +856,43 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
     assert payload["product_entry_manifest"]["product_entry_start"] == payload["product_entry_start"]
+
+
+def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_gateway_interaction_contract",
+        lambda: {
+            "surface_kind": "gateway_interaction_contract",
+            "frontdoor_owner": "",
+        },
+    )
+
+    with pytest.raises(ValueError, match="gateway_interaction_contract"):
+        module.build_product_entry_manifest(
+            profile=profile,
+            profile_ref=profile_ref,
+        )
 
 
 def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_path: Path) -> None:
