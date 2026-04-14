@@ -88,6 +88,7 @@ The current audited inventory is broader than the subset already proven against 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::subgroup_forest` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::compact_effect_estimate_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Compact Effect Estimate Panel | `python` | `compact_effect_estimate_panel_inputs_v1` | `publication_compact_effect_estimate_panel` | `png`, `pdf` |
 
 ### Model Explanation
 
@@ -512,6 +513,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `rows_must_be_non_empty`, `effect_interval_must_bound_estimate`, `effect_values_must_be_finite`
+
+### `compact_effect_estimate_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Compact Effect Estimate Panel
+- Templates: `fenggaolab.org.medical-display-core::compact_effect_estimate_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `reference_value`, `panels`
+- Optional display fields: `paper_role`
+- Required collection fields: `panels` -> `panel_id`, `panel_label`, `title`, `rows`
+- Optional collection fields: None
+- Required nested collection fields: `panels.rows` -> `row_id`, `row_label`, `estimate`, `lower`, `upper`
+- Optional nested collection fields: `panels.rows` -> `support_n`
+- Additional constraints: `panels_must_be_non_empty`, `panel_count_must_be_between_two_and_four`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `reference_value_must_be_finite`, `panel_rows_must_be_non_empty`, `panel_row_ids_must_be_unique_within_panel`, `panel_row_labels_must_be_unique_within_panel`, `panel_row_values_must_be_finite`, `panel_row_intervals_must_wrap_estimate`, `panel_row_support_n_must_be_positive_when_present`, `panel_row_orders_must_match_across_panels`
 
 ### `shap_summary_inputs_v1`
 

@@ -47,6 +47,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     generalizability_subgroup = module.get_input_schema_contract("generalizability_subgroup_composite_inputs_v1")
+    compact_effect_estimate = module.get_input_schema_contract("compact_effect_estimate_panel_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
     shap_dependence = module.get_input_schema_contract("shap_dependence_panel_inputs_v1")
     shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
@@ -83,6 +84,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     model_audit_class = next(item for item in module.list_display_schema_classes() if item.class_id == "model_audit")
     generalizability_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "generalizability"
+    )
+    effect_estimate_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "effect_estimate"
     )
 
     assert binary.template_ids == (
@@ -497,6 +501,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
 
     assert forest.template_ids == (_full_id("forest_effect_main"), _full_id("subgroup_forest"))
     assert generalizability_subgroup.template_ids == (_full_id("generalizability_subgroup_composite_panel"),)
+    assert compact_effect_estimate.template_ids == (_full_id("compact_effect_estimate_panel"),)
     assert generalizability_subgroup.display_required_fields == (
         "display_id",
         "template_id",
@@ -537,6 +542,45 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         in generalizability_subgroup.additional_constraints
     )
     assert "subgroup_rows_must_satisfy_lower_le_estimate_le_upper" in generalizability_subgroup.additional_constraints
+    assert compact_effect_estimate.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "reference_value",
+        "panels",
+    )
+    assert compact_effect_estimate.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "rows",
+    )
+    assert compact_effect_estimate.nested_collection_required_fields["panels.rows"] == (
+        "row_id",
+        "row_label",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert compact_effect_estimate.nested_collection_optional_fields["panels.rows"] == ("support_n",)
+    assert compact_effect_estimate.additional_constraints == (
+        "panels_must_be_non_empty",
+        "panel_count_must_be_between_two_and_four",
+        "panel_ids_must_be_unique",
+        "panel_labels_must_be_unique",
+        "reference_value_must_be_finite",
+        "panel_rows_must_be_non_empty",
+        "panel_row_ids_must_be_unique_within_panel",
+        "panel_row_labels_must_be_unique_within_panel",
+        "panel_row_values_must_be_finite",
+        "panel_row_intervals_must_wrap_estimate",
+        "panel_row_support_n_must_be_positive_when_present",
+        "panel_row_orders_must_match_across_panels",
+    )
+    assert _full_id("compact_effect_estimate_panel") in effect_estimate_class.template_ids
+    assert "compact_effect_estimate_panel_inputs_v1" in effect_estimate_class.input_schema_ids
     assert forest.collection_required_fields["rows"] == ("label", "estimate", "lower", "upper")
     assert shap.template_ids == (_full_id("shap_summary_beeswarm"),)
     assert shap.collection_required_fields["rows"] == ("feature", "points")
@@ -1840,6 +1884,30 @@ def test_generalizability_subgroup_composite_schema_contract_is_registered() -> 
     assert "generalizability_subgroup_composite_inputs_v1" in generalizability_class.input_schema_ids
 
 
+def test_compact_effect_estimate_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    compact = module.get_input_schema_contract("compact_effect_estimate_panel_inputs_v1")
+    effect_estimate_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "effect_estimate"
+    )
+
+    assert compact.template_ids == (_full_id("compact_effect_estimate_panel"),)
+    assert compact.display_name == "Compact Effect Estimate Panel"
+    assert compact.collection_required_fields["panels"] == ("panel_id", "panel_label", "title", "rows")
+    assert compact.nested_collection_required_fields["panels.rows"] == (
+        "row_id",
+        "row_label",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert "panel_count_must_be_between_two_and_four" in compact.additional_constraints
+    assert "panel_row_orders_must_match_across_panels" in compact.additional_constraints
+    assert _full_id("compact_effect_estimate_panel") in effect_estimate_class.template_ids
+    assert "compact_effect_estimate_panel_inputs_v1" in effect_estimate_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -1901,6 +1969,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown
+    assert _full_id("compact_effect_estimate_panel") in markdown
+    assert "compact_effect_estimate_panel_inputs_v1" in markdown
     assert _full_id("time_to_event_discrimination_calibration_panel") in markdown
     assert "time_to_event_decision_curve_inputs_v1" in markdown
     assert _full_id("multicenter_generalizability_overview") in markdown

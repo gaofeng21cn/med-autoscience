@@ -6115,6 +6115,231 @@ def test_run_display_layout_qc_passes_for_generalizability_subgroup_composite_pa
     assert result["issues"] == []
 
 
+def test_run_display_layout_qc_passes_for_compact_effect_estimate_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_compact_effect_estimate_panel",
+        layout_sidecar={
+            "template_id": "compact_effect_estimate_panel",
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.31, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.56, y0=0.86, x1=0.75, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.76, x1=0.14, y1=0.79),
+                make_box("panel_label_B", "panel_label", x0=0.56, y0=0.76, x1=0.58, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.17, y0=0.10, x1=0.31, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.61, y0=0.10, x1=0.75, y1=0.13),
+                make_box("row_label_A_1", "row_label", x0=0.03, y0=0.61, x1=0.11, y1=0.65),
+                make_box("row_label_A_2", "row_label", x0=0.03, y0=0.46, x1=0.11, y1=0.50),
+                make_box("estimate_A_1", "estimate_marker", x0=0.22, y0=0.61, x1=0.23, y1=0.65),
+                make_box("estimate_A_2", "estimate_marker", x0=0.25, y0=0.46, x1=0.26, y1=0.50),
+                make_box("ci_A_1", "ci_segment", x0=0.19, y0=0.625, x1=0.29, y1=0.635),
+                make_box("ci_A_2", "ci_segment", x0=0.21, y0=0.475, x1=0.32, y1=0.485),
+                make_box("row_label_B_1", "row_label", x0=0.47, y0=0.61, x1=0.55, y1=0.65),
+                make_box("row_label_B_2", "row_label", x0=0.47, y0=0.46, x1=0.55, y1=0.50),
+                make_box("estimate_B_1", "estimate_marker", x0=0.66, y0=0.61, x1=0.67, y1=0.65),
+                make_box("estimate_B_2", "estimate_marker", x0=0.69, y0=0.46, x1=0.70, y1=0.50),
+                make_box("ci_B_1", "ci_segment", x0=0.63, y0=0.625, x1=0.73, y1=0.635),
+                make_box("ci_B_2", "ci_segment", x0=0.65, y0=0.475, x1=0.76, y1=0.485),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.40, y1=0.80),
+                make_box("panel_B", "panel", x0=0.56, y0=0.18, x1=0.84, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "reference_line", x0=0.27, y0=0.18, x1=0.28, y1=0.80),
+                make_box("reference_line_B", "reference_line", x0=0.71, y0=0.18, x1=0.72, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 1.0,
+                "panels": [
+                    {
+                        "panel_id": "overall",
+                        "panel_label": "A",
+                        "title": "Overall cohort",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "rows": [
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.18,
+                                "lower": 1.04,
+                                "upper": 1.34,
+                                "label_box_id": "row_label_A_1",
+                                "estimate_box_id": "estimate_A_1",
+                                "ci_box_id": "ci_A_1",
+                            },
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.26,
+                                "lower": 1.10,
+                                "upper": 1.44,
+                                "label_box_id": "row_label_A_2",
+                                "estimate_box_id": "estimate_A_2",
+                                "ci_box_id": "ci_A_2",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "adjusted",
+                        "panel_label": "B",
+                        "title": "Covariate-adjusted model",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "rows": [
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.11,
+                                "lower": 0.98,
+                                "upper": 1.28,
+                                "label_box_id": "row_label_B_1",
+                                "estimate_box_id": "estimate_B_1",
+                                "ci_box_id": "ci_B_1",
+                            },
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.22,
+                                "lower": 1.05,
+                                "upper": 1.40,
+                                "label_box_id": "row_label_B_2",
+                                "estimate_box_id": "estimate_B_2",
+                                "ci_box_id": "ci_B_2",
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_compact_effect_estimate_panel_row_order_drifts() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_compact_effect_estimate_panel",
+        layout_sidecar={
+            "template_id": "compact_effect_estimate_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.86, x1=0.31, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.56, y0=0.86, x1=0.75, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.76, x1=0.14, y1=0.79),
+                make_box("panel_label_B", "panel_label", x0=0.56, y0=0.76, x1=0.58, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.17, y0=0.10, x1=0.31, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.61, y0=0.10, x1=0.75, y1=0.13),
+                make_box("row_label_A_1", "row_label", x0=0.03, y0=0.61, x1=0.11, y1=0.65),
+                make_box("row_label_A_2", "row_label", x0=0.03, y0=0.46, x1=0.11, y1=0.50),
+                make_box("estimate_A_1", "estimate_marker", x0=0.22, y0=0.61, x1=0.23, y1=0.65),
+                make_box("estimate_A_2", "estimate_marker", x0=0.25, y0=0.46, x1=0.26, y1=0.50),
+                make_box("ci_A_1", "ci_segment", x0=0.19, y0=0.625, x1=0.29, y1=0.635),
+                make_box("ci_A_2", "ci_segment", x0=0.21, y0=0.475, x1=0.32, y1=0.485),
+                make_box("row_label_B_1", "row_label", x0=0.47, y0=0.61, x1=0.55, y1=0.65),
+                make_box("row_label_B_2", "row_label", x0=0.47, y0=0.46, x1=0.55, y1=0.50),
+                make_box("estimate_B_1", "estimate_marker", x0=0.66, y0=0.61, x1=0.67, y1=0.65),
+                make_box("estimate_B_2", "estimate_marker", x0=0.69, y0=0.46, x1=0.70, y1=0.50),
+                make_box("ci_B_1", "ci_segment", x0=0.63, y0=0.625, x1=0.73, y1=0.635),
+                make_box("ci_B_2", "ci_segment", x0=0.65, y0=0.475, x1=0.76, y1=0.485),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.12, y0=0.18, x1=0.40, y1=0.80),
+                make_box("panel_B", "panel", x0=0.56, y0=0.18, x1=0.84, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "reference_line", x0=0.27, y0=0.18, x1=0.28, y1=0.80),
+                make_box("reference_line_B", "reference_line", x0=0.71, y0=0.18, x1=0.72, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 1.0,
+                "panels": [
+                    {
+                        "panel_id": "overall",
+                        "panel_label": "A",
+                        "title": "Overall cohort",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "rows": [
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.18,
+                                "lower": 1.04,
+                                "upper": 1.34,
+                                "label_box_id": "row_label_A_1",
+                                "estimate_box_id": "estimate_A_1",
+                                "ci_box_id": "ci_A_1",
+                            },
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.26,
+                                "lower": 1.10,
+                                "upper": 1.44,
+                                "label_box_id": "row_label_A_2",
+                                "estimate_box_id": "estimate_A_2",
+                                "ci_box_id": "ci_A_2",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "adjusted",
+                        "panel_label": "B",
+                        "title": "Covariate-adjusted model",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "rows": [
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.22,
+                                "lower": 1.05,
+                                "upper": 1.40,
+                                "label_box_id": "row_label_B_1",
+                                "estimate_box_id": "estimate_B_1",
+                                "ci_box_id": "ci_B_1",
+                            },
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.11,
+                                "lower": 0.98,
+                                "upper": 1.28,
+                                "label_box_id": "row_label_B_2",
+                                "estimate_box_id": "estimate_B_2",
+                                "ci_box_id": "ci_B_2",
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "panel_row_order_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_generalizability_overview_marker_leaves_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

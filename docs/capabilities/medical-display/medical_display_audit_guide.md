@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `50`
+- Implemented evidence figure templates: `51`
 - Illustration shells: `5`
 - Table shells: `5`
-- Total implemented display templates: `60`
+- Total implemented display templates: `61`
 
 ### Evidence Classes
 
@@ -108,7 +108,7 @@ Current implemented display inventory:
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
 | Data Geometry | 9 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel` |
 | Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
-| Effect Estimate | 2 | `forest_effect_inputs_v1` | `publication_forest_plot` |
+| Effect Estimate | 3 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel` |
 | Model Explanation | 14 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
 | Generalizability | 2 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel` |
@@ -244,16 +244,17 @@ Templates:
 
 - `forest_effect_main`
 - `subgroup_forest`
+- `compact_effect_estimate_panel`
 
 Audit purpose:
 
-- Publication-facing interval estimate display for prespecified predictors or subgroups.
+- Publication-facing interval estimate display for prespecified predictors, subgroups, or bounded compact multi-panel effect-estimate comparisons under shared row-order and reference-line governance.
 
 Authoritative contract:
 
-- Input schema: `forest_effect_inputs_v1`
-- Renderer family: `r_ggplot2`
-- QC: `publication_forest_plot`
+- Input schemas: `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`
+- Renderer families: `r_ggplot2`, `python`
+- QC: `publication_forest_plot`, `publication_compact_effect_estimate_panel`
 
 ### 7. Model Explanation
 

@@ -28,6 +28,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "gsva_ssgsea_heatmap_inputs_v1": "gsva_ssgsea_heatmap_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
+    "compact_effect_estimate_panel_inputs_v1": "compact_effect_estimate_panel_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_bar_importance_inputs_v1": "shap_bar_importance_inputs.json",
     "shap_signed_importance_panel_inputs_v1": "shap_signed_importance_panel_inputs.json",

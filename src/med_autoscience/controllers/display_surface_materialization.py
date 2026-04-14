@@ -4952,6 +4952,177 @@ def _validate_forest_display_payload(
     }
 
 
+def _validate_compact_effect_estimate_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    reference_value = _require_numeric_value(
+        payload.get("reference_value"),
+        label=f"{path.name} display `{expected_display_id}` reference_value",
+    )
+    if not math.isfinite(reference_value):
+        raise ValueError(f"{path.name} display `{expected_display_id}` reference_value must be finite")
+
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty panels list")
+    if len(panels_payload) < 2 or len(panels_payload) > 4:
+        raise ValueError(f"{path.name} display `{expected_display_id}` panels must contain between 2 and 4 entries")
+
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    expected_row_order: tuple[tuple[str, str], ...] | None = None
+    for panel_index, panel_payload in enumerate(panels_payload):
+        if not isinstance(panel_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel_payload.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id must be unique"
+            )
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            panel_payload.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        rows_payload = panel_payload.get("rows")
+        if not isinstance(rows_payload, list) or not rows_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}] must contain a non-empty rows list"
+            )
+
+        normalized_rows: list[dict[str, Any]] = []
+        seen_row_ids: set[str] = set()
+        seen_row_labels: set[str] = set()
+        row_order: list[tuple[str, str]] = []
+        for row_index, row_payload in enumerate(rows_payload):
+            if not isinstance(row_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}] must be an object"
+                )
+            row_id = _require_non_empty_string(
+                row_payload.get("row_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].row_id"
+                ),
+            )
+            if row_id in seen_row_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].row_id must be unique within the panel"
+                )
+            seen_row_ids.add(row_id)
+            row_label = _require_non_empty_string(
+                row_payload.get("row_label"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].row_label"
+                ),
+            )
+            if row_label in seen_row_labels:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].row_label must be unique within the panel"
+                )
+            seen_row_labels.add(row_label)
+            estimate = _require_numeric_value(
+                row_payload.get("estimate"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].estimate"
+                ),
+            )
+            lower = _require_numeric_value(
+                row_payload.get("lower"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].lower"
+                ),
+            )
+            upper = _require_numeric_value(
+                row_payload.get("upper"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].upper"
+                ),
+            )
+            if not all(math.isfinite(value) for value in (estimate, lower, upper)):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}] values must be finite"
+                )
+            if not (lower <= estimate <= upper):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}] must satisfy lower <= estimate <= upper"
+                )
+            normalized_row = {
+                "row_id": row_id,
+                "row_label": row_label,
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+            if row_payload.get("support_n") is not None:
+                normalized_row["support_n"] = _require_non_negative_int(
+                    row_payload.get("support_n"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` panels[{panel_index}].rows[{row_index}].support_n"
+                    ),
+                    allow_zero=False,
+                )
+            normalized_rows.append(normalized_row)
+            row_order.append((row_id, row_label))
+
+        if expected_row_order is None:
+            expected_row_order = tuple(row_order)
+        elif tuple(row_order) != expected_row_order:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` rows must appear in the same row_id and row_label order across panels"
+            )
+
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "title": _require_non_empty_string(
+                    panel_payload.get("title"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].title",
+                ),
+                "rows": normalized_rows,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "reference_value": reference_value,
+        "panels": normalized_panels,
+    }
+
+
 def _validate_shap_summary_display_payload(
     *,
     path: Path,
@@ -7761,6 +7932,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "forest_effect_inputs_v1":
         return payload_path, _validate_forest_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "compact_effect_estimate_panel_inputs_v1":
+        return payload_path, _validate_compact_effect_estimate_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

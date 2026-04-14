@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `50`
+- Evidence figure templates: `51`
 - Illustration shells: `5`
 - Table shells: `5`
-- Total audited templates: `60`
+- Total audited templates: `61`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -44,14 +44,19 @@
 
 ## Current Candidate Pool
 
-当前真正还可以继续扩容、但暂未进入当前 active round 的候选，主要是：
+当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `C/H / coefficient-path or compact estimate follow-on beyond the first subgroup-generalizability composite baseline`
-- `F / richer explanation scenes beyond the current higher-order partial-dependence lower bound`
 - `D/E/G / larger atlas-spatial-trajectory multi-view follow-on beyond the current storyboard lower bound`
+- `H / broader QC / batch-effect / transportability shell follow-on beyond the first baseline-missingness-QC composite shell`
 
 其中：
 
+- `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
+- `C/H / coefficient-path follow-on` 本轮不再作为当前 active 候选保留：
+  - 原因：它更接近模型审计或自由 path scene，和现有 `model_complexity_audit_panel` 的 coefficient-stability 语义部分重叠，也更容易越过当前 active board 的 bounded 边界。
+- `C/H / broader heterogeneity summary follow-on` 本轮也不作为当前 active 候选保留：
+  - 原因：在 `compact_effect_estimate_panel` 这一层 lower bound 已刚刚入库的前提下，是否继续扩到更宽的 heterogeneous summary 仍需后续显式 reroute，而不应立刻并入当前 active round。
+- `F / richer explanation scenes beyond the current higher-order partial-dependence lower bound` 已转入 [medical_display_active_board.md](./medical_display_active_board.md) 作为当前 active round，不再留在 backlog 候选池。
 - `D/E/G / atlas_spatial_trajectory_storyboard_panel` 已在本轮正式提升为 audited five-panel storyboard baseline，不再保留为当前候选。
 - `F / higher-order partial-dependence follow-on` 已在本轮正式收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
 - `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
@@ -79,6 +84,7 @@
 1. 新的真实 study-owned paper root 暴露出 audited contract 无法表达的论文语义。
 2. 现有 template 能渲染，但 schema / QC / submission surface 不能稳定闭环。
 3. 真实论文表达需要更清晰的正式 contract，而不是 renderer 层的临时补救。
+4. 对 `C/H` 而言，优先顺序固定为：先 absorb `compact_effect_estimate_panel`，再决定是否还需要 `coefficient-path` 或更宽的 heterogeneity summary。
 
 ## Promotion Rules
 
@@ -96,6 +102,8 @@
 
 - `clinical_impact_curve_binary`
 - `multivariable_forest`
+- `coefficient_path_panel`
+- `broader_heterogeneity_summary_panel`
 - `confusion_matrix_heatmap_binary`
 - `temporal_external_validation_overview`
 - `higher_order_explanation_scene_beyond_current_pd_ale_lower_bound`

@@ -143,6 +143,176 @@ def test_generalizability_subgroup_composite_panel_preserves_ch_bounded_contract
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_compact_effect_estimate_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure46",
+                    "display_kind": "figure",
+                    "requirement_key": "compact_effect_estimate_panel",
+                    "catalog_id": "F46",
+                    "shell_path": "paper/figures/Figure46.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure46",
+                    "template_id": "compact_effect_estimate_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "compact_effect_estimate_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "compact_effect_estimate_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure46",
+                    "template_id": "fenggaolab.org.medical-display-core::compact_effect_estimate_panel",
+                    "title": "Compact effect estimate panel for prespecified heterogeneity review",
+                    "caption": "Regression lock for bounded multi-panel effect-estimate evidence.",
+                    "x_label": "Hazard ratio",
+                    "reference_value": 1.0,
+                    "panels": [
+                        {
+                            "panel_id": "overall",
+                            "panel_label": "A",
+                            "title": "Overall cohort",
+                            "rows": [
+                                {
+                                    "row_id": "age_ge_65",
+                                    "row_label": "Age ≥65 years",
+                                    "support_n": 184,
+                                    "estimate": 1.18,
+                                    "lower": 1.04,
+                                    "upper": 1.34,
+                                },
+                                {
+                                    "row_id": "female",
+                                    "row_label": "Female",
+                                    "support_n": 201,
+                                    "estimate": 1.26,
+                                    "lower": 1.10,
+                                    "upper": 1.44,
+                                },
+                            ],
+                        },
+                        {
+                            "panel_id": "adjusted",
+                            "panel_label": "B",
+                            "title": "Covariate-adjusted model",
+                            "rows": [
+                                {
+                                    "row_id": "age_ge_65",
+                                    "row_label": "Age ≥65 years",
+                                    "support_n": 184,
+                                    "estimate": 1.11,
+                                    "lower": 0.98,
+                                    "upper": 1.28,
+                                },
+                                {
+                                    "row_id": "female",
+                                    "row_label": "Female",
+                                    "support_n": 201,
+                                    "estimate": 1.22,
+                                    "lower": 1.05,
+                                    "upper": 1.40,
+                                },
+                            ],
+                        },
+                        {
+                            "panel_id": "sensitivity",
+                            "panel_label": "C",
+                            "title": "Sensitivity analysis",
+                            "rows": [
+                                {
+                                    "row_id": "age_ge_65",
+                                    "row_label": "Age ≥65 years",
+                                    "support_n": 184,
+                                    "estimate": 1.09,
+                                    "lower": 0.95,
+                                    "upper": 1.25,
+                                },
+                                {
+                                    "row_id": "female",
+                                    "row_label": "Female",
+                                    "support_n": 201,
+                                    "estimate": 1.18,
+                                    "lower": 1.01,
+                                    "upper": 1.37,
+                                },
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F46_compact_effect_estimate_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert [item["panel_id"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "overall",
+        "adjusted",
+        "sensitivity",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["panels"][0]["rows"]] == [
+        "age_ge_65",
+        "female",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["panels"][1]["rows"]] == [
+        "age_ge_65",
+        "female",
+    ]
+    assert layout_sidecar["metrics"]["reference_value"] == 1.0
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "reference_line"]) == 3
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_baseline_missingness_qc_panel_preserves_h_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

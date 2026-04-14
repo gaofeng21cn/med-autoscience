@@ -141,7 +141,10 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         class_id="effect_estimate",
         display_name="Effect Estimate",
         template_ids=_template_ids_for_evidence_class("effect_estimate"),
-        input_schema_ids=("forest_effect_inputs_v1",),
+        input_schema_ids=(
+            "forest_effect_inputs_v1",
+            "compact_effect_estimate_panel_inputs_v1",
+        ),
     ),
     DisplaySchemaClass(
         class_id="model_explanation",
@@ -1207,6 +1210,38 @@ _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
             "rows_must_be_non_empty",
             "effect_interval_must_bound_estimate",
             "effect_values_must_be_finite",
+        ),
+    ),
+    InputSchemaContract(
+        input_schema_id="compact_effect_estimate_panel_inputs_v1",
+        display_kind="evidence_figure",
+        display_name="Compact Effect Estimate Panel",
+        template_ids=_template_ids_for_input_schema("compact_effect_estimate_panel_inputs_v1"),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "x_label", "reference_value", "panels"),
+        display_optional_fields=("paper_role",),
+        collection_required_fields={
+            "panels": ("panel_id", "panel_label", "title", "rows"),
+        },
+        nested_collection_required_fields={
+            "panels.rows": ("row_id", "row_label", "estimate", "lower", "upper"),
+        },
+        nested_collection_optional_fields={
+            "panels.rows": ("support_n",),
+        },
+        additional_constraints=(
+            "panels_must_be_non_empty",
+            "panel_count_must_be_between_two_and_four",
+            "panel_ids_must_be_unique",
+            "panel_labels_must_be_unique",
+            "reference_value_must_be_finite",
+            "panel_rows_must_be_non_empty",
+            "panel_row_ids_must_be_unique_within_panel",
+            "panel_row_labels_must_be_unique_within_panel",
+            "panel_row_values_must_be_finite",
+            "panel_row_intervals_must_wrap_estimate",
+            "panel_row_support_n_must_be_positive_when_present",
+            "panel_row_orders_must_match_across_panels",
         ),
     ),
     InputSchemaContract(

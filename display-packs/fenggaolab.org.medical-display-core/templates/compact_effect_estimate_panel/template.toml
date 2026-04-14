@@ -1,0 +1,14 @@
+template_id = "compact_effect_estimate_panel"
+full_template_id = "fenggaolab.org.medical-display-core::compact_effect_estimate_panel"
+kind = "evidence_figure"
+display_name = "Compact Effect Estimate Panel"
+paper_family_ids = ["C", "H"]
+audit_family = "Effect Estimate"
+renderer_family = "python"
+input_schema_ref = "compact_effect_estimate_panel_inputs_v1"
+qc_profile_ref = "publication_compact_effect_estimate_panel"
+required_exports = ["png", "pdf"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+paper_proven = false

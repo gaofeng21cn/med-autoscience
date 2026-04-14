@@ -1612,6 +1612,108 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "rows": [{"row_id": "1", "label": "Age >= 60", "lower": 0.90, "estimate": 1.05, "upper": 1.20}],
             },
         }
+    if template_short_id == "compact_effect_estimate_panel":
+        return {
+            "template_id": template_id,
+            "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
+            "layout_boxes": [
+                {"box_id": "panel_title_A", "box_type": "panel_title", "x0": 0.13, "y0": 0.86, "x1": 0.32, "y1": 0.89},
+                {"box_id": "panel_title_B", "box_type": "panel_title", "x0": 0.58, "y0": 0.86, "x1": 0.77, "y1": 0.89},
+                {"box_id": "panel_label_A", "box_type": "panel_label", "x0": 0.13, "y0": 0.82, "x1": 0.15, "y1": 0.85},
+                {"box_id": "panel_label_B", "box_type": "panel_label", "x0": 0.58, "y0": 0.82, "x1": 0.60, "y1": 0.85},
+                {"box_id": "x_axis_title_A", "box_type": "subplot_x_axis_title", "x0": 0.18, "y0": 0.10, "x1": 0.33, "y1": 0.13},
+                {"box_id": "x_axis_title_B", "box_type": "subplot_x_axis_title", "x0": 0.63, "y0": 0.10, "x1": 0.78, "y1": 0.13},
+                {"box_id": "row_label_A_1", "box_type": "row_label", "x0": 0.03, "y0": 0.61, "x1": 0.12, "y1": 0.65},
+                {"box_id": "row_label_A_2", "box_type": "row_label", "x0": 0.03, "y0": 0.46, "x1": 0.12, "y1": 0.50},
+                {"box_id": "estimate_A_1", "box_type": "estimate_marker", "x0": 0.23, "y0": 0.61, "x1": 0.24, "y1": 0.65},
+                {"box_id": "estimate_A_2", "box_type": "estimate_marker", "x0": 0.26, "y0": 0.46, "x1": 0.27, "y1": 0.50},
+                {"box_id": "ci_A_1", "box_type": "ci_segment", "x0": 0.19, "y0": 0.625, "x1": 0.29, "y1": 0.635},
+                {"box_id": "ci_A_2", "box_type": "ci_segment", "x0": 0.21, "y0": 0.475, "x1": 0.33, "y1": 0.485},
+                {"box_id": "row_label_B_1", "box_type": "row_label", "x0": 0.48, "y0": 0.61, "x1": 0.57, "y1": 0.65},
+                {"box_id": "row_label_B_2", "box_type": "row_label", "x0": 0.48, "y0": 0.46, "x1": 0.57, "y1": 0.50},
+                {"box_id": "estimate_B_1", "box_type": "estimate_marker", "x0": 0.68, "y0": 0.61, "x1": 0.69, "y1": 0.65},
+                {"box_id": "estimate_B_2", "box_type": "estimate_marker", "x0": 0.71, "y0": 0.46, "x1": 0.72, "y1": 0.50},
+                {"box_id": "ci_B_1", "box_type": "ci_segment", "x0": 0.64, "y0": 0.625, "x1": 0.74, "y1": 0.635},
+                {"box_id": "ci_B_2", "box_type": "ci_segment", "x0": 0.66, "y0": 0.475, "x1": 0.78, "y1": 0.485},
+            ],
+            "panel_boxes": [
+                {"box_id": "panel_A", "box_type": "panel", "x0": 0.13, "y0": 0.18, "x1": 0.40, "y1": 0.80},
+                {"box_id": "panel_B", "box_type": "panel", "x0": 0.58, "y0": 0.18, "x1": 0.85, "y1": 0.80},
+            ],
+            "guide_boxes": [
+                {"box_id": "reference_line_A", "box_type": "reference_line", "x0": 0.28, "y0": 0.18, "x1": 0.29, "y1": 0.80},
+                {"box_id": "reference_line_B", "box_type": "reference_line", "x0": 0.73, "y0": 0.18, "x1": 0.74, "y1": 0.80},
+            ],
+            "metrics": {
+                "reference_value": 1.0,
+                "panels": [
+                    {
+                        "panel_id": "overall",
+                        "panel_label": "A",
+                        "title": "Overall cohort",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "rows": [
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.18,
+                                "lower": 1.04,
+                                "upper": 1.34,
+                                "label_box_id": "row_label_A_1",
+                                "estimate_box_id": "estimate_A_1",
+                                "ci_box_id": "ci_A_1",
+                            },
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.26,
+                                "lower": 1.10,
+                                "upper": 1.44,
+                                "label_box_id": "row_label_A_2",
+                                "estimate_box_id": "estimate_A_2",
+                                "ci_box_id": "ci_A_2",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "sensitivity",
+                        "panel_label": "B",
+                        "title": "Sensitivity analysis",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "rows": [
+                            {
+                                "row_id": "age_ge_65",
+                                "row_label": "Age ≥65 years",
+                                "estimate": 1.11,
+                                "lower": 0.98,
+                                "upper": 1.28,
+                                "label_box_id": "row_label_B_1",
+                                "estimate_box_id": "estimate_B_1",
+                                "ci_box_id": "ci_B_1",
+                            },
+                            {
+                                "row_id": "female",
+                                "row_label": "Female",
+                                "estimate": 1.22,
+                                "lower": 1.05,
+                                "upper": 1.40,
+                                "label_box_id": "row_label_B_2",
+                                "estimate_box_id": "estimate_B_2",
+                                "ci_box_id": "ci_B_2",
+                            },
+                        ],
+                    },
+                ],
+            },
+        }
     if template_short_id == "multicenter_generalizability_overview":
         return {
             "template_id": template_id,
@@ -8682,6 +8784,115 @@ def _make_generalizability_subgroup_composite_panel_display(display_id: str = "F
     }
 
 
+def _make_compact_effect_estimate_panel_display(display_id: str = "Figure46") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "compact_effect_estimate_panel",
+        "title": "Compact effect estimate panel for pre-specified heterogeneity review",
+        "caption": (
+            "Bounded multi-panel effect estimates preserve a shared row order and shared null reference while "
+            "keeping the C/H follow-on contract manuscript-facing and auditable."
+        ),
+        "x_label": "Hazard ratio",
+        "reference_value": 1.0,
+        "panels": [
+            {
+                "panel_id": "overall",
+                "panel_label": "A",
+                "title": "Overall cohort",
+                "rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "support_n": 184,
+                        "estimate": 1.18,
+                        "lower": 1.04,
+                        "upper": 1.34,
+                    },
+                    {
+                        "row_id": "female",
+                        "row_label": "Female",
+                        "support_n": 201,
+                        "estimate": 1.26,
+                        "lower": 1.10,
+                        "upper": 1.44,
+                    },
+                    {
+                        "row_id": "high_risk",
+                        "row_label": "High risk",
+                        "support_n": 96,
+                        "estimate": 1.42,
+                        "lower": 1.17,
+                        "upper": 1.72,
+                    },
+                ],
+            },
+            {
+                "panel_id": "adjusted",
+                "panel_label": "B",
+                "title": "Covariate-adjusted model",
+                "rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "support_n": 184,
+                        "estimate": 1.11,
+                        "lower": 0.98,
+                        "upper": 1.28,
+                    },
+                    {
+                        "row_id": "female",
+                        "row_label": "Female",
+                        "support_n": 201,
+                        "estimate": 1.22,
+                        "lower": 1.05,
+                        "upper": 1.40,
+                    },
+                    {
+                        "row_id": "high_risk",
+                        "row_label": "High risk",
+                        "support_n": 96,
+                        "estimate": 1.35,
+                        "lower": 1.11,
+                        "upper": 1.64,
+                    },
+                ],
+            },
+            {
+                "panel_id": "sensitivity",
+                "panel_label": "C",
+                "title": "Sensitivity analysis",
+                "rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "support_n": 184,
+                        "estimate": 1.09,
+                        "lower": 0.95,
+                        "upper": 1.25,
+                    },
+                    {
+                        "row_id": "female",
+                        "row_label": "Female",
+                        "support_n": 201,
+                        "estimate": 1.18,
+                        "lower": 1.01,
+                        "upper": 1.37,
+                    },
+                    {
+                        "row_id": "high_risk",
+                        "row_label": "High risk",
+                        "support_n": 96,
+                        "estimate": 1.29,
+                        "lower": 1.05,
+                        "upper": 1.58,
+                    },
+                ],
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
     tmp_path: Path,
 ) -> None:
@@ -8973,6 +9184,38 @@ def test_load_evidence_display_payload_rejects_partial_comparator_metrics_for_ge
             paper_root=paper_root,
             spec=spec,
             display_id="Figure34",
+        )
+
+
+def test_load_evidence_display_payload_rejects_row_order_mismatch_for_compact_effect_estimate_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_compact_effect_estimate_panel_display()
+    display_payload["panels"][1]["rows"][0]["row_id"] = "female"
+    display_payload["panels"][1]["rows"][0]["row_label"] = "Female"
+    display_payload["panels"][1]["rows"][1]["row_id"] = "age_ge_65"
+    display_payload["panels"][1]["rows"][1]["row_label"] = "Age ≥65 years"
+    dump_json(
+        paper_root / "compact_effect_estimate_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "compact_effect_estimate_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("compact_effect_estimate_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="rows must appear in the same row_id and row_label order across panels",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure46",
         )
 
 
@@ -10069,6 +10312,93 @@ def test_materialize_display_surface_generates_generalizability_subgroup_composi
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "generalizability_subgroup_composite_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_generalizability_subgroup_composite_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_compact_effect_estimate_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure46",
+                    "display_kind": "figure",
+                    "requirement_key": "compact_effect_estimate_panel",
+                    "catalog_id": "F46",
+                    "shell_path": "paper/figures/Figure46.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure46",
+                    "template_id": "compact_effect_estimate_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "compact_effect_estimate_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "compact_effect_estimate_panel_inputs_v1",
+            "displays": [_make_compact_effect_estimate_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F46"]
+    assert (paper_root / "figures" / "generated" / "F46_compact_effect_estimate_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F46_compact_effect_estimate_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F46_compact_effect_estimate_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_C" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "reference_line"]) == 3
+    assert layout_sidecar["metrics"]["reference_value"] == 1.0
+    assert [item["panel_id"] for item in layout_sidecar["metrics"]["panels"]] == [
+        "overall",
+        "adjusted",
+        "sensitivity",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["panels"][0]["rows"]] == [
+        "age_ge_65",
+        "female",
+        "high_risk",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["panels"][1]["rows"]] == [
+        "age_ge_65",
+        "female",
+        "high_risk",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F46"
+    assert figure_entry["template_id"] == full_id("compact_effect_estimate_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "compact_effect_estimate_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_compact_effect_estimate_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
