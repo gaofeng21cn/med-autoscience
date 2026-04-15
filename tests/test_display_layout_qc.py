@@ -5450,6 +5450,178 @@ def test_run_display_layout_qc_fails_when_partial_dependence_subgroup_estimate_m
     assert any(issue["rule_id"] == "subgroup_estimate_marker_outside_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_feature_response_support_domain_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_feature_response_support_domain_panel",
+        layout_sidecar={
+            "template_id": "feature_response_support_domain_panel",
+            "device": make_device(),
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.28, y1=0.90),
+                make_box("panel_title_B", "panel_title", x0=0.49, y0=0.87, x1=0.67, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.28, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.54, y0=0.10, x1=0.69, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.34, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("panel_label_B", "panel_label", x0=0.49, y0=0.81, x1=0.51, y1=0.84),
+                make_box("reference_label_A", "support_domain_reference_label", x0=0.20, y0=0.77, x1=0.28, y1=0.80),
+                make_box("reference_label_B", "support_domain_reference_label", x0=0.58, y0=0.77, x1=0.68, y1=0.80),
+                make_box("support_label_A_1", "support_label", x0=0.12, y0=0.20, x1=0.18, y1=0.23),
+                make_box("support_label_A_2", "support_label", x0=0.18, y0=0.20, x1=0.24, y1=0.23),
+                make_box("support_label_A_3", "support_label", x0=0.24, y0=0.20, x1=0.28, y1=0.23),
+                make_box("support_label_A_4", "support_label", x0=0.28, y0=0.20, x1=0.33, y1=0.23),
+                make_box("support_label_B_1", "support_label", x0=0.49, y0=0.20, x1=0.56, y1=0.23),
+                make_box("support_label_B_2", "support_label", x0=0.56, y0=0.20, x1=0.61, y1=0.23),
+                make_box("support_label_B_3", "support_label", x0=0.61, y0=0.20, x1=0.65, y1=0.23),
+                make_box("support_label_B_4", "support_label", x0=0.65, y0=0.20, x1=0.72, y1=0.23),
+                make_box("legend_box", "legend_box", x0=0.23, y0=0.02, x1=0.77, y1=0.08),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82),
+                make_box("panel_B", "panel", x0=0.48, y0=0.18, x1=0.73, y1=0.82),
+            ],
+            "guide_boxes": [
+                make_box("reference_line_A", "support_domain_reference_line", x0=0.22, y0=0.18, x1=0.221, y1=0.82),
+                make_box("reference_line_B", "support_domain_reference_line", x0=0.60, y0=0.18, x1=0.601, y1=0.82),
+                make_box("support_segment_A_1", "support_domain_segment", x0=0.12, y0=0.18, x1=0.18, y1=0.25),
+                make_box("support_segment_A_2", "support_domain_segment", x0=0.18, y0=0.18, x1=0.24, y1=0.25),
+                make_box("support_segment_A_3", "support_domain_segment", x0=0.24, y0=0.18, x1=0.29, y1=0.25),
+                make_box("support_segment_A_4", "support_domain_segment", x0=0.29, y0=0.18, x1=0.33, y1=0.25),
+                make_box("support_segment_B_1", "support_domain_segment", x0=0.49, y0=0.18, x1=0.56, y1=0.25),
+                make_box("support_segment_B_2", "support_domain_segment", x0=0.56, y0=0.18, x1=0.61, y1=0.25),
+                make_box("support_segment_B_3", "support_domain_segment", x0=0.61, y0=0.18, x1=0.66, y1=0.25),
+                make_box("support_segment_B_4", "support_domain_segment", x0=0.66, y0=0.18, x1=0.72, y1=0.25),
+            ],
+            "metrics": {
+                "legend_labels": [
+                    "Response curve",
+                    "Observed support",
+                    "Subgroup support",
+                    "Bin support",
+                    "Extrapolation reminder",
+                ],
+                "panels": [
+                    {
+                        "panel_id": "age_support",
+                        "panel_label": "A",
+                        "title": "Age support domain",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "response_points": [
+                            {"x": 0.13, "y": 0.55},
+                            {"x": 0.17, "y": 0.60},
+                            {"x": 0.22, "y": 0.66},
+                            {"x": 0.27, "y": 0.72},
+                            {"x": 0.31, "y": 0.77},
+                        ],
+                        "support_segments": [
+                            {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "segment_box_id": "support_segment_A_1", "label_box_id": "support_label_A_1"},
+                            {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "segment_box_id": "support_segment_A_2", "label_box_id": "support_label_A_2"},
+                            {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "segment_box_id": "support_segment_A_3", "label_box_id": "support_label_A_3"},
+                            {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "segment_box_id": "support_segment_A_4", "label_box_id": "support_label_A_4"},
+                        ],
+                    },
+                    {
+                        "panel_id": "albumin_support",
+                        "panel_label": "B",
+                        "title": "Albumin support domain",
+                        "x_label": "Albumin (g/dL)",
+                        "feature": "Albumin",
+                        "reference_value": 3.8,
+                        "reference_label": "Median albumin",
+                        "panel_box_id": "panel_B",
+                        "reference_line_box_id": "reference_line_B",
+                        "reference_label_box_id": "reference_label_B",
+                        "response_points": [
+                            {"x": 0.50, "y": 0.76},
+                            {"x": 0.55, "y": 0.68},
+                            {"x": 0.60, "y": 0.60},
+                            {"x": 0.65, "y": 0.51},
+                            {"x": 0.69, "y": 0.45},
+                            {"x": 0.71, "y": 0.41},
+                        ],
+                        "support_segments": [
+                            {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "segment_box_id": "support_segment_B_1", "label_box_id": "support_label_B_1"},
+                            {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "segment_box_id": "support_segment_B_2", "label_box_id": "support_label_B_2"},
+                            {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "segment_box_id": "support_segment_B_3", "label_box_id": "support_label_B_3"},
+                            {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "segment_box_id": "support_segment_B_4", "label_box_id": "support_label_B_4"},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_feature_response_support_segment_leaves_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_feature_response_support_domain_panel",
+        layout_sidecar={
+            "template_id": "feature_response_support_domain_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.12, y0=0.87, x1=0.28, y1=0.90),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.16, y0=0.10, x1=0.28, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.05, y0=0.34, x1=0.07, y1=0.72),
+                make_box("panel_label_A", "panel_label", x0=0.12, y0=0.81, x1=0.14, y1=0.84),
+                make_box("reference_label_A", "support_domain_reference_label", x0=0.20, y0=0.77, x1=0.28, y1=0.80),
+                make_box("support_label_A_1", "support_label", x0=0.12, y0=0.20, x1=0.18, y1=0.23),
+                make_box("legend_box", "legend_box", x0=0.23, y0=0.02, x1=0.77, y1=0.08),
+            ],
+            "panel_boxes": [make_box("panel_A", "panel", x0=0.11, y0=0.18, x1=0.34, y1=0.82)],
+            "guide_boxes": [
+                make_box("reference_line_A", "support_domain_reference_line", x0=0.22, y0=0.18, x1=0.221, y1=0.82),
+                make_box("support_segment_A_1", "support_domain_segment", x0=0.12, y0=0.18, x1=0.18, y1=0.25),
+                make_box("support_segment_A_2", "support_domain_segment", x0=0.35, y0=0.18, x1=0.40, y1=0.25),
+            ],
+            "metrics": {
+                "legend_labels": [
+                    "Response curve",
+                    "Observed support",
+                    "Subgroup support",
+                    "Bin support",
+                    "Extrapolation reminder",
+                ],
+                "panels": [
+                    {
+                        "panel_id": "age_support",
+                        "panel_label": "A",
+                        "title": "Age support domain",
+                        "x_label": "Age (years)",
+                        "feature": "Age",
+                        "reference_value": 60.0,
+                        "reference_label": "Median age",
+                        "panel_box_id": "panel_A",
+                        "reference_line_box_id": "reference_line_A",
+                        "reference_label_box_id": "reference_label_A",
+                        "response_points": [{"x": 0.13, "y": 0.55}, {"x": 0.22, "y": 0.66}, {"x": 0.31, "y": 0.77}],
+                        "support_segments": [
+                            {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "segment_box_id": "support_segment_A_1", "label_box_id": "support_label_A_1"},
+                            {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "segment_box_id": "support_segment_A_2", "label_box_id": "support_label_A_1"},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_segment_outside_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_accumulated_local_effects_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

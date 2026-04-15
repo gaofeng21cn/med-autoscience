@@ -1233,6 +1233,135 @@ def test_accumulated_local_effects_panel_preserves_f_ale_contract(tmp_path: Path
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_feature_response_support_domain_panel_preserves_f_support_domain_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "display_kind": "figure",
+                    "requirement_key": "feature_response_support_domain_panel",
+                    "catalog_id": "F47",
+                    "shell_path": "paper/figures/Figure47.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "template_id": "feature_response_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "feature_response_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "feature_response_support_domain_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "template_id": "fenggaolab.org.medical-display-core::feature_response_support_domain_panel",
+                    "title": "Feature response support domain panel for audited support-aware explanation bounds",
+                    "caption": "Regression lock for manuscript-facing support-domain explanation panels.",
+                    "y_label": "Predicted response probability",
+                    "panels": [
+                        {
+                            "panel_id": "age_support",
+                            "panel_label": "A",
+                            "title": "Age support domain",
+                            "x_label": "Age (years)",
+                            "feature": "Age",
+                            "reference_value": 60.0,
+                            "reference_label": "Median age",
+                            "response_curve": {"x": [40.0, 50.0, 60.0, 70.0, 80.0], "y": [0.18, 0.22, 0.29, 0.35, 0.41]},
+                            "support_segments": [
+                                {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 40.0, "domain_end": 50.0},
+                                {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 50.0, "domain_end": 62.0},
+                                {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 62.0, "domain_end": 72.0},
+                                {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 72.0, "domain_end": 80.0},
+                            ],
+                        },
+                        {
+                            "panel_id": "albumin_support",
+                            "panel_label": "B",
+                            "title": "Albumin support domain",
+                            "x_label": "Albumin (g/dL)",
+                            "feature": "Albumin",
+                            "reference_value": 3.8,
+                            "reference_label": "Median albumin",
+                            "response_curve": {
+                                "x": [2.8, 3.2, 3.6, 4.0, 4.4, 4.6],
+                                "y": [0.39, 0.33, 0.28, 0.23, 0.19, 0.17],
+                            },
+                            "support_segments": [
+                                {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 2.8, "domain_end": 3.2},
+                                {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 3.2, "domain_end": 3.8},
+                                {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 3.8, "domain_end": 4.2},
+                                {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 4.2, "domain_end": 4.6},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F47_feature_response_support_domain_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "support_domain_segment"]) == 8
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "support_domain_reference_line"]) == 2
+    assert layout_sidecar["metrics"]["legend_labels"] == [
+        "Response curve",
+        "Observed support",
+        "Subgroup support",
+        "Bin support",
+        "Extrapolation reminder",
+    ]
+    assert layout_sidecar["metrics"]["panels"][0]["support_segments"][1]["support_kind"] == "subgroup_support"
+    assert layout_sidecar["metrics"]["panels"][0]["support_segments"][-1]["segment_label"] == "Extrapolation"
+    assert layout_sidecar["metrics"]["panels"][1]["response_points"][-1]["y"] < layout_sidecar["metrics"]["panels"][1]["response_points"][0]["y"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_shap_bar_importance_preserves_f_global_importance_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

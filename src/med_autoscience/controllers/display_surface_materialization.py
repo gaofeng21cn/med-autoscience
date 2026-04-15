@@ -791,7 +791,11 @@ def _resolve_table_catalog_id(*, display_id: str, catalog_id: str | None = None)
 
 
 def _replace_catalog_entry(items: list[dict[str, Any]], *, key: str, value: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
-    updated = [item for item in items if str(item.get(key) or "").strip() != value]
+    updated = [
+        item
+        for item in items
+        if str(item.get(key) or "").strip() != value and str(item.get("catalog_id") or "").strip() != value
+    ]
     updated.append(entry)
     return updated
 
@@ -7404,6 +7408,234 @@ def _validate_accumulated_local_effects_panel_display_payload(
     }
 
 
+def _validate_feature_response_support_domain_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    y_label = _require_non_empty_string(
+        payload.get("y_label"),
+        label=f"{path.name} display `{expected_display_id}` y_label",
+    )
+    panels_payload = payload.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty panels list")
+    if len(panels_payload) < 2 or len(panels_payload) > 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` panels must contain two or three entries")
+
+    allowed_support_kinds = {
+        "observed_support",
+        "subgroup_support",
+        "bin_support",
+        "extrapolation_warning",
+    }
+    normalized_panels: list[dict[str, Any]] = []
+    seen_panel_ids: set[str] = set()
+    seen_panel_labels: set[str] = set()
+    seen_features: set[str] = set()
+    for panel_index, panel_payload in enumerate(panels_payload):
+        if not isinstance(panel_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_string(
+            panel_payload.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_id must be unique"
+            )
+        seen_panel_ids.add(panel_id)
+        panel_label = _require_non_empty_string(
+            panel_payload.get("panel_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label",
+        )
+        if panel_label in seen_panel_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].panel_label must be unique"
+            )
+        seen_panel_labels.add(panel_label)
+        feature = _require_non_empty_string(
+            panel_payload.get("feature"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].feature",
+        )
+        if feature in seen_features:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].feature must be unique"
+            )
+        seen_features.add(feature)
+        reference_value = _require_numeric_value(
+            panel_payload.get("reference_value"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].reference_value",
+        )
+        if not math.isfinite(reference_value):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].reference_value must be finite"
+            )
+        reference_label = _require_non_empty_string(
+            panel_payload.get("reference_label"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].reference_label",
+        )
+        response_curve_payload = panel_payload.get("response_curve")
+        if not isinstance(response_curve_payload, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve must be an object"
+            )
+        curve_x = _require_numeric_list(
+            response_curve_payload.get("x"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve.x",
+        )
+        curve_y = _require_numeric_list(
+            response_curve_payload.get("y"),
+            label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve.y",
+        )
+        if len(curve_x) != len(curve_y):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve.x and response_curve.y must have the same length"
+            )
+        if not all(math.isfinite(value) for value in (*curve_x, *curve_y)):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve values must be finite"
+            )
+        if any(right <= left for left, right in zip(curve_x, curve_x[1:], strict=False)):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].response_curve.x must be strictly increasing"
+            )
+        if reference_value < curve_x[0] or reference_value > curve_x[-1]:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].reference_value must fall within response_curve.x range"
+            )
+
+        support_segments_payload = panel_payload.get("support_segments")
+        if not isinstance(support_segments_payload, list) or not support_segments_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments must be a non-empty list"
+            )
+        normalized_support_segments: list[dict[str, Any]] = []
+        seen_segment_ids: set[str] = set()
+        previous_domain_end: float | None = None
+        curve_start = float(curve_x[0])
+        curve_end = float(curve_x[-1])
+        for segment_index, segment_payload in enumerate(support_segments_payload):
+            if not isinstance(segment_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments[{segment_index}] must be an object"
+                )
+            segment_id = _require_non_empty_string(
+                segment_payload.get("segment_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].support_segments[{segment_index}].segment_id"
+                ),
+            )
+            if segment_id in seen_segment_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments[{segment_index}].segment_id must be unique within the panel"
+                )
+            seen_segment_ids.add(segment_id)
+            segment_label = _require_non_empty_string(
+                segment_payload.get("segment_label"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].support_segments[{segment_index}].segment_label"
+                ),
+            )
+            support_kind = _require_non_empty_string(
+                segment_payload.get("support_kind"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].support_segments[{segment_index}].support_kind"
+                ),
+            )
+            if support_kind not in allowed_support_kinds:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments[{segment_index}].support_kind must be one of {sorted(allowed_support_kinds)}"
+                )
+            domain_start = _require_numeric_value(
+                segment_payload.get("domain_start"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].support_segments[{segment_index}].domain_start"
+                ),
+            )
+            domain_end = _require_numeric_value(
+                segment_payload.get("domain_end"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"panels[{panel_index}].support_segments[{segment_index}].domain_end"
+                ),
+            )
+            if not math.isfinite(domain_start) or not math.isfinite(domain_end) or domain_end <= domain_start:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments[{segment_index}] domain bounds must be finite and strictly increasing"
+                )
+            if domain_start < curve_start or domain_end > curve_end:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments[{segment_index}] must stay within response_curve.x range"
+                )
+            if segment_index == 0 and not math.isclose(domain_start, curve_start, rel_tol=0.0, abs_tol=1e-9):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments must cover the full response_curve.x range without gaps"
+                )
+            if previous_domain_end is not None and not math.isclose(
+                domain_start,
+                previous_domain_end,
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            ):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments must cover the full response_curve.x range without gaps"
+                )
+            previous_domain_end = domain_end
+            normalized_support_segments.append(
+                {
+                    "segment_id": segment_id,
+                    "segment_label": segment_label,
+                    "support_kind": support_kind,
+                    "domain_start": domain_start,
+                    "domain_end": domain_end,
+                }
+            )
+        if previous_domain_end is None or not math.isclose(previous_domain_end, curve_end, rel_tol=0.0, abs_tol=1e-9):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` panels[{panel_index}].support_segments must cover the full response_curve.x range without gaps"
+            )
+
+        normalized_panels.append(
+            {
+                "panel_id": panel_id,
+                "panel_label": panel_label,
+                "title": _require_non_empty_string(
+                    panel_payload.get("title"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].title",
+                ),
+                "x_label": _require_non_empty_string(
+                    panel_payload.get("x_label"),
+                    label=f"{path.name} display `{expected_display_id}` panels[{panel_index}].x_label",
+                ),
+                "feature": feature,
+                "reference_value": reference_value,
+                "reference_label": reference_label,
+                "response_curve": {"x": curve_x, "y": curve_y},
+                "support_segments": normalized_support_segments,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "y_label": y_label,
+        "panels": normalized_panels,
+    }
+
+
 def _validate_multicenter_generalizability_display_payload(
     *,
     path: Path,
@@ -8037,6 +8269,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "accumulated_local_effects_panel_inputs_v1":
         return payload_path, _validate_accumulated_local_effects_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "feature_response_support_domain_panel_inputs_v1":
+        return payload_path, _validate_feature_response_support_domain_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

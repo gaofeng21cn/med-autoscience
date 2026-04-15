@@ -1759,6 +1759,55 @@ def test_accumulated_local_effects_panel_schema_contract_is_registered() -> None
     assert "accumulated_local_effects_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_feature_response_support_domain_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    support_domain_panel = module.get_input_schema_contract("feature_response_support_domain_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert support_domain_panel.template_ids == (_full_id("feature_response_support_domain_panel"),)
+    assert support_domain_panel.display_name == "Feature Response Support Domain Panel"
+    assert support_domain_panel.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "panels",
+    )
+    assert support_domain_panel.collection_required_fields["panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "response_curve",
+        "support_segments",
+    )
+    assert support_domain_panel.nested_collection_required_fields["panels.response_curve"] == ("x", "y")
+    assert support_domain_panel.nested_collection_required_fields["panels.support_segments"] == (
+        "segment_id",
+        "segment_label",
+        "support_kind",
+        "domain_start",
+        "domain_end",
+    )
+    assert "panel_count_must_be_between_two_and_three" in support_domain_panel.additional_constraints
+    assert "panel_features_must_be_unique" in support_domain_panel.additional_constraints
+    assert "panel_response_curve_x_must_be_strictly_increasing" in support_domain_panel.additional_constraints
+    assert "panel_support_segment_ids_must_be_unique_within_panel" in support_domain_panel.additional_constraints
+    assert "panel_support_segment_kinds_must_be_supported" in support_domain_panel.additional_constraints
+    assert "panel_support_segments_must_be_strictly_ordered_and_non_overlapping" in support_domain_panel.additional_constraints
+    assert "panel_support_segments_must_cover_curve_range" in support_domain_panel.additional_constraints
+    assert "panel_reference_values_must_fall_within_response_curve_range" in support_domain_panel.additional_constraints
+    assert _full_id("feature_response_support_domain_panel") in model_explanation_class.template_ids
+    assert "feature_response_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -1960,6 +2009,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_interaction_contour_panel") in markdown
     assert "partial_dependence_interaction_contour_panel_inputs_v1" in markdown
+    assert _full_id("feature_response_support_domain_panel") in markdown
+    assert "feature_response_support_domain_panel_inputs_v1" in markdown
     assert _full_id("performance_heatmap") in markdown
     assert "performance_heatmap_inputs_v1" in markdown
     assert _full_id("clustered_heatmap") in markdown

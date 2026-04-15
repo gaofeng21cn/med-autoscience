@@ -1898,6 +1898,53 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
 
 
+def test_materialize_display_surface_replaces_legacy_catalog_entries_with_matching_catalog_id(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path)
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "catalog_id": "F1",
+                    "display_id": "cohort_flow",
+                    "title": "Legacy cohort flow entry",
+                    "png_path": "paper/figures/F1_cohort_flow.png",
+                    "json_path": "paper/cohort_flow.json",
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "tables" / "table_catalog.json",
+        {
+            "schema_version": 1,
+            "tables": [
+                {
+                    "catalog_id": "T1",
+                    "display_id": "baseline_characteristics",
+                    "title": "Legacy baseline table entry",
+                    "markdown_path": "paper/tables/T1_baseline_characteristics.md",
+                    "json_path": "paper/baseline_characteristics_schema.json",
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert len(figure_catalog["figures"]) == 1
+    assert figure_catalog["figures"][0]["figure_id"] == "F1"
+    assert all("figure_id" in item for item in figure_catalog["figures"])
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    assert len(table_catalog["tables"]) == 1
+    assert table_catalog["tables"][0]["table_id"] == "T1"
+    assert all("table_id" in item for item in table_catalog["tables"])
+
+
 def test_materialize_display_surface_uses_pack_runtime_for_cohort_flow_shell(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)
@@ -8633,6 +8680,58 @@ def _make_accumulated_local_effects_panel_display(
     }
 
 
+def _make_feature_response_support_domain_panel_display(
+    display_id: str = "Figure47",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "feature_response_support_domain_panel",
+        "title": "Feature response support domain panel for audited support-aware explanation bounds",
+        "caption": (
+            "Bounded support-domain panels make explicit which response-curve intervals are backed by observed, "
+            "subgroup, or bin support and which intervals must stay annotated as extrapolation reminders."
+        ),
+        "y_label": "Predicted response probability",
+        "panels": [
+            {
+                "panel_id": "age_support",
+                "panel_label": "A",
+                "title": "Age support domain",
+                "x_label": "Age (years)",
+                "feature": "Age",
+                "reference_value": 60.0,
+                "reference_label": "Median age",
+                "response_curve": {"x": [40.0, 50.0, 60.0, 70.0, 80.0], "y": [0.18, 0.22, 0.29, 0.35, 0.41]},
+                "support_segments": [
+                    {"segment_id": "age_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 40.0, "domain_end": 50.0},
+                    {"segment_id": "age_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 50.0, "domain_end": 62.0},
+                    {"segment_id": "age_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 62.0, "domain_end": 72.0},
+                    {"segment_id": "age_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 72.0, "domain_end": 80.0},
+                ],
+            },
+            {
+                "panel_id": "albumin_support",
+                "panel_label": "B",
+                "title": "Albumin support domain",
+                "x_label": "Albumin (g/dL)",
+                "feature": "Albumin",
+                "reference_value": 3.8,
+                "reference_label": "Median albumin",
+                "response_curve": {
+                    "x": [2.8, 3.2, 3.6, 4.0, 4.4, 4.6],
+                    "y": [0.39, 0.33, 0.28, 0.23, 0.19, 0.17],
+                },
+                "support_segments": [
+                    {"segment_id": "alb_observed", "segment_label": "Observed", "support_kind": "observed_support", "domain_start": 2.8, "domain_end": 3.2},
+                    {"segment_id": "alb_subgroup", "segment_label": "Subgroup", "support_kind": "subgroup_support", "domain_start": 3.2, "domain_end": 3.8},
+                    {"segment_id": "alb_bin", "segment_label": "Bin", "support_kind": "bin_support", "domain_start": 3.8, "domain_end": 4.2},
+                    {"segment_id": "alb_extrapolation", "segment_label": "Extrapolation", "support_kind": "extrapolation_warning", "domain_start": 4.2, "domain_end": 4.6},
+                ],
+            },
+        ],
+    }
+
+
 def _make_shap_bar_importance_display(display_id: str = "Figure37") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -9906,6 +10005,114 @@ def test_materialize_display_surface_generates_accumulated_local_effects_panel(t
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "accumulated_local_effects_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_accumulated_local_effects_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_support_domain_gap_for_feature_response_support_domain_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_feature_response_support_domain_panel_display()
+    display_payload["panels"][0]["support_segments"][1]["domain_start"] = 51.0
+    dump_json(
+        paper_root / "feature_response_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "feature_response_support_domain_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("feature_response_support_domain_panel")
+
+    with pytest.raises(ValueError, match="support_segments must cover the full response_curve.x range without gaps"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure47",
+        )
+
+
+def test_materialize_display_surface_generates_feature_response_support_domain_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "display_kind": "figure",
+                    "requirement_key": "feature_response_support_domain_panel",
+                    "catalog_id": "F47",
+                    "shell_path": "paper/figures/Figure47.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "template_id": "feature_response_support_domain_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "feature_response_support_domain_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "feature_response_support_domain_panel_inputs_v1",
+            "displays": [_make_feature_response_support_domain_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F47"]
+    assert (paper_root / "figures" / "generated" / "F47_feature_response_support_domain_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F47_feature_response_support_domain_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F47_feature_response_support_domain_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_type"] == "legend_box" for item in layout_sidecar["layout_boxes"])
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "support_domain_segment"]) == 8
+    assert len([item for item in layout_sidecar["guide_boxes"] if item["box_type"] == "support_domain_reference_line"]) == 2
+    assert layout_sidecar["metrics"]["legend_labels"] == [
+        "Response curve",
+        "Observed support",
+        "Subgroup support",
+        "Bin support",
+        "Extrapolation reminder",
+    ]
+    assert [item["feature"] for item in layout_sidecar["metrics"]["panels"]] == ["Age", "Albumin"]
+    assert layout_sidecar["metrics"]["panels"][0]["support_segments"][-1]["support_kind"] == "extrapolation_warning"
+    assert layout_sidecar["metrics"]["panels"][1]["support_segments"][2]["segment_label"] == "Bin"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F47"
+    assert figure_entry["template_id"] == full_id("feature_response_support_domain_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "feature_response_support_domain_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_feature_response_support_domain_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
