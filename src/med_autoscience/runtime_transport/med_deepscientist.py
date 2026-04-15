@@ -951,7 +951,7 @@ def update_quest_startup_context(
         payload["requested_baseline_ref"] = requested_baseline_ref
     if not payload:
         raise ValueError("at least one startup-context field is required")
-    base_url = resolve_daemon_url(runtime_root=runtime_root)
+    base_url = _ensure_managed_daemon_url(runtime_root=runtime_root)
     try:
         result = _normalize_stable_startup_context_result(
             payload=_patch_json(

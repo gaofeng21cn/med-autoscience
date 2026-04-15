@@ -744,7 +744,7 @@ def test_update_quest_startup_context_patches_payload(monkeypatch, tmp_path: Pat
         return {"ok": True, "snapshot": {"quest_id": "001-risk", "startup_contract": {"scope": "full_research"}}}
 
     monkeypatch.setattr(module, "_patch_json", fake_patch_json)
-    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     result = handler(
         runtime_root=runtime_root,
@@ -768,7 +768,7 @@ def test_update_quest_startup_context_rejects_unclassified_startup_contract_keys
     handler = getattr(module, "update_quest_startup_context", None)
 
     assert callable(handler)
-    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
     monkeypatch.setattr(
         module,
         "_patch_json",
@@ -796,6 +796,7 @@ def test_update_quest_startup_context_rejects_missing_stable_contract(monkeypatc
     handler = getattr(module, "update_quest_startup_context", None)
 
     assert callable(handler)
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     monkeypatch.setattr(
         module.request,
@@ -826,6 +827,7 @@ def test_update_quest_startup_context_rejects_unclassified_roundtrip_keys(monkey
         runtime_root / "config" / "config.yaml",
         "ui:\n  host: 127.0.0.1\n  port: 20999\n",
     )
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     monkeypatch.setattr(
         module.request,
@@ -862,6 +864,7 @@ def test_update_quest_startup_context_requires_echoed_startup_contract(monkeypat
     handler = getattr(module, "update_quest_startup_context", None)
 
     assert callable(handler)
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     monkeypatch.setattr(
         module.request,
@@ -895,6 +898,7 @@ def test_update_quest_startup_context_requires_requested_baseline_ref_roundtrip(
     handler = getattr(module, "update_quest_startup_context", None)
 
     assert callable(handler)
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     monkeypatch.setattr(
         module.request,
@@ -928,7 +932,7 @@ def test_update_quest_startup_context_patches_requested_baseline_ref_without_cre
     handler = getattr(module, "update_quest_startup_context", None)
 
     assert callable(handler)
-    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
     monkeypatch.setattr(
         module,
         "_patch_json",
@@ -973,7 +977,7 @@ def test_update_quest_startup_context_fails_closed_when_daemon_is_unreachable(
         raise error.URLError(ConnectionRefusedError(61, "Connection refused"))
 
     monkeypatch.setattr(module, "_patch_json", fake_patch_json)
-    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
 
     with pytest.raises(RuntimeError, match="startup-context request failed"):
         module.update_quest_startup_context(
@@ -985,6 +989,40 @@ def test_update_quest_startup_context_fails_closed_when_daemon_is_unreachable(
     quest_payload = module._load_yaml_dict(quest_root / "quest.yaml")
     assert quest_payload["startup_contract"] == {"scope": "scout"}
     assert "updated_at" not in quest_payload
+
+
+def test_update_quest_startup_context_uses_managed_daemon_url_for_resume_reentry(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "resolve_daemon_url", lambda *, runtime_root: pytest.fail("resolve_daemon_url should not run"))
+    monkeypatch.setattr(module, "_ensure_managed_daemon_url", lambda *, runtime_root: "http://127.0.0.1:20999")
+    monkeypatch.setattr(
+        module,
+        "_patch_json",
+        lambda **kwargs: seen.update(kwargs)
+        or {
+            "ok": True,
+            "quest_id": "001-risk",
+            "snapshot": {
+                "quest_id": "001-risk",
+                "startup_contract": {"scope": "full_research"},
+            },
+        },
+    )
+
+    result = module.update_quest_startup_context(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+        startup_contract={"scope": "full_research"},
+    )
+
+    assert result["ok"] is True
+    assert seen["url"] == "http://127.0.0.1:20999/api/quests/001-risk/startup-context"
 
 
 def test_pause_quest_posts_pause_action(monkeypatch, tmp_path: Path) -> None:
