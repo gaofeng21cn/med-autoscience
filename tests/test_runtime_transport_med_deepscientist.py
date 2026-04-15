@@ -184,6 +184,41 @@ def test_launcher_command_reads_node_binary_from_workspace_config_when_env_missi
     assert command == [str(node_path), str(launcher_path), "--home", str(runtime_root), "--status"]
 
 
+def test_launcher_command_switches_python_console_script_to_repo_js_launcher(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    workspace_root = tmp_path / "workspace"
+    runtime_root = workspace_root / "ops" / "med-deepscientist" / "runtime"
+    repo_root = tmp_path / "med-deepscientist"
+    python_launcher_path = repo_root / ".venv" / "bin" / "ds"
+    js_launcher_path = repo_root / "bin" / "ds.js"
+    node_path = tmp_path / "bin" / "node"
+    write_text(
+        runtime_root.parent / "config.env",
+        f'MED_DEEPSCIENTIST_LAUNCHER="{python_launcher_path}"\n',
+    )
+    write_text(
+        workspace_root / "ops" / "medautoscience" / "config.env",
+        f'MED_AUTOSCIENCE_NODE_BIN="{node_path}"\n',
+    )
+    write_text(
+        python_launcher_path,
+        "#!/tmp/python\n"
+        "import sys\n"
+        "from deepscientist.cli import main\n"
+        "if __name__ == '__main__':\n"
+        "    raise SystemExit(main())\n",
+    )
+    write_text(js_launcher_path, "#!/usr/bin/env node\nconsole.log('launcher');\n")
+    write_text(node_path, "#!/usr/bin/env bash\nexit 0\n")
+    python_launcher_path.chmod(0o755)
+    js_launcher_path.chmod(0o755)
+    node_path.chmod(0o755)
+
+    command = module._launcher_command(runtime_root=runtime_root, args=("--status",))
+
+    assert command == [str(node_path), str(js_launcher_path), "--home", str(runtime_root), "--status"]
+
+
 def test_ensure_managed_daemon_restarts_stale_launcher_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     runtime_root = tmp_path / "ops" / "med-deepscientist" / "runtime"

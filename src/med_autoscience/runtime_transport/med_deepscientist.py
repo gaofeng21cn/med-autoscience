@@ -85,6 +85,40 @@ def _read_config_env_value(*, path: Path, key: str) -> str:
     raise ValueError(f"{key} is not configured in {path}")
 
 
+def _read_launcher_text(*, launcher_path: Path) -> str | None:
+    try:
+        return launcher_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _launcher_looks_like_python_console_script(*, launcher_path: Path) -> bool:
+    launcher_text = _read_launcher_text(launcher_path=launcher_path)
+    if not launcher_text:
+        return False
+    return "from deepscientist.cli import main" in launcher_text
+
+
+def _repo_root_from_repo_local_venv_path(*, path: Path) -> Path | None:
+    resolved_path = Path(path).expanduser().resolve()
+    if resolved_path.parent.name != "bin":
+        return None
+    venv_root = resolved_path.parent.parent
+    if venv_root.name != ".venv":
+        return None
+    return venv_root.parent
+
+
+def _companion_js_launcher_path(*, launcher_path: Path) -> Path | None:
+    repo_root = _repo_root_from_repo_local_venv_path(path=launcher_path)
+    if repo_root is None:
+        return None
+    candidate = repo_root / "bin" / "ds.js"
+    if not candidate.exists():
+        return None
+    return candidate.resolve()
+
+
 def _resolve_launcher_path(*, runtime_root: Path) -> Path:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     launcher_value = _read_config_env_value(
@@ -97,14 +131,22 @@ def _resolve_launcher_path(*, runtime_root: Path) -> Path:
     resolved_launcher_path = launcher_path.resolve()
     if not resolved_launcher_path.exists():
         raise FileNotFoundError(f"med-deepscientist launcher does not exist: {resolved_launcher_path}")
+    if _launcher_looks_like_python_console_script(launcher_path=resolved_launcher_path):
+        companion_launcher_path = _companion_js_launcher_path(launcher_path=resolved_launcher_path)
+        if companion_launcher_path is None:
+            raise ValueError(
+                "MED_DEEPSCIENTIST_LAUNCHER points to a Python DeepScientist console script, "
+                "but no compatible repo-local bin/ds.js launcher was found"
+            )
+        return companion_launcher_path
     return resolved_launcher_path
 
 
 def _launcher_requires_node(*, launcher_path: Path) -> bool:
-    try:
-        first_line = launcher_path.read_text(encoding="utf-8").splitlines()[0]
-    except (OSError, UnicodeDecodeError, IndexError):
+    launcher_text = _read_launcher_text(launcher_path=launcher_path)
+    if not launcher_text:
         return False
+    first_line = launcher_text.splitlines()[0] if launcher_text.splitlines() else ""
     if not first_line.startswith("#!"):
         return False
     return "node" in first_line
