@@ -474,8 +474,12 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
             "return_surface_contract",
         ],
     }
-    assert payload["return_surface_contract"]["progress_command"].endswith("--study-id 001-risk")
-    assert payload["commands"]["workspace_cockpit"].endswith("workspace-cockpit --profile " + str(profile_ref.resolve()))
+    assert payload["return_surface_contract"]["progress_command"].endswith(
+        "--study-id 001-risk --format json"
+    )
+    assert payload["commands"]["workspace_cockpit"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+    )
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
 
 
@@ -555,7 +559,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-manifest.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
@@ -578,7 +582,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["operator_loop_actions"]["submit_task"]["requires"] == ["study_id", "task_intent"]
     assert payload["operator_loop_actions"]["continue_study"]["requires"] == ["study_id"]
     assert payload["operator_loop_actions"]["inspect_progress"]["command"].endswith(
-        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
     assert payload["product_entry_quickstart"]["surface_kind"] == "product_entry_quickstart"
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
@@ -614,14 +618,14 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_overview"]["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_overview"]["progress_surface"] == {
         "surface_kind": "study_progress",
         "command": (
             "uv run python -m med_autoscience.cli study-progress --profile "
             + str(profile_ref.resolve())
-            + " --study-id <study_id>"
+            + " --study-id <study_id> --format json"
         ),
         "step_id": "inspect_progress",
     }
@@ -663,6 +667,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "recommended_loop_command": (
             "uv run python -m med_autoscience.cli workspace-cockpit --profile "
             + str(profile_ref.resolve())
+            + " --format json"
         ),
         "blocking_gaps": [
             "独立医学前台 / hosted product entry 仍未 landed。",
@@ -1008,7 +1013,7 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         ),
     }
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_shell"]["product_frontdesk"]["command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
@@ -1018,6 +1023,9 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     )
     assert payload["product_entry_shell"]["launch_study"]["command"].endswith(
         "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+    )
+    assert payload["product_entry_shell"]["study_progress"]["command"].endswith(
+        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
     )
     assert payload["shared_handoff"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
@@ -1182,13 +1190,13 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     )
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_actions"]["open_loop"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["frontdesk"]["command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
     assert payload["entry_surfaces"]["cockpit"]["command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["entry_surfaces"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
@@ -1197,7 +1205,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
     assert payload["summary"]["recommended_command"].endswith(
-        "workspace-cockpit --profile " + str(profile_ref.resolve())
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
     assert payload["product_entry_overview"]["progress_surface"]["surface_kind"] == "study_progress"

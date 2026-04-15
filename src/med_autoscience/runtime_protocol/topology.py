@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -80,8 +81,41 @@ def _extract_declared_study_id(payload: dict[str, Any], *, quest_yaml_path: Path
     return declared_candidates[0] if declared_candidates else None
 
 
+def _resolve_authoritative_paper_root_from_projected_quest_paper(paper_root: Path) -> Path | None:
+    resolved_paper_root = _resolve_path(paper_root)
+    if resolved_paper_root.name != "paper":
+        return None
+    quest_root = resolved_paper_root.parent
+    try:
+        _resolve_workspace_root_from_quest_root(quest_root)
+    except ValueError:
+        return None
+    paper_line_state_path = resolved_paper_root / "paper_line_state.json"
+    if not paper_line_state_path.exists():
+        return None
+    try:
+        payload = json.loads(paper_line_state_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    candidate_value = str(payload.get("paper_root") or "").strip()
+    if not candidate_value:
+        return None
+    candidate = Path(candidate_value).expanduser().resolve()
+    if candidate.name != "paper":
+        return None
+    worktree_root = candidate.parent
+    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
+        return None
+    return candidate
+
+
 def resolve_worktree_root_from_paper_root(paper_root: Path) -> Path:
     resolved = _resolve_path(paper_root)
+    authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(resolved)
+    if authoritative_paper_root is not None:
+        resolved = authoritative_paper_root
     if resolved.name != "paper":
         raise ValueError(f"paper_root must end with /paper: {paper_root}")
     worktree_root = resolved.parent
@@ -165,6 +199,11 @@ def _resolve_study_binding_from_runtime_binding(
 
 def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Path]:
     resolved_paper_root = _resolve_path(paper_root)
+    authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(
+        resolved_paper_root
+    )
+    if authoritative_paper_root is not None:
+        resolved_paper_root = authoritative_paper_root
     worktree_root = resolve_worktree_root_from_paper_root(resolved_paper_root)
     quest_root = resolve_quest_root_from_worktree_root(worktree_root)
     quest_id = resolve_study_id_from_worktree_root(worktree_root)

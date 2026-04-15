@@ -37,6 +37,7 @@
 - `product-entry-manifest` / `product-frontdesk` 现在还会继续导出 `phase3_clearance_lane`：把 `external runtime contract`、`supervisor service`、`study recovery proof` 收成标准 clearance target、命令模板与 proof surface，而不是只留在 program 文档里。
 - `product-entry-manifest` / `product-frontdesk` 现在也会继续导出 `phase4_backend_deconstruction`：把 substrate target、当前仍保留在 backend 的能力、optional executor proof lane 与 promotion rule 收成结构化 companion，避免“开始谈 monorepo/换执行器”时重新漂移。
 - `mainline-status` 与 `product-entry-manifest` 现在也都带出 `phase5_platform_target`：把 monorepo / runtime core ingest / 更成熟 direct frontend 收成结构化 `post_gate_target`，明确哪些已经能落在当前 repo-tracked shell，哪些仍不能提前写成既成事实。
+- 同轮把 manifest / handoff 中供 `OPL` 与 agent 直接消费的 `workspace-cockpit` / `study-progress` 命令显式冻结为 `--format json` machine surface，不再把默认 Markdown 用户面误当成顶层控制面的结构化输入。
 - `mainline-status` 已作为 repo-level 正式状态入口落地：现在可以直接读取 MAS 在 OPL / Research Foundry / runtime mainline 里的理想形态、当前阶段、已完成 tranche、剩余缺口与 next focus，而不必手工拼多份 program 文档。
 - `mainline-phase` 已作为 repo-level 阶段入口落地：现在可以直接读取 5 阶段梯子中任一阶段的当前可用入口、退出条件与关键文档，而不是只在 program 文档里手工搜索。
 - `submit-study-task` 写出的 durable study task intake 已被 startup contract 真实消费，并同步进 startup brief surface；这意味着“下任务”不再只是口头描述，而是 study-owned durable truth。

@@ -46,6 +46,52 @@ def test_resolve_paper_root_context_reads_study_id_from_worktree_quest_yaml(tmp_
     assert context.worktree_root == paper_root.parent
 
 
+def test_resolve_paper_root_context_accepts_projected_quest_paper_root(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    quest_root = (
+        workspace_root
+        / "ops"
+        / "med-deepscientist"
+        / "runtime"
+        / "quests"
+        / "004-invasive-architecture-managed-20260408"
+    )
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
+    projected_paper_root = quest_root / "paper"
+    worktree_paper_root.mkdir(parents=True)
+    projected_paper_root.mkdir(parents=True)
+    (worktree_paper_root.parent / "quest.yaml").write_text(
+        "quest_id: 004-invasive-architecture-managed-20260408\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 004-invasive-architecture\n",
+        encoding="utf-8",
+    )
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 004-invasive-architecture-managed-20260408\n"
+        "runtime_reentry_gate:\n"
+        "  study_id: 004-invasive-architecture\n",
+        encoding="utf-8",
+    )
+    (projected_paper_root / "paper_bundle_manifest.json").write_text("{}\n", encoding="utf-8")
+    (projected_paper_root / "paper_line_state.json").write_text(
+        "{\n"
+        f'  "paper_root": "{worktree_paper_root.resolve().as_posix()}"\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    study_root = workspace_root / "studies" / "004-invasive-architecture"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 004-invasive-architecture\n", encoding="utf-8")
+
+    context = resolve_paper_root_context(projected_paper_root)
+
+    assert context.paper_root == worktree_paper_root.resolve()
+    assert context.worktree_root == worktree_paper_root.parent.resolve()
+    assert context.quest_root == quest_root.resolve()
+    assert context.study_id == "004-invasive-architecture"
+    assert context.study_root == study_root.resolve()
+
+
 def test_resolve_paper_root_context_parses_quest_id_with_inline_comment(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     paper_root = (

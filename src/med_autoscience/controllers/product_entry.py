@@ -193,6 +193,12 @@ def _command_prefix(profile_ref: str | Path | None) -> str:
     return f"uv run python -m med_autoscience.cli"
 
 
+def _json_surface_command(command: str) -> str:
+    if "--format" in command:
+        return command
+    return f"{command} --format json"
+
+
 def _require_direct_entry_mode(value: str | None) -> str:
     mode = _non_empty_text(value) or "direct"
     if mode not in SUPPORTED_DIRECT_ENTRY_MODES:
@@ -1312,7 +1318,7 @@ def build_product_entry_manifest(
             "purpose": "当前 research product frontdesk，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
         },
         "workspace_cockpit": {
-            "command": f"{prefix} workspace-cockpit --profile {profile_arg}",
+            "command": _json_surface_command(f"{prefix} workspace-cockpit --profile {profile_arg}"),
             "purpose": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
         },
         "submit_study_task": {
@@ -1327,7 +1333,9 @@ def build_product_entry_manifest(
             "purpose": "创建或恢复 study runtime，并进入当前研究主线。",
         },
         "study_progress": {
-            "command": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
+            "command": _json_surface_command(
+                f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+            ),
             "purpose": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
         },
         "mainline_status": {
@@ -2061,6 +2069,8 @@ def build_product_entry(
             f"{_study_selector(study_id=resolved_study_id)}"
         ),
     }
+    commands["workspace_cockpit"] = _json_surface_command(commands["workspace_cockpit"])
+    commands["study_progress"] = _json_surface_command(commands["study_progress"])
 
     payload = {
         "schema_version": SCHEMA_VERSION,

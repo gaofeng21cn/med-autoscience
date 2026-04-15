@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 
-WRITE_DRIFT_PATTERNS = [
-    r'"action":"write"',
-    r"`write`",
-    r"进入 `write`",
-    r"切到了 `write`",
-    r"route.*write",
-]
+WRITE_DRIFT_STRUCTURED_PATTERNS = (
+    r'"action"\s*:\s*"write"',
+    r'"next_anchor"\s*:\s*"write"',
+    r'"active_anchor"\s*:\s*"write"',
+)
+
+WRITE_DRIFT_PATTERNS = (
+    r"(?m)^\s*(?:[-*]\s*)?route\s*(?:->|to|:)\s*`?write`?\b",
+    r"(?m)^\s*(?:[-*]\s*)?next anchor\s*:\s*`?write`?\b",
+    r"(?m)^\s*(?:[-*]\s*)?进入\s*`write`",
+    r"(?m)^\s*(?:[-*]\s*)?切到了\s*`write`",
+)
 
 MANUSCRIPT_SURFACE_GLOBS = (
     "draft.md",

@@ -108,9 +108,46 @@ def find_latest_medical_publication_surface_report(quest_root: Path) -> Path | N
     return find_latest(list((quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json")))
 
 
+def _write_drift_text_surfaces(line: str) -> list[str]:
+    try:
+        payload = json.loads(line)
+    except json.JSONDecodeError:
+        return [line]
+    if not isinstance(payload, dict):
+        return []
+    item = payload.get("item")
+    if not isinstance(item, dict):
+        return []
+    item_type = _non_empty_text(item.get("type"))
+    if item_type == "agent_message":
+        text = _non_empty_text(item.get("text"))
+        return [text] if text else []
+    if item_type != "mcp_tool_call":
+        return []
+    if _non_empty_text(item.get("server")) != "artifact":
+        return []
+    texts: list[str] = []
+    arguments = item.get("arguments")
+    if isinstance(arguments, dict):
+        if message := _non_empty_text(arguments.get("message")):
+            texts.append(message)
+    return texts
+
+
 def detect_write_drift(lines: list[str]) -> bool:
-    merged = "\n".join(lines)
-    return any(re.search(pattern, merged, flags=re.IGNORECASE) for pattern in publication_gate_policy.WRITE_DRIFT_PATTERNS)
+    for line in lines:
+        if any(
+            re.search(pattern, line, flags=re.IGNORECASE)
+            for pattern in publication_gate_policy.WRITE_DRIFT_STRUCTURED_PATTERNS
+        ):
+            return True
+        for text in _write_drift_text_surfaces(line):
+            if any(
+                re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
+                for pattern in publication_gate_policy.WRITE_DRIFT_PATTERNS
+            ):
+                return True
+    return False
 
 
 def _paper_line_open_supplementary_count(paper_line_state: dict[str, Any] | None) -> int:
@@ -172,14 +209,14 @@ def resolve_paper_root(
     paper_line_state: dict[str, Any] | None,
     paper_bundle_manifest_path: Path | None,
 ) -> Path | None:
-    worktree_root_value = str((main_result or {}).get("worktree_root") or "").strip()
-    if worktree_root_value:
-        candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
-        if candidate.exists():
-            return candidate
     paper_line_root_value = str((paper_line_state or {}).get("paper_root") or "").strip()
     if paper_line_root_value:
         candidate = Path(paper_line_root_value).expanduser().resolve()
+        if candidate.exists():
+            return candidate
+    worktree_root_value = str((main_result or {}).get("worktree_root") or "").strip()
+    if worktree_root_value:
+        candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
         if candidate.exists():
             return candidate
     if paper_bundle_manifest_path is not None:

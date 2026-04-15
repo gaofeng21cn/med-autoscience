@@ -604,6 +604,60 @@ def test_build_gate_state_prefers_paper_line_authority_root_when_no_main_result_
     assert state.paper_root == worktree_paper_root.resolve()
 
 
+def test_build_gate_state_prefers_paper_line_authority_root_over_run_worktree_paper(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    paper_worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+    run_worktree_root = quest_root / ".ds" / "worktrees" / "run-main-1"
+    run_result_path = run_worktree_root / "experiments" / "main" / "run-1" / "RESULT.json"
+    run_worktree_paper_root = run_worktree_root / "paper"
+
+    dump_json(
+        run_result_path,
+        {
+            "quest_id": "002-early-residual-risk",
+            "run_id": "run-1",
+            "worktree_root": str(run_worktree_root.resolve()),
+            "metric_contract": {
+                "required_non_scalar_deliverables": [],
+            },
+            "metrics_summary": {
+                "roc_auc": 0.81,
+                "average_precision": 0.45,
+                "brier_score": 0.11,
+                "calibration_intercept": 0.02,
+                "calibration_slope": 1.01,
+            },
+            "baseline_comparisons": {"items": []},
+            "results_summary": "summary",
+            "conclusion": "conclusion",
+        },
+    )
+    (paper_worktree_root / "experiments" / "main" / "run-1" / "RESULT.json").unlink()
+    (run_worktree_paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (run_worktree_paper_root / "draft.md").write_text("paper-facing placeholder", encoding="utf-8")
+
+    projected_paper_root = quest_root / "paper"
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(paper_worktree_root / "paper" / "paper_bundle_manifest.json", projected_paper_root / "paper_bundle_manifest.json")
+    projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
+    projected_stat = projected_manifest.stat()
+    os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str((paper_worktree_root / "paper").resolve()),
+            "paper_branch": "paper/main",
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.paper_root == (paper_worktree_root / "paper").resolve()
+
+
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
     tmp_path: Path,
     monkeypatch,
@@ -1139,6 +1193,96 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
     assert "missing_post_main_publishability_gate" in report["blockers"]
     assert "active_run_drifting_into_write_without_gate_approval" in report["blockers"]
     assert "missing_required_non_scalar_deliverables" not in report["blockers"]
+
+
+def test_detect_write_drift_ignores_write_drift_gate_path_noise() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    noisy_line = (
+        "progress watchdog note: route change needed after inspection; "
+        "cwd=.ds/worktrees/analysis-analysis-d47ce8e6-write-drift-gate"
+    )
+
+    assert module.detect_write_drift([noisy_line]) is False
+
+
+def test_detect_write_drift_ignores_stop_messages_about_write_stage() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    control_line = (
+        "Hard control message: immediately stop the current transition into `write` / outline generation."
+    )
+
+    assert module.detect_write_drift([control_line]) is False
+
+
+def test_detect_write_drift_ignores_agent_messages_that_quote_examples() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    quoted_example_line = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "id": "item-1",
+                "type": "agent_message",
+                "text": "保留 `route -> write` 这类真阳性，但这里是在解释测试，不是真实路由切换。",
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    assert module.detect_write_drift([quoted_example_line]) is False
+
+
+def test_detect_write_drift_ignores_non_artifact_tool_output_examples() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    tool_output_line = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "id": "item-2",
+                "type": "mcp_tool_call",
+                "server": "bash_exec",
+                "tool": "bash_exec",
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Next anchor: `write`\nroute -> write",
+                        }
+                    ]
+                },
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    assert module.detect_write_drift([tool_output_line]) is False
+
+
+def test_detect_write_drift_accepts_structured_next_anchor_signal() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+
+    structured_signal_line = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "id": "item-3",
+                "type": "mcp_tool_call",
+                "server": "artifact",
+                "tool": "activate_branch",
+                "result": {
+                    "structured_content": {
+                        "next_anchor": "write",
+                    }
+                },
+            },
+        },
+        ensure_ascii=False,
+    )
+
+    assert module.detect_write_drift([structured_signal_line]) is True
 
 
 def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
