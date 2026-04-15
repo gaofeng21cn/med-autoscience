@@ -129,7 +129,7 @@ repo-tracked runtime truth 与本地 operator handoff surface 继续分层维护
 - `User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
 
 当前这层轻量 shell 已包括 `workspace-cockpit`、`submit-study-task`、`launch-study`、`product-preflight`、`product-start`、`product-frontdesk`、`product-entry-manifest` 与 `build-product-entry`。
-这些表面已经把启动、下任务和看进度收口得更诚实，而且 manifest/frontdesk 现在还会直接带出 guardrail-recovery 回路与结构化 `Phase 5` 平台目标；但这依然不等于成熟独立医疗前台已经落地。
+这些表面已经把启动、下任务和看进度收口得更诚实，而且 manifest/frontdesk 现在还会直接带出 guardrail-recovery 回路、结构化 `Phase 3` host-clearance lane、`Phase 4` backend-deconstruction lane，以及 `Phase 5` 平台目标；但这依然不等于成熟独立医疗前台已经落地。
 
 医学展示支线继续与 runtime 主线刻意分开，避免发表图件工作反过来改写研究 authority 与 gateway 真相。
 </details>

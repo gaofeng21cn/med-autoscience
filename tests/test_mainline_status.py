@@ -18,6 +18,20 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
+    assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
+    assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["proof_surfaces"] == [
+        "doctor.external_runtime_contract",
+        "study_runtime_status.autonomous_runtime_notice",
+        "runtime_watch/latest.json",
+        "runtime_supervision/latest.json",
+        "controller_decisions/latest.json",
+    ]
+    assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
+    assert payload["phase4_backend_deconstruction"]["substrate_targets"][0]["capability_id"] == "session_run_watch_recovery"
+    assert payload["phase4_backend_deconstruction"]["deconstruction_map_doc"] == (
+        "docs/program/med_deepscientist_deconstruction_map.md"
+    )
     assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
     assert payload["platform_target"]["promotion_gates"] == [
@@ -43,6 +57,8 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Platform Target" in markdown
+    assert "Phase 3 Clearance" in markdown
+    assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
 

@@ -51,6 +51,82 @@ def _platform_target() -> dict[str, Any]:
     }
 
 
+def _phase3_clearance_lane() -> dict[str, Any]:
+    return {
+        "surface_kind": "phase3_host_clearance_lane",
+        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "clearance_targets": [
+            {
+                "target_id": "external_runtime_contract",
+                "title": "Check external Hermes runtime contract",
+                "commands": [
+                    "uv run python -m med_autoscience.cli doctor --profile <profile>",
+                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
+                ],
+            },
+            {
+                "target_id": "supervisor_service",
+                "title": "Keep workspace supervisor service online",
+                "commands": [
+                    "ops/medautoscience/bin/watch-runtime-service-status",
+                    "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
+                ],
+            },
+            {
+                "target_id": "study_recovery_proof",
+                "title": "Prove live study recovery and supervision",
+                "commands": [
+                    "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+                    "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
+                ],
+            },
+        ],
+        "proof_surfaces": [
+            "doctor.external_runtime_contract",
+            "study_runtime_status.autonomous_runtime_notice",
+            "runtime_watch/latest.json",
+            "runtime_supervision/latest.json",
+            "controller_decisions/latest.json",
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+        ),
+    }
+
+
+def _phase4_backend_deconstruction() -> dict[str, Any]:
+    return {
+        "surface_kind": "phase4_backend_deconstruction_lane",
+        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        "substrate_targets": [
+            {
+                "capability_id": "session_run_watch_recovery",
+                "owner": "upstream Hermes-Agent",
+                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+            },
+            {
+                "capability_id": "backend_generic_runtime_contract",
+                "owner": "MedAutoScience controller boundary",
+                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
+            },
+        ],
+        "backend_retained_now": [
+            "MedDeepScientist CodexRunner autonomous executor chain",
+            "backend-local agent/tool routing and Codex skills",
+            "quest-local research execution, paper worktree, and daemon side effects",
+        ],
+        "promotion_rules": [
+            "no claim of backend retirement without owner + contract + tests + proof",
+            "executor replacement must be explicit and proof-backed",
+            "no physical monorepo absorb before the external gate is cleared",
+        ],
+        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+        ),
+    }
+
+
 def _phase_ladder() -> list[dict[str, Any]]:
     return [
         {
@@ -289,6 +365,8 @@ def read_mainline_status() -> dict[str, Any]:
                 "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口继续收成真实产品回路。"
             ),
         },
+        "phase3_clearance_lane": _phase3_clearance_lane(),
+        "phase4_backend_deconstruction": _phase4_backend_deconstruction(),
         "platform_target": _platform_target(),
         "phase_ladder": phase_ladder,
         "completed_tranches": [
@@ -434,6 +512,8 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
+    phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
+    phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     platform_target = dict(payload.get("platform_target") or {})
     lines = [
         "# Mainline Status",
@@ -452,6 +532,29 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- research_backend: {runtime_topology.get('research_backend')}",
         f"- entry_shape: {runtime_topology.get('entry_shape')}",
         "",
+        "## Phase 3 Clearance",
+        "",
+        f"- summary: {phase3_clearance_lane.get('summary') or 'none'}",
+    ]
+    for item in phase3_clearance_lane.get("clearance_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    lines.extend(
+        [
+            "",
+            "## Phase 4 Deconstruction",
+            "",
+            f"- summary: {phase4_backend_deconstruction.get('summary') or 'none'}",
+        ]
+    )
+    for item in phase4_backend_deconstruction.get("substrate_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+    lines.extend(
+        [
+            "",
         "## Platform Target",
         "",
         f"- surface_kind: `{platform_target.get('surface_kind') or 'none'}`",
@@ -461,7 +564,8 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         "",
         "## Program Phases",
         "",
-    ]
+        ]
+    )
     for item in payload.get("phase_ladder") or []:
         if not isinstance(item, dict):
             continue

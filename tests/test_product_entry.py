@@ -695,6 +695,121 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             },
         ],
     }
+    assert payload["phase3_clearance_lane"] == {
+        "surface_kind": "phase3_host_clearance_lane",
+        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "clearance_targets": [
+            {
+                "target_id": "external_runtime_contract",
+                "title": "Check external Hermes runtime contract",
+                "commands": [
+                    "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
+                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile " + str(profile_ref.resolve()),
+                ],
+            },
+            {
+                "target_id": "supervisor_service",
+                "title": "Keep workspace supervisor service online",
+                "commands": [
+                    str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+                    (
+                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        + str(profile.runtime_root)
+                        + " --profile "
+                        + str(profile_ref.resolve())
+                        + " --ensure-study-runtimes --apply"
+                    ),
+                ],
+            },
+            {
+                "target_id": "study_recovery_proof",
+                "title": "Prove live study recovery and supervision",
+                "commands": [
+                    (
+                        "uv run python -m med_autoscience.cli launch-study --profile "
+                        + str(profile_ref.resolve())
+                        + " --study-id <study_id>"
+                    ),
+                    (
+                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        + str(profile_ref.resolve())
+                        + " --study-id <study_id>"
+                    ),
+                ],
+            },
+        ],
+        "proof_surfaces": [
+            {
+                "surface_kind": "doctor.external_runtime_contract",
+                "command": "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
+            },
+            {
+                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "surface_kind": "runtime_watch",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+            },
+            {
+                "surface_kind": "runtime_supervision",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
+            },
+            {
+                "surface_kind": "controller_decisions",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
+            },
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+        ),
+    }
+    assert payload["phase4_backend_deconstruction"] == {
+        "surface_kind": "phase4_backend_deconstruction_lane",
+        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        "substrate_targets": [
+            {
+                "capability_id": "session_run_watch_recovery",
+                "owner": "upstream Hermes-Agent",
+                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+            },
+            {
+                "capability_id": "backend_generic_runtime_contract",
+                "owner": "MedAutoScience controller boundary",
+                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
+            },
+        ],
+        "backend_retained_now": [
+            "MedDeepScientist CodexRunner autonomous executor chain",
+            "backend-local agent/tool routing and Codex skills",
+            "quest-local research execution, paper worktree, and daemon side effects",
+        ],
+        "current_backend_chain": [
+            "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
+            "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+        ],
+        "optional_executor_proofs": [
+            {
+                "executor_kind": "hermes_native_proof",
+                "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                "default_model": "inherit_local_hermes_default",
+                "default_reasoning_effort": "inherit_local_hermes_default",
+            }
+        ],
+        "promotion_rules": [
+            "no claim of backend retirement without owner + contract + tests + proof",
+            "executor replacement must be explicit and proof-backed",
+            "no physical monorepo absorb before the external gate is cleared",
+        ],
+        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+        ),
+    }
     assert payload["phase5_platform_target"] == {
         "surface_kind": "phase5_platform_target",
         "summary": (
@@ -954,6 +1069,12 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_guardrails"]["surface_kind"] == "product_entry_guardrails"
     assert payload["product_entry_guardrails"]["guardrail_classes"][0]["guardrail_id"] == "workspace_supervision_gap"
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
+    assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
+    assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
+    assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
+    assert payload["phase4_backend_deconstruction"]["current_backend_chain"][1].endswith(
+        "codex exec autonomous agent loop"
+    )
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
@@ -982,11 +1103,17 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
     assert payload["product_entry_manifest"]["product_entry_start"] == payload["product_entry_start"]
     assert payload["product_entry_manifest"]["product_entry_guardrails"] == payload["product_entry_guardrails"]
+    assert payload["product_entry_manifest"]["phase3_clearance_lane"] == payload["phase3_clearance_lane"]
+    assert payload["product_entry_manifest"]["phase4_backend_deconstruction"] == payload["phase4_backend_deconstruction"]
     assert payload["product_entry_manifest"]["phase5_platform_target"] == payload["phase5_platform_target"]
 
     markdown = module.render_product_frontdesk_markdown(payload)
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
+    assert "Phase 3 Clearance" in markdown
+    assert "external_runtime_contract" in markdown
+    assert "Phase 4 Deconstruction" in markdown
+    assert "session_run_watch_recovery" in markdown
     assert "Platform Target" in markdown
     assert "post_gate_target" in markdown
 

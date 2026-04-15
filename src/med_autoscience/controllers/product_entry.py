@@ -490,6 +490,118 @@ def _build_phase5_platform_target() -> dict[str, Any]:
     }
 
 
+def _build_phase3_clearance_lane(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+) -> dict[str, Any]:
+    prefix = _command_prefix(profile_ref)
+    profile_arg = _profile_arg(profile_ref)
+    return {
+        "surface_kind": "phase3_host_clearance_lane",
+        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "clearance_targets": [
+            {
+                "target_id": "external_runtime_contract",
+                "title": "Check external Hermes runtime contract",
+                "commands": [
+                    f"{prefix} doctor --profile {profile_arg}",
+                    f"{prefix} hermes-runtime-check --profile {profile_arg}",
+                ],
+            },
+            {
+                "target_id": "supervisor_service",
+                "title": "Keep workspace supervisor service online",
+                "commands": [
+                    str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+                    (
+                        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+                        f"--profile {profile_arg} --ensure-study-runtimes --apply"
+                    ),
+                ],
+            },
+            {
+                "target_id": "study_recovery_proof",
+                "title": "Prove live study recovery and supervision",
+                "commands": [
+                    f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+                    f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
+                ],
+            },
+        ],
+        "proof_surfaces": [
+            {
+                "surface_kind": "doctor.external_runtime_contract",
+                "command": f"{prefix} doctor --profile {profile_arg}",
+            },
+            {
+                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+                "command": f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>",
+            },
+            {
+                "surface_kind": "runtime_watch",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+            },
+            {
+                "surface_kind": "runtime_supervision",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
+            },
+            {
+                "surface_kind": "controller_decisions",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
+            },
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
+        ),
+    }
+
+
+def _build_phase4_backend_deconstruction() -> dict[str, Any]:
+    return {
+        "surface_kind": "phase4_backend_deconstruction_lane",
+        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        "substrate_targets": [
+            {
+                "capability_id": "session_run_watch_recovery",
+                "owner": "upstream Hermes-Agent",
+                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+            },
+            {
+                "capability_id": "backend_generic_runtime_contract",
+                "owner": "MedAutoScience controller boundary",
+                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
+            },
+        ],
+        "backend_retained_now": [
+            "MedDeepScientist CodexRunner autonomous executor chain",
+            "backend-local agent/tool routing and Codex skills",
+            "quest-local research execution, paper worktree, and daemon side effects",
+        ],
+        "current_backend_chain": [
+            "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
+            "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+        ],
+        "optional_executor_proofs": [
+            {
+                "executor_kind": "hermes_native_proof",
+                "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                "default_model": "inherit_local_hermes_default",
+                "default_reasoning_effort": "inherit_local_hermes_default",
+            }
+        ],
+        "promotion_rules": [
+            "no claim of backend retirement without owner + contract + tests + proof",
+            "executor replacement must be explicit and proof-backed",
+            "no physical monorepo absorb before the external gate is cleared",
+        ],
+        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
+        ),
+    }
+
+
 def _build_product_entry_start(
     *,
     product_entry_shell: dict[str, Any],
@@ -1294,6 +1406,11 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
     )
+    phase3_clearance_lane = _build_phase3_clearance_lane(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+    phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
     phase5_platform_target = _build_phase5_platform_target()
     product_entry_quickstart = {
         "surface_kind": "product_entry_quickstart",
@@ -1478,6 +1595,8 @@ def build_product_entry_manifest(
         "product_entry_preflight": product_entry_preflight,
         "product_entry_readiness": product_entry_readiness,
         "product_entry_guardrails": product_entry_guardrails,
+        "phase3_clearance_lane": phase3_clearance_lane,
+        "phase4_backend_deconstruction": phase4_backend_deconstruction,
         "product_entry_quickstart": product_entry_quickstart,
         "family_orchestration": family_orchestration,
         "phase5_platform_target": phase5_platform_target,
@@ -1499,6 +1618,8 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     shared_handoff = dict(payload.get("shared_handoff") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
+    phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
+    phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     lines = [
         "# Product Entry Manifest",
@@ -1538,6 +1659,16 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         lines.append(
             f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
         )
+    lines.extend(["", "## Phase 3 Clearance", ""])
+    for item in phase3_clearance_lane.get("clearance_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    lines.extend(["", "## Phase 4 Deconstruction", ""])
+    for item in phase4_backend_deconstruction.get("substrate_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
     lines.extend(["", "## Platform Target", ""])
     lines.append(f"- summary: {phase5_platform_target.get('summary') or 'none'}")
     lines.append(
@@ -1588,6 +1719,8 @@ def build_product_frontdesk(
         "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
         "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
         "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
+        "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
+        "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
         "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
         "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
@@ -1622,6 +1755,8 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
+    phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
+    phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     lines = [
         "# Product Frontdesk",
@@ -1654,6 +1789,28 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(
             f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
         )
+    lines.extend(
+        [
+            "",
+            "## Phase 3 Clearance",
+            "",
+        ]
+    )
+    for item in phase3_clearance_lane.get("clearance_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    lines.extend(
+        [
+            "",
+            "## Phase 4 Deconstruction",
+            "",
+        ]
+    )
+    for item in phase4_backend_deconstruction.get("substrate_targets") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
     lines.extend(
         [
             "",
