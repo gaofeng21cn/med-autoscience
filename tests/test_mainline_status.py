@@ -18,6 +18,14 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
+    assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
+    assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
+    assert payload["platform_target"]["promotion_gates"] == [
+        "phase_1_mainline_established",
+        "phase_2_user_product_loop",
+        "phase_3_multi_workspace_host_clearance",
+        "phase_4_backend_deconstruction",
+    ]
     assert any(item["name"] == "workspace_cockpit" for item in payload["phase_ladder"][1]["entry_points"])
     assert any(item["id"] == "f3_real_study_soak_recovery_proof" for item in payload["completed_tranches"])
     assert any("standalone" in item for item in payload["remaining_gaps"])
@@ -34,6 +42,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Ideal State" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
+    assert "Platform Target" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
 

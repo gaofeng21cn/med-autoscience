@@ -16,6 +16,41 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _platform_target() -> dict[str, Any]:
+    return {
+        "surface_kind": "phase5_platform_target",
+        "summary": (
+            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
+            "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
+        ),
+        "north_star_topology": {
+            "domain_gateway": "Med Auto Science",
+            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
+            "controlled_research_backend": "MedDeepScientist",
+            "monorepo_status": "post_gate_target",
+        },
+        "promotion_gates": [
+            "phase_1_mainline_established",
+            "phase_2_user_product_loop",
+            "phase_3_multi_workspace_host_clearance",
+            "phase_4_backend_deconstruction",
+        ],
+        "land_now": [
+            "repo-tracked product-entry shell and family orchestration companions",
+            "controller-owned runtime/progress/recovery truth",
+            "CLI/MCP/controller entry surfaces that already support real work",
+        ],
+        "not_yet": [
+            "physical monorepo absorb",
+            "runtime core ingest across repos",
+            "mature hosted standalone medical frontend",
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+        ),
+    }
+
+
 def _phase_ladder() -> list[dict[str, Any]]:
     return [
         {
@@ -254,6 +289,7 @@ def read_mainline_status() -> dict[str, Any]:
                 "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口继续收成真实产品回路。"
             ),
         },
+        "platform_target": _platform_target(),
         "phase_ladder": phase_ladder,
         "completed_tranches": [
             {
@@ -398,6 +434,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
+    platform_target = dict(payload.get("platform_target") or {})
     lines = [
         "# Mainline Status",
         "",
@@ -414,6 +451,13 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- outer_runtime_substrate_owner: {runtime_topology.get('outer_runtime_substrate_owner')}",
         f"- research_backend: {runtime_topology.get('research_backend')}",
         f"- entry_shape: {runtime_topology.get('entry_shape')}",
+        "",
+        "## Platform Target",
+        "",
+        f"- surface_kind: `{platform_target.get('surface_kind') or 'none'}`",
+        f"- summary: {platform_target.get('summary') or 'none'}",
+        f"- monorepo_status: `{((platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
+        f"- recommended_phase_command: `{platform_target.get('recommended_phase_command') or 'none'}`",
         "",
         "## Program Phases",
         "",

@@ -608,6 +608,126 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             },
         ],
     }
+    assert payload["product_entry_guardrails"] == {
+        "surface_kind": "product_entry_guardrails",
+        "summary": (
+            "把卡住、没进度、监管掉线、需要人工决策和质量阻塞显式投影成可执行恢复回路，"
+            "避免研究主线失去监管。"
+        ),
+        "guardrail_classes": [
+            {
+                "guardrail_id": "workspace_supervision_gap",
+                "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
+                "symptom": "watch-runtime service 未常驻、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    + str(profile.runtime_root)
+                    + " --profile "
+                    + str(profile_ref.resolve())
+                    + " --ensure-study-runtimes --apply"
+                ),
+            },
+            {
+                "guardrail_id": "study_progress_gap",
+                "trigger": "study-progress progress_freshness / workspace-cockpit attention queue",
+                "symptom": "当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "guardrail_id": "human_decision_gate",
+                "trigger": "study-progress needs_physician_decision / controller decision gate",
+                "symptom": "当前已前移到医生、PI 或 publication release 的人工判断节点。",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "guardrail_id": "publication_or_quality_blocker",
+                "trigger": "study-progress blockers / runtime watch figure-loop alerts / publication gate",
+                "symptom": "研究输出质量、论文主线或 publication gate 出现硬阻塞，不能继续盲目长跑。",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+        ],
+        "recovery_loop": [
+            {
+                "step_id": "inspect_workspace_inbox",
+                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile " + str(profile_ref.resolve()),
+                "surface_kind": "workspace_cockpit",
+            },
+            {
+                "step_id": "refresh_supervision",
+                "command": (
+                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    + str(profile.runtime_root)
+                    + " --profile "
+                    + str(profile_ref.resolve())
+                    + " --ensure-study-runtimes --apply"
+                ),
+                "surface_kind": "runtime_watch_refresh",
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+                "surface_kind": "study_progress",
+            },
+            {
+                "step_id": "continue_or_relaunch",
+                "command": (
+                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+                "surface_kind": "launch_study",
+            },
+        ],
+    }
+    assert payload["phase5_platform_target"] == {
+        "surface_kind": "phase5_platform_target",
+        "summary": (
+            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，"
+            "包括 monorepo、runtime core ingest 和更成熟的 direct product entry；"
+            "但这些都必须建立在前四阶段真实成立之后。"
+        ),
+        "north_star_topology": {
+            "domain_gateway": "Med Auto Science",
+            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
+            "controlled_research_backend": "MedDeepScientist",
+            "monorepo_status": "post_gate_target",
+        },
+        "promotion_gates": [
+            "phase_1_mainline_established",
+            "phase_2_user_product_loop",
+            "phase_3_multi_workspace_host_clearance",
+            "phase_4_backend_deconstruction",
+        ],
+        "land_now": [
+            "repo-tracked product-entry shell and family orchestration companions",
+            "controller-owned runtime/progress/recovery truth",
+            "CLI/MCP/controller entry surfaces that already support real work",
+        ],
+        "not_yet": [
+            "physical monorepo absorb",
+            "runtime core ingest across repos",
+            "mature hosted standalone medical frontend",
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+        ),
+    }
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve())
     )
@@ -831,6 +951,11 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
+    assert payload["product_entry_guardrails"]["surface_kind"] == "product_entry_guardrails"
+    assert payload["product_entry_guardrails"]["guardrail_classes"][0]["guardrail_id"] == "workspace_supervision_gap"
+    assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
+    assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
+    assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
     assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
@@ -856,6 +981,14 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
     assert payload["product_entry_manifest"]["product_entry_start"] == payload["product_entry_start"]
+    assert payload["product_entry_manifest"]["product_entry_guardrails"] == payload["product_entry_guardrails"]
+    assert payload["product_entry_manifest"]["phase5_platform_target"] == payload["phase5_platform_target"]
+
+    markdown = module.render_product_frontdesk_markdown(payload)
+    assert "Guardrails" in markdown
+    assert "workspace_supervision_gap" in markdown
+    assert "Platform Target" in markdown
+    assert "post_gate_target" in markdown
 
 
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(

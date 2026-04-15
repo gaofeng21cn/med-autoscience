@@ -386,6 +386,110 @@ def _build_product_entry_preflight(
     }
 
 
+def _build_product_entry_guardrails(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+) -> dict[str, Any]:
+    prefix = _command_prefix(profile_ref)
+    profile_arg = _profile_arg(profile_ref)
+    progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+    refresh_command = (
+        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"--profile {profile_arg} --ensure-study-runtimes --apply"
+    )
+    return {
+        "surface_kind": "product_entry_guardrails",
+        "summary": (
+            "把卡住、没进度、监管掉线、需要人工决策和质量阻塞显式投影成可执行恢复回路，"
+            "避免研究主线失去监管。"
+        ),
+        "guardrail_classes": [
+            {
+                "guardrail_id": "workspace_supervision_gap",
+                "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
+                "symptom": "watch-runtime service 未常驻、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                "recommended_command": refresh_command,
+            },
+            {
+                "guardrail_id": "study_progress_gap",
+                "trigger": "study-progress progress_freshness / workspace-cockpit attention queue",
+                "symptom": "当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
+                "recommended_command": progress_command,
+            },
+            {
+                "guardrail_id": "human_decision_gate",
+                "trigger": "study-progress needs_physician_decision / controller decision gate",
+                "symptom": "当前已前移到医生、PI 或 publication release 的人工判断节点。",
+                "recommended_command": progress_command,
+            },
+            {
+                "guardrail_id": "publication_or_quality_blocker",
+                "trigger": "study-progress blockers / runtime watch figure-loop alerts / publication gate",
+                "symptom": "研究输出质量、论文主线或 publication gate 出现硬阻塞，不能继续盲目长跑。",
+                "recommended_command": progress_command,
+            },
+        ],
+        "recovery_loop": [
+            {
+                "step_id": "inspect_workspace_inbox",
+                "command": f"{prefix} workspace-cockpit --profile {profile_arg}",
+                "surface_kind": "workspace_cockpit",
+            },
+            {
+                "step_id": "refresh_supervision",
+                "command": refresh_command,
+                "surface_kind": "runtime_watch_refresh",
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "command": progress_command,
+                "surface_kind": "study_progress",
+            },
+            {
+                "step_id": "continue_or_relaunch",
+                "command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+                "surface_kind": "launch_study",
+            },
+        ],
+    }
+
+
+def _build_phase5_platform_target() -> dict[str, Any]:
+    return {
+        "surface_kind": "phase5_platform_target",
+        "summary": (
+            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
+            "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
+        ),
+        "north_star_topology": {
+            "domain_gateway": "Med Auto Science",
+            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
+            "controlled_research_backend": "MedDeepScientist",
+            "monorepo_status": "post_gate_target",
+        },
+        "promotion_gates": [
+            "phase_1_mainline_established",
+            "phase_2_user_product_loop",
+            "phase_3_multi_workspace_host_clearance",
+            "phase_4_backend_deconstruction",
+        ],
+        "land_now": [
+            "repo-tracked product-entry shell and family orchestration companions",
+            "controller-owned runtime/progress/recovery truth",
+            "CLI/MCP/controller entry surfaces that already support real work",
+        ],
+        "not_yet": [
+            "physical monorepo absorb",
+            "runtime core ingest across repos",
+            "mature hosted standalone medical frontend",
+        ],
+        "recommended_phase_command": (
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+        ),
+    }
+
+
 def _build_product_entry_start(
     *,
     product_entry_shell: dict[str, Any],
@@ -1186,6 +1290,11 @@ def build_product_entry_manifest(
             "label": "controller checkpoint lineage companion",
         },
     }
+    product_entry_guardrails = _build_product_entry_guardrails(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
+    phase5_platform_target = _build_phase5_platform_target()
     product_entry_quickstart = {
         "surface_kind": "product_entry_quickstart",
         "recommended_step_id": "open_frontdesk",
@@ -1368,8 +1477,10 @@ def build_product_entry_manifest(
         "product_entry_overview": product_entry_overview,
         "product_entry_preflight": product_entry_preflight,
         "product_entry_readiness": product_entry_readiness,
+        "product_entry_guardrails": product_entry_guardrails,
         "product_entry_quickstart": product_entry_quickstart,
         "family_orchestration": family_orchestration,
+        "phase5_platform_target": phase5_platform_target,
         "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
         "notes": [
             "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
@@ -1387,6 +1498,8 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     product_entry_shell = dict(payload.get("product_entry_shell") or {})
     shared_handoff = dict(payload.get("shared_handoff") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
+    phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     lines = [
         "# Product Entry Manifest",
         "",
@@ -1417,6 +1530,22 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend(["", "## Guardrails", ""])
+    lines.append(f"- summary: {product_entry_guardrails.get('summary') or 'none'}")
+    for item in product_entry_guardrails.get("guardrail_classes") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
+        )
+    lines.extend(["", "## Platform Target", ""])
+    lines.append(f"- summary: {phase5_platform_target.get('summary') or 'none'}")
+    lines.append(
+        f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`"
+    )
+    lines.append(
+        f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`"
+    )
     lines.extend(["", "## Remaining Gaps", ""])
     remaining_gaps = list(payload.get("remaining_gaps") or [])
     if remaining_gaps:
@@ -1458,8 +1587,10 @@ def build_product_frontdesk(
         "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
         "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
         "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
+        "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
         "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
+        "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         "product_entry_manifest": manifest,
         "entry_surfaces": {
             "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
@@ -1490,6 +1621,8 @@ def build_product_frontdesk(
 def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
+    phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
     lines = [
         "# Product Frontdesk",
         "",
@@ -1512,9 +1645,28 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
         f"- resume_command: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         "",
-        "## Entry Surfaces",
+        "## Guardrails",
         "",
     ]
+    for item in product_entry_guardrails.get("guardrail_classes") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
+        )
+    lines.extend(
+        [
+            "",
+            "## Platform Target",
+            "",
+            f"- summary: `{phase5_platform_target.get('summary') or 'none'}`",
+            f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
+            f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
+            "",
+        "## Entry Surfaces",
+        "",
+        ]
+    )
     for name, item in entry_surfaces.items():
         if not isinstance(item, dict):
             continue
