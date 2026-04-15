@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -138,6 +139,14 @@ _INTERVENTION_SEVERITY_LABELS = {
     "handoff": "等待人工判断",
     "observe": "继续监督",
 }
+_RECOVERY_ACTION_MODE_LABELS = {
+    "refresh_supervision": "优先恢复 MAS 外环监管",
+    "continue_or_relaunch": "继续或重新拉起当前 study",
+    "inspect_progress": "先读取当前进度与阻塞",
+    "human_decision_review": "等待医生或 PI 判断",
+    "maintain_compatibility_guard": "保持人工收尾兼容保护",
+    "monitor_only": "继续监督当前 study",
+}
 _CONTINUATION_REASON_LABELS = {
     "unchanged_finalize_state": "运行停在未变化的定稿总结态",
 }
@@ -248,6 +257,26 @@ def _humanize_token(token: object) -> str | None:
     if text is None:
         return None
     return text.replace("_", " ")
+
+
+def _quote_cli_arg(value: str | Path | None) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "<profile>"
+    return shlex.quote(text)
+
+
+def _command_prefix(profile_ref: str | Path | None) -> str:
+    del profile_ref
+    return "uv run python -m med_autoscience.cli"
+
+
+def _profile_arg(profile_ref: str | Path | None) -> str:
+    return _quote_cli_arg(Path(profile_ref).expanduser().resolve() if profile_ref is not None else None)
+
+
+def _study_selector(*, study_id: str) -> str:
+    return f"--study-id {_quote_cli_arg(study_id)}"
 
 
 def _display_text(value: object) -> str | None:
@@ -1113,6 +1142,189 @@ def _intervention_lane(
     }
 
 
+def _recovery_step(
+    *,
+    step_id: str,
+    title: str,
+    surface_kind: str,
+    command: str,
+) -> dict[str, str]:
+    return {
+        "step_id": step_id,
+        "title": title,
+        "surface_kind": surface_kind,
+        "command": command,
+    }
+
+
+def _study_command_surfaces(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    profile_ref: str | Path | None,
+) -> dict[str, str]:
+    prefix = _command_prefix(profile_ref)
+    profile_arg = _profile_arg(profile_ref)
+    selector = _study_selector(study_id=study_id)
+    return {
+        "workspace_cockpit": f"{prefix} workspace-cockpit --profile {profile_arg}",
+        "study_progress": f"{prefix} study-progress --profile {profile_arg} {selector}",
+        "study_runtime_status": f"{prefix} study-runtime-status --profile {profile_arg} {selector}",
+        "launch_study": f"{prefix} launch-study --profile {profile_arg} {selector}",
+        "refresh_supervision": (
+            f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"--profile {profile_arg} --ensure-study-runtimes --apply"
+        ),
+    }
+
+
+def _recovery_contract(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    profile_ref: str | Path | None,
+    intervention_lane: dict[str, Any],
+    current_stage_summary: str,
+    next_system_action: str,
+    current_blockers: list[str],
+) -> tuple[str | None, list[dict[str, str]], dict[str, Any]]:
+    commands = _study_command_surfaces(profile=profile, study_id=study_id, profile_ref=profile_ref)
+    lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
+    summary = (
+        _non_empty_text(intervention_lane.get("summary"))
+        or _non_empty_text(current_blockers[0] if current_blockers else None)
+        or current_stage_summary
+        or next_system_action
+        or "当前 study 没有新的接管动作。"
+    )
+
+    if lane_id == "workspace_supervision_gap":
+        steps = [
+            _recovery_step(
+                step_id="refresh_supervision",
+                title="刷新 MAS supervisor loop",
+                surface_kind="runtime_watch_refresh",
+                command=commands["refresh_supervision"],
+            ),
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="inspect_runtime_status",
+                title="读取结构化运行真相",
+                surface_kind="study_runtime_status",
+                command=commands["study_runtime_status"],
+            ),
+        ]
+        action_mode = "refresh_supervision"
+    elif lane_id in {"runtime_recovery_required", "runtime_blocker"}:
+        steps = [
+            _recovery_step(
+                step_id="continue_or_relaunch",
+                title="继续或重新拉起当前 study",
+                surface_kind="launch_study",
+                command=commands["launch_study"],
+            ),
+            _recovery_step(
+                step_id="inspect_runtime_status",
+                title="读取结构化运行真相",
+                surface_kind="study_runtime_status",
+                command=commands["study_runtime_status"],
+            ),
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+        ]
+        action_mode = "continue_or_relaunch"
+    elif lane_id == "human_decision_gate":
+        steps = [
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="open_workspace_cockpit",
+                title="返回 workspace cockpit",
+                surface_kind="workspace_cockpit",
+                command=commands["workspace_cockpit"],
+            ),
+        ]
+        action_mode = "human_decision_review"
+    elif lane_id == "manual_finishing":
+        steps = [
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="open_workspace_cockpit",
+                title="返回 workspace cockpit",
+                surface_kind="workspace_cockpit",
+                command=commands["workspace_cockpit"],
+            ),
+        ]
+        action_mode = "maintain_compatibility_guard"
+    elif lane_id in {"quality_floor_blocker", "study_progress_gap"}:
+        steps = [
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="inspect_runtime_status",
+                title="读取结构化运行真相",
+                surface_kind="study_runtime_status",
+                command=commands["study_runtime_status"],
+            ),
+            _recovery_step(
+                step_id="open_workspace_cockpit",
+                title="返回 workspace cockpit",
+                surface_kind="workspace_cockpit",
+                command=commands["workspace_cockpit"],
+            ),
+        ]
+        action_mode = "inspect_progress"
+    else:
+        steps = [
+            _recovery_step(
+                step_id="inspect_study_progress",
+                title="读取当前研究进度",
+                surface_kind="study_progress",
+                command=commands["study_progress"],
+            ),
+            _recovery_step(
+                step_id="inspect_runtime_status",
+                title="读取结构化运行真相",
+                surface_kind="study_runtime_status",
+                command=commands["study_runtime_status"],
+            ),
+        ]
+        action_mode = "monitor_only"
+
+    recovery_contract = {
+        "contract_kind": "study_recovery_contract",
+        "lane_id": lane_id,
+        "action_mode": action_mode,
+        "summary": summary,
+        "recommended_step_id": steps[0]["step_id"] if steps else None,
+        "steps": steps,
+    }
+    recommended_command = steps[0]["command"] if steps else None
+    return recommended_command, steps, recovery_contract
+
+
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
@@ -1295,9 +1507,10 @@ def build_study_progress_projection(
     study_id: str,
     study_root: Path,
     status_payload: dict[str, Any] | Any,
+    profile_ref: str | Path | None = None,
     entry_mode: str | None = None,
 ) -> dict[str, Any]:
-    del profile, entry_mode
+    del entry_mode
     status = _status_payload(status_payload)
     existing_projection = status.get("progress_projection")
     if isinstance(existing_projection, dict) and _non_empty_text(existing_projection.get("study_id")) == study_id:
@@ -1488,6 +1701,15 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
     )
+    recommended_command, recommended_commands, recovery_contract = _recovery_contract(
+        profile=profile,
+        study_id=resolved_study_id,
+        profile_ref=profile_ref,
+        intervention_lane=intervention_lane,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+        current_blockers=current_blockers,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1521,6 +1743,9 @@ def build_study_progress_projection(
         "current_blockers": current_blockers,
         "next_system_action": next_system_action,
         "intervention_lane": intervention_lane,
+        "recommended_command": recommended_command,
+        "recommended_commands": recommended_commands,
+        "recovery_contract": recovery_contract,
         "needs_physician_decision": needs_physician_decision,
         "physician_decision_summary": physician_decision_summary,
         "runtime_decision": _non_empty_text(status.get("decision")),
@@ -1559,6 +1784,7 @@ def build_study_progress_projection(
 def read_study_progress(
     *,
     profile: WorkspaceProfile,
+    profile_ref: str | Path | None = None,
     study_id: str | None = None,
     study_root: Path | None = None,
     entry_mode: str | None = None,
@@ -1580,6 +1806,7 @@ def read_study_progress(
         study_id=resolved_study_id,
         study_root=resolved_study_root,
         status_payload=status,
+        profile_ref=profile_ref,
         entry_mode=entry_mode,
     )
 
@@ -1625,6 +1852,16 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         _non_empty_text(intervention_lane.get("severity")) or "",
         "",
     )
+    recovery_contract = dict(payload.get("recovery_contract") or {})
+    recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
+        _non_empty_text(recovery_contract.get("action_mode")) or "",
+        "",
+    )
+    recovery_steps = [
+        dict(item)
+        for item in (payload.get("recommended_commands") or [])
+        if isinstance(item, dict)
+    ]
     lines = [
         "# 研究进度",
         "",
@@ -1713,6 +1950,18 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             f"- {str(payload.get('next_system_action') or '').strip()}",
         ]
     )
+    if recovery_contract:
+        lines.extend(["", "## 恢复合同", ""])
+        if recovery_action_mode:
+            lines.append(f"- 恢复模式: {recovery_action_mode}")
+        if recovery_contract.get("summary"):
+            lines.append(
+                f"- 合同摘要: {_display_text(recovery_contract.get('summary')) or recovery_contract.get('summary')}"
+            )
+        for item in recovery_steps:
+            title = _non_empty_text(item.get("title")) or _humanize_token(item.get("step_id")) or "未命名步骤"
+            command = _non_empty_text(item.get("command")) or "none"
+            lines.append(f"- {title}: `{command}`")
     if payload.get("physician_decision_summary"):
         lines.extend(
             [

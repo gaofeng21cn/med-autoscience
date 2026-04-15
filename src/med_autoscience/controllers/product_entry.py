@@ -789,6 +789,7 @@ def _attention_queue(
         blocker_list = list(item.get("current_blockers") or [])
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
+        preferred_command = _non_empty_text(item.get("recommended_command"))
         supervisor_tick_status = _non_empty_text(monitoring.get("supervisor_tick_status"))
         progress_status = _non_empty_text(progress_freshness.get("status"))
         current_stage_summary = _non_empty_text(item.get("current_stage_summary"))
@@ -807,7 +808,7 @@ def _attention_queue(
                     code="study_needs_physician_decision",
                     title=f"{study_id} 需要医生或 PI 判断",
                     summary=lane_summary or "当前 study 已到需要人工明确决策的节点。",
-                    recommended_command=progress_command,
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -819,7 +820,7 @@ def _attention_queue(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
                     summary=lane_summary or "MAS 外环监管存在缺口。",
-                    recommended_command=commands.get("supervisor_tick") or progress_command,
+                    recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -831,7 +832,7 @@ def _attention_queue(
                     code="study_runtime_recovery_required",
                     title=f"{study_id} 当前需要优先处理 runtime recovery",
                     summary=lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
-                    recommended_command=launch_command or progress_command,
+                    recommended_command=preferred_command or launch_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -847,7 +848,7 @@ def _attention_queue(
                         or _non_empty_text(blocker_list[0] if blocker_list else None)
                         or "当前 study 存在质量或发表门控硬阻塞。"
                     ),
-                    recommended_command=progress_command,
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -860,7 +861,7 @@ def _attention_queue(
                     title=f"{study_id} 进度信号已陈旧",
                     summary=_non_empty_text(progress_freshness.get("summary"))
                     or "最近缺少新的明确研究推进记录，需要排查是否卡住或空转。",
-                    recommended_command=progress_command,
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -873,7 +874,7 @@ def _attention_queue(
                     title=f"{study_id} 缺少明确进度信号",
                     summary=_non_empty_text(progress_freshness.get("summary"))
                     or "当前还没有看到明确的研究推进记录。",
-                    recommended_command=progress_command,
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -888,7 +889,7 @@ def _attention_queue(
                     or current_stage_summary
                     or next_system_action
                     or "当前 study 仍有待收口问题。",
-                    recommended_command=progress_command,
+                    recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -956,6 +957,13 @@ def _study_item(
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
+    recommended_command = _non_empty_text(progress_payload.get("recommended_command"))
+    recommended_commands = [
+        dict(item)
+        for item in (progress_payload.get("recommended_commands") or [])
+        if isinstance(item, dict)
+    ]
+    recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     return {
         "study_id": study_id,
         "current_stage": progress_payload.get("current_stage"),
@@ -963,6 +971,9 @@ def _study_item(
         "current_blockers": list(progress_payload.get("current_blockers") or []),
         "next_system_action": progress_payload.get("next_system_action"),
         "intervention_lane": intervention_lane or None,
+        "recommended_command": recommended_command,
+        "recommended_commands": recommended_commands,
+        "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
         "task_intake": task_intake or None,
@@ -984,6 +995,7 @@ def read_workspace_cockpit(
             continue
         progress_payload = study_progress.read_study_progress(
             profile=profile,
+            profile_ref=profile_ref,
             study_root=study_root,
         )
         item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
@@ -1149,6 +1161,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- intervention_lane: {intervention_lane.get('title')}")
         if intervention_lane.get("summary"):
             lines.append(f"- intervention_summary: {intervention_lane.get('summary')}")
+        recovery_contract = dict(item.get("recovery_contract") or {})
+        if recovery_contract.get("action_mode"):
+            lines.append(f"- recovery_contract: `{recovery_contract.get('action_mode')}`")
+        if item.get("recommended_command"):
+            lines.append(f"- recommended_command: `{item.get('recommended_command')}`")
         blockers = list(item.get("current_blockers") or [])
         lines.append(f"- blockers: {', '.join(blockers) if blockers else 'none'}")
         lines.append(f"- launch: `{((item.get('commands') or {}).get('launch') or '')}`")
@@ -1179,6 +1196,7 @@ def launch_study(
     )
     progress_payload = study_progress.read_study_progress(
         profile=profile,
+        profile_ref=profile_ref,
         study_id=study_id,
         study_root=study_root,
         entry_mode=entry_mode,
@@ -1215,6 +1233,12 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
     blockers = list(progress_payload.get("current_blockers") or [])
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
+    recovery_contract = dict(progress_payload.get("recovery_contract") or {})
+    recommended_commands = [
+        dict(item)
+        for item in (progress_payload.get("recommended_commands") or [])
+        if isinstance(item, dict)
+    ]
     lines = [
         "# Launch Study",
         "",
@@ -1240,6 +1264,15 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {item}" for item in blockers)
     else:
         lines.append("- 当前没有新的硬阻塞。")
+    if recovery_contract:
+        lines.extend(["", "## 恢复合同", ""])
+        if recovery_contract.get("action_mode"):
+            lines.append(f"- action_mode: `{recovery_contract.get('action_mode')}`")
+        if recovery_contract.get("summary"):
+            lines.append(f"- summary: {recovery_contract.get('summary')}")
+        for item in recommended_commands:
+            title = _non_empty_text(item.get("title")) or _non_empty_text(item.get("step_id")) or "unnamed"
+            lines.append(f"- {title}: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Commands", ""])
     for name, command in (payload.get("commands") or {}).items():
         lines.append(f"- `{name}`: `{command}`")

@@ -754,17 +754,66 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
         },
     )
 
-    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    profile_ref = tmp_path / "profile.local.toml"
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk", profile_ref=profile_ref)
 
     assert result["current_stage"] == "managed_runtime_escalated"
     assert "人工介入" in result["current_stage_summary"]
     assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
     assert result["intervention_lane"]["recommended_action_id"] == "continue_or_relaunch"
+    assert result["recommended_command"].endswith(
+        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id 001-risk"
+    )
+    assert result["recommended_commands"][0]["step_id"] == "continue_or_relaunch"
+    assert result["recommended_commands"][0]["surface_kind"] == "launch_study"
+    assert result["recovery_contract"] == {
+        "contract_kind": "study_recovery_contract",
+        "lane_id": "runtime_recovery_required",
+        "action_mode": "continue_or_relaunch",
+        "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
+        "recommended_step_id": "continue_or_relaunch",
+        "steps": [
+            {
+                "step_id": "continue_or_relaunch",
+                "title": "继续或重新拉起当前 study",
+                "surface_kind": "launch_study",
+                "command": (
+                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id 001-risk"
+                ),
+            },
+            {
+                "step_id": "inspect_runtime_status",
+                "title": "读取结构化运行真相",
+                "surface_kind": "study_runtime_status",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id 001-risk"
+                ),
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "title": "读取当前研究进度",
+                "surface_kind": "study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id 001-risk"
+                ),
+            },
+        ],
+    }
     assert result["latest_events"][0]["category"] == "runtime_supervision"
     assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
     assert any("人工介入" in item for item in result["current_blockers"])
     assert "人工检查" in result["next_system_action"]
     assert result["refs"]["runtime_supervision_path"] == str(runtime_supervision_path)
+    markdown = module.render_study_progress_markdown(result)
+    assert "恢复合同" in markdown
+    assert "launch-study" in markdown
 
 
 def test_study_progress_does_not_project_resume_arbitration_as_physician_decision(
@@ -1099,11 +1148,22 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         },
     )
 
-    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    profile_ref = tmp_path / "profile.local.toml"
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk", profile_ref=profile_ref)
 
     assert result["current_stage"] == "managed_runtime_supervision_gap"
     assert result["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert result["intervention_lane"]["recommended_action_id"] == "refresh_supervision"
+    assert result["recommended_command"].endswith(
+        "watch --runtime-root "
+        + str(profile.runtime_root)
+        + " --profile "
+        + str(profile_ref.resolve())
+        + " --ensure-study-runtimes --apply"
+    )
+    assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
+    assert result["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert "监管心跳已陈旧" in result["current_stage_summary"]
     assert any("监管心跳已陈旧" in item for item in result["current_blockers"])
     assert "supervisor tick" in result["next_system_action"]

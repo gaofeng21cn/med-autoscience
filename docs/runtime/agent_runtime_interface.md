@@ -208,6 +208,11 @@
 - `launch-study` 应在返回监督入口的同时，把当前 latest task intake 与 progress freshness 一并投影给用户
 - `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前任务摘要、progress freshness、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
 - `study-progress` 现在还应显式导出 `intervention_lane`：至少要把 `workspace_supervision_gap`、`runtime_recovery_required`、`human_decision_gate`、`study_progress_gap`、`quality_floor_blocker` 这几类前台干预语义稳定结构化，避免 `workspace-cockpit` 继续靠松散启发式猜当前问题属于哪一类
+- `study-progress` 还必须把这类前台干预语义继续收口成 `recommended_command`、`recommended_commands` 与 `recovery_contract`：
+  - `recommended_command` = 当前最该执行的一条命令
+  - `recommended_commands` = 当前恢复/监管合同里的有序命令列表
+  - `recovery_contract` = `lane_id / action_mode / recommended_step_id / steps` 这组结构化恢复合同
+- `workspace-cockpit` / `launch-study` / `product-frontdesk` 对齐消费 `study-progress.recovery_contract` 与 `recommended_command`，而不是各自再猜一遍当前应该 refresh supervision、launch study 还是仅保持人工判断
 - `workspace-cockpit` / `product-frontdesk` 对齐消费 `study-progress.intervention_lane`：恢复异常应比普通 blocker 更靠前，质量硬阻塞不能继续被压平到泛化的 `study_blocked`
 - `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 - 如果 `study.yaml` 显式声明 `manual_finish` 且 `compatibility_guard_only = true`，`study-progress` 应把该 study 投影成 `manual_finishing`，表达“当前以人工收尾 + 兼容保护为主”，而不是继续误报成默认应自动续跑的活跃 runtime blocker

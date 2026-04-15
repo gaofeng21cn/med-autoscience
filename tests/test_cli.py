@@ -309,11 +309,13 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
     def fake_read_study_progress(
         *,
         profile,
+        profile_ref,
         study_id: str | None,
         study_root: Path | None,
         entry_mode: str | None,
     ) -> dict[str, object]:
         called["profile"] = profile
+        called["profile_ref"] = profile_ref
         called["study_id"] = study_id
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
@@ -343,6 +345,7 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
+    assert called["profile_ref"] == profile_path
     assert called["study_id"] == "001-risk"
     assert called["study_root"] is None
     assert called["entry_mode"] is None

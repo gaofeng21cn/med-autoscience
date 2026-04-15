@@ -66,7 +66,14 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         },
     )
 
-    def fake_progress(*, profile, study_id: str | None = None, study_root: Path | None = None, entry_mode=None) -> dict:
+    def fake_progress(
+        *,
+        profile,
+        profile_ref=None,
+        study_id: str | None = None,
+        study_root: Path | None = None,
+        entry_mode=None,
+    ) -> dict:
         resolved_study_id = study_id or Path(study_root).name
         if resolved_study_id == "001-risk":
             return {
@@ -81,6 +88,48 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "severity": "critical",
                     "summary": "MAS 外环监管存在缺口。",
                     "recommended_action_id": "refresh_supervision",
+                },
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    + str(profile.runtime_root)
+                    + " --profile "
+                    + str(profile_ref.resolve())
+                    + " --ensure-study-runtimes --apply"
+                ),
+                "recommended_commands": [
+                    {
+                        "step_id": "refresh_supervision",
+                        "title": "刷新 MAS supervisor loop",
+                        "surface_kind": "runtime_watch_refresh",
+                        "command": (
+                            "uv run python -m med_autoscience.cli watch --runtime-root "
+                            + str(profile.runtime_root)
+                            + " --profile "
+                            + str(profile_ref.resolve())
+                            + " --ensure-study-runtimes --apply"
+                        ),
+                    }
+                ],
+                "recovery_contract": {
+                    "contract_kind": "study_recovery_contract",
+                    "lane_id": "workspace_supervision_gap",
+                    "action_mode": "refresh_supervision",
+                    "summary": "MAS 外环监管存在缺口。",
+                    "recommended_step_id": "refresh_supervision",
+                    "steps": [
+                        {
+                            "step_id": "refresh_supervision",
+                            "title": "刷新 MAS supervisor loop",
+                            "surface_kind": "runtime_watch_refresh",
+                            "command": (
+                                "uv run python -m med_autoscience.cli watch --runtime-root "
+                                + str(profile.runtime_root)
+                                + " --profile "
+                                + str(profile_ref.resolve())
+                                + " --ensure-study-runtimes --apply"
+                            ),
+                        }
+                    ],
                 },
                 "needs_physician_decision": False,
                 "supervision": {
@@ -111,6 +160,42 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "severity": "critical",
                 "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
                 "recommended_action_id": "inspect_progress",
+            },
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 002-risk"
+            ),
+            "recommended_commands": [
+                {
+                    "step_id": "inspect_study_progress",
+                    "title": "读取当前研究进度",
+                    "surface_kind": "study_progress",
+                    "command": (
+                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        + str(profile_ref.resolve())
+                        + " --study-id 002-risk"
+                    ),
+                }
+            ],
+            "recovery_contract": {
+                "contract_kind": "study_recovery_contract",
+                "lane_id": "quality_floor_blocker",
+                "action_mode": "inspect_progress",
+                "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
+                "recommended_step_id": "inspect_study_progress",
+                "steps": [
+                    {
+                        "step_id": "inspect_study_progress",
+                        "title": "读取当前研究进度",
+                        "surface_kind": "study_progress",
+                        "command": (
+                            "uv run python -m med_autoscience.cli study-progress --profile "
+                            + str(profile_ref.resolve())
+                            + " --study-id 002-risk"
+                        ),
+                    }
+                ],
             },
             "needs_physician_decision": False,
             "supervision": {
@@ -146,13 +231,26 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["workspace_supervision"]["study_counts"]["quality_blocked"] == 1
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith("watch-runtime-service-status")
-    assert any(item["study_id"] == "001-risk" and item["code"] == "study_supervision_gap" for item in payload["attention_queue"])
-    assert any(item["study_id"] == "002-risk" and item["code"] == "study_quality_floor_blocker" for item in payload["attention_queue"])
+    assert any(
+        item["study_id"] == "001-risk"
+        and item["code"] == "study_supervision_gap"
+        and item["recommended_command"].endswith("--ensure-study-runtimes --apply")
+        for item in payload["attention_queue"]
+    )
+    assert any(
+        item["study_id"] == "002-risk"
+        and item["code"] == "study_quality_floor_blocker"
+        and item["recommended_command"].endswith("--study-id 002-risk")
+        for item in payload["attention_queue"]
+    )
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
+    assert payload["studies"][0]["recommended_command"].endswith("--ensure-study-runtimes --apply")
+    assert payload["studies"][0]["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert payload["studies"][1]["recommended_commands"][0]["surface_kind"] == "study_progress"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
     assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
@@ -196,6 +294,42 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
             "current_stage_summary": "论文可发表性监管。",
             "current_blockers": ["论文叙事或方法/结果书写面仍有硬阻塞。"],
             "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk"
+            ),
+            "recommended_commands": [
+                {
+                    "step_id": "inspect_study_progress",
+                    "title": "读取当前研究进度",
+                    "surface_kind": "study_progress",
+                    "command": (
+                        "uv run python -m med_autoscience.cli study-progress --profile "
+                        + str(profile_ref.resolve())
+                        + " --study-id 001-risk"
+                    ),
+                }
+            ],
+            "recovery_contract": {
+                "contract_kind": "study_recovery_contract",
+                "lane_id": "quality_floor_blocker",
+                "action_mode": "inspect_progress",
+                "summary": "论文叙事或方法/结果书写面仍有硬阻塞。",
+                "recommended_step_id": "inspect_study_progress",
+                "steps": [
+                    {
+                        "step_id": "inspect_study_progress",
+                        "title": "读取当前研究进度",
+                        "surface_kind": "study_progress",
+                        "command": (
+                            "uv run python -m med_autoscience.cli study-progress --profile "
+                            + str(profile_ref.resolve())
+                            + " --study-id 001-risk"
+                        ),
+                    }
+                ],
+            },
             "needs_physician_decision": False,
             "supervision": {
                 "browser_url": "http://127.0.0.1:20999",
@@ -227,6 +361,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert payload["progress"]["supervision"]["browser_url"] == "http://127.0.0.1:20999"
     assert payload["progress"]["task_intake"]["journal_target"] == "JAMA Network Open"
     assert payload["progress"]["progress_freshness"]["status"] == "fresh"
+    assert payload["progress"]["recovery_contract"]["action_mode"] == "inspect_progress"
     assert payload["commands"]["progress"].endswith("--study-id 001-risk")
     assert "workspace-cockpit" in payload["commands"]["cockpit"]
 
@@ -235,6 +370,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert "论文叙事或方法/结果书写面仍有硬阻塞。" in markdown
     assert "优先发现卡住、无进度和 figure 质量回退" in markdown
     assert "最近 12 小时内仍有明确研究推进记录" in markdown
+    assert "恢复合同" in markdown
 
 
 def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block(tmp_path: Path) -> None:

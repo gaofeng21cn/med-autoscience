@@ -557,6 +557,7 @@ def main(argv: list[str] | None = None) -> int:
         profile = load_profile(args.profile)
         result = study_progress.read_study_progress(
             profile=profile,
+            profile_ref=Path(args.profile),
             study_id=args.study_id,
             study_root=Path(args.study_root) if args.study_root else None,
             entry_mode=args.entry_mode,
