@@ -75,6 +75,13 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "current_stage_summary": "MAS 外环监管存在缺口。",
                 "current_blockers": ["MAS 外环监管存在缺口。"],
                 "next_system_action": "先恢复 supervisor loop，再继续托管推进。",
+                "intervention_lane": {
+                    "lane_id": "workspace_supervision_gap",
+                    "title": "优先恢复 MAS 外环监管",
+                    "severity": "critical",
+                    "summary": "MAS 外环监管存在缺口。",
+                    "recommended_action_id": "refresh_supervision",
+                },
                 "needs_physician_decision": False,
                 "supervision": {
                     "browser_url": None,
@@ -98,6 +105,13 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             "current_stage_summary": "论文可发表性监管。",
             "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
             "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
+            "intervention_lane": {
+                "lane_id": "quality_floor_blocker",
+                "title": "优先收口质量硬阻塞",
+                "severity": "critical",
+                "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
+                "recommended_action_id": "inspect_progress",
+            },
             "needs_physician_decision": False,
             "supervision": {
                 "browser_url": "http://127.0.0.1:20999",
@@ -128,13 +142,17 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert any("距离上一次明确研究推进已经超过 12 小时" in item for item in payload["workspace_alerts"])
     assert payload["workspace_supervision"]["service"]["status"] == "not_loaded"
     assert payload["workspace_supervision"]["study_counts"]["progress_stale"] == 1
+    assert payload["workspace_supervision"]["study_counts"]["recovery_required"] == 0
+    assert payload["workspace_supervision"]["study_counts"]["quality_blocked"] == 1
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith("watch-runtime-service-status")
     assert any(item["study_id"] == "001-risk" and item["code"] == "study_supervision_gap" for item in payload["attention_queue"])
-    assert any(item["study_id"] == "002-risk" and item["code"] == "study_blocked" for item in payload["attention_queue"])
+    assert any(item["study_id"] == "002-risk" and item["code"] == "study_quality_floor_blocker" for item in payload["attention_queue"])
     assert [item["study_id"] for item in payload["studies"]] == ["001-risk", "002-risk"]
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
+    assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
+    assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
     assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
@@ -648,9 +666,19 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 ),
             },
             {
-                "guardrail_id": "publication_or_quality_blocker",
-                "trigger": "study-progress blockers / runtime watch figure-loop alerts / publication gate",
-                "symptom": "研究输出质量、论文主线或 publication gate 出现硬阻塞，不能继续盲目长跑。",
+                "guardrail_id": "runtime_recovery_required",
+                "trigger": "study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
+                "symptom": "托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "guardrail_id": "quality_floor_blocker",
+                "trigger": "study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
+                "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                 "recommended_command": (
                     "uv run python -m med_autoscience.cli study-progress --profile "
                     + str(profile_ref.resolve())
@@ -1068,6 +1096,8 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     )
     assert payload["product_entry_guardrails"]["surface_kind"] == "product_entry_guardrails"
     assert payload["product_entry_guardrails"]["guardrail_classes"][0]["guardrail_id"] == "workspace_supervision_gap"
+    assert payload["product_entry_guardrails"]["guardrail_classes"][3]["guardrail_id"] == "runtime_recovery_required"
+    assert payload["product_entry_guardrails"]["guardrail_classes"][4]["guardrail_id"] == "quality_floor_blocker"
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"

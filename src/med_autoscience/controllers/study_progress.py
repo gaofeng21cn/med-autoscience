@@ -132,6 +132,12 @@ _PROGRESS_FRESHNESS_STATUS_LABELS = {
     "missing": "研究推进信号缺失",
     "not_required": "当前不要求新的自动推进信号",
 }
+_INTERVENTION_SEVERITY_LABELS = {
+    "critical": "高优先级",
+    "warning": "需要尽快处理",
+    "handoff": "等待人工判断",
+    "observe": "继续监督",
+}
 _CONTINUATION_REASON_LABELS = {
     "unchanged_finalize_state": "运行停在未变化的定稿总结态",
 }
@@ -976,6 +982,137 @@ def _current_blockers(
     return blockers
 
 
+def _quality_blocker_present(
+    *,
+    publication_eval_payload: dict[str, Any] | None,
+    runtime_watch_payload: dict[str, Any] | None,
+) -> bool:
+    for gap in (publication_eval_payload or {}).get("gaps") or []:
+        if isinstance(gap, dict) and _non_empty_text(gap.get("summary")) is not None:
+            return True
+    controllers_payload = (runtime_watch_payload or {}).get("controllers") or {}
+    if not isinstance(controllers_payload, dict):
+        return False
+    for controller_payload in controllers_payload.values():
+        if not isinstance(controller_payload, dict):
+            continue
+        blockers = list(controller_payload.get("blockers") or [])
+        if blockers:
+            return True
+        if _non_empty_text(controller_payload.get("status")) == "blocked" and (
+            _non_empty_text(controller_payload.get("controller_stage_note"))
+            or _non_empty_text(controller_payload.get("controller_note"))
+        ):
+            return True
+    return False
+
+
+def _intervention_lane(
+    *,
+    current_stage: str,
+    current_stage_summary: str,
+    current_blockers: list[str],
+    next_system_action: str,
+    needs_physician_decision: bool,
+    progress_freshness: dict[str, Any],
+    publication_eval_payload: dict[str, Any] | None,
+    runtime_watch_payload: dict[str, Any] | None,
+    runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
+) -> dict[str, Any]:
+    blocker_summary = _non_empty_text(current_blockers[0] if current_blockers else None)
+    progress_status = _non_empty_text((progress_freshness or {}).get("status"))
+    runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
+
+    if _manual_finish_active(manual_finish_contract):
+        return {
+            "lane_id": "manual_finishing",
+            "title": "保持人工收尾兼容保护",
+            "severity": "observe",
+            "summary": (
+                _non_empty_text((manual_finish_contract or {}).get("summary"))
+                or current_stage_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "maintain_compatibility_guard",
+        }
+    if _supervisor_tick_gap_present(supervisor_tick_audit):
+        return {
+            "lane_id": "workspace_supervision_gap",
+            "title": "优先恢复 MAS 外环监管",
+            "severity": "critical",
+            "summary": (
+                _non_empty_text((supervisor_tick_audit or {}).get("summary"))
+                or current_stage_summary
+                or blocker_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "refresh_supervision",
+        }
+    if runtime_health_status in {"recovering", "degraded", "escalated"}:
+        return {
+            "lane_id": "runtime_recovery_required",
+            "title": "优先处理 runtime recovery",
+            "severity": "critical" if runtime_health_status in {"degraded", "escalated"} else "warning",
+            "summary": (
+                _non_empty_text((runtime_supervision_payload or {}).get("summary"))
+                or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update"))
+                or current_stage_summary
+                or blocker_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "continue_or_relaunch",
+        }
+    if _quality_blocker_present(
+        publication_eval_payload=publication_eval_payload,
+        runtime_watch_payload=runtime_watch_payload,
+    ):
+        return {
+            "lane_id": "quality_floor_blocker",
+            "title": "优先收口质量硬阻塞",
+            "severity": "critical",
+            "summary": blocker_summary or current_stage_summary or next_system_action,
+            "recommended_action_id": "inspect_progress",
+        }
+    if needs_physician_decision:
+        return {
+            "lane_id": "human_decision_gate",
+            "title": "等待医生或 PI 判断",
+            "severity": "handoff",
+            "summary": current_stage_summary or blocker_summary or next_system_action,
+            "recommended_action_id": "inspect_progress",
+        }
+    if progress_status in {"stale", "missing"}:
+        return {
+            "lane_id": "study_progress_gap",
+            "title": "优先检查研究是否卡住",
+            "severity": "warning",
+            "summary": (
+                _non_empty_text((progress_freshness or {}).get("summary"))
+                or current_stage_summary
+                or blocker_summary
+                or next_system_action
+            ),
+            "recommended_action_id": "inspect_progress",
+        }
+    if current_stage == "runtime_blocked":
+        return {
+            "lane_id": "runtime_blocker",
+            "title": "优先恢复或重启当前 study",
+            "severity": "warning",
+            "summary": current_stage_summary or blocker_summary or next_system_action,
+            "recommended_action_id": "continue_or_relaunch",
+        }
+    return {
+        "lane_id": "monitor_only",
+        "title": "继续监督当前 study",
+        "severity": "observe",
+        "summary": current_stage_summary or next_system_action or "当前 study 没有新的接管动作。",
+        "recommended_action_id": "inspect_progress",
+    }
+
+
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
@@ -1293,6 +1430,64 @@ def build_study_progress_projection(
         controller_decision_payload=controller_decision_payload,
         publication_eval_payload=publication_eval_payload,
     )
+    current_stage_summary = _display_text(_stage_summary(
+        status=status,
+        current_stage=current_stage,
+        publication_supervisor_state=publication_supervisor_state,
+        latest_progress_message=latest_progress_message,
+        runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
+    )) or ""
+    paper_stage_summary = _display_text(_paper_stage_summary(
+        paper_stage=paper_stage,
+        publication_supervisor_state=publication_supervisor_state,
+        publication_eval_payload=publication_eval_payload,
+    )) or ""
+    current_blockers = _humanized_blockers(
+        _current_blockers(
+            status=status,
+            publication_eval_payload=publication_eval_payload,
+            runtime_watch_payload=runtime_watch_payload,
+            runtime_escalation_payload=runtime_escalation_payload,
+            controller_decision_payload=controller_decision_payload,
+            pending_user_interaction=pending_user_interaction,
+            interaction_arbitration=interaction_arbitration,
+            runtime_supervision_payload=runtime_supervision_payload,
+            supervisor_tick_audit=supervisor_tick_audit,
+            progress_freshness=progress_freshness,
+            manual_finish_contract=manual_finish_contract,
+        )
+    )
+    next_system_action = _display_text(_next_system_action(
+        needs_physician_decision=needs_physician_decision,
+        controller_decision_payload=controller_decision_payload,
+        publication_supervisor_state=publication_supervisor_state,
+        execution_owner_guard=execution_owner_guard,
+        status=status,
+        runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
+    )) or ""
+    physician_decision_summary = _display_text(_physician_decision_summary(
+        status=status,
+        controller_decision_payload=controller_decision_payload,
+        pending_user_interaction=pending_user_interaction,
+        interaction_arbitration=interaction_arbitration,
+    ))
+    intervention_lane = _intervention_lane(
+        current_stage=current_stage,
+        current_stage_summary=current_stage_summary,
+        current_blockers=current_blockers,
+        next_system_action=next_system_action,
+        needs_physician_decision=needs_physician_decision,
+        progress_freshness=progress_freshness,
+        publication_eval_payload=publication_eval_payload,
+        runtime_watch_payload=runtime_watch_payload,
+        runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1301,21 +1496,9 @@ def build_study_progress_projection(
         "quest_id": quest_id,
         "quest_root": str(quest_root) if quest_root is not None else None,
         "current_stage": current_stage,
-        "current_stage_summary": _display_text(_stage_summary(
-            status=status,
-            current_stage=current_stage,
-            publication_supervisor_state=publication_supervisor_state,
-            latest_progress_message=latest_progress_message,
-            runtime_supervision_payload=runtime_supervision_payload,
-            supervisor_tick_audit=supervisor_tick_audit,
-            manual_finish_contract=manual_finish_contract,
-        )) or "",
+        "current_stage_summary": current_stage_summary,
         "paper_stage": paper_stage,
-        "paper_stage_summary": _display_text(_paper_stage_summary(
-            paper_stage=paper_stage,
-            publication_supervisor_state=publication_supervisor_state,
-            publication_eval_payload=publication_eval_payload,
-        )) or "",
+        "paper_stage_summary": paper_stage_summary,
         "latest_events": _latest_events(
             launch_report_payload=launch_report_payload,
             launch_report_path=launch_report_path,
@@ -1335,38 +1518,11 @@ def build_study_progress_projection(
             bash_summary_path=bash_summary_path,
             publication_supervisor_state=publication_supervisor_state,
         ),
-        "current_blockers": _humanized_blockers(
-            _current_blockers(
-                status=status,
-                publication_eval_payload=publication_eval_payload,
-                runtime_watch_payload=runtime_watch_payload,
-                runtime_escalation_payload=runtime_escalation_payload,
-                controller_decision_payload=controller_decision_payload,
-                pending_user_interaction=pending_user_interaction,
-                interaction_arbitration=interaction_arbitration,
-                runtime_supervision_payload=runtime_supervision_payload,
-                supervisor_tick_audit=supervisor_tick_audit,
-                progress_freshness=progress_freshness,
-                manual_finish_contract=manual_finish_contract,
-            )
-        ),
-        "next_system_action": _display_text(_next_system_action(
-            needs_physician_decision=needs_physician_decision,
-            controller_decision_payload=controller_decision_payload,
-            publication_supervisor_state=publication_supervisor_state,
-            execution_owner_guard=execution_owner_guard,
-            status=status,
-            runtime_supervision_payload=runtime_supervision_payload,
-            supervisor_tick_audit=supervisor_tick_audit,
-            manual_finish_contract=manual_finish_contract,
-        )) or "",
+        "current_blockers": current_blockers,
+        "next_system_action": next_system_action,
+        "intervention_lane": intervention_lane,
         "needs_physician_decision": needs_physician_decision,
-        "physician_decision_summary": _display_text(_physician_decision_summary(
-            status=status,
-            controller_decision_payload=controller_decision_payload,
-            pending_user_interaction=pending_user_interaction,
-            interaction_arbitration=interaction_arbitration,
-        )),
+        "physician_decision_summary": physician_decision_summary,
         "runtime_decision": _non_empty_text(status.get("decision")),
         "runtime_reason": _non_empty_text(status.get("reason")),
         "continuation_state": continuation_state or None,
@@ -1460,6 +1616,15 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     task_intake = dict(payload.get("task_intake") or {})
     current_stage = _current_stage_label(payload.get("current_stage")) or "未知"
     paper_stage = _paper_stage_label(payload.get("paper_stage")) or "未知"
+    intervention_lane = dict(payload.get("intervention_lane") or {})
+    intervention_title = _non_empty_text(intervention_lane.get("title"))
+    intervention_summary = _display_text(intervention_lane.get("summary")) or _non_empty_text(
+        intervention_lane.get("summary")
+    )
+    intervention_severity = _INTERVENTION_SEVERITY_LABELS.get(
+        _non_empty_text(intervention_lane.get("severity")) or "",
+        "",
+    )
     lines = [
         "# 研究进度",
         "",
@@ -1468,6 +1633,17 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         f"- 当前阶段: {current_stage}",
         f"- 阶段摘要: {_display_text(payload.get('current_stage_summary')) or str(payload.get('current_stage_summary') or '').strip()}",
     ]
+    if intervention_title or intervention_summary:
+        label = intervention_title or "继续监督当前 study"
+        if intervention_severity:
+            label = f"{label}（{intervention_severity}）"
+        lines.extend(
+            [
+                f"- 干预类型: {label}",
+            ]
+        )
+        if intervention_summary:
+            lines.append(f"- 干预摘要: {intervention_summary}")
     if task_intake:
         lines.extend(
             [

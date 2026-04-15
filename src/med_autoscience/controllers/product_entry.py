@@ -37,11 +37,13 @@ TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
-    "study_needs_physician_decision": 1,
-    "study_supervision_gap": 2,
-    "study_progress_stale": 3,
-    "study_progress_missing": 4,
-    "study_blocked": 5,
+    "study_runtime_recovery_required": 1,
+    "study_needs_physician_decision": 2,
+    "study_supervision_gap": 3,
+    "study_quality_floor_blocker": 4,
+    "study_progress_stale": 5,
+    "study_progress_missing": 6,
+    "study_blocked": 7,
 }
 
 
@@ -424,9 +426,15 @@ def _build_product_entry_guardrails(
                 "recommended_command": progress_command,
             },
             {
-                "guardrail_id": "publication_or_quality_blocker",
-                "trigger": "study-progress blockers / runtime watch figure-loop alerts / publication gate",
-                "symptom": "研究输出质量、论文主线或 publication gate 出现硬阻塞，不能继续盲目长跑。",
+                "guardrail_id": "runtime_recovery_required",
+                "trigger": "study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
+                "symptom": "托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
+                "recommended_command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+            },
+            {
+                "guardrail_id": "quality_floor_blocker",
+                "trigger": "study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
+                "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
                 "recommended_command": progress_command,
             },
         ],
@@ -659,6 +667,8 @@ def _workspace_supervision_summary(
         "total": len(studies),
         "supervisor_fresh": 0,
         "supervisor_gap": 0,
+        "recovery_required": 0,
+        "quality_blocked": 0,
         "progress_fresh": 0,
         "progress_stale": 0,
         "progress_missing": 0,
@@ -671,6 +681,13 @@ def _workspace_supervision_summary(
             counts["supervisor_fresh"] += 1
         elif supervisor_tick_status in {"stale", "missing", "invalid"}:
             counts["supervisor_gap"] += 1
+
+        intervention_lane = dict(item.get("intervention_lane") or {})
+        lane_id = _non_empty_text(intervention_lane.get("lane_id"))
+        if lane_id == "runtime_recovery_required":
+            counts["recovery_required"] += 1
+        elif lane_id == "quality_floor_blocker":
+            counts["quality_blocked"] += 1
 
         progress_freshness = dict(item.get("progress_freshness") or {})
         freshness_status = _non_empty_text(progress_freshness.get("status"))
@@ -687,6 +704,8 @@ def _workspace_supervision_summary(
     summary = (
         f"{counts['total']} 个 study；"
         f"{counts['supervisor_gap']} 个监管心跳缺口；"
+        f"{counts['recovery_required']} 个恢复异常；"
+        f"{counts['quality_blocked']} 个质量阻塞；"
         f"{counts['progress_stale']} 个进度陈旧；"
         f"{counts['progress_missing']} 个缺少明确进度信号。"
     )
@@ -769,30 +788,66 @@ def _attention_queue(
         progress_freshness = dict(item.get("progress_freshness") or {})
         blocker_list = list(item.get("current_blockers") or [])
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
+        launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
         supervisor_tick_status = _non_empty_text(monitoring.get("supervisor_tick_status"))
         progress_status = _non_empty_text(progress_freshness.get("status"))
         current_stage_summary = _non_empty_text(item.get("current_stage_summary"))
         next_system_action = _non_empty_text(item.get("next_system_action"))
+        intervention_lane = dict(item.get("intervention_lane") or {})
+        lane_id = _non_empty_text(intervention_lane.get("lane_id"))
+        lane_summary = (
+            _non_empty_text(intervention_lane.get("summary"))
+            or current_stage_summary
+            or next_system_action
+        )
 
-        if bool(item.get("needs_physician_decision")):
+        if lane_id == "human_decision_gate" or bool(item.get("needs_physician_decision")):
             queue.append(
                 _attention_item(
                     code="study_needs_physician_decision",
                     title=f"{study_id} 需要医生或 PI 判断",
-                    summary=current_stage_summary or next_system_action or "当前 study 已到需要人工明确决策的节点。",
+                    summary=lane_summary or "当前 study 已到需要人工明确决策的节点。",
                     recommended_command=progress_command,
                     scope="study",
                     study_id=study_id,
                 )
             )
             continue
-        if supervisor_tick_status in {"stale", "missing", "invalid"}:
+        if lane_id == "workspace_supervision_gap" or supervisor_tick_status in {"stale", "missing", "invalid"}:
             queue.append(
                 _attention_item(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
-                    summary=current_stage_summary or "MAS 外环监管存在缺口。",
+                    summary=lane_summary or "MAS 外环监管存在缺口。",
                     recommended_command=commands.get("supervisor_tick") or progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if lane_id == "runtime_recovery_required":
+            queue.append(
+                _attention_item(
+                    code="study_runtime_recovery_required",
+                    title=f"{study_id} 当前需要优先处理 runtime recovery",
+                    summary=lane_summary or "托管运行恢复失败或健康降级，需要尽快介入。",
+                    recommended_command=launch_command or progress_command,
+                    scope="study",
+                    study_id=study_id,
+                )
+            )
+            continue
+        if lane_id == "quality_floor_blocker":
+            queue.append(
+                _attention_item(
+                    code="study_quality_floor_blocker",
+                    title=f"{study_id} 当前存在质量硬阻塞",
+                    summary=(
+                        lane_summary
+                        or _non_empty_text(blocker_list[0] if blocker_list else None)
+                        or "当前 study 存在质量或发表门控硬阻塞。"
+                    ),
+                    recommended_command=progress_command,
                     scope="study",
                     study_id=study_id,
                 )
@@ -900,12 +955,14 @@ def _study_item(
     }
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
+    intervention_lane = dict(progress_payload.get("intervention_lane") or {})
     return {
         "study_id": study_id,
         "current_stage": progress_payload.get("current_stage"),
         "current_stage_summary": progress_payload.get("current_stage_summary"),
         "current_blockers": list(progress_payload.get("current_blockers") or []),
         "next_system_action": progress_payload.get("next_system_action"),
+        "intervention_lane": intervention_lane or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "monitoring": monitoring,
         "task_intake": task_intake or None,
@@ -1031,6 +1088,8 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 "- counts: "
                 f"supervisor_gap={study_counts.get('supervisor_gap', 0)}, "
+                f"recovery_required={study_counts.get('recovery_required', 0)}, "
+                f"quality_blocked={study_counts.get('quality_blocked', 0)}, "
                 f"progress_stale={study_counts.get('progress_stale', 0)}, "
                 f"progress_missing={study_counts.get('progress_missing', 0)}, "
                 f"needs_physician_decision={study_counts.get('needs_physician_decision', 0)}"
@@ -1085,6 +1144,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         progress_freshness = dict(item.get("progress_freshness") or {})
         if progress_freshness.get("summary"):
             lines.append(f"- progress_signal: {progress_freshness.get('summary')}")
+        intervention_lane = dict(item.get("intervention_lane") or {})
+        if intervention_lane.get("title"):
+            lines.append(f"- intervention_lane: {intervention_lane.get('title')}")
+        if intervention_lane.get("summary"):
+            lines.append(f"- intervention_summary: {intervention_lane.get('summary')}")
         blockers = list(item.get("current_blockers") or [])
         lines.append(f"- blockers: {', '.join(blockers) if blockers else 'none'}")
         lines.append(f"- launch: `{((item.get('commands') or {}).get('launch') or '')}`")

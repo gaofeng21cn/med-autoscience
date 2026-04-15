@@ -573,6 +573,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
 
     assert "# 研究进度" in markdown
     assert "当前阶段" in markdown
+    assert "干预类型" in markdown
     assert "当前任务" in markdown
     assert "论文推进" in markdown
     assert "最近进展" in markdown
@@ -757,6 +758,8 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
 
     assert result["current_stage"] == "managed_runtime_escalated"
     assert "人工介入" in result["current_stage_summary"]
+    assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
+    assert result["intervention_lane"]["recommended_action_id"] == "continue_or_relaunch"
     assert result["latest_events"][0]["category"] == "runtime_supervision"
     assert "连续两次恢复失败" in result["latest_events"][0]["summary"]
     assert any("人工介入" in item for item in result["current_blockers"])
@@ -1099,6 +1102,8 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     assert result["current_stage"] == "managed_runtime_supervision_gap"
+    assert result["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
+    assert result["intervention_lane"]["recommended_action_id"] == "refresh_supervision"
     assert "监管心跳已陈旧" in result["current_stage_summary"]
     assert any("监管心跳已陈旧" in item for item in result["current_blockers"])
     assert "supervisor tick" in result["next_system_action"]
@@ -1530,6 +1535,8 @@ def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_watch(m
 
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert result["intervention_lane"]["recommended_action_id"] == "inspect_progress"
     assert "图表推进陷入重复打磨循环，当前 run 应被拉回主线。" in result["current_blockers"]
     assert "图表循环期间参考文献数量低于下限，当前稿件质量不达标。" in result["current_blockers"]
 
