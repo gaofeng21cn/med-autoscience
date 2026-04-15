@@ -977,34 +977,73 @@ def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id:
     return quest_state.find_latest(candidates)
 
 
+def _stopped_controller_owned_auto_recovery_context(
+    *,
+    status: StudyRuntimeStatus,
+    quest_root: Path,
+    publication_gate_report: dict[str, object] | None,
+) -> dict[str, str | None] | None:
+    if status.quest_status is not StudyRuntimeQuestStatus.STOPPED:
+        return None
+    publication_gate_status = str((publication_gate_report or {}).get("status") or "").strip() or None
+    if publication_gate_status in {None, "clear"} or _publication_supervisor_requires_human_confirmation(status):
+        return None
+    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
+    continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
+    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
+    if continuation_policy != "auto" or continuation_anchor != "decision":
+        return None
+    if continuation_reason is None or not continuation_reason.startswith("decision:"):
+        return None
+    if stop_reason and not stop_reason.startswith("controller_stop:"):
+        return None
+    return {
+        "active_interaction_id": str(runtime_state.get("active_interaction_id") or "").strip() or None,
+        "stop_reason": stop_reason,
+        "continuation_reason": continuation_reason,
+    }
+
+
 def _pending_user_interaction_payload(
     *,
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,
     runtime_backend=None,
+    fallback_interaction_id: str | None = None,
 ) -> dict[str, object] | None:
-    if runtime_backend is None:
-        return None
-    try:
-        session_payload = runtime_backend.get_quest_session(
-            runtime_root=runtime_root,
-            quest_id=quest_id,
-        )
-    except (RuntimeError, OSError, ValueError):
-        return None
+    session_payload: dict[str, object] = {}
+    if runtime_backend is not None:
+        try:
+            raw_session_payload = runtime_backend.get_quest_session(
+                runtime_root=runtime_root,
+                quest_id=quest_id,
+            )
+        except (RuntimeError, OSError, ValueError):
+            raw_session_payload = {}
+        if isinstance(raw_session_payload, dict):
+            session_payload = raw_session_payload
     snapshot = session_payload.get("snapshot")
     if not isinstance(snapshot, dict):
-        return None
+        snapshot = {}
     waiting_interaction_id = str(snapshot.get("waiting_interaction_id") or "").strip() or None
     default_reply_interaction_id = str(snapshot.get("default_reply_interaction_id") or "").strip() or None
+    active_interaction_id = str(snapshot.get("active_interaction_id") or "").strip() or None
     raw_pending_decisions = snapshot.get("pending_decisions")
     pending_decisions = (
         [str(item).strip() for item in raw_pending_decisions if str(item).strip()]
         if isinstance(raw_pending_decisions, list)
         else []
     )
-    interaction_id = waiting_interaction_id or default_reply_interaction_id or (pending_decisions[0] if pending_decisions else None)
+    interaction_id = (
+        waiting_interaction_id
+        or default_reply_interaction_id
+        or (pending_decisions[0] if pending_decisions else None)
+        or active_interaction_id
+        or (str(fallback_interaction_id or "").strip() or None)
+    )
     if interaction_id is None:
         return None
     interaction_artifact_path = _find_pending_interaction_artifact_path(
@@ -1055,15 +1094,30 @@ def _record_pending_user_interaction_if_required(
     runtime_root: Path,
     quest_root: Path,
     quest_id: str,
+    publication_gate_report: dict[str, object] | None,
     runtime_backend=None,
 ) -> None:
-    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
+    stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
+        status=status,
+        quest_root=quest_root,
+        publication_gate_report=publication_gate_report,
+    )
+    if (
+        status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER
+        and not _is_controller_owned_finalize_parking(status)
+        and stopped_recovery_context is None
+    ):
         return
     payload = _pending_user_interaction_payload(
         runtime_root=runtime_root,
         quest_root=quest_root,
         quest_id=quest_id,
         runtime_backend=runtime_backend,
+        fallback_interaction_id=(
+            str(stopped_recovery_context.get("active_interaction_id") or "").strip()
+            if isinstance(stopped_recovery_context, dict)
+            else None
+        ),
     )
     if payload is None:
         return
@@ -1073,15 +1127,23 @@ def _record_pending_user_interaction_if_required(
 def _record_interaction_arbitration_if_required(
     *,
     status: StudyRuntimeStatus,
+    quest_root: Path,
     execution: dict[str, object],
     submission_metadata_only: bool,
     publication_gate_report: dict[str, object] | None,
 ) -> None:
-    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not _is_controller_owned_finalize_parking(status):
+    stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
+        status=status,
+        quest_root=quest_root,
+        publication_gate_report=publication_gate_report,
+    )
+    if (
+        status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER
+        and not _is_controller_owned_finalize_parking(status)
+        and stopped_recovery_context is None
+    ):
         return
     payload = status.extras.get("pending_user_interaction")
-    if status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER and not isinstance(payload, dict):
-        return
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
@@ -1203,10 +1265,12 @@ def _status_state(
         runtime_root=runtime_root,
         quest_root=quest_root,
         quest_id=quest_id,
+        publication_gate_report=publication_gate_report,
         runtime_backend=managed_runtime_backend,
     )
     _record_interaction_arbitration_if_required(
         status=result,
+        quest_root=quest_root,
         execution=execution,
         submission_metadata_only=submission_metadata_only_wait,
         publication_gate_report=publication_gate_report,
@@ -1508,6 +1572,55 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.STOPPED:
+        stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
+            status=result,
+            quest_root=quest_root,
+            publication_gate_report=publication_gate_report,
+        )
+        interaction_arbitration = result.extras.get("interaction_arbitration")
+        if stopped_recovery_context is not None and isinstance(interaction_arbitration, dict):
+            classification = str(interaction_arbitration.get("classification") or "").strip()
+            action = str(interaction_arbitration.get("action") or "").strip()
+            if action == "resume":
+                if not result.startup_boundary_allows_compute_stage:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                    )
+                elif not result.runtime_reentry_allows_runtime_entry:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                    )
+                elif execution.get("auto_resume") is True:
+                    resume_reason = {
+                        "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                        "premature_completion_request": (
+                            StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
+                        ),
+                        "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                    }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
+                    result.set_decision(
+                        StudyRuntimeDecision.RESUME,
+                        resume_reason,
+                    )
+                else:
+                    blocked_reason = (
+                        StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA_BUT_AUTO_RESUME_DISABLED
+                        if classification == "submission_metadata_only"
+                        else StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED
+                    )
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        blocked_reason,
+                    )
+                return _finalize_result()
+            if classification == "external_input_required":
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_EXTERNAL_INPUT,
+                )
+                return _finalize_result()
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
