@@ -1465,6 +1465,46 @@ def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrat
     assert any(hit["pattern_id"] == "results_narrative_map_missing_main_figure_reference" for hit in report["top_hits"])
 
 
+def test_build_report_allows_supplementary_cohort_flow_without_results_narrative_reference(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    narrative_path = paper_root / "results_narrative_map.json"
+
+    figure_payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    for figure in figure_payload["figures"]:
+        if figure.get("figure_id") == "F1":
+            figure["paper_role"] = "supplementary"
+            break
+    dump_json(figure_catalog_path, figure_payload)
+
+    narrative_payload = json.loads(narrative_path.read_text(encoding="utf-8"))
+    for section in narrative_payload["sections"]:
+        supporting_items = [
+            str(item).strip()
+            for item in (section.get("supporting_display_items") or [])
+            if str(item).strip() != "F1"
+        ]
+        section["supporting_display_items"] = supporting_items or ["T1"]
+    narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "figure_catalog_missing_or_incomplete" not in report["blockers"]
+    assert "results_narrative_map_missing_or_incomplete" not in report["blockers"]
+    assert not any(
+        hit["pattern_id"] in {"results_narrative_map_missing_main_figure_reference", "figure_catalog"}
+        and hit["phrase"] == "F1"
+        for hit in report["top_hits"]
+    )
+
+
 def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(
@@ -1511,6 +1551,71 @@ def test_build_report_accepts_complete_required_display_catalog_coverage(tmp_pat
         ama_defaults=True,
     )
     _write_time_to_event_direct_migration_surface(quest_root, include_f5=True)
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "required_display_catalog_coverage_incomplete" not in report["blockers"]
+
+
+def test_build_report_accepts_required_display_catalog_coverage_for_supplementary_figure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    _write_time_to_event_direct_migration_surface(quest_root, include_f5=True)
+
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    reporting_contract_path = paper_root / "medical_reporting_contract.json"
+    reporting_contract_payload = json.loads(reporting_contract_path.read_text(encoding="utf-8"))
+    for item in reporting_contract_payload.get("display_shell_plan", []):
+        if item.get("catalog_id") == "F5":
+            item["catalog_id"] = "S1"
+    reporting_contract_path.write_text(
+        json.dumps(reporting_contract_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog_payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    figure_catalog_payload.setdefault("figures", []).append(
+        {
+            "figure_id": "S1",
+            "paper_role": "supplementary",
+            "manuscript_status": "locked_supplementary_evidence",
+            "template_id": "cohort_flow_figure",
+            "renderer_family": "python",
+            "input_schema_id": "cohort_flow_shell_inputs_v1",
+            "qc_profile": "publication_illustration_flow",
+            "qc_result": {
+                "status": "pass",
+                "checked_at": "2026-04-05T00:00:00+00:00",
+                "engine_id": "display_layout_qc_v1",
+                "qc_profile": "publication_illustration_flow",
+                "layout_sidecar_path": "paper/figures/generated/S1.layout.json",
+                "audit_classes": [],
+                "issues": [],
+                "readability_findings": [],
+                "revision_note": "",
+            },
+            "title": "Supplementary cohort assembly overview",
+            "caption": "Supplementary cohort accounting for the shared analytic population.",
+            "export_paths": [
+                "paper/figures/generated/S1.svg",
+                "paper/figures/generated/S1.png",
+            ],
+            "source_paths": [
+                "paper/figures/generated/S1.layout.json",
+            ],
+            "claim_ids": [],
+        }
+    )
+    figure_catalog_path.write_text(
+        json.dumps(figure_catalog_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     report = module.build_surface_report(module.build_surface_state(quest_root))
 
@@ -2041,6 +2146,44 @@ def test_validate_figure_catalog_blocks_failed_illustration_shell_qc() -> None:
     )
 
     assert any("blocks publication" in error for error in errors)
+
+
+def test_validate_figure_catalog_allows_supplementary_cohort_flow_shell() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    base_payload = {
+        "figure_id": "S1",
+        "template_id": "cohort_flow_figure",
+        "renderer_family": "python",
+        "input_schema_id": "cohort_flow_shell_inputs_v1",
+        "qc_profile": "publication_illustration_flow",
+        "qc_result": {
+            "status": "pass",
+            "checked_at": "2026-04-05T00:00:00+00:00",
+            "engine_id": "display_layout_qc_v1",
+            "qc_profile": "publication_illustration_flow",
+            "layout_sidecar_path": "paper/figures/generated/S1.layout.json",
+            "audit_classes": [],
+            "issues": [],
+            "readability_findings": [],
+            "revision_note": "",
+        },
+        "export_paths": ["paper/figures/generated/S1.svg", "paper/figures/generated/S1.png"],
+    }
+
+    supplementary_errors = module.validate_figure_catalog(
+        {"figures": [dict(base_payload, paper_role="supplementary")]}
+    )
+    main_text_errors = module.validate_figure_catalog(
+        {"figures": [dict(base_payload, paper_role="main_text")]}
+    )
+    appendix_errors = module.validate_figure_catalog(
+        {"figures": [dict(base_payload, paper_role="appendix")]}
+    )
+
+    assert supplementary_errors == []
+    assert main_text_errors == []
+    assert any("paper_role `appendix`" in error for error in appendix_errors)
 
 
 def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:

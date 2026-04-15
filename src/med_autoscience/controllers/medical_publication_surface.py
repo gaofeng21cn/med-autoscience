@@ -714,13 +714,13 @@ def load_required_display_catalog_ids(path: Path) -> tuple[set[str], set[str]]:
     return figure_ids, table_ids
 
 
-def figure_ids_from_catalog(path: Path) -> set[str]:
+def figure_ids_from_catalog(path: Path, *, include_all_roles: bool = False) -> set[str]:
     payload = load_json(path, default={}) or {}
     figure_ids: set[str] = set()
     for item in payload.get("figures", []) or []:
         if not isinstance(item, dict):
             continue
-        if str(item.get("paper_role") or "").strip() != "main_text":
+        if not include_all_roles and str(item.get("paper_role") or "").strip() != "main_text":
             continue
         figure_id = str(item.get("figure_id") or "").strip()
         if figure_id:
@@ -1413,11 +1413,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     ):
         forbidden_hits.extend(scan_markdown_table_body(path))
     figure_ids = figure_ids_from_catalog(state.figure_catalog_path)
+    all_figure_ids = figure_ids_from_catalog(state.figure_catalog_path, include_all_roles=True)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
     reporting_contract_path = state.paper_root / "medical_reporting_contract.json"
     required_display_catalog_coverage_valid, required_display_catalog_hits = inspect_required_display_catalog_coverage(
         reporting_contract_path=reporting_contract_path,
-        figure_ids=figure_ids,
+        figure_ids=all_figure_ids,
         table_ids=table_ids,
     )
     methods_manifest_valid, methods_manifest_hits = inspect_required_json_contract(
