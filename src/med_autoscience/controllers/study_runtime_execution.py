@@ -9,7 +9,11 @@ from urllib.parse import quote
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_backend import ManagedRuntimeBackend
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.runtime_protocol import (
+    quest_state,
+    study_runtime as study_runtime_protocol,
+    user_message,
+)
 from med_autoscience.study_completion import StudyCompletionState
 
 from .study_runtime_transport import _get_quest_session
@@ -53,6 +57,67 @@ def _router_module():
 
 def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
     return status.runtime_reentry_gate_result.require_startup_hydration
+
+
+def _controller_owned_interaction_reply_message(*, status: StudyRuntimeStatus) -> str | None:
+    pending_payload = status.extras.get("pending_user_interaction")
+    arbitration_payload = status.extras.get("interaction_arbitration")
+    if not isinstance(pending_payload, dict) or not isinstance(arbitration_payload, dict):
+        return None
+    pending_interaction_id = str(pending_payload.get("interaction_id") or "").strip()
+    if not pending_interaction_id or not bool(pending_payload.get("relay_required")):
+        return None
+    if bool(arbitration_payload.get("requires_user_input")):
+        return None
+    if str(arbitration_payload.get("action") or "").strip() != StudyRuntimeDecision.RESUME.value:
+        return None
+
+    classification = str(arbitration_payload.get("classification") or "").strip()
+    if classification == "premature_completion_request":
+        return (
+            "暂不结题。MAS publication gate 尚未 clear，请继续处理当前论文的 publishability blockers；"
+            "等 publication gate 清除后，再重新申请 completion。"
+        )
+    if classification == "submission_metadata_only":
+        return (
+            "不要因 submission metadata 暂缺而阻塞当前 quest。请继续推进论文主稿与科学交付，"
+            "并把缺失的投稿元数据保留在待补清单中。"
+        )
+    if classification == "invalid_blocking":
+        return "当前交互不应阻塞 MAS 托管流程。请不要等待用户输入，按现有 study contract 继续自主推进下一步。"
+    return None
+
+
+def _relay_controller_owned_runtime_reply_if_required(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> dict[str, Any] | None:
+    message = _controller_owned_interaction_reply_message(status=status)
+    if message is None:
+        return None
+    pending_payload = status.extras.get("pending_user_interaction")
+    if not isinstance(pending_payload, dict):
+        return None
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    runtime_state["quest_id"] = status.quest_id
+    runtime_state.setdefault(
+        "active_interaction_id",
+        str(pending_payload.get("interaction_id") or "").strip() or None,
+    )
+    record = user_message.enqueue_user_message(
+        quest_root=context.quest_root,
+        runtime_state=runtime_state,
+        message=message,
+        source=context.source,
+    )
+    status.extras["controller_owned_runtime_reply"] = {
+        "message_id": record.get("message_id"),
+        "reply_to_interaction_id": record.get("reply_to_interaction_id"),
+        "content": record.get("content"),
+        "source": record.get("source"),
+    }
+    return record
 
 
 @dataclass(frozen=True)
@@ -513,6 +578,7 @@ def _execute_resume_runtime_decision(
             )
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             return outcome
+    _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
     try:
         resume_result = router._resume_quest(
             runtime_root=context.runtime_root,

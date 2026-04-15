@@ -632,6 +632,7 @@ def _status_family_human_gates(
 ) -> list[dict[str, object]]:
     gates: list[dict[str, object]] = []
     pending_interaction = status.extras.get("pending_user_interaction")
+    interaction_arbitration = status.extras.get("interaction_arbitration")
     pending_interaction_id = (
         str(pending_interaction.get("interaction_id") or "").strip()
         if isinstance(pending_interaction, dict)
@@ -642,7 +643,10 @@ def _status_family_human_gates(
         if isinstance(pending_interaction, dict)
         else ""
     )
-    if pending_interaction_id:
+    pending_interaction_requires_human_gate = True
+    if isinstance(interaction_arbitration, dict):
+        pending_interaction_requires_human_gate = bool(interaction_arbitration.get("requires_user_input"))
+    if pending_interaction_id and pending_interaction_requires_human_gate:
         pending_decisions = (
             [
                 str(item).strip()

@@ -6461,12 +6461,11 @@ def test_study_runtime_status_surfaces_pending_user_interaction_for_waiting_ques
     }
     assert result["family_event_envelope"]["version"] == "family-event-envelope.v1"
     assert result["family_event_envelope"]["session"]["study_id"] == "001-risk"
-    assert result["family_event_envelope"]["human_gate_hint"]["status"] == "requested"
+    assert "human_gate_hint" not in result["family_event_envelope"]
     assert result["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
-    assert result["family_checkpoint_lineage"]["resume_contract"]["human_gate_required"] is True
-    assert result["family_human_gates"][0]["version"] == "family-human-gate.v1"
-    assert result["family_human_gates"][0]["gate_kind"] == "runtime_pending_user_interaction"
-    assert result["family_human_gates"][0]["decision_options"] == ["progress-standby-001"]
+    assert result["family_checkpoint_lineage"]["resume_contract"]["resume_mode"] == "resume_from_checkpoint"
+    assert result["family_checkpoint_lineage"]["resume_contract"]["human_gate_required"] is False
+    assert result["family_human_gates"] == []
 
 
 def test_study_runtime_status_treats_submission_metadata_only_waiting_quest_as_resumable(
@@ -7110,6 +7109,176 @@ def test_study_runtime_status_auto_resumes_premature_completion_request_when_pub
             "resume the managed runtime so it fixes publication blockers instead of asking the user."
         ),
     }
+    assert "human_gate_hint" not in result["family_event_envelope"]
+    assert result["family_checkpoint_lineage"]["resume_contract"]["resume_mode"] == "resume_from_checkpoint"
+    assert result["family_checkpoint_lineage"]["resume_contract"]["human_gate_required"] is False
+    assert result["family_human_gates"] == []
+
+
+def test_ensure_study_runtime_enqueues_controller_reply_for_premature_completion_request(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    interaction_id = "decision-completion-001"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_interaction_id": interaction_id,
+                "pending_user_message_count": 0,
+            }
+        )
+        + "\n",
+    )
+    decision_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-main"
+        / "artifacts"
+        / "decisions"
+        / f"{interaction_id}.json"
+    )
+    write_text(
+        decision_path,
+        json.dumps(
+            {
+                "kind": "decision",
+                "schema_version": 1,
+                "artifact_id": interaction_id,
+                "id": interaction_id,
+                "quest_id": "001-risk",
+                "created_at": "2026-04-09T01:24:52+00:00",
+                "updated_at": "2026-04-09T01:24:52+00:00",
+                "message": "[等待决策] 批准 completion。",
+                "summary": "请求批准 completion。",
+                "interaction_id": interaction_id,
+                "expects_reply": True,
+                "reply_mode": "blocking",
+                "allow_free_text": True,
+                "reply_schema": {"decision_type": "quest_completion_approval"},
+                "guidance_vm": {"requires_user_decision": True},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "blockers": ["forbidden_manuscript_terminology"],
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "paper bundle exists, but blockers still belong to the publishability surface",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "waiting_interaction_id": interaction_id,
+                "default_reply_interaction_id": interaction_id,
+                "pending_decisions": [interaction_id],
+                "active_interaction_id": interaction_id,
+            },
+        },
+        raising=False,
+    )
+    resumed: dict[str, object] = {}
+
+    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        resumed.update(
+            {
+                "runtime_root": runtime_root,
+                "quest_id": quest_id,
+                "source": source,
+            }
+        )
+        return {
+            "ok": True,
+            "quest_id": quest_id,
+            "action": "resume",
+            "status": "active",
+            "snapshot": {
+                "quest_id": quest_id,
+                "status": "active",
+            },
+        }
+
+    monkeypatch.setattr(_managed_runtime_transport(module), "resume_quest", fake_resume_quest)
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    queued_message = queue["pending"][0]
+    updated_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"
+    assert result["quest_status"] == "active"
+    assert resumed == {
+        "runtime_root": profile.med_deepscientist_runtime_root,
+        "quest_id": "001-risk",
+        "source": "medautosci-test",
+    }
+    assert len(queue["pending"]) == 1
+    assert queued_message["source"] == "medautosci-test"
+    assert queued_message["reply_to_interaction_id"] == interaction_id
+    assert "暂不结题" in queued_message["content"]
+    assert "publication gate" in queued_message["content"]
+    assert updated_runtime_state["pending_user_message_count"] == 1
+    binding = yaml.safe_load((study_root / "runtime_binding.yaml").read_text(encoding="utf-8"))
+    assert binding["last_action"] == "resume"
+    launch_report = json.loads((study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
+    assert launch_report["decision"] == "resume"
+    assert launch_report["reason"] == "quest_completion_requested_before_publication_gate_clear"
+    assert launch_report["daemon_result"]["action"] == "resume"
 
 
 def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(monkeypatch, tmp_path: Path) -> None:
