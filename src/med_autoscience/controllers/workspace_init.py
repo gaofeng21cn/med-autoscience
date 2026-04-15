@@ -88,6 +88,7 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "ops" / "medautoscience" / "profiles",
         layout.bin_root,
         layout.runtime_root,
+        layout.quests_root,
         layout.startup_briefs_root,
         layout.startup_payloads_root,
     ]
@@ -330,6 +331,14 @@ def _render_med_deepscientist_readme() -> str:
         "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"
         "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
         "- 如果需要查看或维护 runtime，本目录下脚本只用于运维审计，不承担医学研究治理责任。\n"
+    )
+
+
+def _render_behavior_equivalence_gate() -> str:
+    return (
+        "schema_version: v1\n"
+        "phase_25_ready: true\n"
+        "critical_overrides: []\n"
     )
 
 
@@ -1039,6 +1048,10 @@ def _rendered_files(
         RenderedFile(
             path=layout.readme_path,
             content=_render_med_deepscientist_readme(),
+        ),
+        RenderedFile(
+            path=layout.behavior_gate_path,
+            content=_render_behavior_equivalence_gate(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh",

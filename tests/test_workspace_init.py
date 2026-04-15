@@ -49,6 +49,14 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "portfolio" / "research_memory" / "external_reports").is_dir()
     assert (workspace_root / "ops" / "medautoscience" / "bin").is_dir()
     assert (workspace_root / "ops" / "med-deepscientist" / "bin").is_dir()
+    assert (workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests").is_dir()
+
+    behavior_gate = workspace_root / "ops" / "med-deepscientist" / "behavior_equivalence_gate.yaml"
+    assert behavior_gate.is_file()
+    behavior_gate_text = behavior_gate.read_text(encoding="utf-8")
+    assert "schema_version: v1" in behavior_gate_text
+    assert "phase_25_ready: true" in behavior_gate_text
+    assert "critical_overrides: []" in behavior_gate_text
 
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "glioma.local.toml"
     assert profile_path.is_file()
