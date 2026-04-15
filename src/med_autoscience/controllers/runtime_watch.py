@@ -48,6 +48,7 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
         "quest_waiting_for_submission_metadata",
     }
 )
+_RUNTIME_RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
 
 
 def utc_now() -> str:
@@ -225,6 +226,37 @@ def _payload_runtime_liveness_status(payload: Mapping[str, Any]) -> str | None:
     runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
     runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
     return _non_empty_text(runtime_liveness_audit.get("status")) or _non_empty_text(runtime_audit.get("status"))
+
+
+def _payload_strict_live(payload: Mapping[str, Any]) -> bool:
+    if _payload_runtime_liveness_status(payload) != "live":
+        return False
+    runtime_liveness_audit = _mapping_value(payload, "runtime_liveness_audit")
+    runtime_audit = _mapping_value(runtime_liveness_audit, "runtime_audit")
+    if runtime_audit.get("worker_running") is not True:
+        return False
+    return _payload_active_run_id(payload) is not None
+
+
+def _should_refresh_managed_study_status_after_ensure(payload: Mapping[str, Any]) -> bool:
+    if _non_empty_text(payload.get("decision")) not in _RUNTIME_RECOVERY_DECISIONS:
+        return False
+    return not _payload_strict_live(payload)
+
+
+def _refresh_managed_study_status_after_ensure(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any]:
+    if not _should_refresh_managed_study_status_after_ensure(status_payload):
+        return status_payload
+    refreshed = study_runtime_router.study_runtime_status(
+        profile=profile,
+        study_root=study_root,
+    )
+    return _managed_study_status_payload(refreshed)
 
 
 def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | StudyRuntimeStatus) -> bool:
@@ -645,6 +677,12 @@ def run_watch_for_runtime(
     }
     managed_study_supervision: list[dict[str, Any]] = []
     for study_root, status_payload in managed_study_statuses:
+        if profile is not None:
+            status_payload = _refresh_managed_study_status_after_ensure(
+                profile=profile,
+                study_root=study_root,
+                status_payload=status_payload,
+            )
         quest_root = status_payload.get("quest_root")
         quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
         supervision_report = runtime_supervision.materialize_runtime_supervision(
