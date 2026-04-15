@@ -416,12 +416,20 @@ def _run_runtime_preflight(
                 StudyRuntimeDecision.PAUSE,
                 StudyRuntimeDecision.PAUSE_AND_COMPLETE,
             }
-            and not runtime_overlay_result.audit.all_roots_ready
         ):
-            status.set_decision(
-                StudyRuntimeDecision.PAUSE,
-                StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
-            )
+            if not runtime_overlay_result.audit.all_roots_ready:
+                runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
+                    router._prepare_runtime_overlay(
+                        profile=context.profile,
+                        quest_root=context.quest_root,
+                    )
+                )
+                status.record_runtime_overlay(runtime_overlay_result)
+            if not runtime_overlay_result.audit.all_roots_ready:
+                status.set_decision(
+                    StudyRuntimeDecision.PAUSE,
+                    StudyRuntimeReason.RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST,
+                )
 
 
 def _execute_create_runtime_decision(

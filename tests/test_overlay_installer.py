@@ -663,6 +663,69 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     assert (
         worktree_root / ".codex" / "skills" / "med-deepscientist-write" / ".med_autoscience_overlay.json"
     ).exists()
+    manifest = read_manifest(worktree_root / ".codex" / "skills" / "med-deepscientist-write")
+    assert manifest["quest_root"] == str(worktree_root)
+    assert manifest["target_root"] == str(worktree_root / ".codex" / "skills" / "med-deepscientist-write")
+
+    audit = module.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("write",),
+    )
+
+    assert audit["all_roots_ready"] is True
+    by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
+    assert by_surface["q001"]["all_targets_ready"] is True
+    assert by_surface["paper-run-1"]["all_targets_ready"] is True
+
+
+def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_paths(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    workspace_root = tmp_path / "workspace"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+
+    module.install_medical_overlay(
+        quest_root=workspace_root,
+        skill_ids=("write",),
+    )
+    module.reapply_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+
+    quest_skill_root = quest_root / ".codex" / "skills" / "med-deepscientist-write"
+    worktree_skill_root = worktree_root / ".codex" / "skills" / "med-deepscientist-write"
+    worktree_skill_root.mkdir(parents=True, exist_ok=True)
+    (worktree_skill_root / "SKILL.md").write_text(
+        (quest_skill_root / "SKILL.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (worktree_skill_root / ".med_autoscience_overlay.json").write_text(
+        (quest_skill_root / ".med_autoscience_overlay.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    result = module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        skill_ids=("write",),
+    )
+
+    assert result["materialized_surface_count"] == 2
+    manifest = read_manifest(worktree_skill_root)
+    assert manifest["quest_root"] == str(worktree_root)
+    assert manifest["target_root"] == str(worktree_skill_root)
+    assert manifest["skill_path"] == str(worktree_skill_root / "SKILL.md")
+
+    audit = module.audit_runtime_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("write",),
+    )
+
+    assert audit["all_roots_ready"] is True
+    by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
+    assert by_surface["paper-run-1"]["all_targets_ready"] is True
 
 
 def test_materialize_runtime_medical_overlay_sanitizes_forbidden_system_prompt_text(tmp_path: Path) -> None:

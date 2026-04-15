@@ -5808,6 +5808,95 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
     }
 
 
+def test_ensure_study_runtime_repairs_live_runtime_overlay_before_pausing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running"}\n')
+    calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-001",
+            "runner_live": True,
+            "bash_live": False,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "quest_session_runtime_audit",
+                "active_run_id": "run-001",
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "none",
+                "session_count": 0,
+                "live_session_count": 0,
+                "live_session_ids": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_audit_runtime_overlay",
+        lambda *, profile, quest_root: {
+            "all_roots_ready": False,
+            "surface_count": 2,
+            "surfaces": [{"surface": "quest"}, {"surface": "worktree"}],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append(("prepare_overlay", quest_root))
+        or make_runtime_overlay_result(all_roots_ready=True),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "pause_quest",
+        lambda **kwargs: pytest.fail("pause_quest should not run after overlay refresh succeeds"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    assert result["decision"] == "noop"
+    assert result["reason"] == "quest_already_running"
+    assert result["quest_status"] == "running"
+    assert result["runtime_overlay"]["audit"]["all_roots_ready"] is True
+    assert calls == [("prepare_overlay", quest_root)]
+
+
 def test_build_startup_contract_separates_runtime_owned_subset_from_controller_extensions(tmp_path: Path) -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     ownership = importlib.import_module("med_autoscience.startup_contract")
