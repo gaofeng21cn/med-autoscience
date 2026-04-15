@@ -216,6 +216,44 @@ def test_analysis_contract_rejects_ambiguous_profile_fallback_without_explicit_s
     assert result["reason_code"] == "ambiguous_study_archetype"
 
 
+def test_analysis_contract_for_study_supports_survey_trend_analysis(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_analysis_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "001-survey-trend",
+        {
+            "study_id": "001-survey-trend",
+            "study_archetype": "survey_trend_analysis",
+            "endpoint_type": "descriptive",
+            "manuscript_family": "clinical_observation",
+        },
+    )
+
+    result = module.resolve_medical_analysis_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "survey_trend_analysis"
+    assert result["endpoint_type"] == "descriptive"
+    assert result["manuscript_family"] == "clinical_observation"
+    assert result["required_analysis_packages"] == [
+        "descriptive_prevalence_estimation",
+        "cross_survey_harmonization",
+        "trend_shift_assessment",
+        "guideline_correspondence_matrix",
+        "subgroup_heterogeneity",
+    ]
+    assert result["required_reporting_items"] == [
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "harmonization_crosswalk",
+    ]
+
+
 def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
     profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
@@ -298,6 +336,49 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
             "display_kind": "table",
             "requirement_key": "table2_time_to_event_performance_summary",
             "catalog_id": "T2",
+        },
+    ]
+
+
+def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
+    profile = make_profile(tmp_path, preferred_study_archetypes=("clinical_classifier", "gray_zone_triage"))
+    study_root = write_study(
+        profile.studies_root,
+        "001-survey-trend-reporting",
+        {
+            "study_id": "001-survey-trend-reporting",
+            "study_archetype": "survey_trend_analysis",
+            "endpoint_type": "descriptive",
+            "manuscript_family": "clinical_observation",
+        },
+    )
+
+    result = module.resolve_medical_reporting_contract_for_study(
+        study_root=study_root,
+        study_payload=yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8")),
+        profile=profile,
+    )
+
+    assert result["status"] == "resolved"
+    assert result["study_archetype"] == "survey_trend_analysis"
+    assert result["endpoint_type"] == "descriptive"
+    assert result["manuscript_family"] == "clinical_observation"
+    assert result["reporting_guideline_family"] == "STROBE"
+    assert result["required_illustration_shells"] == ["cohort_flow_figure"]
+    assert result["required_table_shells"] == ["table1_baseline_characteristics"]
+    assert result["display_shell_plan"] == [
+        {
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "F1",
+        },
+        {
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
         },
     ]
 

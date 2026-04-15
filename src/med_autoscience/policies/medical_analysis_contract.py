@@ -12,8 +12,8 @@ class MedicalAnalysisContract:
     required_reporting_items: tuple[str, ...]
     forbidden_default_routes: tuple[str, ...]
 
-SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier",)
-SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event")
+SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier", "survey_trend_analysis")
+SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 
 ANALYSIS_PACKAGES: dict[tuple[str, str], tuple[str, ...]] = {
@@ -32,6 +32,13 @@ ANALYSIS_PACKAGES: dict[tuple[str, str], tuple[str, ...]] = {
         "subgroup_heterogeneity",
         "sensitivity_support",
     ),
+    ("survey_trend_analysis", "descriptive"): (
+        "descriptive_prevalence_estimation",
+        "cross_survey_harmonization",
+        "trend_shift_assessment",
+        "guideline_correspondence_matrix",
+        "subgroup_heterogeneity",
+    ),
 }
 REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
     ("clinical_classifier", "binary"): (
@@ -44,10 +51,19 @@ REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
         "horizon_definition",
         "model_specification",
     ),
+    ("survey_trend_analysis", "descriptive"): (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "harmonization_crosswalk",
+    ),
 }
 FORBIDDEN_DEFAULT_ROUTES: dict[tuple[str, str], tuple[str, ...]] = {
     ("clinical_classifier", "binary"): ("figure_by_figure_results_narration",),
     ("clinical_classifier", "time_to_event"): ("figure_by_figure_results_narration",),
+    ("survey_trend_analysis", "descriptive"): (
+        "predictive_model_framing",
+        "figure_by_figure_results_narration",
+    ),
 }
 
 

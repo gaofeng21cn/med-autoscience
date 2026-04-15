@@ -50,3 +50,14 @@ def test_render_study_archetype_block_surfaces_paper_package_expectations() -> N
     assert "cluster stability or reproducibility assessment" in block
     assert "transportability / recalibration / model-updating analysis" in block
     assert "functional / pathway / regulator-level interpretation" in block
+
+
+def test_resolve_explicit_survey_trend_analysis_archetype() -> None:
+    module = importlib.import_module("med_autoscience.policies.study_archetypes")
+
+    archetypes = module.resolve_archetypes(("survey_trend_analysis",))
+
+    assert [item.archetype_id for item in archetypes] == ["survey_trend_analysis"]
+    assert archetypes[0].title == "Survey trend / guideline correspondence"
+    assert "trend comparison across timepoints" in archetypes[0].expected_paper_package
+    assert "practice or preference drift" in archetypes[0].public_data_roles

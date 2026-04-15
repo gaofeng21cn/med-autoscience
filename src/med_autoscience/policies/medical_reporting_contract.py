@@ -30,8 +30,8 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
     "clinical_observation": "STROBE",
     "randomized_trial": "CONSORT",
 }
-SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier",)
-SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event")
+SUPPORTED_STUDY_ARCHETYPES = ("clinical_classifier", "survey_trend_analysis")
+SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 _LEGACY_REQUIREMENT_KEY_ALIASES: dict[str, tuple[str, ...]] = {
     "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),

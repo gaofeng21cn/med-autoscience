@@ -155,6 +155,30 @@ _ARCHETYPES = {
             "independent contextual support for clinically defined groups",
         ),
     ),
+    "survey_trend_analysis": StudyArchetype(
+        archetype_id="survey_trend_analysis",
+        title="Survey trend / guideline correspondence",
+        when_to_prefer=(
+            "the primary asset is one or more clinician or patient surveys rather than a labeled prediction endpoint",
+            "the paper value comes from trend comparison across timepoints, respondent groups, or stakeholder perspectives",
+            "the manuscript needs to map observed uptake or preference patterns onto guideline-aligned treatment axes without drifting into causal effectiveness claims",
+        ),
+        expected_paper_package=(
+            "cross-timepoint prevalence / uptake / preference trend tables",
+            "explicit survey harmonization and denominator contract",
+            "trend comparison across timepoints",
+            "subgroup comparison across clinically legible respondent strata",
+            "guideline-correspondence matrix on mechanism or family axes",
+            "practice or preference drift interpretation with access, reimbursement, and safety context",
+            "transparent separation between current-use, future-preference, and clinician-adoption surfaces",
+        ),
+        public_data_roles=(
+            "guideline or policy context for interpretation",
+            "practice or preference drift",
+            "external survey triangulation",
+            "market-access or reimbursement context that explains observed adoption gaps",
+        ),
+    ),
 }
 
 

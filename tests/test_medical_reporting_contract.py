@@ -177,3 +177,37 @@ def test_normalize_legacy_requirement_keys_rewrites_time_to_event_aliases() -> N
         "time_to_event_decision_curve",
     ]
     assert payload["display_shell_plan"][0]["requirement_key"] == "time_to_event_risk_group_summary"
+
+
+def test_resolve_medical_reporting_contract_for_survey_trend_observation() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+
+    contract = module.resolve_medical_reporting_contract(
+        study_archetype="survey_trend_analysis",
+        manuscript_family="clinical_observation",
+        endpoint_type="descriptive",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.reporting_guideline_family == "STROBE"
+    assert contract.cohort_flow_required is True
+    assert contract.baseline_characteristics_required is True
+    assert contract.table_shell_requirements == ("table1_baseline_characteristics",)
+    assert contract.figure_shell_requirements == ("cohort_flow_figure",)
+    assert contract.required_illustration_shells == ("cohort_flow_figure",)
+    assert contract.required_table_shells == ("table1_baseline_characteristics",)
+    assert contract.required_evidence_templates == ()
+    assert contract.display_shell_plan == (
+        module.DisplayShellPlanItem(
+            display_id="cohort_flow",
+            display_kind="figure",
+            requirement_key="cohort_flow_figure",
+            catalog_id="F1",
+        ),
+        module.DisplayShellPlanItem(
+            display_id="baseline_characteristics",
+            display_kind="table",
+            requirement_key="table1_baseline_characteristics",
+            catalog_id="T1",
+        ),
+    )
