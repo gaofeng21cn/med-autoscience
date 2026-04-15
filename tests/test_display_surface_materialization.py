@@ -128,6 +128,18 @@ def write_default_publication_display_contracts(paper_root: Path) -> None:
     )
 
 
+def restrict_display_registry_to_display_ids(paper_root: Path, *display_ids: str) -> None:
+    registry_path = paper_root / "display_registry.json"
+    registry_payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    allowed_display_ids = {str(value).strip() for value in display_ids if str(value).strip()}
+    registry_payload["displays"] = [
+        item
+        for item in (registry_payload.get("displays") or [])
+        if str(item.get("display_id") or "").strip() in allowed_display_ids
+    ]
+    dump_json(registry_path, registry_payload)
+
+
 def build_display_surface_workspace(
     tmp_path: Path,
     *,
@@ -6018,6 +6030,7 @@ def test_materialize_display_surface_omits_figure_title_for_time_to_event_discri
 def test_materialize_display_surface_omits_figure_title_for_shap_summary_by_default(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    restrict_display_registry_to_display_ids(paper_root, "Figure13")
 
     result = module.materialize_display_surface(paper_root=paper_root)
 
@@ -6395,6 +6408,7 @@ def test_materialize_display_surface_multicenter_overview_adds_panel_labels_and_
 def test_materialize_display_surface_prunes_unreferenced_generated_outputs(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    restrict_display_registry_to_display_ids(paper_root, "Figure15")
 
     stale_paths = [
         paper_root / "figures" / "generated" / "F15_kaplan_meier_grouped.png",
@@ -7457,6 +7471,7 @@ def test_load_evidence_display_payload_rejects_time_to_event_calibration_when_ca
 def test_materialize_display_surface_preserves_structured_time_horizon_metrics_for_b_templates(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    restrict_display_registry_to_display_ids(paper_root, "Figure16", "Figure18")
 
     grouped_payload = json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8"))
     decision_display = next(item for item in grouped_payload["displays"] if item["display_id"] == "Figure16")

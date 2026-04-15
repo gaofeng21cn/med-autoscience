@@ -129,7 +129,7 @@ Compatible target routes remain documented as:
 - `User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
 
 The lightweight repo-tracked shell now includes `workspace-cockpit`, `submit-study-task`, `launch-study`, `product-preflight`, `product-start`, `product-frontdesk`, `product-entry-manifest`, and `build-product-entry`.
-These surfaces improve launch, task intake, and progress visibility, but they do not mean a mature standalone medical frontend has landed.
+These surfaces improve launch, task intake, and progress visibility, and the manifest/frontdesk now also carry explicit guardrail-recovery guidance plus a structured `Phase 5` platform target. They still do not mean a mature standalone medical frontend has landed.
 
 The medical display line remains intentionally separate from the runtime mainline, so publication-figure work does not rewrite research authority or gateway truth.
 </details>
