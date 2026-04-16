@@ -132,6 +132,7 @@ class StudyRuntimeQuestStatus(StrEnum):
     STOPPED = "stopped"
     WAITING_FOR_USER = "waiting_for_user"
     RUNNING = "running"
+    RETRYING = "retrying"
     ACTIVE = "active"
     COMPLETED = "completed"
 
@@ -163,6 +164,7 @@ class StudyRuntimeAuditStatus(StrEnum):
 
 _LIVE_QUEST_STATUSES = {
     StudyRuntimeQuestStatus.RUNNING,
+    StudyRuntimeQuestStatus.RETRYING,
     StudyRuntimeQuestStatus.ACTIVE,
 }
 _RESUMABLE_QUEST_STATUSES = {
