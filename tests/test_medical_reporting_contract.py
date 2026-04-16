@@ -103,42 +103,49 @@ def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells
             display_kind="figure",
             requirement_key="cohort_flow_figure",
             catalog_id="F1",
+            story_role="study_setup",
         ),
         module.DisplayShellPlanItem(
             display_id="discrimination_calibration",
             display_kind="figure",
             requirement_key="time_to_event_discrimination_calibration_panel",
             catalog_id="F2",
+            story_role="result_evidence",
         ),
         module.DisplayShellPlanItem(
             display_id="km_risk_stratification",
             display_kind="figure",
             requirement_key="time_to_event_risk_group_summary",
             catalog_id="F3",
+            story_role="result_evidence",
         ),
         module.DisplayShellPlanItem(
             display_id="decision_curve",
             display_kind="figure",
             requirement_key="time_to_event_decision_curve",
             catalog_id="F4",
+            story_role="result_evidence",
         ),
         module.DisplayShellPlanItem(
             display_id="multicenter_generalizability",
             display_kind="figure",
             requirement_key="multicenter_generalizability_overview",
             catalog_id="F5",
+            story_role="result_evidence",
         ),
         module.DisplayShellPlanItem(
             display_id="baseline_characteristics",
             display_kind="table",
             requirement_key="table1_baseline_characteristics",
             catalog_id="T1",
+            story_role="study_setup",
         ),
         module.DisplayShellPlanItem(
             display_id="time_to_event_performance_summary",
             display_kind="table",
             requirement_key="table2_time_to_event_performance_summary",
             catalog_id="T2",
+            story_role="result_evidence",
         ),
     )
 
@@ -179,6 +186,23 @@ def test_normalize_legacy_requirement_keys_rewrites_time_to_event_aliases() -> N
     assert payload["display_shell_plan"][0]["requirement_key"] == "time_to_event_risk_group_summary"
 
 
+def test_display_story_role_normalizes_namespaced_requirement_keys() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+
+    assert (
+        module.display_story_role_for_requirement_key(
+            "fenggaolab.org.medical-display-core::cohort_flow_figure"
+        )
+        == "study_setup"
+    )
+    assert (
+        module.display_story_role_for_requirement_key(
+            "fenggaolab.org.medical-display-core::table1_baseline_characteristics"
+        )
+        == "study_setup"
+    )
+
+
 def test_resolve_medical_reporting_contract_for_survey_trend_observation() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
 
@@ -203,11 +227,13 @@ def test_resolve_medical_reporting_contract_for_survey_trend_observation() -> No
             display_kind="figure",
             requirement_key="cohort_flow_figure",
             catalog_id="F1",
+            story_role="study_setup",
         ),
         module.DisplayShellPlanItem(
             display_id="baseline_characteristics",
             display_kind="table",
             requirement_key="table1_baseline_characteristics",
             catalog_id="T1",
+            story_role="study_setup",
         ),
     )

@@ -1505,6 +1505,73 @@ def test_build_report_allows_supplementary_cohort_flow_without_results_narrative
     )
 
 
+def test_build_report_blocks_when_results_sections_are_supported_only_by_setup_displays(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = _paper_root_from_quest(quest_root)
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    figure_catalog_payload = json.loads(figure_catalog_path.read_text(encoding="utf-8"))
+    for figure in figure_catalog_payload.get("figures", []):
+        figure["paper_role"] = "supplementary"
+    figure_catalog_payload.setdefault("figures", []).append(
+        {
+            "figure_id": "F1",
+            "template_id": "cohort_flow_figure",
+            "renderer_family": "python",
+            "input_schema_id": "cohort_flow_shell_inputs_v1",
+            "qc_profile": "publication_illustration_flow",
+            "qc_result": {
+                "status": "pass",
+                "checked_at": "2026-04-05T00:00:00+00:00",
+                "engine_id": "display_layout_qc_v1",
+                "qc_profile": "publication_illustration_flow",
+                "layout_sidecar_path": "paper/figures/generated/F1.layout.json",
+                "issues": [],
+            },
+            "title": "Cohort flow",
+            "caption": "Cohort flow for the descriptive survey route.",
+            "paper_role": "main_text",
+            "export_paths": ["paper/figures/F1.png", "paper/figures/F1.svg"],
+        }
+    )
+    dump_json(figure_catalog_path, figure_catalog_payload)
+    dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "status": "resolved",
+            "display_shell_plan": [
+                {
+                    "display_id": "cohort_flow",
+                    "display_kind": "figure",
+                    "requirement_key": "cohort_flow_figure",
+                    "catalog_id": "F1",
+                },
+                {
+                    "display_id": "baseline_characteristics",
+                    "display_kind": "table",
+                    "requirement_key": "table1_baseline_characteristics",
+                    "catalog_id": "T1",
+                },
+            ],
+        },
+    )
+    narrative_path = paper_root / "results_narrative_map.json"
+    narrative_payload = json.loads(narrative_path.read_text(encoding="utf-8"))
+    for section in narrative_payload["sections"]:
+        section["supporting_display_items"] = ["F1", "T1"]
+    narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "results_display_surface_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "results_narrative_map_setup_only_display_support" for hit in report["top_hits"])
+
+
 def test_build_report_blocks_when_required_display_catalog_item_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

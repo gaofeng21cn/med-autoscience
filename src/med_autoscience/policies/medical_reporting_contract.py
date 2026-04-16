@@ -9,6 +9,7 @@ class DisplayShellPlanItem:
     display_kind: str
     requirement_key: str
     catalog_id: str
+    story_role: str
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,12 @@ SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 _LEGACY_REQUIREMENT_KEY_ALIASES: dict[str, tuple[str, ...]] = {
     "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),
 }
+_STUDY_SETUP_REQUIREMENT_KEYS = frozenset(
+    {
+        "cohort_flow_figure",
+        "table1_baseline_characteristics",
+    }
+)
 _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "cohort_flow_figure": ("cohort_flow", "figure", "F1"),
     "table1_baseline_characteristics": ("baseline_characteristics", "table", "T1"),
@@ -49,6 +56,8 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
 
 def normalize_requirement_key(requirement_key: object) -> str:
     normalized = str(requirement_key or "").strip()
+    if "::" in normalized:
+        normalized = normalized.rsplit("::", 1)[-1]
     for canonical_key, aliases in _LEGACY_REQUIREMENT_KEY_ALIASES.items():
         if normalized in aliases:
             return canonical_key
@@ -82,6 +91,13 @@ def normalize_legacy_requirement_keys(payload: object) -> bool:
     return updated
 
 
+def display_story_role_for_requirement_key(requirement_key: object) -> str:
+    normalized = normalize_requirement_key(requirement_key)
+    if normalized in _STUDY_SETUP_REQUIREMENT_KEYS:
+        return "study_setup"
+    return "result_evidence"
+
+
 def _build_display_shell_plan(
     *,
     figure_shell_requirements: tuple[str, ...],
@@ -99,6 +115,7 @@ def _build_display_shell_plan(
                 display_kind=display_kind,
                 requirement_key=requirement_key,
                 catalog_id=catalog_id,
+                story_role=display_story_role_for_requirement_key(requirement_key),
             )
         )
     return tuple(items)

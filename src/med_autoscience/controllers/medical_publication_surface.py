@@ -13,6 +13,7 @@ import yaml
 from med_autoscience import display_registry
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
+from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_protocol import (
     paper_artifacts,
@@ -714,6 +715,30 @@ def load_required_display_catalog_ids(path: Path) -> tuple[set[str], set[str]]:
     return figure_ids, table_ids
 
 
+def load_display_catalog_story_roles(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    payload = load_json(path, default={}) or {}
+    if not isinstance(payload, dict):
+        raise ValueError(f"medical_reporting_contract at {path} must be a JSON object")
+    story_roles: dict[str, str] = {}
+    display_shell_plan = payload.get("display_shell_plan")
+    if not isinstance(display_shell_plan, list):
+        return story_roles
+    for item in display_shell_plan:
+        if not isinstance(item, dict):
+            continue
+        catalog_id = str(item.get("catalog_id") or "").strip()
+        if not catalog_id:
+            continue
+        story_role = str(item.get("story_role") or "").strip() or display_story_role_for_requirement_key(
+            item.get("requirement_key")
+        )
+        if story_role:
+            story_roles[catalog_id] = story_role
+    return story_roles
+
+
 def figure_ids_from_catalog(path: Path, *, include_all_roles: bool = False) -> set[str]:
     payload = load_json(path, default={}) or {}
     figure_ids: set[str] = set()
@@ -796,6 +821,55 @@ def inspect_results_narrative_figure_coverage(
                 "pattern_id": "results_narrative_map_missing_main_figure_reference",
                 "phrase": figure_id,
                 "excerpt": f"Main-text figure `{figure_id}` is not cited by any results section in the results narrative map.",
+            }
+        )
+    return hits
+
+
+def inspect_results_display_surface_coverage(
+    *,
+    path: Path,
+    payload: object,
+    display_story_roles: dict[str, str],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    sections_with_display_support: list[tuple[int, str, list[str], bool]] = []
+    for index, section in enumerate(payload.get("sections", []) or []):
+        if not isinstance(section, dict):
+            continue
+        section_id = str(section.get("section_id") or section.get("section_title") or index).strip() or str(index)
+        supporting_items = [
+            str(item or "").strip()
+            for item in (section.get("supporting_display_items") or [])
+            if str(item or "").strip()
+        ]
+        known_items = [item for item in supporting_items if item in display_story_roles]
+        if not known_items:
+            continue
+        has_result_facing_display = any(display_story_roles.get(item) != "study_setup" for item in known_items)
+        sections_with_display_support.append((index, section_id, known_items, has_result_facing_display))
+
+    first_result_facing_index = next(
+        (index for index, _, _, has_result_facing_display in sections_with_display_support if has_result_facing_display),
+        None,
+    )
+    hits: list[dict[str, Any]] = []
+    for index, section_id, known_items, has_result_facing_display in sections_with_display_support:
+        if has_result_facing_display:
+            continue
+        if first_result_facing_index is not None and index < first_result_facing_index:
+            continue
+        hits.append(
+            {
+                "path": str(path),
+                "location": f"sections[{index}].supporting_display_items",
+                "pattern_id": "results_narrative_map_setup_only_display_support",
+                "phrase": section_id,
+                "excerpt": (
+                    f"Results section `{section_id}` is still supported only by study-setup displays "
+                    f"({', '.join(known_items)}). Add at least one result-facing figure or table for the section's main finding."
+                ),
             }
         )
     return hits
@@ -1416,6 +1490,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     all_figure_ids = figure_ids_from_catalog(state.figure_catalog_path, include_all_roles=True)
     table_ids = table_ids_from_catalog(state.table_catalog_path)
     reporting_contract_path = state.paper_root / "medical_reporting_contract.json"
+    display_story_roles = load_display_catalog_story_roles(reporting_contract_path)
     required_display_catalog_coverage_valid, required_display_catalog_hits = inspect_required_display_catalog_coverage(
         reporting_contract_path=reporting_contract_path,
         figure_ids=all_figure_ids,
@@ -1481,6 +1556,11 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     if results_narrative_figure_coverage_hits:
         results_narrative_valid = False
         results_narrative_hits.extend(results_narrative_figure_coverage_hits)
+    results_display_surface_hits = inspect_results_display_surface_coverage(
+        path=state.results_narrative_map_path,
+        payload=results_narrative_payload,
+        display_story_roles=display_story_roles,
+    )
     figure_semantics_payload = load_json(state.figure_semantics_manifest_path, default=None)
     figure_catalog_payload = load_json(state.figure_catalog_path, default=None)
     figure_semantics_coverage_hits = inspect_figure_semantics_coverage(
@@ -1586,6 +1666,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
     hits.extend(results_narrative_hits)
+    hits.extend(results_display_surface_hits)
     hits.extend(figure_semantics_hits)
     hits.extend(claim_evidence_map_hits)
     hits.extend(derived_analysis_hits)
@@ -1620,6 +1701,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
+    if results_display_surface_hits:
+        blockers.append("results_display_surface_incomplete")
     if introduction_structure_hits:
         blockers.append("introduction_structure_missing_or_incomplete")
     if methods_section_structure_hits:
@@ -1688,6 +1771,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "results_narrative_map_path": str(state.results_narrative_map_path),
         "results_narrative_map_present": state.results_narrative_map_path.exists(),
         "results_narrative_map_valid": results_narrative_valid,
+        "results_display_surface_valid": not results_display_surface_hits,
         "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
         "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
         "figure_semantics_manifest_valid": figure_semantics_valid,
