@@ -221,6 +221,31 @@ def test_resolve_medical_reporting_contract_for_survey_trend_observation() -> No
     assert contract.required_illustration_shells == ("cohort_flow_figure",)
     assert contract.required_table_shells == ("table1_baseline_characteristics",)
     assert contract.required_evidence_templates == ()
+    assert contract.display_ambition == "strong"
+    assert contract.minimum_main_text_figures == 4
+    assert contract.recommended_main_text_figures == (
+        module.DisplayBlueprintItem(
+            catalog_id="F2",
+            display_kind="figure",
+            story_role="result_primary",
+            narrative_purpose="historical_to_current_patient_migration",
+            tier="core",
+        ),
+        module.DisplayBlueprintItem(
+            catalog_id="F3",
+            display_kind="figure",
+            story_role="result_alignment",
+            narrative_purpose="clinician_surface_and_guideline_alignment",
+            tier="core",
+        ),
+        module.DisplayBlueprintItem(
+            catalog_id="F4",
+            display_kind="figure",
+            story_role="result_interpretive",
+            narrative_purpose="divergence_decomposition_or_robustness",
+            tier="core",
+        ),
+    )
     assert contract.display_shell_plan == (
         module.DisplayShellPlanItem(
             display_id="cohort_flow",

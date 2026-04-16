@@ -13,6 +13,15 @@ class DisplayShellPlanItem:
 
 
 @dataclass(frozen=True)
+class DisplayBlueprintItem:
+    catalog_id: str
+    display_kind: str
+    story_role: str
+    narrative_purpose: str
+    tier: str
+
+
+@dataclass(frozen=True)
 class MedicalReportingContract:
     reporting_guideline_family: str
     cohort_flow_required: bool
@@ -24,6 +33,9 @@ class MedicalReportingContract:
     required_evidence_templates: tuple[str, ...]
     display_registry_required: bool
     display_shell_plan: tuple[DisplayShellPlanItem, ...]
+    display_ambition: str
+    minimum_main_text_figures: int
+    recommended_main_text_figures: tuple[DisplayBlueprintItem, ...]
 
 
 SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
@@ -153,6 +165,9 @@ def resolve_medical_reporting_contract(
 
     table_shell_requirements = ("table1_baseline_characteristics",)
     figure_shell_requirements = ("cohort_flow_figure",)
+    display_ambition = "baseline"
+    minimum_main_text_figures = 1
+    recommended_main_text_figures: tuple[DisplayBlueprintItem, ...] = ()
     if (
         study_archetype == "clinical_classifier"
         and manuscript_family == "prediction_model"
@@ -169,6 +184,39 @@ def resolve_medical_reporting_contract(
             "time_to_event_risk_group_summary",
             "time_to_event_decision_curve",
             "multicenter_generalizability_overview",
+        )
+        display_ambition = "strong"
+        minimum_main_text_figures = 4
+    elif (
+        study_archetype == "survey_trend_analysis"
+        and manuscript_family == "clinical_observation"
+        and endpoint_type == "descriptive"
+        and submission_target_family == "general_medical_journal"
+    ):
+        display_ambition = "strong"
+        minimum_main_text_figures = 4
+        recommended_main_text_figures = (
+            DisplayBlueprintItem(
+                catalog_id="F2",
+                display_kind="figure",
+                story_role="result_primary",
+                narrative_purpose="historical_to_current_patient_migration",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F3",
+                display_kind="figure",
+                story_role="result_alignment",
+                narrative_purpose="clinician_surface_and_guideline_alignment",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F4",
+                display_kind="figure",
+                story_role="result_interpretive",
+                narrative_purpose="divergence_decomposition_or_robustness",
+                tier="core",
+            ),
         )
 
     return MedicalReportingContract(
@@ -189,4 +237,7 @@ def resolve_medical_reporting_contract(
             figure_shell_requirements=figure_shell_requirements,
             table_shell_requirements=table_shell_requirements,
         ),
+        display_ambition=display_ambition,
+        minimum_main_text_figures=minimum_main_text_figures,
+        recommended_main_text_figures=recommended_main_text_figures,
     )

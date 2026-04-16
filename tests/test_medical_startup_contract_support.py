@@ -300,42 +300,49 @@ def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_pat
             "display_kind": "figure",
             "requirement_key": "cohort_flow_figure",
             "catalog_id": "F1",
+            "story_role": "study_setup",
         },
         {
             "display_id": "discrimination_calibration",
             "display_kind": "figure",
             "requirement_key": "time_to_event_discrimination_calibration_panel",
             "catalog_id": "F2",
+            "story_role": "result_evidence",
         },
         {
             "display_id": "km_risk_stratification",
             "display_kind": "figure",
             "requirement_key": "time_to_event_risk_group_summary",
             "catalog_id": "F3",
+            "story_role": "result_evidence",
         },
         {
             "display_id": "decision_curve",
             "display_kind": "figure",
             "requirement_key": "time_to_event_decision_curve",
             "catalog_id": "F4",
+            "story_role": "result_evidence",
         },
         {
             "display_id": "multicenter_generalizability",
             "display_kind": "figure",
             "requirement_key": "multicenter_generalizability_overview",
             "catalog_id": "F5",
+            "story_role": "result_evidence",
         },
         {
             "display_id": "baseline_characteristics",
             "display_kind": "table",
             "requirement_key": "table1_baseline_characteristics",
             "catalog_id": "T1",
+            "story_role": "study_setup",
         },
         {
             "display_id": "time_to_event_performance_summary",
             "display_kind": "table",
             "requirement_key": "table2_time_to_event_performance_summary",
             "catalog_id": "T2",
+            "story_role": "result_evidence",
         },
     ]
 
@@ -367,18 +374,45 @@ def test_reporting_contract_supports_survey_trend_analysis(tmp_path: Path) -> No
     assert result["reporting_guideline_family"] == "STROBE"
     assert result["required_illustration_shells"] == ["cohort_flow_figure"]
     assert result["required_table_shells"] == ["table1_baseline_characteristics"]
+    assert result["display_ambition"] == "strong"
+    assert result["minimum_main_text_figures"] == 4
+    assert result["recommended_main_text_figures"] == [
+        {
+            "catalog_id": "F2",
+            "display_kind": "figure",
+            "story_role": "result_primary",
+            "narrative_purpose": "historical_to_current_patient_migration",
+            "tier": "core",
+        },
+        {
+            "catalog_id": "F3",
+            "display_kind": "figure",
+            "story_role": "result_alignment",
+            "narrative_purpose": "clinician_surface_and_guideline_alignment",
+            "tier": "core",
+        },
+        {
+            "catalog_id": "F4",
+            "display_kind": "figure",
+            "story_role": "result_interpretive",
+            "narrative_purpose": "divergence_decomposition_or_robustness",
+            "tier": "core",
+        },
+    ]
     assert result["display_shell_plan"] == [
         {
             "display_id": "cohort_flow",
             "display_kind": "figure",
             "requirement_key": "cohort_flow_figure",
             "catalog_id": "F1",
+            "story_role": "study_setup",
         },
         {
             "display_id": "baseline_characteristics",
             "display_kind": "table",
             "requirement_key": "table1_baseline_characteristics",
             "catalog_id": "T1",
+            "story_role": "study_setup",
         },
     ]
 

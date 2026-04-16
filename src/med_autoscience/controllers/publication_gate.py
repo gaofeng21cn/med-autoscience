@@ -540,6 +540,13 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     paper_line_recommended_action = _paper_line_recommended_action(state.paper_line_state)
     paper_line_blocking_reasons = _paper_line_blocking_reasons(state.paper_line_state)
     active_figure_count = active_manuscript_figure_count(state.paper_root)
+    prebundle_display_advisories: list[str] = []
+    prebundle_display_floor_pending = False
+    prebundle_display_floor_gap: int | None = None
+    if active_figure_count is not None and active_figure_count < _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES:
+        prebundle_display_floor_pending = True
+        prebundle_display_floor_gap = _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES - active_figure_count
+        prebundle_display_advisories.append("submission_grade_active_figure_floor_unmet")
     draft_handoff_delivery_required = bool(
         submission_checklist_handoff_ready
         and state.submission_minimal_manifest is None
@@ -691,6 +698,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "paper_line_blocking_reasons": paper_line_blocking_reasons,
         "active_manuscript_figure_count": active_figure_count,
         "submission_grade_min_active_figures": _DEFAULT_SUBMISSION_GRADE_MIN_ACTIVE_FIGURES,
+        "prebundle_display_floor_pending": prebundle_display_floor_pending,
+        "prebundle_display_floor_gap": prebundle_display_floor_gap,
+        "prebundle_display_advisories": prebundle_display_advisories,
         "medical_publication_surface_status": medical_publication_surface_status or None,
         "submission_surface_qc_failures": list(state.submission_surface_qc_failures),
         "archived_submission_surface_roots": list(state.archived_submission_surface_roots),

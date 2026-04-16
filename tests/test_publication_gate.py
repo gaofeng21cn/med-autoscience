@@ -556,6 +556,32 @@ def test_build_gate_report_blocks_bundle_when_active_figure_floor_is_unmet(tmp_p
     assert report["current_required_action"] == "return_to_publishability_gate"
 
 
+def test_build_gate_report_surfaces_prebundle_figure_floor_pending_from_main_result(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=True,
+        runtime_status="running",
+        figure_catalog={
+            "schema_version": "2.1.0",
+            "figures": [
+                {"figure_id": "F1", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+            ],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "main_result"
+    assert report["allow_write"] is False
+    assert report["active_manuscript_figure_count"] == 1
+    assert report["prebundle_display_floor_pending"] is True
+    assert report["prebundle_display_floor_gap"] == 3
+    assert report["prebundle_display_advisories"] == ["submission_grade_active_figure_floor_unmet"]
+
+
 def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_manifest_is_projected(
     tmp_path: Path,
 ) -> None:

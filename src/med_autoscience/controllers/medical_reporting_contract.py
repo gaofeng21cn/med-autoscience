@@ -149,5 +149,8 @@ def resolve_medical_reporting_contract_for_study(
             "required_evidence_templates": list(contract.required_evidence_templates),
             "display_registry_required": contract.display_registry_required,
             "display_shell_plan": [asdict(item) for item in contract.display_shell_plan],
+            "display_ambition": contract.display_ambition,
+            "minimum_main_text_figures": contract.minimum_main_text_figures,
+            "recommended_main_text_figures": [asdict(item) for item in contract.recommended_main_text_figures],
         },
     )
