@@ -51,8 +51,14 @@
 
 其中：
 
-- `D/E/G / larger atlas-spatial-trajectory multi-view follow-on beyond the current storyboard lower bound` 已在本轮 reroute 后转入 [medical_display_active_board.md](./medical_display_active_board.md) 作为当前 active round，不再留在 backlog 候选池。
+- `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在本轮 reroute 后转入 [medical_display_active_board.md](./medical_display_active_board.md) 作为当前 active round，不再留在 backlog 候选池。
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
+- `D/E/G / PHATE or richer manifold overlay follow-on` 本轮不再作为当前 active 候选保留：
+  - 原因：单独扩到替代 projection / manifold overlay 会把当前 round 收缩成偏 `D` 的 geometry 变体，更容易滑回 projection gallery，而不是 `D/E/G` 联动的 manuscript-facing composite contract。
+- `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
+  - 原因：当前 atlas / spatial / trajectory family 的真 gap 仍是 density / coverage semantics 尚未合同化；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
+- `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
+  - 原因：如果先扩到更宽的 matrix / heatmap lane，容易脱离 atlas / spatial / trajectory 的 joint paper question，并和现有 `celltype_signature_heatmap` / storyboard lower bound 产生模糊重叠。
 - `C/H / coefficient-path follow-on` 本轮不再作为当前 active 候选保留：
   - 原因：它更接近模型审计或自由 path scene，和现有 `model_complexity_audit_panel` 的 coefficient-stability 语义部分重叠，也更容易越过当前 active board 的 bounded 边界。
 - `C/H / broader heterogeneity summary follow-on` 本轮也不作为当前 active 候选保留：
