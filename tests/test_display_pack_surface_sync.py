@@ -173,7 +173,7 @@ def test_cli_sync_display_pack_surface_emits_result_json(tmp_path: Path, capsys)
     cli_module = importlib.import_module("med_autoscience.cli")
     paper_root = build_sync_workspace(tmp_path)
 
-    exit_code = cli_module.main(["sync-display-pack-surface", "--paper-root", str(paper_root)])
+    exit_code = cli_module.main(["publication", "sync-display-pack", "--paper-root", str(paper_root)])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
