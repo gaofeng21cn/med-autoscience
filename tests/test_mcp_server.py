@@ -36,50 +36,37 @@ def test_mcp_server_lists_read_only_tools() -> None:
     names = [tool["name"] for tool in tools]
 
     assert names == [
-        "doctor_report",
-        "show_profile",
-        "overlay_status",
-        "runtime_watch",
-        "data_assets_status",
-        "portfolio_memory_status",
-        "init_portfolio_memory",
-        "workspace_literature_status",
-        "init_workspace_literature",
-        "external_research_status",
-        "prepare_external_research",
-        "startup_data_readiness",
-        "med_deepscientist_upgrade_check",
-        "study_runtime_status",
+        "doctor_audit",
+        "workspace_readiness",
+        "research_assets",
+        "study_runtime",
         "study_progress",
-        "ensure_study_runtime",
-        "init_workspace",
-        "medical_literature_audit",
-        "medical_reporting_audit",
+        "publication_status",
+        "product_entry",
     ]
 
 
 def test_mcp_server_exposes_medical_reporting_audit_tool() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     tools = module.build_tool_manifest()
-    tool_names = {tool["name"] for tool in tools}
-    assert "medical_reporting_audit" in tool_names
-    assert "medical_literature_audit" in tool_names
+    descriptions = {tool["name"]: tool["description"] for tool in tools}
+    assert "publication_status" in descriptions
+    assert "medical_reporting_audit" in descriptions["publication_status"]
+    assert "medical_literature_audit" in descriptions["publication_status"]
 
 
 def test_mcp_server_documents_live_runtime_guard_on_study_runtime_tools() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     descriptions = {tool["name"]: tool["description"] for tool in module.build_tool_manifest()}
 
-    status_description = descriptions["study_runtime_status"]
-    ensure_description = descriptions["ensure_study_runtime"]
+    description = descriptions["study_runtime"]
 
-    for description in (status_description, ensure_description):
-        assert "autonomous_runtime_notice.required = true" in description
-        assert "execution_owner_guard.supervisor_only = true" in description
-        assert "notify the user" in description
-        assert "supervisor-only" in description
-        assert "bundle_tasks_downstream_only = true" in description
-        assert "bundle/build/proofing" in description
+    assert "autonomous_runtime_notice.required = true" in description
+    assert "execution_owner_guard.supervisor_only = true" in description
+    assert "notify the user" in description
+    assert "supervisor-only" in description
+    assert "bundle_tasks_downstream_only = true" in description
+    assert "bundle/build/proofing" in description
 
 
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
@@ -87,7 +74,7 @@ def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
 
-    result = module.call_tool("doctor_report", {"profile_path": str(profile_path)})
+    result = module.call_tool("doctor_audit", {"mode": "report", "profile_path": str(profile_path)})
 
     assert result["isError"] is False
     assert result["content"]
@@ -113,8 +100,9 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     )
 
     result = module.call_tool(
-        "ensure_study_runtime",
+        "study_runtime",
         {
+            "mode": "ensure_study_runtime",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
             "entry_mode": "full_research",
@@ -159,8 +147,9 @@ def test_mcp_server_can_serialize_typed_ensure_study_runtime_result(monkeypatch,
     )
 
     result = module.call_tool(
-        "ensure_study_runtime",
+        "study_runtime",
         {
+            "mode": "ensure_study_runtime",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -201,8 +190,9 @@ def test_mcp_server_can_serialize_typed_study_runtime_status_result(monkeypatch,
     )
 
     result = module.call_tool(
-        "study_runtime_status",
+        "study_runtime",
         {
+            "mode": "study_runtime_status",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -250,8 +240,9 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
     )
 
     result = module.call_tool(
-        "study_runtime_status",
+        "study_runtime",
         {
+            "mode": "study_runtime_status",
             "profile_path": str(profile_path),
             "study_id": "001-risk",
         },
@@ -308,8 +299,9 @@ def test_mcp_server_can_call_portfolio_memory_status_tool(monkeypatch) -> None:
     monkeypatch.setattr(module.portfolio_memory, "portfolio_memory_status", fake_status)
 
     result = module.call_tool(
-        "portfolio_memory_status",
+        "workspace_readiness",
         {
+            "mode": "portfolio_memory_status",
             "workspace_root": "/tmp/medautosci-demo",
         },
     )
@@ -330,8 +322,9 @@ def test_mcp_server_can_call_workspace_literature_status_tool(monkeypatch) -> No
     monkeypatch.setattr(module.workspace_literature, "workspace_literature_status", fake_status)
 
     result = module.call_tool(
-        "workspace_literature_status",
+        "workspace_readiness",
         {
+            "mode": "workspace_literature_status",
             "workspace_root": "/tmp/medautosci-demo",
         },
     )
@@ -353,8 +346,9 @@ def test_mcp_server_can_call_prepare_external_research_tool(monkeypatch) -> None
     monkeypatch.setattr(module.external_research, "prepare_external_research", fake_prepare)
 
     result = module.call_tool(
-        "prepare_external_research",
+        "research_assets",
         {
+            "mode": "prepare_external_research",
             "workspace_root": "/tmp/medautosci-demo",
             "as_of_date": "2026-03-30",
         },
@@ -398,8 +392,9 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
     monkeypatch.setattr(module.workspace_init, "init_workspace", fake_init_workspace)
 
     result = module.call_tool(
-        "init_workspace",
+        "workspace_readiness",
         {
+            "mode": "init_workspace",
             "workspace_root": "/tmp/medautosci-demo",
             "workspace_name": "NF-PitNET Demo",
             "default_publication_profile": "oncology_medical_journal",

@@ -70,7 +70,7 @@ def test_doctor_command_reports_profile_and_paths(tmp_path: Path, capsys) -> Non
     main = getattr(cli, "main", None)
     assert callable(main)
 
-    exit_code = main(["doctor", "--profile", str(profile_path)])
+    exit_code = main(["doctor", "report", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -94,7 +94,7 @@ def test_show_profile_prints_resolved_contract(tmp_path: Path, capsys) -> None:
     main = getattr(cli, "main", None)
     assert callable(main)
 
-    exit_code = main(["show-profile", "--profile", str(profile_path)])
+    exit_code = main(["doctor", "profile", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -128,7 +128,8 @@ def test_hermes_runtime_check_command_prints_json(monkeypatch, tmp_path: Path, c
 
     exit_code = cli.main(
         [
-            "hermes-runtime-check",
+            "doctor",
+            "hermes-runtime",
             "--hermes-agent-repo-root",
             str(tmp_path / "hermes-agent"),
             "--hermes-home-root",
@@ -153,7 +154,7 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     main = getattr(cli, "main", None)
     assert callable(main)
 
-    exit_code = main(["show-profile", "--profile", str(profile_path), "--format", "json"])
+    exit_code = main(["doctor", "profile", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -192,17 +193,42 @@ def test_show_profile_does_not_require_display_surface_dependencies(tmp_path: Pa
 
     cli = importlib.import_module("med_autoscience.cli")
 
-    exit_code = cli.main(["show-profile", "--profile", str(profile_path)])
+    exit_code = cli.main(["doctor", "profile", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert "name: nfpitnet" in captured.out
 
 
+def test_public_help_prints_grouped_surface(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["--help"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Usage: medautosci <group> <command> [options]" in captured.out
+    assert "doctor" in captured.out
+    assert "publication" in captured.out
+    assert "product manifest" in captured.out
+
+
+def test_group_help_lists_subcommands(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["study"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Usage: medautosci study <command> [options]" in captured.out
+    assert "progress" in captured.out
+    assert "runtime-status" in captured.out
+
+
 def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
-    exit_code = cli.main(["show-agent-entry-modes"])
+    exit_code = cli.main(["doctor", "entry-modes"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -218,7 +244,7 @@ def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsy
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
     }
 
-    exit_code = cli.main(["sync-agent-entry-assets", "--repo-root", str(tmp_path)])
+    exit_code = cli.main(["doctor", "sync-entry-assets", "--repo-root", str(tmp_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -249,7 +275,7 @@ def test_preflight_changes_command_outputs_json(monkeypatch, capsys) -> None:
         ),
     )
 
-    exit_code = cli.main(["preflight-changes", "--files", "README.md", "--format", "json"])
+    exit_code = cli.main(["doctor", "preflight", "--files", "README.md", "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -263,7 +289,7 @@ def test_preflight_changes_command_rejects_multiple_change_sources() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     with pytest.raises(SystemExit):
-        cli.main(["preflight-changes", "--files", "README.md", "--staged"])
+        cli.main(["doctor", "preflight", "--files", "README.md", "--staged"])
 
 
 def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -285,7 +311,7 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
 
     monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
 
-    exit_code = cli.main(["watch", "--runtime-root", str(tmp_path / "quests"), "--apply"])
+    exit_code = cli.main(["runtime", "watch", "--runtime-root", str(tmp_path / "quests"), "--apply"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -334,7 +360,8 @@ def test_study_progress_command_dispatches_controller_and_renders_markdown(
 
     exit_code = cli.main(
         [
-            "study-progress",
+            "study",
+            "progress",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -364,7 +391,7 @@ def test_medical_reporting_audit_command_dispatches_controller(monkeypatch, tmp_
 
     monkeypatch.setattr(cli.medical_reporting_audit, "run_controller", fake_run_controller)
 
-    exit_code = cli.main(["medical-reporting-audit", "--quest-root", str(tmp_path / "quest")])
+    exit_code = cli.main(["publication", "reporting-audit", "--quest-root", str(tmp_path / "quest")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -396,6 +423,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
 
     exit_code = cli.main(
         [
+            "runtime",
             "watch",
             "--runtime-root",
             str(tmp_path / "quests"),
@@ -443,6 +471,7 @@ def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path
 
     exit_code = cli.main(
         [
+            "runtime",
             "watch",
             "--runtime-root",
             str(tmp_path / "quests"),
@@ -472,6 +501,7 @@ def test_watch_command_rejects_loop_for_single_quest() -> None:
     with pytest.raises(SystemExit):
         cli.main(
             [
+                "runtime",
                 "watch",
                 "--quest-root",
                 "/tmp/q001",
@@ -490,7 +520,7 @@ def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tm
 
     monkeypatch.setattr(cli.journal_shortlist_controller, "resolve_journal_shortlist", fake_resolve)
 
-    exit_code = cli.main(["resolve-journal-shortlist", "--study-root", str(tmp_path / "study")])
+    exit_code = cli.main(["publication", "resolve-journal-shortlist", "--study-root", str(tmp_path / "study")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -508,7 +538,7 @@ def test_init_portfolio_memory_command_dispatches_controller(monkeypatch, tmp_pa
 
     monkeypatch.setattr(cli.portfolio_memory_controller, "init_portfolio_memory", fake_init)
 
-    exit_code = cli.main(["init-portfolio-memory", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "init-memory", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -526,7 +556,7 @@ def test_portfolio_memory_status_command_dispatches_controller(monkeypatch, tmp_
 
     monkeypatch.setattr(cli.portfolio_memory_controller, "portfolio_memory_status", fake_status)
 
-    exit_code = cli.main(["portfolio-memory-status", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "memory-status", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -547,7 +577,7 @@ def test_init_workspace_literature_command_dispatches_controller(monkeypatch, tm
 
     monkeypatch.setattr(cli.workspace_literature_controller, "init_workspace_literature", fake_init)
 
-    exit_code = cli.main(["init-workspace-literature", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "init-literature", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -565,7 +595,7 @@ def test_workspace_literature_status_command_dispatches_controller(monkeypatch, 
 
     monkeypatch.setattr(cli.workspace_literature_controller, "workspace_literature_status", fake_status)
 
-    exit_code = cli.main(["workspace-literature-status", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "literature-status", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -586,6 +616,7 @@ def test_prepare_external_research_command_dispatches_controller(monkeypatch, tm
 
     exit_code = cli.main(
         [
+            "data",
             "prepare-external-research",
             "--workspace-root",
             str(tmp_path / "workspace"),
@@ -611,7 +642,7 @@ def test_external_research_status_command_dispatches_controller(monkeypatch, tmp
 
     monkeypatch.setattr(cli.external_research_controller, "external_research_status", fake_status)
 
-    exit_code = cli.main(["external-research-status", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "external-research-status", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -632,7 +663,7 @@ def test_med_deepscientist_upgrade_check_command_dispatches_controller(monkeypat
 
     monkeypatch.setattr(cli.med_deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
 
-    exit_code = cli.main(["med-deepscientist-upgrade-check", "--profile", str(profile_path), "--refresh"])
+    exit_code = cli.main(["doctor", "med-deepscientist-upgrade", "--profile", str(profile_path), "--refresh"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -670,7 +701,8 @@ def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_pat
 
     exit_code = cli.main(
         [
-            "ensure-study-runtime",
+            "study",
+            "ensure-runtime",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -725,7 +757,8 @@ def test_ensure_study_runtime_command_serializes_typed_controller_result(monkeyp
 
     exit_code = cli.main(
         [
-            "ensure-study-runtime",
+            "study",
+            "ensure-runtime",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -756,7 +789,8 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
 
     exit_code = cli.main(
         [
-            "study-runtime-status",
+            "study",
+            "runtime-status",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -804,7 +838,8 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
 
     exit_code = cli.main(
         [
-            "study-runtime-status",
+            "study",
+            "runtime-status",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -831,7 +866,7 @@ def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypat
 
     monkeypatch.setattr(cli.product_entry, "read_workspace_cockpit", fake_read_workspace_cockpit)
 
-    exit_code = cli.main(["workspace-cockpit", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["workspace", "cockpit", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -853,7 +888,7 @@ def test_product_frontdesk_command_dispatches_product_entry_controller(monkeypat
 
     monkeypatch.setattr(cli.product_entry, "build_product_frontdesk", fake_build_product_frontdesk)
 
-    exit_code = cli.main(["product-frontdesk", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["product", "frontdesk", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -875,7 +910,7 @@ def test_product_preflight_command_dispatches_product_entry_controller(monkeypat
 
     monkeypatch.setattr(cli.product_entry, "build_product_entry_preflight", fake_build_product_entry_preflight)
 
-    exit_code = cli.main(["product-preflight", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["product", "preflight", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -897,7 +932,7 @@ def test_product_start_command_dispatches_product_entry_controller(monkeypatch, 
 
     monkeypatch.setattr(cli.product_entry, "build_product_entry_start", fake_build_product_entry_start)
 
-    exit_code = cli.main(["product-start", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["product", "start", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -919,7 +954,7 @@ def test_mainline_status_command_dispatches_controller(monkeypatch, capsys) -> N
 
     monkeypatch.setattr(cli.mainline_status, "read_mainline_status", fake_read_mainline_status)
 
-    exit_code = cli.main(["mainline-status", "--format", "json"])
+    exit_code = cli.main(["doctor", "mainline-status", "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -940,7 +975,7 @@ def test_mainline_phase_command_dispatches_controller(monkeypatch, capsys) -> No
 
     monkeypatch.setattr(cli.mainline_status, "read_mainline_phase_status", fake_read_mainline_phase_status)
 
-    exit_code = cli.main(["mainline-phase", "--phase", "next", "--format", "json"])
+    exit_code = cli.main(["doctor", "mainline-phase", "--phase", "next", "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -982,7 +1017,8 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
 
     exit_code = cli.main(
         [
-            "launch-study",
+            "study",
+            "launch",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -1049,7 +1085,8 @@ def test_submit_study_task_command_dispatches_product_entry_controller(monkeypat
 
     exit_code = cli.main(
         [
-            "submit-study-task",
+            "study",
+            "submit-task",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -1120,7 +1157,8 @@ def test_build_product_entry_command_dispatches_product_entry_controller(monkeyp
 
     exit_code = cli.main(
         [
-            "build-product-entry",
+            "product",
+            "build-entry",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -1152,7 +1190,7 @@ def test_init_data_assets_command_dispatches_controller(monkeypatch, tmp_path: P
 
     monkeypatch.setattr(cli.data_assets, "init_data_assets", fake_init)
 
-    exit_code = cli.main(["init-data-assets", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "init-assets", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1194,7 +1232,8 @@ def test_init_workspace_command_dispatches_controller(monkeypatch, tmp_path: Pat
 
     exit_code = cli.main(
         [
-            "init-workspace",
+            "workspace",
+            "init",
             "--workspace-root",
             str(tmp_path / "workspace"),
             "--workspace-name",
@@ -1231,7 +1270,7 @@ def test_data_assets_status_command_dispatches_controller(monkeypatch, tmp_path:
 
     monkeypatch.setattr(cli.data_assets, "data_assets_status", fake_status)
 
-    exit_code = cli.main(["data-assets-status", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "assets-status", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1249,7 +1288,7 @@ def test_assess_data_asset_impact_command_dispatches_controller(monkeypatch, tmp
 
     monkeypatch.setattr(cli.data_assets, "assess_data_asset_impact", fake_assess)
 
-    exit_code = cli.main(["assess-data-asset-impact", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "assess-asset-impact", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1272,6 +1311,7 @@ def test_diff_private_release_command_dispatches_controller(monkeypatch, tmp_pat
 
     exit_code = cli.main(
         [
+            "data",
             "diff-private-release",
             "--workspace-root",
             str(tmp_path / "workspace"),
@@ -1303,7 +1343,7 @@ def test_validate_public_registry_command_dispatches_controller(monkeypatch, tmp
 
     monkeypatch.setattr(cli.data_assets, "validate_public_registry", fake_validate)
 
-    exit_code = cli.main(["validate-public-registry", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "validate-public-registry", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1326,7 +1366,8 @@ def test_apply_data_asset_update_command_dispatches_controller(monkeypatch, tmp_
 
     exit_code = cli.main(
         [
-            "apply-data-asset-update",
+            "data",
+            "apply-asset-update",
             "--workspace-root",
             str(tmp_path / "workspace"),
             "--payload-file",
@@ -1541,7 +1582,7 @@ def test_startup_data_readiness_command_dispatches_controller(monkeypatch, tmp_p
 
     monkeypatch.setattr(cli.startup_data_readiness_controller, "startup_data_readiness", fake_readiness)
 
-    exit_code = cli.main(["startup-data-readiness", "--workspace-root", str(tmp_path / "workspace")])
+    exit_code = cli.main(["data", "startup-readiness", "--workspace-root", str(tmp_path / "workspace")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1560,7 +1601,7 @@ def test_data_asset_gate_command_dispatches_controller(monkeypatch, tmp_path: Pa
 
     monkeypatch.setattr(cli.data_asset_gate, "run_controller", fake_run_controller)
 
-    exit_code = cli.main(["data-asset-gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
+    exit_code = cli.main(["data", "asset-gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1582,6 +1623,7 @@ def test_tooluniverse_status_command_dispatches_adapter(monkeypatch, tmp_path: P
 
     exit_code = cli.main(
         [
+            "data",
             "tooluniverse-status",
             "--workspace-root",
             str(tmp_path / "workspace"),
@@ -1611,6 +1653,7 @@ def test_export_submission_minimal_command_dispatches_exporter(monkeypatch, tmp_
 
     exit_code = cli.main(
         [
+            "publication",
             "export-submission-minimal",
             "--paper-root",
             str(tmp_path / "paper"),
@@ -1650,7 +1693,8 @@ def test_resolve_submission_targets_command_dispatches_controller(monkeypatch, t
 
     exit_code = cli.main(
         [
-            "resolve-submission-targets",
+            "publication",
+            "resolve-targets",
             "--profile",
             str(profile_path),
             "--study-root",
@@ -1691,7 +1735,8 @@ def test_export_submission_targets_command_dispatches_controller(monkeypatch, tm
 
     exit_code = cli.main(
         [
-            "export-submission-targets",
+            "publication",
+            "export-targets",
             "--paper-root",
             str(tmp_path / "paper"),
             "--profile",
@@ -1724,6 +1769,7 @@ def test_resolve_reference_papers_command_dispatches_controller(monkeypatch, tmp
 
     exit_code = cli.main(
         [
+            "study",
             "resolve-reference-papers",
             "--quest-root",
             str(tmp_path / "quests" / "002-early-residual-risk"),
@@ -1747,7 +1793,7 @@ def test_publication_gate_command_dispatches_controller(monkeypatch, tmp_path: P
 
     monkeypatch.setattr(cli.publication_gate, "run_controller", fake_run_controller)
 
-    exit_code = cli.main(["publication-gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
+    exit_code = cli.main(["publication", "gate", "--quest-root", str(tmp_path / "q001"), "--apply"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1770,7 +1816,8 @@ def test_medical_publication_surface_command_dispatches_controller(monkeypatch, 
 
     exit_code = cli.main(
         [
-            "medical-publication-surface",
+            "publication",
+            "surface",
             "--quest-root",
             str(tmp_path / "q001"),
             "--apply",
@@ -1820,6 +1867,7 @@ def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: 
 
     exit_code = cli.main(
         [
+            "publication",
             "figure-loop-guard",
             "--quest-root",
             str(tmp_path / "q001"),
@@ -1885,7 +1933,8 @@ def test_sync_study_delivery_command_dispatches_controller(monkeypatch, tmp_path
 
     exit_code = cli.main(
         [
-            "sync-study-delivery",
+            "study",
+            "delivery-sync",
             "--paper-root",
             str(tmp_path / "paper"),
             "--stage",
@@ -1913,7 +1962,7 @@ def test_overlay_status_command_dispatches_installer(monkeypatch, tmp_path: Path
 
     monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
 
-    exit_code = cli.main(["overlay-status", "--quest-root", str(tmp_path / "runtime" / "quests" / "q001")])
+    exit_code = cli.main(["runtime", "overlay-status", "--quest-root", str(tmp_path / "runtime" / "quests" / "q001")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1933,7 +1982,7 @@ def test_install_medical_overlay_command_dispatches_installer(monkeypatch, tmp_p
 
     monkeypatch.setattr(cli.overlay_installer, "install_medical_overlay", fake_install)
 
-    exit_code = cli.main(["install-medical-overlay"])
+    exit_code = cli.main(["runtime", "install-overlay"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1953,7 +2002,7 @@ def test_reapply_medical_overlay_command_dispatches_installer(monkeypatch, tmp_p
 
     monkeypatch.setattr(cli.overlay_installer, "reapply_medical_overlay", fake_reapply)
 
-    exit_code = cli.main(["reapply-medical-overlay", "--quest-root", str(tmp_path / "q001")])
+    exit_code = cli.main(["runtime", "reapply-overlay", "--quest-root", str(tmp_path / "q001")])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -1991,7 +2040,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
 
     monkeypatch.setattr(cli.overlay_installer, "describe_medical_overlay", fake_status)
 
-    exit_code = cli.main(["overlay-status", "--profile", str(profile_path)])
+    exit_code = cli.main(["runtime", "overlay-status", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -2076,7 +2125,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
 
-    exit_code = cli.main(["bootstrap", "--profile", str(profile_path)])
+    exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -2144,7 +2193,7 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
 
-    exit_code = cli.main(["bootstrap", "--profile", str(profile_path)])
+    exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -2162,7 +2211,7 @@ def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(
         lambda: payload,
     )
 
-    exit_code = cli.main(["ensure-study-runtime-analysis-bundle"])
+    exit_code = cli.main(["runtime", "ensure-analysis-bundle"])
     captured = capsys.readouterr()
 
     assert exit_code == 0

@@ -28,7 +28,8 @@ def test_cli_time_to_event_direct_migration_emits_result_json(tmp_path, monkeypa
 
     exit_code = cli_module.main(
         [
-            "time-to-event-direct-migration",
+            "publication",
+            "time-to-event-migration",
             "--study-root",
             str(study_root),
             "--paper-root",

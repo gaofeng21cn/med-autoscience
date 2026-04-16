@@ -10,9 +10,11 @@ from med_autoscience.controllers import (
     data_assets,
     med_deepscientist_upgrade_check,
     external_research,
+    hermes_runtime_check,
     medical_literature_audit,
     medical_reporting_audit,
     portfolio_memory,
+    product_entry,
     runtime_watch,
     study_progress,
     startup_data_readiness as startup_data_readiness_controller,
@@ -97,178 +99,75 @@ def _optional_path(arguments: dict[str, Any], key: str) -> Path | None:
 def list_tools() -> list[dict[str, Any]]:
     return [
         {
-            "name": "doctor_report",
-            "description": "Render a MedAutoScience doctor report for a workspace profile.",
+            "name": "doctor_audit",
+            "description": "Run doctor-side MedAutoScience audits through one task tool: report, profile, overlay_status, med_deepscientist_upgrade, or hermes_runtime.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "profile_path": {"type": "string"},
-                },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "show_profile",
-            "description": "Render the resolved MedAutoScience workspace profile contract.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "profile_path": {"type": "string"},
-                },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "overlay_status",
-            "description": "Inspect MedAutoScience overlay status by profile or quest root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
+                    "mode": {"type": "string"},
                     "profile_path": {"type": "string"},
                     "quest_root": {"type": "string"},
+                    "refresh": {"type": "boolean"},
+                    "hermes_agent_repo_root": {"type": "string"},
+                    "hermes_home_root": {"type": "string"},
                 },
+                "required": ["mode"],
                 "additionalProperties": False,
             },
         },
         {
-            "name": "runtime_watch",
-            "description": "Run MedAutoScience runtime watch in read-only mode for a quest or runtime root.",
+            "name": "workspace_readiness",
+            "description": "Inspect or initialize workspace readiness through one tool: cockpit, init_workspace, startup_data_readiness, portfolio_memory_status, init_portfolio_memory, workspace_literature_status, or init_workspace_literature.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "quest_root": {"type": "string"},
-                    "runtime_root": {"type": "string"},
-                },
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "data_assets_status",
-            "description": "Read the current MedAutoScience data-assets status for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
+                    "mode": {"type": "string"},
+                    "profile_path": {"type": "string"},
                     "workspace_root": {"type": "string"},
+                    "workspace_name": {"type": "string"},
+                    "default_publication_profile": {"type": "string"},
+                    "default_citation_style": {"type": "string"},
+                    "dry_run": {"type": "boolean"},
+                    "force": {"type": "boolean"},
                 },
-                "required": ["workspace_root"],
+                "required": ["mode"],
                 "additionalProperties": False,
             },
         },
         {
-            "name": "portfolio_memory_status",
-            "description": "Read the current portfolio research-memory status for a workspace root.",
+            "name": "research_assets",
+            "description": "Read or prepare research-side assets through one tool: data_assets_status, external_research_status, or prepare_external_research.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "init_portfolio_memory",
-            "description": "Initialize the portfolio research-memory scaffold for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "workspace_literature_status",
-            "description": "Read the workspace canonical literature status for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "init_workspace_literature",
-            "description": "Initialize the workspace canonical literature scaffold for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "external_research_status",
-            "description": "Read the current optional external-research scaffold status for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "prepare_external_research",
-            "description": "Prepare the optional external-research prompt scaffold for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
+                    "mode": {"type": "string"},
                     "workspace_root": {"type": "string"},
                     "as_of_date": {"type": "string"},
                 },
-                "required": ["workspace_root"],
+                "required": ["mode", "workspace_root"],
                 "additionalProperties": False,
             },
         },
         {
-            "name": "startup_data_readiness",
-            "description": "Read the startup data readiness summary for a workspace root.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                },
-                "required": ["workspace_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "med_deepscientist_upgrade_check",
-            "description": "Run the MedAutoScience pre-upgrade audit for a bound med-deepscientist checkout.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "profile_path": {"type": "string"},
-                    "refresh": {"type": "boolean"},
-                },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "study_runtime_status",
+            "name": "study_runtime",
             "description": (
-                "Read the current MedAutoScience study-runtime status for a bound study. "
+                "Inspect or control study runtime through one task tool: runtime_watch, study_runtime_status, or ensure_study_runtime. "
                 f"{_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "mode": {"type": "string"},
                     "profile_path": {"type": "string"},
+                    "quest_root": {"type": "string"},
+                    "runtime_root": {"type": "string"},
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
                     "entry_mode": {"type": "string"},
+                    "allow_stopped_relaunch": {"type": "boolean"},
+                    "force": {"type": "boolean"},
                 },
-                "required": ["profile_path"],
+                "required": ["mode"],
                 "additionalProperties": False,
             },
         },
@@ -292,65 +191,34 @@ def list_tools() -> list[dict[str, Any]]:
             },
         },
         {
-            "name": "ensure_study_runtime",
+            "name": "publication_status",
             "description": (
-                "Ensure a managed med-deepscientist runtime exists and is running for a study. "
-                f"{_STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
+                "Read publication-side controller status through one task tool: medical_literature_audit or medical_reporting_audit."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "mode": {"type": "string"},
+                    "quest_root": {"type": "string"},
+                    "apply": {"type": "boolean"},
+                },
+                "required": ["mode", "quest_root"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "product_entry",
+            "description": "Read MedAutoScience product-entry surfaces through one tool: product_frontdesk, product_preflight, product_start, product_entry_manifest, or build_product_entry.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "mode": {"type": "string"},
                     "profile_path": {"type": "string"},
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
                     "entry_mode": {"type": "string"},
-                    "allow_stopped_relaunch": {"type": "boolean"},
-                    "force": {"type": "boolean"},
                 },
-                "required": ["profile_path"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "init_workspace",
-            "description": "Initialize a new disease workspace scaffold through the MedAutoScience controller.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "workspace_root": {"type": "string"},
-                    "workspace_name": {"type": "string"},
-                    "default_publication_profile": {"type": "string"},
-                    "default_citation_style": {"type": "string"},
-                    "dry_run": {"type": "boolean"},
-                    "force": {"type": "boolean"},
-                },
-                "required": ["workspace_root", "workspace_name"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "medical_literature_audit",
-            "description": "Run the medical literature audit controller for a quest.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "quest_root": {"type": "string"},
-                    "apply": {"type": "boolean"},
-                },
-                "required": ["quest_root"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "name": "medical_reporting_audit",
-            "description": "Run the medical reporting audit controller for a quest.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "quest_root": {"type": "string"},
-                    "apply": {"type": "boolean"},
-                },
-                "required": ["quest_root"],
+                "required": ["mode", "profile_path"],
                 "additionalProperties": False,
             },
         },
@@ -549,26 +417,152 @@ def _call_medical_reporting_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
+def _call_workspace_cockpit(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.read_workspace_cockpit(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_workspace_cockpit_markdown(result), structured=result)
+
+
+def _call_product_frontdesk(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.build_product_frontdesk(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_product_frontdesk_markdown(result), structured=result)
+
+
+def _call_product_preflight(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.build_product_entry_preflight(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_product_entry_preflight_markdown(result), structured=result)
+
+
+def _call_product_start(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.build_product_entry_start(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_product_entry_start_markdown(result), structured=result)
+
+
+def _call_product_manifest(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_product_entry_manifest_markdown(result), structured=result)
+
+
+def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
+    profile_path = Path(_require_string(arguments, "profile_path"))
+    profile = load_profile(str(profile_path))
+    result = product_entry.build_product_entry(
+        profile=profile,
+        profile_ref=profile_path,
+        study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
+        study_root=_optional_path(arguments, "study_root"),
+        direct_entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
+    )
+    return _tool_text_result(product_entry.render_build_product_entry_markdown(result), structured=result)
+
+
+def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "report":
+        return _call_doctor_report(arguments)
+    if mode == "profile":
+        return _call_show_profile(arguments)
+    if mode == "overlay_status":
+        return _call_overlay_status(arguments)
+    if mode == "med_deepscientist_upgrade":
+        return _call_med_deepscientist_upgrade_check(arguments)
+    if mode == "hermes_runtime":
+        profile_path = arguments.get("profile_path")
+        hermes_agent_repo_root = arguments.get("hermes_agent_repo_root")
+        if not isinstance(profile_path, str) and not isinstance(hermes_agent_repo_root, str):
+            raise ValueError("doctor_audit hermes_runtime requires profile_path or hermes_agent_repo_root")
+        profile = load_profile(profile_path) if isinstance(profile_path, str) else None
+        result = hermes_runtime_check.run_hermes_runtime_check(
+            profile=profile,
+            hermes_agent_repo_root=Path(hermes_agent_repo_root) if isinstance(hermes_agent_repo_root, str) else None,
+            hermes_home_root=_optional_path(arguments, "hermes_home_root"),
+        )
+        return _tool_text_result(_json_text(result), structured=result)
+    raise ValueError(f"Unsupported doctor_audit mode: {mode}")
+
+
+def _call_workspace_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "cockpit":
+        return _call_workspace_cockpit(arguments)
+    if mode == "init_workspace":
+        return _call_init_workspace(arguments)
+    if mode == "startup_data_readiness":
+        return _call_startup_data_readiness(arguments)
+    if mode == "portfolio_memory_status":
+        return _call_portfolio_memory_status(arguments)
+    if mode == "init_portfolio_memory":
+        return _call_init_portfolio_memory(arguments)
+    if mode == "workspace_literature_status":
+        return _call_workspace_literature_status(arguments)
+    if mode == "init_workspace_literature":
+        return _call_init_workspace_literature(arguments)
+    raise ValueError(f"Unsupported workspace_readiness mode: {mode}")
+
+
+def _call_research_assets(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "data_assets_status":
+        return _call_data_assets_status(arguments)
+    if mode == "external_research_status":
+        return _call_external_research_status(arguments)
+    if mode == "prepare_external_research":
+        return _call_prepare_external_research(arguments)
+    raise ValueError(f"Unsupported research_assets mode: {mode}")
+
+
+def _call_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "runtime_watch":
+        return _call_runtime_watch(arguments)
+    if mode == "study_runtime_status":
+        return _call_study_runtime_status(arguments)
+    if mode == "ensure_study_runtime":
+        return _call_ensure_study_runtime(arguments)
+    raise ValueError(f"Unsupported study_runtime mode: {mode}")
+
+
+def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "medical_literature_audit":
+        return _call_medical_literature_audit(arguments)
+    if mode == "medical_reporting_audit":
+        return _call_medical_reporting_audit(arguments)
+    raise ValueError(f"Unsupported publication_status mode: {mode}")
+
+
+def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
+    mode = _require_string(arguments, "mode")
+    if mode == "product_frontdesk":
+        return _call_product_frontdesk(arguments)
+    if mode == "product_preflight":
+        return _call_product_preflight(arguments)
+    if mode == "product_start":
+        return _call_product_start(arguments)
+    if mode == "product_entry_manifest":
+        return _call_product_manifest(arguments)
+    if mode == "build_product_entry":
+        return _call_build_product_entry(arguments)
+    raise ValueError(f"Unsupported product_entry mode: {mode}")
+
+
 TOOL_HANDLERS = {
-    "doctor_report": _call_doctor_report,
-    "show_profile": _call_show_profile,
-    "overlay_status": _call_overlay_status,
-    "runtime_watch": _call_runtime_watch,
-    "data_assets_status": _call_data_assets_status,
-    "portfolio_memory_status": _call_portfolio_memory_status,
-    "init_portfolio_memory": _call_init_portfolio_memory,
-    "workspace_literature_status": _call_workspace_literature_status,
-    "init_workspace_literature": _call_init_workspace_literature,
-    "external_research_status": _call_external_research_status,
-    "prepare_external_research": _call_prepare_external_research,
-    "startup_data_readiness": _call_startup_data_readiness,
-    "med_deepscientist_upgrade_check": _call_med_deepscientist_upgrade_check,
-    "study_runtime_status": _call_study_runtime_status,
+    "doctor_audit": _call_doctor_audit,
+    "workspace_readiness": _call_workspace_readiness,
+    "research_assets": _call_research_assets,
+    "study_runtime": _call_study_runtime,
     "study_progress": _call_study_progress,
-    "ensure_study_runtime": _call_ensure_study_runtime,
-    "init_workspace": _call_init_workspace,
-    "medical_literature_audit": _call_medical_literature_audit,
-    "medical_reporting_audit": _call_medical_reporting_audit,
+    "publication_status": _call_publication_status,
+    "product_entry": _call_product_entry,
 }
 
 
