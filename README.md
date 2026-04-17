@@ -140,7 +140,7 @@ The medical display line remains intentionally separate from the runtime mainlin
 - `make test-meta`
 - `make test-display`
 - `make test-full`
-- GitHub `macOS CI` intentionally keeps `quick-checks` lightweight; the full study runtime analysis bundle is still prepared on the `display-heavy` and `release/full` lanes.
+- GitHub `macOS CI` intentionally keeps `quick-checks` lightweight; it only installs `pandoc` for submission-facing DOCX coverage, while the full study runtime analysis bundle plus `graphviz` / `R` stay on the `display-heavy` and `release/full` lanes.
 
 ## Codex Plugin Integration
 
