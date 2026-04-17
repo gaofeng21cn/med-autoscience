@@ -1354,6 +1354,60 @@ def _recovery_contract(
     return recommended_command, steps, recovery_contract
 
 
+def _operator_verdict(
+    *,
+    study_id: str,
+    intervention_lane: dict[str, Any],
+    recovery_contract: dict[str, Any],
+    recommended_command: str | None,
+    current_stage_summary: str,
+    next_system_action: str,
+    current_blockers: list[str],
+) -> dict[str, Any]:
+    lane_id = _non_empty_text(intervention_lane.get("lane_id")) or "monitor_only"
+    severity = _non_empty_text(intervention_lane.get("severity")) or "observe"
+    summary = (
+        _non_empty_text(intervention_lane.get("summary"))
+        or _non_empty_text(current_blockers[0] if current_blockers else None)
+        or current_stage_summary
+        or next_system_action
+        or "当前 study 没有新的接管动作。"
+    )
+    primary_step_id = _non_empty_text((recovery_contract or {}).get("recommended_step_id"))
+    primary_surface_kind = None
+    for step in (recovery_contract or {}).get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        if _non_empty_text(step.get("step_id")) == primary_step_id:
+            primary_surface_kind = _non_empty_text(step.get("surface_kind"))
+            break
+
+    if lane_id in {"workspace_supervision_gap", "runtime_recovery_required", "runtime_blocker"}:
+        decision_mode = "intervene_now"
+    elif lane_id == "human_decision_gate":
+        decision_mode = "human_decision_required"
+    elif lane_id == "manual_finishing":
+        decision_mode = "compatibility_guard_only"
+    else:
+        decision_mode = "monitor_only"
+
+    return {
+        "surface_kind": "study_operator_verdict",
+        "verdict_id": f"study_operator_verdict::{study_id}::{lane_id}",
+        "study_id": study_id,
+        "lane_id": lane_id,
+        "severity": severity,
+        "decision_mode": decision_mode,
+        "needs_intervention": decision_mode in {"intervene_now", "human_decision_required"},
+        "focus_scope": "workspace" if lane_id == "workspace_supervision_gap" else "study",
+        "summary": summary,
+        "reason_summary": summary,
+        "primary_step_id": primary_step_id,
+        "primary_surface_kind": primary_surface_kind,
+        "primary_command": recommended_command,
+    }
+
+
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
@@ -1742,6 +1796,15 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         current_blockers=current_blockers,
     )
+    operator_verdict = _operator_verdict(
+        study_id=resolved_study_id,
+        intervention_lane=intervention_lane,
+        recovery_contract=recovery_contract,
+        recommended_command=recommended_command,
+        current_stage_summary=current_stage_summary,
+        next_system_action=next_system_action,
+        current_blockers=current_blockers,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1775,6 +1838,7 @@ def build_study_progress_projection(
         "current_blockers": current_blockers,
         "next_system_action": next_system_action,
         "intervention_lane": intervention_lane,
+        "operator_verdict": operator_verdict,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "recovery_contract": recovery_contract,
