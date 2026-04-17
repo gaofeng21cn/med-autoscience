@@ -89,6 +89,27 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     "summary": "Hermes-hosted 托管监管存在缺口。",
                     "recommended_action_id": "refresh_supervision",
                 },
+                "operator_verdict": {
+                    "surface_kind": "study_operator_verdict",
+                    "verdict_id": "study_operator_verdict::001-risk::workspace_supervision_gap",
+                    "study_id": "001-risk",
+                    "lane_id": "workspace_supervision_gap",
+                    "severity": "critical",
+                    "decision_mode": "intervene_now",
+                    "needs_intervention": True,
+                    "focus_scope": "workspace",
+                    "summary": "Hermes-hosted 托管监管存在缺口。",
+                    "reason_summary": "Hermes-hosted 托管监管存在缺口。",
+                    "primary_step_id": "refresh_supervision",
+                    "primary_surface_kind": "runtime_watch_refresh",
+                    "primary_command": (
+                        "uv run python -m med_autoscience.cli watch --runtime-root "
+                        + str(profile.runtime_root)
+                        + " --profile "
+                        + str(profile_ref.resolve())
+                        + " --ensure-study-runtimes --apply"
+                    ),
+                },
                 "recommended_command": (
                     "uv run python -m med_autoscience.cli watch --runtime-root "
                     + str(profile.runtime_root)
@@ -161,6 +182,25 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
                 "recommended_action_id": "inspect_progress",
             },
+            "operator_verdict": {
+                "surface_kind": "study_operator_verdict",
+                "verdict_id": "study_operator_verdict::002-risk::monitor_only",
+                "study_id": "002-risk",
+                "lane_id": "quality_floor_blocker",
+                "severity": "critical",
+                "decision_mode": "monitor_only",
+                "needs_intervention": False,
+                "focus_scope": "study",
+                "summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
+                "reason_summary": "图表推进陷入重复打磨循环，当前 run 应被拉回主线。",
+                "primary_step_id": "inspect_study_progress",
+                "primary_surface_kind": "study_progress",
+                "primary_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id 002-risk"
+                ),
+            },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
                 + str(profile_ref.resolve())
@@ -229,6 +269,16 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["workspace_supervision"]["study_counts"]["progress_stale"] == 1
     assert payload["workspace_supervision"]["study_counts"]["recovery_required"] == 0
     assert payload["workspace_supervision"]["study_counts"]["quality_blocked"] == 1
+    assert payload["operator_brief"] == {
+        "surface_kind": "workspace_operator_brief",
+        "verdict": "attention_required",
+        "summary": "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。",
+        "should_intervene_now": True,
+        "focus_scope": "workspace",
+        "focus_study_id": None,
+        "recommended_step_id": "handle_attention_item",
+        "recommended_command": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+    }
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith("watch-runtime-service-status")
     assert any(
@@ -247,9 +297,11 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][0]["commands"]["launch"].endswith("--study-id 001-risk")
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
+    assert payload["studies"][0]["operator_verdict"]["decision_mode"] == "intervene_now"
     assert payload["studies"][0]["recommended_command"].endswith("--ensure-study-runtimes --apply")
     assert payload["studies"][0]["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert payload["studies"][1]["operator_verdict"]["summary"] == "图表推进陷入重复打磨循环，当前 run 应被拉回主线。"
     assert payload["studies"][1]["recommended_commands"][0]["surface_kind"] == "study_progress"
     assert payload["studies"][1]["monitoring"]["browser_url"] == "http://127.0.0.1:20999"
     assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
@@ -260,9 +312,11 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "001-risk" in markdown
     assert "002-risk" in markdown
     assert "Mainline Snapshot" in markdown
+    assert "## Now" in markdown
     assert "current_program_phase" in markdown
     assert "Attention Queue" in markdown
     assert "User Loop" in markdown
+    assert "operator_verdict" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
     assert "The Lancet Digital Health" in markdown
     assert "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。" in markdown
@@ -1226,6 +1280,27 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
             external_runtime_contract={"ready": True},
         ),
     )
+    monkeypatch.setattr(
+        module,
+        "read_workspace_cockpit",
+        lambda **kwargs: {
+            "operator_brief": {
+                "surface_kind": "workspace_operator_brief",
+                "verdict": "ready_for_task",
+                "summary": "当前 workspace 已 ready，下一步先给目标 study 写 durable task intake。",
+                "should_intervene_now": False,
+                "focus_scope": "workspace",
+                "focus_study_id": None,
+                "recommended_step_id": "submit_task",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --task-intent '<task_intent>'"
+                ),
+            },
+            "attention_queue": [],
+        },
+    )
 
     payload = module.build_product_frontdesk(
         profile=profile,
@@ -1294,6 +1369,22 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
+    assert payload["operator_brief"] == {
+        "surface_kind": "product_frontdesk_operator_brief",
+        "verdict": "ready_for_task",
+        "summary": "当前 workspace 已 ready，下一步先给目标 study 下任务，再启动研究。",
+        "should_intervene_now": False,
+        "focus_scope": "workspace",
+        "focus_study_id": None,
+        "recommended_step_id": "submit_task",
+        "recommended_command": (
+            "uv run python -m med_autoscience.cli submit-study-task --profile "
+            + str(profile_ref.resolve())
+            + " --study-id <study_id> --task-intent '<task_intent>'"
+        ),
+    }
+    assert payload["workspace_operator_brief"]["verdict"] == "ready_for_task"
+    assert payload["workspace_attention_queue_preview"] == []
     assert payload["product_entry_guardrails"]["surface_kind"] == "product_entry_guardrails"
     assert payload["product_entry_guardrails"]["guardrail_classes"][0]["guardrail_id"] == "workspace_supervision_gap"
     assert payload["product_entry_guardrails"]["guardrail_classes"][3]["guardrail_id"] == "runtime_recovery_required"
@@ -1339,6 +1430,9 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_manifest"]["phase5_platform_target"] == payload["phase5_platform_target"]
 
     markdown = module.render_product_frontdesk_markdown(payload)
+    assert "Now" in markdown
+    assert "Single Path" in markdown
+    assert "Workspace Preview" in markdown
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
     assert "Phase 3 Clearance" in markdown
