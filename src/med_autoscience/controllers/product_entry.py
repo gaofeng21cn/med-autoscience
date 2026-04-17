@@ -470,38 +470,38 @@ def _build_product_entry_guardrails(
 
 
 def _build_phase5_platform_target() -> dict[str, Any]:
-    return {
-        "surface_kind": "phase5_platform_target",
-        "summary": (
-            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
-            "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
-        ),
-        "north_star_topology": {
-            "domain_gateway": "Med Auto Science",
-            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
-            "controlled_research_backend": "MedDeepScientist",
-            "monorepo_status": "post_gate_target",
-        },
-        "promotion_gates": [
-            "phase_1_mainline_established",
-            "phase_2_user_product_loop",
-            "phase_3_multi_workspace_host_clearance",
-            "phase_4_backend_deconstruction",
-        ],
-        "land_now": [
-            "repo-tracked product-entry shell and family orchestration companions",
-            "controller-owned runtime/progress/recovery truth",
-            "CLI/MCP/controller entry surfaces that already support real work",
-        ],
-        "not_yet": [
-            "physical monorepo absorb",
-            "runtime core ingest across repos",
-            "mature hosted standalone medical frontend",
-        ],
-        "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
-        ),
-    }
+    payload = mainline_status.read_mainline_status()
+    platform_target = payload.get("platform_target")
+    if isinstance(platform_target, Mapping):
+        return dict(platform_target)
+    return dict(mainline_status._platform_target())
+
+
+def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "## Platform Target",
+        "",
+        f"- summary: `{phase5_platform_target.get('summary') or 'none'}`",
+        f"- sequence_scope: `{phase5_platform_target.get('sequence_scope') or 'none'}`",
+        f"- current_step_id: `{phase5_platform_target.get('current_step_id') or 'none'}`",
+        f"- current_readiness_summary: `{phase5_platform_target.get('current_readiness_summary') or 'none'}`",
+        f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
+        f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
+        "",
+        "## Monorepo Sequence",
+        "",
+    ]
+    landing_sequence = list(phase5_platform_target.get("landing_sequence") or [])
+    if landing_sequence:
+        for item in landing_sequence:
+            if not isinstance(item, Mapping):
+                continue
+            lines.append(
+                f"- `{item.get('step_id')}` [{item.get('status')}] / `{item.get('phase_id')}`: {item.get('summary') or 'none'}"
+            )
+    else:
+        lines.append("- none")
+    return lines
 
 
 def _build_phase3_clearance_lane(
@@ -1774,14 +1774,8 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
-    lines.extend(["", "## Platform Target", ""])
-    lines.append(f"- summary: {phase5_platform_target.get('summary') or 'none'}")
-    lines.append(
-        f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`"
-    )
-    lines.append(
-        f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`"
-    )
+    lines.extend([""])
+    lines.extend(_render_phase5_platform_target_markdown_lines(phase5_platform_target))
     lines.extend(["", "## Remaining Gaps", ""])
     remaining_gaps = list(payload.get("remaining_gaps") or [])
     if remaining_gaps:
@@ -1916,19 +1910,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
-    lines.extend(
-        [
-            "",
-            "## Platform Target",
-            "",
-            f"- summary: `{phase5_platform_target.get('summary') or 'none'}`",
-            f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
-            f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
-            "",
-        "## Entry Surfaces",
-        "",
-        ]
-    )
+    lines.extend([""])
+    lines.extend(_render_phase5_platform_target_markdown_lines(phase5_platform_target))
+    lines.extend(["", "## Entry Surfaces", ""])
     for name, item in entry_surfaces.items():
         if not isinstance(item, dict):
             continue
