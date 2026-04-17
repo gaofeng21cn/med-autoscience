@@ -443,6 +443,76 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert '"study_id": "001-risk"' in captured.out
 
 
+def test_runtime_supervision_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_read_supervision_status(*, profile, interval_seconds: int) -> dict[str, object]:
+        called["profile"] = profile
+        called["interval_seconds"] = interval_seconds
+        return {"status": "loaded", "owner": "hermes_gateway_cron"}
+
+    monkeypatch.setattr(cli.hermes_supervision, "read_supervision_status", fake_read_supervision_status)
+
+    exit_code = cli.main(["runtime", "supervision-status", "--profile", str(profile_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["interval_seconds"] == 300
+    assert json.loads(captured.out)["owner"] == "hermes_gateway_cron"
+
+
+def test_runtime_ensure_supervision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_ensure_supervision(*, profile, interval_seconds: int, trigger_now: bool) -> dict[str, object]:
+        called["profile"] = profile
+        called["interval_seconds"] = interval_seconds
+        called["trigger_now"] = trigger_now
+        return {"action": "created"}
+
+    monkeypatch.setattr(cli.hermes_supervision, "ensure_supervision", fake_ensure_supervision)
+
+    exit_code = cli.main(
+        ["runtime", "ensure-supervision", "--profile", str(profile_path), "--interval-seconds", "600", "--no-trigger-now"]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["interval_seconds"] == 600
+    assert called["trigger_now"] is False
+    assert json.loads(captured.out)["action"] == "created"
+
+
+def test_runtime_remove_supervision_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    called: dict[str, object] = {}
+
+    def fake_remove_supervision(*, profile, interval_seconds: int) -> dict[str, object]:
+        called["profile"] = profile
+        called["interval_seconds"] = interval_seconds
+        return {"removed_job_ids": ["job-001"]}
+
+    monkeypatch.setattr(cli.hermes_supervision, "remove_supervision", fake_remove_supervision)
+
+    exit_code = cli.main(["runtime", "remove-supervision", "--profile", str(profile_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["profile"].name == "nfpitnet"
+    assert called["interval_seconds"] == 300
+    assert json.loads(captured.out)["removed_job_ids"] == ["job-001"]
+
+
 def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

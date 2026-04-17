@@ -1,11 +1,12 @@
 # Runtime Supervision Loop
 
-这份文档冻结 `MedAutoScience` 侧针对 `MedDeepScientist` managed runtime 的外环监管合同。
+这份文档冻结 `MedAutoScience` 侧针对 `MedDeepScientist` managed runtime 的外环监管合同，也就是当前的 outer `supervisor loop` contract。
 
 一句话结论：
 
 - `MedAutoScience` 不是第二个 authority daemon
-- 但它必须拥有稳定的 `supervisor loop`
+- 但它必须拥有稳定的 `supervision tick`
+- 这个 tick 的长期托管 owner 应是 `Hermes-Agent gateway cron`
 - 这个 loop 的职责是持续发现掉线、执行 reconciliation、写出 durable supervision surface，并把结果翻译成前台可见的人话
 
 ## 1. 总目标
@@ -25,9 +26,19 @@
 
 ## 2. authority 边界
 
-这里的外环是：
+这里的外环应按三层分工理解：
 
-- `controller-owned supervisor loop`
+- `Hermes-Agent`
+  - 长期运行与托管能力 owner
+- `MedAutoScience`
+  - 医学研究治理、supervision judgment、projection 与 reconciliation owner
+- `MedDeepScientist`
+  - quest executor / research backend
+
+对应的监管外环是：
+
+- `Hermes-hosted`
+- `controller-judged`
 - `tick-driven`
 - `fail-closed`
 
@@ -184,12 +195,12 @@ medautosci watch \
 更合理的形态是：
 
 - 先把单次 `supervisor tick` 做严谨
-- 再由 automation / heartbeat / host scheduler 周期调用它
+- 再由 `Hermes gateway cron` 周期调用它
 
 换句话说：
 
-- 先把 controller contract 做对
-- 再决定具体由谁负责“每 5 分钟跑一次”
+- `Hermes` 负责“长期在线、每 5 分钟跑一次”
+- `MAS` 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”
 
 这能保证未来无论宿主变成 Codex、Gateway 还是 managed web runtime，合同都不漂。
 

@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import os
-import re
 import shlex
-import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from med_autoscience.controllers import mainline_status, study_progress, study_runtime_router
+from med_autoscience.controllers import hermes_supervision, mainline_status, study_progress, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
@@ -146,22 +142,6 @@ def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
     return tuple(normalized)
 
 
-def _slugify_workspace_name(workspace_name: str) -> str:
-    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", workspace_name.strip()).strip("-").lower()
-    return normalized or "workspace"
-
-
-def _run_command(*, command: list[str]) -> tuple[int, str]:
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    output = completed.stdout.strip() or completed.stderr.strip()
-    return completed.returncode, output
-
-
 def _serialize_runtime_status(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
@@ -214,69 +194,8 @@ def _study_selector(*, study_id: str | None = None, study_root: Path | None = No
     raise ValueError("study_id or study_root is required")
 
 
-def _watch_runtime_launchd_label(profile: WorkspaceProfile) -> str:
-    return f"ai.medautoscience.{_slugify_workspace_name(profile.name)}.watch-runtime"
-
-
-def _watch_runtime_systemd_name(profile: WorkspaceProfile) -> str:
-    return f"medautoscience-watch-runtime-{_slugify_workspace_name(profile.name)}"
-
-
-def _inspect_watch_runtime_service(profile: WorkspaceProfile) -> dict[str, Any]:
-    if sys.platform == "darwin":
-        service_label = _watch_runtime_launchd_label(profile)
-        service_file = Path.home() / "Library" / "LaunchAgents" / f"{service_label}.plist"
-        exit_code, output = _run_command(command=["launchctl", "print", f"gui/{os.getuid()}/{service_label}"])
-        loaded = exit_code == 0
-        service_file_exists = service_file.is_file()
-        status = "loaded" if loaded else ("not_loaded" if service_file_exists else "not_installed")
-        if loaded:
-            summary = "MAS supervisor service 已常驻在线，workspace 级监管会持续刷新。"
-        elif service_file_exists:
-            summary = "MAS supervisor service 已安装但当前未常驻在线；需要先拉起 watch-runtime service。"
-        else:
-            summary = "MAS supervisor service 尚未安装；如需持续监管，请先安装 watch-runtime service。"
-        return {
-            "manager": "launchd",
-            "service_label": service_label,
-            "service_file": str(service_file),
-            "service_file_exists": service_file_exists,
-            "loaded": loaded,
-            "status": status,
-            "summary": summary,
-            "raw_output": output,
-        }
-    if sys.platform.startswith("linux"):
-        service_name = _watch_runtime_systemd_name(profile)
-        service_file = Path.home() / ".config" / "systemd" / "user" / f"{service_name}.service"
-        exit_code, output = _run_command(command=["systemctl", "--user", "is-active", f"{service_name}.service"])
-        loaded = exit_code == 0
-        service_file_exists = service_file.is_file()
-        status = "loaded" if loaded else ("not_loaded" if service_file_exists else "not_installed")
-        if loaded:
-            summary = "MAS supervisor service 已常驻在线，workspace 级监管会持续刷新。"
-        elif service_file_exists:
-            summary = "MAS supervisor service 已安装但当前未常驻在线；需要先拉起 watch-runtime service。"
-        else:
-            summary = "MAS supervisor service 尚未安装；如需持续监管，请先安装 watch-runtime service。"
-        return {
-            "manager": "systemd",
-            "service_name": service_name,
-            "service_file": str(service_file),
-            "service_file_exists": service_file_exists,
-            "loaded": loaded,
-            "status": status,
-            "summary": summary,
-            "raw_output": output,
-        }
-    return {
-        "manager": None,
-        "service_file_exists": False,
-        "loaded": False,
-        "status": "unsupported",
-        "summary": "当前平台不支持自动检查 MAS supervisor service；必要时请手工运行 watch。",
-        "raw_output": "",
-    }
+def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
+    return hermes_supervision.read_supervision_status(profile=profile)
 
 
 def _workspace_ready_alerts(doctor_report) -> list[str]:
@@ -416,7 +335,7 @@ def _build_product_entry_guardrails(
             {
                 "guardrail_id": "workspace_supervision_gap",
                 "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                "symptom": "watch-runtime service 未常驻、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                "symptom": "Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
                 "recommended_command": refresh_command,
             },
             {
@@ -513,7 +432,7 @@ def _build_phase3_clearance_lane(
     profile_arg = _profile_arg(profile_ref)
     return {
         "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
@@ -525,7 +444,7 @@ def _build_phase3_clearance_lane(
             },
             {
                 "target_id": "supervisor_service",
-                "title": "Keep workspace supervisor service online",
+                "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
                     str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
                     (
@@ -780,9 +699,9 @@ def _attention_queue(
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
-                title="先恢复 MAS supervisor 常驻监管",
+                title="先恢复 Hermes-hosted 常驻监管",
                 summary=_non_empty_text(service.get("summary"))
-                or "当前 workspace 还没有稳定的 MAS supervisor 常驻监管入口。",
+                or "当前 workspace 还没有稳定的 Hermes-hosted 常驻监管入口。",
                 recommended_command=commands.get("service_status") or commands.get("service_install"),
                 scope="workspace",
             )
@@ -825,7 +744,7 @@ def _attention_queue(
                 _attention_item(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
-                    summary=lane_summary or "MAS 外环监管存在缺口。",
+                    summary=lane_summary or "Hermes-hosted 托管监管存在缺口。",
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -1013,7 +932,7 @@ def read_workspace_cockpit(
         progress_summary = _non_empty_text(progress_freshness.get("summary"))
         if _non_empty_text(progress_freshness.get("status")) in {"stale", "missing"} and progress_summary not in workspace_alerts:
             workspace_alerts.append(progress_summary)
-    service = _inspect_watch_runtime_service(profile)
+    service = _inspect_workspace_supervision(profile)
     workspace_supervision = _workspace_supervision_summary(studies=studies, service=service)
     if (
         not bool(service.get("loaded"))

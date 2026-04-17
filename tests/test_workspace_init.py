@@ -239,26 +239,13 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'exec "${WATCH_RUNTIME_SCRIPT}" --interval-seconds "${WATCH_RUNTIME_INTERVAL_SECONDS}" "$@"' in runner_text
 
     install_text = install_service.read_text(encoding="utf-8")
-    assert "ai.medautoscience.lung.watch-runtime" in install_text
-    assert "medautoscience-watch-runtime-lung" in install_text
-    assert 'watch-runtime-service-runner' in install_text
-    assert "MED_AUTOSCIENCE_UV_BIN" in install_text
-    assert "MED_AUTOSCIENCE_RSCRIPT_BIN" in install_text
-    assert "MED_AUTOSCIENCE_NODE_BIN" in install_text
-    assert "command -v uv" in install_text
-    assert "command -v Rscript" in install_text
-    assert "command -v node" in install_text
-    assert "launchctl bootstrap" in install_text
-    assert "systemctl --user enable --now" in install_text
-    assert 'ops/medautoscience/logs' in install_text
+    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
     status_text = service_status.read_text(encoding="utf-8")
-    assert "launchctl print" in status_text
-    assert "systemctl --user status" in status_text
+    assert 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"' in status_text
 
     uninstall_text = uninstall_service.read_text(encoding="utf-8")
-    assert "launchctl bootout" in uninstall_text
-    assert "systemctl --user disable --now" in uninstall_text
+    assert 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"' in uninstall_text
 
 
 def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_path: Path) -> None:
@@ -349,8 +336,7 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     assert '--apply' in watch_runtime_text
     assert '--loop' in watch_runtime_text
     install_text = install_service.read_text(encoding="utf-8")
-    assert "MED_AUTOSCIENCE_UV_BIN" in install_text
-    assert "command -v uv" in install_text
+    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
 
 def test_init_workspace_upgrades_shared_script_that_still_invokes_bare_uv(tmp_path: Path) -> None:
@@ -507,8 +493,7 @@ def test_init_workspace_upgrades_current_managed_scripts_when_rscript_binding_is
     assert str(install_service) in result["upgraded_files"]
     assert "MED_AUTOSCIENCE_RSCRIPT_BIN" in shared.read_text(encoding="utf-8")
     install_text = install_service.read_text(encoding="utf-8")
-    assert "MED_AUTOSCIENCE_RSCRIPT_BIN" in install_text
-    assert "command -v Rscript" in install_text
+    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
 
 def test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_missing(tmp_path: Path) -> None:
@@ -654,8 +639,7 @@ def test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_mi
     assert str(install_service) in result["upgraded_files"]
     assert "MED_AUTOSCIENCE_NODE_BIN" in shared.read_text(encoding="utf-8")
     install_text = install_service.read_text(encoding="utf-8")
-    assert "MED_AUTOSCIENCE_NODE_BIN" in install_text
-    assert "command -v node" in install_text
+    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
 
 def test_init_workspace_upgrades_medautoscience_config_with_detected_node_binding(tmp_path: Path, monkeypatch) -> None:

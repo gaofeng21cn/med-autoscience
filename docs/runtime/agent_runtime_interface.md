@@ -194,8 +194,8 @@
 - 写入 durable study task intake：`submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑：`launch-study --profile <profile> --study-id <study_id>`
 - 人话进度投影：`study-progress --profile <profile> --study-id <study_id>`
-- MAS 外环监管心跳：`watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
-- MAS supervisor loop 常驻服务：`ops/medautoscience/bin/install-watch-runtime-service`
+- Hermes-hosted supervision tick：`watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
+- Hermes-hosted supervision job 安装入口：`ops/medautoscience/bin/install-watch-runtime-service`
 - frontdesk / manifest companion：`product-frontdesk --profile <profile>`、`product-entry-manifest --profile <profile>`，其中当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
 
 低层兼容入口仍然保留：

@@ -30,7 +30,7 @@ _CURRENT_STAGE_LABELS = {
     "managed_runtime_recovering": "托管运行恢复中",
     "managed_runtime_degraded": "托管运行健康降级",
     "managed_runtime_escalated": "托管运行已升级告警",
-    "managed_runtime_supervision_gap": "MAS 外环监管存在缺口",
+    "managed_runtime_supervision_gap": "Hermes-hosted 托管监管存在缺口",
     "waiting_physician_decision": "等待医生或 PI 判断",
     "publication_supervision": "论文可发表性监管",
     "managed_runtime_active": "托管运行正在推进",
@@ -146,7 +146,7 @@ _INTERVENTION_SEVERITY_LABELS = {
     "observe": "继续监督",
 }
 _RECOVERY_ACTION_MODE_LABELS = {
-    "refresh_supervision": "优先恢复 MAS 外环监管",
+    "refresh_supervision": "优先恢复 Hermes-hosted 托管监管",
     "continue_or_relaunch": "继续或重新拉起当前 study",
     "inspect_progress": "先读取当前进度与阻塞",
     "human_decision_review": "等待医生或 PI 判断",
@@ -1098,7 +1098,7 @@ def _intervention_lane(
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return {
             "lane_id": "workspace_supervision_gap",
-            "title": "优先恢复 MAS 外环监管",
+            "title": "优先恢复 Hermes-hosted 托管监管",
             "severity": "critical",
             "summary": (
                 _non_empty_text((supervisor_tick_audit or {}).get("summary"))
@@ -1231,7 +1231,7 @@ def _recovery_contract(
         steps = [
             _recovery_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS supervisor loop",
+                title="刷新 Hermes-hosted supervision tick",
                 surface_kind="runtime_watch_refresh",
                 command=commands["refresh_supervision"],
             ),

@@ -11,6 +11,15 @@
 
 在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` `Domain Harness OS` 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
 
+与长期在线 supervision owner 相关的当前真相是：
+
+- `Hermes-Agent`
+  - 持有长期运行、调度与托管能力
+- `MedAutoScience`
+  - 持有 study/runtime supervision judgment、recovery policy 与前台 projection
+- `MedDeepScientist`
+  - 持有当前 concrete research execution
+
 与 `stop / rerun / requires_human_confirmation` 相关的 outer-loop control semantics，现统一桥接到：
 
 - [`./study_runtime_control_surface.md`](./study_runtime_control_surface.md)

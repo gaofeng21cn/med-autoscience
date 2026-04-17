@@ -53,6 +53,7 @@ data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_
 display_pack_surface_sync = _LazyModuleProxy(lambda: _load_controller("display_pack_surface_sync"))
 display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("display_surface_materialization"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
+hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
@@ -172,6 +173,19 @@ def build_parser() -> argparse.ArgumentParser:
     watch_parser.add_argument("--loop", action="store_true")
     watch_parser.add_argument("--interval-seconds", type=int, default=300)
     watch_parser.add_argument("--max-ticks", type=int)
+
+    runtime_supervision_status_parser = subparsers.add_parser("runtime-supervision-status")
+    runtime_supervision_status_parser.add_argument("--profile", required=True)
+    runtime_supervision_status_parser.add_argument("--interval-seconds", type=int, default=300)
+
+    runtime_ensure_supervision_parser = subparsers.add_parser("runtime-ensure-supervision")
+    runtime_ensure_supervision_parser.add_argument("--profile", required=True)
+    runtime_ensure_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
+    runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
+
+    runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
+    runtime_remove_supervision_parser.add_argument("--profile", required=True)
+    runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
@@ -464,6 +478,9 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("data", "asset-gate"): "data-asset-gate",
     ("data", "tooluniverse-status"): "tooluniverse-status",
     ("runtime", "watch"): "watch",
+    ("runtime", "supervision-status"): "runtime-supervision-status",
+    ("runtime", "ensure-supervision"): "runtime-ensure-supervision",
+    ("runtime", "remove-supervision"): "runtime-remove-supervision",
     ("runtime", "overlay-status"): "overlay-status",
     ("runtime", "install-overlay"): "install-medical-overlay",
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
@@ -500,7 +517,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "runtime watch、overlay 与 analysis bundle 维护。",
+    "runtime": "runtime watch、Hermes supervision、overlay 与 analysis bundle 维护。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "product": "frontdesk、preflight、start、manifest 与 build-entry。",
@@ -865,6 +882,34 @@ def main(argv: list[str] | None = None) -> int:
                     profile=profile,
                     ensure_study_runtimes=bool(args.ensure_study_runtimes),
                 )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-supervision-status":
+        profile = load_profile(args.profile)
+        result = hermes_supervision.read_supervision_status(
+            profile=profile,
+            interval_seconds=int(args.interval_seconds),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-ensure-supervision":
+        profile = load_profile(args.profile)
+        result = hermes_supervision.ensure_supervision(
+            profile=profile,
+            interval_seconds=int(args.interval_seconds),
+            trigger_now=not bool(args.no_trigger_now),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-remove-supervision":
+        profile = load_profile(args.profile)
+        result = hermes_supervision.remove_supervision(
+            profile=profile,
+            interval_seconds=int(args.interval_seconds),
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
