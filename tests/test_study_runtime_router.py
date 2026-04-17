@@ -959,6 +959,11 @@ def test_ensure_study_runtime_auto_resumes_controller_owned_stopped_completion_r
     assert launch_report["decision"] == "resume"
     assert launch_report["reason"] == "quest_completion_requested_before_publication_gate_clear"
     assert launch_report["daemon_result"]["action"] == "resume"
+    runtime_supervision = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert runtime_supervision["runtime_decision"] == "resume"
+    assert runtime_supervision["health_status"] == "recovering"
 
 
 def test_execute_runtime_decision_returns_terminal_outcome_for_completed_status(tmp_path: Path) -> None:
@@ -1164,6 +1169,105 @@ def test_execute_resume_runtime_decision_skips_startup_hydration_for_managed_run
     assert outcome.daemon_result == {"resume": {"ok": True, "status": "running"}}
     assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
     assert status.quest_status is module.StudyRuntimeQuestStatus.RUNNING
+
+
+def test_execute_resume_runtime_decision_blocks_when_resume_request_has_no_effect(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    transport = _managed_runtime_transport(module)
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    status = module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(profile.workspace_root / "studies" / "001-risk"),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "001-risk", "auto_resume": True},
+            "quest_id": "001-risk",
+            "quest_root": str(profile.runtime_root / "001-risk"),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "runtime_binding_path": str(profile.workspace_root / "studies" / "001-risk" / "runtime_binding.yaml"),
+            "runtime_binding_exists": False,
+            "workspace_contracts": {"overall_ready": True},
+            "startup_data_readiness": {"status": "clear"},
+            "startup_boundary_gate": {"allow_compute_stage": True},
+            "runtime_reentry_gate": {"allow_runtime_entry": True},
+            "study_completion_contract": {"status": "absent", "ready": False},
+            "controller_first_policy_summary": "summary",
+            "automation_ready_summary": "ready",
+            "decision": "resume",
+            "reason": "quest_waiting_on_invalid_blocking",
+            "interaction_arbitration": {
+                "classification": "invalid_blocking",
+                "action": "resume",
+                "requires_user_input": False,
+            },
+        }
+    )
+    context = module._build_execution_context(
+        profile=profile,
+        study_id="001-risk",
+        study_root=profile.workspace_root / "studies" / "001-risk",
+        study_payload=yaml.safe_load((profile.workspace_root / "studies" / "001-risk" / "study.yaml").read_text(encoding="utf-8")),
+        source="test",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "_sync_existing_quest_startup_context",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {
+                "quest_id": kwargs["quest_id"],
+                "startup_contract": kwargs["create_payload"]["startup_contract"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        transport,
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {
+            "ok": True,
+            "quest_id": quest_id,
+            "scheduled": False,
+            "started": False,
+            "queued": False,
+            "snapshot": {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+            },
+        },
+    )
+
+    outcome = module._execute_resume_runtime_decision(status=status, context=context)
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.BLOCKED
+    assert status.decision is module.StudyRuntimeDecision.BLOCKED
+    assert status.reason is module.StudyRuntimeReason.RESUME_REQUEST_FAILED
+    assert status.quest_status is module.StudyRuntimeQuestStatus.WAITING_FOR_USER
+    assert status.to_dict()["resume_postcondition"] == {
+        "effective": False,
+        "failure_mode": "waiting_state_preserved",
+        "snapshot_status": "waiting_for_user",
+        "active_run_id": None,
+        "scheduled": False,
+        "started": False,
+        "queued": False,
+    }
 
 
 def test_execute_pause_runtime_decision_records_nested_pause_daemon_step(monkeypatch, tmp_path: Path) -> None:
@@ -5579,6 +5683,168 @@ def test_study_runtime_status_runtime_summary_alignment_detects_runtime_surface_
     assert refreshed_launch_report["supervisor_tick_audit"]["status"] == "fresh"
     assert refreshed_launch_report["publication_supervisor_state"]["supervisor_phase"] == "publishability_gate_blocked"
     assert refreshed_launch_report["publication_supervisor_state"]["bundle_tasks_downstream_only"] is True
+    refreshed_runtime_supervision = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert refreshed_runtime_supervision["health_status"] == "live"
+    assert refreshed_runtime_supervision["active_run_id"] == "run-live"
+    assert refreshed_runtime_supervision["runtime_liveness_status"] == "live"
+    assert refreshed_runtime_supervision["runtime_decision"] == "noop"
+
+
+def test_study_runtime_status_refreshes_runtime_supervision_when_launch_report_is_already_aligned(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"running","active_run_id":"run-live"}\n')
+    write_text(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recorded_at": "2026-04-10T09:25:00+00:00",
+                "health_status": "degraded",
+                "runtime_decision": "blocked",
+                "runtime_reason": "running_quest_live_session_audit_failed",
+                "quest_status": "running",
+                "runtime_liveness_status": "unknown",
+                "worker_running": True,
+                "active_run_id": "run-old",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    write_text(
+        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        json.dumps(
+            {
+                "decision": "noop",
+                "reason": "quest_already_running",
+                "quest_status": "running",
+                "active_run_id": "run-live",
+                "runtime_liveness_audit": {"status": "live", "active_run_id": "run-live"},
+                "supervisor_tick_audit": {"status": "fresh"},
+                "publication_supervisor_state": {
+                    "supervisor_phase": "publishability_gate_blocked",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": True,
+                    "current_required_action": "return_to_publishability_gate",
+                    "deferred_downstream_actions": [],
+                    "controller_stage_note": (
+                        "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                        "bundle suggestions stay downstream-only until the gate clears"
+                    ),
+                },
+                "recorded_at": "2026-04-10T09:20:00+00:00",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-1"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resolve_daemon_url",
+        lambda *, runtime_root: "http://127.0.0.1:21999",
+    )
+    monkeypatch.setattr(
+        decision_module,
+        "_supervisor_tick_now",
+        lambda: decision_module.datetime.fromisoformat("2026-04-10T09:30:00+00:00"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": (
+                "paper bundle exists, but the active blockers still belong to the publishability surface; "
+                "bundle suggestions stay downstream-only until the gate clears"
+            ),
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["runtime_summary_alignment"]["aligned"] is True
+    refreshed_runtime_supervision = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert refreshed_runtime_supervision["health_status"] == "live"
+    assert refreshed_runtime_supervision["active_run_id"] == "run-live"
+    assert refreshed_runtime_supervision["runtime_liveness_status"] == "live"
+    assert refreshed_runtime_supervision["runtime_decision"] == "noop"
 
 
 def test_ensure_study_runtime_uses_custom_quest_id_for_existing_runtime(monkeypatch, tmp_path: Path) -> None:
@@ -5911,6 +6177,15 @@ def test_build_startup_contract_separates_runtime_owned_subset_from_controller_e
         paper_urls=["https://example.org/paper-1"],
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation"],
+        scientific_followup_questions=[
+            "Why is the 5-year all-cause mortality gap between China and the US so large?",
+        ],
+        explanation_targets=[
+            "Decompose the observed mortality gap into endpoint alignment, follow-up/censoring, case-mix shift, score compression, and residual unexplained components.",
+        ],
+        manuscript_conclusion_redlines=[
+            "Do not conclude only that the China-trained absolute-risk model is non-transportable.",
+        ],
     )
     study_payload = yaml.safe_load((study_root / "study.yaml").read_text(encoding="utf-8"))
     execution = router._execution_payload(study_payload)
@@ -5949,7 +6224,19 @@ def test_build_startup_contract_separates_runtime_owned_subset_from_controller_e
     charter_payload = json.loads(Path(charter_ref["artifact_path"]).read_text(encoding="utf-8"))
     assert charter_payload["charter_id"] == charter_ref["charter_id"]
     assert charter_payload["publication_objective"] == "Build a submission-ready survival-risk study."
+    assert charter_payload["scientific_followup_questions"] == [
+        "Why is the 5-year all-cause mortality gap between China and the US so large?",
+    ]
+    assert charter_payload["explanation_targets"] == [
+        "Decompose the observed mortality gap into endpoint alignment, follow-up/censoring, case-mix shift, score compression, and residual unexplained components.",
+    ]
+    assert charter_payload["manuscript_conclusion_redlines"] == [
+        "Do not conclude only that the China-trained absolute-risk model is non-transportable.",
+    ]
     assert "custom_brief" in controller_extensions
+    assert "Why is the 5-year all-cause mortality gap between China and the US so large?" in controller_extensions["custom_brief"]
+    assert "Decompose the observed mortality gap into endpoint alignment, follow-up/censoring, case-mix shift, score compression, and residual unexplained components." in controller_extensions["custom_brief"]
+    assert "Do not conclude only that the China-trained absolute-risk model is non-transportable." in controller_extensions["custom_brief"]
 
 
 def test_compose_startup_contract_rejects_runtime_owned_and_extension_overlap() -> None:
@@ -7204,6 +7491,111 @@ def test_study_runtime_status_auto_resumes_premature_completion_request_when_pub
     assert result["family_human_gates"] == []
 
 
+def test_study_runtime_status_reroutes_live_write_drift_back_to_publication_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "running",
+                "active_run_id": "run-live-001",
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "blockers": [
+                "active_run_drifting_into_write_without_gate_approval",
+                "missing_reporting_guideline_checklist",
+            ],
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live-001",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-001",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-live-001"],
+            },
+        },
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_drifting_into_write_without_gate_approval"
+    assert result["publication_supervisor_state"]["current_required_action"] == "return_to_publishability_gate"
+    assert result["execution_owner_guard"]["supervisor_only"] is True
+
+
 def test_ensure_study_runtime_enqueues_controller_reply_for_premature_completion_request(
     monkeypatch,
     tmp_path: Path,
@@ -7368,6 +7760,121 @@ def test_ensure_study_runtime_enqueues_controller_reply_for_premature_completion
     assert launch_report["decision"] == "resume"
     assert launch_report["reason"] == "quest_completion_requested_before_publication_gate_clear"
     assert launch_report["daemon_result"]["action"] == "resume"
+
+
+def test_ensure_study_runtime_queues_controller_message_for_live_write_drift_without_redundant_resume(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "running",
+                "active_run_id": "run-live-001",
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "unchanged_finalize_state",
+                "pending_user_message_count": 0,
+            }
+        )
+        + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "status": "blocked",
+            "blockers": [
+                "active_run_drifting_into_write_without_gate_approval",
+                "missing_reporting_guideline_checklist",
+            ],
+            "supervisor_phase": "publishability_gate_blocked",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle suggestions are downstream-only until the publication gate allows write",
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "inspect_quest_live_execution",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "status": "live",
+            "source": "combined_runner_or_bash_session",
+            "active_run_id": "run-live-001",
+            "runner_live": True,
+            "bash_live": True,
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-001",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "bash_session_audit": {
+                "ok": True,
+                "status": "live",
+                "session_count": 1,
+                "live_session_count": 1,
+                "live_session_ids": ["sess-live-001"],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: pytest.fail("resume_quest should not run for an already-live reroute"),
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    updated_runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_drifting_into_write_without_gate_approval"
+    assert len(queue["pending"]) == 1
+    assert "publication gate 尚未放行写作" in queue["pending"][0]["content"]
+    assert updated_runtime_state["pending_user_message_count"] == 1
 
 
 def test_ensure_study_runtime_resumes_submission_metadata_only_waiting_quest(monkeypatch, tmp_path: Path) -> None:

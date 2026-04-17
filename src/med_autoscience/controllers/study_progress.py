@@ -54,6 +54,7 @@ _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
     "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
+    "quest_drifting_into_write_without_gate_approval": "运行时已经漂进写作/定稿，但发表门控尚未放行，MAS 正在把它拉回论文门控主线。",
     "quest_stopped_requires_explicit_rerun": "当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。",
     "study_completion_contract_not_ready": "study-level 完成声明已存在，但 final submission 证据还未补齐，当前不能按完成态收口。",
     "startup_boundary_not_ready_for_resume": "运行前置条件尚未满足，系统不能直接续跑。",
@@ -61,6 +62,7 @@ _REASON_LABELS = {
     "quest_already_running": "托管运行时已经处于自动推进状态。",
 }
 _WATCH_BLOCKER_LABELS = {
+    "active_run_drifting_into_write_without_gate_approval": "当前 live run 已经漂进写作或定稿，但发表门控仍未放行，必须先拉回论文门控主线。",
     "missing_post_main_publishability_gate": "论文可发表性门控尚未放行。",
     "medical_publication_surface_blocked": "论文叙事或方法/结果书写面仍有硬阻塞。",
     "registry_contract_mismatch": "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。",
@@ -85,6 +87,7 @@ _WATCH_BLOCKER_LABELS = {
     "submission_checklist_contains_unclassified_blocking_items": "投稿检查清单里仍有未归类的硬阻塞。",
 }
 _BLOCKER_LABELS = {
+    "active_run_drifting_into_write_without_gate_approval": "当前 live run 已经漂进写作或定稿，但发表门控仍未放行，必须先拉回论文门控主线。",
     "missing_submission_minimal": "缺少最小投稿包导出。",
     "submission_grade_active_figure_floor_unmet": "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。",
     "registry_contract_mismatch": "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。",

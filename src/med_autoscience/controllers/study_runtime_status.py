@@ -96,6 +96,7 @@ class StudyRuntimeReason(StrEnum):
     RUNTIME_REENTRY_NOT_READY_FOR_RESUME = "runtime_reentry_not_ready_for_resume"
     QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION = "quest_marked_running_but_no_live_session"
     QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE = "quest_parked_on_unchanged_finalize_state"
+    QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL = "quest_drifting_into_write_without_gate_approval"
     RESUME_REQUEST_FAILED = "resume_request_failed"
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 import pytest
 import yaml
 
-from tests.study_runtime_test_helpers import make_profile
+from tests.study_runtime_test_helpers import make_profile, write_text
 
 
 def _profile_with_hermes_binding(tmp_path: Path):
@@ -116,6 +117,49 @@ def test_hermes_transport_fails_closed_when_external_runtime_is_not_ready(
             quest_id="quest-001",
             source="test",
         )
+
+
+def test_hermes_transport_inspect_live_execution_returns_structured_unknown_when_external_runtime_is_not_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    hermes = importlib.import_module("med_autoscience.runtime_transport.hermes")
+    profile = _profile_with_hermes_binding(tmp_path)
+    runtime_root = profile.managed_runtime_home
+    quest_root = runtime_root / "quests" / "quest-001"
+
+    hermes.bind_runtime_root_from_profile(runtime_root=runtime_root, profile=profile)
+    write_text(quest_root / "quest.yaml", "quest_id: quest-001\nstatus: running\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "running",
+                "active_run_id": "run-live-001",
+            }
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        hermes,
+        "inspect_hermes_runtime_contract",
+        lambda **kwargs: {
+            "ready": False,
+            "issues": ["external_runtime.gateway_service_not_loaded"],
+        },
+    )
+
+    result = hermes.inspect_quest_live_execution(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "unknown"
+    assert result["source"] == "external_runtime_contract"
+    assert result["active_run_id"] == "run-live-001"
+    assert result["runtime_audit"]["status"] == "unknown"
+    assert "external_runtime.gateway_service_not_loaded" in result["error"]
 
 
 def test_router_binds_runtime_root_when_selecting_hermes_backend(tmp_path: Path) -> None:

@@ -8,6 +8,7 @@ from pathlib import Path
 from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import (
     publication_gate as publication_gate_controller,
+    runtime_supervision as runtime_supervision_controller,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     study_runtime_family_orchestration as family_orchestration,
@@ -427,6 +428,23 @@ def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:
         return not status.publication_supervisor_state.bundle_tasks_downstream_only
     except KeyError:
         return True
+
+
+def _publication_gate_requires_live_runtime_reroute(
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    if not isinstance(publication_gate_report, dict):
+        return False
+    blockers = {
+        str(item).strip()
+        for item in (publication_gate_report.get("blockers") or [])
+        if str(item).strip()
+    }
+    current_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
+    return (
+        "active_run_drifting_into_write_without_gate_approval" in blockers
+        and current_required_action == "return_to_publishability_gate"
+    )
 
 
 def _runtime_owned_roots(quest_root: Path) -> tuple[str, ...]:
@@ -967,6 +985,40 @@ def _sync_runtime_summary_if_needed(
     )
 
 
+def _should_refresh_runtime_supervision_from_status(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+) -> bool:
+    latest_report_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    latest_report = _read_json_mapping(latest_report_path)
+    if latest_report is None:
+        return False
+    status_payload = status.to_dict()
+    facts = runtime_supervision_controller._runtime_facts(status_payload)
+    strict_live = bool(facts["strict_live"])
+    decision = str(status_payload.get("decision") or "").strip() or None
+    reason = str(status_payload.get("reason") or "").strip() or None
+    quest_status = str(status_payload.get("quest_status") or "").strip() or None
+    if strict_live:
+        target_health_status = "live"
+    elif runtime_supervision_controller._needs_drop_detection(status_payload, strict_live=strict_live):
+        target_health_status = "degraded"
+    else:
+        return False
+    return any(
+        (
+            (str(latest_report.get("health_status") or "").strip() or None) != target_health_status,
+            (str(latest_report.get("active_run_id") or "").strip() or None) != facts["active_run_id"],
+            (str(latest_report.get("runtime_liveness_status") or "").strip() or None)
+            != facts["runtime_liveness_status"],
+            (str(latest_report.get("runtime_decision") or "").strip() or None) != decision,
+            (str(latest_report.get("runtime_reason") or "").strip() or None) != reason,
+            (str(latest_report.get("quest_status") or "").strip() or None) != quest_status,
+        )
+    )
+
+
 def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id: str) -> Path | None:
     resolved_interaction_id = str(interaction_id or "").strip()
     if not resolved_interaction_id:
@@ -1299,6 +1351,13 @@ def _status_state(
                 status=result,
                 runtime_context=runtime_context,
             )
+        if _should_refresh_runtime_supervision_from_status(status=result, study_root=study_root):
+            runtime_supervision_controller.materialize_runtime_supervision(
+                study_root=study_root,
+                status_payload=result.to_dict(),
+                recorded_at=router._utc_now(),
+                apply=False,
+            )
         if include_progress_projection:
             from med_autoscience.controllers import study_progress as study_progress_controller
 
@@ -1471,7 +1530,18 @@ def _status_state(
                 StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
             )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if not result.startup_boundary_allows_compute_stage:
+            if _publication_gate_requires_live_runtime_reroute(publication_gate_report):
+                if execution.get("auto_resume") is True:
+                    result.set_decision(
+                        StudyRuntimeDecision.RESUME,
+                        StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL,
+                    )
+                else:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
+                    )
+            elif not result.startup_boundary_allows_compute_stage:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE,
                     StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST,

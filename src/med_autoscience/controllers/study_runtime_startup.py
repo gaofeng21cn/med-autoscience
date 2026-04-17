@@ -78,6 +78,36 @@ def _overlay_request_kwargs(profile: WorkspaceProfile) -> dict[str, Any]:
     }
 
 
+def _render_optional_guidance_list(*, title: str, items: list[str]) -> str:
+    normalized_items = [str(item).strip() for item in items if str(item).strip()]
+    if not normalized_items:
+        return ""
+    lines = [title]
+    lines.extend(f"- {item}" for item in normalized_items)
+    return "\n".join(lines)
+
+
+def _render_study_specific_scientific_guidance(study_payload: dict[str, Any]) -> str:
+    sections = [
+        _render_optional_guidance_list(
+            title="Scientific follow-up questions:",
+            items=list(study_payload.get("scientific_followup_questions") or []),
+        ),
+        _render_optional_guidance_list(
+            title="Explanation targets that must be concretely decomposed:",
+            items=list(study_payload.get("explanation_targets") or []),
+        ),
+        _render_optional_guidance_list(
+            title="Manuscript conclusion red lines:",
+            items=list(study_payload.get("manuscript_conclusion_redlines") or []),
+        ),
+    ]
+    sections = [section for section in sections if section.strip()]
+    if not sections:
+        return ""
+    return "Study-specific scientific guidance:\n" + "\n\n".join(sections)
+
+
 def _prepare_runtime_overlay(*, profile: WorkspaceProfile, quest_root: Path) -> dict[str, Any]:
     overlay_kwargs = _overlay_request_kwargs(profile)
     authority = overlay_installer.ensure_medical_overlay(
@@ -173,6 +203,9 @@ def _build_startup_contract(
     )
     if task_intake_context:
         custom_brief = f"{custom_brief}\n\nCurrent managed task intake:\n\n{task_intake_context}".strip()
+    study_specific_scientific_guidance = _render_study_specific_scientific_guidance(study_payload)
+    if study_specific_scientific_guidance:
+        custom_brief = f"{custom_brief}\n\n{study_specific_scientific_guidance}".strip()
 
     if not startup_boundary_gate.allow_compute_stage:
         scope = "full_research"

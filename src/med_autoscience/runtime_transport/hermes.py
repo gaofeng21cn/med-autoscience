@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -123,6 +124,75 @@ def _require_ready_external_runtime(*, runtime_root: Path) -> dict[str, Any]:
     )
 
 
+def _load_runtime_local_state(*, runtime_root: Path, quest_id: str) -> dict[str, Any] | None:
+    quest_root = _resolved_runtime_root(runtime_root) / "quests" / quest_id
+    quest_yaml_path = quest_root / "quest.yaml"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    if not quest_yaml_path.exists() and not runtime_state_path.exists():
+        return None
+    quest_payload = _load_yaml_dict(quest_yaml_path) if quest_yaml_path.exists() else {}
+    try:
+        runtime_payload = json.loads(runtime_state_path.read_text(encoding="utf-8")) if runtime_state_path.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        runtime_payload = {}
+    if not isinstance(quest_payload, dict):
+        quest_payload = {}
+    if not isinstance(runtime_payload, dict):
+        runtime_payload = {}
+    status = str(runtime_payload.get("status") or quest_payload.get("status") or "").strip() or None
+    active_run_id = str(runtime_payload.get("active_run_id") or quest_payload.get("active_run_id") or "").strip() or None
+    payload = {
+        "status": status,
+        "active_run_id": active_run_id,
+        "continuation_policy": str(runtime_payload.get("continuation_policy") or "").strip() or None,
+        "continuation_anchor": str(runtime_payload.get("continuation_anchor") or "").strip() or None,
+        "continuation_reason": str(runtime_payload.get("continuation_reason") or "").strip() or None,
+    }
+    return payload
+
+
+def _external_runtime_unavailable_live_execution(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    error_text: str,
+) -> dict[str, Any]:
+    local_runtime_state = _load_runtime_local_state(runtime_root=runtime_root, quest_id=quest_id)
+    active_run_id = None
+    if isinstance(local_runtime_state, dict):
+        active_run_id = str(local_runtime_state.get("active_run_id") or "").strip() or None
+    payload = {
+        "ok": False,
+        "status": "unknown",
+        "source": "external_runtime_contract",
+        "active_run_id": active_run_id,
+        "runner_live": False,
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": False,
+            "status": "unknown",
+            "source": "external_runtime_contract",
+            "active_run_id": active_run_id,
+            "worker_running": None,
+            "worker_pending": None,
+            "stop_requested": None,
+            "error": error_text,
+        },
+        "bash_session_audit": {
+            "ok": False,
+            "status": "unknown",
+            "session_count": None,
+            "live_session_count": None,
+            "live_session_ids": [],
+            "error": error_text,
+        },
+        "error": error_text,
+    }
+    if isinstance(local_runtime_state, dict):
+        payload["local_runtime_state"] = local_runtime_state
+    return payload
+
+
 def resolve_daemon_url(*, runtime_root: Path) -> str:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="resolve_daemon_url")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
@@ -223,7 +293,14 @@ def inspect_quest_live_execution(
     timeout: int | None = None,
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="inspect_quest_live_execution")
-    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    try:
+        _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    except RuntimeError as exc:
+        return _external_runtime_unavailable_live_execution(
+            runtime_root=resolved_runtime_root,
+            quest_id=quest_id,
+            error_text=str(exc),
+        )
     return stable_transport.inspect_quest_live_execution(
         quest_id=quest_id,
         daemon_url=daemon_url,
