@@ -79,11 +79,14 @@ def test_release_workflows_use_uv_managed_test_environment() -> None:
     assert "make test-full" not in release_workflow
 
 
-def test_ci_and_release_workflows_prepare_study_runtime_analysis_bundle_before_display_bound_lanes() -> None:
+def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for_display_and_release_bound_lanes() -> None:
     ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
+    quick_checks_workflow, display_workflow = ci_workflow.split("display-surface:", maxsplit=1)
 
-    assert ci_workflow.count("Ensure study runtime analysis bundle") == 2
+    assert ci_workflow.count("Ensure study runtime analysis bundle") == 1
+    assert "Ensure study runtime analysis bundle" not in quick_checks_workflow
+    assert "Ensure study runtime analysis bundle" in display_workflow
     assert "Run display-heavy tests" in ci_workflow
     assert "brew install pandoc graphviz r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow

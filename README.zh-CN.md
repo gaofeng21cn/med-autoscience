@@ -140,6 +140,7 @@ repo-tracked runtime truth 与本地 operator handoff surface 继续分层维护
 - `make test-meta`
 - `make test-display`
 - `make test-full`
+- GitHub `macOS CI` 会刻意把 `quick-checks` 保持为轻量告警；完整 study runtime analysis bundle 仍只在 `display-heavy` 和 `release/full` lane 上准备。
 
 ## Codex plugin 接入
 

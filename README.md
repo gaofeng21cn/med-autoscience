@@ -140,6 +140,7 @@ The medical display line remains intentionally separate from the runtime mainlin
 - `make test-meta`
 - `make test-display`
 - `make test-full`
+- GitHub `macOS CI` intentionally keeps `quick-checks` lightweight; the full study runtime analysis bundle is still prepared on the `display-heavy` and `release/full` lanes.
 
 ## Codex Plugin Integration
 
