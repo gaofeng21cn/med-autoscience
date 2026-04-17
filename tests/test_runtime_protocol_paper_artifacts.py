@@ -48,6 +48,30 @@ def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) ->
     assert resolved_submission == submission_manifest
 
 
+def test_resolve_paper_bundle_manifest_prefers_paper_worktree_over_newer_analysis_mirror(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    paper_manifest = (
+        quest_root / ".ds" / "worktrees" / "paper-paper-run-1-outline-001-run" / "paper" / "paper_bundle_manifest.json"
+    )
+    analysis_manifest = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "analysis-analysis-aaaa1111-ppr002-public-evidence-adjudication"
+        / "paper"
+        / "paper_bundle_manifest.json"
+    )
+    dump_json(paper_manifest, {"schema_version": 1, "role": "paper"})
+    time.sleep(0.01)
+    dump_json(analysis_manifest, {"schema_version": 1, "role": "analysis"})
+
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+
+    assert resolved_bundle == paper_manifest
+
+
 def test_resolve_artifact_manifest_from_main_result_evidence_paths(tmp_path: Path) -> None:
     worktree_root = tmp_path / "worktree"
     manifest = worktree_root / "artifacts" / "artifact_manifest.json"

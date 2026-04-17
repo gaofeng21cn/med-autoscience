@@ -750,10 +750,13 @@ def _normalize_figure_catalog_id(raw_id: str) -> str:
         return f"GA{int(graphical_abstract_match.group(1))}"
     supplementary_match = re.fullmatch(r"SupplementaryFigureS(\d+)", item, flags=re.IGNORECASE)
     if supplementary_match:
-        return f"FS{int(supplementary_match.group(1))}"
+        return f"S{int(supplementary_match.group(1))}"
+    supplementary_current_match = re.fullmatch(r"S(\d+)", item, flags=re.IGNORECASE)
+    if supplementary_current_match:
+        return f"S{int(supplementary_current_match.group(1))}"
     supplementary_short_match = re.fullmatch(r"FS(\d+)", item, flags=re.IGNORECASE)
     if supplementary_short_match:
-        return f"FS{int(supplementary_short_match.group(1))}"
+        return f"S{int(supplementary_short_match.group(1))}"
     match = re.fullmatch(r"F(?:igure)?(\d+)([A-Z]?)", item, flags=re.IGNORECASE)
     if not match:
         raise ValueError(f"unsupported figure catalog_id `{raw_id}`")

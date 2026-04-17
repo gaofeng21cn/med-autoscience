@@ -89,6 +89,14 @@ def test_get_evidence_figure_spec_accepts_namespaced_template_id() -> None:
     assert spec.template_id == _full_id("roc_curve_binary")
 
 
+def test_local_architecture_overview_figure_alias_resolves_to_risk_layering_template() -> None:
+    spec = display_registry.get_evidence_figure_spec("local_architecture_overview_figure")
+
+    assert spec.template_id == _full_id("risk_layering_monotonic_bars")
+    assert spec.input_schema_id == "risk_layering_monotonic_inputs_v1"
+    assert display_registry.is_evidence_figure_template("local_architecture_overview_figure")
+
+
 def test_time_to_event_threshold_governance_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_threshold_governance_panel"))
 

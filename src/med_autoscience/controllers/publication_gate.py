@@ -100,12 +100,26 @@ def find_latest(paths: list[Path]) -> Path | None:
     return max(paths, key=lambda item: item.stat().st_mtime)
 
 
+def find_latest_parseable_json(paths: list[Path]) -> Path | None:
+    for path in sorted(paths, key=lambda item: item.stat().st_mtime, reverse=True):
+        try:
+            load_json(path)
+        except json.JSONDecodeError:
+            continue
+        return path
+    return None
+
+
 def find_latest_gate_report(quest_root: Path) -> Path | None:
-    return find_latest(list((quest_root / "artifacts" / "reports" / "publishability_gate").glob("*.json")))
+    return find_latest_parseable_json(
+        list((quest_root / "artifacts" / "reports" / "publishability_gate").glob("*.json"))
+    )
 
 
 def find_latest_medical_publication_surface_report(quest_root: Path) -> Path | None:
-    return find_latest(list((quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json")))
+    return find_latest_parseable_json(
+        list((quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json"))
+    )
 
 
 def _write_drift_text_surfaces(line: str) -> list[str]:
@@ -1020,7 +1034,11 @@ def run_controller(
         and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
     ):
         stale_reason = str(report.get("study_delivery_stale_reason") or "current_submission_source_missing")
-        if stale_reason in {"delivery_projection_missing", "delivery_manifest_source_changed"}:
+        if stale_reason in {
+            "delivery_projection_missing",
+            "delivery_manifest_source_changed",
+            "delivery_manifest_source_mismatch",
+        }:
             study_delivery_stale_sync = study_delivery_sync.sync_study_delivery(
                 paper_root=state.paper_root,
                 stage="submission_minimal",

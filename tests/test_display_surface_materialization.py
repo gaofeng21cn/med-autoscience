@@ -30,6 +30,14 @@ def full_id(value: str) -> str:
     return _canonicalize_registry_id(value)
 
 
+def test_normalize_figure_catalog_id_accepts_supplementary_short_form() -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+
+    assert module._normalize_figure_catalog_id("S1") == "S1"
+    assert module._normalize_figure_catalog_id("FS1") == "S1"
+    assert module._normalize_figure_catalog_id("SupplementaryFigureS1") == "S1"
+
+
 def _normalize_namespaced_ids(payload: Any) -> Any:
     if isinstance(payload, dict):
         normalized: dict[str, Any] = {}

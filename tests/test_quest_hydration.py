@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience import display_registry
+
 
 def _time_to_event_reporting_contract() -> dict[str, object]:
     return {
@@ -53,6 +55,33 @@ def _time_to_event_reporting_contract() -> dict[str, object]:
                 "display_kind": "table",
                 "requirement_key": "table2_time_to_event_performance_summary",
                 "catalog_id": "T2",
+            },
+        ],
+    }
+
+
+def _nf_pitnet_reporting_contract() -> dict[str, object]:
+    return {
+        "reporting_guideline_family": "TRIPOD",
+        "display_registry_required": True,
+        "display_shell_plan": [
+            {
+                "display_id": "cohort_flow",
+                "display_kind": "figure",
+                "requirement_key": "cohort_flow_figure",
+                "catalog_id": "S1",
+            },
+            {
+                "display_id": "local_architecture_overview",
+                "display_kind": "figure",
+                "requirement_key": "local_architecture_overview_figure",
+                "catalog_id": "F1",
+            },
+            {
+                "display_id": "baseline_characteristics",
+                "display_kind": "table",
+                "requirement_key": "table1_baseline_characteristics",
+                "catalog_id": "T1",
             },
         ],
     }
@@ -129,8 +158,8 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
         },
     )
 
-    display_registry = json.loads((quest_root / "paper" / "display_registry.json").read_text(encoding="utf-8"))
-    assert display_registry["displays"] == [
+    registry_payload = json.loads((quest_root / "paper" / "display_registry.json").read_text(encoding="utf-8"))
+    assert registry_payload["displays"] == [
         {
             "display_id": "cohort_flow",
             "display_kind": "figure",
@@ -216,6 +245,62 @@ def test_run_quest_hydration_writes_semantic_display_ids_and_catalog_ids(tmp_pat
     assert generalizability_inputs["displays"][0]["catalog_id"] == "F5"
     assert performance_inputs["display_id"] == "time_to_event_performance_summary"
     assert performance_inputs["catalog_id"] == "T2"
+
+
+def test_run_quest_hydration_supports_local_architecture_semantic_display_key(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "004-invasive"
+    (quest_root / "paper").mkdir(parents=True, exist_ok=True)
+
+    module.run_hydration(
+        quest_root=quest_root,
+        hydration_payload={
+            "medical_analysis_contract": {
+                "study_archetype": "clinical_classifier",
+                "endpoint_type": "binary_prediction",
+            },
+            "medical_reporting_contract": _nf_pitnet_reporting_contract(),
+            "entry_state_summary": "Study root: /tmp/studies/004-invasive",
+            "literature_records": [],
+        },
+    )
+
+    registry_payload = json.loads((quest_root / "paper" / "display_registry.json").read_text(encoding="utf-8"))
+    assert registry_payload["displays"] == [
+        {
+            "display_id": "cohort_flow",
+            "display_kind": "figure",
+            "requirement_key": "cohort_flow_figure",
+            "catalog_id": "S1",
+            "shell_path": "paper/figures/cohort_flow.shell.json",
+        },
+        {
+            "display_id": "local_architecture_overview",
+            "display_kind": "figure",
+            "requirement_key": "local_architecture_overview_figure",
+            "catalog_id": "F1",
+            "shell_path": "paper/figures/local_architecture_overview.shell.json",
+        },
+        {
+            "display_id": "baseline_characteristics",
+            "display_kind": "table",
+            "requirement_key": "table1_baseline_characteristics",
+            "catalog_id": "T1",
+            "shell_path": "paper/tables/baseline_characteristics.shell.json",
+        },
+    ]
+
+    risk_layering_inputs = json.loads(
+        (quest_root / "paper" / "risk_layering_monotonic_inputs.json").read_text(encoding="utf-8")
+    )
+    assert risk_layering_inputs["input_schema_id"] == "risk_layering_monotonic_inputs_v1"
+    assert risk_layering_inputs["displays"] == [
+        {
+            "display_id": "local_architecture_overview",
+            "template_id": display_registry.get_evidence_figure_spec("risk_layering_monotonic_bars").template_id,
+            "catalog_id": "F1",
+        }
+    ]
 
 
 def test_run_hydration_writes_publication_display_contract_files(tmp_path: Path) -> None:

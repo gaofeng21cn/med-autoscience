@@ -174,6 +174,45 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_pdf_present"] is False
 
 
+def test_build_gate_state_uses_latest_parseable_gate_report_when_newer_report_is_malformed(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    reports_root = quest_root / "artifacts" / "reports" / "publishability_gate"
+    older_report = reports_root / "2026-04-17T000000Z.json"
+    newer_report = reports_root / "2026-04-17T000001Z.json"
+
+    dump_json(
+        older_report,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T00:00:00+00:00",
+            "status": "clear",
+            "controller_stage_note": "older parseable report",
+        },
+    )
+    newer_report.parent.mkdir(parents=True, exist_ok=True)
+    newer_report.write_text(
+        '{"schema_version": 1, "status": "clear"}\n{"schema_version": 1, "status": "blocked"}\n',
+        encoding="utf-8",
+    )
+    os.utime(older_report, (1, 1))
+    os.utime(newer_report, (2, 2))
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.latest_gate_path == older_report
+    assert state.latest_gate == {
+        "schema_version": 1,
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-04-17T00:00:00+00:00",
+        "status": "clear",
+        "controller_stage_note": "older parseable report",
+    }
+
+
 def test_build_gate_report_supports_finalize_only_paper_bundle_without_main_result(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
@@ -1027,6 +1066,98 @@ def test_run_controller_resyncs_delivery_when_authority_package_changes_without_
         module.study_delivery_sync,
         "materialize_submission_delivery_stale_notice",
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("source-changed should use sync_study_delivery")),
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert sync_calls == [("submission_minimal", "general_medical_journal", False)]
+    assert result["status"] == "clear"
+    assert result["study_delivery_stale_sync"] == {
+        "stage": "submission_minimal",
+        "publication_profile": "general_medical_journal",
+        "targets": {
+            "current_package_root": "/tmp/studies/002/manuscript/current_package",
+            "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+        },
+    }
+
+
+def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_is_reported(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    describe_calls = iter(
+        [
+            {
+                "applicable": True,
+                "status": "stale_source_mismatch",
+                "stale_reason": "delivery_manifest_source_mismatch",
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+                "missing_source_paths": [],
+            },
+            {
+                "applicable": True,
+                "status": "current",
+                "stale_reason": None,
+                "delivery_manifest_path": "/tmp/studies/002/manuscript/delivery_manifest.json",
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+                "missing_source_paths": [],
+            },
+        ]
+    )
+    sync_calls: list[tuple[str, str, bool]] = []
+
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_draft_handoff_delivery",
+        lambda *, paper_root: {
+            "applicable": False,
+            "status": "not_applicable",
+            "current_package_root": None,
+            "current_package_zip": None,
+            "delivery_manifest_path": None,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "describe_submission_delivery",
+        lambda *, paper_root, publication_profile="general_medical_journal": next(describe_calls),
+    )
+
+    def fake_sync(
+        *,
+        paper_root: Path,
+        stage: str,
+        publication_profile: str = "general_medical_journal",
+        promote_to_final: bool = False,
+    ) -> dict[str, object]:
+        sync_calls.append((stage, publication_profile, promote_to_final))
+        return {
+            "stage": stage,
+            "publication_profile": publication_profile,
+            "targets": {
+                "current_package_root": "/tmp/studies/002/manuscript/current_package",
+                "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
+            },
+        }
+
+    monkeypatch.setattr(module.study_delivery_sync, "sync_study_delivery", fake_sync)
+    monkeypatch.setattr(
+        module.study_delivery_sync,
+        "materialize_submission_delivery_stale_notice",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("source-mismatch should use sync_study_delivery")),
     )
 
     result = module.run_controller(quest_root=quest_root, apply=True)

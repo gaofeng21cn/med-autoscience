@@ -43,6 +43,21 @@ def resolve_latest_paper_root(quest_root: Path) -> Path:
     return latest_manifest.parent
 
 
+def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[int, float]:
+    resolved_manifest = _resolve_path(manifest_path)
+    try:
+        relative_parts = resolved_manifest.relative_to(quest_root).parts
+    except ValueError:
+        relative_parts = resolved_manifest.parts
+    if relative_parts == ("paper", "paper_bundle_manifest.json"):
+        return (2, resolved_manifest.stat().st_mtime)
+    if len(relative_parts) >= 4 and relative_parts[:2] == (".ds", "worktrees"):
+        worktree_name = relative_parts[2]
+        if worktree_name.startswith("paper-"):
+            return (1, resolved_manifest.stat().st_mtime)
+    return (0, resolved_manifest.stat().st_mtime)
+
+
 def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
     resolved_quest_root = _resolve_path(quest_root)
     candidates: list[Path] = []
@@ -52,7 +67,9 @@ def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
     ]
     for pattern in patterns:
         candidates.extend(resolved_quest_root.glob(pattern))
-    return find_latest(candidates)
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: _paper_bundle_manifest_rank(resolved_quest_root, item))
 
 
 def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:

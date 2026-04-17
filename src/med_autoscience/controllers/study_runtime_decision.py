@@ -308,9 +308,9 @@ def _publication_eval_action(
     evidence_refs: tuple[str, ...],
 ) -> PublicationEvalRecommendedAction:
     status = str(report.get("status") or "").strip()
-    anchor_kind = str(report.get("anchor_kind") or "").strip()
     if status == "clear":
-        action_type = "prepare_promotion_review" if anchor_kind == "paper_bundle" else "continue_same_line"
+        current_required_action = str(report.get("current_required_action") or "").strip()
+        action_type = "prepare_promotion_review" if current_required_action == "prepare_promotion_review" else "continue_same_line"
         reason = (
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is clear and the current line can continue."

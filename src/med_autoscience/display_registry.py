@@ -96,6 +96,9 @@ _TABLE_SHELL_ORDER = tuple(
         "grouped_risk_event_summary_table",
     )
 )
+_SEMANTIC_REGISTRY_ID_ALIASES = {
+    _full_id("local_architecture_overview_figure"): _full_id("risk_layering_monotonic_bars"),
+}
 
 
 def _canonicalize_registry_id(identifier: str) -> str:
@@ -104,8 +107,10 @@ def _canonicalize_registry_id(identifier: str) -> str:
         return normalized
     if "::" in normalized:
         pack_id, short_id = split_full_template_id(normalized)
-        return f"{pack_id}::{short_id}"
-    return _full_id(normalized)
+        canonical = f"{pack_id}::{short_id}"
+    else:
+        canonical = _full_id(normalized)
+    return _SEMANTIC_REGISTRY_ID_ALIASES.get(canonical, canonical)
 
 
 @dataclass(frozen=True)

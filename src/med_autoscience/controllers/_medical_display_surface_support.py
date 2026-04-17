@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from med_autoscience import publication_display_contract
+from med_autoscience import display_registry, publication_display_contract
 
 
 StubKind = Literal["cohort_flow", "table_shell", "evidence_inputs"]
@@ -82,6 +82,15 @@ _REQUIRED_DISPLAY_SURFACE_STUBS: dict[str, RequiredDisplaySurfaceStub] = {
         status="required_pending_materialization",
         template_id="multicenter_generalizability_overview",
     ),
+    "local_architecture_overview_figure": RequiredDisplaySurfaceStub(
+        filename="risk_layering_monotonic_inputs.json",
+        blocker_key="missing_local_architecture_overview_inputs",
+        stub_kind="evidence_inputs",
+        schema_key="input_schema_id",
+        schema_value="risk_layering_monotonic_inputs_v1",
+        status="required_pending_materialization",
+        template_id="risk_layering_monotonic_bars",
+    ),
 }
 
 
@@ -120,9 +129,10 @@ def build_required_display_surface_stub_payload(
             payload["columns"] = []
             payload["rows"] = []
     else:
+        canonical_template_id = display_registry.get_evidence_figure_spec(spec.template_id).template_id
         display_payload: dict[str, Any] = {
             "display_id": item["display_id"],
-            "template_id": spec.template_id,
+            "template_id": canonical_template_id,
         }
         if item.get("catalog_id"):
             display_payload["catalog_id"] = item["catalog_id"]
