@@ -762,6 +762,25 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
     assert "人工介入" in result["current_stage_summary"]
     assert result["intervention_lane"]["lane_id"] == "runtime_recovery_required"
     assert result["intervention_lane"]["recommended_action_id"] == "continue_or_relaunch"
+    assert result["operator_verdict"] == {
+        "surface_kind": "study_operator_verdict",
+        "verdict_id": "study_operator_verdict::001-risk::runtime_recovery_required",
+        "study_id": "001-risk",
+        "lane_id": "runtime_recovery_required",
+        "severity": "critical",
+        "decision_mode": "intervene_now",
+        "needs_intervention": True,
+        "focus_scope": "study",
+        "summary": "托管运行时已连续两次恢复失败，必须人工介入。",
+        "reason_summary": "托管运行时已连续两次恢复失败，必须人工介入。",
+        "primary_step_id": "continue_or_relaunch",
+        "primary_surface_kind": "launch_study",
+        "primary_command": (
+            "uv run python -m med_autoscience.cli launch-study --profile "
+            + str(profile_ref.resolve())
+            + " --study-id 001-risk"
+        ),
+    }
     assert result["recommended_command"].endswith(
         "launch-study --profile " + str(profile_ref.resolve()) + " --study-id 001-risk"
     )
@@ -1155,6 +1174,27 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
     assert result["current_stage"] == "managed_runtime_supervision_gap"
     assert result["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert result["intervention_lane"]["recommended_action_id"] == "refresh_supervision"
+    assert result["operator_verdict"] == {
+        "surface_kind": "study_operator_verdict",
+        "verdict_id": "study_operator_verdict::001-risk::workspace_supervision_gap",
+        "study_id": "001-risk",
+        "lane_id": "workspace_supervision_gap",
+        "severity": "critical",
+        "decision_mode": "intervene_now",
+        "needs_intervention": True,
+        "focus_scope": "workspace",
+        "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
+        "reason_summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
+        "primary_step_id": "refresh_supervision",
+        "primary_surface_kind": "runtime_watch_refresh",
+        "primary_command": (
+            "uv run python -m med_autoscience.cli watch --runtime-root "
+            + str(profile.runtime_root)
+            + " --profile "
+            + str(profile_ref.resolve())
+            + " --ensure-study-runtimes --apply"
+        ),
+    }
     assert result["recommended_command"].endswith(
         "watch --runtime-root "
         + str(profile.runtime_root)
@@ -1746,7 +1786,6 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
             },
         },
     )
-
     result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
 
     assert result["latest_events"][0]["category"] == "publication_eval"
@@ -1841,10 +1880,32 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
             },
         },
     )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 16, 16, 5, tzinfo=timezone.utc),
+    )
 
     result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
 
+    assert result["progress_freshness"]["status"] == "fresh"
     assert result["intervention_lane"]["lane_id"] == "monitor_only"
+    assert result["operator_verdict"]["surface_kind"] == "study_operator_verdict"
+    assert result["operator_verdict"]["verdict_id"] == "study_operator_verdict::004-invasive-architecture::monitor_only"
+    assert result["operator_verdict"]["study_id"] == "004-invasive-architecture"
+    assert result["operator_verdict"]["lane_id"] == "monitor_only"
+    assert result["operator_verdict"]["severity"] == "observe"
+    assert result["operator_verdict"]["decision_mode"] == "monitor_only"
+    assert result["operator_verdict"]["needs_intervention"] is False
+    assert result["operator_verdict"]["focus_scope"] == "study"
+    assert "投稿打包阶段" in result["operator_verdict"]["summary"]
+    assert result["operator_verdict"]["reason_summary"] == result["operator_verdict"]["summary"]
+    assert result["operator_verdict"]["primary_step_id"] == "inspect_study_progress"
+    assert result["operator_verdict"]["primary_surface_kind"] == "study_progress"
+    assert (
+        result["operator_verdict"]["primary_command"]
+        == "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id 004-invasive-architecture"
+    )
     assert result["current_blockers"] == []
     assert result["next_system_action"] == "继续当前投稿打包阶段。"
 

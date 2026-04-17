@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import os
-import re
 import shlex
-import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from med_autoscience.controllers import mainline_status, study_progress, study_runtime_router
+from med_autoscience.controllers import hermes_supervision, mainline_status, study_progress, study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
@@ -146,22 +142,6 @@ def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
     return tuple(normalized)
 
 
-def _slugify_workspace_name(workspace_name: str) -> str:
-    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", workspace_name.strip()).strip("-").lower()
-    return normalized or "workspace"
-
-
-def _run_command(*, command: list[str]) -> tuple[int, str]:
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    output = completed.stdout.strip() or completed.stderr.strip()
-    return completed.returncode, output
-
-
 def _serialize_runtime_status(result: Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
@@ -214,69 +194,8 @@ def _study_selector(*, study_id: str | None = None, study_root: Path | None = No
     raise ValueError("study_id or study_root is required")
 
 
-def _watch_runtime_launchd_label(profile: WorkspaceProfile) -> str:
-    return f"ai.medautoscience.{_slugify_workspace_name(profile.name)}.watch-runtime"
-
-
-def _watch_runtime_systemd_name(profile: WorkspaceProfile) -> str:
-    return f"medautoscience-watch-runtime-{_slugify_workspace_name(profile.name)}"
-
-
-def _inspect_watch_runtime_service(profile: WorkspaceProfile) -> dict[str, Any]:
-    if sys.platform == "darwin":
-        service_label = _watch_runtime_launchd_label(profile)
-        service_file = Path.home() / "Library" / "LaunchAgents" / f"{service_label}.plist"
-        exit_code, output = _run_command(command=["launchctl", "print", f"gui/{os.getuid()}/{service_label}"])
-        loaded = exit_code == 0
-        service_file_exists = service_file.is_file()
-        status = "loaded" if loaded else ("not_loaded" if service_file_exists else "not_installed")
-        if loaded:
-            summary = "MAS supervisor service 已常驻在线，workspace 级监管会持续刷新。"
-        elif service_file_exists:
-            summary = "MAS supervisor service 已安装但当前未常驻在线；需要先拉起 watch-runtime service。"
-        else:
-            summary = "MAS supervisor service 尚未安装；如需持续监管，请先安装 watch-runtime service。"
-        return {
-            "manager": "launchd",
-            "service_label": service_label,
-            "service_file": str(service_file),
-            "service_file_exists": service_file_exists,
-            "loaded": loaded,
-            "status": status,
-            "summary": summary,
-            "raw_output": output,
-        }
-    if sys.platform.startswith("linux"):
-        service_name = _watch_runtime_systemd_name(profile)
-        service_file = Path.home() / ".config" / "systemd" / "user" / f"{service_name}.service"
-        exit_code, output = _run_command(command=["systemctl", "--user", "is-active", f"{service_name}.service"])
-        loaded = exit_code == 0
-        service_file_exists = service_file.is_file()
-        status = "loaded" if loaded else ("not_loaded" if service_file_exists else "not_installed")
-        if loaded:
-            summary = "MAS supervisor service 已常驻在线，workspace 级监管会持续刷新。"
-        elif service_file_exists:
-            summary = "MAS supervisor service 已安装但当前未常驻在线；需要先拉起 watch-runtime service。"
-        else:
-            summary = "MAS supervisor service 尚未安装；如需持续监管，请先安装 watch-runtime service。"
-        return {
-            "manager": "systemd",
-            "service_name": service_name,
-            "service_file": str(service_file),
-            "service_file_exists": service_file_exists,
-            "loaded": loaded,
-            "status": status,
-            "summary": summary,
-            "raw_output": output,
-        }
-    return {
-        "manager": None,
-        "service_file_exists": False,
-        "loaded": False,
-        "status": "unsupported",
-        "summary": "当前平台不支持自动检查 MAS supervisor service；必要时请手工运行 watch。",
-        "raw_output": "",
-    }
+def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
+    return hermes_supervision.read_supervision_status(profile=profile)
 
 
 def _workspace_ready_alerts(doctor_report) -> list[str]:
@@ -416,7 +335,7 @@ def _build_product_entry_guardrails(
             {
                 "guardrail_id": "workspace_supervision_gap",
                 "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                "symptom": "watch-runtime service 未常驻、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                "symptom": "Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
                 "recommended_command": refresh_command,
             },
             {
@@ -513,7 +432,7 @@ def _build_phase3_clearance_lane(
     profile_arg = _profile_arg(profile_ref)
     return {
         "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
@@ -525,7 +444,7 @@ def _build_phase3_clearance_lane(
             },
             {
                 "target_id": "supervisor_service",
-                "title": "Keep workspace supervisor service online",
+                "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
                     str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
                     (
@@ -632,7 +551,7 @@ def _build_product_entry_start(
         "modes": [
             {
                 "mode_id": "open_frontdesk",
-                "title": "Open research frontdesk",
+                "title": "启动 MAS 前台",
                 "command": product_entry_shell["product_frontdesk"]["command"],
                 "surface_kind": PRODUCT_FRONTDESK_KIND,
                 "summary": product_entry_shell["product_frontdesk"]["purpose"],
@@ -640,7 +559,7 @@ def _build_product_entry_start(
             },
             {
                 "mode_id": "submit_task",
-                "title": "Write durable study task",
+                "title": "给 study 下 durable 任务",
                 "command": product_entry_shell["submit_study_task"]["command"],
                 "surface_kind": "study_task_intake",
                 "summary": operator_loop_actions["submit_task"]["summary"],
@@ -648,7 +567,7 @@ def _build_product_entry_start(
             },
             {
                 "mode_id": "continue_study",
-                "title": "Continue or relaunch a study",
+                "title": "启动或续跑 study",
                 "command": product_entry_shell["launch_study"]["command"],
                 "surface_kind": "launch_study",
                 "summary": operator_loop_actions["continue_study"]["summary"],
@@ -761,6 +680,77 @@ def _attention_item(
     }
 
 
+def _workspace_operator_brief(
+    *,
+    workspace_status: str,
+    workspace_alerts: list[str],
+    attention_queue: list[dict[str, Any]],
+    studies: list[dict[str, Any]],
+    user_loop: dict[str, str],
+    commands: dict[str, str],
+) -> dict[str, Any]:
+    if workspace_status == "blocked":
+        summary = _non_empty_text(workspace_alerts[0] if workspace_alerts else None) or (
+            "当前 workspace 还没有通过正式前置检查，先不要盲目启动研究。"
+        )
+        return {
+            "surface_kind": "workspace_operator_brief",
+            "verdict": "preflight_blocked",
+            "summary": summary,
+            "should_intervene_now": True,
+            "focus_scope": "workspace",
+            "focus_study_id": None,
+            "recommended_step_id": "run_doctor",
+            "recommended_command": commands.get("doctor"),
+        }
+    if attention_queue:
+        top = dict(attention_queue[0] or {})
+        return {
+            "surface_kind": "workspace_operator_brief",
+            "verdict": "attention_required",
+            "summary": _non_empty_text(top.get("summary"))
+            or _non_empty_text(top.get("title"))
+            or "当前 workspace 有需要优先处理的 attention item。",
+            "should_intervene_now": True,
+            "focus_scope": _non_empty_text(top.get("scope")) or "workspace",
+            "focus_study_id": _non_empty_text(top.get("study_id")),
+            "recommended_step_id": "handle_attention_item",
+            "recommended_command": _non_empty_text(top.get("recommended_command")) or commands.get("doctor"),
+        }
+    if not studies:
+        return {
+            "surface_kind": "workspace_operator_brief",
+            "verdict": "ready_for_task",
+            "summary": "当前 workspace 已 ready，下一步先给目标 study 写 durable task intake。",
+            "should_intervene_now": False,
+            "focus_scope": "workspace",
+            "focus_study_id": None,
+            "recommended_step_id": "submit_task",
+            "recommended_command": user_loop.get("submit_task_template"),
+        }
+
+    lead_study = dict(studies[0] or {})
+    lead_study_id = _non_empty_text(lead_study.get("study_id"))
+    recommended_command = _non_empty_text(lead_study.get("recommended_command")) or _non_empty_text(
+        ((lead_study.get("commands") or {}).get("progress"))
+    )
+    summary = (
+        f"当前没有新的 workspace 级硬告警，继续盯住 {lead_study_id} 的进度与监管即可。"
+        if lead_study_id is not None
+        else "当前没有新的 workspace 级硬告警，继续保持对活跃 study 的监管即可。"
+    )
+    return {
+        "surface_kind": "workspace_operator_brief",
+        "verdict": "monitor_only",
+        "summary": summary,
+        "should_intervene_now": False,
+        "focus_scope": "study",
+        "focus_study_id": lead_study_id,
+        "recommended_step_id": "inspect_progress",
+        "recommended_command": recommended_command or user_loop.get("open_workspace_cockpit"),
+    }
+
+
 def _attention_queue(
     *,
     workspace_status: str,
@@ -780,9 +770,9 @@ def _attention_queue(
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
-                title="先恢复 MAS supervisor 常驻监管",
+                title="先恢复 Hermes-hosted 常驻监管",
                 summary=_non_empty_text(service.get("summary"))
-                or "当前 workspace 还没有稳定的 MAS supervisor 常驻监管入口。",
+                or "当前 workspace 还没有稳定的 Hermes-hosted 常驻监管入口。",
                 recommended_command=commands.get("service_status") or commands.get("service_install"),
                 scope="workspace",
             )
@@ -793,9 +783,12 @@ def _attention_queue(
         monitoring = dict(item.get("monitoring") or {})
         progress_freshness = dict(item.get("progress_freshness") or {})
         blocker_list = list(item.get("current_blockers") or [])
+        operator_verdict = dict(item.get("operator_verdict") or {})
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
-        preferred_command = _non_empty_text(item.get("recommended_command"))
+        preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
+            operator_verdict.get("primary_command")
+        )
         supervisor_tick_status = _non_empty_text(monitoring.get("supervisor_tick_status"))
         progress_status = _non_empty_text(progress_freshness.get("status"))
         current_stage_summary = _non_empty_text(item.get("current_stage_summary"))
@@ -803,7 +796,8 @@ def _attention_queue(
         intervention_lane = dict(item.get("intervention_lane") or {})
         lane_id = _non_empty_text(intervention_lane.get("lane_id"))
         lane_summary = (
-            _non_empty_text(intervention_lane.get("summary"))
+            _non_empty_text(operator_verdict.get("summary"))
+            or _non_empty_text(intervention_lane.get("summary"))
             or current_stage_summary
             or next_system_action
         )
@@ -825,7 +819,7 @@ def _attention_queue(
                 _attention_item(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
-                    summary=lane_summary or "MAS 外环监管存在缺口。",
+                    summary=lane_summary or "Hermes-hosted 托管监管存在缺口。",
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
@@ -963,6 +957,7 @@ def _study_item(
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
+    operator_verdict = dict(progress_payload.get("operator_verdict") or {})
     recommended_command = _non_empty_text(progress_payload.get("recommended_command"))
     recommended_commands = [
         dict(item)
@@ -977,6 +972,7 @@ def _study_item(
         "current_blockers": list(progress_payload.get("current_blockers") or []),
         "next_system_action": progress_payload.get("next_system_action"),
         "intervention_lane": intervention_lane or None,
+        "operator_verdict": operator_verdict or None,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "recovery_contract": recovery_contract or None,
@@ -1013,7 +1009,7 @@ def read_workspace_cockpit(
         progress_summary = _non_empty_text(progress_freshness.get("summary"))
         if _non_empty_text(progress_freshness.get("status")) in {"stale", "missing"} and progress_summary not in workspace_alerts:
             workspace_alerts.append(progress_summary)
-    service = _inspect_watch_runtime_service(profile)
+    service = _inspect_workspace_supervision(profile)
     workspace_supervision = _workspace_supervision_summary(studies=studies, service=service)
     if (
         not bool(service.get("loaded"))
@@ -1046,6 +1042,15 @@ def read_workspace_cockpit(
         studies=studies,
         commands=commands,
     )
+    user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
+    operator_brief = _workspace_operator_brief(
+        workspace_status=workspace_status,
+        workspace_alerts=workspace_alerts,
+        attention_queue=attention_queue,
+        studies=studies,
+        user_loop=user_loop,
+        commands=commands,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1056,7 +1061,8 @@ def read_workspace_cockpit(
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
         "attention_queue": attention_queue,
-        "user_loop": _user_loop(profile=profile, profile_ref=profile_ref),
+        "operator_brief": operator_brief,
+        "user_loop": user_loop,
         "studies": studies,
         "commands": commands,
     }
@@ -1067,6 +1073,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     workspace_supervision = dict(payload.get("workspace_supervision") or {})
     service = dict(workspace_supervision.get("service") or {})
     study_counts = dict(workspace_supervision.get("study_counts") or {})
+    operator_brief = dict(payload.get("operator_brief") or {})
     lines = [
         "# Workspace Cockpit",
         "",
@@ -1074,9 +1081,24 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         f"- workspace_root: `{payload.get('workspace_root')}`",
         f"- workspace_status: `{payload.get('workspace_status')}`",
         "",
-        "## Mainline Snapshot",
+        "## Now",
         "",
     ]
+    if operator_brief:
+        lines.append(f"- verdict: `{operator_brief.get('verdict') or 'none'}`")
+        lines.append(f"- summary: {operator_brief.get('summary') or 'none'}")
+        lines.append(f"- should_intervene_now: `{operator_brief.get('should_intervene_now')}`")
+        lines.append(f"- recommended_step_id: `{operator_brief.get('recommended_step_id') or 'none'}`")
+        lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
+        if operator_brief.get("focus_study_id"):
+            lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+    else:
+        lines.append("- 当前还没有 operator brief。")
+    lines.extend([
+        "",
+        "## Mainline Snapshot",
+        "",
+    ])
     if mainline_snapshot:
         lines.append(f"- program_id: `{mainline_snapshot.get('program_id') or 'unknown'}`")
         lines.append(f"- current_stage: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
@@ -1167,6 +1189,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- intervention_lane: {intervention_lane.get('title')}")
         if intervention_lane.get("summary"):
             lines.append(f"- intervention_summary: {intervention_lane.get('summary')}")
+        operator_verdict = dict(item.get("operator_verdict") or {})
+        if operator_verdict.get("decision_mode"):
+            lines.append(f"- operator_verdict: `{operator_verdict.get('decision_mode')}`")
+        if operator_verdict.get("summary"):
+            lines.append(f"- operator_summary: {operator_verdict.get('summary')}")
         recovery_contract = dict(item.get("recovery_contract") or {})
         if recovery_contract.get("action_mode"):
             lines.append(f"- recovery_contract: `{recovery_contract.get('action_mode')}`")
@@ -1527,7 +1554,7 @@ def build_product_entry_manifest(
         "steps": [
             {
                 "step_id": "open_frontdesk",
-                "title": "Open research frontdesk",
+                "title": "启动 MAS 前台",
                 "command": product_entry_shell["product_frontdesk"]["command"],
                 "surface_kind": PRODUCT_FRONTDESK_KIND,
                 "summary": product_entry_shell["product_frontdesk"]["purpose"],
@@ -1535,7 +1562,7 @@ def build_product_entry_manifest(
             },
             {
                 "step_id": "submit_task",
-                "title": "Write durable study task",
+                "title": "给 study 下 durable 任务",
                 "command": product_entry_shell["submit_study_task"]["command"],
                 "surface_kind": "study_task_intake",
                 "summary": operator_loop_actions["submit_task"]["summary"],
@@ -1543,7 +1570,7 @@ def build_product_entry_manifest(
             },
             {
                 "step_id": "continue_study",
-                "title": "Continue or relaunch a study",
+                "title": "启动或续跑 study",
                 "command": product_entry_shell["launch_study"]["command"],
                 "surface_kind": "launch_study",
                 "summary": operator_loop_actions["continue_study"]["summary"],
@@ -1551,7 +1578,7 @@ def build_product_entry_manifest(
             },
             {
                 "step_id": "inspect_progress",
-                "title": "Inspect current study progress",
+                "title": "持续看研究进度",
                 "command": product_entry_shell["study_progress"]["command"],
                 "surface_kind": "study_progress",
                 "summary": operator_loop_actions["inspect_progress"]["summary"],
@@ -1795,8 +1822,66 @@ def build_product_frontdesk(
         profile=profile,
         profile_ref=profile_ref,
     )
+    workspace_cockpit = read_workspace_cockpit(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
     product_entry_shell = dict(manifest.get("product_entry_shell") or {})
     shared_handoff = dict(manifest.get("shared_handoff") or {})
+    product_entry_preflight = dict(manifest.get("product_entry_preflight") or {})
+    product_entry_quickstart = dict(manifest.get("product_entry_quickstart") or {})
+    workspace_operator_brief = dict(workspace_cockpit.get("operator_brief") or {})
+    if not bool(product_entry_preflight.get("ready_to_try_now")):
+        operator_brief = {
+            "surface_kind": "product_frontdesk_operator_brief",
+            "verdict": "preflight_blocked",
+            "summary": _non_empty_text(product_entry_preflight.get("summary"))
+            or "当前还没有通过前置检查，先不要直接进入研究主线。",
+            "should_intervene_now": True,
+            "focus_scope": "workspace",
+            "focus_study_id": None,
+            "recommended_step_id": "preflight_check",
+            "recommended_command": _non_empty_text(product_entry_preflight.get("recommended_check_command")),
+        }
+    elif _non_empty_text(workspace_operator_brief.get("verdict")) == "attention_required":
+        operator_brief = {
+            "surface_kind": "product_frontdesk_operator_brief",
+            "verdict": "attention_required",
+            "summary": _non_empty_text(workspace_operator_brief.get("summary"))
+            or "当前 workspace 已有需要优先处理的 attention item。",
+            "should_intervene_now": True,
+            "focus_scope": _non_empty_text(workspace_operator_brief.get("focus_scope")) or "workspace",
+            "focus_study_id": _non_empty_text(workspace_operator_brief.get("focus_study_id")),
+            "recommended_step_id": "open_workspace_cockpit",
+            "recommended_command": _non_empty_text(workspace_operator_brief.get("recommended_command"))
+            or _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
+        }
+    elif _non_empty_text(workspace_operator_brief.get("verdict")) == "ready_for_task":
+        operator_brief = {
+            "surface_kind": "product_frontdesk_operator_brief",
+            "verdict": "ready_for_task",
+            "summary": "当前 workspace 已 ready，下一步先给目标 study 下任务，再启动研究。",
+            "should_intervene_now": False,
+            "focus_scope": "workspace",
+            "focus_study_id": None,
+            "recommended_step_id": "submit_task",
+            "recommended_command": _non_empty_text(workspace_operator_brief.get("recommended_command"))
+            or _non_empty_text(
+                ((product_entry_quickstart.get("steps") or [None, {}])[1] or {}).get("command")
+            ),
+        }
+    else:
+        operator_brief = {
+            "surface_kind": "product_frontdesk_operator_brief",
+            "verdict": "monitor_only",
+            "summary": _non_empty_text(workspace_operator_brief.get("summary"))
+            or "当前先进入 workspace cockpit，持续看进度、告警和恢复建议。",
+            "should_intervene_now": bool(workspace_operator_brief.get("should_intervene_now")),
+            "focus_scope": _non_empty_text(workspace_operator_brief.get("focus_scope")) or "workspace",
+            "focus_study_id": _non_empty_text(workspace_operator_brief.get("focus_study_id")),
+            "recommended_step_id": "open_workspace_cockpit",
+            "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
+        }
 
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1821,6 +1906,9 @@ def build_product_frontdesk(
         "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
         "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
         "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
+        "operator_brief": operator_brief,
+        "workspace_operator_brief": workspace_operator_brief,
+        "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
         "family_orchestration": dict(manifest.get("family_orchestration") or {}),
         "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         "product_entry_manifest": manifest,
@@ -1857,6 +1945,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     phase5_platform_target = dict(payload.get("phase5_platform_target") or {})
+    operator_brief = dict(payload.get("operator_brief") or {})
+    quickstart = dict(payload.get("product_entry_quickstart") or {})
+    workspace_operator_brief = dict(payload.get("workspace_operator_brief") or {})
     lines = [
         "# Product Frontdesk",
         "",
@@ -1869,6 +1960,32 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         f"- recommended_command: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
         f"- operator_loop_command: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
         "",
+        "## Now",
+        "",
+    ]
+    if operator_brief:
+        lines.append(f"- verdict: `{operator_brief.get('verdict') or 'none'}`")
+        lines.append(f"- summary: {operator_brief.get('summary') or 'none'}")
+        lines.append(f"- should_intervene_now: `{operator_brief.get('should_intervene_now')}`")
+        lines.append(f"- recommended_step_id: `{operator_brief.get('recommended_step_id') or 'none'}`")
+        lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
+        if operator_brief.get("focus_study_id"):
+            lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+    else:
+        lines.append("- 当前还没有 frontdesk operator brief。")
+    lines.extend([
+        "",
+        "## Single Path",
+        "",
+    ])
+    for step in quickstart.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        lines.append(
+            f"- `{step.get('step_id')}`: `{step.get('command') or 'none'}` {step.get('summary') or ''}"
+        )
+    lines.extend([
+        "",
         "## Product Entry Overview",
         "",
         f"- summary: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
@@ -1879,9 +1996,26 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
         f"- resume_command: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         "",
+        "## Workspace Preview",
+        "",
+    ])
+    if workspace_operator_brief:
+        lines.append(f"- verdict: `{workspace_operator_brief.get('verdict') or 'none'}`")
+        lines.append(f"- summary: {workspace_operator_brief.get('summary') or 'none'}")
+        lines.append(f"- recommended_command: `{workspace_operator_brief.get('recommended_command') or 'none'}`")
+    else:
+        lines.append("- 当前没有 workspace preview。")
+    for item in payload.get("workspace_attention_queue_preview") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"- attention: {item.get('title') or '未命名关注项'} / `{item.get('recommended_command') or 'none'}`"
+        )
+    lines.extend([
+        "",
         "## Guardrails",
         "",
-    ]
+    ])
     for item in product_entry_guardrails.get("guardrail_classes") or []:
         if not isinstance(item, dict):
             continue

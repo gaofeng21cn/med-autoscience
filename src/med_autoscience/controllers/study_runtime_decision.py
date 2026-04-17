@@ -150,8 +150,8 @@ def _record_supervisor_tick_audit(
             {
                 "status": "missing",
                 "reason": "supervisor_tick_report_missing",
-                "summary": "MedAutoScience 外环监管心跳缺失，当前不能保证及时发现掉线并自动恢复。",
-                "next_action_summary": "需要恢复或补齐 MedAutoScience supervisor tick / heartbeat 调度，再继续托管监管与自动恢复。",
+                "summary": "Hermes-hosted 托管监管心跳缺失，当前不能保证及时发现掉线并自动恢复。",
+                "next_action_summary": "需要恢复或补齐 Hermes-hosted supervision tick 调度，再继续托管监管与自动恢复。",
                 "latest_recorded_at": None,
                 "seconds_since_latest_recorded_at": None,
                 "last_known_health_status": None,
@@ -167,7 +167,7 @@ def _record_supervisor_tick_audit(
             {
                 "status": "invalid",
                 "reason": "supervisor_tick_report_timestamp_invalid",
-                "summary": "MedAutoScience 最近一次监管记录缺少可解析时间戳，当前不能确认监管心跳是否仍然新鲜。",
+                "summary": "最近一次 Hermes-hosted 监管记录缺少可解析时间戳，当前不能确认监管心跳是否仍然新鲜。",
                 "next_action_summary": "需要刷新 supervisor tick durable surface，然后重新确认托管监管状态。",
                 "latest_recorded_at": str(latest_report.get("recorded_at") or "").strip() or None,
                 "seconds_since_latest_recorded_at": None,
@@ -185,8 +185,8 @@ def _record_supervisor_tick_audit(
             {
                 "status": "stale",
                 "reason": "supervisor_tick_report_stale",
-                "summary": "MedAutoScience 外环监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
-                "next_action_summary": "需要先恢复 MedAutoScience supervisor tick / heartbeat 调度，再继续托管监管与自动恢复。",
+                "summary": "Hermes-hosted 托管监管心跳已陈旧，当前不能保证及时发现掉线并自动恢复。",
+                "next_action_summary": "需要先恢复 Hermes-hosted supervision tick 调度，再继续托管监管与自动恢复。",
             }
         )
         status.record_supervisor_tick_audit(payload)
@@ -196,7 +196,7 @@ def _record_supervisor_tick_audit(
         {
             "status": "fresh",
             "reason": "supervisor_tick_report_fresh",
-            "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+            "summary": "Hermes-hosted 托管监管心跳新鲜，当前仍在按合同持续监管。",
             "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
         }
     )
