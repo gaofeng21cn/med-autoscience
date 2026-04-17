@@ -3978,7 +3978,7 @@ def test_ensure_study_runtime_blocks_running_quest_when_live_session_audit_fails
     assert result["bash_session_audit"]["status"] == "unknown"
 
 
-def test_ensure_study_runtime_keeps_supervisor_only_guard_when_live_runtime_progress_is_stale(
+def test_ensure_study_runtime_auto_resumes_stale_live_runtime_without_live_bash_sessions(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -4061,11 +4061,19 @@ def test_ensure_study_runtime_keeps_supervisor_only_guard_when_live_runtime_prog
             "error": "Live managed runtime exceeded the artifact interaction silence threshold.",
         },
     )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: {
+            "ok": True,
+            "status": "running",
+        },
+    )
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
 
-    assert result["decision"] == "blocked"
-    assert result["reason"] == "running_quest_live_session_audit_failed"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_marked_running_but_no_live_session"
     assert result["runtime_liveness_audit"]["status"] == "unknown"
     assert result["runtime_liveness_audit"]["stale_progress"] is True
     assert result["autonomous_runtime_notice"]["required"] is True

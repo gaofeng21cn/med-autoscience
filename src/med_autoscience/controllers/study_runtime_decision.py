@@ -641,6 +641,26 @@ def _runtime_liveness_audit_payload(status: StudyRuntimeStatus) -> dict[str, obj
     return dict(payload) if isinstance(payload, dict) else {}
 
 
+def _stale_progress_without_live_bash_sessions(status: StudyRuntimeStatus) -> bool:
+    runtime_liveness_audit = _runtime_liveness_audit_payload(status)
+    if not bool(runtime_liveness_audit.get("stale_progress")):
+        return False
+    if str(runtime_liveness_audit.get("liveness_guard_reason") or "").strip() != "stale_progress_watchdog":
+        return False
+    bash_session_audit = status.extras.get("bash_session_audit")
+    if not isinstance(bash_session_audit, dict):
+        return False
+    if str(bash_session_audit.get("status") or "").strip() != "none":
+        return False
+    live_session_count = bash_session_audit.get("live_session_count")
+    if live_session_count is None:
+        return True
+    try:
+        return int(live_session_count) == 0
+    except (TypeError, ValueError):
+        return False
+
+
 def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
     runtime_liveness_audit = _runtime_liveness_audit_payload(status)
     runtime_audit = (
@@ -1621,10 +1641,32 @@ def _status_state(
         audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
         controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
-            )
+            if _stale_progress_without_live_bash_sessions(result):
+                if not result.startup_boundary_allows_compute_stage:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                    )
+                elif not result.runtime_reentry_allows_runtime_entry:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                    )
+                elif execution.get("auto_resume") is True:
+                    result.set_decision(
+                        StudyRuntimeDecision.RESUME,
+                        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION,
+                    )
+                else:
+                    result.set_decision(
+                        StudyRuntimeDecision.BLOCKED,
+                        StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED,
+                    )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
+                )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
             if _publication_gate_requires_live_runtime_reroute(publication_gate_report):
                 if execution.get("auto_resume") is True:
