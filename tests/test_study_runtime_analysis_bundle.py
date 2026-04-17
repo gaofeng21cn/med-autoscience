@@ -116,6 +116,32 @@ def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(
     assert result["package_status"] == {"pROC": True}
 
 
+def test_managed_runtime_python_executable_prefers_checkout_runtime(monkeypatch, tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
+    repo_runtime = tmp_path / "repo" / ".venv"
+    checkout_runtime = tmp_path / "repo" / ".worktrees" / "feature" / ".venv"
+    checkout_python = checkout_runtime / "bin" / "python"
+    checkout_python.parent.mkdir(parents=True)
+    checkout_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    checkout_python.chmod(0o755)
+
+    monkeypatch.setattr(module.python_environment_contract, "MANAGED_RUNTIME_PREFIX", repo_runtime)
+    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_MANAGED_RUNTIME_PREFIX", checkout_runtime)
+
+    assert module._managed_runtime_python_executable() == str(checkout_python)
+
+
+def test_managed_runtime_repo_root_prefers_checkout_root(monkeypatch, tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
+    repo_root = tmp_path / "repo"
+    checkout_root = repo_root / ".worktrees" / "feature"
+
+    monkeypatch.setattr(module.python_environment_contract, "REPO_ROOT", repo_root)
+    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_ROOT", checkout_root)
+
+    assert module._managed_runtime_repo_root() == checkout_root
+
+
 def test_ensure_study_runtime_analysis_bundle_delegates_to_repo_managed_runtime(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     before_state = {

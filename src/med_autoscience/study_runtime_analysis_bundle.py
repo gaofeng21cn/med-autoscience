@@ -45,15 +45,29 @@ BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
 
 
 def _managed_runtime_repo_root() -> Path:
-    return python_environment_contract.REPO_ROOT
+    return python_environment_contract.CHECKOUT_ROOT
 
 
 def _running_under_managed_runtime() -> bool:
     return python_environment_contract._is_managed_runtime()
 
 
+def _managed_runtime_prefix() -> Path:
+    prefixes: list[Path] = []
+    for prefix in (
+        python_environment_contract.CHECKOUT_MANAGED_RUNTIME_PREFIX,
+        python_environment_contract.MANAGED_RUNTIME_PREFIX,
+    ):
+        if prefix not in prefixes:
+            prefixes.append(prefix)
+    for prefix in prefixes:
+        if prefix.exists():
+            return prefix
+    return prefixes[0]
+
+
 def _managed_runtime_python_executable() -> str:
-    prefix = python_environment_contract.MANAGED_RUNTIME_PREFIX
+    prefix = _managed_runtime_prefix()
     candidates = (
         prefix / "bin" / "python",
         prefix / "bin" / "python3",
