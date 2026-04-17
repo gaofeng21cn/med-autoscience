@@ -591,8 +591,33 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["target_domain_id"] == "med-autoscience"
     assert payload["formal_entry"]["default"] == "CLI"
     assert payload["formal_entry"]["supported_protocols"] == ["MCP"]
-    assert payload["runtime"]["runtime_owner"] == "med_autoscience_gateway"
+    assert payload["runtime"]["runtime_owner"] == "upstream_hermes_agent"
+    assert payload["runtime"]["domain_owner"] == "med-autoscience"
+    assert payload["runtime"]["executor_owner"] == "med_deepscientist"
     assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
+    assert payload["managed_runtime_contract"] == {
+        "shared_contract_ref": "contracts/opl-gateway/managed-runtime-three-layer-contract.json",
+        "runtime_owner": "upstream_hermes_agent",
+        "domain_owner": "med-autoscience",
+        "executor_owner": "med_deepscientist",
+        "supervision_status_surface": {
+            "surface_kind": "study_progress",
+            "owner": "med-autoscience",
+        },
+        "attention_queue_surface": {
+            "surface_kind": "workspace_cockpit",
+            "owner": "med-autoscience",
+        },
+        "recovery_contract_surface": {
+            "surface_kind": "study_runtime_status",
+            "owner": "med-autoscience",
+        },
+        "fail_closed_rules": [
+            "domain_supervision_cannot_bypass_runtime",
+            "executor_cannot_declare_global_gate_clear",
+            "runtime_cannot_invent_domain_publishability_truth",
+        ],
+    }
     assert payload["executor_defaults"]["default_executor"] == "codex_cli_autonomous"
     assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
     assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"

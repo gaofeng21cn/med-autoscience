@@ -112,6 +112,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_STOPPED_BY_CONTROLLER_GUARD = "quest_stopped_by_controller_guard"
     QUEST_PAUSED = "quest_paused"
     QUEST_STOPPED = "quest_stopped"
+    QUEST_STOPPED_BY_CONTROLLER_GUARD = "quest_stopped_by_controller_guard"
     QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN = "quest_stopped_requires_explicit_rerun"
     QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED = "quest_stopped_explicit_relaunch_requested"
     QUEST_INITIALIZED_WAITING_TO_START = "quest_initialized_waiting_to_start"

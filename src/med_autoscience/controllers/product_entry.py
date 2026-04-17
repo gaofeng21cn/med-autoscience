@@ -31,6 +31,12 @@ PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_FRONTDESK_KIND = "product_frontdesk"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
+MANAGED_RUNTIME_CONTRACT_REF = "contracts/opl-gateway/managed-runtime-three-layer-contract.json"
+MANAGED_RUNTIME_FAIL_CLOSED_RULES = (
+    "domain_supervision_cannot_bypass_runtime",
+    "executor_cannot_declare_global_gate_clear",
+    "runtime_cannot_invent_domain_publishability_truth",
+)
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_runtime_recovery_required": 1,
@@ -140,6 +146,35 @@ def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
         if text is not None:
             normalized.append(text)
     return tuple(normalized)
+
+
+def _build_managed_runtime_contract(
+    *,
+    domain_owner: str,
+    executor_owner: str,
+    supervision_status_surface: str,
+    attention_queue_surface: str,
+    recovery_contract_surface: str,
+) -> dict[str, Any]:
+    return {
+        "shared_contract_ref": MANAGED_RUNTIME_CONTRACT_REF,
+        "runtime_owner": "upstream_hermes_agent",
+        "domain_owner": domain_owner,
+        "executor_owner": executor_owner,
+        "supervision_status_surface": {
+            "surface_kind": supervision_status_surface,
+            "owner": domain_owner,
+        },
+        "attention_queue_surface": {
+            "surface_kind": attention_queue_surface,
+            "owner": domain_owner,
+        },
+        "recovery_contract_surface": {
+            "surface_kind": recovery_contract_surface,
+            "owner": domain_owner,
+        },
+        "fail_closed_rules": list(MANAGED_RUNTIME_FAIL_CLOSED_RULES),
+    }
 
 
 def _serialize_runtime_status(result: Any) -> dict[str, Any]:
@@ -1687,6 +1722,13 @@ def build_product_entry_manifest(
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
     }
+    managed_runtime_contract = _build_managed_runtime_contract(
+        domain_owner=TARGET_DOMAIN_ID,
+        executor_owner="med_deepscientist",
+        supervision_status_surface="study_progress",
+        attention_queue_surface="workspace_cockpit",
+        recovery_contract_surface="study_runtime_status",
+    )
 
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1701,12 +1743,15 @@ def build_product_entry_manifest(
             "internal_surface": "controller",
         },
         "runtime": {
-            "runtime_owner": "med_autoscience_gateway",
+            "runtime_owner": "upstream_hermes_agent",
+            "domain_owner": TARGET_DOMAIN_ID,
+            "executor_owner": "med_deepscientist",
             "runtime_substrate": "external_hermes_agent_target",
             "managed_runtime_backend_id": profile.managed_runtime_backend_id,
             "runtime_root": str(profile.runtime_root),
             "hermes_home_root": str(profile.hermes_home_root),
         },
+        "managed_runtime_contract": managed_runtime_contract,
         "executor_defaults": {
             "default_executor": "codex_cli_autonomous",
             "default_model": "inherit_local_codex_default",
@@ -2262,7 +2307,9 @@ def build_product_entry(
             "study_root": str(resolved_study_root),
         },
         "runtime_session_contract": {
-            "runtime_owner": "med_autoscience_gateway",
+            "runtime_owner": "upstream_hermes_agent",
+            "domain_owner": TARGET_DOMAIN_ID,
+            "executor_owner": "med_deepscientist",
             "runtime_substrate": "external_hermes_agent_target",
             "managed_entry_mode": managed_entry_mode,
             "managed_runtime_backend_id": runtime_contract.get("managed_runtime_backend_id") or profile.managed_runtime_backend_id,
@@ -2272,6 +2319,13 @@ def build_product_entry(
             "start_entry": "launch-study",
             "resume_entry": "launch-study",
         },
+        "managed_runtime_contract": _build_managed_runtime_contract(
+            domain_owner=TARGET_DOMAIN_ID,
+            executor_owner="med_deepscientist",
+            supervision_status_surface="study_progress",
+            attention_queue_surface="workspace_cockpit",
+            recovery_contract_surface="study_runtime_status",
+        ),
         "return_surface_contract": {
             "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
             "default_formal_entry": "CLI",
