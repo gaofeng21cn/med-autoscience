@@ -110,7 +110,7 @@ def _platform_target() -> dict[str, Any]:
 def _phase3_clearance_lane() -> dict[str, Any]:
     return {
         "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、workspace supervisor service 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
@@ -122,7 +122,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             },
             {
                 "target_id": "supervisor_service",
-                "title": "Keep workspace supervisor service online",
+                "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
                     "ops/medautoscience/bin/watch-runtime-service-status",
                     "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
