@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
-import json
 from pathlib import Path
 import re
 import subprocess
@@ -10,6 +9,21 @@ from typing import Any, Iterable
 
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
+from opl_harness_shared.hermes_supervision import (
+    ensure_script_file as _shared_ensure_script_file,
+    job_drift as _shared_job_drift,
+    jobs_path as _shared_jobs_path,
+    load_jobs as _shared_load_jobs,
+    matching_jobs as _shared_matching_jobs,
+    remove_empty_parent_dirs as _shared_remove_empty_parent_dirs,
+    render_supervision_script as _shared_render_supervision_script,
+    require_interval_minutes as _shared_require_interval_minutes,
+    resolve_job_script_path as _shared_resolve_job_script_path,
+    schedule_matches as _shared_schedule_matches,
+    script_path as _shared_script_path,
+    select_primary_job as _shared_select_primary_job,
+    status_summary as _shared_status_summary,
+)
 
 
 SCHEMA_VERSION = 1
@@ -37,9 +51,7 @@ def _workspace_key(profile: WorkspaceProfile) -> str:
 
 
 def _require_interval_minutes(interval_seconds: int) -> int:
-    if interval_seconds < 60 or interval_seconds % 60 != 0:
-        raise ValueError("interval_seconds must be a positive multiple of 60")
-    return interval_seconds // 60
+    return _shared_require_interval_minutes(interval_seconds)
 
 
 def _job_name(profile: WorkspaceProfile) -> str:
@@ -51,11 +63,11 @@ def _script_relpath(profile: WorkspaceProfile) -> str:
 
 
 def _script_path(profile: WorkspaceProfile) -> Path:
-    return profile.hermes_home_root / "scripts" / _script_relpath(profile)
+    return _shared_script_path(hermes_home_root=profile.hermes_home_root, script_relpath=_script_relpath(profile))
 
 
 def _jobs_path(profile: WorkspaceProfile) -> Path:
-    return profile.hermes_home_root / "cron" / "jobs.json"
+    return _shared_jobs_path(hermes_home_root=profile.hermes_home_root)
 
 
 def _desired_schedule(interval_seconds: int) -> str:
@@ -73,31 +85,7 @@ def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) 
 
 
 def _render_supervision_script(profile: WorkspaceProfile, *, interval_seconds: int) -> str:
-    command_json = json.dumps(_watch_runtime_command(profile, interval_seconds=interval_seconds))
-    return (
-        "#!/usr/bin/env python3\n"
-        "from __future__ import annotations\n\n"
-        "import json\n"
-        "import subprocess\n"
-        "import sys\n\n"
-        f"COMMAND = json.loads({json.dumps(command_json)})\n\n"
-        "completed = subprocess.run(COMMAND, capture_output=True, text=True, check=False)\n"
-        "payload = {\n"
-        '    "command": COMMAND,\n'
-        '    "returncode": completed.returncode,\n'
-        "}\n"
-        "stdout = (completed.stdout or '').strip()\n"
-        "stderr = (completed.stderr or '').strip()\n"
-        "if stdout:\n"
-        "    try:\n"
-        '        payload["result"] = json.loads(stdout)\n'
-        "    except json.JSONDecodeError:\n"
-        '        payload["stdout"] = stdout\n'
-        "if stderr:\n"
-        '    payload["stderr"] = stderr\n'
-        "print(json.dumps(payload, ensure_ascii=False))\n"
-        "raise SystemExit(completed.returncode)\n"
-    )
+    return _shared_render_supervision_script(_watch_runtime_command(profile, interval_seconds=interval_seconds))
 
 
 def _run_command(*, command: list[str]) -> tuple[int, str]:
@@ -119,64 +107,27 @@ def _hermes_cli_command(profile: WorkspaceProfile, *args: str) -> list[str]:
 
 
 def _load_jobs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
-    jobs_path = _jobs_path(profile)
-    if not jobs_path.is_file():
-        return []
-    try:
-        payload = json.loads(jobs_path.read_text(encoding="utf-8")) or []
-    except (OSError, json.JSONDecodeError):
-        return []
-    if not isinstance(payload, list):
-        return []
-    jobs: list[dict[str, Any]] = []
-    for item in payload:
-        if isinstance(item, dict):
-            jobs.append(dict(item))
-    return jobs
+    return _shared_load_jobs(hermes_home_root=profile.hermes_home_root)
 
 
 def _resolve_job_script_path(profile: WorkspaceProfile, script_value: object) -> Path | None:
-    text = str(script_value or "").strip()
-    if not text:
-        return None
-    raw = Path(text).expanduser()
-    if raw.is_absolute():
-        return raw.resolve()
-    return (profile.hermes_home_root / "scripts" / raw).resolve()
+    return _shared_resolve_job_script_path(hermes_home_root=profile.hermes_home_root, script_value=script_value)
 
 
 def _matching_jobs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
-    desired_name = _job_name(profile)
-    desired_script_path = _script_path(profile)
-    matches: list[dict[str, Any]] = []
-    for job in _load_jobs(profile):
-        job_name = str(job.get("name") or "").strip()
-        resolved_script = _resolve_job_script_path(profile, job.get("script"))
-        if job_name == desired_name or resolved_script == desired_script_path:
-            matches.append(job)
-    return matches
-
-
-def _job_sort_key(job: dict[str, Any]) -> tuple[int, int, str]:
-    enabled = 1 if bool(job.get("enabled", True)) else 0
-    scheduled = 1 if str(job.get("state") or "").strip() == "scheduled" else 0
-    created_at = str(job.get("created_at") or "")
-    return (enabled, scheduled, created_at)
+    return _shared_matching_jobs(
+        hermes_home_root=profile.hermes_home_root,
+        job_name=_job_name(profile),
+        script_relpath=_script_relpath(profile),
+    )
 
 
 def _select_primary_job(jobs: Iterable[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
-    ordered = sorted((dict(job) for job in jobs), key=_job_sort_key, reverse=True)
-    if not ordered:
-        return None, []
-    return ordered[0], ordered[1:]
+    return _shared_select_primary_job(jobs)
 
 
 def _schedule_matches(job: dict[str, Any], *, interval_seconds: int) -> bool:
-    minutes = _require_interval_minutes(interval_seconds)
-    schedule = job.get("schedule")
-    if not isinstance(schedule, dict):
-        return False
-    return schedule.get("kind") == "interval" and int(schedule.get("minutes") or -1) == minutes
+    return _shared_schedule_matches(job, interval_seconds=interval_seconds)
 
 
 def _job_drift(
@@ -185,20 +136,14 @@ def _job_drift(
     job: dict[str, Any] | None,
     interval_seconds: int,
 ) -> list[str]:
-    if job is None:
-        return ["job_missing"]
-    drift: list[str] = []
-    if str(job.get("name") or "").strip() != _job_name(profile):
-        drift.append("name_mismatch")
-    if str(job.get("prompt") or "").strip() != _SILENT_PROMPT:
-        drift.append("prompt_mismatch")
-    if str(job.get("deliver") or "").strip() != "local":
-        drift.append("deliver_mismatch")
-    if not _schedule_matches(job, interval_seconds=interval_seconds):
-        drift.append("schedule_mismatch")
-    if _resolve_job_script_path(profile, job.get("script")) != _script_path(profile):
-        drift.append("script_mismatch")
-    return drift
+    return _shared_job_drift(
+        hermes_home_root=profile.hermes_home_root,
+        job=job,
+        job_name=_job_name(profile),
+        silent_prompt=_SILENT_PROMPT,
+        script_relpath=_script_relpath(profile),
+        interval_seconds=interval_seconds,
+    )
 
 
 def _status_summary(
@@ -208,36 +153,24 @@ def _status_summary(
     job_present: bool,
     drift_reasons: list[str],
 ) -> str:
-    if status == "loaded":
-        if drift_reasons:
-            return "Hermes-hosted runtime supervision 已在线，但当前注册项与期望 contract 存在漂移。"
-        return "Hermes-hosted runtime supervision 已在线，workspace 级监管会持续刷新。"
-    if status == "not_loaded":
-        if not gateway_service_loaded and job_present:
-            return "Hermes-hosted runtime supervision 已注册，但 Hermes gateway 当前未在线。"
-        if job_present:
-            return "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。"
-        return "Hermes-hosted runtime supervision 还没有进入可调度状态。"
-    return "Hermes-hosted runtime supervision 尚未注册。"
+    return _shared_status_summary(
+        status=status,
+        gateway_service_loaded=gateway_service_loaded,
+        job_present=job_present,
+        drift_reasons=drift_reasons,
+    )
 
 
 def _ensure_script_file(profile: WorkspaceProfile, *, interval_seconds: int) -> Path:
-    script_path = _script_path(profile)
-    script_path.parent.mkdir(parents=True, exist_ok=True)
-    script_path.write_text(_render_supervision_script(profile, interval_seconds=interval_seconds), encoding="utf-8")
-    script_path.chmod(0o755)
-    return script_path
+    return _shared_ensure_script_file(
+        hermes_home_root=profile.hermes_home_root,
+        script_relpath=_script_relpath(profile),
+        command=_watch_runtime_command(profile, interval_seconds=interval_seconds),
+    )
 
 
 def _remove_empty_parent_dirs(path: Path, *, stop_at: Path) -> None:
-    current = path.parent
-    stop = stop_at.resolve()
-    while current.exists() and current.resolve() != stop:
-        try:
-            current.rmdir()
-        except OSError:
-            break
-        current = current.parent
+    _shared_remove_empty_parent_dirs(path, stop_at=stop_at)
 
 
 def read_supervision_status(

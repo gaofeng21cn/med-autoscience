@@ -376,6 +376,7 @@ version = "0.1.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "opl-harness-shared" },
     { name = "packaging" },
     { name = "pandas" },
     { name = "pyyaml" },
@@ -391,6 +392,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.9" },
+    { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=3933df75d80473d4cf1831353e479333f823a4ae" },
     { name = "packaging", specifier = ">=24.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -463,6 +465,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/03/2fc4e14c7bd4ff2964b74ba90ecb8552540b6315f201df70f137faa5c589/numpy-2.4.4-cp314-cp314t-win_amd64.whl", hash = "sha256:a7164afb23be6e37ad90b2f10426149fd75aee07ca55653d2aa41e66c4ef697e", size = 12637755, upload-time = "2026-03-29T13:21:31.107Z" },
     { url = "https://files.pythonhosted.org/packages/58/78/548fb8e07b1a341746bfbecb32f2c268470f45fa028aacdbd10d9bc73aab/numpy-2.4.4-cp314-cp314t-win_arm64.whl", hash = "sha256:ba203255017337d39f89bdd58417f03c4426f12beed0440cfd933cb15f8669c7", size = 10566643, upload-time = "2026-03-29T13:21:34.339Z" },
 ]
+
+[[package]]
+name = "opl-harness-shared"
+version = "0.1.0"
+source = { git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=3933df75d80473d4cf1831353e479333f823a4ae#3933df75d80473d4cf1831353e479333f823a4ae" }
 
 [[package]]
 name = "packaging"

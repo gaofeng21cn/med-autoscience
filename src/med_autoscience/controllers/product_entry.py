@@ -23,6 +23,7 @@ from med_autoscience.study_task_intake import (
     upsert_startup_brief_task_block,
     write_task_intake,
 )
+from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
 
 
 SCHEMA_VERSION = 1
@@ -31,12 +32,6 @@ PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_FRONTDESK_KIND = "product_frontdesk"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
-MANAGED_RUNTIME_CONTRACT_REF = "contracts/opl-gateway/managed-runtime-three-layer-contract.json"
-MANAGED_RUNTIME_FAIL_CLOSED_RULES = (
-    "domain_supervision_cannot_bypass_runtime",
-    "executor_cannot_declare_global_gate_clear",
-    "runtime_cannot_invent_domain_publishability_truth",
-)
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_runtime_recovery_required": 1,
@@ -156,25 +151,13 @@ def _build_managed_runtime_contract(
     attention_queue_surface: str,
     recovery_contract_surface: str,
 ) -> dict[str, Any]:
-    return {
-        "shared_contract_ref": MANAGED_RUNTIME_CONTRACT_REF,
-        "runtime_owner": "upstream_hermes_agent",
-        "domain_owner": domain_owner,
-        "executor_owner": executor_owner,
-        "supervision_status_surface": {
-            "surface_kind": supervision_status_surface,
-            "owner": domain_owner,
-        },
-        "attention_queue_surface": {
-            "surface_kind": attention_queue_surface,
-            "owner": domain_owner,
-        },
-        "recovery_contract_surface": {
-            "surface_kind": recovery_contract_surface,
-            "owner": domain_owner,
-        },
-        "fail_closed_rules": list(MANAGED_RUNTIME_FAIL_CLOSED_RULES),
-    }
+    return _build_shared_managed_runtime_contract(
+        domain_owner=domain_owner,
+        executor_owner=executor_owner,
+        supervision_status_surface=supervision_status_surface,
+        attention_queue_surface=attention_queue_surface,
+        recovery_contract_surface=recovery_contract_surface,
+    )
 
 
 def _serialize_runtime_status(result: Any) -> dict[str, Any]:
