@@ -19,14 +19,38 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["recommended_command"] == (
+        "uv run python -m med_autoscience.cli doctor --profile <profile>"
+    )
     assert payload["phase3_clearance_lane"]["clearance_targets"][0]["target_id"] == "external_runtime_contract"
     assert payload["phase3_clearance_lane"]["proof_surfaces"] == [
-        "doctor.external_runtime_contract",
-        "study_runtime_status.autonomous_runtime_notice",
-        "runtime_watch/latest.json",
-        "runtime_supervision/latest.json",
-        "controller_decisions/latest.json",
+        {
+            "surface_kind": "doctor.external_runtime_contract",
+            "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
+        },
+        {
+            "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+            "command": (
+                "uv run python -m med_autoscience.cli study-runtime-status --profile <profile> "
+                "--study-id <study_id>"
+            ),
+        },
+        {
+            "surface_kind": "runtime_watch",
+            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+        },
+        {
+            "surface_kind": "runtime_supervision",
+            "ref": "studies/<study_id>/artifacts/runtime_supervision/latest.json",
+        },
+        {
+            "surface_kind": "controller_decisions",
+            "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+        },
     ]
+    assert payload["phase3_clearance_lane"]["clearance_loop"][0]["step_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][3]["step_id"] == "refresh_supervision"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["substrate_targets"][0]["capability_id"] == "session_run_watch_recovery"
     assert payload["phase4_backend_deconstruction"]["deconstruction_map_doc"] == (
@@ -71,6 +95,8 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
     assert "Phase 3 Clearance" in markdown
+    assert "recommended_step_id" in markdown
+    assert "clearance_step `refresh_supervision`" in markdown
     assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown

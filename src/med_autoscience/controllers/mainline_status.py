@@ -111,6 +111,8 @@ def _phase3_clearance_lane() -> dict[str, Any]:
     return {
         "surface_kind": "phase3_host_clearance_lane",
         "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "recommended_step_id": "external_runtime_contract",
+        "recommended_command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
@@ -137,12 +139,68 @@ def _phase3_clearance_lane() -> dict[str, Any]:
                 ],
             },
         ],
+        "clearance_loop": [
+            {
+                "step_id": "external_runtime_contract",
+                "title": "先确认 external Hermes runtime contract ready",
+                "surface_kind": "doctor_runtime_contract",
+                "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
+            },
+            {
+                "step_id": "hermes_runtime_check",
+                "title": "确认 Hermes runtime 绑定证据",
+                "surface_kind": "hermes_runtime_check",
+                "command": "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
+            },
+            {
+                "step_id": "supervisor_service",
+                "title": "确认 workspace 常驻监管在线",
+                "surface_kind": "workspace_supervisor_service",
+                "command": "ops/medautoscience/bin/watch-runtime-service-status",
+            },
+            {
+                "step_id": "refresh_supervision",
+                "title": "刷新 Hermes-hosted supervision tick",
+                "surface_kind": "runtime_watch_refresh",
+                "command": (
+                    "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
+                    "--profile <profile> --ensure-study-runtimes --apply"
+                ),
+            },
+            {
+                "step_id": "study_recovery_proof",
+                "title": "证明 live study recovery / progress supervision 成立",
+                "surface_kind": "launch_study",
+                "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "title": "读取 study-progress proof",
+                "surface_kind": "study_progress",
+                "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
+            },
+        ],
         "proof_surfaces": [
-            "doctor.external_runtime_contract",
-            "study_runtime_status.autonomous_runtime_notice",
-            "runtime_watch/latest.json",
-            "runtime_supervision/latest.json",
-            "controller_decisions/latest.json",
+            {
+                "surface_kind": "doctor.external_runtime_contract",
+                "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
+            },
+            {
+                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
+                "command": "uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>",
+            },
+            {
+                "surface_kind": "runtime_watch",
+                "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+            },
+            {
+                "surface_kind": "runtime_supervision",
+                "ref": "studies/<study_id>/artifacts/runtime_supervision/latest.json",
+            },
+            {
+                "surface_kind": "controller_decisions",
+                "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+            },
         ],
         "recommended_phase_command": (
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
@@ -591,11 +649,17 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         "## Phase 3 Clearance",
         "",
         f"- summary: {phase3_clearance_lane.get('summary') or 'none'}",
+        f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
+        f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
     ]
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    for item in phase3_clearance_lane.get("clearance_loop") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(
         [
             "",

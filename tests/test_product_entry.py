@@ -921,6 +921,11 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["phase3_clearance_lane"] == {
         "surface_kind": "phase3_host_clearance_lane",
         "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "recommended_step_id": "external_runtime_contract",
+        "recommended_command": (
+            "uv run python -m med_autoscience.cli doctor --profile "
+            + str(profile_ref.resolve())
+        ),
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
@@ -959,6 +964,64 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                         + " --study-id <study_id>"
                     ),
                 ],
+            },
+        ],
+        "clearance_loop": [
+            {
+                "step_id": "external_runtime_contract",
+                "title": "先确认 external Hermes runtime contract ready",
+                "surface_kind": "doctor_runtime_contract",
+                "command": (
+                    "uv run python -m med_autoscience.cli doctor --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "step_id": "hermes_runtime_check",
+                "title": "确认 Hermes runtime 绑定证据",
+                "surface_kind": "hermes_runtime_check",
+                "command": (
+                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "step_id": "supervisor_service",
+                "title": "确认 workspace 常驻监管在线",
+                "surface_kind": "workspace_supervisor_service",
+                "command": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+            },
+            {
+                "step_id": "refresh_supervision",
+                "title": "刷新 Hermes-hosted supervision tick",
+                "surface_kind": "runtime_watch_refresh",
+                "command": (
+                    "uv run python -m med_autoscience.cli watch --runtime-root "
+                    + str(profile.runtime_root)
+                    + " --profile "
+                    + str(profile_ref.resolve())
+                    + " --ensure-study-runtimes --apply"
+                ),
+            },
+            {
+                "step_id": "study_recovery_proof",
+                "title": "证明 live study recovery / progress supervision 成立",
+                "surface_kind": "launch_study",
+                "command": (
+                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "title": "读取 study-progress proof",
+                "surface_kind": "study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
             },
         ],
         "proof_surfaces": [
@@ -1391,7 +1454,9 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_guardrails"]["guardrail_classes"][4]["guardrail_id"] == "quality_floor_blocker"
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "external_runtime_contract"
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
+    assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["current_backend_chain"][1].endswith(
         "codex exec autonomous agent loop"
@@ -1436,6 +1501,8 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
     assert "Phase 3 Clearance" in markdown
+    assert "recommended_step_id" in markdown
+    assert "clearance_step `refresh_supervision`" in markdown
     assert "external_runtime_contract" in markdown
     assert "Phase 4 Deconstruction" in markdown
     assert "session_run_watch_recovery" in markdown

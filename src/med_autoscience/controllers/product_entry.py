@@ -430,42 +430,88 @@ def _build_phase3_clearance_lane(
 ) -> dict[str, Any]:
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
+    doctor_command = f"{prefix} doctor --profile {profile_arg}"
+    hermes_runtime_check_command = f"{prefix} hermes-runtime-check --profile {profile_arg}"
+    supervisor_service_command = str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status")
+    refresh_supervision_command = (
+        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"--profile {profile_arg} --ensure-study-runtimes --apply"
+    )
+    launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
+    study_progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
     return {
         "surface_kind": "phase3_host_clearance_lane",
         "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        "recommended_step_id": "external_runtime_contract",
+        "recommended_command": doctor_command,
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
                 "title": "Check external Hermes runtime contract",
                 "commands": [
-                    f"{prefix} doctor --profile {profile_arg}",
-                    f"{prefix} hermes-runtime-check --profile {profile_arg}",
+                    doctor_command,
+                    hermes_runtime_check_command,
                 ],
             },
             {
                 "target_id": "supervisor_service",
                 "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
-                    str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
-                    (
-                        f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-                        f"--profile {profile_arg} --ensure-study-runtimes --apply"
-                    ),
+                    supervisor_service_command,
+                    refresh_supervision_command,
                 ],
             },
             {
                 "target_id": "study_recovery_proof",
                 "title": "Prove live study recovery and supervision",
                 "commands": [
-                    f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
-                    f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
+                    launch_study_command,
+                    study_progress_command,
                 ],
+            },
+        ],
+        "clearance_loop": [
+            {
+                "step_id": "external_runtime_contract",
+                "title": "先确认 external Hermes runtime contract ready",
+                "surface_kind": "doctor_runtime_contract",
+                "command": doctor_command,
+            },
+            {
+                "step_id": "hermes_runtime_check",
+                "title": "确认 Hermes runtime 绑定证据",
+                "surface_kind": "hermes_runtime_check",
+                "command": hermes_runtime_check_command,
+            },
+            {
+                "step_id": "supervisor_service",
+                "title": "确认 workspace 常驻监管在线",
+                "surface_kind": "workspace_supervisor_service",
+                "command": supervisor_service_command,
+            },
+            {
+                "step_id": "refresh_supervision",
+                "title": "刷新 Hermes-hosted supervision tick",
+                "surface_kind": "runtime_watch_refresh",
+                "command": refresh_supervision_command,
+            },
+            {
+                "step_id": "study_recovery_proof",
+                "title": "证明 live study recovery / progress supervision 成立",
+                "surface_kind": "launch_study",
+                "command": launch_study_command,
+            },
+            {
+                "step_id": "inspect_study_progress",
+                "title": "读取 study-progress proof",
+                "surface_kind": "study_progress",
+                "command": study_progress_command,
             },
         ],
         "proof_surfaces": [
             {
                 "surface_kind": "doctor.external_runtime_contract",
-                "command": f"{prefix} doctor --profile {profile_arg}",
+                "command": doctor_command,
             },
             {
                 "surface_kind": "study_runtime_status.autonomous_runtime_notice",
@@ -1792,10 +1838,16 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
             f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
         )
     lines.extend(["", "## Phase 3 Clearance", ""])
+    lines.append(f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    for item in phase3_clearance_lane.get("clearance_loop") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Phase 4 Deconstruction", ""])
     for item in phase4_backend_deconstruction.get("substrate_targets") or []:
         if not isinstance(item, dict):
@@ -2029,10 +2081,16 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             "",
         ]
     )
+    lines.append(f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+    for item in phase3_clearance_lane.get("clearance_loop") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(
         [
             "",
