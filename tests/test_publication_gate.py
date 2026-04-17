@@ -1380,6 +1380,61 @@ def test_build_gate_report_inherits_blocked_medical_publication_surface_status(t
     )
 
 
+def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_current_medical_publication_surface_report=True,
+    )
+    current_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    )
+    anchor_path = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"
+    dump_json(
+        quest_root / "paper" / "paper_line_state.json",
+        {
+            "paper_root": str((quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper").resolve()),
+        },
+    )
+    dump_json(
+        current_report_path,
+        {
+            "paper_root": str((quest_root / "paper").resolve()),
+            "status": "clear",
+            "blockers": [],
+        },
+    )
+    current_time = anchor_path.stat().st_mtime + 1
+    os.utime(current_report_path, (current_time, current_time))
+
+    stale_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:33Z.json"
+    )
+    dump_json(
+        stale_report_path,
+        {
+            "paper_root": str(
+                (quest_root / ".ds" / "worktrees" / "analysis-public-evidence-run-2" / "paper").resolve()
+            ),
+            "status": "blocked",
+            "blockers": ["figure_catalog_missing_or_incomplete"],
+        },
+    )
+    stale_time = current_time + 10
+    os.utime(stale_report_path, (stale_time, stale_time))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["medical_publication_surface_status"] == "clear"
+    assert report["medical_publication_surface_current"] is True
+    assert "medical_publication_surface_blocked" not in report["blockers"]
+    assert report["medical_publication_surface_report_path"].endswith(
+        "artifacts/reports/medical_publication_surface/2026-04-05T15:29:32Z.json"
+    )
+
+
 def test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

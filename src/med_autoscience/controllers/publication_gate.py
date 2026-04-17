@@ -110,16 +110,61 @@ def find_latest_parseable_json(paths: list[Path]) -> Path | None:
     return None
 
 
+def _normalize_medical_surface_paper_root(paper_root: Path) -> Path:
+    resolved = paper_root.expanduser().resolve()
+    if resolved.name != "paper":
+        return resolved
+    payload = load_json(resolved / "paper_line_state.json", default=None)
+    if isinstance(payload, dict):
+        candidate_value = _non_empty_text(payload.get("paper_root"))
+        if candidate_value:
+            candidate = Path(candidate_value).expanduser().resolve()
+            if candidate.name == "paper":
+                return candidate
+    return resolved
+
+
+def _medical_surface_report_matches_paper_root(
+    report_payload: Any,
+    *,
+    paper_root: Path | None,
+) -> bool:
+    if paper_root is None:
+        return True
+    if not isinstance(report_payload, dict):
+        return False
+    raw_report_root = _non_empty_text(report_payload.get("paper_root"))
+    if raw_report_root is None:
+        return True
+    return _normalize_medical_surface_paper_root(Path(raw_report_root)) == _normalize_medical_surface_paper_root(
+        paper_root
+    )
+
+
 def find_latest_gate_report(quest_root: Path) -> Path | None:
     return find_latest_parseable_json(
         list((quest_root / "artifacts" / "reports" / "publishability_gate").glob("*.json"))
     )
 
 
-def find_latest_medical_publication_surface_report(quest_root: Path) -> Path | None:
-    return find_latest_parseable_json(
-        list((quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json"))
+def find_latest_medical_publication_surface_report(
+    quest_root: Path,
+    *,
+    paper_root: Path | None = None,
+) -> Path | None:
+    report_paths = sorted(
+        (quest_root / "artifacts" / "reports" / "medical_publication_surface").glob("*.json"),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
     )
+    for path in report_paths:
+        try:
+            payload = load_json(path)
+        except json.JSONDecodeError:
+            continue
+        if _medical_surface_report_matches_paper_root(payload, paper_root=paper_root):
+            return path
+    return None
 
 
 def _write_drift_text_surfaces(line: str) -> list[str]:
@@ -440,7 +485,10 @@ def build_gate_state(quest_root: Path) -> GateState:
     compile_report = load_json(compile_report_path) if compile_report_path else None
     latest_gate_path = find_latest_gate_report(quest_root)
     latest_gate = load_json(latest_gate_path) if latest_gate_path else None
-    latest_medical_publication_surface_path = find_latest_medical_publication_surface_report(quest_root)
+    latest_medical_publication_surface_path = find_latest_medical_publication_surface_report(
+        quest_root,
+        paper_root=paper_root,
+    )
     latest_medical_publication_surface = (
         load_json(latest_medical_publication_surface_path) if latest_medical_publication_surface_path else None
     )
