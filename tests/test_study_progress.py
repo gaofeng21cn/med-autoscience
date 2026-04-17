@@ -1841,9 +1841,15 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
             },
         },
     )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 16, 16, 5, tzinfo=timezone.utc),
+    )
 
     result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
 
+    assert result["progress_freshness"]["status"] == "fresh"
     assert result["intervention_lane"]["lane_id"] == "monitor_only"
     assert result["current_blockers"] == []
     assert result["next_system_action"] == "继续当前投稿打包阶段。"
