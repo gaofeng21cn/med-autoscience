@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import runpy
 
+DISPLAY_SURFACE_COMMAND = ("publication", "materialize-display-surface")
+
 
 def dump_json(path, payload) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,7 +96,7 @@ def test_cli_materialize_display_surface_emits_result_json(tmp_path, capsys) -> 
     module = importlib.import_module("med_autoscience.cli")
     paper_root = build_display_surface_workspace(tmp_path)
 
-    exit_code = module.main(["materialize-display-surface", "--paper-root", str(paper_root)])
+    exit_code = module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
@@ -134,7 +136,7 @@ def test_cli_materialize_display_surface_includes_registered_evidence_figures(tm
         raising=False,
     )
 
-    exit_code = cli_module.main(["materialize-display-surface", "--paper-root", str(paper_root)])
+    exit_code = cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
@@ -195,7 +197,7 @@ def test_cli_materialize_display_surface_includes_full_registered_template_set(t
         raising=False,
     )
 
-    exit_code = cli_module.main(["materialize-display-surface", "--paper-root", str(paper_root)])
+    exit_code = cli_module.main([*DISPLAY_SURFACE_COMMAND, "--paper-root", str(paper_root)])
 
     captured = capsys.readouterr()
     payload = json.loads(captured.out)

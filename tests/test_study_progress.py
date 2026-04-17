@@ -1746,7 +1746,6 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
             },
         },
     )
-
     result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
 
     assert result["latest_events"][0]["category"] == "publication_eval"
