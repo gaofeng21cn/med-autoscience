@@ -906,6 +906,89 @@ def test_watch_runtime_hard_recovers_active_no_live_resume_even_without_apply(
     assert result["managed_study_supervision"][0]["health_status"] == "live"
 
 
+def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    calls: list[tuple[str, str]] = []
+
+    stopped_guard_status = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="resume",
+            reason="quest_stopped_by_controller_guard",
+        ),
+        "quest_status": "stopped",
+        "runtime_liveness_audit": {
+            "status": "none",
+            "active_run_id": None,
+            "runtime_audit": {
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+    recovered_status = {
+        **stopped_guard_status,
+        "quest_status": "running",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-recovered",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-recovered",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+        "autonomous_runtime_notice": {
+            "active_run_id": "run-recovered",
+        },
+    }
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda *, profile, study_root: calls.append(("status", Path(study_root).name)) or stopped_guard_status,
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda *, profile, study_root, source: calls.append(("ensure", source)) or recovered_status,
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=False,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert calls == [
+        ("status", "001-risk"),
+        ("ensure", "runtime_watch_auto_recovery"),
+    ]
+    assert result["managed_study_auto_recoveries"] == [
+        {
+            "study_id": "001-risk",
+            "preflight_decision": "resume",
+            "preflight_reason": "quest_stopped_by_controller_guard",
+            "applied_decision": "resume",
+            "applied_reason": "quest_stopped_by_controller_guard",
+            "source": "runtime_watch_auto_recovery",
+        }
+    ]
+
+
 def test_watch_quest_writes_latest_runtime_watch_alias(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     quest_root = make_quest(tmp_path, "q001", status="running")

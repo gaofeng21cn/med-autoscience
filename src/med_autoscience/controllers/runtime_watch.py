@@ -38,7 +38,7 @@ DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
 )
 
 _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
-_HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user"})
+_HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
 _HARD_AUTO_RECOVERY_REASONS = frozenset(
     {
         "quest_marked_running_but_no_live_session",
@@ -46,6 +46,7 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
         "quest_waiting_on_invalid_blocking",
         "quest_completion_requested_before_publication_gate_clear",
         "quest_waiting_for_submission_metadata",
+        "quest_stopped_by_controller_guard",
     }
 )
 _RUNTIME_RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})

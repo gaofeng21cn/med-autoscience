@@ -68,6 +68,12 @@ _FINALIZE_PARKING_CONTINUATION_REASON = "unchanged_finalize_state"
 _HUMAN_CONFIRMATION_REQUIRED_ACTION = "human_confirmation_required"
 _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS = 5 * 60
 _SUPERVISOR_TICK_STALE_AFTER_SECONDS = 2 * _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS
+_AUTO_RECOVERY_CONTROLLER_STOP_SOURCES = frozenset(
+    {
+        "medautosci-figure-loop-guard",
+        "codex-medical-publication-surface",
+    }
+)
 
 
 def _router_module():
@@ -1033,6 +1039,29 @@ def _find_pending_interaction_artifact_path(*, quest_root: Path, interaction_id:
     return quest_state.find_latest(candidates)
 
 
+def _controller_stop_source(stop_reason: str | None) -> str | None:
+    normalized = str(stop_reason or "").strip()
+    if not normalized.startswith("controller_stop:"):
+        return None
+    source = normalized.split(":", 1)[1].strip()
+    return source or None
+
+
+def _controller_stop_is_auto_recoverable(
+    *,
+    stop_reason: str | None,
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
+    stop_source = _controller_stop_source(stop_reason)
+    if stop_source not in _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES:
+        return False
+    if not isinstance(publication_gate_report, dict):
+        return False
+    publication_gate_status = str(publication_gate_report.get("status") or "").strip()
+    current_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
+    return publication_gate_status not in {"", "clear"} and current_required_action == "return_to_publishability_gate"
+
+
 def _stopped_controller_owned_auto_recovery_context(
     *,
     status: StudyRuntimeStatus,
@@ -1049,16 +1078,25 @@ def _stopped_controller_owned_auto_recovery_context(
     continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
     continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
     stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
-    if continuation_policy != "auto" or continuation_anchor != "decision":
-        return None
-    if continuation_reason is None or not continuation_reason.startswith("decision:"):
+    if continuation_policy != "auto":
         return None
     if stop_reason and not stop_reason.startswith("controller_stop:"):
+        return None
+    recovery_mode: str | None = None
+    if continuation_anchor == "decision" and continuation_reason is not None and continuation_reason.startswith("decision:"):
+        recovery_mode = "decision"
+    elif _controller_stop_is_auto_recoverable(
+        stop_reason=stop_reason,
+        publication_gate_report=publication_gate_report,
+    ):
+        recovery_mode = "controller_guard"
+    if recovery_mode is None:
         return None
     return {
         "active_interaction_id": str(runtime_state.get("active_interaction_id") or "").strip() or None,
         "stop_reason": stop_reason,
         "continuation_reason": continuation_reason,
+        "recovery_mode": recovery_mode,
     }
 
 
@@ -1652,6 +1690,31 @@ def _status_state(
             publication_gate_report=publication_gate_report,
         )
         interaction_arbitration = result.extras.get("interaction_arbitration")
+        if (
+            isinstance(stopped_recovery_context, dict)
+            and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "controller_guard"
+        ):
+            if not result.startup_boundary_allows_compute_stage:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                )
+            elif not result.runtime_reentry_allows_runtime_entry:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                )
+            elif execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    StudyRuntimeReason.QUEST_STOPPED_BY_CONTROLLER_GUARD,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
+                )
+            return _finalize_result()
         if stopped_recovery_context is not None and isinstance(interaction_arbitration, dict):
             classification = str(interaction_arbitration.get("classification") or "").strip()
             action = str(interaction_arbitration.get("action") or "").strip()
