@@ -97,6 +97,9 @@ _BLOCKER_LABELS = {
 }
 _ACTION_LABELS = {
     "return_to_publishability_gate": "先补齐论文证据与叙事，再回到发表门控复核。",
+    "continue_write_stage": "继续当前论文写作阶段。",
+    "continue_bundle_stage": "继续当前投稿打包阶段。",
+    "complete_bundle_stage": "完成当前投稿打包阶段。",
     "controller_review_required": "需要控制面重新判断下一步。",
     "refresh_startup_hydration": "需要刷新运行前置上下文后再继续。",
     "human_confirmation_required": "等待医生或 PI 明确确认下一步。",
@@ -422,6 +425,16 @@ def _append_unique(items: list[str], message: str | None) -> None:
         return
     if message not in items:
         items.append(message)
+
+
+def _publication_eval_gap_is_blocking(gap: dict[str, Any]) -> bool:
+    summary = _non_empty_text(gap.get("summary"))
+    if summary is None:
+        return False
+    severity = _non_empty_text(gap.get("severity"))
+    if severity in {"optional", "advisory", "watch", "info", "informational"}:
+        return False
+    return True
 
 
 def _publication_supervisor_state_marker(payload: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -891,6 +904,9 @@ def _next_system_action(
     needs_physician_decision: bool,
     controller_decision_payload: dict[str, Any] | None,
     publication_supervisor_state: dict[str, Any],
+    publication_eval_payload: dict[str, Any] | None,
+    runtime_watch_payload: dict[str, Any] | None,
+    current_blockers: list[str],
     execution_owner_guard: dict[str, Any],
     status: dict[str, Any],
     runtime_supervision_payload: dict[str, Any] | None,
@@ -921,7 +937,17 @@ def _next_system_action(
         reason = _reason_label(status.get("reason"))
         if reason is not None:
             return reason
-    publication_action = _action_label((publication_supervisor_state or {}).get("current_required_action"))
+    publication_action_key = _non_empty_text((publication_supervisor_state or {}).get("current_required_action"))
+    if (
+        current_blockers
+        and publication_action_key in {"continue_bundle_stage", "complete_bundle_stage"}
+        and _quality_blocker_present(
+            publication_eval_payload=publication_eval_payload,
+            runtime_watch_payload=runtime_watch_payload,
+        )
+    ):
+        return "先修正当前质量阻塞，再决定是否继续投稿打包。"
+    publication_action = _action_label(publication_action_key)
     if publication_action is not None:
         return publication_action
     guard_action = _action_label((execution_owner_guard or {}).get("current_required_action"))
@@ -992,7 +1018,7 @@ def _current_blockers(
             or _non_empty_text((pending_user_interaction or {}).get("message")),
         )
     for gap in (publication_eval_payload or {}).get("gaps") or []:
-        if isinstance(gap, dict):
+        if isinstance(gap, dict) and _publication_eval_gap_is_blocking(gap):
             _append_unique(blockers, _non_empty_text(gap.get("summary")))
     controllers_payload = (runtime_watch_payload or {}).get("controllers") or {}
     if isinstance(controllers_payload, dict):
@@ -1017,7 +1043,7 @@ def _quality_blocker_present(
     runtime_watch_payload: dict[str, Any] | None,
 ) -> bool:
     for gap in (publication_eval_payload or {}).get("gaps") or []:
-        if isinstance(gap, dict) and _non_empty_text(gap.get("summary")) is not None:
+        if isinstance(gap, dict) and _publication_eval_gap_is_blocking(gap):
             return True
     controllers_payload = (runtime_watch_payload or {}).get("controllers") or {}
     if not isinstance(controllers_payload, dict):
@@ -1676,6 +1702,9 @@ def build_study_progress_projection(
         needs_physician_decision=needs_physician_decision,
         controller_decision_payload=controller_decision_payload,
         publication_supervisor_state=publication_supervisor_state,
+        publication_eval_payload=publication_eval_payload,
+        runtime_watch_payload=runtime_watch_payload,
+        current_blockers=current_blockers,
         execution_owner_guard=execution_owner_guard,
         status=status,
         runtime_supervision_payload=runtime_supervision_payload,

@@ -1020,7 +1020,7 @@ def run_controller(
         and study_delivery_sync.can_sync_study_delivery(paper_root=state.paper_root)
     ):
         stale_reason = str(report.get("study_delivery_stale_reason") or "current_submission_source_missing")
-        if stale_reason == "delivery_projection_missing":
+        if stale_reason in {"delivery_projection_missing", "delivery_manifest_source_changed"}:
             study_delivery_stale_sync = study_delivery_sync.sync_study_delivery(
                 paper_root=state.paper_root,
                 stage="submission_minimal",

@@ -259,7 +259,11 @@ def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path
 
 def test_sync_study_delivery_for_submission_minimal_populates_study_final_directories(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
-    paper_root, study_root = make_delivery_workspace(tmp_path)
+    paper_root, study_root = make_delivery_workspace(
+        tmp_path,
+        quest_id="002-early-residual-risk-managed-20260402",
+        runtime_reentry_study_id="002-early-residual-risk",
+    )
 
     module.sync_study_delivery(
         paper_root=paper_root,
@@ -267,6 +271,8 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     )
 
     assert (study_root / "manuscript" / "manuscript.docx").exists()
+    manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["quest_id"] == "002-early-residual-risk-managed-20260402"
     assert (study_root / "manuscript" / "paper.pdf").exists()
     assert (study_root / "manuscript" / "submission_manifest.json").exists()
     assert (study_root / "manuscript" / "delivery_manifest.json").exists()
@@ -620,6 +626,8 @@ def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_
     )
 
     assert (study_root / "manuscript" / "manuscript.docx").exists()
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert delivery_manifest["quest_id"] == "002-early-residual-risk-managed-20260402"
 
 
 def test_sync_study_delivery_accepts_managed_quest_id_when_runtime_reentry_gate_is_nested_in_startup_contract(
@@ -670,6 +678,7 @@ def test_sync_study_delivery_maps_reentry_quest_back_to_study_root(tmp_path: Pat
 
     assert (study_root / "manuscript" / "manuscript.docx").exists()
     assert (study_root / "manuscript" / "current_package.zip").exists()
+    assert manifest["quest_id"] == "002-early-residual-risk-reentry-20260401"
     assert manifest["study_id"] == "002-early-residual-risk"
 
 

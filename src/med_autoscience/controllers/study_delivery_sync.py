@@ -91,12 +91,16 @@ def _resolve_delivery_context(paper_root: Path) -> dict[str, Any]:
         return {
             "paper_root": resolved_paper_root,
             "worktree_root": study_root,
+            "quest_root": None,
+            "quest_id": study_id,
             "study_id": study_id,
             "study_root": study_root,
         }
     return {
         "paper_root": context.paper_root,
         "worktree_root": context.worktree_root,
+        "quest_root": context.quest_root,
+        "quest_id": context.quest_id,
         "study_id": context.study_id,
         "study_root": context.study_root,
     }
@@ -1006,6 +1010,7 @@ def materialize_submission_delivery_stale_notice(
 def sync_draft_handoff_delivery(
     *,
     paper_root: Path,
+    quest_id: str,
     study_id: str,
     study_root: Path,
 ) -> dict[str, Any]:
@@ -1071,7 +1076,7 @@ def sync_draft_handoff_delivery(
         "generated_at": utc_now(),
         "stage": "draft_handoff",
         "study_id": study_id,
-        "quest_id": study_id,
+        "quest_id": quest_id,
         "source_signature": source_signature,
         "source_relative_paths": [path.as_posix() for path in relative_paths],
         "source": {
@@ -1101,6 +1106,7 @@ def sync_general_delivery(
     *,
     paper_root: Path,
     worktree_root: Path,
+    quest_id: str,
     study_id: str,
     study_root: Path,
     normalized_stage: str,
@@ -1230,7 +1236,7 @@ def sync_general_delivery(
         "generated_at": utc_now(),
         "stage": normalized_stage,
         "study_id": study_id,
-        "quest_id": study_id,
+        "quest_id": quest_id,
         "publication_profile": "general_medical_journal",
         "source": {
             "paper_root": str(paper_root),
@@ -1256,6 +1262,7 @@ def sync_journal_specific_delivery(
     *,
     paper_root: Path,
     worktree_root: Path,
+    quest_id: str,
     study_id: str,
     study_root: Path,
     normalized_stage: str,
@@ -1357,7 +1364,7 @@ def sync_journal_specific_delivery(
         "generated_at": utc_now(),
         "stage": normalized_stage,
         "study_id": study_id,
-        "quest_id": study_id,
+        "quest_id": quest_id,
         "publication_profile": publication_profile,
         "source": {
             "paper_root": str(paper_root),
@@ -1391,6 +1398,7 @@ def sync_promoted_journal_delivery(
     *,
     paper_root: Path,
     worktree_root: Path,
+    quest_id: str,
     study_id: str,
     study_root: Path,
     normalized_stage: str,
@@ -1542,7 +1550,7 @@ def sync_promoted_journal_delivery(
         "generated_at": utc_now(),
         "stage": f"{publication_profile}_submission_mirror",
         "study_id": study_id,
-        "quest_id": study_id,
+        "quest_id": quest_id,
         "publication_profile": publication_profile,
         "source": {
             "paper_root": str(paper_root),
@@ -1581,7 +1589,7 @@ def sync_promoted_journal_delivery(
         "generated_at": utc_now(),
         "stage": f"{publication_profile}_submission",
         "study_id": study_id,
-        "quest_id": study_id,
+        "quest_id": quest_id,
         "publication_profile": publication_profile,
         "source": {
             "paper_root": str(paper_root),
@@ -1625,6 +1633,7 @@ def sync_study_delivery(
     context = _resolve_delivery_context(paper_root.resolve())
     paper_root = context["paper_root"]
     worktree_root = context["worktree_root"]
+    quest_id = context["quest_id"]
     study_id = context["study_id"]
     study_root = context["study_root"]
 
@@ -1633,6 +1642,7 @@ def sync_study_delivery(
             raise ValueError("draft_handoff only supports the general_medical_journal profile")
         return sync_draft_handoff_delivery(
             paper_root=paper_root,
+            quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
         )
@@ -1641,6 +1651,7 @@ def sync_study_delivery(
         return sync_general_delivery(
             paper_root=paper_root,
             worktree_root=worktree_root,
+            quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
             normalized_stage=normalized_stage,
@@ -1653,6 +1664,7 @@ def sync_study_delivery(
         return sync_promoted_journal_delivery(
             paper_root=paper_root,
             worktree_root=worktree_root,
+            quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
             normalized_stage=normalized_stage,
@@ -1662,6 +1674,7 @@ def sync_study_delivery(
     return sync_journal_specific_delivery(
         paper_root=paper_root,
         worktree_root=worktree_root,
+        quest_id=quest_id,
         study_id=study_id,
         study_root=study_root,
         normalized_stage=normalized_stage,

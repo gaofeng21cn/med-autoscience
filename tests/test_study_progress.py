@@ -1757,3 +1757,178 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
     assert all(item["category"] != "launch_report" for item in result["latest_events"])
     assert "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。" in result["current_blockers"]
     assert "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in result["current_blockers"]
+
+
+def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "004-invasive-architecture")
+    quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
+    quest_root.mkdir(parents=True, exist_ok=True)
+
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "emitted_at": "2026-04-16T16:01:15+00:00",
+            "verdict": {
+                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "severity": "optional",
+                    "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json",
+        {
+            "schema_version": 1,
+            "scanned_at": "2026-04-16T16:01:16+00:00",
+            "controllers": {
+                "publication_gate": {
+                    "status": "clear",
+                    "blockers": [],
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "supervisor_phase": "bundle_stage_ready",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": False,
+                    "current_required_action": "continue_bundle_stage",
+                    "deferred_downstream_actions": [],
+                }
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": "004-invasive-architecture",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "004-invasive-architecture-managed-20260408", "auto_resume": True},
+            "quest_id": "004-invasive-architecture-managed-20260408",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
+
+    assert result["intervention_lane"]["lane_id"] == "monitor_only"
+    assert result["current_blockers"] == []
+    assert result["next_system_action"] == "继续当前投稿打包阶段。"
+
+
+def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "004-invasive-architecture")
+    quest_root = profile.runtime_root / "004-invasive-architecture-managed-20260408"
+    quest_root.mkdir(parents=True, exist_ok=True)
+
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "emitted_at": "2026-04-16T16:01:15+00:00",
+            "verdict": {
+                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "gaps": [],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json",
+        {
+            "schema_version": 1,
+            "scanned_at": "2026-04-16T16:01:16+00:00",
+            "controllers": {
+                "publication_gate": {
+                    "status": "clear",
+                    "blockers": [],
+                    "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "supervisor_phase": "bundle_stage_ready",
+                    "phase_owner": "publication_gate",
+                    "upstream_scientific_anchor_ready": True,
+                    "bundle_tasks_downstream_only": False,
+                    "current_required_action": "continue_bundle_stage",
+                    "deferred_downstream_actions": [],
+                },
+                "medical_reporting_audit": {
+                    "status": "blocked",
+                    "blockers": ["registry_contract_mismatch"],
+                },
+            },
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "schema_version": 1,
+            "study_id": "004-invasive-architecture",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "004-invasive-architecture-managed-20260408", "auto_resume": True},
+            "quest_id": "004-invasive-architecture-managed-20260408",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
+
+    assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
+    assert "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in result["current_blockers"]
+    assert result["next_system_action"] == "先修正当前质量阻塞，再决定是否继续投稿打包。"
