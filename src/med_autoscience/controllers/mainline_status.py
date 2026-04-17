@@ -107,6 +107,116 @@ def _platform_target() -> dict[str, Any]:
     }
 
 
+def build_phase2_user_product_loop_lane(
+    *,
+    frontdesk_command: str,
+    workspace_cockpit_command: str,
+    submit_task_command: str,
+    launch_study_command: str,
+    study_progress_command: str,
+    controller_decisions_ref: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "phase2_user_product_loop_lane",
+        "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
+        "recommended_step_id": "open_frontdesk",
+        "recommended_command": frontdesk_command,
+        "single_path": [
+            {
+                "step_id": "open_frontdesk",
+                "title": "先打开 MAS 前台",
+                "surface_kind": "product_frontdesk",
+                "command": frontdesk_command,
+            },
+            {
+                "step_id": "inspect_workspace_inbox",
+                "title": "确认当前 workspace inbox / attention queue",
+                "surface_kind": "workspace_cockpit",
+                "command": workspace_cockpit_command,
+            },
+            {
+                "step_id": "submit_task",
+                "title": "给目标 study 写 durable task intake",
+                "surface_kind": "study_task_intake",
+                "command": submit_task_command,
+            },
+            {
+                "step_id": "continue_study",
+                "title": "启动或续跑当前 study",
+                "surface_kind": "launch_study",
+                "command": launch_study_command,
+            },
+            {
+                "step_id": "inspect_progress",
+                "title": "持续看进度、阻塞和恢复建议",
+                "surface_kind": "study_progress",
+                "command": study_progress_command,
+            },
+            {
+                "step_id": "handle_human_gate",
+                "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
+                "surface_kind": "study_progress",
+                "command": study_progress_command,
+            },
+        ],
+        "operator_questions": [
+            {
+                "question": "用户现在怎么启动 MAS？",
+                "answer_surface_kind": "product_frontdesk",
+                "command": frontdesk_command,
+            },
+            {
+                "question": "用户怎么给 study 下任务？",
+                "answer_surface_kind": "study_task_intake",
+                "command": submit_task_command,
+            },
+            {
+                "question": "用户怎么持续看进度和恢复建议？",
+                "answer_surface_kind": "study_progress",
+                "command": study_progress_command,
+            },
+        ],
+        "proof_surfaces": [
+            {
+                "surface_kind": "product_frontdesk",
+                "command": frontdesk_command,
+            },
+            {
+                "surface_kind": "workspace_cockpit",
+                "command": workspace_cockpit_command,
+            },
+            {
+                "surface_kind": "study_progress.operator_verdict",
+                "command": study_progress_command,
+            },
+            {
+                "surface_kind": "study_progress.recovery_contract",
+                "command": study_progress_command,
+            },
+            {
+                "surface_kind": "controller_decisions",
+                "ref": controller_decisions_ref,
+            },
+        ],
+    }
+
+
+def _phase2_user_product_loop() -> dict[str, Any]:
+    return build_phase2_user_product_loop_lane(
+        frontdesk_command="uv run python -m med_autoscience.cli product-frontdesk --profile <profile>",
+        workspace_cockpit_command="uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+        submit_task_command=(
+            "uv run python -m med_autoscience.cli submit-study-task --profile <profile> "
+            "--study-id <study_id> --task-intent '<task_intent>'"
+        ),
+        launch_study_command="uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+        study_progress_command=(
+            "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>"
+        ),
+        controller_decisions_ref="studies/<study_id>/artifacts/controller_decisions/latest.json",
+    )
+
+
 def _phase3_clearance_lane() -> dict[str, Any]:
     return {
         "surface_kind": "phase3_host_clearance_lane",
@@ -479,6 +589,7 @@ def read_mainline_status() -> dict[str, Any]:
                 "当前总体仍处在第一阶段尾声：主线已成立，正在把 F4 blocker 收口干净，并把用户可见入口继续收成真实产品回路。"
             ),
         },
+        "phase2_user_product_loop": _phase2_user_product_loop(),
         "phase3_clearance_lane": _phase3_clearance_lane(),
         "phase4_backend_deconstruction": _phase4_backend_deconstruction(),
         "platform_target": _platform_target(),
@@ -626,6 +737,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     current_stage = dict(payload.get("current_stage") or {})
     current_program_phase = dict(payload.get("current_program_phase") or {})
     runtime_topology = dict((payload.get("ideal_state") or {}).get("runtime_topology") or {})
+    phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     platform_target = dict(payload.get("platform_target") or {})
@@ -646,12 +758,22 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- research_backend: {runtime_topology.get('research_backend')}",
         f"- entry_shape: {runtime_topology.get('entry_shape')}",
         "",
+        "## Phase 2 User Loop",
+        "",
+        f"- summary: {phase2_user_product_loop.get('summary') or 'none'}",
+        f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
+        f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
+        "",
         "## Phase 3 Clearance",
         "",
         f"- summary: {phase3_clearance_lane.get('summary') or 'none'}",
         f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
         f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
     ]
+    for item in phase2_user_product_loop.get("single_path") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue

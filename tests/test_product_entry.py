@@ -307,6 +307,40 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "mainline-phase --phase current" in payload["user_loop"]["phase_status_current"]
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
     assert "study-progress" in payload["user_loop"]["watch_progress_template"]
+    assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
+    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["phase2_user_product_loop"]["single_path"][1]["step_id"] == "inspect_workspace_inbox"
+    assert payload["phase2_user_product_loop"]["single_path"][4]["command"].endswith(
+        "study-progress --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --format json"
+    )
+    assert payload["phase2_user_product_loop"]["operator_questions"] == [
+        {
+            "question": "用户现在怎么启动 MAS？",
+            "answer_surface_kind": "product_frontdesk",
+            "command": "uv run python -m med_autoscience.cli product-frontdesk --profile " + str(profile_ref.resolve()),
+        },
+        {
+            "question": "用户怎么给 study 下任务？",
+            "answer_surface_kind": "study_task_intake",
+            "command": (
+                "uv run python -m med_autoscience.cli submit-study-task --profile "
+                + str(profile_ref.resolve())
+                + " --study-id <study_id> --task-intent '<task_intent>'"
+            ),
+        },
+        {
+            "question": "用户怎么持续看进度和恢复建议？",
+            "answer_surface_kind": "study_progress",
+            "command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id <study_id> --format json"
+            ),
+        },
+    ]
 
     markdown = module.render_workspace_cockpit_markdown(payload)
     assert "001-risk" in markdown
@@ -316,6 +350,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "current_program_phase" in markdown
     assert "Attention Queue" in markdown
     assert "User Loop" in markdown
+    assert "Phase 2 User Loop" in markdown
     assert "operator_verdict" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
     assert "The Lancet Digital Health" in markdown
@@ -751,6 +786,141 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "blocking_gaps": [
             "独立医学前台 / hosted product entry 仍未 landed。",
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
+        ],
+    }
+    assert payload["phase2_user_product_loop"] == {
+        "surface_kind": "phase2_user_product_loop_lane",
+        "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
+        "recommended_step_id": "open_frontdesk",
+        "recommended_command": (
+            "uv run python -m med_autoscience.cli product-frontdesk --profile "
+            + str(profile_ref.resolve())
+        ),
+        "single_path": [
+            {
+                "step_id": "open_frontdesk",
+                "title": "先打开 MAS 前台",
+                "surface_kind": "product_frontdesk",
+                "command": (
+                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "step_id": "inspect_workspace_inbox",
+                "title": "确认当前 workspace inbox / attention queue",
+                "surface_kind": "workspace_cockpit",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+            },
+            {
+                "step_id": "submit_task",
+                "title": "给目标 study 写 durable task intake",
+                "surface_kind": "study_task_intake",
+                "command": (
+                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --task-intent '<task_intent>'"
+                ),
+            },
+            {
+                "step_id": "continue_study",
+                "title": "启动或续跑当前 study",
+                "surface_kind": "launch_study",
+                "command": (
+                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id>"
+                ),
+            },
+            {
+                "step_id": "inspect_progress",
+                "title": "持续看进度、阻塞和恢复建议",
+                "surface_kind": "study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --format json"
+                ),
+            },
+            {
+                "step_id": "handle_human_gate",
+                "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
+                "surface_kind": "study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --format json"
+                ),
+            },
+        ],
+        "operator_questions": [
+            {
+                "question": "用户现在怎么启动 MAS？",
+                "answer_surface_kind": "product_frontdesk",
+                "command": (
+                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "question": "用户怎么给 study 下任务？",
+                "answer_surface_kind": "study_task_intake",
+                "command": (
+                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --task-intent '<task_intent>'"
+                ),
+            },
+            {
+                "question": "用户怎么持续看进度和恢复建议？",
+                "answer_surface_kind": "study_progress",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --format json"
+                ),
+            },
+        ],
+        "proof_surfaces": [
+            {
+                "surface_kind": "product_frontdesk",
+                "command": (
+                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
+            {
+                "surface_kind": "workspace_cockpit",
+                "command": (
+                    "uv run python -m med_autoscience.cli workspace-cockpit --profile "
+                    + str(profile_ref.resolve())
+                    + " --format json"
+                ),
+            },
+            {
+                "surface_kind": "study_progress.operator_verdict",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --format json"
+                ),
+            },
+            {
+                "surface_kind": "study_progress.recovery_contract",
+                "command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --format json"
+                ),
+            },
+            {
+                "surface_kind": "controller_decisions",
+                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
+            },
         ],
     }
     assert payload["product_entry_preflight"] == {
@@ -1457,6 +1627,11 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
     )
+    assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
+        "product-frontdesk --profile " + str(profile_ref.resolve())
+    )
+    assert payload["phase2_user_product_loop"]["single_path"][2]["surface_kind"] == "study_task_intake"
+    assert payload["phase2_user_product_loop"]["proof_surfaces"][1]["surface_kind"] == "workspace_cockpit"
     assert payload["operator_brief"] == {
         "surface_kind": "product_frontdesk_operator_brief",
         "verdict": "ready_for_task",
@@ -1523,6 +1698,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert "Now" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown
+    assert "Phase 2 User Loop" in markdown
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
     assert "Phase 3 Clearance" in markdown

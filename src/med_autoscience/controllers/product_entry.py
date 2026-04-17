@@ -458,6 +458,32 @@ def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mappin
     return lines
 
 
+def _build_phase2_user_product_loop(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+) -> dict[str, Any]:
+    prefix = _command_prefix(profile_ref)
+    profile_arg = _profile_arg(profile_ref)
+    return mainline_status.build_phase2_user_product_loop_lane(
+        frontdesk_command=f"{prefix} product-frontdesk --profile {profile_arg}",
+        workspace_cockpit_command=_json_surface_command(
+            f"{prefix} workspace-cockpit --profile {profile_arg}"
+        ),
+        submit_task_command=(
+            f"{prefix} submit-study-task --profile {profile_arg} "
+            "--study-id <study_id> --task-intent '<task_intent>'"
+        ),
+        launch_study_command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+        study_progress_command=_json_surface_command(
+            f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
+        ),
+        controller_decisions_ref=str(
+            profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"
+        ),
+    )
+
+
 def _build_phase3_clearance_lane(
     *,
     profile: WorkspaceProfile,
@@ -1132,6 +1158,10 @@ def read_workspace_cockpit(
         user_loop=user_loop,
         commands=commands,
     )
+    phase2_user_product_loop = _build_phase2_user_product_loop(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1144,6 +1174,7 @@ def read_workspace_cockpit(
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,
+        "phase2_user_product_loop": phase2_user_product_loop,
         "studies": studies,
         "commands": commands,
     }
@@ -1155,6 +1186,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     service = dict(workspace_supervision.get("service") or {})
     study_counts = dict(workspace_supervision.get("study_counts") or {})
     operator_brief = dict(payload.get("operator_brief") or {})
+    phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     lines = [
         "# Workspace Cockpit",
         "",
@@ -1242,6 +1274,13 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## User Loop", ""])
     for name, command in (payload.get("user_loop") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
+    lines.extend(["", "## Phase 2 User Loop", ""])
+    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    for item in phase2_user_product_loop.get("operator_questions") or []:
+        if not isinstance(item, Mapping):
+            continue
+        lines.append(f"- {item.get('question') or 'question'}: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Commands", ""])
     for name, command in (payload.get("commands") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
@@ -1619,6 +1658,10 @@ def build_product_entry_manifest(
         profile=profile,
         profile_ref=profile_ref,
     )
+    phase2_user_product_loop = _build_phase2_user_product_loop(
+        profile=profile,
+        profile_ref=profile_ref,
+    )
     phase3_clearance_lane = _build_phase3_clearance_lane(
         profile=profile,
         profile_ref=profile_ref,
@@ -1817,6 +1860,7 @@ def build_product_entry_manifest(
         "product_entry_overview": product_entry_overview,
         "product_entry_preflight": product_entry_preflight,
         "product_entry_readiness": product_entry_readiness,
+        "phase2_user_product_loop": phase2_user_product_loop,
         "product_entry_guardrails": product_entry_guardrails,
         "phase3_clearance_lane": phase3_clearance_lane,
         "phase4_backend_deconstruction": phase4_backend_deconstruction,
@@ -1840,6 +1884,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     product_entry_shell = dict(payload.get("product_entry_shell") or {})
     shared_handoff = dict(payload.get("shared_handoff") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
@@ -1874,6 +1919,13 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")
+    lines.extend(["", "## Phase 2 User Loop", ""])
+    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    for item in phase2_user_product_loop.get("single_path") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Guardrails", ""])
     lines.append(f"- summary: {product_entry_guardrails.get('summary') or 'none'}")
     for item in product_entry_guardrails.get("guardrail_classes") or []:
@@ -1999,6 +2051,7 @@ def build_product_frontdesk(
         "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
         "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
         "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
+        "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
         "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
         "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
         "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
@@ -2038,6 +2091,7 @@ def build_product_frontdesk(
 def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
@@ -2108,6 +2162,17 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(
             f"- attention: {item.get('title') or '未命名关注项'} / `{item.get('recommended_command') or 'none'}`"
         )
+    lines.extend([
+        "",
+        "## Phase 2 User Loop",
+        "",
+    ])
+    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    for item in phase2_user_product_loop.get("single_path") or []:
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend([
         "",
         "## Guardrails",

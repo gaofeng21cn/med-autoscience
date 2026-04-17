@@ -18,6 +18,42 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
+    assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
+    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["phase2_user_product_loop"]["recommended_command"] == (
+        "uv run python -m med_autoscience.cli product-frontdesk --profile <profile>"
+    )
+    assert payload["phase2_user_product_loop"]["single_path"][0]["step_id"] == "open_frontdesk"
+    assert payload["phase2_user_product_loop"]["single_path"][3]["step_id"] == "continue_study"
+    assert payload["phase2_user_product_loop"]["single_path"][5]["step_id"] == "handle_human_gate"
+    assert payload["phase2_user_product_loop"]["proof_surfaces"] == [
+        {
+            "surface_kind": "product_frontdesk",
+            "command": "uv run python -m med_autoscience.cli product-frontdesk --profile <profile>",
+        },
+        {
+            "surface_kind": "workspace_cockpit",
+            "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
+        },
+        {
+            "surface_kind": "study_progress.operator_verdict",
+            "command": (
+                "uv run python -m med_autoscience.cli study-progress --profile <profile> "
+                "--study-id <study_id>"
+            ),
+        },
+        {
+            "surface_kind": "study_progress.recovery_contract",
+            "command": (
+                "uv run python -m med_autoscience.cli study-progress --profile <profile> "
+                "--study-id <study_id>"
+            ),
+        },
+        {
+            "surface_kind": "controller_decisions",
+            "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+        },
+    ]
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
     assert payload["phase3_clearance_lane"]["recommended_step_id"] == "external_runtime_contract"
     assert payload["phase3_clearance_lane"]["recommended_command"] == (
@@ -91,6 +127,8 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Ideal State" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
+    assert "Phase 2 User Loop" in markdown
+    assert "single_path `continue_study`" in markdown
     assert "Platform Target" in markdown
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
