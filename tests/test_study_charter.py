@@ -93,6 +93,15 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
             "primary_question": "Build a submission-ready survival-risk study.",
             "paper_framing_summary": "Clinical survival framing is fixed around CVD-related mortality.",
             "minimum_sci_ready_evidence_package": ["external_validation", "decision_curve_analysis"],
+            "scientific_followup_questions": [
+                "Why is the 5-year all-cause mortality gap between China and the US so large?",
+            ],
+            "explanation_targets": [
+                "Separate endpoint-alignment gap from case-mix shift and residual unexplained gap.",
+            ],
+            "manuscript_conclusion_redlines": [
+                "Do not conclude only that a China-trained absolute risk model is non-transportable.",
+            ],
         },
         execution={
             "decision_policy": "autonomous",
@@ -115,6 +124,15 @@ def test_materialize_study_charter_writes_stable_controller_artifact(tmp_path: P
     assert payload["publication_objective"] == "Build a submission-ready survival-risk study."
     assert payload["paper_framing_summary"] == "Clinical survival framing is fixed around CVD-related mortality."
     assert payload["minimum_sci_ready_evidence_package"] == ["external_validation", "decision_curve_analysis"]
+    assert payload["scientific_followup_questions"] == [
+        "Why is the 5-year all-cause mortality gap between China and the US so large?",
+    ]
+    assert payload["explanation_targets"] == [
+        "Separate endpoint-alignment gap from case-mix shift and residual unexplained gap.",
+    ]
+    assert payload["manuscript_conclusion_redlines"] == [
+        "Do not conclude only that a China-trained absolute risk model is non-transportable.",
+    ]
     assert payload["autonomy_envelope"] == {
         "decision_policy": "autonomous",
         "launch_profile": "continue_existing_state",

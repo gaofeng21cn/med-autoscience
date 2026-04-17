@@ -114,6 +114,21 @@
 - 这是严格后置长线
 - 不属于当前默认实施入口
 
+当前这条长线已经进一步冻结成一条固定落地顺序：
+
+1. `freeze_gateway_runtime_truth`
+2. `stabilize_user_product_loop`
+3. `clear_multi_workspace_host_gate`
+4. `freeze_backend_deconstruction_boundary`
+5. `physical_monorepo_absorb`
+
+当前真实进度：
+
+- 已完成：`freeze_gateway_runtime_truth`
+- 正在进行：`stabilize_user_product_loop`
+- 仍未进入：`clear_multi_workspace_host_gate`、`freeze_backend_deconstruction_boundary`
+- 明确 post-gate：`physical_monorepo_absorb`
+
 ## 顺序为什么不能乱
 
 如果跳过顺序，最常见的坏结果是：

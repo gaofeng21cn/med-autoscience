@@ -66,6 +66,22 @@
 但这条长线当前不属于四仓统一 `Phase C` 的直接交付。
 在 external runtime gate、对象边界、报告边界与 `controller_charter / runtime / eval_hygiene` 防火墙继续稳定前，不应提前进入 physical migration、cross-repo refactor 或 scaffold cutover。
 
+当前 repo-tracked contract 已把这条 monorepo 长线继续压成 5 步 readiness sequence：
+
+1. `freeze_gateway_runtime_truth`
+2. `stabilize_user_product_loop`
+3. `clear_multi_workspace_host_gate`
+4. `freeze_backend_deconstruction_boundary`
+5. `physical_monorepo_absorb`
+
+当前真实进度不是“已经在做 physical absorb”，而是：
+
+- 已完成：`freeze_gateway_runtime_truth`
+- 当前步骤：`stabilize_user_product_loop`
+- 后续剩余：`clear_multi_workspace_host_gate`、`freeze_backend_deconstruction_boundary`、`physical_monorepo_absorb`
+
+因此 monorepo 现在的 honest 读法是：顺序已经冻结、当前步骤已经可见，但 `physical absorb` 仍是严格 post-gate 工作。
+
 ## Execution Handle 与 Durable Surface
 
 当前主线下，Agent 不应把所有运行身份混写成一个“run id”。
@@ -196,7 +212,7 @@
 
 - `mainline-status` 应直接回答 repo 的理想形态、当前主线阶段、5 阶段完善梯子、已完成 tranche、剩余缺口与 next focus，避免用户自己拼多份 program 文档
 - `mainline-status` 还应带出 `phase3_clearance_lane` 与 `phase4_backend_deconstruction`，把 host/workspace clearance 与 backend deconstruction 的当前可执行面显式结构化
-- `mainline-status` 还应带出 `phase5_platform_target`，把 monorepo / runtime core ingest / hosted frontend 收成结构化 post-gate target，而不是只留在口头讨论里
+- `mainline-status` 还应带出 `phase5_platform_target`，把 monorepo / runtime core ingest / hosted frontend 收成结构化 post-gate target，并显式暴露 `sequence_scope / current_step_id / completed_step_ids / remaining_step_ids / landing_sequence`
 - `mainline-phase` 应直接回答某一阶段当前如何使用：至少包括当前可用入口、退出条件与关键文档，避免“五阶段”只停留在静态规划说明里
 - 只要 `autonomous_runtime_notice.required = true`，就必须把 `browser_url`、`quest_session_api_url`、`active_run_id` 当成当前用户可见的监督入口
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
@@ -205,6 +221,7 @@
 - `product-frontdesk` / `product-entry-manifest` 应显式带出 `product_entry_guardrails`：至少覆盖 `workspace supervision gap`、`study progress gap`、`human decision gate`、`publication / quality blocker` 四类 guardrail，并把 `inspect_workspace_inbox -> refresh_supervision -> inspect_study_progress -> continue_or_relaunch` 收成标准恢复回路
 - `product-frontdesk` / `product-entry-manifest` 还应显式带出 `phase3_clearance_lane`：至少覆盖 `external_runtime_contract`、`supervisor_service`、`study_recovery_proof` 三类 clearance target，并把 doctor / hermes-runtime-check / watch / launch-study / study-progress 的组合回路收成标准模板
 - `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase4_backend_deconstruction`：至少回答 substrate target、backend retained now、current backend chain、optional executor proof lane 与 promotion rule，避免在 Phase 4/5 讨论里重新把 truth 写散
+- `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase5_platform_target` 的 monorepo readiness sequence，让用户和顶层 caller 都能直接看到“当前做到哪一步、还差哪几步”，而不是把 monorepo 只当成口头终局
 - `launch-study` 应在返回监督入口的同时，把当前 latest task intake 与 progress freshness 一并投影给用户
 - `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前任务摘要、progress freshness、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
 - `study-progress` 现在还应显式导出 `intervention_lane`：至少要把 `workspace_supervision_gap`、`runtime_recovery_required`、`human_decision_gate`、`study_progress_gap`、`quality_floor_blocker` 这几类前台干预语义稳定结构化，避免 `workspace-cockpit` 继续靠松散启发式猜当前问题属于哪一类

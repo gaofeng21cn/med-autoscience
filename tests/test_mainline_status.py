@@ -33,6 +33,17 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "docs/program/med_deepscientist_deconstruction_map.md"
     )
     assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
+    assert payload["platform_target"]["sequence_scope"] == "monorepo_landing_readiness"
+    assert payload["platform_target"]["current_step_id"] == "stabilize_user_product_loop"
+    assert payload["platform_target"]["completed_step_ids"] == ["freeze_gateway_runtime_truth"]
+    assert payload["platform_target"]["landing_sequence"][0]["status"] == "completed"
+    assert payload["platform_target"]["landing_sequence"][1]["status"] == "in_progress"
+    assert payload["platform_target"]["landing_sequence"][-1]["status"] == "blocked_post_gate"
+    assert payload["platform_target"]["target_internal_modules"] == [
+        "controller_charter",
+        "runtime",
+        "eval_hygiene",
+    ]
     assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "post_gate_target"
     assert payload["platform_target"]["promotion_gates"] == [
         "phase_1_mainline_established",
@@ -57,6 +68,8 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Platform Target" in markdown
+    assert "Monorepo Sequence" in markdown
+    assert "stabilize_user_product_loop" in markdown
     assert "Phase 3 Clearance" in markdown
     assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
