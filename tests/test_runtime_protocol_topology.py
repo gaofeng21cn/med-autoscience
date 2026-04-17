@@ -88,6 +88,7 @@ def test_resolve_paper_root_context_accepts_projected_quest_paper_root(tmp_path:
     assert context.paper_root == worktree_paper_root.resolve()
     assert context.worktree_root == worktree_paper_root.parent.resolve()
     assert context.quest_root == quest_root.resolve()
+    assert context.quest_id == "004-invasive-architecture-managed-20260408"
     assert context.study_id == "004-invasive-architecture"
     assert context.study_root == study_root.resolve()
 
@@ -326,6 +327,7 @@ def test_resolve_paper_root_context_uses_runtime_binding_for_managed_quest_ids(t
 
     context = resolve_paper_root_context(paper_root)
 
+    assert context.quest_id == "003-endocrine-burden-followup-managed-20260402"
     assert context.study_id == "003-endocrine-burden-followup"
     assert context.study_root == study_root
 

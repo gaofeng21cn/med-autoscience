@@ -15,6 +15,7 @@ class PaperRootContext:
     paper_root: Path
     worktree_root: Path
     quest_root: Path
+    quest_id: str
     study_id: str
     study_root: Path
 
@@ -130,6 +131,31 @@ def resolve_quest_root_from_worktree_root(worktree_root: Path) -> Path:
     return resolved.parent.parent.parent
 
 
+def resolve_quest_id_from_worktree_root(worktree_root: Path) -> str:
+    resolved_worktree_root = _resolve_path(worktree_root)
+    quest_yaml_path = resolved_worktree_root / "quest.yaml"
+    if not quest_yaml_path.exists():
+        raise FileNotFoundError(f"missing worktree quest.yaml: {quest_yaml_path}")
+    payload = _load_yaml_mapping(quest_yaml_path)
+    worktree_quest_id = _extract_string_field(payload, "quest_id")
+
+    quest_root = resolve_quest_root_from_worktree_root(resolved_worktree_root)
+    quest_root_yaml_path = quest_root / "quest.yaml"
+    quest_root_quest_id = None
+    if quest_root_yaml_path.exists():
+        quest_payload = _load_yaml_mapping(quest_root_yaml_path)
+        quest_root_quest_id = _extract_string_field(quest_payload, "quest_id")
+        if worktree_quest_id and quest_root_quest_id and worktree_quest_id != quest_root_quest_id:
+            raise ValueError(
+                f"conflicting quest_id declarations between {quest_yaml_path} and {quest_root_yaml_path}: "
+                f"{worktree_quest_id!r} != {quest_root_quest_id!r}"
+            )
+
+    if worktree_quest_id or quest_root_quest_id:
+        return worktree_quest_id or quest_root_quest_id or ""
+    raise ValueError(f"missing string quest_id in {quest_yaml_path}")
+
+
 def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
     resolved_worktree_root = _resolve_path(worktree_root)
     quest_yaml_path = resolved_worktree_root / "quest.yaml"
@@ -197,7 +223,7 @@ def _resolve_study_binding_from_runtime_binding(
     return None
 
 
-def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Path]:
+def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, str, Path]:
     resolved_paper_root = _resolve_path(paper_root)
     authoritative_paper_root = _resolve_authoritative_paper_root_from_projected_quest_paper(
         resolved_paper_root
@@ -206,9 +232,9 @@ def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Pat
         resolved_paper_root = authoritative_paper_root
     worktree_root = resolve_worktree_root_from_paper_root(resolved_paper_root)
     quest_root = resolve_quest_root_from_worktree_root(worktree_root)
-    quest_id = resolve_study_id_from_worktree_root(worktree_root)
+    quest_id = resolve_quest_id_from_worktree_root(worktree_root)
+    study_id = resolve_study_id_from_worktree_root(worktree_root)
     workspace_root = _resolve_workspace_root_from_quest_root(quest_root)
-    study_id = quest_id
     study_root = workspace_root / "studies" / study_id
     if not (study_root / "study.yaml").exists():
         binding = _resolve_study_binding_from_runtime_binding(
@@ -220,20 +246,21 @@ def _resolve_study_binding(paper_root: Path) -> tuple[Path, Path, Path, str, Pat
         study_id, study_root = binding
         if not (study_root / "study.yaml").exists():
             raise FileNotFoundError(f"runtime binding resolved `{study_id}` but study.yaml is missing at {study_root}")
-    return resolved_paper_root, worktree_root, quest_root, study_id, study_root
+    return resolved_paper_root, worktree_root, quest_root, quest_id, study_id, study_root
 
 
 def resolve_study_root_from_paper_root(paper_root: Path) -> tuple[str, Path]:
-    _, _, _, study_id, study_root = _resolve_study_binding(paper_root)
+    _, _, _, _, study_id, study_root = _resolve_study_binding(paper_root)
     return study_id, study_root
 
 
 def resolve_paper_root_context(paper_root: Path) -> PaperRootContext:
-    resolved_paper_root, worktree_root, quest_root, study_id, study_root = _resolve_study_binding(paper_root)
+    resolved_paper_root, worktree_root, quest_root, quest_id, study_id, study_root = _resolve_study_binding(paper_root)
     return PaperRootContext(
         paper_root=resolved_paper_root,
         worktree_root=worktree_root,
         quest_root=quest_root,
+        quest_id=quest_id,
         study_id=study_id,
         study_root=study_root,
     )
