@@ -23,12 +23,68 @@ def _platform_target() -> dict[str, Any]:
             "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
             "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
         ),
+        "sequence_scope": "monorepo_landing_readiness",
+        "current_readiness_summary": (
+            "monorepo 长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening；"
+            "physical absorb 仍然严格属于 post-gate 工作。"
+        ),
         "north_star_topology": {
             "domain_gateway": "Med Auto Science",
             "outer_runtime_substrate_owner": "upstream Hermes-Agent",
             "controlled_research_backend": "MedDeepScientist",
             "monorepo_status": "post_gate_target",
         },
+        "target_internal_modules": [
+            "controller_charter",
+            "runtime",
+            "eval_hygiene",
+        ],
+        "landing_sequence": [
+            {
+                "step_id": "freeze_gateway_runtime_truth",
+                "title": "Freeze gateway/runtime truth",
+                "status": "completed",
+                "phase_id": "phase_1_mainline_established",
+                "summary": "mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
+            },
+            {
+                "step_id": "stabilize_user_product_loop",
+                "title": "Stabilize user product loop",
+                "status": "in_progress",
+                "phase_id": "phase_2_user_product_loop",
+                "summary": "当前活跃步骤：继续收口 F4 blocker，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。",
+            },
+            {
+                "step_id": "clear_multi_workspace_host_gate",
+                "title": "Clear multi-workspace / host gate",
+                "status": "pending",
+                "phase_id": "phase_3_multi_workspace_host_clearance",
+                "summary": "把 runtime/service/recovery proof 扩到更多 workspace / host 后，才具备更大 cutover 资格。",
+            },
+            {
+                "step_id": "freeze_backend_deconstruction_boundary",
+                "title": "Freeze backend deconstruction boundary",
+                "status": "pending",
+                "phase_id": "phase_4_backend_deconstruction",
+                "summary": "先把 substrate 与 backend retained-now 的边界继续收紧，再谈 executor 迁移或 ingest。",
+            },
+            {
+                "step_id": "physical_monorepo_absorb",
+                "title": "Physical monorepo absorb",
+                "status": "blocked_post_gate",
+                "phase_id": "phase_5_federation_platform_maturation",
+                "summary": "只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入物理 monorepo absorb。",
+            },
+        ],
+        "current_step_id": "stabilize_user_product_loop",
+        "completed_step_ids": [
+            "freeze_gateway_runtime_truth",
+        ],
+        "remaining_step_ids": [
+            "clear_multi_workspace_host_gate",
+            "freeze_backend_deconstruction_boundary",
+            "physical_monorepo_absorb",
+        ],
         "promotion_gates": [
             "phase_1_mainline_established",
             "phase_2_user_product_loop",
@@ -555,17 +611,31 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-        "## Platform Target",
-        "",
-        f"- surface_kind: `{platform_target.get('surface_kind') or 'none'}`",
-        f"- summary: {platform_target.get('summary') or 'none'}",
-        f"- monorepo_status: `{((platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
-        f"- recommended_phase_command: `{platform_target.get('recommended_phase_command') or 'none'}`",
-        "",
-        "## Program Phases",
-        "",
+            "## Platform Target",
+            "",
+            f"- surface_kind: `{platform_target.get('surface_kind') or 'none'}`",
+            f"- summary: {platform_target.get('summary') or 'none'}",
+            f"- sequence_scope: `{platform_target.get('sequence_scope') or 'none'}`",
+            f"- current_step_id: `{platform_target.get('current_step_id') or 'none'}`",
+            f"- current_readiness_summary: {platform_target.get('current_readiness_summary') or 'none'}",
+            f"- monorepo_status: `{((platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
+            f"- recommended_phase_command: `{platform_target.get('recommended_phase_command') or 'none'}`",
+            "",
+            "## Monorepo Sequence",
+            "",
         ]
     )
+    landing_sequence = list(platform_target.get("landing_sequence") or [])
+    if landing_sequence:
+        for item in landing_sequence:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"- `{item.get('step_id')}` [{item.get('status')}] / `{item.get('phase_id')}`: {item.get('summary') or 'none'}"
+            )
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Program Phases", ""])
     for item in payload.get("phase_ladder") or []:
         if not isinstance(item, dict):
             continue

@@ -120,10 +120,18 @@ print(json.dumps(ensure_python_environment_contract()))
 """
 
     env = os.environ.copy()
-    site_paths = [
-        contract.MANAGED_RUNTIME_PREFIX / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages",
-        contract.MANAGED_RUNTIME_PREFIX / "Lib" / "site-packages",
-    ]
+    runtime_prefixes: list[Path] = []
+    for prefix in (contract.CHECKOUT_MANAGED_RUNTIME_PREFIX, contract.MANAGED_RUNTIME_PREFIX):
+        if prefix not in runtime_prefixes:
+            runtime_prefixes.append(prefix)
+    site_paths: list[Path] = []
+    for prefix in runtime_prefixes:
+        site_paths.extend(
+            [
+                prefix / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages",
+                prefix / "Lib" / "site-packages",
+            ]
+        )
     effective_paths = [str(REPO_ROOT / "src")] + [str(path) for path in site_paths if path.exists()]
     env["PYTHONPATH"] = os.pathsep.join(effective_paths)
     completed = subprocess.run(
