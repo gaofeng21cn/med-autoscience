@@ -1140,7 +1140,6 @@ def test_run_controller_resyncs_delivery_when_authority_package_changes_without_
         },
     }
 
-
 def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_is_reported(
     tmp_path: Path,
     monkeypatch,
@@ -1231,8 +1230,6 @@ def test_run_controller_resyncs_delivery_when_authority_package_source_mismatch_
             "current_package_zip": "/tmp/studies/002/manuscript/current_package.zip",
         },
     }
-
-
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(

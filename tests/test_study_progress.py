@@ -2245,8 +2245,6 @@ def test_study_progress_does_not_surface_reporting_checklist_gap_as_hard_blocker
     assert result["intervention_lane"]["lane_id"] == "monitor_only"
     assert result["operator_status_card"]["handling_state"] == "monitor_only"
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在持续监管当前 study。"
-
-
 def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

@@ -215,6 +215,8 @@ def _submission_delivery_stale_reason_label(stale_reason: str | None) -> str:
         return "the recorded mirror still references sources that no longer exist"
     if normalized == "delivery_manifest_source_mismatch":
         return "the recorded mirror points at a different authority package root"
+    if normalized == "delivery_manifest_source_changed":
+        return "the authority submission package changed after the mirror was last synced"
     if normalized == "delivery_projection_missing":
         return "the stage-neutral current package projection has not been materialized yet"
     return normalized or "the current authority submission package is unavailable"
@@ -664,6 +666,29 @@ def _draft_handoff_source_signature(*, paper_root: Path, relative_paths: tuple[P
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _submission_source_relative_paths(*, source_root: Path) -> tuple[Path, ...]:
+    resolved_source_root = Path(source_root).expanduser().resolve()
+    relative_paths = _iter_relative_files(resolved_source_root)
+    return tuple(sorted(relative_paths, key=lambda item: item.as_posix()))
+
+
+def _submission_source_signature(*, source_root: Path, relative_paths: tuple[Path, ...]) -> str:
+    resolved_source_root = Path(source_root).expanduser().resolve()
+    fingerprint_payload = []
+    for relative_path in relative_paths:
+        source = resolved_source_root / relative_path
+        stat = source.stat()
+        fingerprint_payload.append(
+            {
+                "path": relative_path.as_posix(),
+                "mtime_ns": stat.st_mtime_ns,
+                "size": stat.st_size,
+            }
+        )
+    canonical = json.dumps(fingerprint_payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def build_draft_handoff_readme(*, study_id: str) -> str:
     return (
         "# Draft Handoff Delivery\n\n"
@@ -839,9 +864,15 @@ def describe_submission_delivery(
         }
 
     recorded_surface_roles = manifest.get("surface_roles") or {}
+    recorded_source_signature = str(manifest.get("source_signature") or "").strip()
     recorded_source_root = (
         str((recorded_surface_roles or {}).get("controller_authorized_package_source_root") or "").strip()
         or str(((manifest.get("source") or {}) if isinstance(manifest.get("source"), dict) else {}).get("package_source_root") or "").strip()
+    )
+    source_relative_paths = _submission_source_relative_paths(source_root=expected_source_root)
+    source_signature = _submission_source_signature(
+        source_root=expected_source_root,
+        relative_paths=source_relative_paths,
     )
     missing_source_paths = sorted(
         {
@@ -861,6 +892,9 @@ def describe_submission_delivery(
     elif recorded_source_root and recorded_source_root != str(expected_source_root.resolve()):
         status = "stale_source_mismatch"
         stale_reason = "delivery_manifest_source_mismatch"
+    elif recorded_source_signature != source_signature:
+        status = "stale_source_changed"
+        stale_reason = "delivery_manifest_source_changed"
     else:
         status = "current"
         stale_reason = None
@@ -1186,6 +1220,11 @@ def sync_general_delivery(
     generated_files: list[dict[str, str]] = []
     source_root = build_submission_source_root(paper_root=paper_root, publication_profile="general_medical_journal")
     source_relative_root = build_authority_source_relative_root(paper_root=paper_root, source_root=source_root)
+    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_signature = _submission_source_signature(
+        source_root=source_root,
+        relative_paths=source_relative_paths,
+    )
 
     copy_file(
         source=source_root / "manuscript.docx",
@@ -1300,6 +1339,8 @@ def sync_general_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": "general_medical_journal",
+        "source_signature": source_signature,
+        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
         "source": {
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
@@ -1346,6 +1387,11 @@ def sync_journal_specific_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_signature = _submission_source_signature(
+        source_root=source_root,
+        relative_paths=source_relative_paths,
+    )
     copy_file(
         source=source_root / "manuscript.docx",
         target=journal_package_root / "manuscript.docx",
@@ -1428,6 +1474,8 @@ def sync_journal_specific_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
+        "source_signature": source_signature,
+        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
         "source": {
             "paper_root": str(paper_root),
             "worktree_root": str(worktree_root),
@@ -1480,6 +1528,11 @@ def sync_promoted_journal_delivery(
 
     copied_files: list[dict[str, str]] = []
     generated_files: list[dict[str, str]] = []
+    source_relative_paths = _submission_source_relative_paths(source_root=source_root)
+    source_signature = _submission_source_signature(
+        source_root=source_root,
+        relative_paths=source_relative_paths,
+    )
     copy_file(
         source=source_root / "manuscript.docx",
         target=manuscript_root / "manuscript.docx",
@@ -1614,6 +1667,8 @@ def sync_promoted_journal_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
+        "source_signature": source_signature,
+        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
         "source": {
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),
@@ -1653,6 +1708,8 @@ def sync_promoted_journal_delivery(
         "study_id": study_id,
         "quest_id": quest_id,
         "publication_profile": publication_profile,
+        "source_signature": source_signature,
+        "source_relative_paths": [path.as_posix() for path in source_relative_paths],
         "source": {
             "paper_root": str(paper_root),
             "package_source_root": str(source_root),

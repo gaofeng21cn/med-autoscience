@@ -373,6 +373,26 @@ def test_describe_submission_delivery_flags_stale_when_current_package_projectio
     assert result["stale_reason"] == "delivery_projection_missing"
 
 
+def test_describe_submission_delivery_flags_stale_when_authority_package_changes_under_same_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    write_text(paper_root / "submission_minimal" / "manuscript.docx", "updated docx")
+
+    result = module.describe_submission_delivery(paper_root=paper_root)
+
+    assert result["applicable"] is True
+    assert result["status"] == "stale_source_changed"
+    assert result["stale_reason"] == "delivery_manifest_source_changed"
+    assert result["delivery_manifest_path"] == str(study_root / "manuscript" / "delivery_manifest.json")
+    assert result["current_package_root"] == str(study_root / "manuscript" / "current_package")
+
+
 def test_materialize_submission_delivery_stale_notice_clears_stale_mirror_files(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)
