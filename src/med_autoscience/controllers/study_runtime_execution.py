@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import quote
 
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
+from med_autoscience.controllers import runtime_supervision as runtime_supervision_controller
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_backend import ManagedRuntimeBackend
 from med_autoscience.runtime_protocol import (
@@ -432,6 +433,58 @@ def _run_runtime_preflight(
                 )
 
 
+def _resume_postcondition_payload(
+    *,
+    status: StudyRuntimeStatus,
+    resume_result: dict[str, Any],
+) -> dict[str, Any]:
+    snapshot = dict(resume_result.get("snapshot") or {}) if isinstance(resume_result.get("snapshot"), dict) else {}
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    snapshot_status = str(snapshot.get("status") or resume_result.get("status") or "").strip() or None
+    active_run_id = str(snapshot.get("active_run_id") or resume_result.get("active_run_id") or "").strip() or None
+    scheduled = bool(resume_result.get("scheduled"))
+    started = bool(resume_result.get("started"))
+    queued = bool(resume_result.get("queued"))
+    effective = (
+        active_run_id is not None
+        or snapshot_status in {"running", "retrying", "active"}
+    )
+    failure_mode = None
+    if not effective:
+        failure_mode = "no_effect"
+        if isinstance(interaction_arbitration, dict):
+            action = str(interaction_arbitration.get("action") or "").strip()
+            if snapshot_status == "waiting_for_user" and action == StudyRuntimeDecision.RESUME.value:
+                failure_mode = "waiting_state_preserved"
+    return {
+        "effective": effective,
+        "failure_mode": failure_mode,
+        "snapshot_status": snapshot_status,
+        "active_run_id": active_run_id,
+        "scheduled": scheduled,
+        "started": started,
+        "queued": queued,
+    }
+
+
+def _apply_resume_postcondition(
+    *,
+    status: StudyRuntimeStatus,
+    outcome: StudyRuntimeExecutionOutcome,
+) -> bool:
+    resume_result = outcome.daemon_step(StudyRuntimeDaemonStep.RESUME)
+    payload = _resume_postcondition_payload(status=status, resume_result=resume_result)
+    status._record_dict_extra("resume_postcondition", payload)
+    if payload["effective"]:
+        return True
+    status.set_decision(
+        StudyRuntimeDecision.BLOCKED,
+        StudyRuntimeReason.RESUME_REQUEST_FAILED,
+    )
+    outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+    return False
+
+
 def _execute_create_runtime_decision(
     *,
     status: StudyRuntimeStatus,
@@ -550,6 +603,8 @@ def _execute_create_runtime_decision(
         status.update_quest_runtime(
             quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
         )
+        if not _apply_resume_postcondition(status=status, outcome=outcome):
+            return outcome
         outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_AND_START
     else:
         outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_ONLY
@@ -613,6 +668,8 @@ def _execute_resume_runtime_decision(
     status.update_quest_runtime(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
     )
+    if not _apply_resume_postcondition(status=status, outcome=outcome):
+        return outcome
     outcome.binding_last_action = StudyRuntimeBindingAction.RESUME
     return outcome
 
@@ -1091,6 +1148,7 @@ def _persist_runtime_artifacts(
     source: str,
 ) -> None:
     router = _router_module()
+    recorded_at = router._utc_now()
     _record_transition_runtime_event(status=status, context=context, outcome=outcome)
     _record_autonomous_runtime_notice_if_required(
         status=status,
@@ -1112,7 +1170,7 @@ def _persist_runtime_artifacts(
         force=force,
         startup_payload_path=outcome.startup_payload_path,
         daemon_result=outcome.serialized_daemon_result(),
-        recorded_at=router._utc_now(),
+        recorded_at=recorded_at,
     )
     status.record_runtime_artifacts(
         runtime_binding_path=artifact_paths.runtime_binding_path,
@@ -1128,5 +1186,11 @@ def _persist_runtime_artifacts(
             force=force,
             startup_payload_path=outcome.startup_payload_path,
             daemon_result=outcome.serialized_daemon_result(),
-            recorded_at=router._utc_now(),
+            recorded_at=recorded_at,
         )
+    runtime_supervision_controller.materialize_runtime_supervision(
+        study_root=context.study_root,
+        status_payload=status.to_dict(),
+        recorded_at=recorded_at,
+        apply=True,
+    )

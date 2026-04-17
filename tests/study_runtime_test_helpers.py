@@ -238,6 +238,9 @@ def write_study(
     journal_shortlist: list[str] | None = None,
     journal_shortlist_evidence: list[dict[str, object]] | None = None,
     minimum_sci_ready_evidence_package: list[str] | None = None,
+    scientific_followup_questions: list[str] | None = None,
+    explanation_targets: list[str] | None = None,
+    manuscript_conclusion_redlines: list[str] | None = None,
     launch_profile: str = "continue_existing_state",
     endpoint_type: str | None = None,
     manuscript_family: str | None = None,
@@ -318,6 +321,15 @@ def write_study(
     if minimum_sci_ready_evidence_package:
         lines.append("minimum_sci_ready_evidence_package:")
         lines.extend(f"  - {item}" for item in minimum_sci_ready_evidence_package)
+    if scientific_followup_questions:
+        lines.append("scientific_followup_questions:")
+        lines.extend(f"  - {item}" for item in scientific_followup_questions)
+    if explanation_targets:
+        lines.append("explanation_targets:")
+        lines.extend(f"  - {item}" for item in explanation_targets)
+    if manuscript_conclusion_redlines:
+        lines.append("manuscript_conclusion_redlines:")
+        lines.extend(f"  - {item}" for item in manuscript_conclusion_redlines)
     if submission_targets_mode is not None:
         lines.append(f"submission_targets_mode: {submission_targets_mode}")
     if submission_targets:

@@ -93,6 +93,9 @@ def materialize_study_charter(
         "minimum_sci_ready_evidence_package": _string_list(
             study_payload.get("minimum_sci_ready_evidence_package")
         ),
+        "scientific_followup_questions": _string_list(study_payload.get("scientific_followup_questions")),
+        "explanation_targets": _string_list(study_payload.get("explanation_targets")),
+        "manuscript_conclusion_redlines": _string_list(study_payload.get("manuscript_conclusion_redlines")),
         "autonomy_envelope": {
             "decision_policy": _non_empty_string(execution.get("decision_policy")) or "autonomous",
             "launch_profile": _non_empty_string(execution.get("launch_profile")) or "continue_existing_state",
