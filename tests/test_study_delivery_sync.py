@@ -301,6 +301,37 @@ def test_sync_study_delivery_for_submission_minimal_populates_study_final_direct
     }
 
 
+def test_sync_study_delivery_writes_submission_todo_for_pending_front_matter(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["front_matter_placeholders"] = {
+        "authors": "pending",
+        "ethics": "pending",
+        "data_availability": "pending",
+    }
+    dump_json(manifest_path, manifest)
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+
+    todo_path = study_root / "manuscript" / "current_package" / "SUBMISSION_TODO.md"
+    todo_text = todo_path.read_text(encoding="utf-8")
+    assert "# Submission TODO" in todo_text
+    assert "- Authors: pending" in todo_text
+    assert "- Ethics: pending" in todo_text
+    assert "- Data availability: pending" in todo_text
+    assert "scientific audit" in todo_text
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert {
+        "category": "current_package_submission_todo",
+        "path": str(todo_path.resolve()),
+    } in delivery_manifest["generated_files"]
+
+
 def test_describe_submission_delivery_flags_stale_when_authority_source_disappears(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

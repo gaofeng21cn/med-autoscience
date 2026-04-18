@@ -397,6 +397,56 @@ def build_authority_source_relative_root(*, paper_root: Path, source_root: Path)
     return source_root.resolve().relative_to(paper_root.resolve().parent).as_posix()
 
 
+FRONT_MATTER_LABELS = {
+    "authors": "Authors",
+    "affiliations": "Affiliations",
+    "corresponding_author": "Corresponding author",
+    "funding": "Funding",
+    "conflict_of_interest": "Conflict of interest",
+    "ethics": "Ethics",
+    "data_availability": "Data availability",
+}
+
+
+def _humanize_submission_field(field_name: str) -> str:
+    return FRONT_MATTER_LABELS.get(field_name, field_name.replace("_", " ").capitalize())
+
+
+def _is_pending_submission_item(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        return normalized in {"", "pending", "missing", "todo", "tbd", "unknown", "required"}
+    return False
+
+
+def build_submission_todo_from_manifest(*, manifest_path: Path) -> str | None:
+    if not manifest_path.exists():
+        return None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    placeholders = manifest.get("front_matter_placeholders")
+    if not isinstance(placeholders, dict):
+        return None
+    pending_items = [
+        (_humanize_submission_field(str(key)), "pending" if value is None else str(value).strip() or "pending")
+        for key, value in sorted(placeholders.items())
+        if _is_pending_submission_item(value)
+    ]
+    if not pending_items:
+        return None
+    lines = [
+        "# Submission TODO",
+        "",
+        "These items are administrative/front-matter handoff tasks. They are listed here so the current package can be reviewed for scientific audit while formal submission details are completed.",
+        "",
+        "Pending items:",
+    ]
+    lines.extend(f"- {label}: {status}" for label, status in pending_items)
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_current_package_readme(*, study_id: str, stage: str, source_relative_root: str, status_line: str) -> str:
     return (
         "# Current Human Package\n\n"
@@ -446,6 +496,18 @@ def sync_current_package_projection(
             "path": str(readme_path.resolve()),
         }
     )
+    submission_todo = build_submission_todo_from_manifest(
+        manifest_path=current_package_root / "submission_manifest.json",
+    )
+    if submission_todo is not None:
+        todo_path = current_package_root / "SUBMISSION_TODO.md"
+        write_text(todo_path, submission_todo)
+        generated_files.append(
+            {
+                "category": "current_package_submission_todo",
+                "path": str(todo_path.resolve()),
+            }
+        )
     build_zip_from_directory(source_root=current_package_root, output_path=current_package_zip)
     generated_files.append(
         {
