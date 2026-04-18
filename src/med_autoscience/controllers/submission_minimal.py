@@ -164,13 +164,14 @@ def resolve_compiled_markdown_path(
     bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
     candidate = _first_nonempty_string(
         bundle_inputs.get("compiled_markdown_path"),
+        compile_report.get("source_markdown_path"),
         compile_report.get("source_markdown"),
         bundle_manifest.get("draft_path"),
     )
     if candidate is None:
         raise KeyError(
             "submission export could not resolve compiled markdown from bundle_manifest.bundle_inputs.compiled_markdown_path, "
-            "bundle_manifest.draft_path, or compile_report.source_markdown"
+            "bundle_manifest.draft_path, compile_report.source_markdown_path, or compile_report.source_markdown"
         )
     return resolve_relpath(workspace_root, candidate)
 
@@ -705,6 +706,16 @@ def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def parse_third_level_blocks(text: str) -> list[tuple[str, str]]:
+    pattern = re.compile(r"(?ms)^### ([^\n]+)\n\n(.*?)(?=^### |\Z)")
+    blocks: list[tuple[str, str]] = []
+    for match in pattern.finditer(text.strip()):
+        heading = match.group(1).strip()
+        body = match.group(2).strip()
+        blocks.append((heading, body))
+    return blocks
+
+
 def parse_manuscript_shaped_draft(text: str) -> tuple[str | None, dict[str, str]]:
     stripped = text.strip()
     title_match = re.match(r"(?ms)^# ([^\n]+)\n+(.*)$", stripped)
@@ -734,6 +745,40 @@ def parse_figure_id_from_heading(heading: str) -> str | None:
     if main_match:
         return f"F{main_match.group(1)}"
     return None
+
+
+def normalize_materialized_figure_heading(heading: str) -> str | None:
+    normalized = heading.strip()
+    if not normalized:
+        return None
+    if re.match(r"^Figure \d+\b", normalized, flags=re.IGNORECASE):
+        return normalized
+    if re.match(r"^Supplementary Figure S\d+\b", normalized, flags=re.IGNORECASE):
+        return normalized
+
+    supplementary_match = re.match(r"^FS(\d+)(?:\.\s*(.+))?$", normalized, flags=re.IGNORECASE)
+    if supplementary_match:
+        suffix = f". {supplementary_match.group(2).strip()}" if supplementary_match.group(2) else ""
+        return f"Supplementary Figure S{supplementary_match.group(1)}{suffix}"
+
+    main_match = re.match(r"^F(\d+)(?:\.\s*(.+))?$", normalized, flags=re.IGNORECASE)
+    if main_match:
+        suffix = f". {main_match.group(2).strip()}" if main_match.group(2) else ""
+        return f"Figure {main_match.group(1)}{suffix}"
+    return None
+
+
+def extract_main_figure_blocks(main_figures: str) -> list[tuple[str, str]]:
+    figure_blocks = parse_heading_blocks(main_figures, "Figure ")
+    if figure_blocks:
+        return figure_blocks
+
+    normalized_blocks: list[tuple[str, str]] = []
+    for heading, block_body in parse_third_level_blocks(main_figures):
+        normalized_heading = normalize_materialized_figure_heading(heading)
+        if normalized_heading and normalized_heading.lower().startswith("figure "):
+            normalized_blocks.append((normalized_heading, block_body))
+    return normalized_blocks
 
 
 def figure_id_aliases(figure_id: str) -> set[str]:
@@ -854,7 +899,7 @@ def build_figure_legend_blocks(
     figure_semantics_map: dict[str, dict[str, Any]],
 ) -> list[str]:
     figure_legend_blocks: list[str] = []
-    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
+    for heading, block_body in extract_main_figure_blocks(main_figures):
         figure_id = parse_figure_id_from_heading(heading)
         legend = merge_legend_with_figure_semantics(
             base_legend=strip_image_lines(block_body),
@@ -875,7 +920,7 @@ def build_submission_figure_blocks(
     figure_semantics_map: dict[str, dict[str, Any]],
 ) -> list[str]:
     figure_blocks: list[str] = []
-    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
+    for heading, block_body in extract_main_figure_blocks(main_figures):
         figure_id = parse_figure_id_from_heading(heading)
         image_lines = extract_image_lines(block_body)
         legend = merge_legend_with_figure_semantics(
@@ -1110,9 +1155,10 @@ def build_general_medical_submission_markdown(
     *,
     compiled_markdown_path: Path,
     submission_root: Path,
+    compiled_markdown_text: str | None = None,
 ) -> Path:
     paper_root = compiled_markdown_path.parent if compiled_markdown_path.name == "draft.md" else compiled_markdown_path.parents[1]
-    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
     main_tables = ""
     main_figures = ""
@@ -1163,7 +1209,7 @@ def build_general_medical_submission_markdown(
             label="Conclusion",
         )
         bibliography_path = (paper_root / "references.bib").resolve()
-    elif compiled_markdown_path.name == "draft.md" and manuscript_title and manuscript_sections:
+    elif manuscript_title and manuscript_sections:
         title = manuscript_title
         abstract = first_nonempty_block(manuscript_sections, "Abstract")
         introduction = first_nonempty_block(manuscript_sections, "Introduction")
@@ -1172,7 +1218,7 @@ def build_general_medical_submission_markdown(
         discussion = first_nonempty_block(manuscript_sections, "Discussion")
         conclusion = first_nonempty_block(manuscript_sections, "Conclusion", "Conclusions")
         main_tables = first_nonempty_block(manuscript_sections, "Main Tables", "Tables")
-        main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figure Legends")
+        main_figures = first_nonempty_block(manuscript_sections, "Main Figures", "Figures", "Main-text figures")
         figure_semantics_map = load_figure_semantics_map(paper_root)
         bibliography_path = (paper_root / "references.bib").resolve()
     else:
@@ -1211,6 +1257,8 @@ def build_general_medical_submission_markdown(
         )
         main_tables = extract_optional_markdown_block(body, "Main Tables", ["Main Figures", "Appendix"])
         main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix"])
+        if not main_figures.strip():
+            main_figures = extract_optional_markdown_block(body, "Figures", ["Figure Legends", "Tables", "Appendix"])
         figure_semantics_map = load_figure_semantics_map(paper_root)
 
     bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
@@ -1256,9 +1304,10 @@ def build_frontiers_manuscript_markdown(
     *,
     compiled_markdown_path: Path,
     submission_root: Path,
+    compiled_markdown_text: str | None = None,
 ) -> Path:
     paper_root = compiled_markdown_path.parents[1]
-    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
     title = metadata.get("title", "Article Title")
     bibliography_value = metadata.get("bibliography", "../references.bib")
@@ -1328,8 +1377,9 @@ def build_frontiers_supplementary_markdown(
     *,
     compiled_markdown_path: Path,
     submission_root: Path,
+    compiled_markdown_text: str | None = None,
 ) -> Path:
-    compiled_text = compiled_markdown_path.read_text(encoding="utf-8")
+    compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
     bibliography_value = metadata.get("bibliography", "../references.bib")
     bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
@@ -1430,6 +1480,8 @@ def create_submission_minimal_package(
     if not compiled_pdf_path.exists():
         raise FileNotFoundError(f"missing compiled pdf: {compiled_pdf_path}")
 
+    compiled_markdown_text = compiled_markdown_path.read_text(encoding="utf-8")
+
     if submission_root.exists():
         shutil.rmtree(submission_root)
     submission_root.mkdir(parents=True, exist_ok=True)
@@ -1445,15 +1497,18 @@ def create_submission_minimal_package(
         source_markdown_path = build_general_medical_submission_markdown(
             compiled_markdown_path=compiled_markdown_path,
             submission_root=submission_root,
+            compiled_markdown_text=compiled_markdown_text,
         )
     elif is_frontiers_family_harvard_profile(resolved_publication_profile):
         source_markdown_path = build_frontiers_manuscript_markdown(
             compiled_markdown_path=compiled_markdown_path,
             submission_root=submission_root,
+            compiled_markdown_text=compiled_markdown_text,
         )
         supplementary_source_markdown_path = build_frontiers_supplementary_markdown(
             compiled_markdown_path=compiled_markdown_path,
             submission_root=submission_root,
+            compiled_markdown_text=compiled_markdown_text,
         )
         supplementary_output_docx_path = submission_root / str(profile_config.supplementary_docx_name)
 
