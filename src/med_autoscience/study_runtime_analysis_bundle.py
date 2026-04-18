@@ -98,7 +98,8 @@ def _delegate_analysis_bundle_to_managed_runtime(*, before: dict[str, Any]) -> d
         managed_python,
         "-m",
         "med_autoscience.cli",
-        "ensure-study-runtime-analysis-bundle",
+        "runtime",
+        "ensure-analysis-bundle",
     ]
     managed_runtime: dict[str, Any] = {
         "repo_root": str(repo_root),

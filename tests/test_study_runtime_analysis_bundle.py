@@ -193,7 +193,8 @@ def test_ensure_study_runtime_analysis_bundle_delegates_to_repo_managed_runtime(
         "/tmp/repo/.venv/bin/python",
         "-m",
         "med_autoscience.cli",
-        "ensure-study-runtime-analysis-bundle",
+        "runtime",
+        "ensure-analysis-bundle",
     ]
     assert recorded["kwargs"]["cwd"] == module.Path("/tmp/repo")
     assert str(module.Path("/tmp/repo") / "src") in recorded["kwargs"]["env"]["PYTHONPATH"]
