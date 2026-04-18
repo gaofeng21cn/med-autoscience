@@ -400,6 +400,9 @@ def gate_allows_write(
         return False
     if latest_gate_path.stat().st_mtime < main_result_path.stat().st_mtime:
         return False
+    gate_status = str(latest_gate.get("status") or "").strip().lower()
+    if gate_status:
+        return gate_status == "clear"
     return bool(latest_gate.get("allow_write"))
 
 

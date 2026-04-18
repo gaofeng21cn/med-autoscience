@@ -621,6 +621,65 @@ def test_build_gate_report_surfaces_prebundle_figure_floor_pending_from_main_res
     assert report["prebundle_display_advisories"] == ["submission_grade_active_figure_floor_unmet"]
 
 
+def test_build_gate_report_unlocks_write_stage_when_latest_clear_gate_is_current(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=False,
+        include_main_result=True,
+        runtime_status="running",
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={
+            "schema_version": "2.1.0",
+            "figures": [
+                {"figure_id": "F1", "paper_role": "main_text", "manuscript_status": "locked_main_text_evidence"},
+            ],
+        },
+    )
+    main_result_path = (
+        quest_root
+        / ".ds"
+        / "worktrees"
+        / "paper-run-1"
+        / "experiments"
+        / "main"
+        / "run-1"
+        / "RESULT.json"
+    )
+    gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "2026-04-17T000000Z.json"
+    surface_report_path = (
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json"
+    )
+    dump_json(
+        gate_report_path,
+        {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T00:00:00+00:00",
+            "status": "clear",
+            "allow_write": False,
+            "blockers": [],
+        },
+    )
+    os.utime(main_result_path, (1, 1))
+    os.utime(surface_report_path, (2, 2))
+    os.utime(gate_report_path, (3, 3))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["anchor_kind"] == "main_result"
+    assert report["status"] == "clear"
+    assert report["allow_write"] is True
+    assert report["latest_gate_path"] == str(gate_report_path)
+    assert report["supervisor_phase"] == "write_stage_ready"
+    assert report["bundle_tasks_downstream_only"] is False
+    assert report["current_required_action"] == "continue_write_stage"
+    assert report["prebundle_display_floor_pending"] is True
+    assert report["prebundle_display_floor_gap"] == 3
+    assert report["prebundle_display_advisories"] == ["submission_grade_active_figure_floor_unmet"]
+
+
 def test_build_gate_state_prefers_authoritative_worktree_paper_root_when_bundle_manifest_is_projected(
     tmp_path: Path,
 ) -> None:
