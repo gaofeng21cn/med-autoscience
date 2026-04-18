@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `60`
+- Implemented evidence figure templates: `61`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total implemented display templates: `72`
+- Total implemented display templates: `73`
 
 ### Evidence Classes
 
@@ -111,7 +111,7 @@ Current implemented display inventory:
 | Effect Estimate | 5 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel` |
 | Model Explanation | 16 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
-| Generalizability | 2 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel` |
+| Generalizability | 3 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`, `center_transportability_governance_summary_panel_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`, `publication_center_transportability_governance_summary_panel` |
 
 ### Publication Shell Layer
 
@@ -314,16 +314,17 @@ Templates:
 
 - `multicenter_generalizability_overview`
 - `generalizability_subgroup_composite_panel`
+- `center_transportability_governance_summary_panel`
 
 Audit purpose:
 
-- Center-level transportability plus bounded subgroup interval robustness under audited sample-size, cohort-level metric, and interval-estimate panels.
+- Center-level transportability, bounded subgroup interval robustness, and manuscript-facing center-governance synthesis under audited sample-size, cohort-level metric, interval-estimate, shift, recalibration, and action-summary panels.
 
 Authoritative contract:
 
-- Input schemas: `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`
+- Input schemas: `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`, `center_transportability_governance_summary_panel_inputs_v1`
 - Renderer family: `python`
-- QC: `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`
+- QC: `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`, `publication_center_transportability_governance_summary_panel`
 
 ## Publication Shell And Table Audit Map
 
@@ -404,13 +405,14 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 
 - `fenggaolab.org.medical-display-core::multicenter_generalizability_overview`
 - `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel`
+- `fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel`
 - `fenggaolab.org.medical-display-core::submission_graphical_abstract`
 - `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel`
 - `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
 - `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel`
 - `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel`
 - `fenggaolab.org.medical-display-core::transportability_recalibration_governance_panel`
-- lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, legend title/label semantics, tick-label readability, arrow-lane placement, balance-threshold governance, missingness-grid completeness, batch-grid completeness, transportability-card containment, recalibration-row containment, acceptance-band governance, and catalog/package routing consistency
+- lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, center-governance summary containment, shift / slope / O:E acceptance-band governance, legend title/label semantics, tick-label readability, arrow-lane placement, balance-threshold governance, missingness-grid completeness, batch-grid completeness, transportability-card containment, recalibration-row containment, and catalog/package routing consistency
 
 ### D/E/G composite atlas lane
 

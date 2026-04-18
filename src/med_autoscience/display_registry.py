@@ -59,6 +59,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "compact_effect_estimate_panel",
         "coefficient_path_panel",
         "broader_heterogeneity_summary_panel",
+        "center_transportability_governance_summary_panel",
         "shap_summary_beeswarm",
         "shap_bar_importance",
         "shap_signed_importance_panel",

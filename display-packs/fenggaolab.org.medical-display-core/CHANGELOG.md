@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `center_transportability_governance_summary_panel` as the next audited `H` center-level transportability governance summary slice in the core display pack.
+- Lock its pack-facing contract to `center_transportability_governance_summary_panel_inputs_v1`, `publication_center_transportability_governance_summary_panel`, and the Python bounded two-panel center-metric plus governance-summary renderer path.
+
 - Add `broader_heterogeneity_summary_panel` as the next audited `C/H` manuscript-facing comparative heterogeneity slice in the core display pack.
 - Lock its pack-facing contract to `broader_heterogeneity_summary_panel_inputs_v1`, `publication_broader_heterogeneity_summary_panel`, and the Python bounded matrix-plus-verdict-summary renderer path.
 

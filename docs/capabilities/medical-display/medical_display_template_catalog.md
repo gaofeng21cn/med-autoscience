@@ -126,6 +126,7 @@ The current audited inventory is broader than the subset already proven against 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `fenggaolab.org.medical-display-core::generalizability_subgroup_composite_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Generalizability and Subgroup Composite Panel | `python` | `generalizability_subgroup_composite_inputs_v1` | `publication_generalizability_subgroup_composite_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Center Transportability Governance Summary Panel | `python` | `center_transportability_governance_summary_panel_inputs_v1` | `publication_center_transportability_governance_summary_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::multicenter_generalizability_overview` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Multicenter Generalizability Overview | `python` | `multicenter_generalizability_inputs_v1` | `publication_multicenter_overview` | `png`, `pdf` |
 
 ### Publication Shells and Tables
@@ -884,6 +885,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `metric_family_must_be_supported`, `primary_label_must_be_non_empty`, `overview_rows_must_be_non_empty`, `overview_cohort_ids_must_be_unique`, `overview_cohort_labels_must_be_unique`, `overview_support_counts_must_be_non_negative`, `overview_event_counts_must_be_non_negative_when_present`, `overview_metric_values_must_be_finite`, `overview_comparator_metric_values_must_be_finite_when_present`, `overview_comparator_metric_values_must_be_present_for_all_rows_when_comparator_label_is_declared`, `overview_comparator_metric_values_must_be_absent_without_comparator_label`, `subgroup_reference_value_must_be_finite`, `subgroup_rows_must_be_non_empty`, `subgroup_ids_must_be_unique`, `subgroup_labels_must_be_unique`, `subgroup_values_must_be_finite`, `subgroup_group_n_must_be_non_negative_when_present`, `subgroup_rows_must_satisfy_lower_le_estimate_le_upper`
+
+### `center_transportability_governance_summary_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Center Transportability Governance Summary Panel
+- Templates: `fenggaolab.org.medical-display-core::center_transportability_governance_summary_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `metric_family`, `metric_panel_title`, `metric_x_label`, `metric_reference_value`, `batch_shift_threshold`, `slope_acceptance_lower`, `slope_acceptance_upper`, `oe_ratio_acceptance_lower`, `oe_ratio_acceptance_upper`, `summary_panel_title`, `centers`
+- Optional display fields: `paper_role`
+- Required collection fields: `centers` -> `center_id`, `center_label`, `cohort_role`, `support_count`, `event_count`, `metric_estimate`, `metric_lower`, `metric_upper`, `max_shift`, `slope`, `oe_ratio`, `verdict`, `action`
+- Optional collection fields: `centers` -> `detail`
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `metric_family_must_be_supported`, `metric_reference_value_must_be_finite`, `batch_shift_threshold_must_be_positive_finite`, `slope_acceptance_band_must_be_positive_finite_and_ordered`, `oe_ratio_acceptance_band_must_be_positive_finite_and_ordered`, `centers_must_be_non_empty`, `center_ids_must_be_unique`, `center_labels_must_be_unique`, `center_support_counts_must_be_positive_integers`, `center_event_counts_must_be_non_negative_integers`, `center_event_counts_must_not_exceed_support_counts`, `center_metric_values_must_be_finite`, `center_metric_intervals_must_wrap_estimate`, `center_max_shift_must_be_probability`, `center_slopes_must_be_positive_finite`, `center_oe_ratios_must_be_positive_finite`, `center_verdicts_must_be_supported`, `center_actions_must_be_non_empty`, `center_detail_must_be_non_empty_when_present`
 
 ### `cohort_flow_shell_inputs_v1`
 

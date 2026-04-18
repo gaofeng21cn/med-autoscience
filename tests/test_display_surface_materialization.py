@@ -10088,6 +10088,80 @@ def _make_broader_heterogeneity_summary_panel_display(display_id: str = "Figure4
     }
 
 
+def _make_center_transportability_governance_summary_panel_display(
+    display_id: str = "Figure50",
+) -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "center_transportability_governance_summary_panel",
+        "title": "Center transportability governance summary for manuscript-facing multicenter review",
+        "caption": (
+            "Bounded center-level generalizability evidence aligns per-center performance, support counts, shift "
+            "severity, recalibration diagnostics, and manuscript-facing governance verdicts in one auditable summary."
+        ),
+        "metric_family": "discrimination",
+        "metric_panel_title": "Center-level discrimination",
+        "metric_x_label": "AUROC",
+        "metric_reference_value": 0.80,
+        "batch_shift_threshold": 0.20,
+        "slope_acceptance_lower": 0.90,
+        "slope_acceptance_upper": 1.10,
+        "oe_ratio_acceptance_lower": 0.90,
+        "oe_ratio_acceptance_upper": 1.10,
+        "summary_panel_title": "Transportability governance summary",
+        "centers": [
+            {
+                "center_id": "train_a",
+                "center_label": "Train A",
+                "cohort_role": "Derivation",
+                "support_count": 412,
+                "event_count": 63,
+                "metric_estimate": 0.84,
+                "metric_lower": 0.80,
+                "metric_upper": 0.88,
+                "max_shift": 0.11,
+                "slope": 1.00,
+                "oe_ratio": 1.00,
+                "verdict": "stable",
+                "action": "Reference fit",
+                "detail": "Derivation center remains inside every declared governance band.",
+            },
+            {
+                "center_id": "validation_c",
+                "center_label": "Validation C",
+                "cohort_role": "Internal validation",
+                "support_count": 236,
+                "event_count": 34,
+                "metric_estimate": 0.82,
+                "metric_lower": 0.78,
+                "metric_upper": 0.86,
+                "max_shift": 0.16,
+                "slope": 0.96,
+                "oe_ratio": 1.04,
+                "verdict": "stable",
+                "action": "Monitor only",
+                "detail": "Internal validation remains inside the acceptance band.",
+            },
+            {
+                "center_id": "external_b",
+                "center_label": "External B",
+                "cohort_role": "External",
+                "support_count": 188,
+                "event_count": 29,
+                "metric_estimate": 0.78,
+                "metric_lower": 0.73,
+                "metric_upper": 0.83,
+                "max_shift": 0.18,
+                "slope": 0.84,
+                "oe_ratio": 1.18,
+                "verdict": "context_dependent",
+                "action": "Recalibrate before deployment",
+                "detail": "External center needs recalibration before any manuscript-facing transportability claim.",
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
     tmp_path: Path,
 ) -> None:
@@ -11998,6 +12072,93 @@ def test_materialize_display_surface_generates_broader_heterogeneity_summary_pan
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "broader_heterogeneity_summary_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_broader_heterogeneity_summary_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_center_transportability_governance_summary_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure50",
+                    "display_kind": "figure",
+                    "requirement_key": "center_transportability_governance_summary_panel",
+                    "catalog_id": "F50",
+                    "shell_path": "paper/figures/Figure50.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure50",
+                    "template_id": "center_transportability_governance_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "center_transportability_governance_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "center_transportability_governance_summary_panel_inputs_v1",
+            "displays": [_make_center_transportability_governance_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F50"]
+    assert (paper_root / "figures" / "generated" / "F50_center_transportability_governance_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F50_center_transportability_governance_summary_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F50_center_transportability_governance_summary_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert layout_sidecar["metrics"]["metric_family"] == "discrimination"
+    assert layout_sidecar["metrics"]["metric_reference_value"] == 0.80
+    assert layout_sidecar["metrics"]["batch_shift_threshold"] == 0.20
+    assert [item["center_id"] for item in layout_sidecar["metrics"]["centers"]] == [
+        "train_a",
+        "validation_c",
+        "external_b",
+    ]
+    assert [item["verdict"] for item in layout_sidecar["metrics"]["centers"]] == [
+        "stable",
+        "stable",
+        "context_dependent",
+    ]
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "reference_line" for item in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F50"
+    assert figure_entry["template_id"] == full_id("center_transportability_governance_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_center_transportability_governance_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

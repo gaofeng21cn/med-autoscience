@@ -21,7 +21,7 @@
 
 本文统计的是“当前已进入 strict registry / template catalog / audited guide 真相面的绘图军火库”，不是任一时刻共享 `main` 工作树上恰好已经吸收完毕的全部代码状态。
 
-当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `72`。
+当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `73`。
 
 `2026-04-07` 的 `31` 模板冻结边界只保留为历史 provenance，用来解释这条主线是如何从首批冻结快照继续扩容到当前库存的。对应历史锚点如下：
 
@@ -41,11 +41,11 @@
   - 证据型图模板 `24`
   - 插图壳层模板 `2`
   - 表格壳层模板 `5`
-- 当前 strict registry / template catalog 工程口径统一为 `72`：
-  - 证据型图模板 `60`
+- 当前 strict registry / template catalog 工程口径统一为 `73`：
+  - 证据型图模板 `61`
   - 插图壳层模板 `7`
   - 表格壳层模板 `5`
-- 截至 `2026-04-18`，post-baseline rolling expansion 已在冻结基线上正式收口三十四个 capability cluster：
+- 截至 `2026-04-18`，post-baseline rolling expansion 已在冻结基线上正式收口三十五个 capability cluster：
   - `celltype_signature_heatmap`：把 `D/E/G` 从“仅候选复合图式”推进到第一个 pack 化 `embedding + signature heatmap` 复合模板；
   - `time_to_event_landmark_performance_panel`：把 `A/B` 从“已有 horizon ROC / grouped calibration 组件”推进到正式的 landmark/time-slice discrimination + Brier error + calibration slope 治理模板；
   - `shap_dependence_panel`：把 `F` 从“只会 SHAP summary”推进到正式多 panel dependence + shared colorbar + zero-line governance 的本地解释模板；
@@ -76,6 +76,7 @@
   - `baseline_missingness_qc_panel`：把 `H` 从“已有 workflow/design-evidence shell，但仍缺一张可以同时交代组间平衡、缺失模式与质控摘要的 bounded manuscript-facing 图面”推进到正式的三联壳层，并把 balance threshold、missingness grid 完整性、QC card containment 与固定 `A/B/C` panel 治理固化为单一审计契约。
   - `center_coverage_batch_transportability_panel`：把 `H` 从“已有 baseline-missingness-QC 三联壳层与 multicenter/generalizability baseline，但仍缺一张能同时交代中心覆盖、批次漂移与 transportability boundary 的 bounded manuscript-facing 图面”推进到正式的三联壳层，并把 center-support counts、batch grid 完整性、threshold governance、transportability card containment 与固定 `A/B/C` panel 治理固化为单一审计契约。
   - `transportability_recalibration_governance_panel`：把 `H` 从“已有中心覆盖/批次漂移/transportability 三联壳层，但仍缺一个能正式交代各中心 recalibration 动作是否达标的 manuscript-facing 图面”推进到正式的三联壳层 follow-on，并把 acceptance band、center-level slope / O:E ratio、action row containment 与固定 `A/B/C` panel 治理固化为单一审计契约。
+  - `center_transportability_governance_summary_panel`：把 `H` 从“已有 multicenter overview、generalizability composite、center-coverage transportability shell、recalibration-governance shell 与 broader heterogeneity stability summary，但仍缺一张能把中心级 transportability 指标与 manuscript-facing 治理结论直接收束进正文主叙事的 bounded 图面”推进到正式的双 panel 模板，并把 center-level metric interval、verdict 受控词表、support/decision row completeness 与 panel-level narrative containment 固化为单一审计契约。
   - `partial_dependence_interaction_slice_panel`：把 `F` 从“已有 bounded PDP/ICE 与 pairwise interaction contour lower bound”继续推进到正式 higher-order interaction slice 模板，并把固定切片条件、per-panel feature/slice identity、slice-point containment 与 shared legend 语义固化为单一模板；
   - `partial_dependence_subgroup_comparison_panel`：把 `F` 从“已有总体层面的 PDP lower bound”继续推进到正式 subgroup-conditioned partial-dependence 对照模板，并把 subgroup identity、estimate marker / ribbon containment、shared x-domain 与 panel-label anchoring 固化为单一模板；
   - `accumulated_local_effects_panel`：把 `F` 从“已有 PDP 系列，但仍缺对相关特征更稳健的局部效应表达”继续推进到正式 ALE 模板，并把 bin order、bin geometry、local-effect finite contract、zero/reference guide 与 bin containment 固化为单一模板。
@@ -131,7 +132,7 @@
 | `E. 特征模式与矩阵` | 热图、矩阵对比、相关性、有序性能矩阵与带 marker/program / kinetics / context-support 解释的复合图 | `heatmap_group_comparison`、`correlation_heatmap`、`clustered_heatmap`、`performance_heatmap`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已具备首个审计基线，并开始从独立矩阵扩到带 celltype/program、atlas-spatial 状态桥接、spatial niche、trajectory kinetics、storyboard 叙事、state-by-context support heatmap 与更完整 context-support 复合矩阵的 manuscript-facing 图面 | 通用热图能力 + `Nature Medicine` 风险论文图 4c + atlas/spatial/trajectory exemplar 学习 |
 | `F. 模型解释` | 特征归因、解释性摘要与复杂度审计 | `shap_summary_beeswarm`、`shap_bar_importance`、`shap_signed_importance_panel`、`shap_multicohort_importance_panel`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`shap_force_like_summary_panel`、`shap_grouped_local_explanation_panel`、`shap_grouped_decision_path_panel`、`shap_multigroup_decision_path_panel`、`partial_dependence_ice_panel`、`partial_dependence_interaction_contour_panel`、`partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel`、`accumulated_local_effects_panel`、`feature_response_support_domain_panel`、`model_complexity_audit_panel` | 已具备首个审计基线，并把 global bar-importance overview、zero-centered signed importance、cross-cohort global importance comparison、dependence、patient-level waterfall、representative-case force-like summary、最多三 panel 的 grouped-local comparison、双组与三组 decision-path comparison、bounded PDP+ICE baseline、bounded pairwise interaction contour lower bound，以及 higher-order interaction slice / subgroup comparison / ALE / support-domain follow-on 一并提升为正式 pack 资产；当前剩余主缺口转向 annotation / legend 治理与更高阶 explanation scene 的真实论文驱动扩容 | `001/003` 锚点论文 + `npj Digital Medicine` `2025` SHAP dependence exemplar + `npj Digital Medicine` `2025` UMORSS 图 6 + `JBJS Open Access` `2025` PARITY 图 6A/B + SHAP force plot / bar importance / signed-importance / multicohort importance / grouped-local comparison / grouped decision-path / PDP-ICE / ALE 经典解释图式 + `npj Digital Medicine` `2026` pairwise partial-dependence interaction exemplar + support-domain explanation follow-on 实战需求 + `F` 家族视觉审计决策线 |
 | `G. 生物信息与组学证据` | 组学打分、程序活性与组学原生热图表达 | `gsva_ssgsea_heatmap`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已建立首个专用审计基线，并把组学/程序证据从单独热图推进到带 atlas occupancy、atlas-spatial 状态桥接、spatial niche composition、trajectory kinetics channel、五块式 storyboard 叙事、四块式 density/coverage support 与六块式 context-support 复合证据面 | 组学原生证据需求 + `Nature Medicine` `2025` / `npj Digital Medicine` `2025` 复合图谱 exemplar + atlas/spatial/trajectory partial-fit 学习 |
-| `H. 队列与研究设计证据` | 队列构成、泛化性、研究流程与投稿壳层 | `multicenter_generalizability_overview`、`generalizability_subgroup_composite_panel`、`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel`、`cohort_flow_figure`、`submission_graphical_abstract`、`workflow_fact_sheet_panel`、`design_evidence_composite_shell`、`baseline_missingness_qc_panel`、`center_coverage_batch_transportability_panel`、`transportability_recalibration_governance_panel`、`table1_baseline_characteristics`、`table3_clinical_interpretation_summary` | 已形成真实论文证明的核心能力，并把 multicenter generalizability 继续扩到 cohort-level overview + subgroup robustness 的 bounded composite baseline，再补齐 shared-reference / shared-row-order 的 compact estimate lower bound、预设模型步骤下的 coefficient-path stability，以及逐行 manuscript verdict 收口的 broader heterogeneity summary 合同，同时补齐固定 `2x2` 的 workflow fact sheet 壳层、固定 `workflow ribbon + three summary panels` 的 design-evidence composite 下限、第一张可同时交代基线平衡/缺失模式/质控摘要的 bounded manuscript-facing 三联壳层、第一张可同时交代中心覆盖/批次漂移/transportability boundary 的 bounded manuscript-facing 三联壳层，以及第一张可正式交代中心级 recalibration 行动与 acceptance band 是否达标的 follow-on manuscript-facing 壳层 | `001/003` 锚点论文 + 投稿包装需求沉淀 + `JAMA Surgery` `2025` / `npj Digital Medicine` `2026` / `World Psychiatry` `2024` generalizability exemplar + compact-estimate / coefficient-path / broader-heterogeneity follow-on 交付需求 + `H` 家族 manuscript-facing QC shell hardening follow-on |
+| `H. 队列与研究设计证据` | 队列构成、泛化性、研究流程与投稿壳层 | `multicenter_generalizability_overview`、`generalizability_subgroup_composite_panel`、`center_transportability_governance_summary_panel`、`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel`、`cohort_flow_figure`、`submission_graphical_abstract`、`workflow_fact_sheet_panel`、`design_evidence_composite_shell`、`baseline_missingness_qc_panel`、`center_coverage_batch_transportability_panel`、`transportability_recalibration_governance_panel`、`table1_baseline_characteristics`、`table3_clinical_interpretation_summary` | 已形成真实论文证明的核心能力，并把 multicenter generalizability 继续扩到 cohort-level overview + subgroup robustness 的 bounded composite baseline，再补齐中心级 transportability 指标与 manuscript-facing 治理结论直接收束的 governance summary、shared-reference / shared-row-order 的 compact estimate lower bound、预设模型步骤下的 coefficient-path stability，以及逐行 manuscript verdict 收口的 broader heterogeneity summary 合同，同时补齐固定 `2x2` 的 workflow fact sheet 壳层、固定 `workflow ribbon + three summary panels` 的 design-evidence composite 下限、第一张可同时交代基线平衡/缺失模式/质控摘要的 bounded manuscript-facing 三联壳层、第一张可同时交代中心覆盖/批次漂移/transportability boundary 的 bounded manuscript-facing 三联壳层，以及第一张可正式交代中心级 recalibration 行动与 acceptance band 是否达标的 follow-on manuscript-facing 壳层 | `001/003` 锚点论文 + 投稿包装需求沉淀 + `JAMA Surgery` `2025` / `npj Digital Medicine` `2026` / `World Psychiatry` `2024` generalizability exemplar + transportability-governance follow-on 交付需求 + compact-estimate / coefficient-path / broader-heterogeneity follow-on 交付需求 + `H` 家族 manuscript-facing QC shell hardening follow-on |
 
 ## 各家族已完成模板清单（人话版）
 
@@ -145,7 +146,7 @@
 
 - 这里按“论文问题归属”统计，不按去重后的模板总数统计；
 - 同一个模板如果同时服务多个家族，会在多个家族里重复出现；
-- 所以下面各家族的小计相加，会大于当前军火库总数 `72`。
+- 所以下面各家族的小计相加，会大于当前军火库总数 `73`。
 
 ### A. 预测性能与决策类
 
@@ -350,7 +351,7 @@
 
 ### H. 队列与研究设计证据类
 
-当前已覆盖 `14` 个模板归属。
+当前已覆盖 `16` 个模板归属。
 
 - `模型复杂度审计面板`
   用途：当论文需要交代模型方法学边界时，这张图可以作为研究设计补充证据。
@@ -362,6 +363,8 @@
   用途：把同一批预设变量在多个模型步骤下的系数路径和稳定性摘要一起呈现，适合在研究设计、稳健性或 appendix-facing summary 位置正式交代“调整前后效果是否保持稳定”。
 - `多中心泛化总览图`
   用途：看不同中心、不同外部队列的表现是否稳定，回答“能不能迁移”。
+- `中心 transportability 治理汇总面板`
+  用途：把各中心的关键 transportability 指标区间与治理结论收在一张双 panel 图里，适合正文直接回答“哪些中心表现稳定、哪些中心需要限制解释或继续重校准”。
 - `队列流程图`
   用途：规范展示筛选、纳排、分析集形成过程，是方法学论文的标配图。
 - `投稿图形摘要`
