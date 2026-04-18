@@ -41,6 +41,20 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_resume_surface as _build_shared_product_entry_resume_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
 )
+from opl_harness_shared.product_entry_program_companions import (
+    build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
+    build_clearance_lane as _build_shared_clearance_lane,
+    build_clearance_target as _build_shared_clearance_target,
+    build_guardrail_class as _build_shared_guardrail_class,
+    build_platform_target as _build_shared_platform_target,
+    build_product_entry_guardrails as _build_shared_product_entry_guardrails,
+    build_product_entry_preflight as _build_shared_product_entry_preflight,
+    build_product_entry_program_step as _build_shared_product_entry_program_step,
+    build_product_entry_program_surface as _build_shared_product_entry_program_surface,
+    build_program_capability as _build_shared_program_capability,
+    build_program_check as _build_shared_program_check,
+    build_program_sequence_step as _build_shared_program_sequence_step,
+)
 from opl_harness_shared.runtime_task_companions import (
     build_checkpoint_summary as _build_shared_checkpoint_summary,
     build_runtime_inventory as _build_shared_runtime_inventory,
@@ -325,83 +339,83 @@ def _build_product_entry_preflight(
     start_command = f"{_command_prefix(profile_ref)} product-frontdesk --profile {_profile_arg(profile_ref)}"
     workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
     checks = [
-        {
-            "check_id": "workspace_root_exists",
-            "title": "Workspace Root Exists",
-            "status": "pass" if doctor_report.workspace_exists else "fail",
-            "blocking": True,
-            "summary": "workspace 根目录已就位。" if doctor_report.workspace_exists else "workspace 根目录不存在。",
-            "command": doctor_command,
-        },
-        {
-            "check_id": "runtime_root_exists",
-            "title": "Runtime Root Exists",
-            "status": "pass" if doctor_report.runtime_exists else "fail",
-            "blocking": True,
-            "summary": "runtime root 已就位。" if doctor_report.runtime_exists else "runtime root 不存在。",
-            "command": doctor_command,
-        },
-        {
-            "check_id": "studies_root_exists",
-            "title": "Studies Root Exists",
-            "status": "pass" if doctor_report.studies_exists else "fail",
-            "blocking": True,
-            "summary": "studies 根目录已就位。" if doctor_report.studies_exists else "studies 根目录不存在。",
-            "command": doctor_command,
-        },
-        {
-            "check_id": "portfolio_root_exists",
-            "title": "Portfolio Root Exists",
-            "status": "pass" if doctor_report.portfolio_exists else "fail",
-            "blocking": True,
-            "summary": "portfolio 根目录已就位。" if doctor_report.portfolio_exists else "portfolio 根目录不存在。",
-            "command": doctor_command,
-        },
-        {
-            "check_id": "research_backend_runtime_ready",
-            "title": "Research Backend Runtime Ready",
-            "status": "pass" if doctor_report.med_deepscientist_runtime_exists else "fail",
-            "blocking": True,
-            "summary": (
+        _build_shared_program_check(
+            check_id="workspace_root_exists",
+            title="Workspace Root Exists",
+            status="pass" if doctor_report.workspace_exists else "fail",
+            blocking=True,
+            summary="workspace 根目录已就位。" if doctor_report.workspace_exists else "workspace 根目录不存在。",
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="runtime_root_exists",
+            title="Runtime Root Exists",
+            status="pass" if doctor_report.runtime_exists else "fail",
+            blocking=True,
+            summary="runtime root 已就位。" if doctor_report.runtime_exists else "runtime root 不存在。",
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="studies_root_exists",
+            title="Studies Root Exists",
+            status="pass" if doctor_report.studies_exists else "fail",
+            blocking=True,
+            summary="studies 根目录已就位。" if doctor_report.studies_exists else "studies 根目录不存在。",
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="portfolio_root_exists",
+            title="Portfolio Root Exists",
+            status="pass" if doctor_report.portfolio_exists else "fail",
+            blocking=True,
+            summary="portfolio 根目录已就位。" if doctor_report.portfolio_exists else "portfolio 根目录不存在。",
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="research_backend_runtime_ready",
+            title="Research Backend Runtime Ready",
+            status="pass" if doctor_report.med_deepscientist_runtime_exists else "fail",
+            blocking=True,
+            summary=(
                 "受控 research backend runtime 已就位。"
                 if doctor_report.med_deepscientist_runtime_exists
                 else "受控 research backend runtime 尚未就位。"
             ),
-            "command": doctor_command,
-        },
-        {
-            "check_id": "medical_overlay_ready",
-            "title": "Medical Overlay Ready",
-            "status": "pass" if doctor_report.medical_overlay_ready else "fail",
-            "blocking": True,
-            "summary": "medical overlay 已 ready。" if doctor_report.medical_overlay_ready else "medical overlay 尚未 ready。",
-            "command": doctor_command,
-        },
-        {
-            "check_id": "external_runtime_contract_ready",
-            "title": "External Runtime Contract Ready",
-            "status": "pass" if bool((doctor_report.external_runtime_contract or {}).get("ready")) else "fail",
-            "blocking": True,
-            "summary": (
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="medical_overlay_ready",
+            title="Medical Overlay Ready",
+            status="pass" if doctor_report.medical_overlay_ready else "fail",
+            blocking=True,
+            summary="medical overlay 已 ready。" if doctor_report.medical_overlay_ready else "medical overlay 尚未 ready。",
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="external_runtime_contract_ready",
+            title="External Runtime Contract Ready",
+            status="pass" if bool((doctor_report.external_runtime_contract or {}).get("ready")) else "fail",
+            blocking=True,
+            summary=(
                 "external Hermes runtime contract 已 ready。"
                 if bool((doctor_report.external_runtime_contract or {}).get("ready"))
                 else "external Hermes runtime contract 尚未 ready。"
             ),
-            "command": doctor_command,
-        },
-        {
-            "check_id": "workspace_supervision_contract_ready",
-            "title": "Workspace Supervision Contract Ready",
-            "status": "pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
-            "blocking": True,
-            "summary": (
+            command=doctor_command,
+        ),
+        _build_shared_program_check(
+            check_id="workspace_supervision_contract_ready",
+            title="Workspace Supervision Contract Ready",
+            status="pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
+            blocking=True,
+            summary=(
                 "workspace supervision owner 已收敛到 canonical Hermes supervision。"
                 if bool(workspace_supervision_contract.get("loaded"))
                 else _non_empty_text(workspace_supervision_contract.get("summary"))
                 or "workspace supervision owner 仍未收敛到 canonical Hermes supervision。"
             ),
-            "command": f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
-        },
+            command=f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
+        ),
     ]
     blocking_check_ids = [
         check["check_id"]
@@ -419,15 +433,12 @@ def _build_product_entry_preflight(
         else first_blocking_summary
         or "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime/supervision contract 再进入 research frontdesk。"
     )
-    return {
-        "surface_kind": "product_entry_preflight",
-        "summary": summary,
-        "ready_to_try_now": ready_to_try_now,
-        "recommended_check_command": doctor_command,
-        "recommended_start_command": start_command,
-        "blocking_check_ids": blocking_check_ids,
-        "checks": checks,
-    }
+    return _build_shared_product_entry_preflight(
+        summary=summary,
+        recommended_check_command=doctor_command,
+        recommended_start_command=start_command,
+        checks=checks,
+    )
 
 
 def _build_product_entry_guardrails(
@@ -442,75 +453,116 @@ def _build_product_entry_guardrails(
         f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --ensure-study-runtimes --apply"
     )
-    return {
-        "surface_kind": "product_entry_guardrails",
-        "summary": (
+    return _build_shared_product_entry_guardrails(
+        summary=(
             "把卡住、没进度、监管掉线、需要人工决策和质量阻塞显式投影成可执行恢复回路，"
             "避免研究主线失去监管。"
         ),
-        "guardrail_classes": [
-            {
-                "guardrail_id": "workspace_supervision_gap",
-                "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                "symptom": "Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
-                "recommended_command": refresh_command,
-            },
-            {
-                "guardrail_id": "study_progress_gap",
-                "trigger": "study-progress progress_freshness / workspace-cockpit attention queue",
-                "symptom": "当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
-                "recommended_command": progress_command,
-            },
-            {
-                "guardrail_id": "human_decision_gate",
-                "trigger": "study-progress needs_physician_decision / controller decision gate",
-                "symptom": "当前已前移到医生、PI 或 publication release 的人工判断节点。",
-                "recommended_command": progress_command,
-            },
-            {
-                "guardrail_id": "runtime_recovery_required",
-                "trigger": "study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
-                "symptom": "托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
-                "recommended_command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
-            },
-            {
-                "guardrail_id": "quality_floor_blocker",
-                "trigger": "study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
-                "symptom": "研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
-                "recommended_command": progress_command,
-            },
+        guardrail_classes=[
+            _build_shared_guardrail_class(
+                guardrail_id="workspace_supervision_gap",
+                trigger="workspace-cockpit attention queue / study-progress supervisor freshness",
+                symptom="Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                recommended_command=refresh_command,
+            ),
+            _build_shared_guardrail_class(
+                guardrail_id="study_progress_gap",
+                trigger="study-progress progress_freshness / workspace-cockpit attention queue",
+                symptom="当前 study 进度 stale 或 missing，疑似卡住、空转或没有新的明确推进证据。",
+                recommended_command=progress_command,
+            ),
+            _build_shared_guardrail_class(
+                guardrail_id="human_decision_gate",
+                trigger="study-progress needs_physician_decision / controller decision gate",
+                symptom="当前已前移到医生、PI 或 publication release 的人工判断节点。",
+                recommended_command=progress_command,
+            ),
+            _build_shared_guardrail_class(
+                guardrail_id="runtime_recovery_required",
+                trigger="study-progress intervention_lane / runtime_supervision health_status / workspace-cockpit attention queue",
+                symptom="托管运行恢复失败、健康降级或长期停在恢复态，当前必须优先处理 runtime recovery。",
+                recommended_command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+            ),
+            _build_shared_guardrail_class(
+                guardrail_id="quality_floor_blocker",
+                trigger="study-progress intervention_lane / runtime watch figure-loop alerts / publication gate",
+                symptom="研究输出质量、figure/reference floor 或 publication gate 出现硬阻塞，不能继续盲目长跑。",
+                recommended_command=progress_command,
+            ),
         ],
-        "recovery_loop": [
-            {
-                "step_id": "inspect_workspace_inbox",
-                "command": f"{prefix} workspace-cockpit --profile {profile_arg}",
-                "surface_kind": "workspace_cockpit",
-            },
-            {
-                "step_id": "refresh_supervision",
-                "command": refresh_command,
-                "surface_kind": "runtime_watch_refresh",
-            },
-            {
-                "step_id": "inspect_study_progress",
-                "command": progress_command,
-                "surface_kind": "study_progress",
-            },
-            {
-                "step_id": "continue_or_relaunch",
-                "command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
-                "surface_kind": "launch_study",
-            },
+        recovery_loop=[
+            _build_shared_product_entry_program_step(
+                step_id="inspect_workspace_inbox",
+                command=f"{prefix} workspace-cockpit --profile {profile_arg}",
+                surface_kind="workspace_cockpit",
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="refresh_supervision",
+                command=refresh_command,
+                surface_kind="runtime_watch_refresh",
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="inspect_study_progress",
+                command=progress_command,
+                surface_kind="study_progress",
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="continue_or_relaunch",
+                command=f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
+                surface_kind="launch_study",
+            ),
         ],
-    }
+    )
 
 
 def _build_phase5_platform_target() -> dict[str, Any]:
     payload = mainline_status.read_mainline_status()
-    platform_target = payload.get("platform_target")
-    if isinstance(platform_target, Mapping):
-        return dict(platform_target)
-    return dict(mainline_status._platform_target())
+    source = payload.get("platform_target")
+    if not isinstance(source, Mapping):
+        source = mainline_status._platform_target()
+    source_payload = dict(source)
+    source_landing_sequence = [
+        dict(item)
+        for item in source_payload.get("landing_sequence") or []
+        if isinstance(item, Mapping)
+    ]
+    normalized_landing_sequence = [
+        _build_shared_program_sequence_step(
+            step_id=str(item.get("step_id") or ""),
+            phase_id=str(item.get("phase_id") or ""),
+            status=str(item.get("status") or ""),
+            summary=str(item.get("summary") or ""),
+        )
+        for item in source_landing_sequence
+    ]
+    phase5_platform_target = _build_shared_platform_target(
+        summary=str(source_payload.get("summary") or ""),
+        sequence_scope=str(source_payload.get("sequence_scope") or ""),
+        current_step_id=str(source_payload.get("current_step_id") or ""),
+        current_readiness_summary=str(source_payload.get("current_readiness_summary") or ""),
+        north_star_topology=dict(source_payload.get("north_star_topology") or {}),
+        target_internal_modules=list(source_payload.get("target_internal_modules") or []),
+        landing_sequence=normalized_landing_sequence,
+        completed_step_ids=list(source_payload.get("completed_step_ids") or []),
+        remaining_step_ids=list(source_payload.get("remaining_step_ids") or []),
+        promotion_gates=list(source_payload.get("promotion_gates") or []),
+        recommended_phase_command=str(source_payload.get("recommended_phase_command") or ""),
+    )
+    landing_sequence_with_title = []
+    title_by_step_id = {
+        str(item.get("step_id")): _non_empty_text(item.get("title"))
+        for item in source_landing_sequence
+    }
+    for item in phase5_platform_target.get("landing_sequence") or []:
+        normalized_item = dict(item)
+        title = title_by_step_id.get(str(normalized_item.get("step_id")))
+        if title is not None:
+            normalized_item["title"] = title
+        landing_sequence_with_title.append(normalized_item)
+    phase5_platform_target["landing_sequence"] = landing_sequence_with_title
+    phase5_platform_target["land_now"] = list(_normalized_strings(source_payload.get("land_now") or []))
+    phase5_platform_target["not_yet"] = list(_normalized_strings(source_payload.get("not_yet") or []))
+    return phase5_platform_target
 
 
 def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mapping[str, Any]) -> list[str]:
@@ -582,129 +634,128 @@ def _build_phase3_clearance_lane(
     )
     launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
     study_progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
-    return {
-        "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
-        "recommended_step_id": "external_runtime_contract",
-        "recommended_command": doctor_command,
-        "clearance_targets": [
-            {
-                "target_id": "external_runtime_contract",
-                "title": "Check external Hermes runtime contract",
-                "commands": [
+    return _build_shared_clearance_lane(
+        surface_kind="phase3_host_clearance_lane",
+        summary="Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        recommended_step_id="external_runtime_contract",
+        recommended_command=doctor_command,
+        clearance_targets=[
+            _build_shared_clearance_target(
+                target_id="external_runtime_contract",
+                title="Check external Hermes runtime contract",
+                commands=[
                     doctor_command,
                     hermes_runtime_check_command,
                 ],
-            },
-            {
-                "target_id": "supervisor_service",
-                "title": "Keep Hermes-hosted workspace supervision online",
-                "commands": [
+            ),
+            _build_shared_clearance_target(
+                target_id="supervisor_service",
+                title="Keep Hermes-hosted workspace supervision online",
+                commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
                 ],
-            },
-            {
-                "target_id": "study_recovery_proof",
-                "title": "Prove live study recovery and supervision",
-                "commands": [
+            ),
+            _build_shared_clearance_target(
+                target_id="study_recovery_proof",
+                title="Prove live study recovery and supervision",
+                commands=[
                     launch_study_command,
                     study_progress_command,
                 ],
-            },
+            ),
         ],
-        "clearance_loop": [
-            {
-                "step_id": "external_runtime_contract",
-                "title": "先确认 external Hermes runtime contract ready",
-                "surface_kind": "doctor_runtime_contract",
-                "command": doctor_command,
-            },
-            {
-                "step_id": "hermes_runtime_check",
-                "title": "确认 Hermes runtime 绑定证据",
-                "surface_kind": "hermes_runtime_check",
-                "command": hermes_runtime_check_command,
-            },
-            {
-                "step_id": "supervisor_service",
-                "title": "确认 workspace 常驻监管在线",
-                "surface_kind": "workspace_supervisor_service",
-                "command": supervisor_service_command,
-            },
-            {
-                "step_id": "refresh_supervision",
-                "title": "刷新 Hermes-hosted supervision tick",
-                "surface_kind": "runtime_watch_refresh",
-                "command": refresh_supervision_command,
-            },
-            {
-                "step_id": "study_recovery_proof",
-                "title": "证明 live study recovery / progress supervision 成立",
-                "surface_kind": "launch_study",
-                "command": launch_study_command,
-            },
-            {
-                "step_id": "inspect_study_progress",
-                "title": "读取 study-progress proof",
-                "surface_kind": "study_progress",
-                "command": study_progress_command,
-            },
+        clearance_loop=[
+            _build_shared_product_entry_program_step(
+                step_id="external_runtime_contract",
+                title="先确认 external Hermes runtime contract ready",
+                surface_kind="doctor_runtime_contract",
+                command=doctor_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="hermes_runtime_check",
+                title="确认 Hermes runtime 绑定证据",
+                surface_kind="hermes_runtime_check",
+                command=hermes_runtime_check_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="supervisor_service",
+                title="确认 workspace 常驻监管在线",
+                surface_kind="workspace_supervisor_service",
+                command=supervisor_service_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="refresh_supervision",
+                title="刷新 Hermes-hosted supervision tick",
+                surface_kind="runtime_watch_refresh",
+                command=refresh_supervision_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="study_recovery_proof",
+                title="证明 live study recovery / progress supervision 成立",
+                surface_kind="launch_study",
+                command=launch_study_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="inspect_study_progress",
+                title="读取 study-progress proof",
+                surface_kind="study_progress",
+                command=study_progress_command,
+            ),
         ],
-        "proof_surfaces": [
-            {
-                "surface_kind": "doctor.external_runtime_contract",
-                "command": doctor_command,
-            },
-            {
-                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
-                "command": f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>",
-            },
-            {
-                "surface_kind": "runtime_watch",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
-            },
-            {
-                "surface_kind": "runtime_supervision",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
-            },
-            {
-                "surface_kind": "controller_decisions",
-                "ref": str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
-            },
+        proof_surfaces=[
+            _build_shared_product_entry_program_surface(
+                surface_kind="doctor.external_runtime_contract",
+                command=doctor_command,
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="study_runtime_status.autonomous_runtime_notice",
+                command=f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>",
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="runtime_watch",
+                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_watch" / "latest.json"),
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="runtime_supervision",
+                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "runtime_supervision" / "latest.json"),
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="controller_decisions",
+                ref=str(profile.studies_root / "<study_id>" / "artifacts" / "controller_decisions" / "latest.json"),
+            ),
         ],
-        "recommended_phase_command": (
+        recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
         ),
-    }
+    )
 
 
 def _build_phase4_backend_deconstruction() -> dict[str, Any]:
-    return {
-        "surface_kind": "phase4_backend_deconstruction_lane",
-        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
-        "substrate_targets": [
-            {
-                "capability_id": "session_run_watch_recovery",
-                "owner": "upstream Hermes-Agent",
-                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
-            },
-            {
-                "capability_id": "backend_generic_runtime_contract",
-                "owner": "MedAutoScience controller boundary",
-                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
-            },
+    return _build_shared_backend_deconstruction_lane(
+        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        substrate_targets=[
+            _build_shared_program_capability(
+                capability_id="session_run_watch_recovery",
+                owner="upstream Hermes-Agent",
+                summary="session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+            ),
+            _build_shared_program_capability(
+                capability_id="backend_generic_runtime_contract",
+                owner="MedAutoScience controller boundary",
+                summary="controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
+            ),
         ],
-        "backend_retained_now": [
+        backend_retained_now=[
             "MedDeepScientist CodexRunner autonomous executor chain",
             "backend-local agent/tool routing and Codex skills",
             "quest-local research execution, paper worktree, and daemon side effects",
         ],
-        "current_backend_chain": [
+        current_backend_chain=[
             "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
             "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
         ],
-        "optional_executor_proofs": [
+        optional_executor_proofs=[
             {
                 "executor_kind": "hermes_native_proof",
                 "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
@@ -712,16 +763,16 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
                 "default_reasoning_effort": "inherit_local_hermes_default",
             }
         ],
-        "promotion_rules": [
+        promotion_rules=[
             "no claim of backend retirement without owner + contract + tests + proof",
             "executor replacement must be explicit and proof-backed",
             "no physical monorepo absorb before the external gate is cleared",
         ],
-        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
-        "recommended_phase_command": (
+        deconstruction_map_doc="docs/program/med_deepscientist_deconstruction_map.md",
+        recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),
-    }
+    )
 
 
 def _build_product_entry_start(
