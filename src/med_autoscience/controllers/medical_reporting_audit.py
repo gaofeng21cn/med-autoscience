@@ -114,6 +114,7 @@ def render_audit_markdown(report: dict[str, object]) -> str:
         f"- status: `{report['status']}`",
         f"- action: `{report['action']}`",
         f"- blockers: `{', '.join(report.get('blockers') or ['none'])}`",
+        f"- advisories: `{', '.join(report.get('advisories') or ['none'])}`",
         "",
     ]
     return "\n".join(lines)
@@ -137,6 +138,15 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
     except FileNotFoundError:
         paper_root = resolved_quest_root / "paper"
     blockers: list[str] = []
+    advisories: list[str] = []
+    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(resolved_quest_root)
+    submission_checklist = paper_artifacts.load_submission_checklist(paper_bundle_manifest_path)
+    submission_checklist_handoff_ready = bool(
+        isinstance(submission_checklist, dict) and submission_checklist.get("handoff_ready") is True
+    )
+    submission_checklist_unclassified_blocking_items = list(
+        paper_artifacts.normalize_submission_checklist_blocking_item_keys(submission_checklist)
+    )
     reporting_contract_path = paper_root / "medical_reporting_contract.json"
     if not reporting_contract_path.exists():
         blockers.append("missing_medical_reporting_contract")
@@ -196,22 +206,29 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
             blockers.append(stub.blocker_key)
 
     if not (paper_root / "reporting_guideline_checklist.json").exists():
-        blockers.append("missing_reporting_guideline_checklist")
+        if submission_checklist_handoff_ready and not submission_checklist_unclassified_blocking_items:
+            advisories.append("missing_reporting_guideline_checklist")
+        else:
+            blockers.append("missing_reporting_guideline_checklist")
     medical_story_contract_valid = _medical_story_contract_is_valid(paper_root)
     if not medical_story_contract_valid:
         blockers.append("missing_medical_story_contract")
     report = {
         "generated_at": utc_now(),
-        "status": "blocked" if blockers else "clear",
+        "status": "blocked" if blockers else ("advisory" if advisories else "clear"),
         "blockers": blockers,
+        "advisories": advisories,
         "action": "clear",
         "quest_root": str(resolved_quest_root),
         "medical_story_contract_valid": medical_story_contract_valid,
+        "submission_checklist_handoff_ready": submission_checklist_handoff_ready,
+        "submission_checklist_unclassified_blocking_items": submission_checklist_unclassified_blocking_items,
     }
     json_path, md_path = write_audit_files(resolved_quest_root, report)
     return {
         "status": str(report["status"]),
         "blockers": blockers,
+        "advisories": advisories,
         "action": "clear",
         "quest_root": str(resolved_quest_root),
         "report_json": str(json_path),

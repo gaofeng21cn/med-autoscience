@@ -111,6 +111,50 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
     assert "missing_medical_story_contract" in report["blockers"]
 
 
+def test_medical_reporting_audit_downgrades_missing_reporting_guideline_checklist_when_handoff_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk-handoff-ready"
+    paper_root = quest_root / "paper"
+    review_root = paper_root / "review"
+    review_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "paper_bundle_manifest.json").write_text("{}", encoding="utf-8")
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "TRIPOD",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "submission_checklist.json").write_text(
+        json.dumps(
+            {
+                "overall_status": "submission_minimal_materialized_handoff_ready",
+                "handoff_ready": True,
+                "blocking_items": [],
+                "package_status": "submission_minimal_ready",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "_medical_story_contract_is_valid", lambda _: True)
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "advisory"
+    assert report["blockers"] == []
+    assert report["advisories"] == ["missing_reporting_guideline_checklist"]
+
+
 def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
