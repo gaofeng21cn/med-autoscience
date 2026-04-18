@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import json
 import os
 from pathlib import Path
 import platform
@@ -36,6 +37,9 @@ _SILENT_PROMPT = (
     "[SILENT] Hermes-hosted MedAutoScience supervision tick completed.\n"
     "If the script failed, report the failure briefly and include the failing command."
 )
+_SILENT_SUCCESS_RESPONSE = "[SILENT] Hermes-hosted MedAutoScience supervision tick completed."
+_LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
+_CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
 
 
 def _utc_now() -> str:
@@ -84,6 +88,42 @@ def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) 
         "--max-ticks",
         "1",
     ]
+
+
+def _workspace_watch_runtime_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+
+
+def _repair_legacy_workspace_watch_runtime_entry(profile: WorkspaceProfile) -> dict[str, Any]:
+    path = _workspace_watch_runtime_entry_path(profile)
+    result: dict[str, Any] = {
+        "path": str(path),
+        "repaired": False,
+        "reason": None,
+    }
+    if not path.is_file():
+        result["reason"] = "missing"
+        return result
+    try:
+        content = path.read_text(encoding="utf-8")
+    except OSError:
+        result["reason"] = "unreadable"
+        return result
+    if _CURRENT_WATCH_RUNTIME_COMMAND in content:
+        result["reason"] = "current"
+        return result
+    if _LEGACY_WATCH_RUNTIME_COMMAND not in content:
+        result["reason"] = "unknown_shape"
+        return result
+    updated = content.replace(_LEGACY_WATCH_RUNTIME_COMMAND, _CURRENT_WATCH_RUNTIME_COMMAND, 1)
+    try:
+        path.write_text(updated, encoding="utf-8")
+    except OSError:
+        result["reason"] = "write_failed"
+        return result
+    result["repaired"] = True
+    result["reason"] = "legacy_flat_watch_command"
+    return result
 
 
 def _render_supervision_script(profile: WorkspaceProfile, *, interval_seconds: int) -> str:
@@ -188,6 +228,68 @@ def _ensure_script_file(profile: WorkspaceProfile, *, interval_seconds: int) -> 
 
 def _remove_empty_parent_dirs(path: Path, *, stop_at: Path) -> None:
     _shared_remove_empty_parent_dirs(path, stop_at=stop_at)
+
+
+def _latest_job_session_path(profile: WorkspaceProfile, *, job_id: str | None) -> Path | None:
+    resolved_job_id = str(job_id or "").strip()
+    if not resolved_job_id:
+        return None
+    sessions_root = profile.hermes_home_root / "sessions"
+    candidates = sorted(sessions_root.glob(f"session_cron_{resolved_job_id}_*.json"))
+    if not candidates:
+        return None
+    return candidates[-1]
+
+
+def _latest_job_run(profile: WorkspaceProfile, *, job_id: str | None) -> dict[str, Any] | None:
+    session_path = _latest_job_session_path(profile, job_id=job_id)
+    if session_path is None:
+        return None
+    try:
+        payload = json.loads(session_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return {
+            "status": "invalid",
+            "summary": "latest cron session payload is unreadable",
+            "session_path": str(session_path),
+            "recorded_at": None,
+        }
+    if not isinstance(payload, dict):
+        return {
+            "status": "invalid",
+            "summary": "latest cron session payload is invalid",
+            "session_path": str(session_path),
+            "recorded_at": None,
+        }
+    messages = payload.get("messages")
+    latest_content: str | None = None
+    if isinstance(messages, list):
+        for item in reversed(messages):
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("role") or "").strip() != "assistant":
+                continue
+            candidate = item.get("content")
+            if isinstance(candidate, str) and candidate.strip():
+                latest_content = candidate.strip()
+                break
+    status = "unknown"
+    summary = None
+    if latest_content == _SILENT_SUCCESS_RESPONSE:
+        status = "success"
+        summary = "latest Hermes supervision tick completed"
+    elif latest_content is not None and "data-collection script failed" in latest_content.lower():
+        status = "failed"
+        summary = latest_content.splitlines()[0].strip()
+    elif latest_content is not None:
+        status = "reported"
+        summary = latest_content.splitlines()[0].strip()
+    return {
+        "status": status,
+        "summary": summary,
+        "session_path": str(session_path),
+        "recorded_at": str(payload.get("last_updated") or payload.get("session_start") or "").strip() or None,
+    }
 
 
 def _legacy_launchd_label(profile: WorkspaceProfile) -> str:
@@ -312,6 +414,9 @@ def read_supervision_status(
     script_exists = script_path.is_file()
     job_enabled = bool((primary_job or {}).get("enabled", False))
     job_state = str((primary_job or {}).get("state") or "").strip() or None
+    job_id = str((primary_job or {}).get("id") or "").strip() or None
+    latest_run = _latest_job_run(profile, job_id=job_id)
+    latest_run_failed = str((latest_run or {}).get("status") or "").strip() == "failed"
     legacy_loaded = bool(legacy_service.get("loaded"))
     legacy_exists = bool(legacy_service.get("service_exists"))
     if legacy_loaded:
@@ -319,15 +424,29 @@ def read_supervision_status(
     elif legacy_exists:
         drift_reasons = [*drift_reasons, "legacy_service_present"]
     if job_present and gateway_service_loaded and job_enabled and job_state == "scheduled" and script_exists:
-        status = "loaded"
+        status = "execution_failed" if latest_run_failed else "loaded"
     elif job_present:
         status = "not_loaded"
     elif legacy_loaded or legacy_exists:
         status = "legacy_only"
     else:
         status = "not_installed"
-    if status in {"loaded", "not_loaded"} and (legacy_loaded or legacy_exists):
+    if status in {"loaded", "execution_failed", "not_loaded"} and (legacy_loaded or legacy_exists):
         status = "owner_drift"
+    summary = _status_summary(
+        status=status,
+        gateway_service_loaded=gateway_service_loaded,
+        job_present=job_present,
+        drift_reasons=drift_reasons,
+        legacy_service=legacy_service,
+    )
+    if status == "execution_failed":
+        latest_run_summary = str((latest_run or {}).get("summary") or "").strip()
+        summary = (
+            "Hermes-hosted runtime supervision 已注册，但最近一次 cron 执行失败，workspace 级监管当前未真正在线。"
+        )
+        if latest_run_summary:
+            summary = f"{summary} {latest_run_summary}"
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "workspace_runtime_supervision",
@@ -336,18 +455,12 @@ def read_supervision_status(
         "manager": runtime_contract.get("gateway_service_manager"),
         "status": status,
         "loaded": status == "loaded",
-        "summary": _status_summary(
-            status=status,
-            gateway_service_loaded=gateway_service_loaded,
-            job_present=job_present,
-            drift_reasons=drift_reasons,
-            legacy_service=legacy_service,
-        ),
+        "summary": summary,
         "gateway_service_label": runtime_contract.get("gateway_service_label"),
         "gateway_service_loaded": gateway_service_loaded,
         "jobs_store_path": str(_jobs_path(profile)),
         "job_exists": job_present,
-        "job_id": str((primary_job or {}).get("id") or "").strip() or None,
+        "job_id": job_id,
         "job_name": str((primary_job or {}).get("name") or "").strip() or None,
         "job_state": job_state,
         "job_enabled": job_enabled,
@@ -360,6 +473,10 @@ def read_supervision_status(
         "desired_schedule": _desired_schedule(interval_seconds),
         "desired_prompt": _SILENT_PROMPT,
         "drift_reasons": drift_reasons,
+        "latest_run_status": str((latest_run or {}).get("status") or "").strip() or None,
+        "latest_run_recorded_at": str((latest_run or {}).get("recorded_at") or "").strip() or None,
+        "latest_run_summary": str((latest_run or {}).get("summary") or "").strip() or None,
+        "latest_run_session_path": str((latest_run or {}).get("session_path") or "").strip() or None,
         "duplicate_job_ids": [
             str(job.get("id") or "").strip()
             for job in duplicate_jobs
@@ -378,6 +495,7 @@ def ensure_supervision(
     trigger_now: bool = True,
 ) -> dict[str, Any]:
     _ensure_script_file(profile, interval_seconds=interval_seconds)
+    watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     missing_prereqs = [
         issue
@@ -398,6 +516,8 @@ def ensure_supervision(
     primary_job_id = before["job_id"]
     action = "noop"
     command_outputs: list[dict[str, Any]] = []
+    if bool(watch_runtime_repair.get("repaired")) and action == "noop":
+        action = "repaired_watch_runtime_entry"
     if primary_job_id is None:
         create_command = _hermes_cli_command(
             profile,
@@ -490,6 +610,7 @@ def ensure_supervision(
         "action": action,
         "before": before,
         "after": after,
+        "watch_runtime_repair": watch_runtime_repair,
         "removed_duplicate_job_ids": removed_duplicate_job_ids,
         "legacy_removal": legacy_removal,
         "command_outputs": command_outputs,

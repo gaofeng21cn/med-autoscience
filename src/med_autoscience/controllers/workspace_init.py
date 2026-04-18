@@ -456,7 +456,7 @@ def _render_watch_runtime_script(*, runtime_quests_root: Path) -> str:
         "set -euo pipefail\n"
         'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
         f'WORKSPACE_RUNTIME_ROOT="${{WORKSPACE_ROOT}}/{relative_runtime_root}"\n\n'
-        'run_medautosci watch \\\n'
+        'run_medautosci runtime watch \\\n'
         '  --profile "${PROFILE_PATH}" \\\n'
         '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
         '  --ensure-study-runtimes \\\n'
@@ -639,17 +639,19 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
         looks_like_managed_watch = (
             'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
-            and "run_medautosci watch" in existing_content
             and "--runtime-root" in existing_content
         )
-        if looks_like_managed_watch and (
-            'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' not in existing_content
-            or '--profile "${PROFILE_PATH}"' not in existing_content
-            or "--ensure-study-runtimes" not in existing_content
-            or "--apply" not in existing_content
-            or "--loop" not in existing_content
-        ):
-            return "legacy_watch_runtime_entry"
+        if looks_like_managed_watch:
+            if "run_medautosci runtime watch" not in existing_content:
+                return "legacy_watch_runtime_entry"
+            if (
+                'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' not in existing_content
+                or '--profile "${PROFILE_PATH}"' not in existing_content
+                or "--ensure-study-runtimes" not in existing_content
+                or "--apply" not in existing_content
+                or "--loop" not in existing_content
+            ):
+                return "legacy_watch_runtime_entry"
     if suffix == ("ops", "medautoscience", "bin", "install-watch-runtime-service"):
         if "runtime ensure-supervision" not in existing_content:
             return "legacy_watch_runtime_service_install"

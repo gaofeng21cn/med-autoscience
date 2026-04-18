@@ -198,7 +198,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     assert 'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in watch_runtime_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' in watch_runtime_text
-    assert 'run_medautosci watch \\' in watch_runtime_text
+    assert 'run_medautosci runtime watch \\' in watch_runtime_text
     assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in watch_runtime_text
 
 
@@ -355,11 +355,50 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     assert "command -v uv" in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"' in watch_runtime_text
+    assert 'run_medautosci runtime watch \\' in watch_runtime_text
     assert '--ensure-study-runtimes' in watch_runtime_text
     assert '--apply' in watch_runtime_text
     assert '--loop' in watch_runtime_text
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
+
+
+def test_init_workspace_upgrades_flat_watch_runtime_entry_even_when_current_flags_are_present(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "legacy-watch-runtime"
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy-watch",
+        dry_run=False,
+        force=False,
+    )
+
+    watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    watch_runtime.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/ops/med-deepscientist/runtime/quests"\n\n'
+        'run_medautosci watch \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
+        '  --ensure-study-runtimes \\\n'
+        '  --apply \\\n'
+        '  --loop \\\n'
+        '  "$@"\n',
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="legacy-watch",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(watch_runtime) in result["upgraded_files"]
+    assert 'run_medautosci runtime watch \\' in watch_runtime.read_text(encoding="utf-8")
 
 
 def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp_path: Path) -> None:
