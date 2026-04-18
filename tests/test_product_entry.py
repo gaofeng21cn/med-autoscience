@@ -516,6 +516,18 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
         module,
         "build_product_entry_manifest",
         lambda **kwargs: {
+            "workspace_locator": {"profile_name": "test-profile"},
+            "runtime": {"runtime_owner": "upstream_hermes_agent"},
+            "product_entry_status": {"summary": "test status"},
+            "frontdesk_surface": {
+                "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml"
+            },
+            "operator_loop_surface": {
+                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+            },
+            "operator_loop_actions": {},
+            "product_entry_start": {},
+            "product_entry_overview": {},
             "domain_entry_contract": {
                 "entry_adapter": "MedAutoScienceDomainEntry",
                 "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry",
@@ -538,7 +550,10 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
                 "ready_to_try_now": True,
                 "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
             },
+            "product_entry_readiness": {},
             "product_entry_quickstart": {"steps": []},
+            "family_orchestration": {},
+            "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
             "summary": {
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
             },
