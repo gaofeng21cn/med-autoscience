@@ -22,6 +22,7 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert result["workspace_name"] == "diabetes"
     assert result["created_directories"]
     assert result["created_files"]
+    assert str(workspace_root / "AGENTS.md") in result["created_files"]
     assert not workspace_root.exists()
 
 
@@ -167,6 +168,20 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "不要直接通过 `med-deepscientist` UI、CLI 或 daemon HTTP API 发起研究 quest" in root_readme_text
     assert "portfolio/research_memory/" in root_readme_text
 
+    root_agents = workspace_root / "AGENTS.md"
+    assert root_agents.is_file()
+    root_agents_text = root_agents.read_text(encoding="utf-8")
+    assert "# glioma Workspace Rules" in root_agents_text
+    assert "适用范围：当前 workspace 根目录及所有子目录。" in root_agents_text
+    assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
+    assert "始终使用中文回应。" in root_agents_text
+    assert "优先使用 `rtk` 前缀运行 shell 命令。" in root_agents_text
+    assert "浏览网页优先使用 `agent-browser`。" in root_agents_text
+    assert "病种/课题级 research workspace" in root_agents_text
+    assert "`study` 是论文交付单元" in root_agents_text
+    assert "正式 contract 只吸收经当前 workspace 审计后仍然可信的内容。" in root_agents_text
+    assert "优先在 `MedAutoScience` 与 `med-deepscientist` repo 中完成基座层修复" in root_agents_text
+
     deepscientist_readme = workspace_root / "ops" / "med-deepscientist" / "README.md"
     assert deepscientist_readme.is_file()
     deepscientist_readme_text = deepscientist_readme.read_text(encoding="utf-8")
@@ -216,6 +231,8 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
 
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "pituitary.local.toml"
     profile_path.write_text("# local edit\n", encoding="utf-8")
+    agents_path = workspace_root / "AGENTS.md"
+    agents_path.write_text("# custom local rules\n", encoding="utf-8")
 
     second = module.init_workspace(
         workspace_root=workspace_root,
@@ -225,6 +242,8 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     )
     assert str(profile_path) in second["skipped_files"]
     assert profile_path.read_text(encoding="utf-8") == "# local edit\n"
+    assert str(agents_path) in second["skipped_files"]
+    assert agents_path.read_text(encoding="utf-8") == "# custom local rules\n"
 
     third = module.init_workspace(
         workspace_root=workspace_root,
@@ -234,6 +253,8 @@ def test_init_workspace_is_idempotent_and_force_overwrites_files(tmp_path: Path)
     )
     assert str(profile_path) in third["overwritten_files"]
     assert 'name = "pituitary"' in profile_path.read_text(encoding="utf-8")
+    assert str(agents_path) in third["overwritten_files"]
+    assert "# pituitary Workspace Rules" in agents_path.read_text(encoding="utf-8")
 
 
 def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) -> None:
