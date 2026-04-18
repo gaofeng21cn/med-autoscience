@@ -781,13 +781,13 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
         "primary_step_id": "continue_or_relaunch",
         "primary_surface_kind": "launch_study",
         "primary_command": (
-            "uv run python -m med_autoscience.cli launch-study --profile "
+            "uv run python -m med_autoscience.cli study launch --profile "
             + str(profile_ref.resolve())
             + " --study-id 001-risk"
         ),
     }
     assert result["recommended_command"].endswith(
-        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id 001-risk"
+        "study launch --profile " + str(profile_ref.resolve()) + " --study-id 001-risk"
     )
     assert result["recommended_commands"][0]["step_id"] == "continue_or_relaunch"
     assert result["recommended_commands"][0]["surface_kind"] == "launch_study"
@@ -803,7 +803,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
                 "title": "继续或重新拉起当前 study",
                 "surface_kind": "launch_study",
                 "command": (
-                    "uv run python -m med_autoscience.cli launch-study --profile "
+                    "uv run python -m med_autoscience.cli study launch --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
@@ -813,7 +813,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
                 "title": "读取结构化运行真相",
                 "surface_kind": "study_runtime_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-runtime-status --profile "
+                    "uv run python -m med_autoscience.cli study runtime-status --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
@@ -823,7 +823,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
                 "title": "读取当前研究进度",
                 "surface_kind": "study_progress",
                 "command": (
-                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    "uv run python -m med_autoscience.cli study progress --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
@@ -1381,7 +1381,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         "primary_step_id": "refresh_supervision",
         "primary_surface_kind": "runtime_watch_refresh",
         "primary_command": (
-            "uv run python -m med_autoscience.cli watch --runtime-root "
+            "uv run python -m med_autoscience.cli runtime watch --runtime-root "
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
@@ -1389,7 +1389,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         ),
     }
     assert result["recommended_command"].endswith(
-        "watch --runtime-root "
+        "runtime watch --runtime-root "
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
@@ -2139,7 +2139,7 @@ def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_
     assert result["operator_verdict"]["primary_surface_kind"] == "study_progress"
     assert (
         result["operator_verdict"]["primary_command"]
-        == "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id 004-invasive-architecture"
+        == "uv run python -m med_autoscience.cli study progress --profile <profile> --study-id 004-invasive-architecture"
     )
     assert result["current_blockers"] == []
     assert result["next_system_action"] == "继续当前投稿打包阶段。"

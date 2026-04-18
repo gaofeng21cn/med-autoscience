@@ -1241,12 +1241,12 @@ def _study_command_surfaces(
     profile_arg = _profile_arg(profile_ref)
     selector = _study_selector(study_id=study_id)
     return {
-        "workspace_cockpit": f"{prefix} workspace-cockpit --profile {profile_arg}",
-        "study_progress": f"{prefix} study-progress --profile {profile_arg} {selector}",
-        "study_runtime_status": f"{prefix} study-runtime-status --profile {profile_arg} {selector}",
-        "launch_study": f"{prefix} launch-study --profile {profile_arg} {selector}",
+        "workspace_cockpit": f"{prefix} workspace cockpit --profile {profile_arg}",
+        "study_progress": f"{prefix} study progress --profile {profile_arg} {selector}",
+        "study_runtime_status": f"{prefix} study runtime-status --profile {profile_arg} {selector}",
+        "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
-            f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+            f"{prefix} runtime watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {profile_arg} --ensure-study-runtimes --apply"
         ),
     }
