@@ -262,15 +262,16 @@ def _refresh_managed_study_status_after_ensure(
 
 def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | StudyRuntimeStatus) -> bool:
     payload = _managed_study_status_payload(action_payload)
-    if _non_empty_text(payload.get("decision")) != "resume":
-        return False
-    if _non_empty_text(payload.get("quest_status")) not in _HARD_AUTO_RECOVERY_QUEST_STATUSES:
-        return False
-    if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
-        return False
-    if _payload_active_run_id(payload) is not None:
-        return False
-    return _payload_runtime_liveness_status(payload) != "live"
+    decision = _non_empty_text(payload.get("decision"))
+    if decision == "resume":
+        if _non_empty_text(payload.get("quest_status")) not in _HARD_AUTO_RECOVERY_QUEST_STATUSES:
+            return False
+        if _non_empty_text(payload.get("reason")) not in _HARD_AUTO_RECOVERY_REASONS:
+            return False
+        if _payload_active_run_id(payload) is not None:
+            return False
+        return _payload_runtime_liveness_status(payload) != "live"
+    return runtime_supervision.is_auto_continuation_recovery_pending(payload)
 
 
 def _serialize_managed_study_auto_recovery(

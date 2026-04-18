@@ -12,6 +12,7 @@ from med_autoscience.runtime_protocol import study_runtime as study_runtime_prot
 SCHEMA_VERSION = 1
 _RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
 _ACTIVE_QUEST_STATUSES = frozenset({"running", "active"})
+_HUMAN_CONFIRMATION_REQUIRED_ACTION = "human_confirmation_required"
 _DROPOUT_REASONS = frozenset(
     {
         "quest_marked_running_but_no_live_session",
@@ -195,6 +196,70 @@ def _status_payload_continuation_field(status_payload: Mapping[str, Any], field_
     return _non_empty_text(continuation_state.get(field_name))
 
 
+def _status_payload_resume_contract(status_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    family_checkpoint_lineage = status_payload.get("family_checkpoint_lineage")
+    if not isinstance(family_checkpoint_lineage, Mapping):
+        return {}
+    resume_contract = family_checkpoint_lineage.get("resume_contract")
+    return resume_contract if isinstance(resume_contract, Mapping) else {}
+
+
+def _status_payload_resume_mode(status_payload: Mapping[str, Any]) -> str | None:
+    return _non_empty_text(_status_payload_resume_contract(status_payload).get("resume_mode"))
+
+
+def _status_payload_human_gate_required(status_payload: Mapping[str, Any]) -> bool:
+    resume_contract = _status_payload_resume_contract(status_payload)
+    if isinstance(resume_contract.get("human_gate_required"), bool):
+        return bool(resume_contract.get("human_gate_required"))
+    interaction_arbitration = status_payload.get("interaction_arbitration")
+    if isinstance(interaction_arbitration, Mapping) and bool(interaction_arbitration.get("requires_user_input")):
+        return True
+    publication_supervisor_state = status_payload.get("publication_supervisor_state")
+    if isinstance(publication_supervisor_state, Mapping):
+        current_required_action = _non_empty_text(publication_supervisor_state.get("current_required_action"))
+        if current_required_action == _HUMAN_CONFIRMATION_REQUIRED_ACTION:
+            return True
+    return False
+
+
+def is_auto_continuation_recovery_pending(
+    status_payload: Mapping[str, Any],
+    *,
+    strict_live: bool | None = None,
+) -> bool:
+    resolved_strict_live = bool(_runtime_facts(status_payload)["strict_live"]) if strict_live is None else strict_live
+    if resolved_strict_live:
+        return False
+    if _non_empty_text(status_payload.get("decision")) != "blocked":
+        return False
+    if _non_empty_text(status_payload.get("reason")) != "quest_stopped_requires_explicit_rerun":
+        return False
+    if _non_empty_text(status_payload.get("quest_status")) != "stopped":
+        return False
+    if _status_payload_continuation_field(status_payload, "continuation_policy") != "auto":
+        return False
+    if _status_payload_resume_mode(status_payload) != "resume_from_checkpoint":
+        return False
+    if _status_payload_human_gate_required(status_payload):
+        return False
+    return _runtime_facts(status_payload)["active_run_id"] is None
+
+
+def needs_recovery_projection(
+    status_payload: Mapping[str, Any],
+    *,
+    strict_live: bool | None = None,
+) -> bool:
+    resolved_strict_live = bool(_runtime_facts(status_payload)["strict_live"]) if strict_live is None else strict_live
+    if resolved_strict_live:
+        return False
+    decision = _non_empty_text(status_payload.get("decision"))
+    if decision in _RECOVERY_DECISIONS:
+        return True
+    return is_auto_continuation_recovery_pending(status_payload, strict_live=resolved_strict_live)
+
+
 def _status_payload_supervisor_tick_status(status_payload: Mapping[str, Any]) -> str | None:
     supervisor_tick_audit = status_payload.get("supervisor_tick_audit")
     if not isinstance(supervisor_tick_audit, Mapping):
@@ -242,6 +307,7 @@ def materialize_runtime_supervision(
     launch_report_path = _candidate_path(status_payload.get("launch_report_path"))
     facts = _runtime_facts(status_payload)
     strict_live = bool(facts["strict_live"])
+    recovery_pending = needs_recovery_projection(status_payload, strict_live=strict_live)
 
     if strict_live:
         health_status = "live"
@@ -253,13 +319,16 @@ def materialize_runtime_supervision(
         clinician_update = "系统确认当前研究运行在线，自动推进仍在继续。"
         next_action = "continue_supervising_runtime"
         next_action_summary = "继续监督当前托管运行，并等待新的阶段事件。"
-    elif decision in _RECOVERY_DECISIONS:
+    elif recovery_pending:
         health_status = "recovering"
-        last_transition = "recovery_requested"
+        last_transition = "recovery_requested" if decision in _RECOVERY_DECISIONS else "auto_recovery_pending"
         consecutive_failure_count = 0
-        recovery_attempt_count = previous_attempt_count + 1 if apply else previous_attempt_count
+        recovery_attempt_count = previous_attempt_count + 1 if (decision in _RECOVERY_DECISIONS and apply) or (previous_health_status != "recovering") else previous_attempt_count
         needs_human_intervention = False
-        if runtime_reason == "quest_marked_running_but_no_live_session":
+        if is_auto_continuation_recovery_pending(status_payload, strict_live=strict_live):
+            summary = "系统识别到当前停止态仍属于自动续跑主线，正在继续推动恢复。"
+            clinician_update = "系统确认 quest 虽然显示 stopped，但恢复合同仍允许从 checkpoint 自动续跑，已保持恢复态监管。"
+        elif runtime_reason == "quest_marked_running_but_no_live_session":
             summary = "系统已检测到运行掉线，正在自动尝试恢复。"
             clinician_update = "系统发现研究表面仍显示在运行，但 live worker 已掉线，已自动发起恢复。"
         else:

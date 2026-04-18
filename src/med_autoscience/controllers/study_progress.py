@@ -21,7 +21,9 @@ _PAPER_STAGE_LABELS = {
     "review": "独立审阅与质控",
     "finalize": "定稿与投稿收尾",
     "scientific_anchor_missing": "科学锚点仍缺失",
+    "write_stage_ready": "论文写作阶段已放行",
     "publishability_gate_blocked": "论文可发表性门控未放行",
+    "bundle_stage_blocked": "投稿打包阶段存在硬阻塞",
     "bundle_stage_ready": "投稿打包阶段已放行",
 }
 _CURRENT_STAGE_LABELS = {
@@ -159,7 +161,9 @@ _CONTINUATION_REASON_LABELS = {
 }
 _TEXT_LABELS = {
     "bundle suggestions are downstream-only until the publication gate allows write": "在发表门控放行写作前，投稿包相关建议都只是后续件。",
+    "the publication gate allows write; writing-stage work is now on the critical path": "发表门控已经放行写作，论文写作阶段进入关键路径。",
     "bundle-stage work is unlocked and can proceed on the critical path": "投稿打包阶段已被全局门控放行，可以进入关键路径。",
+    "bundle-stage blockers are now on the critical path for this paper line": "当前论文线的关键路径已经进入投稿打包阻塞修复。",
     "paper bundle exists, but the active blockers still belong to the publishability surface; bundle suggestions stay downstream-only until the gate clears": "论文包雏形已经存在，但当前硬阻塞仍在论文可发表性面；在门控放行前，投稿包相关建议都只是后续件。",
 }
 _TEXT_REPLACEMENTS = (

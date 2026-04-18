@@ -436,6 +436,31 @@ def _publication_gate_allows_direct_write(status: StudyRuntimeStatus) -> bool:
         return True
 
 
+def _publication_supervisor_current_required_action(payload: dict[str, object] | None) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    value = str(payload.get("current_required_action") or "").strip()
+    return value or None
+
+
+def _publication_supervisor_requests_automated_continuation(
+    payload: dict[str, object] | None,
+    *,
+    require_blocked_status: bool,
+) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if str(payload.get("phase_owner") or "").strip() != "publication_gate":
+        return False
+    current_required_action = _publication_supervisor_current_required_action(payload)
+    if current_required_action in {None, _HUMAN_CONFIRMATION_REQUIRED_ACTION}:
+        return False
+    if not require_blocked_status:
+        return True
+    status = str(payload.get("status") or "").strip()
+    return status not in {"", "clear"}
+
+
 def _publication_gate_requires_live_runtime_reroute(
     publication_gate_report: dict[str, object] | None,
 ) -> bool:
@@ -446,10 +471,13 @@ def _publication_gate_requires_live_runtime_reroute(
         for item in (publication_gate_report.get("blockers") or [])
         if str(item).strip()
     }
-    current_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
     return (
         "active_run_drifting_into_write_without_gate_approval" in blockers
-        and current_required_action == "return_to_publishability_gate"
+        and bool(publication_gate_report.get("bundle_tasks_downstream_only"))
+        and _publication_supervisor_requests_automated_continuation(
+            publication_gate_report,
+            require_blocked_status=True,
+        )
     )
 
 
@@ -572,9 +600,7 @@ def _controller_decision_requires_human_confirmation(*, study_root: Path) -> boo
 
 def _publication_supervisor_requires_human_confirmation(status: StudyRuntimeStatus) -> bool:
     payload = status.extras.get("publication_supervisor_state")
-    if not isinstance(payload, dict):
-        return False
-    return str(payload.get("current_required_action") or "").strip() == _HUMAN_CONFIRMATION_REQUIRED_ACTION
+    return _publication_supervisor_current_required_action(payload) == _HUMAN_CONFIRMATION_REQUIRED_ACTION
 
 
 def _runtime_liveness_audit_payload(status: StudyRuntimeStatus) -> dict[str, object]:
@@ -1055,11 +1081,10 @@ def _controller_stop_is_auto_recoverable(
     stop_source = _controller_stop_source(stop_reason)
     if stop_source not in _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES:
         return False
-    if not isinstance(publication_gate_report, dict):
-        return False
-    publication_gate_status = str(publication_gate_report.get("status") or "").strip()
-    current_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
-    return publication_gate_status not in {"", "clear"} and current_required_action == "return_to_publishability_gate"
+    return _publication_supervisor_requests_automated_continuation(
+        publication_gate_report,
+        require_blocked_status=True,
+    )
 
 
 def _stopped_controller_owned_auto_recovery_context(
