@@ -6,6 +6,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from opl_harness_shared.status_narration import (
+    PROGRESS_ANSWER_CHECKLIST,
+    build_status_narration_contract,
+)
+
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.profiles import WorkspaceProfile
@@ -2095,6 +2100,28 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
     )
+    status_narration_contract = build_status_narration_contract(
+        contract_id=f"study-progress::{resolved_study_id}",
+        surface_kind="study_progress",
+        stage={
+            "current_stage": current_stage,
+            "paper_stage": paper_stage,
+            "intervention_lane": str(intervention_lane.get("lane_id") or "").strip() or None,
+        },
+        readiness={
+            "needs_physician_decision": needs_physician_decision,
+            "progress_freshness": str(progress_freshness.get("status") or "").strip() or None,
+        },
+        current_blockers=current_blockers[:8],
+        latest_update=latest_progress_message or current_stage_summary,
+        next_step=next_system_action,
+        facts={
+            "study_id": resolved_study_id,
+            "quest_id": quest_id,
+            "paper_stage_summary": paper_stage_summary,
+        },
+        answer_checklist=PROGRESS_ANSWER_CHECKLIST,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -2106,6 +2133,7 @@ def build_study_progress_projection(
         "current_stage_summary": current_stage_summary,
         "paper_stage": paper_stage,
         "paper_stage_summary": paper_stage_summary,
+        "status_narration_contract": status_narration_contract,
         "latest_events": latest_events,
         "current_blockers": current_blockers,
         "next_system_action": next_system_action,

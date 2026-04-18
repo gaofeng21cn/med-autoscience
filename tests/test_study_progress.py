@@ -443,6 +443,11 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert result["paper_stage"] == "write"
     assert result["needs_physician_decision"] is True
     assert "医生" in result["current_stage_summary"]
+    assert result["status_narration_contract"]["contract_kind"] == "ai_status_narration"
+    assert (
+        result["status_narration_contract"]["narration_policy"]["answer_checklist"]
+        == ["current_stage", "current_blockers", "next_step"]
+    )
     assert "写作" in result["paper_stage_summary"]
     assert any("外部验证" in item for item in result["current_blockers"])
     assert any("发表" in item for item in result["current_blockers"])
