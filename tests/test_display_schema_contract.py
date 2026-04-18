@@ -2391,6 +2391,39 @@ def test_broader_heterogeneity_summary_panel_schema_contract_is_registered() -> 
     assert "broader_heterogeneity_summary_panel_inputs_v1" in effect_estimate_class.input_schema_ids
 
 
+def test_center_transportability_governance_summary_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    transportability = module.get_input_schema_contract("center_transportability_governance_summary_panel_inputs_v1")
+    generalizability_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "generalizability"
+    )
+
+    assert transportability.template_ids == (_full_id("center_transportability_governance_summary_panel"),)
+    assert transportability.display_name == "Center Transportability Governance Summary Panel"
+    assert transportability.collection_required_fields["centers"] == (
+        "center_id",
+        "center_label",
+        "cohort_role",
+        "support_count",
+        "event_count",
+        "metric_estimate",
+        "metric_lower",
+        "metric_upper",
+        "max_shift",
+        "slope",
+        "oe_ratio",
+        "verdict",
+        "action",
+    )
+    assert "metric_family_must_be_supported" in transportability.additional_constraints
+    assert "center_metric_intervals_must_wrap_estimate" in transportability.additional_constraints
+    assert "center_max_shift_must_be_probability" in transportability.additional_constraints
+    assert "center_verdicts_must_be_supported" in transportability.additional_constraints
+    assert _full_id("center_transportability_governance_summary_panel") in generalizability_class.template_ids
+    assert "center_transportability_governance_summary_panel_inputs_v1" in generalizability_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -2412,6 +2445,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("atlas_spatial_trajectory_density_coverage_panel") in markdown
     assert _full_id("atlas_spatial_trajectory_context_support_panel") in markdown
     assert _full_id("broader_heterogeneity_summary_panel") in markdown
+    assert _full_id("center_transportability_governance_summary_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
     assert "single_cell_atlas_overview_inputs_v1" in markdown
     assert "atlas_spatial_bridge_panel_inputs_v1" in markdown
@@ -2419,6 +2453,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in markdown
     assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in markdown
     assert "broader_heterogeneity_summary_panel_inputs_v1" in markdown
+    assert "center_transportability_governance_summary_panel_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown
     assert _full_id("time_to_event_threshold_governance_panel") in markdown

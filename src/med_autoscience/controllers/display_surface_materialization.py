@@ -8993,6 +8993,241 @@ def _validate_generalizability_subgroup_composite_display_payload(
     }
 
 
+def _validate_center_transportability_governance_summary_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    metric_family = _require_non_empty_string(
+        payload.get("metric_family"),
+        label=f"{path.name} display `{expected_display_id}` metric_family",
+    )
+    supported_metric_families = {"discrimination", "calibration_ratio", "effect_estimate", "utility_delta"}
+    if metric_family not in supported_metric_families:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` metric_family must be one of "
+            "discrimination, calibration_ratio, effect_estimate, or utility_delta"
+        )
+
+    metric_reference_value = _require_numeric_value(
+        payload.get("metric_reference_value"),
+        label=f"{path.name} display `{expected_display_id}` metric_reference_value",
+    )
+    if not math.isfinite(metric_reference_value):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` metric_reference_value must be finite"
+        )
+    batch_shift_threshold = _require_numeric_value(
+        payload.get("batch_shift_threshold"),
+        label=f"{path.name} display `{expected_display_id}` batch_shift_threshold",
+    )
+    if not math.isfinite(batch_shift_threshold) or batch_shift_threshold <= 0.0:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` batch_shift_threshold must be positive and finite"
+        )
+    slope_acceptance_lower = _require_numeric_value(
+        payload.get("slope_acceptance_lower"),
+        label=f"{path.name} display `{expected_display_id}` slope_acceptance_lower",
+    )
+    slope_acceptance_upper = _require_numeric_value(
+        payload.get("slope_acceptance_upper"),
+        label=f"{path.name} display `{expected_display_id}` slope_acceptance_upper",
+    )
+    if (
+        not math.isfinite(slope_acceptance_lower)
+        or not math.isfinite(slope_acceptance_upper)
+        or slope_acceptance_lower <= 0.0
+        or slope_acceptance_upper <= 0.0
+        or slope_acceptance_lower >= slope_acceptance_upper
+    ):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` slope_acceptance band must be positive, finite, and ordered"
+        )
+    oe_ratio_acceptance_lower = _require_numeric_value(
+        payload.get("oe_ratio_acceptance_lower"),
+        label=f"{path.name} display `{expected_display_id}` oe_ratio_acceptance_lower",
+    )
+    oe_ratio_acceptance_upper = _require_numeric_value(
+        payload.get("oe_ratio_acceptance_upper"),
+        label=f"{path.name} display `{expected_display_id}` oe_ratio_acceptance_upper",
+    )
+    if (
+        not math.isfinite(oe_ratio_acceptance_lower)
+        or not math.isfinite(oe_ratio_acceptance_upper)
+        or oe_ratio_acceptance_lower <= 0.0
+        or oe_ratio_acceptance_upper <= 0.0
+        or oe_ratio_acceptance_lower >= oe_ratio_acceptance_upper
+    ):
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` oe_ratio_acceptance band must be positive, finite, and ordered"
+        )
+
+    centers_payload = payload.get("centers")
+    if not isinstance(centers_payload, list) or not centers_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty centers list")
+    supported_verdicts = {
+        "stable",
+        "context_dependent",
+        "recalibration_required",
+        "insufficient_support",
+        "unstable",
+    }
+    normalized_centers: list[dict[str, Any]] = []
+    seen_center_ids: set[str] = set()
+    seen_center_labels: set[str] = set()
+    for center_index, center_payload in enumerate(centers_payload):
+        if not isinstance(center_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` centers[{center_index}] must be an object")
+        center_id = _require_non_empty_string(
+            center_payload.get("center_id"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].center_id",
+        )
+        if center_id in seen_center_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].center_id must be unique"
+            )
+        seen_center_ids.add(center_id)
+        center_label = _require_non_empty_string(
+            center_payload.get("center_label"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].center_label",
+        )
+        if center_label in seen_center_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].center_label must be unique"
+            )
+        seen_center_labels.add(center_label)
+        support_count = _require_non_negative_int(
+            center_payload.get("support_count"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].support_count",
+            allow_zero=False,
+        )
+        event_count = _require_non_negative_int(
+            center_payload.get("event_count"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].event_count",
+        )
+        if event_count > support_count:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].event_count must not exceed support_count"
+            )
+        metric_estimate = _require_numeric_value(
+            center_payload.get("metric_estimate"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].metric_estimate",
+        )
+        metric_lower = _require_numeric_value(
+            center_payload.get("metric_lower"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].metric_lower",
+        )
+        metric_upper = _require_numeric_value(
+            center_payload.get("metric_upper"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].metric_upper",
+        )
+        if not all(math.isfinite(value) for value in (metric_estimate, metric_lower, metric_upper)):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}] metric values must be finite"
+            )
+        if not (metric_lower <= metric_estimate <= metric_upper):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}] must satisfy metric_lower <= metric_estimate <= metric_upper"
+            )
+        max_shift = _require_probability_value(
+            center_payload.get("max_shift"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].max_shift",
+        )
+        slope = _require_numeric_value(
+            center_payload.get("slope"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].slope",
+        )
+        if not math.isfinite(slope) or slope <= 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].slope must be positive and finite"
+            )
+        oe_ratio = _require_numeric_value(
+            center_payload.get("oe_ratio"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].oe_ratio",
+        )
+        if not math.isfinite(oe_ratio) or oe_ratio <= 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].oe_ratio must be positive and finite"
+            )
+        verdict = _require_non_empty_string(
+            center_payload.get("verdict"),
+            label=f"{path.name} display `{expected_display_id}` centers[{center_index}].verdict",
+        )
+        if verdict not in supported_verdicts:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].verdict must be one of {sorted(supported_verdicts)}"
+            )
+        normalized_center = {
+            "center_id": center_id,
+            "center_label": center_label,
+            "cohort_role": _require_non_empty_string(
+                center_payload.get("cohort_role"),
+                label=f"{path.name} display `{expected_display_id}` centers[{center_index}].cohort_role",
+            ),
+            "support_count": support_count,
+            "event_count": event_count,
+            "metric_estimate": metric_estimate,
+            "metric_lower": metric_lower,
+            "metric_upper": metric_upper,
+            "max_shift": max_shift,
+            "slope": slope,
+            "oe_ratio": oe_ratio,
+            "verdict": verdict,
+            "action": _require_non_empty_string(
+                center_payload.get("action"),
+                label=f"{path.name} display `{expected_display_id}` centers[{center_index}].action",
+            ),
+        }
+        detail_text = str(center_payload.get("detail") or "").strip()
+        if center_payload.get("detail") is not None and not detail_text:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` centers[{center_index}].detail must be non-empty when present"
+            )
+        if detail_text:
+            normalized_center["detail"] = detail_text
+        normalized_centers.append(normalized_center)
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "metric_family": metric_family,
+        "metric_panel_title": _require_non_empty_string(
+            payload.get("metric_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` metric_panel_title",
+        ),
+        "metric_x_label": _require_non_empty_string(
+            payload.get("metric_x_label"),
+            label=f"{path.name} display `{expected_display_id}` metric_x_label",
+        ),
+        "metric_reference_value": metric_reference_value,
+        "batch_shift_threshold": batch_shift_threshold,
+        "slope_acceptance_lower": slope_acceptance_lower,
+        "slope_acceptance_upper": slope_acceptance_upper,
+        "oe_ratio_acceptance_lower": oe_ratio_acceptance_lower,
+        "oe_ratio_acceptance_upper": oe_ratio_acceptance_upper,
+        "summary_panel_title": _require_non_empty_string(
+            payload.get("summary_panel_title"),
+            label=f"{path.name} display `{expected_display_id}` summary_panel_title",
+        ),
+        "centers": normalized_centers,
+    }
+
+
 def _load_evidence_display_payload(
     *,
     paper_root: Path,
@@ -9214,6 +9449,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "broader_heterogeneity_summary_panel_inputs_v1":
         return payload_path, _validate_broader_heterogeneity_summary_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "center_transportability_governance_summary_panel_inputs_v1":
+        return payload_path, _validate_center_transportability_governance_summary_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

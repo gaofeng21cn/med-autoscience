@@ -547,6 +547,7 @@ Current audited anchors:
 - `table3_clinical_interpretation_summary`
 - `multicenter_generalizability_overview`
 - `generalizability_subgroup_composite_panel`
+- `center_transportability_governance_summary_panel`
 - `compact_effect_estimate_panel`
 - `coefficient_path_panel`
 - `broader_heterogeneity_summary_panel`
@@ -555,7 +556,7 @@ Current gap direction:
 
 - broader balance / missingness governance beyond the current bounded balance-missingness-QC shell layer
 - broader QC and batch-effect display families beyond the current bounded center-coverage / batch-shift / recalibration-governance shell stack
-- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline + compact/coefficient/broader-heterogeneity stability summaries + bounded center-coverage transportability shell + recalibration-governance shell
+- transportability and center-governance synthesis beyond the current multicenter overview + generalizability composite baseline + center_transportability_governance_summary_panel + compact/coefficient/broader-heterogeneity stability summaries + bounded center-coverage transportability shell + recalibration-governance shell
 - broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, the bounded workflow-ribbon-plus-summary composite shell, the first bounded balance-missingness-QC composite shell, and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families
