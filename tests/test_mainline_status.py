@@ -129,13 +129,15 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Phase 2 User Loop" in markdown
-    assert "single_path `continue_study`" in markdown
+    assert "单一路径 `continue_study`" in markdown
+    assert "推荐动作" in markdown
+    assert "推荐命令" in markdown
     assert "Platform Target" in markdown
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
     assert "Phase 3 Clearance" in markdown
-    assert "recommended_step_id" in markdown
-    assert "clearance_step `refresh_supervision`" in markdown
+    assert "清障重点" in markdown
+    assert "清障步骤 `refresh_supervision`" in markdown
     assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown

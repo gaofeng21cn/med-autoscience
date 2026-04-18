@@ -746,7 +746,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         "",
         f"- program_id: `{payload.get('program_id')}`",
         f"- 当前主线阶段: `{current_stage.get('id')}`",
-        f"- 阶段状态: `{current_stage.get('status')}`",
+        f"- 当前主线阶段状态: `{current_stage.get('status')}`",
         f"- 当前判断: {current_stage.get('summary')}",
         f"- 当前 program phase: `{current_program_phase.get('id')}`",
         f"- program phase 状态: `{current_program_phase.get('status')}`",
@@ -760,20 +760,20 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         "",
         "## Phase 2 User Loop",
         "",
-        f"- summary: {phase2_user_product_loop.get('summary') or 'none'}",
-        f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
-        f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
+        f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}",
+        f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
+        f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
         "",
         "## Phase 3 Clearance",
         "",
-        f"- summary: {phase3_clearance_lane.get('summary') or 'none'}",
-        f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
-        f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
+        f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}",
+        f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
+        f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
     ]
     for item in phase2_user_product_loop.get("single_path") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
@@ -781,7 +781,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     for item in phase3_clearance_lane.get("clearance_loop") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(
         [
             "",

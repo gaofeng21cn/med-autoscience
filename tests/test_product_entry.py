@@ -359,10 +359,13 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "Mainline Snapshot" in markdown
     assert "## Now" in markdown
     assert "当前 program phase" in markdown
+    assert "下一步焦点" in markdown
     assert "Attention Queue" in markdown
     assert "User Loop" in markdown
     assert "Phase 2 User Loop" in markdown
-    assert "operator_verdict" in markdown
+    assert "当前决策模式" in markdown
+    assert "推荐动作" in markdown
+    assert "推荐动作命令" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
     assert "The Lancet Digital Health" in markdown
     assert "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。" in markdown
@@ -642,6 +645,150 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
     assert payload["operator_brief"]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert payload["operator_brief"]["focus_study_id"] == "001-risk"
     assert "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
+
+
+def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    markdown = module.render_product_frontdesk_markdown(
+        {
+            "target_domain_id": "med-autoscience",
+            "schema_ref": "product_frontdesk.schema.json",
+            "recommended_action": "inspect_or_prepare_research_loop",
+            "gateway_interaction_contract": {
+                "frontdoor_owner": "opl_gateway_or_domain_gui",
+                "user_interaction_mode": "natural_language_frontdoor",
+            },
+            "summary": {
+                "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+            },
+            "operator_brief": {
+                "verdict": "attention_required",
+                "summary": "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。",
+                "should_intervene_now": True,
+                "recommended_step_id": "handle_attention_item",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk"
+                ),
+                "focus_study_id": "001-risk",
+                "current_focus": "优先同步投稿包镜像。",
+                "next_confirmation_signal": "看 delivery_manifest 和 current_package 是否被刷新。",
+            },
+            "product_entry_quickstart": {
+                "steps": [
+                    {
+                        "step_id": "open_frontdesk",
+                        "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                        "summary": "先打开前台入口。",
+                    }
+                ]
+            },
+            "product_entry_overview": {
+                "summary": "当前 frontdesk 已对齐 workspace truth。",
+                "progress_surface": {
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+                },
+                "resume_surface": {
+                    "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk"
+                },
+            },
+            "product_entry_start": {
+                "summary": "先进入 frontdesk，再按需要恢复当前研究 loop。",
+                "resume_surface": {
+                    "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk"
+                },
+            },
+            "product_entry_preflight": {
+                "ready_to_try_now": True,
+                "recommended_check_command": "uv run python -m med_autoscience.cli doctor --profile profile.local.toml",
+            },
+            "workspace_operator_brief": {
+                "verdict": "attention_required",
+                "summary": "当前 workspace 有关注项。",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+            },
+            "workspace_attention_queue_preview": [
+                {
+                    "title": "001-risk 当前需要刷新投稿包镜像",
+                    "recommended_command": (
+                        "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk"
+                    ),
+                    "operator_status_card": {
+                        "handling_state": "paper_surface_refresh_in_progress",
+                        "next_confirmation_signal": "看 delivery_manifest 是否刷新。",
+                    },
+                }
+            ],
+            "phase2_user_product_loop": {
+                "summary": "当前先收口用户入口与研究 loop。",
+                "recommended_step_id": "continue_study",
+                "recommended_command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
+                "single_path": [
+                    {
+                        "step_id": "continue_study",
+                        "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk",
+                    }
+                ],
+            },
+            "product_entry_guardrails": {
+                "guardrail_classes": [
+                    {
+                        "guardrail_id": "workspace_supervision_gap",
+                        "recommended_command": "uv run python -m med_autoscience.cli watch --profile profile.local.toml --apply",
+                    }
+                ]
+            },
+            "phase3_clearance_lane": {
+                "summary": "优先恢复监督与交付镜像。",
+                "recommended_step_id": "refresh_supervision",
+                "recommended_command": "uv run python -m med_autoscience.cli watch --profile profile.local.toml --apply",
+                "clearance_targets": [
+                    {
+                        "target_id": "workspace_supervision",
+                        "commands": [
+                            "uv run python -m med_autoscience.cli watch --profile profile.local.toml --apply"
+                        ],
+                    }
+                ],
+                "clearance_loop": [
+                    {
+                        "step_id": "refresh_supervision",
+                        "command": "uv run python -m med_autoscience.cli watch --profile profile.local.toml --apply",
+                    }
+                ],
+            },
+            "phase4_backend_deconstruction": {
+                "substrate_targets": [
+                    {
+                        "capability_id": "external_runtime_contract",
+                        "summary": "继续把运行时 contract 收回共享基座。",
+                    }
+                ]
+            },
+            "phase5_platform_target": {},
+            "entry_surfaces": {
+                "frontdesk": {
+                    "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml"
+                }
+            },
+        }
+    )
+
+    assert "当前状态: 需要处理" in markdown
+    assert "当前判断: MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
+    assert "前台入口命令" in markdown
+    assert "当前 workspace 判断: 当前 workspace 有关注项。" in markdown
+    assert "当前关注项: 001-risk 当前需要刷新投稿包镜像" in markdown
+    assert "recommended_action" not in markdown
+    assert "frontdesk_command" not in markdown
+    assert "recommended_command" not in markdown
+    assert "operator_loop_command" not in markdown
+    assert "verdict:" not in markdown
+    assert "attention:" not in markdown
+    assert "attention_state:" not in markdown
+    assert "attention_next_signal:" not in markdown
 
 
 def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp_path: Path) -> None:
@@ -2350,8 +2497,8 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert "Guardrails" in markdown
     assert "workspace_supervision_gap" in markdown
     assert "Phase 3 Clearance" in markdown
-    assert "recommended_step_id" in markdown
-    assert "clearance_step `refresh_supervision`" in markdown
+    assert "推荐动作" in markdown
+    assert "清障步骤 `refresh_supervision`" in markdown
     assert "external_runtime_contract" in markdown
     assert "Phase 4 Deconstruction" in markdown
     assert "session_run_watch_recovery" in markdown
@@ -2359,6 +2506,15 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
     assert "post_gate_target" in markdown
+
+    manifest_markdown = module.render_product_entry_manifest_markdown(payload["product_entry_manifest"])
+    assert "Product Entry Manifest" in manifest_markdown
+    assert "当前主线阶段" in manifest_markdown
+    assert "当前 program phase" in manifest_markdown
+    assert "程序摘要" in manifest_markdown
+    assert "推荐动作" in manifest_markdown
+    assert "推荐命令" in manifest_markdown
+    assert "单一路径 `continue_study`" in manifest_markdown
 
 
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(

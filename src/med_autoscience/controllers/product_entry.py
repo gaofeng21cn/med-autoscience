@@ -251,6 +251,20 @@ def _append_human_status_lines(lines: list[str], payload: Mapping[str, Any]) -> 
         lines.append(f"- 下一步建议: {next_step}")
 
 
+_OPERATOR_VERDICT_LABELS = {
+    "attention_required": "需要处理",
+    "ready_for_task": "可直接开始",
+    "monitor_only": "持续观察",
+}
+
+
+def _operator_verdict_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _OPERATOR_VERDICT_LABELS.get(text, text)
+
+
 def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
     normalized: list[str] = []
     for value in values:
@@ -1628,17 +1642,17 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         "",
     ]
     if operator_brief:
-        lines.append(f"- verdict: `{operator_brief.get('verdict') or 'none'}`")
-        lines.append(f"- summary: {operator_brief.get('summary') or 'none'}")
-        lines.append(f"- should_intervene_now: `{operator_brief.get('should_intervene_now')}`")
-        lines.append(f"- recommended_step_id: `{operator_brief.get('recommended_step_id') or 'none'}`")
-        lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
+        lines.append(f"- 当前判断: `{operator_brief.get('verdict') or 'none'}`")
+        lines.append(f"- 当前处理摘要: {operator_brief.get('summary') or 'none'}")
+        lines.append(f"- 是否需要立刻介入: `{operator_brief.get('should_intervene_now')}`")
+        lines.append(f"- 推荐动作: `{operator_brief.get('recommended_step_id') or 'none'}`")
+        lines.append(f"- 推荐命令: `{operator_brief.get('recommended_command') or 'none'}`")
         if operator_brief.get("focus_study_id"):
-            lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+            lines.append(f"- 聚焦 study: `{operator_brief.get('focus_study_id')}`")
         if operator_brief.get("current_focus"):
-            lines.append(f"- current_focus: {operator_brief.get('current_focus')}")
+            lines.append(f"- 当前清障重点: {operator_brief.get('current_focus')}")
         if operator_brief.get("next_confirmation_signal"):
-            lines.append(f"- next_confirmation_signal: {operator_brief.get('next_confirmation_signal')}")
+            lines.append(f"- 下一确认信号: {operator_brief.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前还没有 operator brief。")
     lines.extend([
@@ -1659,7 +1673,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- program phase 摘要: {mainline_snapshot.get('current_program_phase_summary')}")
         next_focus = list(mainline_snapshot.get("next_focus") or [])
         if next_focus:
-            lines.append(f"- next_focus: {next_focus[0]}")
+            lines.append(f"- 下一步焦点: {next_focus[0]}")
     else:
         lines.append("- 当前还没有 repo 主线快照。")
     lines.extend([
@@ -1714,8 +1728,9 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     for name, command in (payload.get("user_loop") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
     lines.extend(["", "## Phase 2 User Loop", ""])
-    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
-    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    lines.append(f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}")
+    lines.append(f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
     for item in phase2_user_product_loop.get("operator_questions") or []:
         if not isinstance(item, Mapping):
             continue
@@ -1748,21 +1763,21 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- intervention_summary: {intervention_lane.get('summary')}")
         operator_verdict = dict(item.get("operator_verdict") or {})
         if operator_verdict.get("decision_mode"):
-            lines.append(f"- operator_verdict: `{operator_verdict.get('decision_mode')}`")
+            lines.append(f"- 当前决策模式: `{operator_verdict.get('decision_mode')}`")
         if operator_verdict.get("summary"):
-            lines.append(f"- operator_summary: {operator_verdict.get('summary')}")
+            lines.append(f"- 当前处理摘要: {operator_verdict.get('summary')}")
         operator_status_card = dict(item.get("operator_status_card") or {})
         if operator_status_card.get("handling_state"):
-            lines.append(f"- operator_status_card: `{operator_status_card.get('handling_state')}`")
+            lines.append(f"- 当前处理状态: `{operator_status_card.get('handling_state')}`")
         if operator_status_card.get("user_visible_verdict"):
-            lines.append(f"- operator_status_summary: {operator_status_card.get('user_visible_verdict')}")
+            lines.append(f"- 当前处理结论: {operator_status_card.get('user_visible_verdict')}")
         if operator_status_card.get("next_confirmation_signal"):
-            lines.append(f"- next_confirmation_signal: {operator_status_card.get('next_confirmation_signal')}")
+            lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
         recovery_contract = dict(item.get("recovery_contract") or {})
         if recovery_contract.get("action_mode"):
             lines.append(f"- recovery_contract: `{recovery_contract.get('action_mode')}`")
         if item.get("recommended_command"):
-            lines.append(f"- recommended_command: `{item.get('recommended_command')}`")
+            lines.append(f"- 推荐动作命令: `{item.get('recommended_command')}`")
         blockers = list(item.get("current_blockers") or [])
         lines.append(f"- blockers: {', '.join(blockers) if blockers else 'none'}")
         lines.append(f"- launch: `{((item.get('commands') or {}).get('launch') or '')}`")
@@ -2361,8 +2376,9 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         f"- target_domain_id: `{payload.get('target_domain_id')}`",
         f"- profile_name: `{workspace_locator.get('profile_name')}`",
         f"- workspace_root: `{workspace_locator.get('workspace_root')}`",
-        f"- current_program_phase: `{repo_mainline.get('current_program_phase_id')}`",
-        f"- current_stage: `{repo_mainline.get('current_stage_id')}`",
+        f"- 当前 program phase: `{repo_mainline.get('current_program_phase_id')}`",
+        f"- 当前主线阶段: `{repo_mainline.get('current_stage_id')}`",
+        f"- 程序摘要: {repo_mainline.get('summary') or 'none'}",
         f"- frontdoor_owner: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
         f"- user_interaction_mode: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
         "",
@@ -2384,12 +2400,13 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
             continue
         lines.append(f"- `{name}`: `{item.get('command')}`")
     lines.extend(["", "## Phase 2 User Loop", ""])
-    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
-    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    lines.append(f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}")
+    lines.append(f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
     for item in phase2_user_product_loop.get("single_path") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Guardrails", ""])
     lines.append(f"- summary: {product_entry_guardrails.get('summary') or 'none'}")
     for item in product_entry_guardrails.get("guardrail_classes") or []:
@@ -2399,8 +2416,9 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
             f"- `{item.get('guardrail_id')}`: `{item.get('recommended_command') or 'none'}`"
         )
     lines.extend(["", "## Phase 3 Clearance", ""])
-    lines.append(f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
-    lines.append(f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
+    lines.append(f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}")
+    lines.append(f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
@@ -2408,7 +2426,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     for item in phase3_clearance_lane.get("clearance_loop") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Phase 4 Deconstruction", ""])
     for item in phase4_backend_deconstruction.get("substrate_targets") or []:
         if not isinstance(item, dict):
@@ -2585,30 +2603,29 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Product Frontdesk",
         "",
-        f"- target_domain_id: `{payload.get('target_domain_id')}`",
-        f"- schema_ref: `{payload.get('schema_ref') or 'none'}`",
-        f"- recommended_action: `{payload.get('recommended_action')}`",
-        f"- frontdoor_owner: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
-        f"- user_interaction_mode: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
-        f"- frontdesk_command: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
-        f"- recommended_command: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
-        f"- operator_loop_command: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
+        f"- 目标域: `{payload.get('target_domain_id')}`",
+        f"- 契约引用: `{payload.get('schema_ref') or 'none'}`",
+        f"- 前台归属: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
+        f"- 交互模式: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
+        f"- 前台入口命令: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
+        f"- 推荐继续命令: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
+        f"- 当前 loop 命令: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
         "",
         "## Now",
         "",
     ]
     if operator_brief:
-        lines.append(f"- verdict: `{operator_brief.get('verdict') or 'none'}`")
-        lines.append(f"- summary: {operator_brief.get('summary') or 'none'}")
-        lines.append(f"- should_intervene_now: `{operator_brief.get('should_intervene_now')}`")
-        lines.append(f"- recommended_step_id: `{operator_brief.get('recommended_step_id') or 'none'}`")
-        lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
+        lines.append(f"- 当前状态: {_operator_verdict_label(operator_brief.get('verdict'))}")
+        lines.append(f"- 当前判断: {operator_brief.get('summary') or 'none'}")
+        lines.append(f"- 是否需要立刻介入: {'是' if operator_brief.get('should_intervene_now') else '否'}")
+        lines.append(f"- 推荐动作: `{operator_brief.get('recommended_step_id') or 'none'}`")
+        lines.append(f"- 推荐命令: `{operator_brief.get('recommended_command') or 'none'}`")
         if operator_brief.get("focus_study_id"):
-            lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+            lines.append(f"- 聚焦 study: `{operator_brief.get('focus_study_id')}`")
         if operator_brief.get("current_focus"):
-            lines.append(f"- current_focus: {operator_brief.get('current_focus')}")
+            lines.append(f"- 当前清障重点: {operator_brief.get('current_focus')}")
         if operator_brief.get("next_confirmation_signal"):
-            lines.append(f"- next_confirmation_signal: {operator_brief.get('next_confirmation_signal')}")
+            lines.append(f"- 下一确认信号: {operator_brief.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前还没有 frontdesk operator brief。")
     lines.extend([
@@ -2626,45 +2643,49 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         "",
         "## Product Entry Overview",
         "",
-        f"- summary: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
-        f"- start_summary: `{(payload.get('product_entry_start') or {}).get('summary') or 'none'}`",
-        f"- start_resume_command: `{((payload.get('product_entry_start') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
-        f"- preflight_ready: `{(payload.get('product_entry_preflight') or {}).get('ready_to_try_now')}`",
-        f"- preflight_check_command: `{(payload.get('product_entry_preflight') or {}).get('recommended_check_command') or 'none'}`",
-        f"- progress_command: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
-        f"- resume_command: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
+        f"- 总览判断: `{(payload.get('product_entry_overview') or {}).get('summary') or 'none'}`",
+        f"- 启动提示: `{(payload.get('product_entry_start') or {}).get('summary') or 'none'}`",
+        f"- 启动后恢复命令: `{((payload.get('product_entry_start') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
+        f"- 前置检查已通过: `{'是' if (payload.get('product_entry_preflight') or {}).get('ready_to_try_now') else '否'}`",
+        f"- 前置检查命令: `{(payload.get('product_entry_preflight') or {}).get('recommended_check_command') or 'none'}`",
+        f"- 查看进度命令: `{((payload.get('product_entry_overview') or {}).get('progress_surface') or {}).get('command') or 'none'}`",
+        f"- 恢复当前 loop 命令: `{((payload.get('product_entry_overview') or {}).get('resume_surface') or {}).get('command') or 'none'}`",
         "",
         "## Workspace Preview",
         "",
     ])
     if workspace_operator_brief:
-        lines.append(f"- verdict: `{workspace_operator_brief.get('verdict') or 'none'}`")
-        lines.append(f"- summary: {workspace_operator_brief.get('summary') or 'none'}")
-        lines.append(f"- recommended_command: `{workspace_operator_brief.get('recommended_command') or 'none'}`")
+        lines.append(
+            f"- 当前 workspace 状态: {_operator_verdict_label(workspace_operator_brief.get('verdict'))}"
+        )
+        lines.append(f"- 当前 workspace 判断: {workspace_operator_brief.get('summary') or 'none'}")
+        lines.append(
+            f"- 当前 workspace 推荐命令: `{workspace_operator_brief.get('recommended_command') or 'none'}`"
+        )
     else:
         lines.append("- 当前没有 workspace preview。")
     for item in payload.get("workspace_attention_queue_preview") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(
-            f"- attention: {item.get('title') or '未命名关注项'} / `{item.get('recommended_command') or 'none'}`"
-        )
+        lines.append(f"- 当前关注项: {item.get('title') or '未命名关注项'}")
+        lines.append(f"- 处理命令: `{item.get('recommended_command') or 'none'}`")
         operator_status_card = dict(item.get("operator_status_card") or {})
         if operator_status_card.get("handling_state"):
-            lines.append(f"- attention_state: `{operator_status_card.get('handling_state')}`")
+            lines.append(f"- 处理状态: `{operator_status_card.get('handling_state')}`")
         if operator_status_card.get("next_confirmation_signal"):
-            lines.append(f"- attention_next_signal: {operator_status_card.get('next_confirmation_signal')}")
+            lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
     lines.extend([
         "",
         "## Phase 2 User Loop",
         "",
     ])
-    lines.append(f"- recommended_step_id: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
-    lines.append(f"- recommended_command: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
+    lines.append(f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}")
+    lines.append(f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
     for item in phase2_user_product_loop.get("single_path") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- single_path `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend([
         "",
         "## Guardrails",
@@ -2683,8 +2704,9 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
             "",
         ]
     )
-    lines.append(f"- recommended_step_id: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
-    lines.append(f"- recommended_command: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
+    lines.append(f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}")
+    lines.append(f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`")
+    lines.append(f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`")
     for item in phase3_clearance_lane.get("clearance_targets") or []:
         if not isinstance(item, dict):
             continue
@@ -2692,7 +2714,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     for item in phase3_clearance_lane.get("clearance_loop") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(f"- clearance_step `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(
         [
             "",
