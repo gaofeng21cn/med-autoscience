@@ -6,9 +6,6 @@ from typing import Any
 
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
 
-from .quest_state import find_latest
-
-
 def _resolve_path(path: Path) -> Path:
     return Path(path).expanduser().resolve()
 
