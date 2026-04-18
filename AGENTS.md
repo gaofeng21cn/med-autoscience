@@ -11,8 +11,8 @@
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
 - 若文档提到 `Hermes-Agent`，只能指上游外部 runtime 项目 / 服务；仓内的 seam、shim、adapter 或过渡 scaffold，不得写成“已接入 Hermes-Agent”。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
-- external runtime gate 未清除前，不做 physical migration 或 cross-repo refactor。
-- `monorepo / runtime core ingest / controlled cutover` 是后置长线，不作为当前默认实施入口。
+- `family shared modules / shared boundary refactor` 是当前允许推进的 lane；它服务四仓复用、shared helper 收口与 future monorepo readiness。
+- external runtime gate、workspace / human gate 与对象边界仍然约束 `physical migration / monorepo absorb / runtime core ingest / controlled cutover`；`monorepo / runtime core ingest / controlled cutover` 继续作为后置长线推进。
 
 ## 运行语义一致性
 

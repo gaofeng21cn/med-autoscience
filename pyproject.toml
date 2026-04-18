@@ -14,7 +14,7 @@ authors = [
 dependencies = [
   "PyYAML>=6.0",
   "matplotlib>=3.9",
-  "opl-harness-shared @ git+https://github.com/gaofeng21cn/one-person-lab.git@3933df75d80473d4cf1831353e479333f823a4ae#subdirectory=python/opl-harness-shared",
+  "opl-harness-shared @ git+https://github.com/gaofeng21cn/one-person-lab.git@110d92fb1115c93a2484b65d65af07d09daa5659#subdirectory=python/opl-harness-shared",
   "pandas>=2.2",
   "packaging>=24.0",
 ]

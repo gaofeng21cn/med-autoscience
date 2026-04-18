@@ -43,6 +43,6 @@
 ## 非目标
 
 - 不把项目级 `.codex/`、`.omx/` 或其他临时 handoff surface 当作权威真相。
-- 不在 external runtime gate 未解除时推动物理迁移或跨仓大重构。
+- 当前允许推进 family shared modules / shared boundary refactor；`physical migration / monorepo absorb` 继续跟随 external runtime gate 和 phase ladder 推进。
 - 不以临时补丁或后处理补救方式替代严谨 contract 设计。
 - 不把 display / paper-facing asset packaging 独立线混入当前 runtime / gateway / architecture 主线迁移。

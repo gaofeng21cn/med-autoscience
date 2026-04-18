@@ -63,8 +63,8 @@
 - `runtime`
 - `eval_hygiene`
 
-但这条长线当前不属于四仓统一 `Phase C` 的直接交付。
-在 external runtime gate、对象边界、报告边界与 `controller_charter / runtime / eval_hygiene` 防火墙继续稳定前，不应提前进入 physical migration、cross-repo refactor 或 scaffold cutover。
+但这条长线当前继续放在四仓统一 family shared modules tranche 之后。
+当前允许推进的是 family shared modules / shared boundary refactor；external runtime gate、对象边界、报告边界与 `controller_charter / runtime / eval_hygiene` 防火墙继续约束 `physical migration`、`cross-repo refactor`、`monorepo absorb`、`runtime core ingest` 与 scaffold cutover。
 
 当前 repo-tracked contract 已把这条 monorepo 长线继续压成 5 步 readiness sequence：
 

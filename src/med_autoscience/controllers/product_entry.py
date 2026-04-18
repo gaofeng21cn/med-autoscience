@@ -24,6 +24,13 @@ from med_autoscience.study_task_intake import (
     write_task_intake,
 )
 from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
+from opl_harness_shared.product_entry_companions import (
+    build_product_entry_overview as _build_shared_product_entry_overview,
+    build_product_entry_quickstart as _build_shared_product_entry_quickstart,
+    build_product_entry_readiness as _build_shared_product_entry_readiness,
+    build_product_entry_resume_surface as _build_shared_product_entry_resume_surface,
+    collect_family_human_gate_ids as _collect_family_human_gate_ids,
+)
 
 
 SCHEMA_VERSION = 1
@@ -1651,14 +1658,13 @@ def build_product_entry_manifest(
     )
     phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
     phase5_platform_target = _build_phase5_platform_target()
-    product_entry_quickstart = {
-        "surface_kind": "product_entry_quickstart",
-        "recommended_step_id": "open_frontdesk",
-        "summary": (
+    product_entry_quickstart = _build_shared_product_entry_quickstart(
+        summary=(
             "先从 product frontdesk 进入当前 research frontdoor，"
             "需要新任务时先写 durable study task intake，再继续某个 study 或读取进度。"
         ),
-        "steps": [
+        recommended_step_id="open_frontdesk",
+        steps=[
             {
                 "step_id": "open_frontdesk",
                 "title": "启动 MAS 前台",
@@ -1692,62 +1698,54 @@ def build_product_entry_manifest(
                 "requires": list(operator_loop_actions["inspect_progress"]["requires"]),
             },
         ],
-        "resume_contract": dict(family_orchestration["resume_contract"]),
-        "human_gate_ids": [
-            gate["gate_id"]
-            for gate in family_orchestration["human_gates"]
-            if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
-        ],
-    }
+        resume_contract=dict(family_orchestration["resume_contract"]),
+        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
+    )
     product_entry_start = _build_product_entry_start(
         product_entry_shell=product_entry_shell,
         operator_loop_actions=operator_loop_actions,
         family_orchestration=family_orchestration,
     )
-    product_entry_overview = {
-        "surface_kind": "product_entry_overview",
-        "summary": (
+    product_entry_overview = _build_shared_product_entry_overview(
+        summary=(
             mainline_snapshot.get("current_stage_summary")
             or mainline_snapshot.get("current_program_phase_summary")
         ),
-        "frontdesk_command": product_entry_shell["product_frontdesk"]["command"],
-        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
-        "operator_loop_command": product_entry_shell["workspace_cockpit"]["command"],
-        "progress_surface": {
+        frontdesk_command=product_entry_shell["product_frontdesk"]["command"],
+        recommended_command=product_entry_shell["workspace_cockpit"]["command"],
+        operator_loop_command=product_entry_shell["workspace_cockpit"]["command"],
+        progress_surface={
             "surface_kind": "study_progress",
             "command": product_entry_shell["study_progress"]["command"],
             "step_id": "inspect_progress",
         },
-        "resume_surface": {
-            "surface_kind": family_orchestration["resume_contract"]["surface_kind"],
-            "command": product_entry_shell["launch_study"]["command"],
-            "session_locator_field": family_orchestration["resume_contract"]["session_locator_field"],
-            "checkpoint_locator_field": family_orchestration["resume_contract"]["checkpoint_locator_field"],
-        },
-        "recommended_step_id": product_entry_quickstart["recommended_step_id"],
-        "next_focus": list(mainline_snapshot.get("next_focus") or []),
-        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
-        "human_gate_ids": list(product_entry_quickstart["human_gate_ids"]),
-    }
-    product_entry_readiness = {
-        "surface_kind": "product_entry_readiness",
-        "verdict": "runtime_ready_not_standalone_product",
-        "usable_now": True,
-        "good_to_use_now": False,
-        "fully_automatic": False,
-        "summary": (
+        resume_surface=_build_shared_product_entry_resume_surface(
+            command=product_entry_shell["launch_study"]["command"],
+            resume_contract=family_orchestration["resume_contract"],
+        ),
+        recommended_step_id=product_entry_quickstart["recommended_step_id"],
+        next_focus=list(mainline_snapshot.get("next_focus") or []),
+        remaining_gaps_count=len(list(mainline_payload.get("remaining_gaps") or [])),
+        human_gate_ids=list(product_entry_quickstart["human_gate_ids"]),
+    )
+    product_entry_readiness = _build_shared_product_entry_readiness(
+        verdict="runtime_ready_not_standalone_product",
+        usable_now=True,
+        good_to_use_now=False,
+        fully_automatic=False,
+        summary=(
             "当前可以作为 research frontdesk / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
             "但还不是成熟的独立医学产品前台。"
         ),
-        "recommended_start_surface": PRODUCT_FRONTDESK_KIND,
-        "recommended_start_command": product_entry_shell["product_frontdesk"]["command"],
-        "recommended_loop_surface": "workspace_cockpit",
-        "recommended_loop_command": product_entry_shell["workspace_cockpit"]["command"],
-        "blocking_gaps": [
+        recommended_start_surface=PRODUCT_FRONTDESK_KIND,
+        recommended_start_command=product_entry_shell["product_frontdesk"]["command"],
+        recommended_loop_surface="workspace_cockpit",
+        recommended_loop_command=product_entry_shell["workspace_cockpit"]["command"],
+        blocking_gaps=[
             "独立医学前台 / hosted product entry 仍未 landed。",
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
-    }
+    )
     managed_runtime_contract = _build_managed_runtime_contract(
         domain_owner=TARGET_DOMAIN_ID,
         executor_owner="med_deepscientist",
