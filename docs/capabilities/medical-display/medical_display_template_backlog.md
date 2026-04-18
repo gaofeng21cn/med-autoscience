@@ -46,7 +46,7 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `F / multi-group grouped-local or decision-path follow-on beyond the current support-domain lower bound`
+- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on beyond the current density / coverage support baseline`
 
 其中：
 
@@ -63,19 +63,21 @@
   - 原因：这两个方向都服务 `C/H` 的 manuscript-facing effect heterogeneity 收口，在进入 owner brief 之前保持合并候选更有利于把 panel 数、语义边界与 appendix-facing scope 一次收紧。
 - `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式 absorb 为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。
 - `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已在本轮正式收口为 `feature_response_support_domain_panel`，并已 absorb 入当前 `main` 且通过 fresh verify，不再留在 backlog 候选池。
-- `F / multi-group grouped-local follow-on` 当前作为下一轮 primary reroute 保留：
-  - 原因：`shap_multigroup_decision_path_panel` 已经把三组 decision-path 的 manuscript-facing 下限固定下来，下一轮最有价值的扩容方向是继续把 multi-group grouped-local explanation 场景收进单一 bounded manuscript-facing 合同。
+- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 当前作为下一轮 primary reroute 保留：
+  - 原因：`D/E/G` 已经沉淀出 atlas overview、spatial bridge、spatial niche、trajectory progression、storyboard 与 density-coverage support 六块稳定基线，当前最有价值的扩容方向是把这些已证明子能力进一步收束成更强的 bounded multi-view manuscript-facing composite。
 - `F / multi-group decision-path follow-on` 已在本轮正式 absorb 为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
-- `F / annotation-only readability hardening` 本轮也不作为当前 active 候选保留：
-  - 原因：当前需要的是把 grouped-local scene、subgroup-legend 与 annotation 语义一起收进正式模板契约，而不是拆成 paper-local 标注微调或独立 readability patch。
+- `F / multi-group grouped-local follow-on` 当前也不作为当前 active 候选保留：
+  - 原因：`shap_grouped_local_explanation_panel` 当前合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才应重开更高阶 explanation scene。
+- `F / annotation-only readability hardening` 当前也不作为 active 候选保留：
+  - 原因：annotation / legend 语义应附着在新的真实论文驱动场景里收口，而不是拆成 paper-local 标注微调或独立 readability patch。
 - `D/E/G / atlas_spatial_trajectory_storyboard_panel` 已在本轮正式提升为 audited five-panel storyboard baseline，不再保留为当前候选。
 - `F / higher-order partial-dependence follow-on` 已在本轮正式收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
 - `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `H / design_evidence_composite_shell` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `H / baseline-balance / missingness / QC-shell follow-on` 已在本轮正式收口为 `baseline_missingness_qc_panel`，不再保留为当前候选。
 - `D/E/G / atlas_spatial_bridge_panel` 已在本轮正式提升为 audited four-block bridge baseline，不再保留为当前候选。
-- `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前继续保留为下一轮 primary reroute：
-  - 原因：decision-path 多组 lower bound 已完成 absorb，grouped-local 多组 manuscript-facing 收口成为当前最直接的剩余 explanation 扩容入口。
+- `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前降级为 monitor-only：
+  - 原因：当前 grouped-local 合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才重新提升优先级。
 
 这些候选不等于必须立即实现。
 
@@ -98,7 +100,7 @@
 3. 真实论文表达需要更清晰的正式 contract，而不是 renderer 层的临时补救。
 4. 对 `H` 而言，`transportability_recalibration_governance_panel` 已完成 absorb；后续 broader transportability / center-coverage follow-on 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel` 与 `coefficient_path_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更宽的 heterogeneity summary。
-6. 对 `F` 而言，`feature_response_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 `multi-group grouped-local`、`multi-group decision-path` 或更高阶 explanation scene。
+6. 对 `F` 而言，`feature_response_support_domain_panel` 与 `shap_multigroup_decision_path_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
 
 ## Promotion Rules
 
