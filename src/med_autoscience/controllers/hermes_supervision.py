@@ -105,6 +105,13 @@ def _hermes_cli_command(profile: WorkspaceProfile, *args: str) -> list[str]:
     if profile.hermes_agent_repo_root is None:
         raise ValueError("profile.hermes_agent_repo_root is not configured")
     launcher = (profile.hermes_agent_repo_root / "hermes").resolve()
+    runtime_contract = inspect_hermes_runtime_contract(
+        hermes_agent_repo_root=profile.hermes_agent_repo_root,
+        hermes_home_root=profile.hermes_home_root,
+    )
+    managed_python = str(runtime_contract.get("managed_python_path") or "").strip()
+    if managed_python:
+        return [managed_python, str(launcher), *args]
     return [str(launcher), *args]
 
 
