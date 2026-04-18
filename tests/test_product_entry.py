@@ -711,6 +711,7 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
         module,
         "build_product_entry_manifest",
         lambda **kwargs: {
+            "target_domain_id": "med-autoscience",
             "workspace_locator": {"profile_name": "test-profile"},
             "runtime": {"runtime_owner": "upstream_hermes_agent"},
             "product_entry_status": {"summary": "test status"},

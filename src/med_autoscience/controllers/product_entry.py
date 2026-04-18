@@ -38,9 +38,9 @@ from opl_harness_shared.family_orchestration import (
     build_family_orchestration_template as _build_shared_family_orchestration_template,
 )
 from opl_harness_shared.product_entry_companions import (
+    build_family_product_frontdesk as _build_shared_family_product_frontdesk,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_product_entry_start as _build_shared_product_entry_start,
-    build_product_frontdesk as _build_shared_product_frontdesk,
     build_product_entry_overview as _build_shared_product_entry_overview,
     build_product_entry_quickstart as _build_shared_product_entry_quickstart,
     build_product_entry_readiness as _build_shared_product_entry_readiness,
@@ -2673,21 +2673,8 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
 
-    payload = _build_shared_product_frontdesk(
+    payload = _build_shared_family_product_frontdesk(
         recommended_action="inspect_or_prepare_research_loop",
-        target_domain_id=TARGET_DOMAIN_ID,
-        workspace_locator=dict(manifest.get("workspace_locator") or {}),
-        runtime=dict(manifest.get("runtime") or {}),
-        product_entry_status=dict(manifest.get("product_entry_status") or {}),
-        frontdesk_surface=dict(manifest.get("frontdesk_surface") or {}),
-        operator_loop_surface=dict(manifest.get("operator_loop_surface") or {}),
-        operator_loop_actions=dict(manifest.get("operator_loop_actions") or {}),
-        product_entry_start=dict(manifest.get("product_entry_start") or {}),
-        product_entry_overview=dict(manifest.get("product_entry_overview") or {}),
-        product_entry_preflight=dict(manifest.get("product_entry_preflight") or {}),
-        product_entry_readiness=dict(manifest.get("product_entry_readiness") or {}),
-        product_entry_quickstart=dict(manifest.get("product_entry_quickstart") or {}),
-        family_orchestration=dict(manifest.get("family_orchestration") or {}),
         product_entry_manifest=manifest,
         entry_surfaces={
             "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
@@ -2699,11 +2686,6 @@ def build_product_frontdesk(
             "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
             "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
             "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
-        },
-        summary={
-            "frontdesk_command": _non_empty_text((manifest.get("frontdesk_surface") or {}).get("command")),
-            "recommended_command": _non_empty_text(manifest.get("recommended_command")),
-            "operator_loop_command": _non_empty_text((manifest.get("operator_loop_surface") or {}).get("command")),
         },
         notes=[
             "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
