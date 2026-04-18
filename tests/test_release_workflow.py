@@ -54,8 +54,12 @@ def test_release_workflows_split_system_dependencies_by_lane() -> None:
 
     assert "Install pandoc\n        run: brew install pandoc" in quick_checks_workflow
     assert "graphviz" not in quick_checks_workflow
-    assert "brew install pandoc graphviz r" in display_workflow
-    assert "brew install pandoc graphviz r" in release_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" in display_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
+    assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in display_workflow
+    assert "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" in display_workflow
+    assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in release_workflow
+    assert "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" in release_workflow
 
 
 def test_release_workflows_use_uv_managed_test_environment() -> None:
@@ -91,7 +95,7 @@ def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for
     assert "Ensure study runtime analysis bundle" not in quick_checks_workflow
     assert "Ensure study runtime analysis bundle" in display_workflow
     assert "Run display-heavy tests" in ci_workflow
-    assert "brew install pandoc graphviz r" in release_workflow
+    assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow
     assert "scripts/verify.sh full" in release_workflow
 

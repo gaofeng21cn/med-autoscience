@@ -7,8 +7,8 @@
 - `main` 和 `development` 的 `push` 仍会触发 GitHub Actions
 - 远端 CI 不再承担阻断式 gate 角色
 - 提交前如果想提前发现高频问题，应优先运行本地 preflight
-- 常规 `quick-checks` lane 只保留 `meta / fast / build` 这类轻量告警；系统依赖面只保留 submission-facing DOCX 仍会实际消费的 `pandoc`，不再重复安装 `graphviz` / `R` 或准备完整 analysis bundle
-- `display-heavy` 与 `release/full` lane 继续承担 analysis bundle ready 的重型远端回归告警
+- 常规 `quick-checks` lane 只保留 `meta / fast / build` 这类轻量告警；系统依赖面只保留 submission-facing DOCX 仍会实际消费的 `pandoc`，不再重复安装 display/R 依赖或准备完整 analysis bundle
+- `display-heavy` 与 `release/full` lane 继续承担 analysis bundle ready 的重型远端回归告警，并显式准备 `graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 R 包编译
 
 ## 何时运行
 

@@ -23,18 +23,27 @@ from med_autoscience.figure_routes import (
 )
 
 
-def write_profile(path: Path) -> None:
+def write_profile(
+    path: Path,
+    *,
+    workspace_root: Path | str = "/Users/gaofeng/workspace/Yang/无功能垂体瘤",
+    med_deepscientist_repo_root: Path | str = "/Users/gaofeng/workspace/med-deepscientist",
+    hermes_agent_repo_root: Path | str = "/Users/gaofeng/workspace/_external/hermes-agent",
+) -> None:
+    workspace_root = Path(workspace_root)
+    med_deepscientist_repo_root = Path(med_deepscientist_repo_root)
+    hermes_agent_repo_root = Path(hermes_agent_repo_root)
     path.write_text(
         "\n".join(
             [
                 'name = "nfpitnet"',
-                'workspace_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤"',
-                'runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime/quests"',
-                'studies_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/studies"',
-                'portfolio_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/portfolio"',
-                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/无功能垂体瘤/ops/med-deepscientist/runtime"',
-                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
-                'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
+                f'workspace_root = "{workspace_root}"',
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+                f'studies_root = "{workspace_root / "studies"}"',
+                f'portfolio_root = "{workspace_root / "portfolio"}"',
+                f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
+                f'med_deepscientist_repo_root = "{med_deepscientist_repo_root}"',
+                f'hermes_agent_repo_root = "{hermes_agent_repo_root}"',
                 'hermes_home_root = "~/.hermes"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -2233,7 +2242,15 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
 def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
+    workspace_root = tmp_path / "workspace"
+    med_deepscientist_repo_root = tmp_path / "med-deepscientist"
+    hermes_agent_repo_root = tmp_path / "hermes-agent"
+    write_profile(
+        profile_path,
+        workspace_root=workspace_root,
+        med_deepscientist_repo_root=med_deepscientist_repo_root,
+        hermes_agent_repo_root=hermes_agent_repo_root,
+    )
     calls: dict[str, object] = {}
 
     def fake_ensure(
@@ -2291,8 +2308,8 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
 
     assert exit_code == 0
     assert calls["ensure_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
-    assert calls["ensure_quest_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
-    assert calls["ensure_med_deepscientist_repo_root"] == Path("/Users/gaofeng/workspace/med-deepscientist")
+    assert calls["ensure_quest_root"] == workspace_root
+    assert calls["ensure_med_deepscientist_repo_root"] == med_deepscientist_repo_root
     assert calls["ensure_mode"] == "ensure_ready"
     assert calls["ensure_policy_id"] == "high_plasticity_medical"
     assert calls["ensure_archetype_ids"] == (
@@ -2313,7 +2330,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     )
     assert calls["ensure_default_publication_profile"] == "general_medical_journal"
     assert calls["ensure_default_citation_style"] == "AMA"
-    assert calls["refresh_data_assets_workspace_root"] == Path("/Users/gaofeng/workspace/Yang/无功能垂体瘤")
+    assert calls["refresh_data_assets_workspace_root"] == workspace_root
     assert '"selected_action": "noop"' in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
@@ -2323,7 +2340,12 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
 def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
-    write_profile(profile_path)
+    write_profile(
+        profile_path,
+        workspace_root=tmp_path / "workspace",
+        med_deepscientist_repo_root=tmp_path / "med-deepscientist",
+        hermes_agent_repo_root=tmp_path / "hermes-agent",
+    )
     profile_text = profile_path.read_text(encoding="utf-8").replace(
         'medical_overlay_bootstrap_mode = "ensure_ready"',
         'medical_overlay_bootstrap_mode = "status_only"',

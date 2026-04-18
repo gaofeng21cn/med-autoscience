@@ -58,8 +58,14 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v8.0.0
 
-      - name: Install pandoc, graphviz, and R
-        run: brew install pandoc graphviz r
+      - name: Install pandoc, graphviz, R, and R package build dependencies
+        run: brew install pandoc graphviz pkg-config libxml2 r
+
+      - name: Configure R package build environment
+        run: |
+          echo "$(brew --prefix libxml2)/bin" >> "${GITHUB_PATH}"
+          echo "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "${GITHUB_ENV}"
+          echo "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" >> "${GITHUB_ENV}"
 
       - name: Install dependencies
         run: uv sync --frozen --group dev
