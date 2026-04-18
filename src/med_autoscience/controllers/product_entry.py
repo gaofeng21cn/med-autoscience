@@ -29,6 +29,9 @@ from opl_harness_shared.automation_companions import (
     build_automation_descriptor as _build_shared_automation_descriptor,
 )
 from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
+from opl_harness_shared.family_orchestration import (
+    build_family_orchestration_template as _build_shared_family_orchestration_template,
+)
 from opl_harness_shared.product_entry_companions import (
     build_product_entry_overview as _build_shared_product_entry_overview,
     build_product_entry_quickstart as _build_shared_product_entry_quickstart,
@@ -1923,14 +1926,9 @@ def build_product_entry_manifest(
             ],
         },
     }
-    family_orchestration = {
-        "action_graph_ref": {
-            "ref_kind": "json_pointer",
-            "ref": "/family_orchestration/action_graph",
-            "label": "mas family action graph",
-        },
-        "action_graph": family_action_graph,
-        "human_gates": [
+    family_orchestration = _build_shared_family_orchestration_template(
+        action_graph=family_action_graph,
+        human_gates=[
             {
                 "gate_id": "study_physician_decision_gate",
                 "title": "Study physician decision gate",
@@ -1940,22 +1938,25 @@ def build_product_entry_manifest(
                 "title": "Publication release gate",
             },
         ],
-        "resume_contract": {
-            "surface_kind": "launch_study",
-            "session_locator_field": "study_id",
-            "checkpoint_locator_field": "controller_decision_path",
+        resume_surface_kind="launch_study",
+        session_locator_field="study_id",
+        checkpoint_locator_field="controller_decision_path",
+        action_graph_ref={
+            "ref_kind": "json_pointer",
+            "ref": "/family_orchestration/action_graph",
+            "label": "mas family action graph",
         },
-        "event_envelope_surface": {
+        event_envelope_surface={
             "ref_kind": "workspace_locator",
             "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
             "label": "runtime watch event companion",
         },
-        "checkpoint_lineage_surface": {
+        checkpoint_lineage_surface={
             "ref_kind": "workspace_locator",
             "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
             "label": "controller checkpoint lineage companion",
         },
-    }
+    )
     product_entry_guardrails = _build_product_entry_guardrails(
         profile=profile,
         profile_ref=profile_ref,
