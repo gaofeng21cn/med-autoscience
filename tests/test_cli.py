@@ -200,6 +200,28 @@ def test_show_profile_does_not_require_display_surface_dependencies(tmp_path: Pa
     assert "name: nfpitnet" in captured.out
 
 
+def test_public_help_does_not_require_doctor_runtime_dependencies(monkeypatch, capsys) -> None:
+    sys.modules.pop("med_autoscience.cli", None)
+    sys.modules.pop("med_autoscience.doctor", None)
+
+    real_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "opl_harness_shared" or name.startswith("opl_harness_shared."):
+            raise ModuleNotFoundError("No module named 'opl_harness_shared'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["--help"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Usage: medautosci <group> <command> [options]" in captured.out
+
+
 def test_public_help_prints_grouped_surface(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
@@ -223,6 +245,75 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
     assert "runtime-status" in captured.out
+
+
+def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+    calls: dict[str, object] = {}
+
+    def fake_read_study_progress(
+        *,
+        profile,
+        profile_ref,
+        study_id: str | None,
+        study_root: Path | None,
+        entry_mode: str | None,
+    ) -> dict[str, object]:
+        calls["profile"] = profile
+        calls["profile_ref"] = profile_ref
+        calls["study_id"] = study_id
+        calls["study_root"] = study_root
+        calls["entry_mode"] = entry_mode
+        return {
+            "study_id": "001-risk",
+            "current_stage": "writing",
+            "current_stage_summary": "shell argv grouped command works.",
+        }
+
+    monkeypatch.setattr(cli.study_progress, "read_study_progress", fake_read_study_progress)
+    monkeypatch.setattr(
+        cli.study_progress,
+        "render_study_progress_markdown",
+        lambda payload: "# 研究进度\n\nshell argv grouped command works.\n",
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "medautosci",
+            "study",
+            "progress",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "001-risk",
+        ],
+    )
+
+    exit_code = cli.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert calls["profile"].name == "nfpitnet"
+    assert calls["profile_ref"] == profile_path
+    assert calls["study_id"] == "001-risk"
+    assert calls["study_root"] is None
+    assert calls["entry_mode"] is None
+    assert "shell argv grouped command works." in captured.out
+
+
+def test_shell_argv_grouped_subcommand_help_uses_grouped_prog(monkeypatch, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    monkeypatch.setattr(sys, "argv", ["medautosci", "publication", "gate", "--help"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main()
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 0
+    assert "usage: medautosci publication gate" in captured.out
 
 
 def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:

@@ -39,24 +39,24 @@ Compatibility note:
 
 1. 如果还没有病种级 workspace，优先调用 MCP tool `init_workspace`
 2. 用 `profiles/*.local.toml` 绑定具体 workspace
-3. 先跑 `doctor` 或 `show-profile`，确认路径、profile 和 overlay 策略
-4. 再跑 `bootstrap`，初始化 overlay 和数据资产状态
+3. 先跑 `doctor report` 或 `doctor profile`，确认路径、profile 和 overlay 策略
+4. 再跑 `workspace bootstrap`，初始化 overlay 和数据资产状态
 5. 后续涉及状态更新时，优先走 controller / MCP / CLI，不直接手改 registry
 
 当前最重要的几条入口面：
 
 - MCP tool: `init_workspace`
-- CLI: `medautosci init-workspace`
-- CLI: `medautosci doctor --profile <profile>`
-- CLI: `medautosci show-profile --profile <profile>`
-- CLI: `medautosci bootstrap --profile <profile>`
-- CLI: `medautosci watch --runtime-root <runtime-root>`
-- CLI: `medautosci overlay-status --profile <profile>`
-- CLI: `medautosci med-deepscientist-upgrade-check --profile <profile> --refresh`
+- CLI: `medautosci workspace init`
+- CLI: `medautosci doctor report --profile <profile>`
+- CLI: `medautosci doctor profile --profile <profile>`
+- CLI: `medautosci workspace bootstrap --profile <profile>`
+- CLI: `medautosci runtime watch --runtime-root <runtime-root>`
+- CLI: `medautosci runtime overlay-status --profile <profile>`
+- CLI: `medautosci doctor med-deepscientist-upgrade --profile <profile> --refresh`
 
 ## Live Runtime Guard
 
-当 `study-runtime-status` 或 `ensure-study-runtime` 返回 `execution_owner_guard.supervisor_only = true` 时，Codex 前台必须切换成 supervisor-only 模式：
+当 `study runtime-status` 或 `study ensure-runtime` 返回 `execution_owner_guard.supervisor_only = true` 时，Codex 前台必须切换成 supervisor-only 模式：
 
 - 只负责读取状态、通知用户、提供监督入口和接收 pause/resume/stop/takeover 决策
 - 不继续直接推进 study-local 写作、bundle、proofing、review 或编译链

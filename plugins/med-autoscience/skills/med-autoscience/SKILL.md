@@ -18,20 +18,20 @@ description: Use when Codex should operate MedAutoScience through its stable run
 优先走已有的 `MedAutoScience` 运行时 contract：
 
 - 如果 workspace 还不存在，优先调用 MCP tool `init_workspace`
-- `medautosci init-workspace`
-- `medautosci doctor --profile <profile>`
-- `medautosci show-profile --profile <profile>`
-- `medautosci bootstrap --profile <profile>`
-- `medautosci watch --runtime-root <runtime-root>`
-- `medautosci overlay-status --profile <profile>`
-- `medautosci install-medical-overlay --profile <profile>`
-- `medautosci med-deepscientist-upgrade-check --profile <profile> --refresh`
+- `medautosci workspace init`
+- `medautosci doctor report --profile <profile>`
+- `medautosci doctor profile --profile <profile>`
+- `medautosci workspace bootstrap --profile <profile>`
+- `medautosci runtime watch --runtime-root <runtime-root>`
+- `medautosci runtime overlay-status --profile <profile>`
+- `medautosci runtime install-overlay --profile <profile>`
+- `medautosci doctor med-deepscientist-upgrade --profile <profile> --refresh`
 - `medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：
 
 ```bash
-uv run python -m med_autoscience.cli doctor --profile <profile>
+uv run python -m med_autoscience.cli doctor report --profile <profile>
 ```
 
 ## 操作约束

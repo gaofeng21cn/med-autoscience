@@ -8,12 +8,6 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.doctor import (
-    build_doctor_report,
-    overlay_request_from_profile,
-    render_doctor_report,
-    render_profile,
-)
 from med_autoscience import dev_preflight
 from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
 from med_autoscience.figure_routes import supported_required_route_help
@@ -36,6 +30,10 @@ def _load_adapter(module_name: str) -> Any:
 
 def _load_analysis_bundle_controller() -> Any:
     return _load_module("med_autoscience.study_runtime_analysis_bundle")
+
+
+def _load_doctor_module() -> Any:
+    return _load_module("med_autoscience.doctor")
 
 
 class _LazyModuleProxy:
@@ -86,7 +84,7 @@ def _overlay_request_from_args(args: argparse.Namespace) -> dict[str, object]:
         raise SystemExit("Specify at most one of --profile or --quest-root")
     if getattr(args, "profile", None):
         profile = load_profile(args.profile)
-        request = overlay_request_from_profile(profile)
+        request = _load_doctor_module().overlay_request_from_profile(profile)
         if not profile.enable_medical_overlay:
             request["skill_ids"] = tuple()
         return request
@@ -446,6 +444,10 @@ def build_parser() -> argparse.ArgumentParser:
     hermes_runtime_check_parser.add_argument("--profile")
     hermes_runtime_check_parser.add_argument("--hermes-agent-repo-root")
     hermes_runtime_check_parser.add_argument("--hermes-home-root")
+    for command_name, prog in GROUPED_COMMAND_PROGS.items():
+        choice = subparsers.choices.get(command_name)
+        if choice is not None:
+            choice.prog = prog
     return parser
 
 
@@ -512,6 +514,10 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
 }
 
 GROUPED_COMMAND_NAMES = {group for group, _ in GROUPED_COMMAND_ALIASES}
+GROUPED_COMMAND_PROGS = {
+    flat_command: f"medautosci {group} {subcommand}"
+    for (group, subcommand), flat_command in GROUPED_COMMAND_ALIASES.items()
+}
 LEGACY_PUBLIC_COMMANDS = set(GROUPED_COMMAND_ALIASES.values()) - {"doctor"}
 GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
@@ -597,11 +603,12 @@ def main(argv: list[str] | None = None) -> int:
     if help_result is not None:
         return help_result
     parser = build_parser()
-    args = parser.parse_args(_normalize_public_command_argv(argv))
+    args = parser.parse_args(_normalize_public_command_argv(resolved_argv))
 
     if args.command == "doctor":
         profile = load_profile(args.profile)
-        print(render_doctor_report(build_doctor_report(profile)), end="")
+        doctor = _load_doctor_module()
+        print(doctor.render_doctor_report(doctor.build_doctor_report(profile)), end="")
         return 0
 
     if args.command == "show-profile":
@@ -609,7 +616,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "json":
             print(json.dumps(profile_to_dict(profile), ensure_ascii=False, indent=2))
         else:
-            print(render_profile(profile), end="")
+            print(_load_doctor_module().render_profile(profile), end="")
         return 0
 
     if args.command == "mainline-status":
@@ -1198,13 +1205,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "bootstrap":
         profile = load_profile(args.profile)
-        doctor_report = build_doctor_report(profile)
+        doctor = _load_doctor_module()
+        doctor_report = doctor.build_doctor_report(profile)
         overlay_install = None
         overlay_status = None
         overlay_bootstrap = None
         analysis_bundle = analysis_bundle_controller.ensure_study_runtime_analysis_bundle()
         if profile.enable_medical_overlay:
-            overlay_request = overlay_request_from_profile(profile)
+            overlay_request = doctor.overlay_request_from_profile(profile)
             overlay_bootstrap = overlay_installer.ensure_medical_overlay(
                 **overlay_request,
                 mode=profile.medical_overlay_bootstrap_mode,
