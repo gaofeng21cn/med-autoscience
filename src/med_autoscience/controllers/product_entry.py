@@ -33,6 +33,8 @@ from opl_harness_shared.family_orchestration import (
     build_family_orchestration_template as _build_shared_family_orchestration_template,
 )
 from opl_harness_shared.product_entry_companions import (
+    build_product_entry_start as _build_shared_product_entry_start,
+    build_product_frontdesk as _build_shared_product_frontdesk,
     build_product_entry_overview as _build_shared_product_entry_overview,
     build_product_entry_quickstart as _build_shared_product_entry_quickstart,
     build_product_entry_readiness as _build_shared_product_entry_readiness,
@@ -728,14 +730,13 @@ def _build_product_entry_start(
     operator_loop_actions: dict[str, Any],
     family_orchestration: dict[str, Any],
 ) -> dict[str, Any]:
-    return {
-        "surface_kind": "product_entry_start",
-        "summary": (
+    return _build_shared_product_entry_start(
+        summary=(
             "先从 MAS research frontdesk 进入当前 workspace frontdoor；"
             "需要新任务时先写 durable study task intake，已有 study 时直接恢复研究运行。"
         ),
-        "recommended_mode_id": "open_frontdesk",
-        "modes": [
+        recommended_mode_id="open_frontdesk",
+        modes=[
             {
                 "mode_id": "open_frontdesk",
                 "title": "启动 MAS 前台",
@@ -761,13 +762,9 @@ def _build_product_entry_start(
                 "requires": list(operator_loop_actions["continue_study"]["requires"]),
             },
         ],
-        "resume_surface": dict(family_orchestration["resume_contract"]),
-        "human_gate_ids": [
-            gate["gate_id"]
-            for gate in family_orchestration["human_gates"]
-            if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
-        ],
-    }
+        resume_surface=dict(family_orchestration["resume_contract"]),
+        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
+    )
 
 
 def _build_runtime_inventory_surface(
@@ -2359,41 +2356,23 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
 
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": PRODUCT_FRONTDESK_KIND,
-        "schema_ref": PRODUCT_FRONTDESK_SCHEMA_REF,
-        "recommended_action": "inspect_or_prepare_research_loop",
-        "target_domain_id": TARGET_DOMAIN_ID,
-        "workspace_locator": dict(manifest.get("workspace_locator") or {}),
-        "runtime": dict(manifest.get("runtime") or {}),
-        "executor_defaults": dict(manifest.get("executor_defaults") or {}),
-        "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
-        "gateway_interaction_contract": dict(manifest.get("gateway_interaction_contract") or {}),
-        "product_entry_status": dict(manifest.get("product_entry_status") or {}),
-        "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
-        "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
-        "skill_catalog": dict(manifest.get("skill_catalog") or {}),
-        "automation": dict(manifest.get("automation") or {}),
-        "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
-        "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
-        "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
-        "product_entry_start": dict(manifest.get("product_entry_start") or {}),
-        "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
-        "product_entry_preflight": dict(manifest.get("product_entry_preflight") or {}),
-        "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
-        "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
-        "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
-        "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
-        "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
-        "product_entry_quickstart": dict(manifest.get("product_entry_quickstart") or {}),
-        "operator_brief": operator_brief,
-        "workspace_operator_brief": workspace_operator_brief,
-        "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
-        "family_orchestration": dict(manifest.get("family_orchestration") or {}),
-        "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
-        "product_entry_manifest": manifest,
-        "entry_surfaces": {
+    payload = _build_shared_product_frontdesk(
+        recommended_action="inspect_or_prepare_research_loop",
+        target_domain_id=TARGET_DOMAIN_ID,
+        workspace_locator=dict(manifest.get("workspace_locator") or {}),
+        runtime=dict(manifest.get("runtime") or {}),
+        product_entry_status=dict(manifest.get("product_entry_status") or {}),
+        frontdesk_surface=dict(manifest.get("frontdesk_surface") or {}),
+        operator_loop_surface=dict(manifest.get("operator_loop_surface") or {}),
+        operator_loop_actions=dict(manifest.get("operator_loop_actions") or {}),
+        product_entry_start=dict(manifest.get("product_entry_start") or {}),
+        product_entry_overview=dict(manifest.get("product_entry_overview") or {}),
+        product_entry_preflight=dict(manifest.get("product_entry_preflight") or {}),
+        product_entry_readiness=dict(manifest.get("product_entry_readiness") or {}),
+        product_entry_quickstart=dict(manifest.get("product_entry_quickstart") or {}),
+        family_orchestration=dict(manifest.get("family_orchestration") or {}),
+        product_entry_manifest=manifest,
+        entry_surfaces={
             "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
             "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
             "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
@@ -2404,17 +2383,36 @@ def build_product_frontdesk(
             "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
             "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
         },
-        "summary": {
+        summary={
             "frontdesk_command": _non_empty_text((manifest.get("frontdesk_surface") or {}).get("command")),
             "recommended_command": _non_empty_text(manifest.get("recommended_command")),
             "operator_loop_command": _non_empty_text((manifest.get("operator_loop_surface") or {}).get("command")),
         },
-        "notes": [
+        notes=[
             "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
             "It does not claim that a mature standalone medical frontend is already landed.",
             "It does not include the display / paper-figure asset line.",
         ],
-    }
+        extra_payload={
+            "schema_version": SCHEMA_VERSION,
+            "schema_ref": PRODUCT_FRONTDESK_SCHEMA_REF,
+            "executor_defaults": dict(manifest.get("executor_defaults") or {}),
+            "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
+            "gateway_interaction_contract": dict(manifest.get("gateway_interaction_contract") or {}),
+            "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
+            "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
+            "skill_catalog": dict(manifest.get("skill_catalog") or {}),
+            "automation": dict(manifest.get("automation") or {}),
+            "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
+            "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
+            "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
+            "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
+            "operator_brief": operator_brief,
+            "workspace_operator_brief": workspace_operator_brief,
+            "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
+            "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
+        },
+    )
     _validate_product_frontdesk_contract(payload)
     return payload
 
