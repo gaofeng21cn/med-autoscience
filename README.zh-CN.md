@@ -146,7 +146,7 @@ repo-tracked runtime truth 与本地 operator handoff surface 继续分层维护
 - `make test-meta`
 - `make test-display`
 - `make test-full`
-- GitHub `macOS CI` 会刻意把 `quick-checks` 保持为轻量告警；它只保留 submission-facing DOCX 覆盖所需的 `pandoc`，完整 study runtime analysis bundle 以及 `graphviz` / `R` 仍只放在 `display-heavy` 和 `release/full` lane。
+- GitHub `macOS CI` 会刻意把 `quick-checks` 保持为轻量告警；它保留 submission-facing DOCX/PDF 覆盖所需的 `pandoc` 与 `BasicTeX`，完整 study runtime analysis bundle 以及 `graphviz` / `R` 继续放在 `display-heavy` 和 `release/full` lane。
 
 ## Codex plugin 接入
 

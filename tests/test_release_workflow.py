@@ -52,10 +52,17 @@ def test_release_workflows_split_system_dependencies_by_lane() -> None:
     release_workflow = RELEASE_WORKFLOW_PATH.read_text(encoding="utf-8")
     quick_checks_workflow, display_workflow = ci_workflow.split("display-surface:", maxsplit=1)
 
-    assert "Install pandoc\n        run: brew install pandoc" in quick_checks_workflow
+    assert "Install pandoc and BasicTeX" in quick_checks_workflow
+    assert "brew install pandoc" in quick_checks_workflow
+    assert "brew install --cask basictex" in quick_checks_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in quick_checks_workflow
     assert "graphviz" not in quick_checks_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in display_workflow
+    assert "brew install --cask basictex" in display_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in display_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
+    assert "brew install --cask basictex" in release_workflow
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in release_workflow
     assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in display_workflow
     assert "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" in display_workflow
     assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in release_workflow
@@ -98,6 +105,19 @@ def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for
     assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow
     assert "scripts/verify.sh full" in release_workflow
+
+
+def test_ci_docs_describe_submission_pdf_tex_dependency_split() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    preflight_doc = (REPO_ROOT / "docs" / "program" / "repository_ci_preflight.md").read_text(encoding="utf-8")
+
+    assert "submission-facing DOCX/PDF coverage" in readme
+    assert "`pandoc` plus `BasicTeX`" in readme
+    assert "submission-facing DOCX/PDF 覆盖" in readme_zh
+    assert "`pandoc` 与 `BasicTeX`" in readme_zh
+    assert "submission-facing DOCX/PDF" in preflight_doc
+    assert "`pandoc` 与 `BasicTeX`" in preflight_doc
 
 
 def test_release_workflows_split_ci_fast_and_display_jobs() -> None:
