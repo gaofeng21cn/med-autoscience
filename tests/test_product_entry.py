@@ -902,6 +902,182 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
     assert "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
 
 
+def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    captured: dict[str, object] = {}
+
+    def _fake_build_family_product_entry_manifest(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "surface_kind": "product_entry_manifest",
+            "target_domain_id": "med-autoscience",
+        }
+
+    monkeypatch.setattr(
+        module,
+        "_build_shared_family_product_entry_manifest",
+        _fake_build_family_product_entry_manifest,
+    )
+    monkeypatch.setattr(module, "_validate_product_entry_manifest_contract", lambda payload: None)
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+
+    assert payload["surface_kind"] == "product_entry_manifest"
+    assert captured["schema_ref"] == module.PRODUCT_ENTRY_MANIFEST_SCHEMA_REF
+    assert captured["domain_entry_contract"] == module._build_domain_entry_contract()
+    assert captured["gateway_interaction_contract"] == module._build_gateway_interaction_contract()
+    assert "schema_ref" not in captured["extra_payload"]
+    assert "domain_entry_contract" not in captured["extra_payload"]
+    assert "gateway_interaction_contract" not in captured["extra_payload"]
+
+
+def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_projection(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    captured: dict[str, object] = {}
+    manifest = {
+        "surface_kind": "product_entry_manifest",
+        "manifest_version": 2,
+        "manifest_kind": "med_autoscience_product_entry_manifest",
+        "target_domain_id": "med-autoscience",
+        "formal_entry": {
+            "default": "CLI",
+            "supported_protocols": ["MCP"],
+            "internal_surface": "controller",
+        },
+        "product_entry_shell": {
+            "product_frontdesk": {
+                "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "surface_kind": "product_frontdesk",
+            },
+            "workspace_cockpit": {
+                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "surface_kind": "workspace_cockpit",
+            },
+            "submit_study_task": {
+                "command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
+                "surface_kind": "study_task_intake",
+            },
+            "launch_study": {
+                "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml",
+                "surface_kind": "study_runtime_status",
+            },
+            "study_progress": {
+                "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml",
+                "surface_kind": "study_progress",
+            },
+            "mainline_status": {
+                "command": "uv run python -m med_autoscience.cli mainline-status",
+                "surface_kind": "mainline_status",
+            },
+            "mainline_phase": {
+                "command": "uv run python -m med_autoscience.cli mainline-phase",
+                "surface_kind": "mainline_phase",
+            },
+        },
+        "shared_handoff": {
+            "direct_entry_builder": {
+                "command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct",
+                "entry_mode": "direct",
+            },
+            "opl_handoff_builder": {
+                "command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode opl-handoff",
+                "entry_mode": "opl-handoff",
+            },
+        },
+        "summary": {
+            "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+        },
+        "product_entry_preflight": {
+            "surface_kind": "product_entry_preflight",
+            "summary": "preflight ready",
+            "ready_to_try_now": True,
+            "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
+            "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+            "blocking_check_ids": [],
+            "checks": [],
+        },
+        "product_entry_quickstart": {
+            "surface_kind": "product_entry_quickstart",
+            "recommended_step_id": "open_frontdesk",
+            "summary": "open frontdesk first",
+            "steps": [],
+            "resume_contract": {
+                "surface_kind": "workspace_cockpit",
+                "session_locator_field": "profile_name",
+            },
+            "human_gate_ids": ["workspace_gate"],
+        },
+        "domain_entry_contract": module._build_domain_entry_contract(),
+        "gateway_interaction_contract": module._build_gateway_interaction_contract(),
+        "runtime_inventory": {"surface_kind": "runtime_inventory"},
+        "task_lifecycle": {"surface_kind": "task_lifecycle"},
+        "skill_catalog": {"surface_kind": "skill_catalog"},
+        "automation": {"surface_kind": "automation"},
+        "phase2_user_product_loop": {"surface_kind": "product_entry_program"},
+        "product_entry_guardrails": {"surface_kind": "product_entry_guardrails"},
+        "phase3_clearance_lane": {"surface_kind": "phase3_clearance_lane"},
+        "phase4_backend_deconstruction": {"surface_kind": "backend_deconstruction_lane"},
+        "phase5_platform_target": {"surface_kind": "phase5_platform_target"},
+    }
+
+    monkeypatch.setattr(module, "build_product_entry_manifest", lambda **kwargs: manifest)
+    monkeypatch.setattr(
+        module,
+        "read_workspace_cockpit",
+        lambda **kwargs: {
+            "operator_brief": {
+                "surface_kind": "workspace_operator_brief",
+                "verdict": "ready_for_task",
+                "summary": "workspace ready",
+                "should_intervene_now": False,
+                "focus_scope": "workspace",
+                "focus_study_id": None,
+                "recommended_step_id": "submit_task",
+                "recommended_command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
+            },
+            "attention_queue": [],
+        },
+    )
+
+    def _fake_build_family_product_frontdesk(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "surface_kind": "product_frontdesk",
+            "target_domain_id": "med-autoscience",
+        }
+
+    monkeypatch.setattr(
+        module,
+        "_build_shared_family_product_frontdesk",
+        _fake_build_family_product_frontdesk,
+    )
+    monkeypatch.setattr(module, "_validate_product_frontdesk_contract", lambda payload: None)
+
+    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+
+    assert payload["surface_kind"] == "product_frontdesk"
+    assert captured["schema_ref"] == module.PRODUCT_FRONTDESK_SCHEMA_REF
+    assert "domain_entry_contract" not in captured
+    assert "gateway_interaction_contract" not in captured
+    assert captured["product_entry_manifest"]["domain_entry_contract"] == manifest["domain_entry_contract"]
+    assert (
+        captured["product_entry_manifest"]["gateway_interaction_contract"]
+        == manifest["gateway_interaction_contract"]
+    )
+    assert "domain_entry_contract" not in captured["extra_payload"]
+    assert "gateway_interaction_contract" not in captured["extra_payload"]
+
+
 def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 

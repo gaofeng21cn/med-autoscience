@@ -14,9 +14,15 @@ def test_bootstrap_adds_repo_venv_site_packages_when_present(monkeypatch, tmp_pa
     original_sys_path = list(sys.path)
     sys.path[:] = [item for item in sys.path if item != fake_site_packages_str]
 
+    def fake_module_spec(module_name: str):
+        if module_name != "opl_harness_shared":
+            return importlib.util.find_spec(module_name)
+        if fake_site_packages_str not in sys.path:
+            return None
+        return object()
+
     monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
-    monkeypatch.setattr(module, "_candidate_shared_src_roots", lambda: ())
-    monkeypatch.setattr(module, "_module_spec", lambda module_name: object() if module_name == "opl_harness_shared" else None)
+    monkeypatch.setattr(module, "_module_spec", fake_module_spec)
 
     try:
         added = module.ensure_editable_dependency_paths()
@@ -26,40 +32,41 @@ def test_bootstrap_adds_repo_venv_site_packages_when_present(monkeypatch, tmp_pa
     assert added == (fake_site_packages,)
 
 
-def test_bootstrap_adds_sibling_opl_harness_shared_src_when_missing(monkeypatch, tmp_path: Path) -> None:
-    fake_shared_src = tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src"
-    package_root = fake_shared_src / "opl_harness_shared"
-    package_root.mkdir(parents=True)
-    (package_root / "__init__.py").write_text("__all__ = []\n", encoding="utf-8")
-
-    candidate_root_str = str(fake_shared_src)
-    original_sys_path = list(sys.path)
-    sys.path[:] = [item for item in sys.path if item != candidate_root_str]
-
-    def fake_module_spec(module_name: str):
-        if module_name != "opl_harness_shared":
-            return importlib.util.find_spec(module_name)
-        if candidate_root_str not in sys.path:
-            return None
-        return importlib.util.find_spec(module_name)
-
-    monkeypatch.setattr(module, "_module_spec", fake_module_spec)
+def test_bootstrap_delegates_to_shared_helper_when_sibling_owner_is_present(monkeypatch, tmp_path: Path) -> None:
+    fake_repo_root = tmp_path / "med-autoscience"
+    fake_repo_root.mkdir()
+    helper_path = (
+        tmp_path
+        / "one-person-lab"
+        / "python"
+        / "opl-harness-shared"
+        / "src"
+        / "opl_harness_shared"
+        / "editable_dependency_bootstrap.py"
+    )
+    helper_path.parent.mkdir(parents=True)
+    helper_path.write_text(
+        "from pathlib import Path\n"
+        "def ensure_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
+        "    marker = Path(repo_root) / 'shared-helper-called.txt'\n"
+        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
+        "    return (Path(repo_root) / 'delegated-src',)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
     monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(module, "_candidate_shared_src_roots", lambda: (fake_shared_src,))
+    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
 
-    try:
-        added = module.ensure_editable_dependency_paths()
-    finally:
-        sys.path[:] = original_sys_path
+    added = module.ensure_editable_dependency_paths()
 
-    assert added == (fake_shared_src,)
+    assert added == (fake_repo_root / "delegated-src",)
+    assert (fake_repo_root / "shared-helper-called.txt").read_text(encoding="utf-8") == "opl_harness_shared"
 
 
 def test_bootstrap_is_noop_when_shared_package_is_already_importable(monkeypatch) -> None:
     original_sys_path = list(sys.path)
     monkeypatch.setattr(module, "_module_spec", lambda module_name: object() if module_name == "opl_harness_shared" else None)
     monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
-    monkeypatch.setattr(module, "_candidate_shared_src_roots", lambda: (Path("/tmp/not-used"),))
 
     try:
         added = module.ensure_editable_dependency_paths()

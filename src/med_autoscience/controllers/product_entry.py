@@ -2390,6 +2390,9 @@ def build_product_entry_manifest(
         product_entry_quickstart=product_entry_quickstart,
         family_orchestration=family_orchestration,
         remaining_gaps=list(mainline_payload.get("remaining_gaps") or []),
+        schema_ref=PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
+        domain_entry_contract=domain_entry_contract,
+        gateway_interaction_contract=gateway_interaction_contract,
         notes=[
             "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
             "It does not include the display / paper-figure asset line.",
@@ -2397,9 +2400,6 @@ def build_product_entry_manifest(
         ],
         extra_payload={
             "schema_version": SCHEMA_VERSION,
-            "schema_ref": PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
-            "domain_entry_contract": domain_entry_contract,
-            "gateway_interaction_contract": gateway_interaction_contract,
             "executor_defaults": {
                 "default_executor": "codex_cli_autonomous",
                 "default_model": "inherit_local_codex_default",
@@ -2616,6 +2616,7 @@ def build_product_frontdesk(
             "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
             "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
         },
+        schema_ref=PRODUCT_FRONTDESK_SCHEMA_REF,
         notes=[
             "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
             "It does not claim that a mature standalone medical frontend is already landed.",
@@ -2623,10 +2624,7 @@ def build_product_frontdesk(
         ],
         extra_payload={
             "schema_version": SCHEMA_VERSION,
-            "schema_ref": PRODUCT_FRONTDESK_SCHEMA_REF,
             "executor_defaults": dict(manifest.get("executor_defaults") or {}),
-            "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
-            "gateway_interaction_contract": dict(manifest.get("gateway_interaction_contract") or {}),
             "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
             "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
             "skill_catalog": dict(manifest.get("skill_catalog") or {}),
