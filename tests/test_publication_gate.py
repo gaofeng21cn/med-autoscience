@@ -1416,6 +1416,35 @@ def test_build_gate_report_blocks_submission_surface_qc_failures(tmp_path: Path)
     ]
 
 
+def test_build_gate_report_blocks_submission_manuscript_surface_without_embedded_figures(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "manuscript_status": "main_text",
+                }
+            ],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "blocked"
+    assert "submission_surface_qc_failure_present" in report["blockers"]
+    failure_reasons = {item["failure_reason"] for item in report["submission_surface_qc_failures"]}
+    assert "submission_source_markdown_missing" in failure_reasons
+    assert "submission_docx_missing_embedded_figures" in failure_reasons
+    assert "submission_pdf_missing_embedded_figures" in failure_reasons
+
+
 def test_build_gate_report_inherits_blocked_medical_publication_surface_status(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)

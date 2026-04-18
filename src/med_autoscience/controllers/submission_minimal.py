@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 from urllib import request
 
+from pypdf import PdfReader
+
 from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.display_pack_resolver import get_pack_id
 from med_autoscience.publication_profiles import (
@@ -551,6 +553,34 @@ def export_docx(
     )
 
 
+def export_pdf(
+    *,
+    compiled_markdown_path: Path,
+    paper_root: Path,
+    output_pdf_path: Path,
+    csl_path: Path,
+) -> None:
+    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    resource_path = os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve())
+    subprocess.run(
+        [
+            "pandoc",
+            compiled_markdown_path.name,
+            "--standalone",
+            "--citeproc",
+            "--csl",
+            str(csl_path.resolve()),
+            "--resource-path",
+            resource_path,
+            "--pdf-engine=xelatex",
+            "-o",
+            os.path.relpath(output_pdf_path.resolve(), compiled_markdown_path.parent.resolve()),
+        ],
+        cwd=compiled_markdown_path.parent,
+        check=True,
+    )
+
+
 def split_front_matter(markdown_text: str) -> tuple[dict[str, str], str]:
     if not markdown_text.startswith("---\n"):
         return {}, markdown_text
@@ -835,6 +865,33 @@ def build_figure_legend_blocks(
     return figure_legend_blocks
 
 
+def extract_image_lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip().startswith("![](")]
+
+
+def build_submission_figure_blocks(
+    *,
+    main_figures: str,
+    figure_semantics_map: dict[str, dict[str, Any]],
+) -> list[str]:
+    figure_blocks: list[str] = []
+    for heading, block_body in parse_heading_blocks(main_figures, "Figure "):
+        figure_id = parse_figure_id_from_heading(heading)
+        image_lines = extract_image_lines(block_body)
+        legend = merge_legend_with_figure_semantics(
+            base_legend=strip_image_lines(block_body),
+            figure_semantics=figure_semantics_map.get(figure_id or ""),
+        )
+        content_parts: list[str] = []
+        if image_lines:
+            content_parts.append("\n".join(image_lines))
+        if legend:
+            content_parts.append(legend)
+        if content_parts:
+            figure_blocks.append(f"## {heading}\n\n{'\n\n'.join(content_parts)}")
+    return figure_blocks
+
+
 def build_table_blocks(*, main_tables: str) -> list[str]:
     table_blocks: list[str] = []
     for heading, block_body in parse_top_level_blocks(main_tables):
@@ -861,6 +918,185 @@ def rewrite_image_paths(*, markdown_text: str, source_markdown_dir: Path, target
         return f"{match.group(1)}{relative_path}{match.group(3)}"
 
     return image_pattern.sub(replace, markdown_text)
+
+
+def count_main_text_figures_in_catalog(figure_catalog: dict[str, Any]) -> int:
+    count = 0
+    for item in figure_catalog.get("figures", []) or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("paper_role") or "").strip().lower() == "main_text":
+            count += 1
+    return count
+
+
+def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, Any]:
+    if not source_markdown_path.exists():
+        return {
+            "exists": False,
+            "figure_block_count": 0,
+            "figure_blocks_with_images": 0,
+            "figure_blocks_with_legends": 0,
+        }
+    markdown_text = source_markdown_path.read_text(encoding="utf-8")
+    _, body = split_front_matter(markdown_text)
+    figures_section = extract_optional_markdown_block(body, "Figures", ["Figure Legends", "Tables", "Appendix"])
+    figure_blocks = parse_heading_blocks(figures_section, "Figure ") if figures_section.strip() else []
+    figure_blocks_with_images = 0
+    figure_blocks_with_legends = 0
+    for _, block_body in figure_blocks:
+        if extract_image_lines(block_body):
+            figure_blocks_with_images += 1
+        if strip_image_lines(block_body).strip():
+            figure_blocks_with_legends += 1
+    return {
+        "exists": True,
+        "figure_block_count": len(figure_blocks),
+        "figure_blocks_with_images": figure_blocks_with_images,
+        "figure_blocks_with_legends": figure_blocks_with_legends,
+    }
+
+
+def inspect_submission_docx_surface(docx_path: Path) -> dict[str, Any]:
+    if not docx_path.exists():
+        return {
+            "exists": False,
+            "embedded_image_count": 0,
+            "drawing_count": 0,
+        }
+    try:
+        with zipfile.ZipFile(docx_path) as archive:
+            names = archive.namelist()
+            document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    except (KeyError, zipfile.BadZipFile):
+        return {
+            "exists": True,
+            "embedded_image_count": 0,
+            "drawing_count": 0,
+            "unreadable": True,
+        }
+    return {
+        "exists": True,
+        "embedded_image_count": len([name for name in names if name.startswith("word/media/")]),
+        "drawing_count": document_xml.count("<w:drawing"),
+        "unreadable": False,
+    }
+
+
+def inspect_submission_pdf_surface(pdf_path: Path) -> dict[str, Any]:
+    if not pdf_path.exists():
+        return {
+            "exists": False,
+            "embedded_image_count": 0,
+            "page_count": 0,
+        }
+    try:
+        reader = PdfReader(str(pdf_path))
+        embedded_image_count = sum(len(page.images) for page in reader.pages)
+    except Exception:
+        return {
+            "exists": True,
+            "embedded_image_count": 0,
+            "page_count": 0,
+            "unreadable": True,
+        }
+    return {
+        "exists": True,
+        "embedded_image_count": embedded_image_count,
+        "page_count": len(reader.pages),
+        "unreadable": False,
+    }
+
+
+def build_submission_manuscript_surface_qc(
+    *,
+    publication_profile: str,
+    source_markdown_path: Path,
+    docx_path: Path,
+    pdf_path: Path,
+    expected_main_figure_count: int,
+) -> dict[str, Any]:
+    qc_profile = "submission_manuscript_surface"
+    if publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:
+        return {
+            "qc_profile": qc_profile,
+            "status": "not_applicable",
+            "expected_main_figure_count": expected_main_figure_count,
+            "failures": [],
+        }
+
+    source_stats = inspect_submission_source_markdown(source_markdown_path)
+    docx_stats = inspect_submission_docx_surface(docx_path)
+    pdf_stats = inspect_submission_pdf_surface(pdf_path)
+    failures: list[dict[str, Any]] = []
+
+    if not source_stats["exists"]:
+        failures.append(
+            {
+                "collection": "manuscript",
+                "item_id": "source_markdown",
+                "descriptor": source_markdown_path.name,
+                "qc_profile": qc_profile,
+                "failure_reason": "submission_source_markdown_missing",
+                "audit_classes": ["manuscript_surface"],
+            }
+        )
+    else:
+        if source_stats["figure_blocks_with_images"] < expected_main_figure_count:
+            failures.append(
+                {
+                    "collection": "manuscript",
+                    "item_id": "source_markdown",
+                    "descriptor": source_markdown_path.name,
+                    "qc_profile": qc_profile,
+                    "failure_reason": "submission_source_markdown_missing_inline_figures",
+                    "audit_classes": ["manuscript_surface"],
+                }
+            )
+        if source_stats["figure_blocks_with_legends"] < expected_main_figure_count:
+            failures.append(
+                {
+                    "collection": "manuscript",
+                    "item_id": "source_markdown",
+                    "descriptor": source_markdown_path.name,
+                    "qc_profile": qc_profile,
+                    "failure_reason": "submission_source_markdown_missing_figure_legends",
+                    "audit_classes": ["manuscript_surface"],
+                }
+            )
+
+    if docx_stats["embedded_image_count"] < expected_main_figure_count:
+        failures.append(
+            {
+                "collection": "manuscript",
+                "item_id": "docx",
+                "descriptor": docx_path.name,
+                "qc_profile": qc_profile,
+                "failure_reason": "submission_docx_missing_embedded_figures",
+                "audit_classes": ["manuscript_surface"],
+            }
+        )
+    if pdf_stats["embedded_image_count"] < expected_main_figure_count:
+        failures.append(
+            {
+                "collection": "manuscript",
+                "item_id": "pdf",
+                "descriptor": pdf_path.name,
+                "qc_profile": qc_profile,
+                "failure_reason": "submission_pdf_missing_embedded_figures",
+                "audit_classes": ["manuscript_surface"],
+            }
+        )
+
+    return {
+        "qc_profile": qc_profile,
+        "status": "pass" if not failures else "fail",
+        "expected_main_figure_count": expected_main_figure_count,
+        "source_markdown": source_stats,
+        "docx": docx_stats,
+        "pdf": pdf_stats,
+        "failures": failures,
+    }
 
 
 def should_build_general_medical_submission_markdown(*, compiled_text: str) -> bool:
@@ -978,6 +1214,10 @@ def build_general_medical_submission_markdown(
         figure_semantics_map = load_figure_semantics_map(paper_root)
 
     bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    submission_figure_blocks = build_submission_figure_blocks(
+        main_figures=main_figures,
+        figure_semantics_map=figure_semantics_map,
+    )
     figure_legend_blocks = build_figure_legend_blocks(
         main_figures=main_figures,
         figure_semantics_map=figure_semantics_map,
@@ -1001,6 +1241,8 @@ def build_general_medical_submission_markdown(
     for heading, content in section_blocks:
         if content.strip():
             markdown_parts.append(f"{heading}\n\n{content.strip()}")
+    if submission_figure_blocks:
+        markdown_parts.append(f"# Figures\n\n{'\n\n'.join(submission_figure_blocks).strip()}")
     if figure_legend_blocks:
         markdown_parts.append(f"# Figure Legends\n\n{'\n\n'.join(figure_legend_blocks).strip()}")
     if table_blocks:
@@ -1194,7 +1436,6 @@ def create_submission_minimal_package(
     readme_path = submission_root / "README.md"
     output_docx_path = submission_root / "manuscript.docx"
     output_pdf_path = submission_root / "paper.pdf"
-    shutil.copy2(compiled_pdf_path, output_pdf_path)
 
     source_markdown_path = compiled_markdown_path
     supplementary_source_markdown_path: Path | None = None
@@ -1222,6 +1463,12 @@ def create_submission_minimal_package(
         output_docx_path=output_docx_path,
         csl_path=profile_config.csl_path,
         reference_doc_path=profile_config.reference_doc_path,
+    )
+    export_pdf(
+        compiled_markdown_path=source_markdown_path,
+        paper_root=paper_root,
+        output_pdf_path=output_pdf_path,
+        csl_path=profile_config.csl_path,
     )
     if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
         export_docx(
@@ -1316,6 +1563,13 @@ def create_submission_minimal_package(
         figure_catalog=figure_catalog,
         table_catalog=table_catalog,
     )
+    manuscript_surface_qc = build_submission_manuscript_surface_qc(
+        publication_profile=resolved_publication_profile,
+        source_markdown_path=source_markdown_path,
+        docx_path=output_docx_path,
+        pdf_path=output_pdf_path,
+        expected_main_figure_count=count_main_text_figures_in_catalog(figure_catalog),
+    )
     submission_root_rel = relpath_from_workspace(submission_root, workspace_root)
     manifest: dict[str, Any] = {
         "schema_version": 1,
@@ -1328,6 +1582,7 @@ def create_submission_minimal_package(
             "pdf_path": relpath_from_workspace(output_pdf_path, workspace_root),
             "docx_path": relpath_from_workspace(output_docx_path, workspace_root),
             "csl_path": str(profile_config.csl_path.resolve()),
+            "surface_qc": manuscript_surface_qc,
         },
         "naming_map": {
             "figures": figure_naming_map,

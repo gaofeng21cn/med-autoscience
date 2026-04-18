@@ -2346,6 +2346,44 @@ def test_validate_table_catalog_accepts_md_only_second_stage_tables() -> None:
     assert errors == []
 
 
+def test_build_report_blocks_single_panel_label_without_layout_evidence(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        generated_figure_text_override=(
+            "<svg>"
+            "<text x='24' y='32'>A</text>"
+            "<text x='64' y='32'>Threshold-specific operating characteristics for the extended preoperative model</text>"
+            "</svg>\n"
+        ),
+    )
+    layout_sidecar_path = (
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "figures" / "generated" / "F4.layout.json"
+    )
+    dump_json(
+        layout_sidecar_path,
+        {
+            "figure_id": "F4",
+            "template_id": "roc_curve_binary",
+            "renderer_family": "r_ggplot2",
+            "qc_profile": "publication_evidence_curve",
+            "status": "pass",
+            "updated_at": "2026-04-18T14:00:00+00:00",
+        },
+    )
+
+    state = module.build_surface_state(quest_root)
+    report = module.build_surface_report(state)
+
+    assert report["status"] == "blocked"
+    assert "figure_layout_sidecar_missing_or_incomplete" in report["blockers"]
+    pattern_ids = {hit["pattern_id"] for hit in report["top_hits"]}
+    assert "figure_layout_sidecar_missing_publication_metrics" in pattern_ids
+    assert "single_panel_figure_contains_panel_label" in pattern_ids
+
+
 def test_validate_table_catalog_rejects_missing_md_export_for_second_stage_table() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 

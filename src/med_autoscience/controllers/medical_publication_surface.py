@@ -262,6 +262,103 @@ def discover_figure_text_assets(paper_root: Path, figure_catalog_path: Path) -> 
     return candidates
 
 
+def extract_svg_text_nodes(path: Path) -> list[str]:
+    if not path.exists() or path.suffix.lower() != ".svg":
+        return []
+    text = path.read_text(encoding="utf-8")
+    matches = re.findall(r"<text\b[^>]*>(.*?)</text>", text, flags=re.IGNORECASE | re.DOTALL)
+    nodes: list[str] = []
+    for raw in matches:
+        cleaned = re.sub(r"<[^>]+>", "", raw).strip()
+        if cleaned:
+            nodes.append(cleaned)
+    return nodes
+
+
+def inspect_figure_layout_sidecar_contract(
+    *,
+    paper_root: Path,
+    figure_catalog_payload: object,
+) -> list[dict[str, Any]]:
+    if not isinstance(figure_catalog_payload, dict):
+        return []
+    hits: list[dict[str, Any]] = []
+    generated_root = paper_root / "figures" / "generated"
+    for figure in figure_catalog_payload.get("figures", []) or []:
+        if not isinstance(figure, dict):
+            continue
+        if str(figure.get("paper_role") or "").strip() != "main_text":
+            continue
+        figure_id = str(figure.get("figure_id") or "").strip()
+        qc_result = figure.get("qc_result")
+        if not figure_id or not isinstance(qc_result, dict):
+            continue
+        layout_sidecar_rel = str(qc_result.get("layout_sidecar_path") or "").strip()
+        if not layout_sidecar_rel:
+            continue
+        layout_sidecar_path = resolve_paper_relative_path(paper_root, layout_sidecar_rel)
+        if not layout_sidecar_path.exists():
+            continue
+        layout_payload = load_json(layout_sidecar_path, default=None)
+        layout_boxes = layout_payload.get("layout_boxes") if isinstance(layout_payload, dict) else None
+        metrics = layout_payload.get("metrics") if isinstance(layout_payload, dict) else None
+        if not isinstance(layout_boxes, list) or not layout_boxes or not isinstance(metrics, dict) or not metrics:
+            hits.append(
+                {
+                    "path": str(layout_sidecar_path),
+                    "location": "file",
+                    "pattern_id": "figure_layout_sidecar_missing_publication_metrics",
+                    "phrase": figure_id,
+                    "excerpt": (
+                        "Main-text figure layout sidecar must expose publication-facing layout boxes and metrics "
+                        "for auditability."
+                    ),
+                }
+            )
+        panel_labels: set[str] = set()
+        if isinstance(metrics, dict):
+            for panel in metrics.get("panels", []) or []:
+                if not isinstance(panel, dict):
+                    continue
+                label = str(panel.get("panel_label") or "").strip()
+                if label:
+                    panel_labels.add(label)
+        if isinstance(layout_boxes, list):
+            for box in layout_boxes:
+                if not isinstance(box, dict):
+                    continue
+                box_id = str(box.get("box_id") or "").strip()
+                if box_id.startswith("panel_label_"):
+                    label = box_id.removeprefix("panel_label_").strip()
+                    if label:
+                        panel_labels.add(label)
+        svg_candidates = []
+        for raw_path in figure.get("export_paths", []) or []:
+            if isinstance(raw_path, str) and raw_path.strip().lower().endswith(".svg"):
+                svg_candidates.append(resolve_paper_relative_path(paper_root, raw_path))
+        if not svg_candidates and generated_root.exists():
+            svg_candidates.extend(sorted(generated_root.glob(f"{figure_id}*.svg")))
+        first_text_node = ""
+        for svg_path in svg_candidates:
+            text_nodes = extract_svg_text_nodes(svg_path)
+            if text_nodes:
+                first_text_node = text_nodes[0]
+                break
+        if first_text_node == "A" and len(panel_labels) <= 1:
+            hits.append(
+                {
+                    "path": str(svg_candidates[0]) if svg_candidates else str(layout_sidecar_path),
+                    "location": "file",
+                    "pattern_id": "single_panel_figure_contains_panel_label",
+                    "phrase": figure_id,
+                    "excerpt": (
+                        "Single-panel figure surface starts with panel label `A` without durable multipanel layout evidence."
+                    ),
+                }
+            )
+    return hits
+
+
 def discover_table_text_assets(
     paper_root: Path,
     table_catalog_path: Path,
@@ -1658,6 +1755,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     )
     figure_semantics_payload = load_json(state.figure_semantics_manifest_path, default=None)
     figure_catalog_payload = load_json(state.figure_catalog_path, default=None)
+    figure_layout_sidecar_hits = inspect_figure_layout_sidecar_contract(
+        paper_root=state.paper_root,
+        figure_catalog_payload=figure_catalog_payload,
+    )
     figure_semantics_coverage_hits = inspect_figure_semantics_coverage(
         path=state.figure_semantics_manifest_path,
         payload=figure_semantics_payload,
@@ -1803,6 +1904,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(results_narrative_hits)
     hits.extend(results_display_surface_hits)
     hits.extend(figure_semantics_hits)
+    hits.extend(figure_layout_sidecar_hits)
     hits.extend(claim_evidence_map_hits)
     hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
@@ -1849,6 +1951,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("results_section_structure_missing_or_incomplete")
     if not figure_semantics_valid:
         blockers.append("figure_semantics_manifest_missing_or_incomplete")
+    if figure_layout_sidecar_hits:
+        blockers.append("figure_layout_sidecar_missing_or_incomplete")
     if not claim_evidence_map_valid:
         blockers.append("claim_evidence_map_missing_or_incomplete")
     if not derived_analysis_valid:

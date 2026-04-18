@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import base64
 import importlib
 import json
 from pathlib import Path
 import zipfile
+import zlib
 
-
-PNG_1X1_BASE64 = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8"
-    "/x8AAwMCAO+aRX0AAAAASUVORK5CYII="
-)
+from pypdf import PdfReader
 
 
 def dump_json(path: Path, payload: dict) -> None:
@@ -25,7 +21,22 @@ def write_text(path: Path, text: str) -> None:
 
 def write_png(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(base64.b64decode(PNG_1X1_BASE64))
+    raw_scanline = b"\x00\xff\xff\xff"
+    compressed = zlib.compress(raw_scanline)
+
+    def chunk(chunk_type: bytes, data: bytes) -> bytes:
+        crc = zlib.crc32(chunk_type + data) & 0xFFFFFFFF
+        return len(data).to_bytes(4, "big") + chunk_type + data + crc.to_bytes(4, "big")
+
+    png_bytes = b"".join(
+        [
+            b"\x89PNG\r\n\x1a\n",
+            chunk(b"IHDR", b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00"),
+            chunk(b"IDAT", compressed),
+            chunk(b"IEND", b""),
+        ]
+    )
+    path.write_bytes(png_bytes)
 
 
 def write_docx(path: Path, text: str) -> None:
@@ -552,6 +563,33 @@ def test_create_submission_minimal_package_general_profile_writes_figure_legends
     assert "# Tables" in submission_markdown
     assert "## Table 1" in submission_markdown
     assert "| Characteristic | Value |" in submission_markdown
+
+
+def test_create_submission_minimal_package_general_profile_embeds_figures_into_docx_and_pdf(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "# Figures" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "Caption." in submission_markdown
+    assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
+
+    with zipfile.ZipFile(submission_root / "manuscript.docx") as archive:
+        names = archive.namelist()
+        document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert any(name.startswith("word/media/") for name in names)
+    assert "<w:drawing" in document_xml
+
+    pdf_reader = PdfReader(str(submission_root / "paper.pdf"))
+    assert sum(len(page.images) for page in pdf_reader.pages) >= 1
 
 
 def test_create_submission_minimal_package_accepts_current_bundle_contract_shape(tmp_path: Path) -> None:

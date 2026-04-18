@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.controllers import study_delivery_sync, submission_minimal
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
@@ -361,7 +361,32 @@ def active_manuscript_figure_count(paper_root: Path | None) -> int | None:
     return count
 
 
-def collect_submission_surface_qc_failures(submission_minimal_manifest: dict[str, Any] | None) -> list[dict[str, Any]]:
+def active_main_text_figure_count(paper_root: Path | None) -> int | None:
+    entries = _load_catalog_entries(
+        paper_root=paper_root,
+        relative_path="figures/figure_catalog.json",
+        collection_key="figures",
+    )
+    if entries is None:
+        return None
+    count = 0
+    for item in entries:
+        paper_role = str(item.get("paper_role") or "").strip().lower()
+        manuscript_status = str(item.get("manuscript_status") or "").strip().lower()
+        if paper_role != "main_text":
+            continue
+        if manuscript_status in {"appendix_context_only", "reference_only", "deprecated"}:
+            continue
+        count += 1
+    return count
+
+
+def collect_submission_surface_qc_failures(
+    submission_minimal_manifest: dict[str, Any] | None,
+    *,
+    paper_bundle_manifest_path: Path | None,
+    paper_root: Path | None,
+) -> list[dict[str, Any]]:
     if not isinstance(submission_minimal_manifest, dict):
         return []
     failures: list[dict[str, Any]] = []
@@ -388,6 +413,28 @@ def collect_submission_surface_qc_failures(submission_minimal_manifest: dict[str
                     "audit_classes": list(qc_result.get("audit_classes") or []),
                 }
             )
+    expected_main_figure_count = active_main_text_figure_count(paper_root) or 0
+    manuscript_payload = submission_minimal_manifest.get("manuscript") or {}
+    if expected_main_figure_count > 0:
+        source_markdown_rel = _non_empty_text(manuscript_payload.get("source_markdown_path"))
+        worktree_root = paper_bundle_manifest_path.resolve().parent.parent if paper_bundle_manifest_path else None
+        source_markdown_path = (
+            (worktree_root / source_markdown_rel).resolve()
+            if worktree_root is not None and source_markdown_rel is not None
+            else ((worktree_root / "__missing_submission_source_markdown__.md").resolve() if worktree_root else Path("/__missing_submission_source_markdown__.md"))
+        )
+        docx_path, pdf_path = paper_artifacts.resolve_submission_minimal_output_paths(
+            paper_bundle_manifest_path=paper_bundle_manifest_path,
+            submission_minimal_manifest=submission_minimal_manifest,
+        )
+        manuscript_surface_qc = submission_minimal.build_submission_manuscript_surface_qc(
+            publication_profile=str(submission_minimal_manifest.get("publication_profile") or "").strip(),
+            source_markdown_path=source_markdown_path,
+            docx_path=docx_path or Path(""),
+            pdf_path=pdf_path or Path(""),
+            expected_main_figure_count=expected_main_figure_count,
+        )
+        failures.extend(manuscript_surface_qc.get("failures") or [])
     return failures
 
 
@@ -511,7 +558,11 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         submission_minimal_manifest=submission_minimal_manifest,
     )
-    submission_surface_qc_failures = collect_submission_surface_qc_failures(submission_minimal_manifest)
+    submission_surface_qc_failures = collect_submission_surface_qc_failures(
+        submission_minimal_manifest,
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+        paper_root=paper_root,
+    )
     archived_submission_surface_roots = (
         [str(path) for path in paper_artifacts.resolve_archived_submission_surface_roots(paper_root)]
         if paper_root is not None
