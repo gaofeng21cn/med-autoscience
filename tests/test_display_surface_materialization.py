@@ -10016,6 +10016,78 @@ def _make_coefficient_path_panel_display(display_id: str = "Figure48") -> dict[s
     }
 
 
+def _make_broader_heterogeneity_summary_panel_display(display_id: str = "Figure49") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "broader_heterogeneity_summary_panel",
+        "title": "Broader heterogeneity summary panel for manuscript-facing comparative review",
+        "caption": (
+            "Bounded heterogeneity evidence aligns prespecified cohort, subgroup, and adjustment slices with a "
+            "row-level manuscript verdict so the comparative summary stays auditable and reusable."
+        ),
+        "matrix_panel_title": "Prespecified heterogeneity slices",
+        "x_label": "Hazard ratio",
+        "reference_value": 1.0,
+        "slice_legend_title": "Evidence slice",
+        "slices": [
+            {
+                "slice_id": "overall",
+                "slice_label": "Overall cohort",
+                "slice_kind": "cohort",
+                "slice_order": 1,
+            },
+            {
+                "slice_id": "subgroup",
+                "slice_label": "Prespecified subgroup",
+                "slice_kind": "subgroup",
+                "slice_order": 2,
+            },
+            {
+                "slice_id": "adjusted",
+                "slice_label": "Adjusted model",
+                "slice_kind": "adjustment",
+                "slice_order": 3,
+            },
+        ],
+        "effect_rows": [
+            {
+                "row_id": "age_ge_65",
+                "row_label": "Age ≥65 years",
+                "verdict": "stable",
+                "detail": "Positive direction stays preserved across every declared slice.",
+                "slice_estimates": [
+                    {"slice_id": "overall", "estimate": 1.18, "lower": 1.04, "upper": 1.34, "support_n": 184},
+                    {"slice_id": "subgroup", "estimate": 1.16, "lower": 1.01, "upper": 1.33, "support_n": 121},
+                    {"slice_id": "adjusted", "estimate": 1.11, "lower": 0.98, "upper": 1.28, "support_n": 184},
+                ],
+            },
+            {
+                "row_id": "female",
+                "row_label": "Female",
+                "verdict": "attenuated",
+                "detail": "Magnitude shrinks after adjustment while retaining a positive point estimate.",
+                "slice_estimates": [
+                    {"slice_id": "overall", "estimate": 1.26, "lower": 1.10, "upper": 1.44, "support_n": 201},
+                    {"slice_id": "subgroup", "estimate": 1.22, "lower": 1.05, "upper": 1.41, "support_n": 173},
+                    {"slice_id": "adjusted", "estimate": 1.08, "lower": 0.94, "upper": 1.24, "support_n": 201},
+                ],
+            },
+            {
+                "row_id": "high_risk",
+                "row_label": "High-risk subgroup",
+                "verdict": "context_dependent",
+                "detail": "The strongest signal concentrates in the high-risk slice and softens outside it.",
+                "slice_estimates": [
+                    {"slice_id": "overall", "estimate": 1.19, "lower": 1.01, "upper": 1.39, "support_n": 96},
+                    {"slice_id": "subgroup", "estimate": 1.42, "lower": 1.17, "upper": 1.72, "support_n": 96},
+                    {"slice_id": "adjusted", "estimate": 1.05, "lower": 0.89, "upper": 1.24, "support_n": 96},
+                ],
+            },
+        ],
+        "summary_panel_title": "Manuscript verdict summary",
+    }
+
+
 def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
     tmp_path: Path,
 ) -> None:
@@ -11840,6 +11912,92 @@ def test_materialize_display_surface_generates_coefficient_path_panel(tmp_path: 
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "coefficient_path_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_coefficient_path_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_broader_heterogeneity_summary_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "display_kind": "figure",
+                    "requirement_key": "broader_heterogeneity_summary_panel",
+                    "catalog_id": "F49",
+                    "shell_path": "paper/figures/Figure49.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "template_id": "broader_heterogeneity_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "broader_heterogeneity_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "broader_heterogeneity_summary_panel_inputs_v1",
+            "displays": [_make_broader_heterogeneity_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F49"]
+    assert (paper_root / "figures" / "generated" / "F49_broader_heterogeneity_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F49_broader_heterogeneity_summary_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F49_broader_heterogeneity_summary_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert layout_sidecar["metrics"]["reference_value"] == 1.0
+    assert [item["slice_label"] for item in layout_sidecar["metrics"]["slices"]] == [
+        "Overall cohort",
+        "Prespecified subgroup",
+        "Adjusted model",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["effect_rows"]] == [
+        "age_ge_65",
+        "female",
+        "high_risk",
+    ]
+    assert [item["verdict"] for item in layout_sidecar["metrics"]["effect_rows"]] == [
+        "stable",
+        "attenuated",
+        "context_dependent",
+    ]
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "reference_line" for item in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F49"
+    assert figure_entry["template_id"] == full_id("broader_heterogeneity_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "broader_heterogeneity_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_broader_heterogeneity_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

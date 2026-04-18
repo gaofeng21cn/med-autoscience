@@ -57,6 +57,8 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("subgroup_forest"),
         _full_id("generalizability_subgroup_composite_panel"),
         _full_id("compact_effect_estimate_panel"),
+        _full_id("coefficient_path_panel"),
+        _full_id("broader_heterogeneity_summary_panel"),
         _full_id("shap_summary_beeswarm"),
         _full_id("shap_bar_importance"),
         _full_id("shap_dependence_panel"),
@@ -387,6 +389,16 @@ def test_coefficient_path_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_coefficient_path_panel"
 
 
+def test_broader_heterogeneity_summary_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("broader_heterogeneity_summary_panel"))
+
+    assert spec.paper_family_ids == ("C", "H")
+    assert spec.evidence_class == "effect_estimate"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "broader_heterogeneity_summary_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_broader_heterogeneity_summary_panel"
+
+
 def test_compact_effect_estimate_panel_keeps_stable_registry_order() -> None:
     evidence_template_ids = [item.template_id for item in display_registry.list_evidence_figure_specs()]
 
@@ -397,6 +409,9 @@ def test_compact_effect_estimate_panel_keeps_stable_registry_order() -> None:
         _full_id("coefficient_path_panel")
     )
     assert evidence_template_ids.index(_full_id("coefficient_path_panel")) < evidence_template_ids.index(
+        _full_id("broader_heterogeneity_summary_panel")
+    )
+    assert evidence_template_ids.index(_full_id("broader_heterogeneity_summary_panel")) < evidence_template_ids.index(
         _full_id("shap_summary_beeswarm")
     )
 

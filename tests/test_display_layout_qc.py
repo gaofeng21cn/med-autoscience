@@ -7735,6 +7735,269 @@ def test_run_display_layout_qc_fails_when_coefficient_path_marker_leaves_path_pa
     assert any(issue["rule_id"] == "coefficient_marker_outside_path_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_broader_heterogeneity_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_broader_heterogeneity_summary_panel",
+        layout_sidecar={
+            "template_id": "broader_heterogeneity_summary_panel",
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.18, y0=0.86, x1=0.44, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.91, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.18, y0=0.77, x1=0.20, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.31, y0=0.11, x1=0.47, y1=0.14),
+                make_box("slice_legend_title", "legend_title", x0=0.21, y0=0.17, x1=0.30, y1=0.20),
+                make_box("slice_legend_overall", "legend_label", x0=0.32, y0=0.17, x1=0.41, y1=0.20),
+                make_box("slice_legend_subgroup", "legend_label", x0=0.43, y0=0.17, x1=0.53, y1=0.20),
+                make_box("slice_legend_adjusted", "legend_label", x0=0.55, y0=0.17, x1=0.64, y1=0.20),
+                make_box("row_label_age", "row_label", x0=0.04, y0=0.61, x1=0.16, y1=0.65),
+                make_box("row_label_female", "row_label", x0=0.07, y0=0.46, x1=0.16, y1=0.50),
+                make_box("estimate_age_overall", "estimate_marker", x0=0.30, y0=0.61, x1=0.31, y1=0.65),
+                make_box("estimate_age_subgroup", "estimate_marker", x0=0.35, y0=0.58, x1=0.36, y1=0.62),
+                make_box("estimate_age_adjusted", "estimate_marker", x0=0.39, y0=0.64, x1=0.40, y1=0.68),
+                make_box("estimate_female_overall", "estimate_marker", x0=0.41, y0=0.46, x1=0.42, y1=0.50),
+                make_box("estimate_female_subgroup", "estimate_marker", x0=0.45, y0=0.43, x1=0.46, y1=0.47),
+                make_box("estimate_female_adjusted", "estimate_marker", x0=0.49, y0=0.49, x1=0.50, y1=0.53),
+                make_box("ci_age_overall", "ci_segment", x0=0.27, y0=0.625, x1=0.34, y1=0.635),
+                make_box("ci_age_subgroup", "ci_segment", x0=0.32, y0=0.595, x1=0.39, y1=0.605),
+                make_box("ci_age_adjusted", "ci_segment", x0=0.36, y0=0.655, x1=0.43, y1=0.665),
+                make_box("ci_female_overall", "ci_segment", x0=0.38, y0=0.475, x1=0.45, y1=0.485),
+                make_box("ci_female_subgroup", "ci_segment", x0=0.42, y0=0.445, x1=0.49, y1=0.455),
+                make_box("ci_female_adjusted", "ci_segment", x0=0.46, y0=0.505, x1=0.53, y1=0.515),
+                make_box("verdict_age", "verdict_value", x0=0.76, y0=0.61, x1=0.86, y1=0.65),
+                make_box("detail_age", "verdict_detail", x0=0.76, y0=0.56, x1=0.92, y1=0.60),
+                make_box("verdict_female", "verdict_value", x0=0.76, y0=0.46, x1=0.88, y1=0.50),
+                make_box("detail_female", "verdict_detail", x0=0.76, y0=0.41, x1=0.93, y1=0.45),
+            ],
+            "panel_boxes": [
+                make_box("matrix_panel", "panel", x0=0.18, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 1.0,
+                "matrix_panel": {
+                    "panel_box_id": "matrix_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "slice_legend_title_box_id": "slice_legend_title",
+                "slices": [
+                    {
+                        "slice_id": "overall",
+                        "slice_label": "Overall cohort",
+                        "slice_kind": "cohort",
+                        "slice_order": 1,
+                        "legend_label_box_id": "slice_legend_overall",
+                    },
+                    {
+                        "slice_id": "subgroup",
+                        "slice_label": "Prespecified subgroup",
+                        "slice_kind": "subgroup",
+                        "slice_order": 2,
+                        "legend_label_box_id": "slice_legend_subgroup",
+                    },
+                    {
+                        "slice_id": "adjusted",
+                        "slice_label": "Adjusted model",
+                        "slice_kind": "adjustment",
+                        "slice_order": 3,
+                        "legend_label_box_id": "slice_legend_adjusted",
+                    },
+                ],
+                "effect_rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "verdict": "stable",
+                        "detail": "Positive direction stays preserved across every declared slice.",
+                        "label_box_id": "row_label_age",
+                        "verdict_box_id": "verdict_age",
+                        "detail_box_id": "detail_age",
+                        "slice_estimates": [
+                            {
+                                "slice_id": "overall",
+                                "estimate": 1.18,
+                                "lower": 1.04,
+                                "upper": 1.34,
+                                "marker_box_id": "estimate_age_overall",
+                                "interval_box_id": "ci_age_overall",
+                            },
+                            {
+                                "slice_id": "subgroup",
+                                "estimate": 1.16,
+                                "lower": 1.01,
+                                "upper": 1.33,
+                                "marker_box_id": "estimate_age_subgroup",
+                                "interval_box_id": "ci_age_subgroup",
+                            },
+                            {
+                                "slice_id": "adjusted",
+                                "estimate": 1.11,
+                                "lower": 0.98,
+                                "upper": 1.28,
+                                "marker_box_id": "estimate_age_adjusted",
+                                "interval_box_id": "ci_age_adjusted",
+                            },
+                        ],
+                    },
+                    {
+                        "row_id": "female",
+                        "row_label": "Female",
+                        "verdict": "attenuated",
+                        "detail": "Magnitude shrinks after adjustment while retaining a positive point estimate.",
+                        "label_box_id": "row_label_female",
+                        "verdict_box_id": "verdict_female",
+                        "detail_box_id": "detail_female",
+                        "slice_estimates": [
+                            {
+                                "slice_id": "overall",
+                                "estimate": 1.26,
+                                "lower": 1.10,
+                                "upper": 1.44,
+                                "marker_box_id": "estimate_female_overall",
+                                "interval_box_id": "ci_female_overall",
+                            },
+                            {
+                                "slice_id": "subgroup",
+                                "estimate": 1.22,
+                                "lower": 1.05,
+                                "upper": 1.41,
+                                "marker_box_id": "estimate_female_subgroup",
+                                "interval_box_id": "ci_female_subgroup",
+                            },
+                            {
+                                "slice_id": "adjusted",
+                                "estimate": 1.08,
+                                "lower": 0.94,
+                                "upper": 1.24,
+                                "marker_box_id": "estimate_female_adjusted",
+                                "interval_box_id": "ci_female_adjusted",
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_broader_heterogeneity_verdict_leaves_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_broader_heterogeneity_summary_panel",
+        layout_sidecar={
+            "template_id": "broader_heterogeneity_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.18, y0=0.86, x1=0.44, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.91, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.18, y0=0.77, x1=0.20, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.31, y0=0.11, x1=0.47, y1=0.14),
+                make_box("slice_legend_title", "legend_title", x0=0.21, y0=0.17, x1=0.30, y1=0.20),
+                make_box("slice_legend_overall", "legend_label", x0=0.32, y0=0.17, x1=0.41, y1=0.20),
+                make_box("slice_legend_adjusted", "legend_label", x0=0.43, y0=0.17, x1=0.52, y1=0.20),
+                make_box("row_label_age", "row_label", x0=0.04, y0=0.61, x1=0.16, y1=0.65),
+                make_box("estimate_age_overall", "estimate_marker", x0=0.30, y0=0.61, x1=0.31, y1=0.65),
+                make_box("estimate_age_adjusted", "estimate_marker", x0=0.39, y0=0.64, x1=0.40, y1=0.68),
+                make_box("ci_age_overall", "ci_segment", x0=0.27, y0=0.625, x1=0.34, y1=0.635),
+                make_box("ci_age_adjusted", "ci_segment", x0=0.36, y0=0.655, x1=0.43, y1=0.665),
+                make_box("verdict_age", "verdict_value", x0=0.95, y0=0.61, x1=0.99, y1=0.65),
+                make_box("detail_age", "verdict_detail", x0=0.76, y0=0.56, x1=0.92, y1=0.60),
+            ],
+            "panel_boxes": [
+                make_box("matrix_panel", "panel", x0=0.18, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 1.0,
+                "matrix_panel": {
+                    "panel_box_id": "matrix_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "slice_legend_title_box_id": "slice_legend_title",
+                "slices": [
+                    {
+                        "slice_id": "overall",
+                        "slice_label": "Overall cohort",
+                        "slice_kind": "cohort",
+                        "slice_order": 1,
+                        "legend_label_box_id": "slice_legend_overall",
+                    },
+                    {
+                        "slice_id": "adjusted",
+                        "slice_label": "Adjusted model",
+                        "slice_kind": "adjustment",
+                        "slice_order": 2,
+                        "legend_label_box_id": "slice_legend_adjusted",
+                    },
+                ],
+                "effect_rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "verdict": "stable",
+                        "detail": "Positive direction stays preserved across every declared slice.",
+                        "label_box_id": "row_label_age",
+                        "verdict_box_id": "verdict_age",
+                        "detail_box_id": "detail_age",
+                        "slice_estimates": [
+                            {
+                                "slice_id": "overall",
+                                "estimate": 1.18,
+                                "lower": 1.04,
+                                "upper": 1.34,
+                                "marker_box_id": "estimate_age_overall",
+                                "interval_box_id": "ci_age_overall",
+                            },
+                            {
+                                "slice_id": "adjusted",
+                                "estimate": 1.11,
+                                "lower": 0.98,
+                                "upper": 1.28,
+                                "marker_box_id": "estimate_age_adjusted",
+                                "interval_box_id": "ci_age_adjusted",
+                            },
+                        ],
+                    }
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "verdict_box_outside_summary_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_generalizability_overview_marker_leaves_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

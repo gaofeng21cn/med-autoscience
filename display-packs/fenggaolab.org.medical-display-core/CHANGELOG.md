@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `broader_heterogeneity_summary_panel` as the next audited `C/H` manuscript-facing comparative heterogeneity slice in the core display pack.
+- Lock its pack-facing contract to `broader_heterogeneity_summary_panel_inputs_v1`, `publication_broader_heterogeneity_summary_panel`, and the Python bounded matrix-plus-verdict-summary renderer path.
+
 - Add `atlas_spatial_trajectory_context_support_panel` as the next audited `D/E/G` atlas-spatial-trajectory context-support composite slice in the core display pack.
 - Lock its pack-facing contract to `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `publication_atlas_spatial_trajectory_context_support_panel`, and the Python bounded six-panel context-support renderer path.
 
