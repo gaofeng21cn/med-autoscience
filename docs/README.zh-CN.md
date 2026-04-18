@@ -16,13 +16,13 @@
 
 ## 当前基线
 
-- `Med Auto Science` 是 `Research Foundry` 家族里的医学 `Research Ops` gateway 与 domain 主线。
-- 当前最诚实的使用路径仍是 Agent 协作或 operator 协作；轻量 `product-entry` shell 已有，但成熟独立医疗前台尚未落地。
-- `Med Auto Science` 继续持有研究入口与 outer-loop authority，`MedDeepScientist` 继续是受控研究后端。
-- 上游 `Hermes-Agent` 仍是目标 outer runtime substrate，而不是本仓已经完整落地的独立 runtime owner。
-- 医学展示支线继续与 runtime 主线分开维护。
-- 当前 tranche 仍按 `P0 runtime native truth`、`P1 workspace canonical literature / knowledge truth`、`P2 controlled cutover -> physical monorepo migration` 理解。
-- external runtime gate 仍属于 blocker package。
+- `OPL` 是家族级顶层 GUI 与管理壳。
+- `Med Auto Science` 是这个壳下面的一级医学 domain module / agent。
+- `Codex` 是 MAS 默认交互与执行表面，通过 `CLI`、`MCP` 和 controller 命令推进工作。
+- 上游 `Hermes-Agent` 是外部备用模式与长期在线网关，负责 supervised runtime continuity。
+- MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
+- 医学展示支线继续作为下游能力线分开维护。
+- 内部 program history 继续保留 `P0 runtime native truth`、`P1 workspace canonical literature / knowledge truth`、`P2 controlled cutover -> physical monorepo migration`；external runtime gate 仍属于 blocker package。
 
 ## 技术工作集
 
@@ -84,12 +84,14 @@
 - [真实课题 relaunch 验证记录](program/real_study_relaunch_verification.md)
 - [Study progress projection](program/study_progress_projection.md)
 
-`P2 controlled cutover -> physical monorepo migration` 仍未关闭，Hermes backend continuation / activation 这组材料继续属于 blocker package，而不是对外宣称 cutover 已经完成。
+`P2 controlled cutover -> physical monorepo migration` 仍保留在内部 program 材料中，Hermes backend continuation / activation 这组材料继续属于 blocker package。
 
-### 入口与 handoff 参考
+### MAS 用户回路与内部桥接参考
 
-- 当前诚实的公开入口仍是 `operator entry` 与 `agent entry`。
-- 当前轻量医学 `product entry` 继续通过 `build-product-entry` 保持窄而可机读。
+- 面向用户的 MAS 回路从 `product-frontdesk` 开始，经由 `workspace-cockpit`，再使用 `submit-study-task`、`launch-study` 和 `study-progress`。
+- `operator entry` 与 `agent entry` 继续作为旧 runtime 文档的内部参考术语。
+- 旧短语“轻量医学 `product entry`”现在对应内部桥接层。
+- `build-product-entry` 继续作为需要结构化 envelope 的 caller 使用的窄 machine-readable bridge。
 - [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
 
 ### 参考资料

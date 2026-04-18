@@ -23,7 +23,7 @@
     </td>
     <td width="33%" valign="top">
       <strong>公开角色</strong><br/>
-      `Research Foundry` 里的医学 `Research Ops` 主线，`OPL` 继续只承担可选的顶层 federation 入口
+      `OPL` GUI 与管理壳下的一级医学 domain module / agent
     </td>
   </tr>
 </table>
@@ -52,10 +52,10 @@
 
 | 路径 | 状态 | 含义 |
 | --- | --- | --- |
-| Agent 协作研究主线 | Active | 当前最诚实、也最适合真实课题推进的使用路径 |
-| 轻量 `product-entry` shell | Early | 已经能启动、下任务、看进度，但还不是成熟独立医疗前台 |
-| 医学展示 / 论文配图支线 | Supporting line | 与 runtime 主线刻意分开，避免图件工作反过来改写研究 authority |
-| 成熟的独立医疗用户前台 | Not landed | 仍是 runtime gate 之后的后续工作 |
+| `OPL` 管理下的 MAS 回路 | Active | `OPL` 是顶层 GUI 与管理壳，MAS 从这个壳接收医学 domain 任务 |
+| `Codex` 默认交互与执行 | Active | MAS 的默认检查、规划、执行和续跑路径是 Codex 驱动的 `CLI` / `MCP` / controller 表面 |
+| `Hermes-Agent` 备用与长期在线网关 | Active as gateway mode | 用于外部长期监管、恢复、调度和持续运行可见性 |
+| 医学展示 / 论文配图支线 | Supporting line | 作为研究任务回路之后的下游能力线独立维护 |
 
 ## 这个仓库应该怎么读
 
@@ -65,30 +65,36 @@
 
 ## 用人话解释它的边界
 
-`Med Auto Science` 不是底下所有 runtime 组件的统称。
-它的职责，是对医学研究入口、study authority 和研究真相负责。
+`Med Auto Science` 是放在 `OPL` 顶层操作壳里的医学 domain module / agent。
+它负责医学研究任务回路：课题 intake、workspace 语境、证据推进、进度投影和人工决策点。
 
 ```text
-User / Agent
-  -> OPL Gateway（可选）
-      -> Med Auto Science
-          -> 受控研究后端
+User / clinical operator
+  -> OPL GUI / management shell
+      -> Med Auto Science domain module / agent
+          -> Codex default interaction + execution
+          -> Hermes-Agent backup / long-running gateway when continuous supervision is needed
 ```
 
 更直白地说：
 
-- `OPL` 可选，且始终在这个仓库之上。
-- `Med Auto Science` 负责医学研究 workflow 和 authority boundary。
-- 当前真实研究引擎仍然在这个仓库之下，不应和公开产品入口混成一层。
+- `OPL` 是顶层 GUI 与管理壳。
+- `Med Auto Science` 是这个壳下面的一级医学 domain module / agent。
+- `Codex` 是 MAS 默认交互与执行表面。
+- 上游 `Hermes-Agent` 是外部备用模式与长期在线网关。
+- 更底层的 backend 细节保留给维护者和 runtime operator 阅读。
 
-## 这个仓库不是什么
+## 边界口径
 
-- 它不是“成熟独立医疗前台已经落地”的宣传口径。
-- 它不是“上游 `Hermes-Agent` 已经在这里完整接管研究执行”的结论。
-- 它不是把论文配图资产化支线重新混回研究 runtime 主线的地方。
+- 面向用户时优先解释 `OPL` 壳、MAS domain 任务流、Codex 执行与 Hermes 长期监管。
+- backend transport、迁移、handoff 和 runtime-owner 细节放在内部 runtime / program 参考里。
+- 医学展示与论文配图资产化继续作为支持性能力线维护。
 
 <details>
-  <summary><strong>面向技术读者的运行时真相说明</strong></summary>
+  <summary><strong>内部 runtime 参考关键词</strong></summary>
+
+上面的公开模型是推荐阅读路径。
+下面保留旧 contract 词汇，方便维护者继续追踪现有 runtime 文档和测试。
 
 当前 formal-entry matrix 仍然是 `CLI`、`MCP` 和 `controller`，并继续落在 `Codex-default host-agent runtime` 基线上。
 repo-tracked 产品主线仍按 `Auto-only` 理解。
@@ -99,7 +105,7 @@ repo-tracked 产品主线仍按 `Auto-only` 理解。
 - `P1 workspace canonical literature / knowledge truth`
 - `P2 controlled cutover -> physical monorepo migration`
 
-当前真实 runtime ownership 仍然是分层的：
+旧的分层 runtime ownership wording 保留在这里作为内部兼容词汇：
 
 - `Med Auto Science` 负责研究入口、study/workspace authority 与 outer-loop 治理。
 - `MedDeepScientist` 继续承担真实研究执行的受控后端。
@@ -117,21 +123,21 @@ repo-tracked runtime truth 与本地 operator handoff surface 继续分层维护
 当前 repo-side 外层 runtime seam 不等于上游 `Hermes-Agent` runtime 已经落地，独立上游 `Hermes-Agent` host 对 backend engine 的完整替代仍要继续穿过这道 gate。
 也就是说，external runtime gate 仍然存在，并且已经诚实收口成 `P2` 的外部 blocker。
 
-当前 repo-verified 的公开入口 wording 继续保持：
+旧的 repo-verified 入口 wording 保留在这里用于内部追踪：
 
 - `operator entry` 和 `agent entry`
 - `product entry`：真正成熟的 direct user-facing 入口还没有落地
-- 当前轻量 shell 仍然围绕 `build-product-entry` 收口
+- 当前轻量 shell 仍然围绕 `build-product-entry` 这个内部 machine bridge 收口
 
-兼容目标路径继续写成：
+旧的目标路径标签继续作为兼容参考保留：
 
 - `User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
 - `User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
 
 当前这层轻量 shell 已包括 `workspace-cockpit`、`submit-study-task`、`launch-study`、`product-preflight`、`product-start`、`product-frontdesk`、`product-entry-manifest` 与 `build-product-entry`。
-这些表面已经把启动、下任务和看进度收口得更诚实，而且 manifest/frontdesk 现在还会直接带出 guardrail-recovery 回路、结构化 `Phase 3` host-clearance lane、`Phase 4` backend-deconstruction lane，以及 `Phase 5` 平台目标；但这依然不等于成熟独立医疗前台已经落地。
+当前公开模型里的实际用户回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`；`product-entry-manifest` 与 `build-product-entry` 属于内部可机读桥接表面。
 
-医学展示支线继续与 runtime 主线刻意分开，避免发表图件工作反过来改写研究 authority 与 gateway 真相。
+医学展示支线继续与 runtime 主线分开，保持为下游支持性能力线。
 </details>
 
 ## 开发验证

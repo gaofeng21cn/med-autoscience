@@ -16,13 +16,13 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 
 ## Current Baseline
 
-- `Med Auto Science` is the medical `Research Ops` gateway and domain line in the `Research Foundry` family.
-- The current honest user path is still agent-assisted or operator-assisted; a lightweight product-entry shell exists, but a mature direct medical frontend has not landed.
-- `Med Auto Science` keeps research entry and outer-loop authority, while `MedDeepScientist` remains the controlled research backend.
-- upstream `Hermes-Agent` is still the target outer runtime substrate rather than a fully landed standalone runtime owner in this repo.
-- The medical display line stays separate from the runtime mainline.
-- The active tranche map is still `P0 runtime native truth`, `P1 workspace canonical literature / knowledge truth`, and `P2 controlled cutover -> physical monorepo migration`.
-- The external runtime gate remains part of the blocker package for `P2`.
+- `OPL` is the top-level GUI and management shell for the family.
+- `Med Auto Science` is the first-level medical domain module and agent under that shell.
+- `Codex` is the default interaction and execution surface for MAS work through `CLI`, `MCP`, and controller commands.
+- upstream `Hermes-Agent` is the external backup mode and long-running gateway for supervised runtime continuity.
+- The default MAS loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`.
+- The medical display line stays separate as a downstream capability line.
+- Internal program history still tracks `P0 runtime native truth`, `P1 workspace canonical literature / knowledge truth`, and `P2 controlled cutover -> physical monorepo migration`; the external runtime gate remains part of the blocker package for `P2`.
 
 ## Technical Working Set
 
@@ -84,12 +84,14 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Real study relaunch verification](program/real_study_relaunch_verification.md)
 - [Study progress projection](program/study_progress_projection.md)
 
-`P2 controlled cutover -> physical monorepo migration` remains open, and the Hermes backend continuation / activation material is still part of the blocker package rather than a public claim that the cutover is already complete.
+`P2 controlled cutover -> physical monorepo migration` remains open in internal program material, and the Hermes backend continuation / activation material is still part of the blocker package.
 
-### Entry and handoff references
+### MAS user loop and internal bridge references
 
-- `operator entry` and `agent entry` remain the honest public surfaces today.
-- The current lightweight medical direct entry stays narrow and machine-readable through `build-product-entry`.
+- The public-facing MAS loop starts at `product-frontdesk`, continues through `workspace-cockpit`, then uses `submit-study-task`, `launch-study`, and `study-progress`.
+- `operator entry` and `agent entry` remain internal reference terms for older runtime docs.
+- The older phrase `lightweight medical direct entry` now maps to the internal bridge layer.
+- `build-product-entry` remains the narrow machine-readable bridge for callers that need a structured envelope.
 - [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
 
 ### References

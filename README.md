@@ -23,7 +23,7 @@
     </td>
     <td width="33%" valign="top">
       <strong>Public Role</strong><br/>
-      The medical `Research Ops` gateway in `Research Foundry`, with `OPL` remaining the optional top-level federation layer
+      The first-level medical domain module and agent under the `OPL` GUI and management shell
     </td>
   </tr>
 </table>
@@ -52,10 +52,10 @@
 
 | Path | Status | What it means |
 | --- | --- | --- |
-| Agent-assisted research mainline | Active | The current honest way to use the system for real work |
-| Lightweight product-entry shell | Early | Launch, task submission, and progress visibility exist, but this is not yet a mature standalone medical front desk |
-| Medical display / paper-figure line | Supporting line | Kept separate from the runtime mainline so figure work does not distort research authority |
-| Mature direct user-facing medical frontend | Not landed | Still future work behind the runtime gate |
+| `OPL` managed MAS loop | Active | `OPL` is the top-level GUI and management shell; MAS receives domain-scoped medical research tasks from that shell |
+| `Codex` default interaction and execution | Active | The default way to inspect, plan, run, and continue MAS work is through Codex-driven `CLI` / `MCP` / controller surfaces |
+| `Hermes-Agent` backup and always-on gateway | Active as a gateway mode | Used for external long-running supervision, recovery, scheduling, and backup operation when continuous runtime visibility is needed |
+| Medical display / paper-figure line | Supporting line | Kept separate from the research task loop so figure work stays a downstream capability line |
 
 ## How To Read This Repository
 
@@ -65,30 +65,36 @@
 
 ## Plain-Language Boundary
 
-`Med Auto Science` is not the same thing as every lower-layer runtime component.
-Its role is to stay responsible for medical research entry, study authority, and research-facing truth.
+`Med Auto Science` is the medical domain module/agent that sits inside the broader `OPL` operating shell.
+It owns the medical research task loop: study intake, workspace context, evidence progression, progress reporting, and human decision points.
 
 ```text
-User / Agent
-  -> OPL Gateway (optional)
-      -> Med Auto Science
-          -> Controlled Research Backend
+User / clinical operator
+  -> OPL GUI / management shell
+      -> Med Auto Science domain module / agent
+          -> Codex default interaction + execution
+          -> Hermes-Agent backup / long-running gateway when continuous supervision is needed
 ```
 
 In plain language:
 
-- `OPL` is optional and stays above this repository.
-- `Med Auto Science` owns the medical research workflow and authority boundary.
-- The current research engine still sits below this repository and should not be confused with the public product surface.
+- `OPL` is the top-level GUI and management shell.
+- `Med Auto Science` is the first-level medical domain module and agent under that shell.
+- `Codex` is the default interactive and execution surface for MAS work.
+- upstream `Hermes-Agent` is the external backup mode and long-running gateway for supervised runtime continuity.
+- Lower backend details remain implementation references for maintainers and runtime operators.
 
-## What This Repository Is Not
+## Boundary Guardrails
 
-- It is not a claim that a mature direct medical product frontend has already landed.
-- It is not a claim that upstream `Hermes-Agent` fully owns research execution here today.
-- It is not a place to mix paper-figure assetization back into the main research runtime storyline.
+- Keep user-facing explanations centered on `OPL` shell, MAS domain task flow, Codex execution, and Hermes long-running supervision.
+- Keep backend transport, migration, handoff, and runtime-owner details in internal runtime/program references.
+- Keep medical display and paper-figure assetization as a supporting capability line.
 
 <details>
-  <summary><strong>Technical Notes And Current Runtime Truth</strong></summary>
+  <summary><strong>Internal Runtime Reference Keywords</strong></summary>
+
+The public model above is the recommended reading path.
+The compatibility notes below retain older contract vocabulary so maintainers can still trace existing runtime documents and tests.
 
 The current formal-entry matrix remains `CLI`, `MCP`, and `controller` on the `Codex-default host-agent runtime` baseline.
 The repo-tracked product mainline remains `Auto-only`.
@@ -99,7 +105,7 @@ Current honest tranche map remains:
 - `P1 workspace canonical literature / knowledge truth`
 - `P2 controlled cutover -> physical monorepo migration`
 
-Current truthful runtime ownership is still layered:
+Older layered runtime ownership wording is retained here as internal compatibility vocabulary:
 
 - `Med Auto Science` owns research entry, study/workspace authority, and outer-loop governance.
 - `MedDeepScientist` remains the controlled research backend for real execution.
@@ -117,21 +123,21 @@ The current durable handle story stays explicit:
 This repo still operates through a repo-side outer-runtime seam, and that seam is not a landed upstream `Hermes-Agent` runtime; standalone host replacement continues through that gate.
 The external runtime gate now sits as a concrete external blocker inside `P2`.
 
-Current repo-verified public entry wording remains:
+Older repo-verified entry wording is retained here for internal traceability:
 
 - `operator entry` and `agent entry`
 - `product entry`: not landed yet as a mature direct user-facing entry
-- the current lightweight shell still centers on `build-product-entry`
+- the current lightweight shell still centers on `build-product-entry` as an internal machine bridge
 
-Compatible target routes remain documented as:
+Older target route labels remain documented as compatibility references:
 
 - `User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
 - `User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
 
 The lightweight repo-tracked shell now includes `workspace-cockpit`, `submit-study-task`, `launch-study`, `product-preflight`, `product-start`, `product-frontdesk`, `product-entry-manifest`, and `build-product-entry`.
-These surfaces improve launch, task intake, and progress visibility, and the manifest/frontdesk now also carry explicit guardrail-recovery guidance, a structured `Phase 3` host-clearance lane, a `Phase 4` backend-deconstruction lane, plus a structured `Phase 5` platform target. They still do not mean a mature standalone medical frontend has landed.
+For the current public model, the practical user loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`; `product-entry-manifest` and `build-product-entry` are internal machine-readable bridge surfaces.
 
-The medical display line remains intentionally separate from the runtime mainline, so publication-figure work does not rewrite research authority or gateway truth.
+The medical display line remains intentionally separate from the runtime mainline, so publication-figure work stays a downstream capability line.
 </details>
 
 ## Development Verification
