@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `52`
+- Evidence figure templates: `53`
 - Illustration shells: `5`
 - Table shells: `5`
-- Total audited templates: `62`
+- Total audited templates: `63`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -51,7 +51,7 @@
 
 其中：
 
-- `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在本轮 reroute 后转入 [medical_display_active_board.md](./medical_display_active_board.md) 作为当前 active round，不再留在 backlog 候选池。
+- `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在上一轮正式收口为 `atlas_spatial_trajectory_density_coverage_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
 - `D/E/G / PHATE or richer manifold overlay follow-on` 本轮不再作为当前 active 候选保留：
   - 原因：单独扩到替代 projection / manifold overlay 会把当前 round 收缩成偏 `D` 的 geometry 变体，更容易滑回 projection gallery，而不是 `D/E/G` 联动的 manuscript-facing composite contract。
