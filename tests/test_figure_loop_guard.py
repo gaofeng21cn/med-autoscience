@@ -313,6 +313,34 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
     assert "programmatic illustration route" in content
 
 
+def test_run_controller_defers_stop_when_called_from_same_quest(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
+    quest_root, outbox_path = make_quest(tmp_path)
+    monkeypatch.setenv("DS_QUEST_ROOT", str(quest_root))
+    monkeypatch.setenv("DS_RUN_ID", "run-loop")
+
+    def unexpected_stop_quest(**kwargs: object) -> dict:
+        pytest.fail("self-owned controller invocation must not stop its own quest")
+
+    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", unexpected_stop_quest)
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        outbox_path=outbox_path,
+        daemon_url="http://127.0.0.1:20999",
+        min_figure_mentions=3,
+        min_reference_count=12,
+    )
+
+    assert result["intervention_enqueued"] is True
+    assert result["quest_stop_applied"] is False
+    assert result["quest_stop_deferred"] is True
+    assert result["quest_stop_defer_reason"] == "self_owned_runtime_watch"
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    assert len(queue["pending"]) == 1
+
+
 def test_build_guard_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     quest_root, outbox_path = make_quest(tmp_path)

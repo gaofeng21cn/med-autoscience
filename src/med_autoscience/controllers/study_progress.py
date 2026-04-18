@@ -2416,8 +2416,9 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             )
         for item in recovery_steps:
             title = _non_empty_text(item.get("title")) or _humanize_token(item.get("step_id")) or "未命名步骤"
+            surface_label = (_non_empty_text(item.get("surface_kind")) or "unknown").replace("_", "-")
             command = _non_empty_text(item.get("command")) or "none"
-            lines.append(f"- {title}: `{command}`")
+            lines.append(f"- {title} [{surface_label}]: `{command}`")
     if payload.get("physician_decision_summary"):
         lines.extend(
             [

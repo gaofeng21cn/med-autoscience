@@ -835,6 +835,15 @@ def run_watch_for_quest(
                     "draft_handoff_delivery_status": report_result.get("draft_handoff_delivery_status"),
                 }
             )
+        if name == "figure_loop_guard":
+            report["controllers"][name].update(
+                {
+                    "quest_stop_applied": bool(report_result.get("quest_stop_applied")),
+                    "quest_stop_status": report_result.get("quest_stop_status"),
+                    "quest_stop_deferred": bool(report_result.get("quest_stop_deferred")),
+                    "quest_stop_defer_reason": report_result.get("quest_stop_defer_reason"),
+                }
+            )
 
     _attach_family_companion_to_quest_report(report, quest_root=quest_root)
     runtime_watch_protocol.save_watch_state(

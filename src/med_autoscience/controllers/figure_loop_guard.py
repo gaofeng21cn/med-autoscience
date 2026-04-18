@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -103,6 +104,17 @@ def _normalize_optional_path(value: object) -> str | None:
     if not raw:
         return None
     return str(Path(raw).expanduser().resolve())
+
+
+def _is_self_owned_quest_invocation(quest_root: Path) -> bool:
+    env_quest_root = str(os.environ.get("DS_QUEST_ROOT") or "").strip()
+    if not env_quest_root:
+        return False
+    try:
+        return Path(env_quest_root).expanduser().resolve() == Path(quest_root).expanduser().resolve()
+    except OSError:
+        return False
+
 
 def extract_figures(message: str) -> list[str]:
     found: set[str] = set()
@@ -443,15 +455,21 @@ def run_controller(
 
     stop_result = None
     intervention = None
+    quest_stop_deferred = False
+    quest_stop_defer_reason = None
     if apply and report["blockers"]:
         runtime_status = str(state.runtime_state.get("status") or "").strip().lower()
         if runtime_status in {"running", "active"}:
-            stop_result = managed_runtime_transport.stop_quest(
-                daemon_url=daemon_url,
-                runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
-                quest_id=state.quest_id,
-                source=source,
-            )
+            if _is_self_owned_quest_invocation(state.quest_root):
+                quest_stop_deferred = True
+                quest_stop_defer_reason = "self_owned_runtime_watch"
+            else:
+                stop_result = managed_runtime_transport.stop_quest(
+                    daemon_url=daemon_url,
+                    runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
+                    quest_id=state.quest_id,
+                    source=source,
+                )
         intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,
@@ -471,6 +489,8 @@ def run_controller(
         "message_id": intervention.get("message_id") if intervention else None,
         "quest_stop_applied": bool(stop_result),
         "quest_stop_status": stop_result.get("status") if isinstance(stop_result, dict) else None,
+        "quest_stop_deferred": quest_stop_deferred,
+        "quest_stop_defer_reason": quest_stop_defer_reason,
     }
 
 
