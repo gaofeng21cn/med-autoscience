@@ -711,19 +711,81 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
         module,
         "build_product_entry_manifest",
         lambda **kwargs: {
+            "surface_kind": "product_entry_manifest",
+            "manifest_version": 2,
+            "manifest_kind": "med_autoscience_product_entry_manifest",
             "target_domain_id": "med-autoscience",
+            "formal_entry": {
+                "default": "CLI",
+                "supported_protocols": ["MCP"],
+                "internal_surface": "controller",
+            },
             "workspace_locator": {"profile_name": "test-profile"},
+            "product_entry_shell": {
+                "product_frontdesk": {
+                    "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                    "surface_kind": "product_frontdesk",
+                }
+            },
+            "shared_handoff": {
+                "direct_entry_builder": {
+                    "entry_mode": "direct",
+                }
+            },
             "runtime": {"runtime_owner": "upstream_hermes_agent"},
             "product_entry_status": {"summary": "test status"},
             "frontdesk_surface": {
-                "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml"
+                "surface_kind": "product_frontdesk",
+                "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "summary": "open frontdesk",
             },
             "operator_loop_surface": {
-                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
+                "surface_kind": "workspace_cockpit",
+                "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "summary": "open workspace cockpit",
             },
             "operator_loop_actions": {},
-            "product_entry_start": {},
-            "product_entry_overview": {},
+            "product_entry_start": {
+                "surface_kind": "product_entry_start",
+                "summary": "open frontdesk first",
+                "recommended_mode_id": "open_frontdesk",
+                "modes": [
+                    {
+                        "mode_id": "open_frontdesk",
+                        "title": "Open frontdesk",
+                        "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                        "surface_kind": "product_frontdesk",
+                        "summary": "open frontdesk",
+                        "requires": [],
+                    }
+                ],
+                "resume_surface": {
+                    "surface_kind": "workspace_cockpit",
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                    "session_locator_field": "profile_name",
+                },
+                "human_gate_ids": ["workspace_gate"],
+            },
+            "product_entry_overview": {
+                "surface_kind": "product_entry_overview",
+                "summary": "workspace overview",
+                "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "progress_surface": {
+                    "surface_kind": "workspace_cockpit",
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                },
+                "resume_surface": {
+                    "surface_kind": "workspace_cockpit",
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                    "session_locator_field": "profile_name",
+                },
+                "recommended_step_id": "open_frontdesk",
+                "next_focus": ["open workspace cockpit"],
+                "remaining_gaps_count": 0,
+                "human_gate_ids": ["workspace_gate"],
+            },
             "domain_entry_contract": {
                 "entry_adapter": "MedAutoScienceDomainEntry",
                 "service_safe_surface_kind": "med_autoscience_service_safe_domain_entry",
@@ -743,12 +805,55 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
                 "shared_handoff_envelope": ["target_domain_id"],
             },
             "product_entry_preflight": {
+                "surface_kind": "product_entry_preflight",
+                "summary": "preflight ready",
                 "ready_to_try_now": True,
                 "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
+                "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "blocking_check_ids": [],
+                "checks": [],
             },
-            "product_entry_readiness": {},
-            "product_entry_quickstart": {"steps": []},
-            "family_orchestration": {},
+            "product_entry_readiness": {
+                "surface_kind": "product_entry_readiness",
+                "verdict": "ready_for_task",
+                "usable_now": True,
+                "good_to_use_now": True,
+                "fully_automatic": False,
+                "summary": "workspace ready",
+                "recommended_start_surface": "product_frontdesk",
+                "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "recommended_loop_surface": "workspace_cockpit",
+                "recommended_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                "blocking_gaps": [],
+            },
+            "product_entry_quickstart": {
+                "surface_kind": "product_entry_quickstart",
+                "recommended_step_id": "open_frontdesk",
+                "summary": "open frontdesk first",
+                "steps": [
+                    {
+                        "step_id": "open_frontdesk",
+                        "title": "Open frontdesk",
+                        "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                        "surface_kind": "product_frontdesk",
+                        "summary": "open frontdesk",
+                        "requires": [],
+                    }
+                ],
+                "resume_contract": {
+                    "surface_kind": "workspace_cockpit",
+                    "session_locator_field": "profile_name",
+                },
+                "human_gate_ids": ["workspace_gate"],
+            },
+            "family_orchestration": {
+                "human_gates": [{"gate_id": "workspace_gate"}],
+                "resume_contract": {
+                    "surface_kind": "workspace_cockpit",
+                    "session_locator_field": "profile_name",
+                },
+            },
+            "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
             "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
             "summary": {
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"

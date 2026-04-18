@@ -41,6 +41,8 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_readiness as _build_shared_product_entry_readiness,
     build_product_entry_resume_surface as _build_shared_product_entry_resume_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
+    validate_family_product_frontdesk as _validate_shared_family_product_frontdesk,
+    validate_family_product_entry_manifest as _validate_shared_family_product_entry_manifest,
 )
 from opl_harness_shared.product_entry_program_companions import (
     build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
@@ -161,50 +163,17 @@ def _validate_surface_kind_mapping(
 
 
 def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> None:
-    _require_nonempty_string_from_mapping(payload, "schema_ref", context="product_entry_manifest")
-    _validate_domain_entry_contract_shape(
-        _require_mapping(payload, "domain_entry_contract", context="product_entry_manifest"),
-        context="product_entry_manifest.domain_entry_contract",
-    )
-    _validate_gateway_interaction_contract_shape(
-        _require_mapping(payload, "gateway_interaction_contract", context="product_entry_manifest"),
-        context="product_entry_manifest.gateway_interaction_contract",
-    )
-    _validate_surface_kind_mapping(
+    _validate_shared_family_product_entry_manifest(
         payload,
-        field="runtime_inventory",
-        expected_surface_kind="runtime_inventory",
-        context="product_entry_manifest",
-    )
-    _validate_surface_kind_mapping(
-        payload,
-        field="task_lifecycle",
-        expected_surface_kind="task_lifecycle",
-        context="product_entry_manifest",
-    )
-    _validate_surface_kind_mapping(
-        payload,
-        field="skill_catalog",
-        expected_surface_kind="skill_catalog",
-        context="product_entry_manifest",
-    )
-    _validate_surface_kind_mapping(
-        payload,
-        field="automation",
-        expected_surface_kind="automation",
-        context="product_entry_manifest",
+        require_contract_bundle=True,
+        require_runtime_companions=True,
     )
 
 
 def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
-    _require_nonempty_string_from_mapping(payload, "schema_ref", context="product_frontdesk")
-    _validate_domain_entry_contract_shape(
-        _require_mapping(payload, "domain_entry_contract", context="product_frontdesk"),
-        context="product_frontdesk.domain_entry_contract",
-    )
-    _validate_gateway_interaction_contract_shape(
-        _require_mapping(payload, "gateway_interaction_contract", context="product_frontdesk"),
-        context="product_frontdesk.gateway_interaction_contract",
+    _validate_shared_family_product_frontdesk(
+        payload,
+        require_contract_bundle=True,
     )
 
 
