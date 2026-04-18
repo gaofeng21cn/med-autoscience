@@ -156,6 +156,23 @@ _RECOVERY_ACTION_MODE_LABELS = {
     "maintain_compatibility_guard": "保持人工收尾兼容保护",
     "monitor_only": "继续监督当前 study",
 }
+_OPERATOR_STATUS_HANDLING_LABELS = {
+    "runtime_supervision_recovering": "监管恢复中",
+    "runtime_recovering": "运行恢复中",
+    "paper_surface_refresh_in_progress": "人类查看面刷新中",
+    "scientific_or_quality_repair_in_progress": "论文硬阻塞处理中",
+    "waiting_human_decision": "等待医生或 PI 判断",
+    "manual_finishing": "人工收尾兼容保护",
+    "monitor_only": "持续监督中",
+}
+_OPERATOR_STATUS_TRUTH_SOURCE_LABELS = {
+    "runtime_supervision": "runtime_supervision/latest.json",
+    "supervisor_tick_audit": "supervisor_tick_audit",
+    "publication_eval": "publication_eval/latest.json",
+    "controller_decision": "controller_decisions/latest.json",
+    "runtime_watch": "runtime_watch",
+    "latest_event": "latest_events[0]",
+}
 _CONTINUATION_REASON_LABELS = {
     "unchanged_finalize_state": "运行停在未变化的定稿总结态",
 }
@@ -193,6 +210,10 @@ _LATEST_EVENT_DISPLAY_TIERS = {
     "runtime_escalation": 0,
     "runtime_watch": 1,
     "launch_report": 2,
+}
+_HUMAN_SURFACE_REFRESH_BLOCKER_LABELS = {
+    _BLOCKER_LABELS["stale_study_delivery_mirror"],
+    _BLOCKER_LABELS["missing_submission_minimal"],
 }
 
 
@@ -1413,6 +1434,235 @@ def _operator_verdict(
     }
 
 
+def _operator_status_handling_state(
+    *,
+    current_stage: str,
+    intervention_lane: dict[str, Any],
+    needs_physician_decision: bool,
+    current_blockers: list[str],
+    manual_finish_contract: dict[str, Any] | None,
+) -> str:
+    lane_id = _non_empty_text((intervention_lane or {}).get("lane_id")) or "monitor_only"
+    if _manual_finish_active(manual_finish_contract):
+        return "manual_finishing"
+    if lane_id == "workspace_supervision_gap":
+        return "runtime_supervision_recovering"
+    if lane_id in {"runtime_recovery_required", "runtime_blocker"} or current_stage in {
+        "managed_runtime_recovering",
+        "managed_runtime_degraded",
+        "managed_runtime_escalated",
+        "runtime_blocked",
+    }:
+        return "runtime_recovering"
+    if needs_physician_decision or lane_id == "human_decision_gate":
+        return "waiting_human_decision"
+    if any(str(item or "").strip() in _HUMAN_SURFACE_REFRESH_BLOCKER_LABELS for item in current_blockers):
+        return "paper_surface_refresh_in_progress"
+    if lane_id == "quality_floor_blocker":
+        return "scientific_or_quality_repair_in_progress"
+    return "monitor_only"
+
+
+def _latest_event_snapshot(latest_events: list[dict[str, Any]]) -> tuple[str | None, str | None]:
+    for item in latest_events:
+        if not isinstance(item, dict):
+            continue
+        timestamp = _non_empty_text(item.get("timestamp"))
+        if timestamp is None:
+            continue
+        source = _non_empty_text(item.get("source")) or _non_empty_text(item.get("category")) or "latest_event"
+        return "latest_event", timestamp if source is None else timestamp
+    return None, None
+
+
+def _operator_status_truth_snapshot(
+    *,
+    handling_state: str,
+    latest_events: list[dict[str, Any]],
+    publication_eval_payload: dict[str, Any] | None,
+    controller_decision_payload: dict[str, Any] | None,
+    runtime_watch_payload: dict[str, Any] | None,
+    runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    latest_event_source, latest_event_time = _latest_event_snapshot(latest_events)
+    candidates_by_state = {
+        "runtime_supervision_recovering": (
+            ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
+            ("runtime_supervision", _non_empty_text((runtime_supervision_payload or {}).get("recorded_at"))),
+            (latest_event_source, latest_event_time),
+        ),
+        "runtime_recovering": (
+            ("runtime_supervision", _non_empty_text((runtime_supervision_payload or {}).get("recorded_at"))),
+            ("supervisor_tick_audit", _non_empty_text((supervisor_tick_audit or {}).get("latest_recorded_at"))),
+            (latest_event_source, latest_event_time),
+        ),
+        "paper_surface_refresh_in_progress": (
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            (latest_event_source, latest_event_time),
+        ),
+        "scientific_or_quality_repair_in_progress": (
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+            (latest_event_source, latest_event_time),
+        ),
+        "waiting_human_decision": (
+            ("controller_decision", _non_empty_text((controller_decision_payload or {}).get("emitted_at"))),
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+            (latest_event_source, latest_event_time),
+        ),
+        "manual_finishing": (
+            (latest_event_source, latest_event_time),
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+        ),
+        "monitor_only": (
+            (latest_event_source, latest_event_time),
+            ("publication_eval", _non_empty_text((publication_eval_payload or {}).get("emitted_at"))),
+            ("runtime_watch", _non_empty_text((runtime_watch_payload or {}).get("scanned_at"))),
+        ),
+    }
+    for source, timestamp in candidates_by_state.get(handling_state, ((latest_event_source, latest_event_time),)):
+        if source is not None and timestamp is not None:
+            return source, timestamp
+    return None, None
+
+
+def _operator_status_human_surface_summary(handling_state: str) -> tuple[str, str]:
+    if handling_state == "paper_surface_refresh_in_progress":
+        return "stale", "给人看的投稿包镜像仍落后于当前论文真相。"
+    if handling_state == "waiting_human_decision":
+        return "pending_decision", "当前主要等待人工判断，给人看的稿件状态以论文门控为准。"
+    if handling_state in {"runtime_supervision_recovering", "runtime_recovering"}:
+        return "monitoring_runtime", "当前优先看结构化监管真相，给人看的稿件表面还不是主判断面。"
+    return "current", "给人看的稿件表面当前没有额外刷新告警。"
+
+
+def _operator_status_verdict(handling_state: str) -> str:
+    if handling_state == "runtime_supervision_recovering":
+        return "MAS 正在恢复外环监管，当前 study 仍处在受管修复中。"
+    if handling_state == "runtime_recovering":
+        return "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
+    if handling_state == "paper_surface_refresh_in_progress":
+        return "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
+    if handling_state == "scientific_or_quality_repair_in_progress":
+        return "MAS 正在处理论文可发表性硬阻塞，给人看的稿件还没到放行状态。"
+    if handling_state == "waiting_human_decision":
+        return "MAS 已经把自动侧能做的部分推进完成，当前在等医生或 PI 判断。"
+    if handling_state == "manual_finishing":
+        return "MAS 当前保持人工收尾兼容保护，并继续提供监督入口。"
+    return "MAS 正在持续监管当前 study。"
+
+
+def _operator_status_owner_summary(handling_state: str) -> str:
+    if handling_state == "runtime_supervision_recovering":
+        return "MAS 正在恢复 workspace 级监管心跳，托管执行仍由 runtime 持有。"
+    if handling_state == "runtime_recovering":
+        return "MAS 正在根据 runtime supervision 真相继续处理恢复。"
+    if handling_state == "paper_surface_refresh_in_progress":
+        return "MAS 正在根据 publication gate 真相刷新给人看的投稿包镜像。"
+    if handling_state == "scientific_or_quality_repair_in_progress":
+        return "MAS 正在收口论文可发表性与质量硬阻塞。"
+    if handling_state == "waiting_human_decision":
+        return "MAS 已把下一步提升到医生或 PI 决策面，并继续保持监管。"
+    if handling_state == "manual_finishing":
+        return "MAS 当前只保持人工收尾兼容保护和监督入口。"
+    return "MAS 正在持续监管当前 study。"
+
+
+def _operator_status_focus_summary(
+    *,
+    handling_state: str,
+    intervention_lane: dict[str, Any],
+    next_system_action: str,
+    current_stage_summary: str,
+) -> str:
+    if handling_state == "paper_surface_refresh_in_progress":
+        return "优先把人类查看面同步到当前论文真相，再继续盯论文门控。"
+    return (
+        _non_empty_text(next_system_action)
+        or _non_empty_text((intervention_lane or {}).get("summary"))
+        or _non_empty_text(current_stage_summary)
+        or "继续按当前 study 的结构化真相推进。"
+    )
+
+
+def _operator_status_next_confirmation_signal(handling_state: str) -> str:
+    if handling_state == "runtime_supervision_recovering":
+        return "看 supervisor tick 是否回到 fresh，并确认监管缺口告警从 attention queue 消失。"
+    if handling_state == "runtime_recovering":
+        return "看 runtime_supervision/latest.json 的 health_status 回到 live，或最近明确推进时间刷新。"
+    if handling_state == "paper_surface_refresh_in_progress":
+        return "看 manuscript/delivery_manifest.json、current_package，或 submission_minimal 是否被刷新到最新真相。"
+    if handling_state == "scientific_or_quality_repair_in_progress":
+        return "看 publication_eval/latest.json 或 runtime_watch 里的 blocker 是否减少。"
+    if handling_state == "waiting_human_decision":
+        return "看 controller_decisions/latest.json 是否写出人工确认后的下一步，或用户回复是否回写。"
+    if handling_state == "manual_finishing":
+        return "看人工收尾是否写出新的明确结论，或兼容保护是否仍然保持 active。"
+    return "看下一条 runtime progress / publication_eval 更新。"
+
+
+def _operator_status_card(
+    *,
+    study_id: str,
+    current_stage: str,
+    current_stage_summary: str,
+    intervention_lane: dict[str, Any],
+    needs_physician_decision: bool,
+    current_blockers: list[str],
+    next_system_action: str,
+    latest_events: list[dict[str, Any]],
+    publication_eval_payload: dict[str, Any] | None,
+    controller_decision_payload: dict[str, Any] | None,
+    runtime_watch_payload: dict[str, Any] | None,
+    runtime_supervision_payload: dict[str, Any] | None,
+    supervisor_tick_audit: dict[str, Any],
+    manual_finish_contract: dict[str, Any] | None,
+) -> dict[str, Any]:
+    handling_state = _operator_status_handling_state(
+        current_stage=current_stage,
+        intervention_lane=intervention_lane,
+        needs_physician_decision=needs_physician_decision,
+        current_blockers=current_blockers,
+        manual_finish_contract=manual_finish_contract,
+    )
+    latest_truth_source, latest_truth_time = _operator_status_truth_snapshot(
+        handling_state=handling_state,
+        latest_events=latest_events,
+        publication_eval_payload=publication_eval_payload,
+        controller_decision_payload=controller_decision_payload,
+        runtime_watch_payload=runtime_watch_payload,
+        runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
+    )
+    human_surface_freshness, human_surface_summary = _operator_status_human_surface_summary(handling_state)
+    return {
+        "surface_kind": "study_operator_status_card",
+        "study_id": study_id,
+        "handling_state": handling_state,
+        "handling_state_label": _OPERATOR_STATUS_HANDLING_LABELS.get(handling_state),
+        "owner_summary": _operator_status_owner_summary(handling_state),
+        "current_focus": _operator_status_focus_summary(
+            handling_state=handling_state,
+            intervention_lane=intervention_lane,
+            next_system_action=next_system_action,
+            current_stage_summary=current_stage_summary,
+        ),
+        "latest_truth_time": latest_truth_time,
+        "latest_truth_source": latest_truth_source,
+        "latest_truth_source_label": (
+            _OPERATOR_STATUS_TRUTH_SOURCE_LABELS.get(latest_truth_source)
+            if latest_truth_source is not None
+            else None
+        ),
+        "human_surface_freshness": human_surface_freshness,
+        "human_surface_summary": human_surface_summary,
+        "next_confirmation_signal": _operator_status_next_confirmation_signal(handling_state),
+        "user_visible_verdict": _operator_status_verdict(handling_state),
+    }
+
+
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
@@ -1810,6 +2060,41 @@ def build_study_progress_projection(
         next_system_action=next_system_action,
         current_blockers=current_blockers,
     )
+    latest_events = _latest_events(
+        launch_report_payload=launch_report_payload,
+        launch_report_path=launch_report_path,
+        runtime_supervision_payload=runtime_supervision_payload,
+        runtime_supervision_path=runtime_supervision_path if runtime_supervision_payload is not None else None,
+        runtime_escalation_payload=runtime_escalation_payload,
+        runtime_escalation_path=runtime_escalation_path,
+        publication_eval_payload=publication_eval_payload,
+        publication_eval_path=publication_eval_path,
+        controller_decision_payload=controller_decision_payload,
+        controller_decision_path=controller_decision_path,
+        runtime_watch_payload=runtime_watch_payload,
+        runtime_watch_path=runtime_watch_path,
+        details_projection_payload=details_projection_payload,
+        details_projection_path=details_projection_path,
+        bash_summary_payload=bash_summary_payload,
+        bash_summary_path=bash_summary_path,
+        publication_supervisor_state=publication_supervisor_state,
+    )
+    operator_status_card = _operator_status_card(
+        study_id=resolved_study_id,
+        current_stage=current_stage,
+        current_stage_summary=current_stage_summary,
+        intervention_lane=intervention_lane,
+        needs_physician_decision=needs_physician_decision,
+        current_blockers=current_blockers,
+        next_system_action=next_system_action,
+        latest_events=latest_events,
+        publication_eval_payload=publication_eval_payload,
+        controller_decision_payload=controller_decision_payload,
+        runtime_watch_payload=runtime_watch_payload,
+        runtime_supervision_payload=runtime_supervision_payload,
+        supervisor_tick_audit=supervisor_tick_audit,
+        manual_finish_contract=manual_finish_contract,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -1821,29 +2106,12 @@ def build_study_progress_projection(
         "current_stage_summary": current_stage_summary,
         "paper_stage": paper_stage,
         "paper_stage_summary": paper_stage_summary,
-        "latest_events": _latest_events(
-            launch_report_payload=launch_report_payload,
-            launch_report_path=launch_report_path,
-            runtime_supervision_payload=runtime_supervision_payload,
-            runtime_supervision_path=runtime_supervision_path if runtime_supervision_payload is not None else None,
-            runtime_escalation_payload=runtime_escalation_payload,
-            runtime_escalation_path=runtime_escalation_path,
-            publication_eval_payload=publication_eval_payload,
-            publication_eval_path=publication_eval_path,
-            controller_decision_payload=controller_decision_payload,
-            controller_decision_path=controller_decision_path,
-            runtime_watch_payload=runtime_watch_payload,
-            runtime_watch_path=runtime_watch_path,
-            details_projection_payload=details_projection_payload,
-            details_projection_path=details_projection_path,
-            bash_summary_payload=bash_summary_payload,
-            bash_summary_path=bash_summary_path,
-            publication_supervisor_state=publication_supervisor_state,
-        ),
+        "latest_events": latest_events,
         "current_blockers": current_blockers,
         "next_system_action": next_system_action,
         "intervention_lane": intervention_lane,
         "operator_verdict": operator_verdict,
+        "operator_status_card": operator_status_card,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "recovery_contract": recovery_contract,
@@ -1953,6 +2221,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         _non_empty_text(intervention_lane.get("severity")) or "",
         "",
     )
+    operator_status_card = dict(payload.get("operator_status_card") or {})
     recovery_contract = dict(payload.get("recovery_contract") or {})
     recovery_action_mode = _RECOVERY_ACTION_MODE_LABELS.get(
         _non_empty_text(recovery_contract.get("action_mode")) or "",
@@ -2032,6 +2301,30 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- 决策原因: {runtime_reason}")
     if continuation_reason:
         lines.append(f"- continuation_reason: {continuation_reason}")
+    if operator_status_card:
+        lines.extend(
+            [
+                "",
+                "## 操作员状态卡",
+                "",
+                f"- 当前处理态: {operator_status_card.get('handling_state_label') or operator_status_card.get('handling_state') or '未知'}",
+                f"- 用户可见结论: {operator_status_card.get('user_visible_verdict') or 'none'}",
+                f"- 当前聚焦: {operator_status_card.get('current_focus') or 'none'}",
+            ]
+        )
+        if operator_status_card.get("owner_summary"):
+            lines.append(f"- 责任说明: {operator_status_card.get('owner_summary')}")
+        if operator_status_card.get("latest_truth_source_label") or operator_status_card.get("latest_truth_time"):
+            truth_source = operator_status_card.get("latest_truth_source_label") or operator_status_card.get("latest_truth_source") or "unknown"
+            truth_time = operator_status_card.get("latest_truth_time") or "unknown"
+            lines.append(f"- 当前真相源: {truth_source} @ {truth_time}")
+        if operator_status_card.get("human_surface_summary"):
+            lines.append(
+                f"- 人类查看面: `{operator_status_card.get('human_surface_freshness') or 'unknown'}`；"
+                f"{operator_status_card.get('human_surface_summary')}"
+            )
+        if operator_status_card.get("next_confirmation_signal"):
+            lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
     lines.extend(
         [
             "",

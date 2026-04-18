@@ -1082,6 +1082,7 @@ def _attention_item(
     recommended_command: str | None,
     scope: str,
     study_id: str | None = None,
+    operator_status_card: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -1091,7 +1092,14 @@ def _attention_item(
         "title": title,
         "summary": summary,
         "recommended_command": recommended_command,
+        "operator_status_card": dict(operator_status_card or {}) or None,
     }
+
+
+def _operator_status_summary(card: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(card, Mapping):
+        return None
+    return _non_empty_text(card.get("user_visible_verdict")) or _non_empty_text(card.get("owner_summary"))
 
 
 def _workspace_operator_brief(
@@ -1119,10 +1127,12 @@ def _workspace_operator_brief(
         }
     if attention_queue:
         top = dict(attention_queue[0] or {})
-        return {
+        operator_status_card = dict(top.get("operator_status_card") or {})
+        brief = {
             "surface_kind": "workspace_operator_brief",
             "verdict": "attention_required",
-            "summary": _non_empty_text(top.get("summary"))
+            "summary": _operator_status_summary(operator_status_card)
+            or _non_empty_text(top.get("summary"))
             or _non_empty_text(top.get("title"))
             or "当前 workspace 有需要优先处理的 attention item。",
             "should_intervene_now": True,
@@ -1131,6 +1141,13 @@ def _workspace_operator_brief(
             "recommended_step_id": "handle_attention_item",
             "recommended_command": _non_empty_text(top.get("recommended_command")) or commands.get("doctor"),
         }
+        current_focus = _non_empty_text(operator_status_card.get("current_focus"))
+        if current_focus is not None:
+            brief["current_focus"] = current_focus
+        next_confirmation_signal = _non_empty_text(operator_status_card.get("next_confirmation_signal"))
+        if next_confirmation_signal is not None:
+            brief["next_confirmation_signal"] = next_confirmation_signal
+        return brief
     if not studies:
         return {
             "surface_kind": "workspace_operator_brief",
@@ -1145,15 +1162,19 @@ def _workspace_operator_brief(
 
     lead_study = dict(studies[0] or {})
     lead_study_id = _non_empty_text(lead_study.get("study_id"))
+    lead_status_card = dict(lead_study.get("operator_status_card") or {})
     recommended_command = _non_empty_text(lead_study.get("recommended_command")) or _non_empty_text(
         ((lead_study.get("commands") or {}).get("progress"))
     )
     summary = (
-        f"当前没有新的 workspace 级硬告警，继续盯住 {lead_study_id} 的进度与监管即可。"
+        _operator_status_summary(lead_status_card)
+        or (
+            f"当前没有新的 workspace 级硬告警，继续盯住 {lead_study_id} 的进度与监管即可。"
         if lead_study_id is not None
         else "当前没有新的 workspace 级硬告警，继续保持对活跃 study 的监管即可。"
+        )
     )
-    return {
+    brief = {
         "surface_kind": "workspace_operator_brief",
         "verdict": "monitor_only",
         "summary": summary,
@@ -1163,6 +1184,13 @@ def _workspace_operator_brief(
         "recommended_step_id": "inspect_progress",
         "recommended_command": recommended_command or user_loop.get("open_workspace_cockpit"),
     }
+    current_focus = _non_empty_text(lead_status_card.get("current_focus"))
+    if current_focus is not None:
+        brief["current_focus"] = current_focus
+    next_confirmation_signal = _non_empty_text(lead_status_card.get("next_confirmation_signal"))
+    if next_confirmation_signal is not None:
+        brief["next_confirmation_signal"] = next_confirmation_signal
+    return brief
 
 
 def _attention_queue(
@@ -1194,6 +1222,7 @@ def _attention_queue(
         progress_freshness = dict(item.get("progress_freshness") or {})
         blocker_list = list(item.get("current_blockers") or [])
         operator_verdict = dict(item.get("operator_verdict") or {})
+        operator_status_card = dict(item.get("operator_status_card") or {})
         progress_command = _non_empty_text(((item.get("commands") or {}).get("progress")))
         launch_command = _non_empty_text(((item.get("commands") or {}).get("launch")))
         preferred_command = _non_empty_text(item.get("recommended_command")) or _non_empty_text(
@@ -1206,7 +1235,8 @@ def _attention_queue(
         intervention_lane = dict(item.get("intervention_lane") or {})
         lane_id = _non_empty_text(intervention_lane.get("lane_id"))
         lane_summary = (
-            _non_empty_text(operator_verdict.get("summary"))
+            _operator_status_summary(operator_status_card)
+            or _non_empty_text(operator_verdict.get("summary"))
             or _non_empty_text(intervention_lane.get("summary"))
             or current_stage_summary
             or next_system_action
@@ -1221,6 +1251,7 @@ def _attention_queue(
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1233,6 +1264,7 @@ def _attention_queue(
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1245,6 +1277,7 @@ def _attention_queue(
                     recommended_command=preferred_command or launch_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1261,6 +1294,7 @@ def _attention_queue(
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1274,6 +1308,7 @@ def _attention_queue(
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1287,6 +1322,7 @@ def _attention_queue(
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
             continue
@@ -1302,6 +1338,7 @@ def _attention_queue(
                     recommended_command=preferred_command or progress_command,
                     scope="study",
                     study_id=study_id,
+                    operator_status_card=operator_status_card,
                 )
             )
 
@@ -1368,6 +1405,7 @@ def _study_item(
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
     operator_verdict = dict(progress_payload.get("operator_verdict") or {})
+    operator_status_card = dict(progress_payload.get("operator_status_card") or {})
     recommended_command = _non_empty_text(progress_payload.get("recommended_command"))
     recommended_commands = [
         dict(item)
@@ -1383,6 +1421,7 @@ def _study_item(
         "next_system_action": progress_payload.get("next_system_action"),
         "intervention_lane": intervention_lane or None,
         "operator_verdict": operator_verdict or None,
+        "operator_status_card": operator_status_card or None,
         "recommended_command": recommended_command,
         "recommended_commands": recommended_commands,
         "recovery_contract": recovery_contract or None,
@@ -1507,6 +1546,10 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
         if operator_brief.get("focus_study_id"):
             lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+        if operator_brief.get("current_focus"):
+            lines.append(f"- current_focus: {operator_brief.get('current_focus')}")
+        if operator_brief.get("next_confirmation_signal"):
+            lines.append(f"- next_confirmation_signal: {operator_brief.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前还没有 operator brief。")
     lines.extend([
@@ -1571,6 +1614,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- {title}: {item.get('summary')}")
             if item.get("recommended_command"):
                 lines.append(f"  command: `{item.get('recommended_command')}`")
+            operator_status_card = dict(item.get("operator_status_card") or {})
+            if operator_status_card.get("handling_state"):
+                lines.append(f"  handling_state: `{operator_status_card.get('handling_state')}`")
+            if operator_status_card.get("next_confirmation_signal"):
+                lines.append(f"  next_signal: {operator_status_card.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前没有新的 attention item。")
     lines.extend(["", "## User Loop", ""])
@@ -1616,6 +1664,13 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"- operator_verdict: `{operator_verdict.get('decision_mode')}`")
         if operator_verdict.get("summary"):
             lines.append(f"- operator_summary: {operator_verdict.get('summary')}")
+        operator_status_card = dict(item.get("operator_status_card") or {})
+        if operator_status_card.get("handling_state"):
+            lines.append(f"- operator_status_card: `{operator_status_card.get('handling_state')}`")
+        if operator_status_card.get("user_visible_verdict"):
+            lines.append(f"- operator_status_summary: {operator_status_card.get('user_visible_verdict')}")
+        if operator_status_card.get("next_confirmation_signal"):
+            lines.append(f"- next_confirmation_signal: {operator_status_card.get('next_confirmation_signal')}")
         recovery_contract = dict(item.get("recovery_contract") or {})
         if recovery_contract.get("action_mode"):
             lines.append(f"- recovery_contract: `{recovery_contract.get('action_mode')}`")
@@ -2304,6 +2359,9 @@ def build_product_frontdesk(
     product_entry_preflight = dict(manifest.get("product_entry_preflight") or {})
     product_entry_quickstart = dict(manifest.get("product_entry_quickstart") or {})
     workspace_operator_brief = dict(workspace_cockpit.get("operator_brief") or {})
+    workspace_attention_queue = list(workspace_cockpit.get("attention_queue") or [])
+    top_attention = dict(workspace_attention_queue[0] or {}) if workspace_attention_queue else {}
+    top_attention_status_card = dict(top_attention.get("operator_status_card") or {})
     if not bool(product_entry_preflight.get("ready_to_try_now")):
         operator_brief = {
             "surface_kind": "product_frontdesk_operator_brief",
@@ -2320,7 +2378,8 @@ def build_product_frontdesk(
         operator_brief = {
             "surface_kind": "product_frontdesk_operator_brief",
             "verdict": "attention_required",
-            "summary": _non_empty_text(workspace_operator_brief.get("summary"))
+            "summary": _operator_status_summary(top_attention_status_card)
+            or _non_empty_text(workspace_operator_brief.get("summary"))
             or "当前 workspace 已有需要优先处理的 attention item。",
             "should_intervene_now": True,
             "focus_scope": _non_empty_text(workspace_operator_brief.get("focus_scope")) or "workspace",
@@ -2329,6 +2388,16 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text(workspace_operator_brief.get("recommended_command"))
             or _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
+        current_focus = _non_empty_text(top_attention_status_card.get("current_focus")) or _non_empty_text(
+            workspace_operator_brief.get("current_focus")
+        )
+        if current_focus is not None:
+            operator_brief["current_focus"] = current_focus
+        next_confirmation_signal = _non_empty_text(top_attention_status_card.get("next_confirmation_signal")) or _non_empty_text(
+            workspace_operator_brief.get("next_confirmation_signal")
+        )
+        if next_confirmation_signal is not None:
+            operator_brief["next_confirmation_signal"] = next_confirmation_signal
     elif _non_empty_text(workspace_operator_brief.get("verdict")) == "ready_for_task":
         operator_brief = {
             "surface_kind": "product_frontdesk_operator_brief",
@@ -2451,6 +2520,10 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- recommended_command: `{operator_brief.get('recommended_command') or 'none'}`")
         if operator_brief.get("focus_study_id"):
             lines.append(f"- focus_study_id: `{operator_brief.get('focus_study_id')}`")
+        if operator_brief.get("current_focus"):
+            lines.append(f"- current_focus: {operator_brief.get('current_focus')}")
+        if operator_brief.get("next_confirmation_signal"):
+            lines.append(f"- next_confirmation_signal: {operator_brief.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前还没有 frontdesk operator brief。")
     lines.extend([
@@ -2491,6 +2564,11 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         lines.append(
             f"- attention: {item.get('title') or '未命名关注项'} / `{item.get('recommended_command') or 'none'}`"
         )
+        operator_status_card = dict(item.get("operator_status_card") or {})
+        if operator_status_card.get("handling_state"):
+            lines.append(f"- attention_state: `{operator_status_card.get('handling_state')}`")
+        if operator_status_card.get("next_confirmation_signal"):
+            lines.append(f"- attention_next_signal: {operator_status_card.get('next_confirmation_signal')}")
     lines.extend([
         "",
         "## Phase 2 User Loop",

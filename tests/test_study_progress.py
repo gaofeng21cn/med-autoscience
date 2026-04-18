@@ -1105,6 +1105,194 @@ def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 
+def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_publication_eval(study_root, quest_root)
+    _write_runtime_watch(quest_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {
+            "schema_version": 1,
+            "recorded_at": "2026-04-12T10:00:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "health_status": "recovering",
+            "summary": "Hermes 正在尝试恢复掉线的研究运行。",
+            "next_action_summary": "等待 runtime supervision 的 health_status 回到 live，再确认研究继续推进。",
+            "active_run_id": "run-001",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "study_completion_contract": {},
+            "decision": "resume",
+            "reason": "quest_marked_running_but_no_live_session",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "论文还在论文门控阶段，投稿包仍在后续件。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-001",
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+                "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-001",
+                "current_required_action": "supervise_runtime_only",
+                "publication_gate_allows_direct_write": False,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MAS 外环监管心跳新鲜。",
+                "latest_recorded_at": "2026-04-12T10:01:00+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["operator_status_card"]["surface_kind"] == "study_operator_status_card"
+    assert result["operator_status_card"]["handling_state"] == "runtime_recovering"
+    assert result["operator_status_card"]["latest_truth_source"] == "runtime_supervision"
+    assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在处理 runtime recovery，当前 study 仍处在受管修复中。"
+    assert "health_status 回到 live" in result["operator_status_card"]["next_confirmation_signal"]
+
+
+def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_gap(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "emitted_at": "2026-04-12T09:30:00+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "summary": "论文主线仍在可发表性门控下推进。",
+            },
+            "gaps": [
+                {
+                    "gap_id": "stale_study_delivery_mirror",
+                    "gap_type": "delivery_surface",
+                    "severity": "must_fix",
+                    "summary": "study 目录里的投稿包镜像已经过期，仍停在旧版本，不能当作当前包。",
+                }
+            ],
+        },
+    )
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 4, 12, 10, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "controller_stage_note": "科学真相还在推进，给人看的投稿包需要同步刷新。",
+            },
+            "autonomous_runtime_notice": {
+                "required": True,
+                "quest_id": "quest-001",
+                "quest_status": "running",
+                "active_run_id": "run-001",
+                "browser_url": "http://127.0.0.1:21999/quests/quest-001",
+                "quest_session_api_url": "http://127.0.0.1:21999/api/sessions/run-001",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-001",
+                "current_required_action": "supervise_runtime_only",
+                "publication_gate_allows_direct_write": False,
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MAS 外环监管心跳新鲜。",
+                "latest_recorded_at": "2026-04-12T09:59:00+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+    markdown = module.render_study_progress_markdown(result)
+
+    assert result["operator_status_card"]["handling_state"] == "paper_surface_refresh_in_progress"
+    assert result["operator_status_card"]["latest_truth_source"] == "publication_eval"
+    assert result["operator_status_card"]["human_surface_freshness"] == "stale"
+    assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
+    assert "delivery_manifest" in result["operator_status_card"]["next_confirmation_signal"]
+    assert "操作员状态卡" in markdown
+    assert "投稿包镜像" in markdown
+
+
 def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_runtime(
     monkeypatch,
     tmp_path: Path,
