@@ -269,6 +269,49 @@ _WORKSPACE_STATUS_LABELS = {
     "blocked": "前置检查未通过",
 }
 
+_START_MODE_LABELS = {
+    "open_frontdesk": "打开 MAS 前台",
+    "submit_task": "给 study 下 durable 任务",
+    "continue_study": "启动或续跑 study",
+}
+
+_DIRECT_ENTRY_MODE_LABELS = {
+    "direct": "直接进入",
+    "opl-handoff": "OPL handoff",
+}
+
+_RUNTIME_DECISION_LABELS = {
+    "resume": "恢复当前运行",
+    "launch": "启动新运行",
+    "reroute": "改走其他运行路径",
+}
+
+_SURFACE_KIND_LABELS = {
+    PRODUCT_FRONTDESK_KIND: "MAS 前台",
+    "workspace_cockpit": "workspace cockpit",
+    "study_task_intake": "study 任务入口",
+    "launch_study": "启动或续跑 study",
+    "study_progress": "study 进度",
+}
+
+_CHECK_STATUS_LABELS = {
+    "pass": "通过",
+    "fail": "未通过",
+    "warning": "需关注",
+}
+
+_PHASE5_SEQUENCE_SCOPE_LABELS = {
+    "monorepo_landing_readiness": "monorepo 落地就绪度（monorepo_landing_readiness）",
+}
+
+_PHASE5_MONOREPO_STATUS_LABELS = {
+    "post_gate_target": "post-gate 目标态（post_gate_target）",
+}
+
+_USER_INTERACTION_MODE_LABELS = {
+    "natural_language_frontdoor": "自然语言前台（natural_language_frontdoor）",
+}
+
 
 def _operator_verdict_label(value: object) -> str:
     text = _non_empty_text(value)
@@ -282,6 +325,71 @@ def _workspace_status_label(value: object) -> str:
     if text is None:
         return "未知"
     return _WORKSPACE_STATUS_LABELS.get(text, text)
+
+
+def _start_mode_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _START_MODE_LABELS.get(text, text.replace("_", " "))
+
+
+def _direct_entry_mode_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _DIRECT_ENTRY_MODE_LABELS.get(text, text)
+
+
+def _runtime_decision_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _RUNTIME_DECISION_LABELS.get(text, text)
+
+
+def _surface_kind_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _SURFACE_KIND_LABELS.get(text, text.replace("_", " "))
+
+
+def _bool_label(value: object) -> str:
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return text
+
+
+def _check_status_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _CHECK_STATUS_LABELS.get(text, text)
+
+
+def _phase5_sequence_scope_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _PHASE5_SEQUENCE_SCOPE_LABELS.get(text, text)
+
+
+def _phase5_monorepo_status_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _PHASE5_MONOREPO_STATUS_LABELS.get(text, text)
+
+
+def _user_interaction_mode_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _USER_INTERACTION_MODE_LABELS.get(text, text)
 
 
 def _operator_handling_state_label(payload: Mapping[str, Any]) -> str | None:
@@ -651,12 +759,12 @@ def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mappin
     lines = [
         "## Platform Target",
         "",
-        f"- summary: `{phase5_platform_target.get('summary') or 'none'}`",
-        f"- sequence_scope: `{phase5_platform_target.get('sequence_scope') or 'none'}`",
-        f"- current_step_id: `{phase5_platform_target.get('current_step_id') or 'none'}`",
-        f"- current_readiness_summary: `{phase5_platform_target.get('current_readiness_summary') or 'none'}`",
-        f"- monorepo_status: `{((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
-        f"- recommended_phase_command: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
+        f"- 当前摘要: {phase5_platform_target.get('summary') or 'none'}",
+        f"- 当前序列范围: {_phase5_sequence_scope_label(phase5_platform_target.get('sequence_scope'))}",
+        f"- 当前步骤: `{phase5_platform_target.get('current_step_id') or 'none'}`",
+        f"- 当前就绪判断: {phase5_platform_target.get('current_readiness_summary') or 'none'}",
+        f"- monorepo 目标状态: {_phase5_monorepo_status_label(((phase5_platform_target.get('north_star_topology') or {}).get('monorepo_status')))}",
+        f"- 推荐 phase 命令: `{phase5_platform_target.get('recommended_phase_command') or 'none'}`",
         "",
         "## Monorepo Sequence",
         "",
@@ -1691,7 +1799,7 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         "",
     ])
     if mainline_snapshot:
-        lines.append(f"- program_id: `{mainline_snapshot.get('program_id') or 'unknown'}`")
+        lines.append(f"- 当前 program: `{mainline_snapshot.get('program_id') or 'unknown'}`")
         lines.append(f"- 当前主线阶段: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
         if mainline_snapshot.get("current_stage_summary"):
             lines.append(f"- 当前判断: {mainline_snapshot.get('current_stage_summary')}")
@@ -1889,32 +1997,35 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Launch Study",
         "",
-        f"- study_id: `{payload.get('study_id')}`",
-        f"- runtime_decision: `{((payload.get('runtime_status') or {}).get('decision') or 'unknown')}`",
-        f"- browser_url: `{supervision.get('browser_url') or 'none'}`",
-        f"- active_run_id: `{supervision.get('active_run_id') or 'none'}`",
+        f"- 当前 study: `{payload.get('study_id')}`",
+        f"- 当前运行判断: {_runtime_decision_label((payload.get('runtime_status') or {}).get('decision'))}",
+        f"- 浏览器入口: `{supervision.get('browser_url') or 'none'}`",
+        f"- 当前运行批次: `{supervision.get('active_run_id') or 'none'}`",
     ]
     _append_human_status_lines(lines, progress_payload)
     if task_intake:
         lines.extend(
             [
-                f"- task_intent: {task_intake.get('task_intent') or '未提供'}",
-                f"- journal_target: {task_intake.get('journal_target') or 'none'}",
+                f"- 当前任务意图: {task_intake.get('task_intent') or '未提供'}",
+                f"- 当前投稿目标: {task_intake.get('journal_target') or 'none'}",
             ]
         )
     if progress_freshness.get("summary"):
-        lines.append(f"- progress_signal: {progress_freshness.get('summary')}")
+        lines.append(f"- 进度信号: {progress_freshness.get('summary')}")
     lines.extend(["", "## Blockers", ""])
     if blockers:
         lines.extend(f"- {item}" for item in blockers)
     else:
         lines.append("- 当前没有新的硬阻塞。")
     if recovery_contract:
-        lines.extend(["", "## 恢复合同", ""])
-        if recovery_contract.get("action_mode"):
-            lines.append(f"- action_mode: `{recovery_contract.get('action_mode')}`")
+        lines.extend(["", "## 恢复建议", ""])
+        if recovery_contract.get("contract_kind"):
+            lines.append(f"- 恢复合同类型: `{recovery_contract.get('contract_kind')}`")
+        recovery_action_mode_label = _recovery_action_mode_label(recovery_contract)
+        if recovery_action_mode_label:
+            lines.append(f"- 当前恢复模式: {recovery_action_mode_label}")
         if recovery_contract.get("summary"):
-            lines.append(f"- summary: {recovery_contract.get('summary')}")
+            lines.append(f"- 当前恢复判断: {recovery_contract.get('summary')}")
         for item in recommended_commands:
             title = _non_empty_text(item.get("title")) or _non_empty_text(item.get("step_id")) or "unnamed"
             lines.append(f"- {title}: `{item.get('command') or 'none'}`")
@@ -2404,16 +2515,16 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Product Entry Manifest",
         "",
-        f"- manifest_kind: `{payload.get('manifest_kind')}`",
-        f"- schema_ref: `{payload.get('schema_ref')}`",
-        f"- target_domain_id: `{payload.get('target_domain_id')}`",
-        f"- profile_name: `{workspace_locator.get('profile_name')}`",
-        f"- workspace_root: `{workspace_locator.get('workspace_root')}`",
+        f"- manifest 类型: `{payload.get('manifest_kind')}`",
+        f"- schema 引用: `{payload.get('schema_ref')}`",
+        f"- 目标域: `{payload.get('target_domain_id')}`",
+        f"- profile 名称: `{workspace_locator.get('profile_name')}`",
+        f"- workspace 根目录: `{workspace_locator.get('workspace_root')}`",
         f"- 当前 program phase: `{repo_mainline.get('current_program_phase_id')}`",
         f"- 当前主线阶段: `{repo_mainline.get('current_stage_id')}`",
         f"- 程序摘要: {repo_mainline.get('summary') or 'none'}",
-        f"- frontdoor_owner: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
-        f"- user_interaction_mode: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
+        f"- 前台入口归属: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
+        f"- 交互模式: {_user_interaction_mode_label(gateway_interaction_contract.get('user_interaction_mode'))}",
         "",
         "## Product Entry Shell",
         "",
@@ -2441,7 +2552,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
             continue
         lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
     lines.extend(["", "## Guardrails", ""])
-    lines.append(f"- summary: {product_entry_guardrails.get('summary') or 'none'}")
+    lines.append(f"- 当前摘要: {product_entry_guardrails.get('summary') or 'none'}")
     for item in product_entry_guardrails.get("guardrail_classes") or []:
         if not isinstance(item, dict):
             continue
@@ -2798,10 +2909,10 @@ def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Product Entry Preflight",
         "",
-        f"- ready_to_try_now: `{payload.get('ready_to_try_now')}`",
-        f"- summary: `{payload.get('summary') or 'none'}`",
-        f"- recommended_check_command: `{payload.get('recommended_check_command') or 'none'}`",
-        f"- recommended_start_command: `{payload.get('recommended_start_command') or 'none'}`",
+        f"- 当前可直接尝试: {_bool_label(payload.get('ready_to_try_now'))}",
+        f"- 当前摘要: {payload.get('summary') or 'none'}",
+        f"- 前置检查命令: `{payload.get('recommended_check_command') or 'none'}`",
+        f"- 推荐启动命令: `{payload.get('recommended_start_command') or 'none'}`",
         "",
         "## Checks",
         "",
@@ -2814,8 +2925,8 @@ def render_product_entry_preflight_markdown(payload: dict[str, Any]) -> str:
             lines.append(
                 "- "
                 + f"`{check.get('check_id')}` "
-                + f"[{check.get('status')}] "
-                + f"(blocking={check.get('blocking')}) "
+                + f"[{_check_status_label(check.get('status'))}] "
+                + f"({'阻塞项' if check.get('blocking') else '非阻塞项'}) "
                 + f"{check.get('summary') or ''} "
                 + f"`{check.get('command') or 'none'}`"
             )
@@ -2829,11 +2940,11 @@ def render_product_entry_start_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Product Entry Start",
         "",
-        f"- summary: `{payload.get('summary') or 'none'}`",
-        f"- recommended_mode_id: `{payload.get('recommended_mode_id') or 'none'}`",
-        f"- resume_surface: `{((payload.get('resume_surface') or {}).get('surface_kind') or 'none')}`",
+        f"- 当前摘要: {payload.get('summary') or 'none'}",
+        f"- 建议入口: {_start_mode_label(payload.get('recommended_mode_id'))}",
+        f"- 恢复入口: {_surface_kind_label(((payload.get('resume_surface') or {}).get('surface_kind')))}",
         "",
-        "## Modes",
+        "## 可用入口",
         "",
     ]
     modes = list(payload.get("modes") or [])
@@ -2843,7 +2954,7 @@ def render_product_entry_start_markdown(payload: dict[str, Any]) -> str:
                 continue
             lines.append(
                 "- "
-                + f"`{mode.get('mode_id')}` "
+                + f"{_start_mode_label(mode.get('mode_id'))}: "
                 + f"`{mode.get('command') or 'none'}` "
                 + f"{mode.get('summary') or ''}"
             )
@@ -2985,11 +3096,11 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Build Product Entry",
         "",
-        f"- target_domain_id: `{payload.get('target_domain_id')}`",
-        f"- entry_mode: `{payload.get('entry_mode')}`",
-        f"- task_intent: {payload.get('task_intent')}",
-        f"- study_id: `{domain_payload.get('study_id') or 'unknown'}`",
-        f"- journal_target: {domain_payload.get('journal_target') or 'none'}",
+        f"- 目标域: `{payload.get('target_domain_id')}`",
+        f"- 当前入口模式: {_direct_entry_mode_label(payload.get('entry_mode'))}",
+        f"- 当前任务意图: {payload.get('task_intent')}",
+        f"- 当前 study: `{domain_payload.get('study_id') or 'unknown'}`",
+        f"- 当前投稿目标: {domain_payload.get('journal_target') or 'none'}",
         "",
         "## Commands",
         "",
@@ -3001,9 +3112,9 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Return Surface",
             "",
-            f"- runtime_supervision_path: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
-            f"- publication_eval_path: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
-            f"- controller_decision_path: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
+            f"- 运行监管路径: `{return_surface_contract.get('runtime_supervision_path') or 'none'}`",
+            f"- 发表评估路径: `{return_surface_contract.get('publication_eval_path') or 'none'}`",
+            f"- 控制器决策路径: `{return_surface_contract.get('controller_decision_path') or 'none'}`",
             "",
         ]
     )
