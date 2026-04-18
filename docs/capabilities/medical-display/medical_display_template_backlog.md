@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `54`
+- Evidence figure templates: `57`
 - Illustration shells: `6`
 - Table shells: `5`
-- Total audited templates: `65`
+- Total audited templates: `68`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -117,7 +117,6 @@
 
 - `clinical_impact_curve_binary`
 - `multivariable_forest`
-- `coefficient_path_panel`
 - `broader_heterogeneity_summary_panel`
 - `confusion_matrix_heatmap_binary`
 - `temporal_external_validation_overview`

@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`54`
+  - 证据型模板：`57`
   - 插图壳层：`6`
   - 表格壳层：`5`
-  - 总模板数：`65`
+  - 总模板数：`68`
 - 最近一次已吸收完成的 capability cluster：
   - `C/H / coefficient-path follow-on beyond the compact effect-estimate lower bound`
   - `coefficient_path_panel`
