@@ -2964,29 +2964,51 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
     assert len(captured["landing_sequence"]) == 5
 
 
-def test_build_product_entry_manifest_uses_shared_family_action_graph(monkeypatch, tmp_path: Path) -> None:
+def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestration(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     captured: dict[str, object] = {}
 
-    def _fake_build_family_action_graph(**kwargs: object) -> dict[str, object]:
+    def _fake_build_family_product_entry_orchestration(**kwargs: object) -> dict[str, object]:
         captured.update(kwargs)
         return {
+            "action_graph_ref": {
+                "ref_kind": "json_pointer",
+                "ref": "/family_orchestration/action_graph",
+                "label": "mas family action graph",
+            },
             "version": "family-action-graph.v1",
-            "graph_id": str(kwargs["graph_id"]),
-            "target_domain_id": str(kwargs["target_domain_id"]),
-            "graph_kind": str(kwargs["graph_kind"]),
-            "graph_version": str(kwargs["graph_version"]),
-            "nodes": list(kwargs["nodes"]),
-            "edges": list(kwargs["edges"]),
-            "entry_nodes": list(kwargs["entry_nodes"]),
-            "exit_nodes": list(kwargs["exit_nodes"]),
-            "human_gates": list(kwargs["human_gates"]),
-            "checkpoint_policy": dict(kwargs["checkpoint_policy"]),
+            "action_graph": {
+                "graph_id": str(kwargs["graph_id"]),
+                "target_domain_id": str(kwargs["target_domain_id"]),
+                "graph_kind": str(kwargs["graph_kind"]),
+                "graph_version": str(kwargs["graph_version"]),
+                "nodes": list(kwargs["nodes"]),
+                "edges": list(kwargs["edges"]),
+                "entry_nodes": list(kwargs["entry_nodes"]),
+                "exit_nodes": list(kwargs["exit_nodes"]),
+                "human_gates": list(kwargs["human_gates"]),
+                "checkpoint_policy": {
+                    "mode": "explicit_nodes",
+                    "checkpoint_nodes": list(kwargs["checkpoint_nodes"]),
+                },
+            },
+            "human_gates": list(kwargs["human_gate_previews"]),
+            "resume_contract": {
+                "surface_kind": str(kwargs["resume_surface_kind"]),
+                "session_locator_field": str(kwargs["session_locator_field"]),
+                "checkpoint_locator_field": str(kwargs["checkpoint_locator_field"]),
+            },
+            "event_envelope_surface": dict(kwargs["event_envelope_surface"]),
+            "checkpoint_lineage_surface": dict(kwargs["checkpoint_lineage_surface"]),
         }
 
-    monkeypatch.setattr(module, "_build_shared_family_action_graph", _fake_build_family_action_graph)
+    monkeypatch.setattr(
+        module,
+        "_build_shared_family_product_entry_orchestration",
+        _fake_build_family_product_entry_orchestration,
+    )
 
     payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
 
@@ -3007,3 +3029,12 @@ def test_build_product_entry_manifest_uses_shared_family_action_graph(monkeypatc
     ]
     assert captured["entry_nodes"] == ["step:open_frontdesk"]
     assert captured["exit_nodes"] == ["step:continue_study", "step:inspect_progress"]
+    assert captured["checkpoint_nodes"] == [
+        "step:submit_task",
+        "step:continue_study",
+        "step:inspect_progress",
+    ]
+    assert [gate["gate_id"] for gate in captured["human_gate_previews"]] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
