@@ -124,6 +124,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
 
     assert "# Mainline Status" in markdown
     assert "f4_blocker_closeout" in markdown
+    assert "当前判断" in markdown
     assert "Ideal State" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown

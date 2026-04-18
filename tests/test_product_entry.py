@@ -358,7 +358,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "002-risk" in markdown
     assert "Mainline Snapshot" in markdown
     assert "## Now" in markdown
-    assert "current_program_phase" in markdown
+    assert "当前 program phase" in markdown
     assert "Attention Queue" in markdown
     assert "User Loop" in markdown
     assert "Phase 2 User Loop" in markdown
@@ -367,6 +367,49 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "The Lancet Digital Health" in markdown
     assert "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。" in markdown
     assert "launch-study" in markdown
+
+
+def test_workspace_cockpit_markdown_prefers_shared_human_status_narration() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from opl_harness_shared.status_narration import build_status_narration_contract
+
+    payload = {
+        "profile_name": "nf-pitnet",
+        "workspace_root": "/tmp/nf-pitnet",
+        "workspace_status": "ready",
+        "workspace_supervision": {},
+        "phase2_user_product_loop": {},
+        "user_loop": {},
+        "commands": {},
+        "studies": [
+            {
+                "study_id": "001-risk",
+                "current_stage": "publication_supervision",
+                "current_stage_summary": "旧版阶段摘要字段",
+                "next_system_action": "旧版 next_system_action 字段",
+                "current_blockers": ["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+                "status_narration_contract": build_status_narration_contract(
+                    contract_id="study-progress::001-risk",
+                    surface_kind="study_progress",
+                    stage={
+                        "current_stage": "publication_supervision",
+                        "recommended_next_stage": "bundle_stage_ready",
+                    },
+                    current_blockers=["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+                    latest_update="论文主体内容已经完成，当前进入投稿打包收口。",
+                    next_step="优先核对 submission package 与 studies 目录中的交付面是否一致。",
+                ),
+            }
+        ],
+    }
+
+    markdown = module.render_workspace_cockpit_markdown(payload)
+
+    assert "当前阶段: 论文可发表性监管" in markdown
+    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in markdown
+    assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
+    assert "next_system_action:" not in markdown
+    assert "旧版阶段摘要字段" not in markdown
 
 
 def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_attention(
@@ -703,6 +746,43 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert "优先发现卡住、无进度和 figure 质量回退" in markdown
     assert "最近 12 小时内仍有明确研究推进记录" in markdown
     assert "恢复合同" in markdown
+
+
+def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    from opl_harness_shared.status_narration import build_status_narration_contract
+
+    payload = {
+        "study_id": "001-risk",
+        "runtime_status": {"decision": "resume"},
+        "progress": {
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "旧版阶段摘要字段",
+            "next_system_action": "旧版 next_system_action 字段",
+            "current_blockers": ["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+            "status_narration_contract": build_status_narration_contract(
+                contract_id="study-progress::001-risk",
+                surface_kind="study_progress",
+                stage={
+                    "current_stage": "publication_supervision",
+                    "recommended_next_stage": "bundle_stage_ready",
+                },
+                current_blockers=["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+                latest_update="论文主体内容已经完成，当前进入投稿打包收口。",
+                next_step="优先核对 submission package 与 studies 目录中的交付面是否一致。",
+            ),
+            "supervision": {"browser_url": "http://127.0.0.1:20999", "active_run_id": "run-001"},
+        },
+        "commands": {},
+    }
+
+    markdown = module.render_launch_study_markdown(payload)
+
+    assert "当前阶段: 论文可发表性监管" in markdown
+    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in markdown
+    assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
+    assert "current_stage_summary:" not in markdown
+    assert "next_system_action:" not in markdown
 
 
 def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block(tmp_path: Path) -> None:

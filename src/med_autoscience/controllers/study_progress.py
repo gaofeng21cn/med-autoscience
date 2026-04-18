@@ -4,11 +4,12 @@ import json
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from opl_harness_shared.status_narration import (
     PROGRESS_ANSWER_CHECKLIST,
     build_status_narration_contract,
+    build_status_narration_human_view,
 )
 
 from med_autoscience.controllers import study_runtime_router
@@ -331,6 +332,18 @@ def _display_text(value: object) -> str | None:
     ):
         text = text.replace(token, label)
     return text
+
+
+def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return build_status_narration_human_view(
+        payload,
+        fallback_current_stage=_non_empty_text(payload.get("current_stage")),
+        fallback_latest_update=_display_text(payload.get("current_stage_summary"))
+        or _non_empty_text(payload.get("current_stage_summary")),
+        fallback_next_step=_display_text(payload.get("next_system_action"))
+        or _non_empty_text(payload.get("next_system_action")),
+        fallback_blockers=payload.get("current_blockers") or [],
+    )
 
 
 def _current_stage_label(stage: object) -> str | None:
@@ -2238,7 +2251,26 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
     supervisor_tick_status = _supervisor_tick_status_label(((payload.get("supervision") or {}).get("supervisor_tick_status"))) or ""
     progress_freshness = dict(payload.get("progress_freshness") or {})
     task_intake = dict(payload.get("task_intake") or {})
-    current_stage = _current_stage_label(payload.get("current_stage")) or "未知"
+    status_human_view = _status_narration_human_view(payload)
+    has_status_contract = isinstance(payload.get("status_narration_contract"), Mapping)
+    current_stage = _non_empty_text(status_human_view.get("current_stage_label")) or _current_stage_label(
+        payload.get("current_stage")
+    ) or "未知"
+    if has_status_contract:
+        current_judgment = _non_empty_text(status_human_view.get("status_summary")) or _non_empty_text(
+            status_human_view.get("latest_update")
+        )
+    else:
+        current_judgment = _non_empty_text(status_human_view.get("latest_update")) or _non_empty_text(
+            status_human_view.get("status_summary")
+        )
+    if not current_judgment:
+        current_judgment = _display_text(payload.get("current_stage_summary")) or str(
+            payload.get("current_stage_summary") or ""
+        ).strip()
+    next_step_summary = _non_empty_text(status_human_view.get("next_step")) or str(
+        payload.get("next_system_action") or ""
+    ).strip()
     paper_stage = _paper_stage_label(payload.get("paper_stage")) or "未知"
     intervention_lane = dict(payload.get("intervention_lane") or {})
     intervention_title = _non_empty_text(intervention_lane.get("title"))
@@ -2266,8 +2298,9 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
         f"- study_id: `{str(payload.get('study_id') or '')}`",
         f"- quest_id: `{str(payload.get('quest_id') or 'none')}`",
         f"- 当前阶段: {current_stage}",
-        f"- 阶段摘要: {_display_text(payload.get('current_stage_summary')) or str(payload.get('current_stage_summary') or '').strip()}",
     ]
+    if current_judgment:
+        lines.append(f"- 当前判断: {current_judgment}")
     if intervention_title or intervention_summary:
         label = intervention_title or "继续监督当前 study"
         if intervention_severity:
@@ -2369,7 +2402,7 @@ def render_study_progress_markdown(payload: dict[str, Any]) -> str:
             "",
             "## 下一步",
             "",
-            f"- {str(payload.get('next_system_action') or '').strip()}",
+            f"- 下一步建议: {next_step_summary}",
         ]
     )
     if recovery_contract:

@@ -1783,6 +1783,48 @@ def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_bloc
     assert "AMA 稿件导出默认配置仍未补齐。" in markdown
 
 
+def test_render_study_progress_markdown_prefers_shared_human_status_narration() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    from opl_harness_shared.status_narration import build_status_narration_contract
+
+    markdown = module.render_study_progress_markdown(
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "旧版阶段摘要字段",
+            "paper_stage": "bundle_stage_ready",
+            "paper_stage_summary": "投稿打包阶段已放行。",
+            "runtime_decision": "noop",
+            "runtime_reason": "quest_already_running",
+            "current_blockers": ["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+            "next_system_action": "旧版 next_system_action 字段",
+            "latest_events": [],
+            "supervision": {
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+                "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            },
+            "status_narration_contract": build_status_narration_contract(
+                contract_id="study-progress::001-risk",
+                surface_kind="study_progress",
+                stage={
+                    "current_stage": "publication_supervision",
+                    "recommended_next_stage": "bundle_stage_ready",
+                },
+                current_blockers=["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+                latest_update="论文主体内容已经完成，当前进入投稿打包收口。",
+                next_step="优先核对 submission package 与 studies 目录中的交付面是否一致。",
+            ),
+        }
+    )
+
+    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in markdown
+    assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
+    assert "旧版阶段摘要字段" not in markdown
+    assert "旧版 next_system_action 字段" not in markdown
+
+
 def test_study_progress_surfaces_figure_loop_guard_blockers_from_runtime_watch(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)

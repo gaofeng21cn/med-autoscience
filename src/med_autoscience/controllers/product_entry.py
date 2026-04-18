@@ -60,6 +60,9 @@ from opl_harness_shared.runtime_task_companions import (
     build_runtime_inventory as _build_shared_runtime_inventory,
     build_task_lifecycle as _build_shared_task_lifecycle,
 )
+from opl_harness_shared.status_narration import (
+    build_status_narration_human_view as _build_shared_status_narration_human_view,
+)
 from opl_harness_shared.skill_catalog import (
     build_skill_catalog as _build_shared_skill_catalog,
     build_skill_descriptor as _build_shared_skill_descriptor,
@@ -211,6 +214,41 @@ def _utc_now() -> str:
 def _non_empty_text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return _build_shared_status_narration_human_view(
+        payload,
+        fallback_current_stage=_non_empty_text(payload.get("current_stage"))
+        or _non_empty_text(payload.get("current_stage_id")),
+        fallback_latest_update=_non_empty_text(payload.get("current_stage_summary"))
+        or _non_empty_text(payload.get("summary")),
+        fallback_next_step=_non_empty_text(payload.get("next_system_action")),
+        fallback_blockers=payload.get("current_blockers") or [],
+    )
+
+
+def _append_human_status_lines(lines: list[str], payload: Mapping[str, Any]) -> None:
+    human_view = _status_narration_human_view(payload)
+    has_status_contract = isinstance(payload.get("status_narration_contract"), Mapping)
+    current_stage = _non_empty_text(human_view.get("current_stage_label")) or _non_empty_text(
+        payload.get("current_stage")
+    ) or _non_empty_text(payload.get("current_stage_id"))
+    if has_status_contract:
+        judgment = _non_empty_text(human_view.get("status_summary")) or _non_empty_text(
+            human_view.get("latest_update")
+        )
+    else:
+        judgment = _non_empty_text(human_view.get("latest_update")) or _non_empty_text(
+            human_view.get("status_summary")
+        )
+    next_step = _non_empty_text(human_view.get("next_step"))
+    if current_stage:
+        lines.append(f"- 当前阶段: {current_stage}")
+    if judgment:
+        lines.append(f"- 当前判断: {judgment}")
+    if next_step:
+        lines.append(f"- 下一步建议: {next_step}")
 
 
 def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
@@ -1610,15 +1648,15 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     ])
     if mainline_snapshot:
         lines.append(f"- program_id: `{mainline_snapshot.get('program_id') or 'unknown'}`")
-        lines.append(f"- current_stage: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
+        lines.append(f"- 当前主线阶段: `{mainline_snapshot.get('current_stage_id') or 'unknown'}`")
         if mainline_snapshot.get("current_stage_summary"):
-            lines.append(f"- stage_summary: {mainline_snapshot.get('current_stage_summary')}")
+            lines.append(f"- 当前判断: {mainline_snapshot.get('current_stage_summary')}")
         if mainline_snapshot.get("current_program_phase_id"):
             lines.append(
-                f"- current_program_phase: `{mainline_snapshot.get('current_program_phase_id')}`"
+                f"- 当前 program phase: `{mainline_snapshot.get('current_program_phase_id')}`"
             )
         if mainline_snapshot.get("current_program_phase_summary"):
-            lines.append(f"- phase_summary: {mainline_snapshot.get('current_program_phase_summary')}")
+            lines.append(f"- program phase 摘要: {mainline_snapshot.get('current_program_phase_summary')}")
         next_focus = list(mainline_snapshot.get("next_focus") or [])
         if next_focus:
             lines.append(f"- next_focus: {next_focus[0]}")
@@ -1691,13 +1729,11 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             [
                 f"### {item.get('study_id')}",
                 "",
-                f"- current_stage: `{item.get('current_stage')}`",
-                f"- summary: {item.get('current_stage_summary')}",
-                f"- next_system_action: {item.get('next_system_action')}",
                 f"- browser_url: `{((item.get('monitoring') or {}).get('browser_url') or 'none')}`",
                 f"- active_run_id: `{((item.get('monitoring') or {}).get('active_run_id') or 'none')}`",
             ]
         )
+        _append_human_status_lines(lines, item)
         task_intake = dict(item.get("task_intake") or {})
         if task_intake:
             lines.append(f"- task_intent: {task_intake.get('task_intent') or '未提供'}")
@@ -1807,10 +1843,8 @@ def render_launch_study_markdown(payload: dict[str, Any]) -> str:
         f"- runtime_decision: `{((payload.get('runtime_status') or {}).get('decision') or 'unknown')}`",
         f"- browser_url: `{supervision.get('browser_url') or 'none'}`",
         f"- active_run_id: `{supervision.get('active_run_id') or 'none'}`",
-        f"- current_stage: `{progress_payload.get('current_stage')}`",
-        f"- current_stage_summary: {progress_payload.get('current_stage_summary')}",
-        f"- next_system_action: {progress_payload.get('next_system_action')}",
     ]
+    _append_human_status_lines(lines, progress_payload)
     if task_intake:
         lines.extend(
             [
