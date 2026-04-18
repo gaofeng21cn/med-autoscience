@@ -398,6 +398,58 @@ def test_assess_data_asset_impact_links_private_diff_report_for_outdated_release
     assert dataset["upgrade_diff_report_path"].endswith("master/v2026-03-28__v2026-04-10.json")
 
 
+def test_assess_data_asset_impact_marks_locked_older_wave_as_historical_comparator(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    baseline_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    current_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    baseline_root.mkdir(parents=True, exist_ok=True)
+    current_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        baseline_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline_wave",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_private_release_manifest(
+        current_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-04-10",
+        raw_snapshot="current_wave",
+        generated_by="pipeline/v2.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (baseline_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (current_root / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    study_manifest = workspace_root / "studies" / "002-trend-study" / "data_input" / "dataset_manifest.yaml"
+    study_manifest.parent.mkdir(parents=True, exist_ok=True)
+    study_manifest.write_text(
+        "\n".join(
+            [
+                "locked_inputs:",
+                "  - dataset_id: nfpitnet_master",
+                "    version: v2026-03-28",
+                "  - dataset_id: nfpitnet_master",
+                "    version: v2026-04-10",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    study = result["studies"][0]
+    assert study["status"] == "clear"
+    datasets = {item["version_id"]: item for item in study["dataset_inputs"]}
+    assert datasets["v2026-03-28"]["private_version_status"] == "historical_comparator"
+    assert datasets["v2026-03-28"]["latest_private_version"] == "v2026-04-10"
+    assert datasets["v2026-03-28"]["upgrade_diff_report_path"] is None
+    assert datasets["v2026-04-10"]["private_version_status"] == "up_to_date"
+
+
 def test_init_data_assets_upgrades_public_registry_to_schema_v2(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"

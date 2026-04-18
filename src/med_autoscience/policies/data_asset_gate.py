@@ -7,6 +7,7 @@ CLEAR_RECOMMENDED_ACTION = "continue_with_current_data_contract"
 CONTROLLER_NOTE = (
     "The controller does not judge paper quality directly. "
     "It blocks or flags quest progression when the underlying study is using an outdated private release "
+    "that is not paired with the latest release as an explicit historical comparator "
     "and flags newly registered public-data extension opportunities as advisory items whose default follow-through "
     "is durable triage plus immediate download or materialization for retained datasets."
 )

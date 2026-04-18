@@ -29,6 +29,12 @@ def write_study_manifest(
     path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
 
+def write_locked_version_manifest(path: Path, *, dataset_id: str, versions: list[str]) -> None:
+    payload = {"locked_inputs": [{"dataset_id": dataset_id, "version": version} for version in versions]}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
+
+
 def write_private_release_manifest(
     path: Path,
     *,
@@ -163,6 +169,45 @@ def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_
         "screen_and_materialize_valid_public_datasets_for_extension",
     ]
     assert Path(result["report_path"]).exists()
+
+
+def test_startup_data_readiness_treats_locked_older_wave_as_clear_historical_comparator(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    baseline_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    current_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    baseline_root.mkdir(parents=True, exist_ok=True)
+    current_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        baseline_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-03-28",
+        raw_snapshot="baseline_wave",
+        generated_by="pipeline/v1.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    write_private_release_manifest(
+        current_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-04-10",
+        raw_snapshot="current_wave",
+        generated_by="pipeline/v2.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+    )
+    (baseline_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (current_root / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    write_locked_version_manifest(
+        workspace_root / "studies" / "002-trend-study" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        versions=["v2026-03-28", "v2026-04-10"],
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "clear"
+    assert result["study_summary"]["clear_study_ids"] == ["002-trend-study"]
+    assert result["study_summary"]["outdated_private_release_study_ids"] == []
+    assert result["recommendations"] == ["startup_data_ready"]
 
 
 def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportunities(tmp_path: Path) -> None:

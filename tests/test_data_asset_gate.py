@@ -57,6 +57,19 @@ def write_dataset_manifest(path: Path, *, dataset_id: str, relative_path: str) -
     )
 
 
+def write_locked_version_manifest(path: Path, *, dataset_id: str, versions: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = ["locked_inputs:"]
+    for version in versions:
+        lines.extend(
+            [
+                f"  - dataset_id: {dataset_id}",
+                f"    version: {version}",
+            ]
+        )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)
@@ -76,6 +89,58 @@ def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Pat
     assert report["status"] == "blocked"
     assert "outdated_private_release" in report["blockers"]
     assert report["study_id"] == "002-early-residual-risk"
+
+
+def test_build_gate_report_allows_locked_historical_wave_when_latest_release_is_present(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+    baseline_root = workspace_root / "datasets" / "master" / "v2026-03-28"
+    current_root = workspace_root / "datasets" / "master" / "v2026-04-10"
+    baseline_root.mkdir(parents=True, exist_ok=True)
+    current_root.mkdir(parents=True, exist_ok=True)
+    (baseline_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (current_root / "analysis.csv").write_text("id\n1\n2\n", encoding="utf-8")
+    (baseline_root / "dataset_manifest.yaml").write_text(
+        "\n".join(
+            [
+                "dataset_id: nfpitnet_master",
+                "version: v2026-03-28",
+                "raw_snapshot: baseline_wave",
+                "generated_by: pipeline/v1.py",
+                "main_outputs:",
+                "  analysis_csv: analysis.csv",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (current_root / "dataset_manifest.yaml").write_text(
+        "\n".join(
+            [
+                "dataset_id: nfpitnet_master",
+                "version: v2026-04-10",
+                "raw_snapshot: current_wave",
+                "generated_by: pipeline/v2.py",
+                "main_outputs:",
+                "  analysis_csv: analysis.csv",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    write_locked_version_manifest(
+        workspace_root / "studies" / "002-early-residual-risk" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        versions=["v2026-03-28", "v2026-04-10"],
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["status"] == "clear"
+    assert report["blockers"] == []
+    assert report["outdated_dataset_ids"] == []
+    assert report["historical_comparator_dataset_ids"] == ["nfpitnet_master"]
 
 
 def test_build_gate_report_blocks_when_private_contract_is_unresolved(tmp_path: Path) -> None:

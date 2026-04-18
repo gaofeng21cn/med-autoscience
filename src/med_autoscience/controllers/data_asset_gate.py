@@ -93,6 +93,13 @@ def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
         for item in dataset_inputs
         if item.get("private_version_status") == "older_than_latest"
     ]
+    historical_comparator_dataset_ids = sorted(
+        {
+            str(item.get("dataset_id"))
+            for item in dataset_inputs
+            if item.get("private_version_status") == "historical_comparator"
+        }
+    )
     unresolved_dataset_ids = [
         str(item.get("dataset_id"))
         for item in dataset_inputs
@@ -141,6 +148,7 @@ def build_gate_report(state: DataAssetGateState) -> dict[str, Any]:
         "advisories": advisories,
         "study_status": (state.study_report or {}).get("status"),
         "outdated_dataset_ids": outdated_dataset_ids,
+        "historical_comparator_dataset_ids": historical_comparator_dataset_ids,
         "unresolved_dataset_ids": unresolved_dataset_ids,
         "public_support_dataset_ids": public_support_dataset_ids,
         "dataset_inputs": dataset_inputs,
@@ -178,6 +186,8 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
             "",
             f"- `study_status`: `{report.get('study_status')}`",
             f"- `outdated_dataset_ids`: `{', '.join(report.get('outdated_dataset_ids') or ['none'])}`",
+            "- `historical_comparator_dataset_ids`: "
+            f"`{', '.join(report.get('historical_comparator_dataset_ids') or ['none'])}`",
             f"- `public_support_dataset_ids`: `{', '.join(report.get('public_support_dataset_ids') or ['none'])}`",
             "",
             "## Controller Scope",
@@ -224,6 +234,7 @@ def run_controller(
         "advisories": report["advisories"],
         "study_id": report["study_id"],
         "outdated_dataset_ids": report["outdated_dataset_ids"],
+        "historical_comparator_dataset_ids": report["historical_comparator_dataset_ids"],
         "unresolved_dataset_ids": report["unresolved_dataset_ids"],
         "public_support_dataset_ids": report["public_support_dataset_ids"],
         "intervention_enqueued": bool(intervention),

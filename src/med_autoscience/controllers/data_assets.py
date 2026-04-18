@@ -591,6 +591,28 @@ def _load_dataset_inputs(path: Path) -> list[dict[str, object]]:
     return normalized
 
 
+def _study_versions_by_family(
+    resolved_inputs: list[tuple[dict[str, object], str, str, str | None, str | None, dict[str, object] | None]],
+) -> dict[str, set[str]]:
+    versions_by_family: dict[str, set[str]] = {}
+    for _, _, _, family_id, version_id, _ in resolved_inputs:
+        if isinstance(family_id, str) and isinstance(version_id, str):
+            versions_by_family.setdefault(family_id, set()).add(version_id)
+    return versions_by_family
+
+
+def _is_historical_comparator_release(
+    *,
+    family_id: str | None,
+    version_id: str | None,
+    latest_version: str | None,
+    study_versions_by_family: dict[str, set[str]],
+) -> bool:
+    if not isinstance(family_id, str) or not isinstance(version_id, str) or not isinstance(latest_version, str):
+        return False
+    return latest_version != version_id and latest_version in study_versions_by_family.get(family_id, set())
+
+
 def _study_dataset_inputs_path(study_root: Path) -> Path | None:
     manifest_path = study_root / "data_input" / "dataset_manifest.yaml"
     if manifest_path.exists():
@@ -616,14 +638,20 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
         dataset_inputs_path = _study_dataset_inputs_path(study_root)
         if dataset_inputs_path is None:
             continue
-        dataset_reports: list[dict[str, object]] = []
-        overall_status = "clear"
+        resolved_inputs: list[
+            tuple[dict[str, object], str, str, str | None, str | None, dict[str, object] | None]
+        ] = []
         for item in _load_dataset_inputs(dataset_inputs_path):
             dataset_id, source_path, family_id, version_id, bound_release = _resolve_dataset_binding(
                 item=item,
                 release_index=release_index,
                 dataset_version_index=dataset_version_index,
             )
+            resolved_inputs.append((item, dataset_id, source_path, family_id, version_id, bound_release))
+        study_versions_by_family = _study_versions_by_family(resolved_inputs)
+        dataset_reports: list[dict[str, object]] = []
+        overall_status = "clear"
+        for item, dataset_id, source_path, family_id, version_id, bound_release in resolved_inputs:
             public_registry_backed = item.get("source") == "portfolio_public_registry"
             latest_version = latest_versions.get(family_id) if family_id is not None else None
             if public_registry_backed:
@@ -634,6 +662,13 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                 private_status = "family_not_registered"
             elif latest_version == version_id:
                 private_status = "up_to_date"
+            elif _is_historical_comparator_release(
+                family_id=family_id,
+                version_id=version_id,
+                latest_version=latest_version,
+                study_versions_by_family=study_versions_by_family,
+            ):
+                private_status = "historical_comparator"
             else:
                 private_status = "older_than_latest"
                 overall_status = "review_needed"
@@ -650,7 +685,13 @@ def assess_data_asset_impact(*, workspace_root: Path) -> dict[str, object]:
                     overall_status = "review_needed"
             upgrade_diff_report_path: str | None = None
             upgrade_diff_report_exists = False
-            if family_id is not None and version_id is not None and latest_version is not None and latest_version != version_id:
+            if (
+                family_id is not None
+                and version_id is not None
+                and latest_version is not None
+                and latest_version != version_id
+                and private_status == "older_than_latest"
+            ):
                 cache_key = (family_id, version_id, latest_version)
                 diff_report = diff_cache.get(cache_key)
                 if diff_report is None:
