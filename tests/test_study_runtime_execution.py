@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -142,3 +143,79 @@ def test_autonomous_runtime_notice_does_not_claim_live_without_active_run_id(mon
     )
 
     assert "autonomous_runtime_notice" not in status.to_dict()
+
+
+def test_controller_owned_interaction_reply_message_prompts_write_stage_resume(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    payload = _base_status_payload()
+    payload["reason"] = "quest_stale_decision_after_write_stage_ready"
+    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+
+    message = module._controller_owned_interaction_reply_message(status=status)
+
+    assert message is not None
+    assert "publication gate 已放行写作" in message
+    assert "继续 write stage" in message
+
+
+def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    quest_root = tmp_path / "runtime" / "quest-001"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        json.dumps(
+            {
+                "status": "running",
+                "active_run_id": "run-live-001",
+                "continuation_anchor": "decision",
+                "continuation_reason": "decision:decision-live-001",
+                "same_fingerprint_auto_turn_count": 3,
+                "pending_user_message_count": 0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    payload = _base_status_payload()
+    payload["reason"] = "quest_stale_decision_after_write_stage_ready"
+    payload["quest_root"] = str(quest_root)
+    status = typed_surface.StudyRuntimeStatus.from_payload(payload)
+    status.record_runtime_liveness_audit(
+        {
+            "status": "live",
+            "active_run_id": "run-live-001",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live-001",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        }
+    )
+    status.record_publication_supervisor_state(
+        {
+            "status": "clear",
+            "supervisor_phase": "write_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "current_required_action": "continue_write_stage",
+            "bundle_tasks_downstream_only": False,
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "write stage is clear",
+        }
+    )
+
+    assert module._should_skip_redundant_resume_for_live_controller_reroute(status=status) is True
+    assert (
+        module._should_force_restart_for_live_controller_reroute(
+            status=status,
+            context=SimpleNamespace(quest_root=quest_root),
+        )
+        is True
+    )

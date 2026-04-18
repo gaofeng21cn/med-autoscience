@@ -52,6 +52,10 @@ __all__ = [
 ]
 
 _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD = 3
+_LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON = {
+    StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL: "return_to_publishability_gate",
+    StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY: "continue_write_stage",
+}
 
 
 def _router_module():
@@ -67,6 +71,11 @@ def _controller_owned_interaction_reply_message(*, status: StudyRuntimeStatus) -
         return (
             "MAS publication gate 尚未放行写作。请停止当前 manuscript / finalize 漂移，"
             "回到 publishability blockers 与科学锚点映射，清除门控后再继续写作或申请 completion。"
+        )
+    if status.reason is StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY:
+        return (
+            "MAS publication gate 已放行写作。请结束旧的 decision 续跑点，"
+            "回到当前 manuscript 主线，继续 write stage 并更新 results / figures / tables。"
         )
     pending_payload = status.extras.get("pending_user_interaction")
     arbitration_payload = status.extras.get("interaction_arbitration")
@@ -128,7 +137,7 @@ def _relay_controller_owned_runtime_reply_if_required(
 
 
 def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRuntimeStatus) -> bool:
-    if status.reason is not StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL:
+    if status.reason not in _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON:
         return False
     payload = status.extras.get("runtime_liveness_audit")
     if not isinstance(payload, dict):
@@ -155,7 +164,8 @@ def _should_force_restart_for_live_controller_reroute(
     if not isinstance(publication_supervisor_state, dict):
         return False
     current_required_action = str(publication_supervisor_state.get("current_required_action") or "").strip()
-    if current_required_action != "return_to_publishability_gate":
+    expected_action = _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON.get(status.reason)
+    if expected_action is None or current_required_action != expected_action:
         return False
     runtime_state = quest_state.load_runtime_state(context.quest_root)
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
