@@ -52,30 +52,49 @@ def resolve_latest_paper_root(quest_root: Path) -> Path:
 
 
 def _projected_manifest_has_authoritative_paper_line(quest_root: Path, manifest_path: Path) -> bool:
+    return _resolve_projected_manifest_authoritative_paper_root(quest_root, manifest_path) is not None
+
+
+def _resolve_projected_manifest_authoritative_paper_root(quest_root: Path, manifest_path: Path) -> Path | None:
     projected_root = _resolve_path(quest_root) / "paper"
     projected_manifest_path = projected_root / "paper_bundle_manifest.json"
     if _resolve_path(manifest_path) != projected_manifest_path:
-        return False
+        return None
     manifest_payload = _load_json_mapping(projected_manifest_path)
     paper_line_state = _load_json_mapping(projected_root / "paper_line_state.json")
     if manifest_payload is None or paper_line_state is None:
-        return False
+        return None
     manifest_branch = str(manifest_payload.get("paper_branch") or "").strip()
     line_branch = str(paper_line_state.get("paper_branch") or "").strip()
     if not manifest_branch or not line_branch or manifest_branch != line_branch:
-        return False
+        return None
     paper_root_raw = str(paper_line_state.get("paper_root") or "").strip()
     if not paper_root_raw:
-        return False
+        return None
     candidate = Path(paper_root_raw).expanduser()
     if not candidate.is_absolute():
         candidate = (projected_root.parent / candidate).resolve()
     else:
         candidate = candidate.resolve()
     if not candidate.exists() or candidate.name != "paper":
-        return False
+        return None
     worktree_root = candidate.parent
-    return worktree_root.parent.name == "worktrees" and worktree_root.parent.parent.name == ".ds"
+    if worktree_root.parent.name != "worktrees" or worktree_root.parent.parent.name != ".ds":
+        return None
+    return candidate
+
+
+def _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path: Path) -> Path:
+    resolved_manifest_path = _resolve_path(paper_bundle_manifest_path)
+    paper_root = resolved_manifest_path.parent
+    try:
+        quest_root = resolved_manifest_path.parents[1]
+    except IndexError:
+        return paper_root
+    authoritative_projected_root = _resolve_projected_manifest_authoritative_paper_root(quest_root, resolved_manifest_path)
+    if authoritative_projected_root is not None:
+        return authoritative_projected_root
+    return paper_root
 
 
 def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[int, float]:
@@ -112,7 +131,11 @@ def resolve_paper_bundle_manifest(quest_root: Path) -> Path | None:
 def resolve_submission_minimal_manifest(paper_bundle_manifest_path: Path | None) -> Path | None:
     if paper_bundle_manifest_path is None:
         return None
-    candidate = _resolve_path(paper_bundle_manifest_path).parent / "submission_minimal" / "submission_manifest.json"
+    candidate = (
+        _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
+        / "submission_minimal"
+        / "submission_manifest.json"
+    )
     return candidate if candidate.exists() else None
 
 
@@ -257,7 +280,8 @@ def resolve_submission_minimal_output_paths(
 ) -> tuple[Path | None, Path | None]:
     if paper_bundle_manifest_path is None or submission_minimal_manifest is None:
         return None, None
-    workspace_root = _resolve_path(paper_bundle_manifest_path).parent.parent
+    paper_root = _resolve_authoritative_paper_root_from_bundle_manifest_path(paper_bundle_manifest_path)
+    workspace_root = paper_root.parent
     manuscript = submission_minimal_manifest.get("manuscript") or {}
     docx_relpath = str(manuscript.get("docx_path") or "").strip()
     pdf_relpath = str(manuscript.get("pdf_path") or "").strip()

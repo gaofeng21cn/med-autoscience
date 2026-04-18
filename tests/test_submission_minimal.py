@@ -395,6 +395,57 @@ Discussion paragraph.
     return paper_root
 
 
+def make_materialized_submission_source_workspace(tmp_path: Path) -> Path:
+    paper_root = make_current_draft_workspace(tmp_path)
+    write_png(paper_root / "submission_minimal" / "figures" / "F1.png")
+
+    write_text(
+        paper_root / "submission_minimal" / "manuscript_source.md",
+        """# Materialized Submission Title
+
+## Abstract
+
+Materialized abstract with evidence [@ref1].
+
+## Introduction
+
+Materialized introduction with evidence [@ref1].
+
+## Methods
+
+Materialized methods paragraph.
+
+## Results
+
+Materialized results paragraph.
+
+## Discussion
+
+Materialized discussion paragraph.
+
+## Conclusion
+
+Materialized conclusion paragraph.
+
+## Main-text figures
+
+### F1. Main figure
+
+![F1](figures/F1.png)
+
+Materialized figure caption.
+""",
+    )
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "source_markdown_path": "paper/submission_minimal/manuscript_source.md",
+            "pdf_path": "paper/paper.pdf",
+        },
+    )
+    return paper_root
+
+
 def test_create_submission_minimal_package_creates_output_directory_and_copies_pdf(tmp_path: Path) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.submission_minimal")
@@ -1079,3 +1130,34 @@ def test_create_submission_minimal_package_supports_manuscript_shaped_draft_with
     assert paragraphs[0] == "Manuscript-Shaped Draft Title"
     assert any("Study methods paragraph." in paragraph for paragraph in paragraphs)
     assert any("A primary source" in paragraph for paragraph in paragraphs)
+
+
+def test_create_submission_minimal_package_accepts_materialized_submission_source_from_compile_report(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_materialized_submission_source_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "manuscript_source.md").exists()
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert 'title: "Materialized Submission Title"' in submission_markdown
+    assert "# Figures" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![F1](figures/Figure1.png)" in submission_markdown
+    assert "Materialized figure caption." in submission_markdown
+    assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
+
+    with zipfile.ZipFile(submission_root / "manuscript.docx") as archive:
+        names = archive.namelist()
+        document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert any(name.startswith("word/media/") for name in names)
+    assert "<w:drawing" in document_xml
+
+    pdf_reader = PdfReader(str(submission_root / "paper.pdf"))
+    assert sum(len(page.images) for page in pdf_reader.pages) >= 1
