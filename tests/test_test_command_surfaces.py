@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 
@@ -30,6 +31,20 @@ def test_pyproject_registers_meta_and_display_markers() -> None:
 
     assert "meta: repo-tracked docs, workflow, packaging, and command-surface checks" in markers
     assert "display_heavy: display materialization and golden-regression tests that dominate wall-clock time" in markers
+
+
+def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:
+    pyproject = tomllib.loads(_read("pyproject.toml"))
+    dependency = next(
+        item
+        for item in pyproject["project"]["dependencies"]
+        if item.startswith("opl-harness-shared @ ")
+    )
+
+    assert re.fullmatch(
+        r"opl-harness-shared @ git\+https://github\.com/gaofeng21cn/one-person-lab\.git@[0-9a-f]{40}#subdirectory=python/opl-harness-shared",
+        dependency,
+    )
 
 
 def test_public_readmes_publish_layered_test_entrypoints() -> None:

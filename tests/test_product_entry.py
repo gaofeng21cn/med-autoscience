@@ -2725,3 +2725,48 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
     assert payload["surface_kind"] == "phase5_platform_target"
     assert captured["sequence_scope"] == "monorepo_landing_readiness"
     assert len(captured["landing_sequence"]) == 5
+
+
+def test_build_product_entry_manifest_uses_shared_family_action_graph(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    captured: dict[str, object] = {}
+
+    def _fake_build_family_action_graph(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "version": "family-action-graph.v1",
+            "graph_id": str(kwargs["graph_id"]),
+            "target_domain_id": str(kwargs["target_domain_id"]),
+            "graph_kind": str(kwargs["graph_kind"]),
+            "graph_version": str(kwargs["graph_version"]),
+            "nodes": list(kwargs["nodes"]),
+            "edges": list(kwargs["edges"]),
+            "entry_nodes": list(kwargs["entry_nodes"]),
+            "exit_nodes": list(kwargs["exit_nodes"]),
+            "human_gates": list(kwargs["human_gates"]),
+            "checkpoint_policy": dict(kwargs["checkpoint_policy"]),
+        }
+
+    monkeypatch.setattr(module, "_build_shared_family_action_graph", _fake_build_family_action_graph)
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+
+    assert payload["family_orchestration"]["action_graph"]["graph_id"] == "mas_workspace_frontdoor_study_runtime_graph"
+    assert captured["graph_kind"] == "study_runtime_orchestration"
+    assert [node["node_id"] for node in captured["nodes"]] == [
+        "step:open_frontdesk",
+        "step:submit_task",
+        "step:continue_study",
+        "step:inspect_progress",
+    ]
+    assert [edge["on"] for edge in captured["edges"]] == [
+        "new_task",
+        "resume_study",
+        "inspect_status",
+        "task_written",
+        "progress_refresh",
+    ]
+    assert captured["entry_nodes"] == ["step:open_frontdesk"]
+    assert captured["exit_nodes"] == ["step:continue_study", "step:inspect_progress"]

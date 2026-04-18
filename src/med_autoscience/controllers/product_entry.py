@@ -30,6 +30,11 @@ from opl_harness_shared.automation_companions import (
 )
 from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
 from opl_harness_shared.family_orchestration import (
+    build_explicit_checkpoint_policy as _build_shared_explicit_checkpoint_policy,
+    build_family_action_graph as _build_shared_family_action_graph,
+    build_family_action_graph_edge as _build_shared_family_action_graph_edge,
+    build_family_action_graph_human_gate as _build_shared_family_action_graph_human_gate,
+    build_family_action_graph_node as _build_shared_family_action_graph_node,
     build_family_orchestration_template as _build_shared_family_orchestration_template,
 )
 from opl_harness_shared.product_entry_companions import (
@@ -584,10 +589,11 @@ def _build_phase5_platform_target() -> dict[str, Any]:
             phase_id=str(item.get("phase_id") or ""),
             status=str(item.get("status") or ""),
             summary=str(item.get("summary") or ""),
+            title=_non_empty_text(item.get("title")),
         )
         for item in source_landing_sequence
     ]
-    phase5_platform_target = _build_shared_platform_target(
+    return _build_shared_platform_target(
         summary=str(source_payload.get("summary") or ""),
         sequence_scope=str(source_payload.get("sequence_scope") or ""),
         current_step_id=str(source_payload.get("current_step_id") or ""),
@@ -599,22 +605,9 @@ def _build_phase5_platform_target() -> dict[str, Any]:
         remaining_step_ids=list(source_payload.get("remaining_step_ids") or []),
         promotion_gates=list(source_payload.get("promotion_gates") or []),
         recommended_phase_command=str(source_payload.get("recommended_phase_command") or ""),
+        land_now=list(_normalized_strings(source_payload.get("land_now") or [])),
+        not_yet=list(_normalized_strings(source_payload.get("not_yet") or [])),
     )
-    landing_sequence_with_title = []
-    title_by_step_id = {
-        str(item.get("step_id")): _non_empty_text(item.get("title"))
-        for item in source_landing_sequence
-    }
-    for item in phase5_platform_target.get("landing_sequence") or []:
-        normalized_item = dict(item)
-        title = title_by_step_id.get(str(normalized_item.get("step_id")))
-        if title is not None:
-            normalized_item["title"] = title
-        landing_sequence_with_title.append(normalized_item)
-    phase5_platform_target["landing_sequence"] = landing_sequence_with_title
-    phase5_platform_target["land_now"] = list(_normalized_strings(source_payload.get("land_now") or []))
-    phase5_platform_target["not_yet"] = list(_normalized_strings(source_payload.get("not_yet") or []))
-    return phase5_platform_target
 
 
 def _render_phase5_platform_target_markdown_lines(phase5_platform_target: Mapping[str, Any]) -> list[str]:
@@ -1993,91 +1986,89 @@ def build_product_entry_manifest(
             "requires": ["study_id"],
         },
     }
-    family_action_graph = {
-        "version": "family-action-graph.v1",
-        "graph_id": "mas_workspace_frontdoor_study_runtime_graph",
-        "target_domain_id": TARGET_DOMAIN_ID,
-        "graph_kind": "study_runtime_orchestration",
-        "graph_version": "2026-04-13",
-        "nodes": [
-            {
-                "node_id": "step:open_frontdesk",
-                "node_kind": "operator_step",
-                "title": "Open research frontdesk",
-                "surface_kind": PRODUCT_FRONTDESK_KIND,
-            },
-            {
-                "node_id": "step:submit_task",
-                "node_kind": "operator_step",
-                "title": "Write durable study task",
-                "surface_kind": "study_task_intake",
-                "produces_checkpoint": True,
-            },
-            {
-                "node_id": "step:continue_study",
-                "node_kind": "operator_step",
-                "title": "Continue or relaunch a study",
-                "surface_kind": "launch_study",
-                "produces_checkpoint": True,
-            },
-            {
-                "node_id": "step:inspect_progress",
-                "node_kind": "operator_step",
-                "title": "Inspect current study progress",
-                "surface_kind": "study_progress",
-                "produces_checkpoint": True,
-            },
+    family_action_graph = _build_shared_family_action_graph(
+        graph_id="mas_workspace_frontdoor_study_runtime_graph",
+        target_domain_id=TARGET_DOMAIN_ID,
+        graph_kind="study_runtime_orchestration",
+        graph_version="2026-04-13",
+        nodes=[
+            _build_shared_family_action_graph_node(
+                node_id="step:open_frontdesk",
+                node_kind="operator_step",
+                title="Open research frontdesk",
+                surface_kind=PRODUCT_FRONTDESK_KIND,
+            ),
+            _build_shared_family_action_graph_node(
+                node_id="step:submit_task",
+                node_kind="operator_step",
+                title="Write durable study task",
+                surface_kind="study_task_intake",
+                produces_checkpoint=True,
+            ),
+            _build_shared_family_action_graph_node(
+                node_id="step:continue_study",
+                node_kind="operator_step",
+                title="Continue or relaunch a study",
+                surface_kind="launch_study",
+                produces_checkpoint=True,
+            ),
+            _build_shared_family_action_graph_node(
+                node_id="step:inspect_progress",
+                node_kind="operator_step",
+                title="Inspect current study progress",
+                surface_kind="study_progress",
+                produces_checkpoint=True,
+            ),
         ],
-        "edges": [
-            {
-                "from": "step:open_frontdesk",
-                "to": "step:submit_task",
-                "on": "new_task",
-            },
-            {
-                "from": "step:open_frontdesk",
-                "to": "step:continue_study",
-                "on": "resume_study",
-            },
-            {
-                "from": "step:open_frontdesk",
-                "to": "step:inspect_progress",
-                "on": "inspect_status",
-            },
-            {
-                "from": "step:submit_task",
-                "to": "step:continue_study",
-                "on": "task_written",
-            },
-            {
-                "from": "step:continue_study",
-                "to": "step:inspect_progress",
-                "on": "progress_refresh",
-            },
+        edges=[
+            _build_shared_family_action_graph_edge(
+                from_node="step:open_frontdesk",
+                to_node="step:submit_task",
+                on="new_task",
+            ),
+            _build_shared_family_action_graph_edge(
+                from_node="step:open_frontdesk",
+                to_node="step:continue_study",
+                on="resume_study",
+            ),
+            _build_shared_family_action_graph_edge(
+                from_node="step:open_frontdesk",
+                to_node="step:inspect_progress",
+                on="inspect_status",
+            ),
+            _build_shared_family_action_graph_edge(
+                from_node="step:submit_task",
+                to_node="step:continue_study",
+                on="task_written",
+            ),
+            _build_shared_family_action_graph_edge(
+                from_node="step:continue_study",
+                to_node="step:inspect_progress",
+                on="progress_refresh",
+            ),
         ],
-        "entry_nodes": ["step:open_frontdesk"],
-        "exit_nodes": ["step:continue_study", "step:inspect_progress"],
-        "human_gates": [
-            {
-                "gate_id": "study_physician_decision_gate",
-                "trigger_nodes": ["step:continue_study"],
-                "blocking": True,
-            },
-            {
-                "gate_id": "publication_release_gate",
-                "trigger_nodes": ["step:inspect_progress"],
-                "blocking": True,
-            },
+        entry_nodes=["step:open_frontdesk"],
+        exit_nodes=["step:continue_study", "step:inspect_progress"],
+        human_gates=[
+            _build_shared_family_action_graph_human_gate(
+                gate_id="study_physician_decision_gate",
+                trigger_nodes=["step:continue_study"],
+                blocking=True,
+            ),
+            _build_shared_family_action_graph_human_gate(
+                gate_id="publication_release_gate",
+                trigger_nodes=["step:inspect_progress"],
+                blocking=True,
+            ),
         ],
-        "checkpoint_policy": {
-            "mode": "explicit_nodes",
-            "checkpoint_nodes": [
+        checkpoint_policy=_build_shared_explicit_checkpoint_policy(
+            checkpoint_nodes=[
                 "step:submit_task",
                 "step:continue_study",
                 "step:inspect_progress",
-            ],
-        },
-    }
+            ]
+        ),
+    )
     family_orchestration = _build_shared_family_orchestration_template(
         action_graph=family_action_graph,
         human_gates=[

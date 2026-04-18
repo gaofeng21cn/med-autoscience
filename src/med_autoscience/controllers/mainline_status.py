@@ -3,6 +3,17 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from opl_harness_shared.product_entry_program_companions import (
+    build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
+    build_clearance_lane as _build_shared_clearance_lane,
+    build_clearance_target as _build_shared_clearance_target,
+    build_platform_target as _build_shared_platform_target,
+    build_product_entry_program_step as _build_shared_product_entry_program_step,
+    build_product_entry_program_surface as _build_shared_product_entry_program_surface,
+    build_program_capability as _build_shared_program_capability,
+    build_program_sequence_step as _build_shared_program_sequence_step,
+)
+
 
 SCHEMA_VERSION = 1
 PROGRAM_ID = "research-foundry-medical-mainline"
@@ -17,94 +28,93 @@ def _utc_now() -> str:
 
 
 def _platform_target() -> dict[str, Any]:
-    return {
-        "surface_kind": "phase5_platform_target",
-        "summary": (
+    return _build_shared_platform_target(
+        summary=(
             "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 monorepo、"
             "runtime core ingest 和更成熟的 direct product entry；但这些都必须建立在前四阶段真实成立之后。"
         ),
-        "sequence_scope": "monorepo_landing_readiness",
-        "current_readiness_summary": (
+        sequence_scope="monorepo_landing_readiness",
+        current_step_id="stabilize_user_product_loop",
+        current_readiness_summary=(
             "monorepo 长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening；"
             "physical absorb 仍然严格属于 post-gate 工作。"
         ),
-        "north_star_topology": {
+        north_star_topology={
             "domain_gateway": "Med Auto Science",
             "outer_runtime_substrate_owner": "upstream Hermes-Agent",
             "controlled_research_backend": "MedDeepScientist",
             "monorepo_status": "post_gate_target",
         },
-        "target_internal_modules": [
+        target_internal_modules=[
             "controller_charter",
             "runtime",
             "eval_hygiene",
         ],
-        "landing_sequence": [
-            {
-                "step_id": "freeze_gateway_runtime_truth",
-                "title": "Freeze gateway/runtime truth",
-                "status": "completed",
-                "phase_id": "phase_1_mainline_established",
-                "summary": "mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
-            },
-            {
-                "step_id": "stabilize_user_product_loop",
-                "title": "Stabilize user product loop",
-                "status": "in_progress",
-                "phase_id": "phase_2_user_product_loop",
-                "summary": "当前活跃步骤：继续收口 F4 blocker，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。",
-            },
-            {
-                "step_id": "clear_multi_workspace_host_gate",
-                "title": "Clear multi-workspace / host gate",
-                "status": "pending",
-                "phase_id": "phase_3_multi_workspace_host_clearance",
-                "summary": "把 runtime/service/recovery proof 扩到更多 workspace / host 后，才具备更大 cutover 资格。",
-            },
-            {
-                "step_id": "freeze_backend_deconstruction_boundary",
-                "title": "Freeze backend deconstruction boundary",
-                "status": "pending",
-                "phase_id": "phase_4_backend_deconstruction",
-                "summary": "先把 substrate 与 backend retained-now 的边界继续收紧，再谈 executor 迁移或 ingest。",
-            },
-            {
-                "step_id": "physical_monorepo_absorb",
-                "title": "Physical monorepo absorb",
-                "status": "blocked_post_gate",
-                "phase_id": "phase_5_federation_platform_maturation",
-                "summary": "只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入物理 monorepo absorb。",
-            },
+        landing_sequence=[
+            _build_shared_program_sequence_step(
+                step_id="freeze_gateway_runtime_truth",
+                title="Freeze gateway/runtime truth",
+                status="completed",
+                phase_id="phase_1_mainline_established",
+                summary="mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="stabilize_user_product_loop",
+                title="Stabilize user product loop",
+                status="in_progress",
+                phase_id="phase_2_user_product_loop",
+                summary="当前活跃步骤：继续收口 F4 blocker，并把启动 / 下任务 / 看进度 / 看恢复建议收成稳定前台回路。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="clear_multi_workspace_host_gate",
+                title="Clear multi-workspace / host gate",
+                status="pending",
+                phase_id="phase_3_multi_workspace_host_clearance",
+                summary="把 runtime/service/recovery proof 扩到更多 workspace / host 后，才具备更大 cutover 资格。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="freeze_backend_deconstruction_boundary",
+                title="Freeze backend deconstruction boundary",
+                status="pending",
+                phase_id="phase_4_backend_deconstruction",
+                summary="先把 substrate 与 backend retained-now 的边界继续收紧，再谈 executor 迁移或 ingest。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="physical_monorepo_absorb",
+                title="Physical monorepo absorb",
+                status="blocked_post_gate",
+                phase_id="phase_5_federation_platform_maturation",
+                summary="只有在前面几步都稳定通过后，controller_charter / runtime / eval_hygiene 才能进入物理 monorepo absorb。",
+            ),
         ],
-        "current_step_id": "stabilize_user_product_loop",
-        "completed_step_ids": [
+        completed_step_ids=[
             "freeze_gateway_runtime_truth",
         ],
-        "remaining_step_ids": [
+        remaining_step_ids=[
             "clear_multi_workspace_host_gate",
             "freeze_backend_deconstruction_boundary",
             "physical_monorepo_absorb",
         ],
-        "promotion_gates": [
+        promotion_gates=[
             "phase_1_mainline_established",
             "phase_2_user_product_loop",
             "phase_3_multi_workspace_host_clearance",
             "phase_4_backend_deconstruction",
         ],
-        "land_now": [
+        recommended_phase_command=(
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+        ),
+        land_now=[
             "repo-tracked product-entry shell and family orchestration companions",
             "controller-owned runtime/progress/recovery truth",
             "CLI/MCP/controller entry surfaces that already support real work",
         ],
-        "not_yet": [
+        not_yet=[
             "physical monorepo absorb",
             "runtime core ingest across repos",
             "mature hosted standalone medical frontend",
         ],
-        "recommended_phase_command": (
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
-        ),
-    }
+    )
 
 
 def build_phase2_user_product_loop_lane(
@@ -218,137 +228,158 @@ def _phase2_user_product_loop() -> dict[str, Any]:
 
 
 def _phase3_clearance_lane() -> dict[str, Any]:
-    return {
-        "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
-        "recommended_step_id": "external_runtime_contract",
-        "recommended_command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
-        "clearance_targets": [
-            {
-                "target_id": "external_runtime_contract",
-                "title": "Check external Hermes runtime contract",
-                "commands": [
-                    "uv run python -m med_autoscience.cli doctor --profile <profile>",
-                    "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
+    doctor_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
+    hermes_runtime_check_command = "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>"
+    supervisor_service_command = "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>"
+    refresh_supervision_command = (
+        "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
+        "--profile <profile> --ensure-study-runtimes --apply"
+    )
+    launch_study_command = (
+        "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>"
+    )
+    study_progress_command = (
+        "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>"
+    )
+    return _build_shared_clearance_lane(
+        surface_kind="phase3_host_clearance_lane",
+        summary="Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
+        recommended_step_id="external_runtime_contract",
+        recommended_command=doctor_command,
+        clearance_targets=[
+            _build_shared_clearance_target(
+                target_id="external_runtime_contract",
+                title="Check external Hermes runtime contract",
+                commands=[
+                    doctor_command,
+                    hermes_runtime_check_command,
                 ],
-            },
-            {
-                "target_id": "supervisor_service",
-                "title": "Keep Hermes-hosted workspace supervision online",
-                "commands": [
-                    "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
-                    "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
+            ),
+            _build_shared_clearance_target(
+                target_id="supervisor_service",
+                title="Keep Hermes-hosted workspace supervision online",
+                commands=[
+                    supervisor_service_command,
+                    refresh_supervision_command,
                 ],
-            },
-            {
-                "target_id": "study_recovery_proof",
-                "title": "Prove live study recovery and supervision",
-                "commands": [
-                    "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
-                    "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
+            ),
+            _build_shared_clearance_target(
+                target_id="study_recovery_proof",
+                title="Prove live study recovery and supervision",
+                commands=[
+                    launch_study_command,
+                    study_progress_command,
                 ],
-            },
+            ),
         ],
-        "clearance_loop": [
-            {
-                "step_id": "external_runtime_contract",
-                "title": "先确认 external Hermes runtime contract ready",
-                "surface_kind": "doctor_runtime_contract",
-                "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
-            },
-            {
-                "step_id": "hermes_runtime_check",
-                "title": "确认 Hermes runtime 绑定证据",
-                "surface_kind": "hermes_runtime_check",
-                "command": "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
-            },
-            {
-                "step_id": "supervisor_service",
-                "title": "确认 workspace 常驻监管在线",
-                "surface_kind": "workspace_supervisor_service",
-                "command": "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
-            },
-            {
-                "step_id": "refresh_supervision",
-                "title": "刷新 Hermes-hosted supervision tick",
-                "surface_kind": "runtime_watch_refresh",
-                "command": (
-                    "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
-                    "--profile <profile> --ensure-study-runtimes --apply"
-                ),
-            },
-            {
-                "step_id": "study_recovery_proof",
-                "title": "证明 live study recovery / progress supervision 成立",
-                "surface_kind": "launch_study",
-                "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
-            },
-            {
-                "step_id": "inspect_study_progress",
-                "title": "读取 study-progress proof",
-                "surface_kind": "study_progress",
-                "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>",
-            },
+        clearance_loop=[
+            _build_shared_product_entry_program_step(
+                step_id="external_runtime_contract",
+                title="先确认 external Hermes runtime contract ready",
+                surface_kind="doctor_runtime_contract",
+                command=doctor_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="hermes_runtime_check",
+                title="确认 Hermes runtime 绑定证据",
+                surface_kind="hermes_runtime_check",
+                command=hermes_runtime_check_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="supervisor_service",
+                title="确认 workspace 常驻监管在线",
+                surface_kind="workspace_supervisor_service",
+                command=supervisor_service_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="refresh_supervision",
+                title="刷新 Hermes-hosted supervision tick",
+                surface_kind="runtime_watch_refresh",
+                command=refresh_supervision_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="study_recovery_proof",
+                title="证明 live study recovery / progress supervision 成立",
+                surface_kind="launch_study",
+                command=launch_study_command,
+            ),
+            _build_shared_product_entry_program_step(
+                step_id="inspect_study_progress",
+                title="读取 study-progress proof",
+                surface_kind="study_progress",
+                command=study_progress_command,
+            ),
         ],
-        "proof_surfaces": [
-            {
-                "surface_kind": "doctor.external_runtime_contract",
-                "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
-            },
-            {
-                "surface_kind": "study_runtime_status.autonomous_runtime_notice",
-                "command": "uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>",
-            },
-            {
-                "surface_kind": "runtime_watch",
-                "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
-            },
-            {
-                "surface_kind": "runtime_supervision",
-                "ref": "studies/<study_id>/artifacts/runtime_supervision/latest.json",
-            },
-            {
-                "surface_kind": "controller_decisions",
-                "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-            },
+        proof_surfaces=[
+            _build_shared_product_entry_program_surface(
+                surface_kind="doctor.external_runtime_contract",
+                command=doctor_command,
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="study_runtime_status.autonomous_runtime_notice",
+                command="uv run python -m med_autoscience.cli study-runtime-status --profile <profile> --study-id <study_id>",
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="runtime_watch",
+                ref="studies/<study_id>/artifacts/runtime_watch/latest.json",
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="runtime_supervision",
+                ref="studies/<study_id>/artifacts/runtime_supervision/latest.json",
+            ),
+            _build_shared_product_entry_program_surface(
+                surface_kind="controller_decisions",
+                ref="studies/<study_id>/artifacts/controller_decisions/latest.json",
+            ),
         ],
-        "recommended_phase_command": (
+        recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_3_multi_workspace_host_clearance"
         ),
-    }
+    )
 
 
 def _phase4_backend_deconstruction() -> dict[str, Any]:
-    return {
-        "surface_kind": "phase4_backend_deconstruction_lane",
-        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
-        "substrate_targets": [
-            {
-                "capability_id": "session_run_watch_recovery",
-                "owner": "upstream Hermes-Agent",
-                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
-            },
-            {
-                "capability_id": "backend_generic_runtime_contract",
-                "owner": "MedAutoScience controller boundary",
-                "summary": "controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
-            },
+    return _build_shared_backend_deconstruction_lane(
+        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时诚实保留 controlled backend executor。",
+        substrate_targets=[
+            _build_shared_program_capability(
+                capability_id="session_run_watch_recovery",
+                owner="upstream Hermes-Agent",
+                summary="session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+            ),
+            _build_shared_program_capability(
+                capability_id="backend_generic_runtime_contract",
+                owner="MedAutoScience controller boundary",
+                summary="controller / transport / durable surface 只认 backend-generic contract 与 explicit runtime handle。",
+            ),
         ],
-        "backend_retained_now": [
+        backend_retained_now=[
             "MedDeepScientist CodexRunner autonomous executor chain",
             "backend-local agent/tool routing and Codex skills",
             "quest-local research execution, paper worktree, and daemon side effects",
         ],
-        "promotion_rules": [
+        current_backend_chain=[
+            "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
+            "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+        ],
+        optional_executor_proofs=[
+            {
+                "executor_kind": "hermes_native_proof",
+                "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                "default_model": "inherit_local_hermes_default",
+                "default_reasoning_effort": "inherit_local_hermes_default",
+            }
+        ],
+        promotion_rules=[
             "no claim of backend retirement without owner + contract + tests + proof",
             "executor replacement must be explicit and proof-backed",
             "no physical monorepo absorb before the external gate is cleared",
         ],
-        "deconstruction_map_doc": "docs/program/med_deepscientist_deconstruction_map.md",
-        "recommended_phase_command": (
+        deconstruction_map_doc="docs/program/med_deepscientist_deconstruction_map.md",
+        recommended_phase_command=(
             "uv run python -m med_autoscience.cli mainline-phase --phase phase_4_backend_deconstruction"
         ),
-    }
+    )
 
 
 def _phase_ladder() -> list[dict[str, Any]]:

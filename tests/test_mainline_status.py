@@ -165,3 +165,68 @@ def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria(
     assert "phase_2_user_product_loop" in markdown
     assert "Entry Points" in markdown
     assert "Exit Criteria" in markdown
+
+
+def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.mainline_status")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "_build_shared_clearance_target", lambda **kwargs: kwargs, raising=False)
+    monkeypatch.setattr(module, "_build_shared_product_entry_program_step", lambda **kwargs: kwargs, raising=False)
+    monkeypatch.setattr(module, "_build_shared_product_entry_program_surface", lambda **kwargs: kwargs, raising=False)
+
+    def _fake_build_clearance_lane(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"surface_kind": "phase3_host_clearance_lane"}
+
+    monkeypatch.setattr(module, "_build_shared_clearance_lane", _fake_build_clearance_lane, raising=False)
+
+    payload = module._phase3_clearance_lane()
+
+    assert payload["surface_kind"] == "phase3_host_clearance_lane"
+    assert captured["recommended_step_id"] == "external_runtime_contract"
+    assert len(captured["clearance_targets"]) == 3
+    assert len(captured["proof_surfaces"]) == 5
+
+
+def test_phase4_backend_deconstruction_uses_shared_builder(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.mainline_status")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "_build_shared_program_capability", lambda **kwargs: kwargs, raising=False)
+
+    def _fake_build_backend_lane(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"surface_kind": "phase4_backend_deconstruction_lane"}
+
+    monkeypatch.setattr(module, "_build_shared_backend_deconstruction_lane", _fake_build_backend_lane, raising=False)
+
+    payload = module._phase4_backend_deconstruction()
+
+    assert payload["surface_kind"] == "phase4_backend_deconstruction_lane"
+    assert len(captured["substrate_targets"]) == 2
+    assert captured["deconstruction_map_doc"] == "docs/program/med_deepscientist_deconstruction_map.md"
+
+
+def test_platform_target_uses_shared_builder(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.mainline_status")
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(module, "_build_shared_program_sequence_step", lambda **kwargs: kwargs, raising=False)
+
+    def _fake_build_platform_target(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"surface_kind": "phase5_platform_target", "landing_sequence": list(kwargs["landing_sequence"])}
+
+    monkeypatch.setattr(module, "_build_shared_platform_target", _fake_build_platform_target, raising=False)
+
+    payload = module._platform_target()
+
+    assert payload["surface_kind"] == "phase5_platform_target"
+    assert captured["sequence_scope"] == "monorepo_landing_readiness"
+    assert captured["land_now"] == [
+        "repo-tracked product-entry shell and family orchestration companions",
+        "controller-owned runtime/progress/recovery truth",
+        "CLI/MCP/controller entry surfaces that already support real work",
+    ]
+    assert len(captured["landing_sequence"]) == 5
