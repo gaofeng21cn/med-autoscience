@@ -4707,6 +4707,303 @@ def _validate_atlas_spatial_trajectory_storyboard_display_payload(
     }
 
 
+def _validate_atlas_spatial_trajectory_density_coverage_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    atlas_panel_title = _require_non_empty_string(
+        payload.get("atlas_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` atlas_panel_title",
+    )
+    atlas_x_label = _require_non_empty_string(
+        payload.get("atlas_x_label"),
+        label=f"{path.name} display `{expected_display_id}` atlas_x_label",
+    )
+    atlas_y_label = _require_non_empty_string(
+        payload.get("atlas_y_label"),
+        label=f"{path.name} display `{expected_display_id}` atlas_y_label",
+    )
+    spatial_panel_title = _require_non_empty_string(
+        payload.get("spatial_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` spatial_panel_title",
+    )
+    spatial_x_label = _require_non_empty_string(
+        payload.get("spatial_x_label"),
+        label=f"{path.name} display `{expected_display_id}` spatial_x_label",
+    )
+    spatial_y_label = _require_non_empty_string(
+        payload.get("spatial_y_label"),
+        label=f"{path.name} display `{expected_display_id}` spatial_y_label",
+    )
+    trajectory_panel_title = _require_non_empty_string(
+        payload.get("trajectory_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` trajectory_panel_title",
+    )
+    trajectory_x_label = _require_non_empty_string(
+        payload.get("trajectory_x_label"),
+        label=f"{path.name} display `{expected_display_id}` trajectory_x_label",
+    )
+    trajectory_y_label = _require_non_empty_string(
+        payload.get("trajectory_y_label"),
+        label=f"{path.name} display `{expected_display_id}` trajectory_y_label",
+    )
+    support_panel_title = _require_non_empty_string(
+        payload.get("support_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` support_panel_title",
+    )
+    support_x_label = _require_non_empty_string(
+        payload.get("support_x_label"),
+        label=f"{path.name} display `{expected_display_id}` support_x_label",
+    )
+    support_y_label = _require_non_empty_string(
+        payload.get("support_y_label"),
+        label=f"{path.name} display `{expected_display_id}` support_y_label",
+    )
+    support_scale_label = _require_non_empty_string(
+        payload.get("support_scale_label"),
+        label=f"{path.name} display `{expected_display_id}` support_scale_label",
+    )
+
+    atlas_points = payload.get("atlas_points")
+    if not isinstance(atlas_points, list) or not atlas_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty atlas_points list")
+    normalized_atlas_points: list[dict[str, Any]] = []
+    observed_atlas_states: set[str] = set()
+    for index, item in enumerate(atlas_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` atlas_points[{index}] must be an object")
+        state_label = _require_non_empty_string(
+            item.get("state_label"),
+            label=f"{path.name} display `{expected_display_id}` atlas_points[{index}].state_label",
+        )
+        observed_atlas_states.add(state_label)
+        normalized_atlas_points.append(
+            {
+                "x": _require_numeric_value(
+                    item.get("x"),
+                    label=f"{path.name} display `{expected_display_id}` atlas_points[{index}].x",
+                ),
+                "y": _require_numeric_value(
+                    item.get("y"),
+                    label=f"{path.name} display `{expected_display_id}` atlas_points[{index}].y",
+                ),
+                "state_label": state_label,
+            }
+        )
+
+    spatial_points = payload.get("spatial_points")
+    if not isinstance(spatial_points, list) or not spatial_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty spatial_points list")
+    normalized_spatial_points: list[dict[str, Any]] = []
+    observed_spatial_states: set[str] = set()
+    for index, item in enumerate(spatial_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` spatial_points[{index}] must be an object")
+        state_label = _require_non_empty_string(
+            item.get("state_label"),
+            label=f"{path.name} display `{expected_display_id}` spatial_points[{index}].state_label",
+        )
+        region_label = _require_non_empty_string(
+            item.get("region_label"),
+            label=f"{path.name} display `{expected_display_id}` spatial_points[{index}].region_label",
+        )
+        observed_spatial_states.add(state_label)
+        normalized_spatial_points.append(
+            {
+                "x": _require_numeric_value(
+                    item.get("x"),
+                    label=f"{path.name} display `{expected_display_id}` spatial_points[{index}].x",
+                ),
+                "y": _require_numeric_value(
+                    item.get("y"),
+                    label=f"{path.name} display `{expected_display_id}` spatial_points[{index}].y",
+                ),
+                "state_label": state_label,
+                "region_label": region_label,
+            }
+        )
+
+    trajectory_points = payload.get("trajectory_points")
+    if not isinstance(trajectory_points, list) or not trajectory_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty trajectory_points list")
+    normalized_trajectory_points: list[dict[str, Any]] = []
+    observed_trajectory_states: set[str] = set()
+    observed_branch_labels: set[str] = set()
+    for index, item in enumerate(trajectory_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` trajectory_points[{index}] must be an object")
+        branch_label = _require_non_empty_string(
+            item.get("branch_label"),
+            label=f"{path.name} display `{expected_display_id}` trajectory_points[{index}].branch_label",
+        )
+        state_label = _require_non_empty_string(
+            item.get("state_label"),
+            label=f"{path.name} display `{expected_display_id}` trajectory_points[{index}].state_label",
+        )
+        observed_branch_labels.add(branch_label)
+        observed_trajectory_states.add(state_label)
+        normalized_trajectory_points.append(
+            {
+                "x": _require_numeric_value(
+                    item.get("x"),
+                    label=f"{path.name} display `{expected_display_id}` trajectory_points[{index}].x",
+                ),
+                "y": _require_numeric_value(
+                    item.get("y"),
+                    label=f"{path.name} display `{expected_display_id}` trajectory_points[{index}].y",
+                ),
+                "branch_label": branch_label,
+                "state_label": state_label,
+                "pseudotime": _require_probability_value(
+                    item.get("pseudotime"),
+                    label=f"{path.name} display `{expected_display_id}` trajectory_points[{index}].pseudotime",
+                ),
+            }
+        )
+
+    state_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("state_order"),
+        label=f"display `{expected_display_id}` state_order",
+    )
+    declared_state_labels = {item["label"] for item in state_order}
+    if observed_atlas_states != declared_state_labels:
+        raise ValueError(f"{path.name} display `{expected_display_id}` state_order labels must match atlas point state labels")
+    if observed_spatial_states != declared_state_labels:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` state_order labels must match spatial point state labels"
+        )
+    if observed_trajectory_states != declared_state_labels:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` state_order labels must match trajectory point state labels"
+        )
+
+    context_order = payload.get("context_order")
+    if not isinstance(context_order, list) or not context_order:
+        raise ValueError(f"{path.name} display `{expected_display_id}` context_order must contain a non-empty list")
+    normalized_context_order: list[dict[str, str]] = []
+    seen_context_labels: set[str] = set()
+    seen_context_kinds: set[str] = set()
+    required_context_kinds = {"atlas_density", "spatial_coverage", "trajectory_coverage"}
+    for index, item in enumerate(context_order):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` context_order[{index}] must be an object")
+        context_label = _require_non_empty_string(
+            item.get("label"),
+            label=f"{path.name} display `{expected_display_id}` context_order[{index}].label",
+        )
+        if context_label in seen_context_labels:
+            raise ValueError(f"{path.name} display `{expected_display_id}` context_order[{index}].label must be unique")
+        seen_context_labels.add(context_label)
+        context_kind = _require_non_empty_string(
+            item.get("context_kind"),
+            label=f"{path.name} display `{expected_display_id}` context_order[{index}].context_kind",
+        )
+        if context_kind not in required_context_kinds:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` context_order[{index}].context_kind must be one of atlas_density, spatial_coverage, trajectory_coverage"
+            )
+        if context_kind in seen_context_kinds:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` context_order[{index}].context_kind must be unique"
+            )
+        seen_context_kinds.add(context_kind)
+        normalized_context_order.append({"label": context_label, "context_kind": context_kind})
+    if seen_context_kinds != required_context_kinds:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` context_order must cover atlas_density, spatial_coverage, and trajectory_coverage exactly once"
+        )
+
+    support_cells = payload.get("support_cells")
+    if not isinstance(support_cells, list) or not support_cells:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty support_cells list")
+    normalized_support_cells: list[dict[str, Any]] = []
+    observed_support_rows: set[str] = set()
+    observed_support_columns: set[str] = set()
+    observed_support_coordinates: set[tuple[str, str]] = set()
+    for index, item in enumerate(support_cells):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` support_cells[{index}] must be an object")
+        context_label = _require_non_empty_string(
+            item.get("x"),
+            label=f"{path.name} display `{expected_display_id}` support_cells[{index}].x",
+        )
+        state_label = _require_non_empty_string(
+            item.get("y"),
+            label=f"{path.name} display `{expected_display_id}` support_cells[{index}].y",
+        )
+        coordinate = (context_label, state_label)
+        if coordinate in observed_support_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` support_cells must cover the declared state-context grid exactly once"
+            )
+        observed_support_coordinates.add(coordinate)
+        observed_support_columns.add(context_label)
+        observed_support_rows.add(state_label)
+        normalized_support_cells.append(
+            {
+                "x": context_label,
+                "y": state_label,
+                "value": _require_probability_value(
+                    item.get("value"),
+                    label=f"{path.name} display `{expected_display_id}` support_cells[{index}].value",
+                ),
+            }
+        )
+
+    declared_context_labels = {item["label"] for item in normalized_context_order}
+    if observed_support_rows != declared_state_labels:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_cells must cover the declared state-context grid exactly once"
+        )
+    if observed_support_columns != declared_context_labels:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_cells must cover the declared state-context grid exactly once"
+        )
+    expected_coordinates = {(context["label"], state["label"]) for state in state_order for context in normalized_context_order}
+    if observed_support_coordinates != expected_coordinates:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` support_cells must cover the declared state-context grid exactly once"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "atlas_panel_title": atlas_panel_title,
+        "atlas_x_label": atlas_x_label,
+        "atlas_y_label": atlas_y_label,
+        "atlas_annotation": str(payload.get("atlas_annotation") or "").strip(),
+        "atlas_points": normalized_atlas_points,
+        "spatial_panel_title": spatial_panel_title,
+        "spatial_x_label": spatial_x_label,
+        "spatial_y_label": spatial_y_label,
+        "spatial_annotation": str(payload.get("spatial_annotation") or "").strip(),
+        "spatial_points": normalized_spatial_points,
+        "trajectory_panel_title": trajectory_panel_title,
+        "trajectory_x_label": trajectory_x_label,
+        "trajectory_y_label": trajectory_y_label,
+        "trajectory_annotation": str(payload.get("trajectory_annotation") or "").strip(),
+        "trajectory_points": normalized_trajectory_points,
+        "support_panel_title": support_panel_title,
+        "support_x_label": support_x_label,
+        "support_y_label": support_y_label,
+        "support_scale_label": support_scale_label,
+        "support_annotation": str(payload.get("support_annotation") or "").strip(),
+        "state_order": state_order,
+        "context_order": normalized_context_order,
+        "support_cells": normalized_support_cells,
+    }
+
+
 def _validate_heatmap_display_payload(
     *,
     path: Path,
@@ -8132,6 +8429,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "atlas_spatial_trajectory_storyboard_inputs_v1":
         return payload_path, _validate_atlas_spatial_trajectory_storyboard_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "atlas_spatial_trajectory_density_coverage_panel_inputs_v1":
+        return payload_path, _validate_atlas_spatial_trajectory_density_coverage_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

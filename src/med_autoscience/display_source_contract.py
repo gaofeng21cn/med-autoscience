@@ -21,6 +21,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "spatial_niche_map_inputs_v1": "spatial_niche_map_inputs.json",
     "trajectory_progression_inputs_v1": "trajectory_progression_inputs.json",
     "atlas_spatial_trajectory_storyboard_inputs_v1": "atlas_spatial_trajectory_storyboard_inputs.json",
+    "atlas_spatial_trajectory_density_coverage_panel_inputs_v1": "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
     "heatmap_group_comparison_inputs_v1": "heatmap_group_comparison_inputs.json",
     "performance_heatmap_inputs_v1": "performance_heatmap_inputs.json",
     "correlation_heatmap_inputs_v1": "correlation_heatmap_inputs.json",

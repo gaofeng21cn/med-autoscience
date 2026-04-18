@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased - 2026-04-11
+## Unreleased - 2026-04-18
+
+- Add `atlas_spatial_trajectory_density_coverage_panel` as the next audited `D/E/G` atlas-spatial-trajectory density/coverage support slice in the core display pack.
+- Lock its pack-facing contract to `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `publication_atlas_spatial_trajectory_density_coverage_panel`, and the Python bounded four-panel density/coverage renderer path.
 
 - Add `atlas_spatial_trajectory_storyboard_panel` as the next audited `D/E/G` atlas-spatial-trajectory storyboard slice in the core display pack.
 - Lock its pack-facing contract to `atlas_spatial_trajectory_storyboard_inputs_v1`, `publication_atlas_spatial_trajectory_storyboard_panel`, and the Python bounded five-panel storyboard renderer path.

@@ -873,3 +873,156 @@ def test_atlas_spatial_trajectory_storyboard_panel_preserves_deg_storyboard_cont
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_atlas_spatial_trajectory_density_coverage_panel_preserves_deg_density_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure32",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_trajectory_density_coverage_panel",
+                    "catalog_id": "F32",
+                    "shell_path": "paper/figures/Figure32.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure32",
+                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_density_coverage_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_trajectory_density_coverage_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure32",
+                    "template_id": "fenggaolab.org.medical-display-core::atlas_spatial_trajectory_density_coverage_panel",
+                    "title": "Atlas, spatial, and trajectory density-coverage support panel",
+                    "caption": "Composite density-coverage regression lock for atlas-spatial-trajectory support.",
+                    "atlas_panel_title": "Atlas density",
+                    "atlas_x_label": "UMAP 1",
+                    "atlas_y_label": "UMAP 2",
+                    "atlas_points": [
+                        {"x": -2.1, "y": 1.0, "state_label": "Stem-like"},
+                        {"x": -1.7, "y": 0.8, "state_label": "Stem-like"},
+                        {"x": -0.2, "y": -0.1, "state_label": "Cycling"},
+                        {"x": 1.1, "y": -0.6, "state_label": "Effector"},
+                    ],
+                    "spatial_panel_title": "Spatial coverage topography",
+                    "spatial_x_label": "Tissue x coordinate",
+                    "spatial_y_label": "Tissue y coordinate",
+                    "spatial_points": [
+                        {"x": 0.12, "y": 0.82, "state_label": "Stem-like", "region_label": "Tumor core"},
+                        {"x": 0.18, "y": 0.76, "state_label": "Stem-like", "region_label": "Tumor core"},
+                        {"x": 0.54, "y": 0.48, "state_label": "Cycling", "region_label": "Invasive margin"},
+                        {"x": 0.82, "y": 0.20, "state_label": "Effector", "region_label": "Invasive margin"},
+                    ],
+                    "trajectory_panel_title": "Trajectory coverage progression",
+                    "trajectory_x_label": "Trajectory 1",
+                    "trajectory_y_label": "Trajectory 2",
+                    "trajectory_points": [
+                        {"x": -1.7, "y": 0.9, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+                        {"x": -0.9, "y": 0.4, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.34},
+                        {"x": -0.2, "y": -0.2, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+                        {"x": 1.5, "y": 0.8, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+                        {"x": 1.1, "y": 0.2, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.52},
+                        {"x": 0.7, "y": -0.6, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+                    ],
+                    "support_panel_title": "State-by-context support",
+                    "support_x_label": "Context",
+                    "support_y_label": "Cell state",
+                    "support_scale_label": "Coverage fraction",
+                    "state_order": [
+                        {"label": "Stem-like"},
+                        {"label": "Cycling"},
+                        {"label": "Effector"},
+                    ],
+                    "context_order": [
+                        {"label": "Atlas density", "context_kind": "atlas_density"},
+                        {"label": "Spatial coverage", "context_kind": "spatial_coverage"},
+                        {"label": "Trajectory coverage", "context_kind": "trajectory_coverage"},
+                    ],
+                    "support_cells": [
+                        {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+                        {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+                        {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+                        {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+                        {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+                        {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+                        {"x": "Atlas density", "y": "Effector", "value": 0.31},
+                        {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+                        {"x": "Trajectory coverage", "y": "Effector", "value": 0.81},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root / "figures" / "generated" / "F32_atlas_spatial_trajectory_density_coverage_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_atlas",
+        "panel_spatial",
+        "panel_trajectory",
+        "panel_support",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_D" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["state_labels"] == ["Stem-like", "Cycling", "Effector"]
+    assert layout_sidecar["metrics"]["context_labels"] == [
+        "Atlas density",
+        "Spatial coverage",
+        "Trajectory coverage",
+    ]
+    assert layout_sidecar["metrics"]["region_labels"] == ["Tumor core", "Invasive margin"]
+    assert layout_sidecar["metrics"]["branch_labels"] == ["Branch A", "Branch B"]
+    assert layout_sidecar["metrics"]["support_scale_label"] == "Coverage fraction"
+    assert len(layout_sidecar["metrics"]["support_cells"]) == 9
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
