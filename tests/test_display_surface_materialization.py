@@ -9400,6 +9400,77 @@ def _make_compact_effect_estimate_panel_display(display_id: str = "Figure46") ->
     }
 
 
+def _make_coefficient_path_panel_display(display_id: str = "Figure48") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "coefficient_path_panel",
+        "title": "Coefficient path panel for prespecified heterogeneity stability review",
+        "caption": (
+            "Bounded coefficient-path evidence locks directional stability across prespecified adjustment steps "
+            "while keeping the manuscript-facing heterogeneity summary auditable."
+        ),
+        "path_panel_title": "Coefficient path across model steps",
+        "x_label": "Log hazard ratio",
+        "reference_value": 0.0,
+        "step_legend_title": "Model step",
+        "steps": [
+            {"step_id": "unadjusted", "step_label": "Unadjusted", "step_order": 1},
+            {"step_id": "adjusted", "step_label": "Adjusted", "step_order": 2},
+            {"step_id": "sensitivity", "step_label": "Sensitivity", "step_order": 3},
+        ],
+        "coefficient_rows": [
+            {
+                "row_id": "age_ge_65",
+                "row_label": "Age ≥65 years",
+                "points": [
+                    {"step_id": "unadjusted", "estimate": 0.18, "lower": 0.04, "upper": 0.32, "support_n": 184},
+                    {"step_id": "adjusted", "estimate": 0.11, "lower": -0.01, "upper": 0.24, "support_n": 184},
+                    {"step_id": "sensitivity", "estimate": 0.08, "lower": -0.05, "upper": 0.20, "support_n": 184},
+                ],
+            },
+            {
+                "row_id": "female",
+                "row_label": "Female",
+                "points": [
+                    {"step_id": "unadjusted", "estimate": 0.34, "lower": 0.19, "upper": 0.49, "support_n": 201},
+                    {"step_id": "adjusted", "estimate": 0.27, "lower": 0.12, "upper": 0.41, "support_n": 201},
+                    {"step_id": "sensitivity", "estimate": 0.22, "lower": 0.08, "upper": 0.36, "support_n": 201},
+                ],
+            },
+            {
+                "row_id": "high_risk",
+                "row_label": "High-risk subgroup",
+                "points": [
+                    {"step_id": "unadjusted", "estimate": 0.41, "lower": 0.24, "upper": 0.58, "support_n": 96},
+                    {"step_id": "adjusted", "estimate": 0.33, "lower": 0.16, "upper": 0.49, "support_n": 96},
+                    {"step_id": "sensitivity", "estimate": 0.29, "lower": 0.11, "upper": 0.46, "support_n": 96},
+                ],
+            },
+        ],
+        "summary_panel_title": "Stability summary",
+        "summary_cards": [
+            {
+                "card_id": "age",
+                "label": "Age ≥65 years",
+                "value": "Stable positive",
+                "detail": "Direction stays positive across all 3 model steps.",
+            },
+            {
+                "card_id": "female",
+                "label": "Female",
+                "value": "Attenuated after adjustment",
+                "detail": "Magnitude shrinks after covariate adjustment but remains positive.",
+            },
+            {
+                "card_id": "high_risk",
+                "label": "High-risk subgroup",
+                "value": "Largest retained signal",
+                "detail": "The widest positive effect survives all prespecified sensitivity steps.",
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_additive_mismatch_for_shap_waterfall_local_explanation_panel(
     tmp_path: Path,
 ) -> None:
@@ -9723,6 +9794,35 @@ def test_load_evidence_display_payload_rejects_row_order_mismatch_for_compact_ef
             paper_root=paper_root,
             spec=spec,
             display_id="Figure46",
+        )
+
+
+def test_load_evidence_display_payload_rejects_missing_step_coverage_for_coefficient_path_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_coefficient_path_panel_display()
+    display_payload["coefficient_rows"][1]["points"].pop()
+    dump_json(
+        paper_root / "coefficient_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "coefficient_path_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("coefficient_path_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="points must cover every declared step_id exactly once within each coefficient row",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure48",
         )
 
 
@@ -11014,6 +11114,92 @@ def test_materialize_display_surface_generates_compact_effect_estimate_panel(tmp
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "compact_effect_estimate_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_compact_effect_estimate_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_coefficient_path_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure48",
+                    "display_kind": "figure",
+                    "requirement_key": "coefficient_path_panel",
+                    "catalog_id": "F48",
+                    "shell_path": "paper/figures/Figure48.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure48",
+                    "template_id": "coefficient_path_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "coefficient_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "coefficient_path_panel_inputs_v1",
+            "displays": [_make_coefficient_path_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F48"]
+    assert (paper_root / "figures" / "generated" / "F48_coefficient_path_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F48_coefficient_path_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F48_coefficient_path_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "reference_line" for item in layout_sidecar["guide_boxes"])
+    assert layout_sidecar["metrics"]["reference_value"] == 0.0
+    assert [item["step_label"] for item in layout_sidecar["metrics"]["steps"]] == [
+        "Unadjusted",
+        "Adjusted",
+        "Sensitivity",
+    ]
+    assert [item["row_id"] for item in layout_sidecar["metrics"]["coefficient_rows"]] == [
+        "age_ge_65",
+        "female",
+        "high_risk",
+    ]
+    assert [item["card_id"] for item in layout_sidecar["metrics"]["summary_cards"]] == [
+        "age",
+        "female",
+        "high_risk",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F48"
+    assert figure_entry["template_id"] == full_id("coefficient_path_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "coefficient_path_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_coefficient_path_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

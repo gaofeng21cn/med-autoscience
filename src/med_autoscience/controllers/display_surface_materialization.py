@@ -5433,6 +5433,260 @@ def _validate_compact_effect_estimate_panel_display_payload(
     }
 
 
+def _validate_coefficient_path_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    path_panel_title = _require_non_empty_string(
+        payload.get("path_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` path_panel_title",
+    )
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    reference_value = _require_numeric_value(
+        payload.get("reference_value"),
+        label=f"{path.name} display `{expected_display_id}` reference_value",
+    )
+    if not math.isfinite(reference_value):
+        raise ValueError(f"{path.name} display `{expected_display_id}` reference_value must be finite")
+    step_legend_title = _require_non_empty_string(
+        payload.get("step_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` step_legend_title",
+    )
+    summary_panel_title = _require_non_empty_string(
+        payload.get("summary_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` summary_panel_title",
+    )
+
+    steps_payload = payload.get("steps")
+    if not isinstance(steps_payload, list) or not steps_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty steps list")
+    if len(steps_payload) < 2 or len(steps_payload) > 5:
+        raise ValueError(f"{path.name} display `{expected_display_id}` steps must contain between 2 and 5 entries")
+    normalized_steps: list[dict[str, Any]] = []
+    declared_step_ids: list[str] = []
+    seen_step_ids: set[str] = set()
+    previous_step_order: int | None = None
+    for index, item in enumerate(steps_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` steps[{index}] must be an object")
+        step_id = _require_non_empty_string(
+            item.get("step_id"),
+            label=f"{path.name} display `{expected_display_id}` steps[{index}].step_id",
+        )
+        if step_id in seen_step_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` steps[{index}].step_id must be unique")
+        seen_step_ids.add(step_id)
+        step_order = _require_non_negative_int(
+            item.get("step_order"),
+            label=f"{path.name} display `{expected_display_id}` steps[{index}].step_order",
+            allow_zero=False,
+        )
+        if previous_step_order is not None and step_order <= previous_step_order:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` steps must have strictly increasing step_order"
+            )
+        previous_step_order = step_order
+        declared_step_ids.append(step_id)
+        normalized_steps.append(
+            {
+                "step_id": step_id,
+                "step_label": _require_non_empty_string(
+                    item.get("step_label"),
+                    label=f"{path.name} display `{expected_display_id}` steps[{index}].step_label",
+                ),
+                "step_order": step_order,
+            }
+        )
+
+    coefficient_rows_payload = payload.get("coefficient_rows")
+    if not isinstance(coefficient_rows_payload, list) or not coefficient_rows_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty coefficient_rows list")
+    normalized_rows: list[dict[str, Any]] = []
+    seen_row_ids: set[str] = set()
+    seen_row_labels: set[str] = set()
+    declared_step_id_set = set(declared_step_ids)
+    for row_index, row_payload in enumerate(coefficient_rows_payload):
+        if not isinstance(row_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}] must be an object")
+        row_id = _require_non_empty_string(
+            row_payload.get("row_id"),
+            label=f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].row_id",
+        )
+        if row_id in seen_row_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].row_id must be unique"
+            )
+        seen_row_ids.add(row_id)
+        row_label = _require_non_empty_string(
+            row_payload.get("row_label"),
+            label=f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].row_label",
+        )
+        if row_label in seen_row_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].row_label must be unique"
+            )
+        seen_row_labels.add(row_label)
+
+        points_payload = row_payload.get("points")
+        if not isinstance(points_payload, list) or not points_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points must be a non-empty list"
+            )
+        normalized_points: list[dict[str, Any]] = []
+        seen_point_step_ids: set[str] = set()
+        for point_index, point_payload in enumerate(points_payload):
+            if not isinstance(point_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points[{point_index}] must be an object"
+                )
+            step_id = _require_non_empty_string(
+                point_payload.get("step_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"coefficient_rows[{row_index}].points[{point_index}].step_id"
+                ),
+            )
+            if step_id not in declared_step_id_set:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points[{point_index}].step_id must match a declared step"
+                )
+            if step_id in seen_point_step_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points[{point_index}].step_id must be unique within the row"
+                )
+            seen_point_step_ids.add(step_id)
+            estimate = _require_numeric_value(
+                point_payload.get("estimate"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"coefficient_rows[{row_index}].points[{point_index}].estimate"
+                ),
+            )
+            lower = _require_numeric_value(
+                point_payload.get("lower"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"coefficient_rows[{row_index}].points[{point_index}].lower"
+                ),
+            )
+            upper = _require_numeric_value(
+                point_payload.get("upper"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"coefficient_rows[{row_index}].points[{point_index}].upper"
+                ),
+            )
+            if not all(math.isfinite(value) for value in (estimate, lower, upper)):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points[{point_index}] values must be finite"
+                )
+            if not (lower <= estimate <= upper):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}].points[{point_index}] must satisfy lower <= estimate <= upper"
+                )
+            normalized_point: dict[str, Any] = {
+                "step_id": step_id,
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+            if point_payload.get("support_n") is not None:
+                normalized_point["support_n"] = _require_non_negative_int(
+                    point_payload.get("support_n"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` "
+                        f"coefficient_rows[{row_index}].points[{point_index}].support_n"
+                    ),
+                    allow_zero=False,
+                )
+            normalized_points.append(normalized_point)
+
+        if seen_point_step_ids != declared_step_id_set:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` coefficient_rows[{row_index}] points must cover every declared step_id exactly once within each coefficient row"
+            )
+
+        normalized_points.sort(key=lambda item: declared_step_ids.index(str(item["step_id"])))
+        normalized_rows.append(
+            {
+                "row_id": row_id,
+                "row_label": row_label,
+                "points": normalized_points,
+            }
+        )
+
+    summary_cards_payload = payload.get("summary_cards")
+    if not isinstance(summary_cards_payload, list) or not summary_cards_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty summary_cards list")
+    if len(summary_cards_payload) < 2 or len(summary_cards_payload) > 4:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` summary_cards must contain between 2 and 4 entries"
+        )
+    normalized_summary_cards: list[dict[str, Any]] = []
+    seen_card_ids: set[str] = set()
+    for card_index, card_payload in enumerate(summary_cards_payload):
+        if not isinstance(card_payload, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` summary_cards[{card_index}] must be an object"
+            )
+        card_id = _require_non_empty_string(
+            card_payload.get("card_id"),
+            label=f"{path.name} display `{expected_display_id}` summary_cards[{card_index}].card_id",
+        )
+        if card_id in seen_card_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` summary_cards[{card_index}].card_id must be unique"
+            )
+        seen_card_ids.add(card_id)
+        normalized_card = {
+            "card_id": card_id,
+            "label": _require_non_empty_string(
+                card_payload.get("label"),
+                label=f"{path.name} display `{expected_display_id}` summary_cards[{card_index}].label",
+            ),
+            "value": _require_non_empty_string(
+                card_payload.get("value"),
+                label=f"{path.name} display `{expected_display_id}` summary_cards[{card_index}].value",
+            ),
+        }
+        detail_text = str(card_payload.get("detail") or "").strip()
+        if detail_text:
+            normalized_card["detail"] = detail_text
+        normalized_summary_cards.append(normalized_card)
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "path_panel_title": path_panel_title,
+        "x_label": x_label,
+        "reference_value": reference_value,
+        "step_legend_title": step_legend_title,
+        "steps": normalized_steps,
+        "coefficient_rows": normalized_rows,
+        "summary_panel_title": summary_panel_title,
+        "summary_cards": normalized_summary_cards,
+    }
+
+
 def _validate_shap_summary_display_payload(
     *,
     path: Path,
@@ -8484,6 +8738,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "compact_effect_estimate_panel_inputs_v1":
         return payload_path, _validate_compact_effect_estimate_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "coefficient_path_panel_inputs_v1":
+        return payload_path, _validate_coefficient_path_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

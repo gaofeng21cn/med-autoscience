@@ -6817,6 +6817,277 @@ def test_run_display_layout_qc_fails_when_compact_effect_estimate_panel_row_orde
     assert any(issue["rule_id"] == "panel_row_order_mismatch" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_coefficient_path_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_coefficient_path_panel",
+        layout_sidecar={
+            "template_id": "coefficient_path_panel",
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.86, x1=0.44, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.90, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.16, y0=0.77, x1=0.18, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.30, y0=0.12, x1=0.47, y1=0.15),
+                make_box("step_legend_title", "legend_title", x0=0.22, y0=0.17, x1=0.31, y1=0.20),
+                make_box("step_legend_unadjusted", "legend_label", x0=0.33, y0=0.17, x1=0.40, y1=0.20),
+                make_box("step_legend_adjusted", "legend_label", x0=0.42, y0=0.17, x1=0.49, y1=0.20),
+                make_box("step_legend_sensitivity", "legend_label", x0=0.51, y0=0.17, x1=0.60, y1=0.20),
+                make_box("coefficient_row_age_ge_65", "coefficient_row_label", x0=0.03, y0=0.61, x1=0.15, y1=0.65),
+                make_box("coefficient_row_female", "coefficient_row_label", x0=0.06, y0=0.46, x1=0.15, y1=0.50),
+                make_box("marker_age_ge_65_unadjusted", "coefficient_marker", x0=0.31, y0=0.61, x1=0.32, y1=0.65),
+                make_box("marker_age_ge_65_adjusted", "coefficient_marker", x0=0.35, y0=0.61, x1=0.36, y1=0.65),
+                make_box("marker_age_ge_65_sensitivity", "coefficient_marker", x0=0.39, y0=0.61, x1=0.40, y1=0.65),
+                make_box("marker_female_unadjusted", "coefficient_marker", x0=0.41, y0=0.46, x1=0.42, y1=0.50),
+                make_box("marker_female_adjusted", "coefficient_marker", x0=0.44, y0=0.46, x1=0.45, y1=0.50),
+                make_box("marker_female_sensitivity", "coefficient_marker", x0=0.48, y0=0.46, x1=0.49, y1=0.50),
+                make_box("interval_age_ge_65_unadjusted", "coefficient_interval", x0=0.28, y0=0.625, x1=0.35, y1=0.635),
+                make_box("interval_age_ge_65_adjusted", "coefficient_interval", x0=0.32, y0=0.625, x1=0.39, y1=0.635),
+                make_box("interval_age_ge_65_sensitivity", "coefficient_interval", x0=0.36, y0=0.625, x1=0.43, y1=0.635),
+                make_box("interval_female_unadjusted", "coefficient_interval", x0=0.38, y0=0.475, x1=0.45, y1=0.485),
+                make_box("interval_female_adjusted", "coefficient_interval", x0=0.41, y0=0.475, x1=0.48, y1=0.485),
+                make_box("interval_female_sensitivity", "coefficient_interval", x0=0.45, y0=0.475, x1=0.52, y1=0.485),
+                make_box("summary_label_age", "summary_card_label", x0=0.75, y0=0.61, x1=0.84, y1=0.65),
+                make_box("summary_value_age", "summary_card_value", x0=0.75, y0=0.56, x1=0.90, y1=0.60),
+                make_box("summary_label_female", "summary_card_label", x0=0.75, y0=0.41, x1=0.84, y1=0.45),
+                make_box("summary_value_female", "summary_card_value", x0=0.75, y0=0.36, x1=0.90, y1=0.40),
+            ],
+            "panel_boxes": [
+                make_box("path_panel", "panel", x0=0.16, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 0.0,
+                "path_panel": {
+                    "panel_box_id": "path_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "step_legend_title_box_id": "step_legend_title",
+                "steps": [
+                    {
+                        "step_id": "unadjusted",
+                        "step_label": "Unadjusted",
+                        "step_order": 1,
+                        "legend_label_box_id": "step_legend_unadjusted",
+                    },
+                    {
+                        "step_id": "adjusted",
+                        "step_label": "Adjusted",
+                        "step_order": 2,
+                        "legend_label_box_id": "step_legend_adjusted",
+                    },
+                    {
+                        "step_id": "sensitivity",
+                        "step_label": "Sensitivity",
+                        "step_order": 3,
+                        "legend_label_box_id": "step_legend_sensitivity",
+                    },
+                ],
+                "coefficient_rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "label_box_id": "coefficient_row_age_ge_65",
+                        "points": [
+                            {
+                                "step_id": "unadjusted",
+                                "estimate": 0.18,
+                                "lower": 0.04,
+                                "upper": 0.32,
+                                "marker_box_id": "marker_age_ge_65_unadjusted",
+                                "interval_box_id": "interval_age_ge_65_unadjusted",
+                            },
+                            {
+                                "step_id": "adjusted",
+                                "estimate": 0.11,
+                                "lower": -0.01,
+                                "upper": 0.24,
+                                "marker_box_id": "marker_age_ge_65_adjusted",
+                                "interval_box_id": "interval_age_ge_65_adjusted",
+                            },
+                            {
+                                "step_id": "sensitivity",
+                                "estimate": 0.08,
+                                "lower": -0.05,
+                                "upper": 0.20,
+                                "marker_box_id": "marker_age_ge_65_sensitivity",
+                                "interval_box_id": "interval_age_ge_65_sensitivity",
+                            },
+                        ],
+                    },
+                    {
+                        "row_id": "female",
+                        "row_label": "Female",
+                        "label_box_id": "coefficient_row_female",
+                        "points": [
+                            {
+                                "step_id": "unadjusted",
+                                "estimate": 0.34,
+                                "lower": 0.19,
+                                "upper": 0.49,
+                                "marker_box_id": "marker_female_unadjusted",
+                                "interval_box_id": "interval_female_unadjusted",
+                            },
+                            {
+                                "step_id": "adjusted",
+                                "estimate": 0.27,
+                                "lower": 0.12,
+                                "upper": 0.41,
+                                "marker_box_id": "marker_female_adjusted",
+                                "interval_box_id": "interval_female_adjusted",
+                            },
+                            {
+                                "step_id": "sensitivity",
+                                "estimate": 0.22,
+                                "lower": 0.08,
+                                "upper": 0.36,
+                                "marker_box_id": "marker_female_sensitivity",
+                                "interval_box_id": "interval_female_sensitivity",
+                            },
+                        ],
+                    },
+                ],
+                "summary_cards": [
+                    {
+                        "card_id": "age",
+                        "label": "Age ≥65 years",
+                        "value": "Stable positive",
+                        "label_box_id": "summary_label_age",
+                        "value_box_id": "summary_value_age",
+                    },
+                    {
+                        "card_id": "female",
+                        "label": "Female",
+                        "value": "Attenuated after adjustment",
+                        "label_box_id": "summary_label_female",
+                        "value_box_id": "summary_value_female",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_coefficient_path_marker_leaves_path_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_coefficient_path_panel",
+        layout_sidecar={
+            "template_id": "coefficient_path_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.16, y0=0.86, x1=0.44, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.90, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.16, y0=0.77, x1=0.18, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.30, y0=0.12, x1=0.47, y1=0.15),
+                make_box("step_legend_title", "legend_title", x0=0.22, y0=0.17, x1=0.31, y1=0.20),
+                make_box("step_legend_unadjusted", "legend_label", x0=0.33, y0=0.17, x1=0.40, y1=0.20),
+                make_box("step_legend_adjusted", "legend_label", x0=0.42, y0=0.17, x1=0.49, y1=0.20),
+                make_box("coefficient_row_age_ge_65", "coefficient_row_label", x0=0.03, y0=0.61, x1=0.15, y1=0.65),
+                make_box("marker_age_ge_65_unadjusted", "coefficient_marker", x0=0.68, y0=0.61, x1=0.70, y1=0.65),
+                make_box("marker_age_ge_65_adjusted", "coefficient_marker", x0=0.35, y0=0.61, x1=0.36, y1=0.65),
+                make_box("interval_age_ge_65_unadjusted", "coefficient_interval", x0=0.28, y0=0.625, x1=0.35, y1=0.635),
+                make_box("interval_age_ge_65_adjusted", "coefficient_interval", x0=0.32, y0=0.625, x1=0.39, y1=0.635),
+                make_box("summary_label_age", "summary_card_label", x0=0.75, y0=0.61, x1=0.84, y1=0.65),
+                make_box("summary_value_age", "summary_card_value", x0=0.75, y0=0.56, x1=0.90, y1=0.60),
+            ],
+            "panel_boxes": [
+                make_box("path_panel", "panel", x0=0.16, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 0.0,
+                "path_panel": {
+                    "panel_box_id": "path_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "step_legend_title_box_id": "step_legend_title",
+                "steps": [
+                    {
+                        "step_id": "unadjusted",
+                        "step_label": "Unadjusted",
+                        "step_order": 1,
+                        "legend_label_box_id": "step_legend_unadjusted",
+                    },
+                    {
+                        "step_id": "adjusted",
+                        "step_label": "Adjusted",
+                        "step_order": 2,
+                        "legend_label_box_id": "step_legend_adjusted",
+                    },
+                ],
+                "coefficient_rows": [
+                    {
+                        "row_id": "age_ge_65",
+                        "row_label": "Age ≥65 years",
+                        "label_box_id": "coefficient_row_age_ge_65",
+                        "points": [
+                            {
+                                "step_id": "unadjusted",
+                                "estimate": 0.18,
+                                "lower": 0.04,
+                                "upper": 0.32,
+                                "marker_box_id": "marker_age_ge_65_unadjusted",
+                                "interval_box_id": "interval_age_ge_65_unadjusted",
+                            },
+                            {
+                                "step_id": "adjusted",
+                                "estimate": 0.11,
+                                "lower": -0.01,
+                                "upper": 0.24,
+                                "marker_box_id": "marker_age_ge_65_adjusted",
+                                "interval_box_id": "interval_age_ge_65_adjusted",
+                            },
+                        ],
+                    }
+                ],
+                "summary_cards": [
+                    {
+                        "card_id": "age",
+                        "label": "Age ≥65 years",
+                        "value": "Stable positive",
+                        "label_box_id": "summary_label_age",
+                        "value_box_id": "summary_value_age",
+                    }
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "coefficient_marker_outside_path_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_generalizability_overview_marker_leaves_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `53`
+- Evidence figure templates: `54`
 - Illustration shells: `6`
 - Table shells: `5`
-- Total audited templates: `64`
+- Total audited templates: `65`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,11 +46,10 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `C/H / coefficient-path or broader heterogeneity-summary follow-on beyond the compact effect-estimate lower bound`
+- `H / broader QC / batch-effect / transportability shell follow-on beyond the first bounded center-coverage transportability shell`
 
 其中：
 
-- `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式收口为 `center_coverage_batch_transportability_panel`，并已进入当前 audited inventory，不再留在 backlog 候选池。
 - `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在上一轮正式收口为 `atlas_spatial_trajectory_density_coverage_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
 - `D/E/G / PHATE or richer manifold overlay follow-on` 本轮不再作为当前 active 候选保留：
@@ -59,10 +58,11 @@
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 仍是 density / coverage semantics 尚未合同化；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
   - 原因：如果先扩到更宽的 matrix / heatmap lane，容易脱离 atlas / spatial / trajectory 的 joint paper question，并和现有 `celltype_signature_heatmap` / storyboard lower bound 产生模糊重叠。
-- `C/H / coefficient-path follow-on` 当前作为下一轮 primary reroute 保留：
-  - 原因：`compact_effect_estimate_panel` 已经把 shared-reference / shared-row-order 的 lower bound 固定下来，下一轮最有价值的扩容方向是把 pre-specified coefficient-path 或 bounded appendix-facing effect-summary 继续合同化。
+- `C/H / coefficient-path follow-on` 已在本轮正式 absorb 为 `coefficient_path_panel`，不再保留在 backlog 候选池。
 - `C/H / broader heterogeneity summary follow-on` 当前与 `coefficient-path follow-on` 共享同一 reroute 入口：
   - 原因：这两个方向都服务 `C/H` 的 manuscript-facing effect heterogeneity 收口，在进入 owner brief 之前保持合并候选更有利于把 panel 数、语义边界与 appendix-facing scope 一次收紧。
+- `H / broader QC / batch-effect / transportability shell follow-on` 当前作为下一轮 primary reroute 保留：
+  - 原因：`center_coverage_batch_transportability_panel` 已经把第一层 bounded center-coverage / batch-shift / transportability 下限固定下来，下一轮最有价值的扩容方向是继续把更宽的 QC summary、batch governance 与 transportability boundary 收进单一 manuscript-facing 合同。
 - `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已在本轮正式收口为 `feature_response_support_domain_panel`，并已 absorb 入当前 `main` 且通过 fresh verify，不再留在 backlog 候选池。
 - `F / multi-group grouped-local follow-on` 本轮不作为当前 active 候选保留：
   - 原因：当前真实 gap 先落在 feature-response support-domain / legend / annotation contract；直接扩到 `3+` group grouped-local scene 会同步放大 panel 数、shared-feature-order 与 row-alignment 治理负担，超出本轮 bounded 边界。
@@ -97,8 +97,9 @@
 1. 新的真实 study-owned paper root 暴露出 audited contract 无法表达的论文语义。
 2. 现有 template 能渲染，但 schema / QC / submission surface 不能稳定闭环。
 3. 真实论文表达需要更清晰的正式 contract，而不是 renderer 层的临时补救。
-4. 对 `C/H` 而言，`compact_effect_estimate_panel` 已完成 absorb；后续是否继续做 `coefficient-path` 或更宽的 heterogeneity summary，当前作为下一轮 primary reroute 保留，进入实现前仍需 owner brief 再次收口。
-5. 对 `F` 而言，`feature_response_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 `multi-group grouped-local`、`multi-group decision-path` 或更高阶 explanation scene。
+4. 对 `H` 而言，`center_coverage_batch_transportability_panel` 已完成 absorb；后续 broader QC / batch-effect / transportability follow-on 当前作为下一轮 primary reroute 保留，进入实现前仍需 owner brief 再次收口。
+5. 对 `C/H` 而言，`compact_effect_estimate_panel` 与 `coefficient_path_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更宽的 heterogeneity summary。
+6. 对 `F` 而言，`feature_response_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 `multi-group grouped-local`、`multi-group decision-path` 或更高阶 explanation scene。
 
 ## Promotion Rules
 

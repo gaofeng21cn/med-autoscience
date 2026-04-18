@@ -313,6 +313,141 @@ def test_compact_effect_estimate_panel_preserves_ch_bounded_contract(tmp_path: P
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_coefficient_path_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure48",
+                    "display_kind": "figure",
+                    "requirement_key": "coefficient_path_panel",
+                    "catalog_id": "F48",
+                    "shell_path": "paper/figures/Figure48.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure48",
+                    "template_id": "coefficient_path_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "coefficient_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "coefficient_path_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure48",
+                    "template_id": "fenggaolab.org.medical-display-core::coefficient_path_panel",
+                    "title": "Coefficient path panel for prespecified heterogeneity stability review",
+                    "caption": "Regression lock for bounded coefficient-path and stability-summary evidence.",
+                    "path_panel_title": "Coefficient path across model steps",
+                    "x_label": "Log hazard ratio",
+                    "reference_value": 0.0,
+                    "step_legend_title": "Model step",
+                    "steps": [
+                        {"step_id": "unadjusted", "step_label": "Unadjusted", "step_order": 1},
+                        {"step_id": "adjusted", "step_label": "Adjusted", "step_order": 2},
+                        {"step_id": "sensitivity", "step_label": "Sensitivity", "step_order": 3},
+                    ],
+                    "coefficient_rows": [
+                        {
+                            "row_id": "age_ge_65",
+                            "row_label": "Age ≥65 years",
+                            "points": [
+                                {"step_id": "unadjusted", "estimate": 0.18, "lower": 0.04, "upper": 0.32, "support_n": 184},
+                                {"step_id": "adjusted", "estimate": 0.11, "lower": -0.01, "upper": 0.24, "support_n": 184},
+                                {"step_id": "sensitivity", "estimate": 0.08, "lower": -0.05, "upper": 0.20, "support_n": 184},
+                            ],
+                        },
+                        {
+                            "row_id": "female",
+                            "row_label": "Female",
+                            "points": [
+                                {"step_id": "unadjusted", "estimate": 0.34, "lower": 0.19, "upper": 0.49, "support_n": 201},
+                                {"step_id": "adjusted", "estimate": 0.27, "lower": 0.12, "upper": 0.41, "support_n": 201},
+                                {"step_id": "sensitivity", "estimate": 0.22, "lower": 0.08, "upper": 0.36, "support_n": 201},
+                            ],
+                        },
+                    ],
+                    "summary_panel_title": "Stability summary",
+                    "summary_cards": [
+                        {
+                            "card_id": "age",
+                            "label": "Age ≥65 years",
+                            "value": "Stable positive",
+                            "detail": "Direction stays positive across all 3 model steps.",
+                        },
+                        {
+                            "card_id": "female",
+                            "label": "Female",
+                            "value": "Attenuated after adjustment",
+                            "detail": "Magnitude shrinks after covariate adjustment but remains positive.",
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F48_coefficient_path_panel.layout.json").read_text(encoding="utf-8")
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert layout_sidecar["metrics"]["reference_value"] == 0.0
+    assert [item["step_label"] for item in layout_sidecar["metrics"]["steps"]] == [
+        "Unadjusted",
+        "Adjusted",
+        "Sensitivity",
+    ]
+    assert [item["row_label"] for item in layout_sidecar["metrics"]["coefficient_rows"]] == [
+        "Age ≥65 years",
+        "Female",
+    ]
+    assert [item["card_id"] for item in layout_sidecar["metrics"]["summary_cards"]] == ["age", "female"]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_type"] == "reference_line" for box in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_baseline_missingness_qc_panel_preserves_h_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

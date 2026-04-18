@@ -49,6 +49,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
     generalizability_subgroup = module.get_input_schema_contract("generalizability_subgroup_composite_inputs_v1")
     compact_effect_estimate = module.get_input_schema_contract("compact_effect_estimate_panel_inputs_v1")
+    coefficient_path = module.get_input_schema_contract("coefficient_path_panel_inputs_v1")
     shap = module.get_input_schema_contract("shap_summary_inputs_v1")
     shap_dependence = module.get_input_schema_contract("shap_dependence_panel_inputs_v1")
     shap_waterfall = module.get_input_schema_contract("shap_waterfall_local_explanation_panel_inputs_v1")
@@ -667,6 +668,54 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     assert _full_id("compact_effect_estimate_panel") in effect_estimate_class.template_ids
     assert "compact_effect_estimate_panel_inputs_v1" in effect_estimate_class.input_schema_ids
+    assert coefficient_path.template_ids == (_full_id("coefficient_path_panel"),)
+    assert coefficient_path.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "path_panel_title",
+        "x_label",
+        "reference_value",
+        "step_legend_title",
+        "steps",
+        "coefficient_rows",
+        "summary_panel_title",
+        "summary_cards",
+    )
+    assert coefficient_path.display_optional_fields == ("paper_role",)
+    assert coefficient_path.collection_required_fields["steps"] == ("step_id", "step_label", "step_order")
+    assert coefficient_path.collection_required_fields["coefficient_rows"] == (
+        "row_id",
+        "row_label",
+        "points",
+    )
+    assert coefficient_path.collection_required_fields["summary_cards"] == ("card_id", "label", "value")
+    assert coefficient_path.collection_optional_fields["summary_cards"] == ("detail",)
+    assert coefficient_path.nested_collection_required_fields["coefficient_rows.points"] == (
+        "step_id",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert coefficient_path.nested_collection_optional_fields["coefficient_rows.points"] == ("support_n",)
+    assert coefficient_path.additional_constraints == (
+        "steps_must_contain_between_two_and_five_entries",
+        "step_ids_must_be_unique",
+        "step_orders_must_be_strictly_increasing",
+        "reference_value_must_be_finite",
+        "coefficient_rows_must_be_non_empty",
+        "coefficient_row_ids_must_be_unique",
+        "coefficient_row_labels_must_be_unique",
+        "coefficient_points_must_cover_all_declared_steps_once",
+        "coefficient_point_values_must_be_finite",
+        "coefficient_point_intervals_must_wrap_estimate",
+        "coefficient_point_support_n_must_be_positive_when_present",
+        "summary_cards_must_contain_between_two_and_four_entries",
+        "summary_card_ids_must_be_unique",
+    )
+    assert _full_id("coefficient_path_panel") in effect_estimate_class.template_ids
+    assert "coefficient_path_panel_inputs_v1" in effect_estimate_class.input_schema_ids
     assert forest.collection_required_fields["rows"] == ("label", "estimate", "lower", "upper")
     assert shap.template_ids == (_full_id("shap_summary_beeswarm"),)
     assert shap.collection_required_fields["rows"] == ("feature", "points")

@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `coefficient_path_panel` as the next audited `C/H` coefficient-stability follow-on in the core display pack.
+- Lock its pack-facing contract to `coefficient_path_panel_inputs_v1`, `publication_coefficient_path_panel`, and the Python bounded coefficient-path plus stability-summary renderer path.
+
 - Add `center_coverage_batch_transportability_panel` as the next audited `H` center-coverage / batch-shift / transportability illustration shell in the core display pack.
 - Lock its pack-facing contract to `center_coverage_batch_transportability_panel_inputs_v1`, `publication_center_coverage_batch_transportability_panel`, and the Python bounded three-panel center-coverage / batch-shift / transportability renderer path.
 

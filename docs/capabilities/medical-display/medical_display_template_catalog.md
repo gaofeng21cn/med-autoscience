@@ -90,6 +90,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::forest_effect_main` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Main Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::subgroup_forest` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::compact_effect_estimate_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Compact Effect Estimate Panel | `python` | `compact_effect_estimate_panel_inputs_v1` | `publication_compact_effect_estimate_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `python` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` |
 
 ### Model Explanation
 
@@ -564,6 +565,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `panels.rows` -> `row_id`, `row_label`, `estimate`, `lower`, `upper`
 - Optional nested collection fields: `panels.rows` -> `support_n`
 - Additional constraints: `panels_must_be_non_empty`, `panel_count_must_be_between_two_and_four`, `panel_ids_must_be_unique`, `panel_labels_must_be_unique`, `reference_value_must_be_finite`, `panel_rows_must_be_non_empty`, `panel_row_ids_must_be_unique_within_panel`, `panel_row_labels_must_be_unique_within_panel`, `panel_row_values_must_be_finite`, `panel_row_intervals_must_wrap_estimate`, `panel_row_support_n_must_be_positive_when_present`, `panel_row_orders_must_match_across_panels`
+
+### `coefficient_path_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Coefficient Path Panel
+- Templates: `fenggaolab.org.medical-display-core::coefficient_path_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `path_panel_title`, `x_label`, `reference_value`, `step_legend_title`, `steps`, `coefficient_rows`, `summary_panel_title`, `summary_cards`
+- Optional display fields: `paper_role`
+- Required collection fields: `steps` -> `step_id`, `step_label`, `step_order`<br>`coefficient_rows` -> `row_id`, `row_label`, `points`<br>`summary_cards` -> `card_id`, `label`, `value`
+- Optional collection fields: `summary_cards` -> `detail`
+- Required nested collection fields: `coefficient_rows.points` -> `step_id`, `estimate`, `lower`, `upper`
+- Optional nested collection fields: `coefficient_rows.points` -> `support_n`
+- Additional constraints: `steps_must_contain_between_two_and_five_entries`, `step_ids_must_be_unique`, `step_orders_must_be_strictly_increasing`, `reference_value_must_be_finite`, `coefficient_rows_must_be_non_empty`, `coefficient_row_ids_must_be_unique`, `coefficient_row_labels_must_be_unique`, `coefficient_points_must_cover_all_declared_steps_once`, `coefficient_point_values_must_be_finite`, `coefficient_point_intervals_must_wrap_estimate`, `coefficient_point_support_n_must_be_positive_when_present`, `summary_cards_must_contain_between_two_and_four_entries`, `summary_card_ids_must_be_unique`
 
 ### `shap_summary_inputs_v1`
 
