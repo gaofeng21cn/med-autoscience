@@ -1706,6 +1706,68 @@ def test_build_report_blocks_when_later_results_section_is_incomplete(tmp_path: 
     assert "results_narrative_map_missing_or_incomplete" in report["blockers"]
 
 
+def test_build_report_blocks_analysis_plane_jargon_on_manuscript_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    draft_path = paper_root / "draft.md"
+    draft_text = draft_path.read_text(encoding="utf-8")
+    draft_path.write_text(
+        draft_text.replace(
+            "We assessed whether an extended preoperative model could improve residual-risk estimation.",
+            (
+                "We assessed whether support mismatch and risk compression explained the transported score, "
+                "with self-quantile summaries retained as the main manuscript route."
+            ),
+        ),
+        encoding="utf-8",
+    )
+    narrative_path = paper_root / "results_narrative_map.json"
+    narrative_payload = json.loads(narrative_path.read_text(encoding="utf-8"))
+    narrative_payload["sections"][0]["direct_answer"] = (
+        "Residual ordering signal persisted after support mismatch and risk compression were observed."
+    )
+    narrative_path.write_text(json.dumps(narrative_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "analysis_plane_jargon_present_on_manuscript_surface" in report["blockers"]
+    assert any(hit["pattern_id"] == "support_mismatch" for hit in report["top_hits"])
+    assert any(hit["pattern_id"] == "risk_compression" for hit in report["top_hits"])
+
+
+def test_build_report_accepts_medical_publication_native_terms_on_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    draft_path = paper_root / "draft.md"
+    draft_text = draft_path.read_text(encoding="utf-8")
+    draft_path.write_text(
+        draft_text.replace(
+            "We assessed whether an extended preoperative model could improve residual-risk estimation.",
+            (
+                "We assessed external validation performance by focusing on discrimination, calibration, "
+                "clinical utility, and transportability."
+            ),
+        ),
+        encoding="utf-8",
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "analysis_plane_jargon_present_on_manuscript_surface" not in report["blockers"]
+
+
 def test_build_report_blocks_when_evidence_figure_uses_html_svg_renderer(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(

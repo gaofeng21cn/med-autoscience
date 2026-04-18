@@ -82,6 +82,35 @@ def test_medical_reporting_audit_reads_active_worktree_paper_root(tmp_path: Path
     assert "missing_cohort_flow" in report["blockers"]
 
 
+def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk-story"
+    paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    (paper_root / "medical_reporting_contract.json").write_text(
+        json.dumps(
+            {
+                "reporting_guideline_family": "TRIPOD",
+                "display_registry_required": False,
+                "cohort_flow_required": False,
+                "baseline_characteristics_required": False,
+                "display_shell_plan": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (paper_root / "reporting_guideline_checklist.json").write_text(
+        json.dumps({"schema_version": 1, "items": []}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    report = module.run_controller(quest_root=quest_root, apply=False)
+
+    assert report["status"] == "blocked"
+    assert "missing_medical_story_contract" in report["blockers"]
+
+
 def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
@@ -293,4 +322,5 @@ def test_medical_reporting_audit_blocks_missing_direct_migration_stub(tmp_path: 
     report = module.run_controller(quest_root=quest_root, apply=False)
 
     assert report["status"] == "blocked"
-    assert report["blockers"] == ["missing_multicenter_generalizability_inputs"]
+    assert "missing_multicenter_generalizability_inputs" in report["blockers"]
+    assert "missing_medical_story_contract" in report["blockers"]

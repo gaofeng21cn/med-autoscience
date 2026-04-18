@@ -75,6 +75,17 @@ RESULTS_NARRATION_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("table summarizes", "Table 1 summarizes", r"\bTable\s+\d+[A-Za-z]?\s+summarizes\b", re.IGNORECASE),
     ("table presents", "Table 1 presents", r"\bTable\s+\d+[A-Za-z]?\s+presents\b", re.IGNORECASE),
 ]
+ANALYSIS_PLANE_JARGON_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
+    ("support_mismatch", "support mismatch", r"\bsupport mismatch\b", re.IGNORECASE),
+    ("risk_compression", "risk compression", r"\brisk(?:[\s-]+scale)? compression\b", re.IGNORECASE),
+    ("self_quantile", "self-quantile", r"\bself[\s-]+quantile\b", re.IGNORECASE),
+    ("one_bin_collapse", "one-bin collapse", r"\bone[\s-]+bin collapse\b", re.IGNORECASE),
+    ("contextual_layer", "contextual layer", r"\bcontextual layer\b", re.IGNORECASE),
+    ("analysis_slice", "analysis slice", r"\banalysis slice\b", re.IGNORECASE),
+    ("transportability_surface", "transportability surface", r"\btransportability surface\b", re.IGNORECASE),
+    ("residual_ordering_signal", "residual ordering signal", r"\bresidual ordering signal\b", re.IGNORECASE),
+    ("claim_boundary_surface", "claim boundary", r"\bclaim boundary\b", re.IGNORECASE),
+]
 METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("knowledge-guided", "knowledge-guided", r"\bknowledge-guided\b", re.IGNORECASE),
     ("causal", "causal", r"\bcausal\b", re.IGNORECASE),
@@ -99,6 +110,13 @@ def get_results_narration_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
     return [
         (pattern_id, phrase, re.compile(pattern, flags=flags))
         for pattern_id, phrase, pattern, flags in RESULTS_NARRATION_PATTERN_SPECS
+    ]
+
+
+def get_analysis_plane_jargon_patterns() -> list[tuple[str, str, re.Pattern[str]]]:
+    return [
+        (pattern_id, phrase, re.compile(pattern, flags=flags))
+        for pattern_id, phrase, pattern, flags in ANALYSIS_PLANE_JARGON_PATTERN_SPECS
     ]
 
 

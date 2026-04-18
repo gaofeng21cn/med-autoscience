@@ -429,16 +429,21 @@ def scan_string_value_for_patterns(
     location: str,
     value: str,
     *,
-    patterns: list[tuple[str, re.Pattern[str]]],
+    patterns: list[tuple[str, re.Pattern[str]]] | list[tuple[str, str, re.Pattern[str]]],
 ) -> list[dict[str, Any]]:
     hits: list[dict[str, Any]] = []
-    for phrase, compiled in patterns:
+    for item in patterns:
+        if len(item) == 2:
+            pattern_id = "paper_facing_public_data_reference"
+            phrase, compiled = item
+        else:
+            pattern_id, phrase, compiled = item
         for match in compiled.finditer(value):
             hits.append(
                 {
                     "path": str(path),
                     "location": location,
-                    "pattern_id": "paper_facing_public_data_reference",
+                    "pattern_id": pattern_id,
                     "phrase": phrase,
                     "excerpt": excerpt_around(value, match.start(), match.end()),
                 }
@@ -500,6 +505,27 @@ def scan_catalog_strings_for_patterns(
                         patterns=patterns,
                     )
                 )
+    return hits
+
+
+def scan_main_text_catalog_surface_for_patterns(
+    path: Path,
+    *,
+    collection_key: str,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    payload = load_json(path, default={}) or {}
+    hits: list[dict[str, Any]] = []
+    for index, item in enumerate(payload.get(collection_key, []) or []):
+        if str(item.get("paper_role") or "").strip() != "main_text":
+            continue
+        for field in ("title", "caption", "manuscript_purpose"):
+            value = str(item.get(field) or "")
+            if not value:
+                continue
+            hits.extend(
+                scan_string_value_for_patterns(path, f"{collection_key}[{index}].{field}", value, patterns=patterns)
+            )
     return hits
 
 
@@ -1291,6 +1317,75 @@ def extract_nonempty_paragraphs(text: str) -> list[str]:
     return [block.strip() for block in re.split(r"\n\s*\n", without_headings) if block.strip()]
 
 
+def scan_manuscript_surface_sections_for_patterns(
+    path: Path,
+    *,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    blocks = parse_markdown_heading_blocks(path.read_text(encoding="utf-8"))
+    hits: list[dict[str, Any]] = []
+    for headings in (("Abstract",), ("Results",)):
+        block = find_heading_block_with_fallback_levels(blocks, levels=(2, 1), headings=headings)
+        if block is None or not block.body.strip():
+            continue
+        hits.extend(
+            scan_string_value_for_patterns(path, f"line {block.start_line}", block.body, patterns=patterns)
+        )
+    return hits
+
+
+def inspect_results_narrative_surface_language(
+    *,
+    path: Path,
+    payload: object,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    sections = payload.get("sections")
+    if not isinstance(sections, list):
+        return []
+    hits: list[dict[str, Any]] = []
+    for index, section in enumerate(sections):
+        if not isinstance(section, dict):
+            continue
+        for field in ("section_title", "research_question", "direct_answer", "clinical_meaning", "boundary"):
+            value = str(section.get(field) or "").strip()
+            if not value:
+                continue
+            hits.extend(
+                scan_string_value_for_patterns(path, f"sections[{index}].{field}", value, patterns=patterns)
+            )
+    return hits
+
+
+def inspect_claim_evidence_surface_language(
+    *,
+    path: Path,
+    payload: object,
+    patterns: list[tuple[str, re.Pattern[str]]],
+) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict):
+        return []
+    claims = payload.get("claims")
+    if not isinstance(claims, list):
+        return []
+    hits: list[dict[str, Any]] = []
+    for index, claim in enumerate(claims):
+        if not isinstance(claim, dict):
+            continue
+        if str(claim.get("paper_role") or "").strip() != "main_text":
+            continue
+        statement = str(claim.get("statement") or "").strip()
+        if statement:
+            hits.extend(
+                scan_string_value_for_patterns(path, f"claims[{index}].statement", statement, patterns=patterns)
+            )
+    return hits
+
+
 def inspect_introduction_structure(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -1607,6 +1702,42 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         reproducibility_path=state.reproducibility_supplement_path,
         reproducibility_payload=reproducibility_payload,
     )
+    analysis_plane_patterns = medical_surface_policy.get_analysis_plane_jargon_patterns()
+    analysis_plane_jargon_hits: list[dict[str, Any]] = []
+    analysis_plane_jargon_hits.extend(
+        scan_manuscript_surface_sections_for_patterns(state.draft_path, patterns=analysis_plane_patterns)
+    )
+    analysis_plane_jargon_hits.extend(
+        scan_manuscript_surface_sections_for_patterns(state.review_manuscript_path, patterns=analysis_plane_patterns)
+    )
+    analysis_plane_jargon_hits.extend(
+        scan_main_text_catalog_surface_for_patterns(
+            state.figure_catalog_path,
+            collection_key="figures",
+            patterns=analysis_plane_patterns,
+        )
+    )
+    analysis_plane_jargon_hits.extend(
+        scan_main_text_catalog_surface_for_patterns(
+            state.table_catalog_path,
+            collection_key="tables",
+            patterns=analysis_plane_patterns,
+        )
+    )
+    analysis_plane_jargon_hits.extend(
+        inspect_results_narrative_surface_language(
+            path=state.results_narrative_map_path,
+            payload=results_narrative_payload,
+            patterns=analysis_plane_patterns,
+        )
+    )
+    analysis_plane_jargon_hits.extend(
+        inspect_claim_evidence_surface_language(
+            path=state.claim_evidence_map_path,
+            payload=claim_evidence_map_payload,
+            patterns=analysis_plane_patterns,
+        )
+    )
     results_narration_hits: list[dict[str, Any]] = []
     results_narration_hits.extend(scan_results_narration_text_file(state.draft_path))
     results_narration_hits.extend(scan_results_narration_text_file(state.review_manuscript_path))
@@ -1660,6 +1791,10 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     )
     public_data_surface_hits = public_evidence_surface_state.get("surface_hits") or []
     public_evidence_decision_hits = public_evidence_surface_state.get("decision_hits") or []
+    medical_story_contract_structural_valid = (
+        results_narrative_valid and figure_semantics_valid and claim_evidence_map_valid
+    )
+    medical_story_contract_valid = medical_story_contract_structural_valid and not analysis_plane_jargon_hits
     hits: list[dict[str, Any]] = []
     hits.extend(figure_catalog_hits)
     hits.extend(table_catalog_hits)
@@ -1679,6 +1814,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(endpoint_note_hits)
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
+    hits.extend(analysis_plane_jargon_hits)
     hits.extend(forbidden_hits)
     hits.extend(public_data_surface_hits)
     hits.extend(public_evidence_decision_hits)
@@ -1687,6 +1823,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     blockers: list[str] = []
     if forbidden_hits:
         blockers.append("forbidden_manuscript_terms_present")
+    if not medical_story_contract_structural_valid:
+        blockers.append("missing_medical_story_contract")
     if not figure_catalog_valid:
         blockers.append("figure_catalog_missing_or_incomplete")
     if not table_catalog_valid:
@@ -1727,6 +1865,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_table_led_results_narration_present")
     if non_formal_question_hits:
         blockers.append("non_formal_question_sentence_present")
+    if analysis_plane_jargon_hits:
+        blockers.append("analysis_plane_jargon_present_on_manuscript_surface")
     if any(hit["pattern_id"] == "public_evidence_decisions_missing_or_incomplete" for hit in public_evidence_decision_hits):
         blockers.append("public_evidence_decisions_missing_or_incomplete")
     if any(
@@ -1771,6 +1911,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "results_narrative_map_path": str(state.results_narrative_map_path),
         "results_narrative_map_present": state.results_narrative_map_path.exists(),
         "results_narrative_map_valid": results_narrative_valid,
+        "medical_story_contract_structural_valid": medical_story_contract_structural_valid,
+        "medical_story_contract_valid": medical_story_contract_valid,
+        "manuscript_rhetoric_medical_publication_native": not analysis_plane_jargon_hits,
         "results_display_surface_valid": not results_display_surface_hits,
         "figure_semantics_manifest_path": str(state.figure_semantics_manifest_path),
         "figure_semantics_manifest_present": state.figure_semantics_manifest_path.exists(),
@@ -1796,6 +1939,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "public_data_surface_reference_count": len(public_data_surface_hits),
         "public_evidence_decision_count": int(public_evidence_surface_state.get("decision_count") or 0),
         "public_evidence_earned_count": int(public_evidence_surface_state.get("earned_count") or 0),
+        "analysis_plane_jargon_hit_count": len(analysis_plane_jargon_hits),
         "forbidden_hit_count": len(hits),
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
@@ -1828,6 +1972,11 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- results_section_structure_valid: `{report.get('results_section_structure_valid', True)}`",
         f"- results_narrative_map_present: `{report['results_narrative_map_present']}`",
         f"- results_narrative_map_valid: `{report['results_narrative_map_valid']}`",
+        f"- medical_story_contract_valid: `{report.get('medical_story_contract_valid', False)}`",
+        (
+            f"- manuscript_rhetoric_medical_publication_native: "
+            f"`{report.get('manuscript_rhetoric_medical_publication_native', True)}`"
+        ),
         f"- figure_semantics_manifest_present: `{report['figure_semantics_manifest_present']}`",
         f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
         f"- claim_evidence_map_present: `{report.get('claim_evidence_map_present', False)}`",

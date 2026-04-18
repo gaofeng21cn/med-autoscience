@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
+from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
@@ -77,6 +78,31 @@ def _normalize_display_shell_plan(reporting_contract: dict[str, object]) -> list
             }
         )
     return normalized
+
+
+def _medical_story_contract_is_valid(paper_root: Path) -> bool:
+    required_contracts = (
+        (
+            paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
+            medical_surface_policy.validate_results_narrative_map,
+        ),
+        (
+            paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
+            medical_surface_policy.validate_figure_semantics_manifest,
+        ),
+        (
+            paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
+            medical_surface_policy.validate_claim_evidence_map,
+        ),
+    )
+    for path, validator in required_contracts:
+        try:
+            payload = _load_json_dict(path)
+        except (OSError, ValueError, json.JSONDecodeError):
+            return False
+        if payload is None or validator(payload):
+            return False
+    return True
 
 
 def render_audit_markdown(report: dict[str, object]) -> str:
@@ -171,12 +197,16 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
 
     if not (paper_root / "reporting_guideline_checklist.json").exists():
         blockers.append("missing_reporting_guideline_checklist")
+    medical_story_contract_valid = _medical_story_contract_is_valid(paper_root)
+    if not medical_story_contract_valid:
+        blockers.append("missing_medical_story_contract")
     report = {
         "generated_at": utc_now(),
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
         "action": "clear",
         "quest_root": str(resolved_quest_root),
+        "medical_story_contract_valid": medical_story_contract_valid,
     }
     json_path, md_path = write_audit_files(resolved_quest_root, report)
     return {
