@@ -398,3 +398,97 @@ def test_baseline_missingness_qc_panel_preserves_h_bounded_contract(tmp_path: Pa
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
+def test_center_coverage_batch_transportability_panel_preserves_h_bounded_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure47",
+                    "display_kind": "figure",
+                    "requirement_key": "center_coverage_batch_transportability_panel",
+                    "catalog_id": "F47",
+                    "shell_path": "paper/figures/Figure47.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "center_coverage_batch_transportability_panel.json",
+        {
+            "schema_version": 1,
+            "shell_id": "fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel",
+            "display_id": "Figure47",
+            "title": "Center coverage, batch shift, and transportability overview",
+            "caption": "Regression lock for bounded center-coverage and transportability evidence.",
+            "coverage_panel_title": "Center coverage",
+            "coverage_x_label": "Patients retained",
+            "center_rows": [
+                {"center_id": "train_a", "center_label": "Train A", "cohort_role": "Derivation", "support_count": 412, "event_count": 63},
+                {"center_id": "validation_c", "center_label": "Validation C", "cohort_role": "Internal validation", "support_count": 236, "event_count": 34},
+                {"center_id": "external_b", "center_label": "External B", "cohort_role": "External", "support_count": 188, "event_count": 29},
+            ],
+            "batch_panel_title": "Batch shift map",
+            "batch_x_label": "Shift domain",
+            "batch_y_label": "Center",
+            "batch_threshold": 0.20,
+            "batch_rows": [{"label": "Train A"}, {"label": "Validation C"}, {"label": "External B"}],
+            "batch_columns": [{"label": "Specimen drift"}, {"label": "Scanner drift"}, {"label": "Feature drift"}],
+            "batch_cells": [
+                {"x": "Specimen drift", "y": "Train A", "value": 0.08},
+                {"x": "Scanner drift", "y": "Train A", "value": 0.11},
+                {"x": "Feature drift", "y": "Train A", "value": 0.09},
+                {"x": "Specimen drift", "y": "Validation C", "value": 0.12},
+                {"x": "Scanner drift", "y": "Validation C", "value": 0.16},
+                {"x": "Feature drift", "y": "Validation C", "value": 0.13},
+                {"x": "Specimen drift", "y": "External B", "value": 0.14},
+                {"x": "Scanner drift", "y": "External B", "value": 0.18},
+                {"x": "Feature drift", "y": "External B", "value": 0.17},
+            ],
+            "transportability_panel_title": "Transportability boundary",
+            "transportability_cards": [
+                {"card_id": "covered_centers", "label": "Centers covered", "value": "3", "detail": "Derivation, internal, and external cohorts retained"},
+                {"card_id": "largest_shift", "label": "Largest shift", "value": "0.18", "detail": "Scanner drift at External B remains below the pre-specified threshold"},
+                {"card_id": "boundary", "label": "Boundary", "value": "No unseen center claim", "detail": "Transportability stays bounded to audited centers only"},
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F47_center_coverage_batch_transportability_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 3
+    assert [item["center_label"] for item in layout_sidecar["metrics"]["center_rows"]] == [
+        "Train A",
+        "Validation C",
+        "External B",
+    ]
+    assert [item["label"] for item in layout_sidecar["metrics"]["batch_rows"]] == [
+        "Train A",
+        "Validation C",
+        "External B",
+    ]
+    assert [item["label"] for item in layout_sidecar["metrics"]["batch_columns"]] == [
+        "Specimen drift",
+        "Scanner drift",
+        "Feature drift",
+    ]
+    assert layout_sidecar["metrics"]["batch_threshold"] == 0.20
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"

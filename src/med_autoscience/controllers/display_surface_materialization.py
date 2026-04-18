@@ -37,6 +37,7 @@ _ILLUSTRATION_INPUT_FILENAME_BY_SCHEMA_ID = {
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
     "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
     "baseline_missingness_qc_panel_inputs_v1": "baseline_missingness_qc_panel.json",
+    "center_coverage_batch_transportability_panel_inputs_v1": "center_coverage_batch_transportability_panel.json",
 }
 _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": "cohort_flow",
@@ -44,6 +45,7 @@ _ILLUSTRATION_OUTPUT_STEM_BY_TEMPLATE_SHORT_ID = {
     "workflow_fact_sheet_panel": "workflow_fact_sheet_panel",
     "design_evidence_composite_shell": "design_evidence_composite_shell",
     "baseline_missingness_qc_panel": "baseline_missingness_qc_panel",
+    "center_coverage_batch_transportability_panel": "center_coverage_batch_transportability_panel",
 }
 _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "cohort_flow_figure": (
@@ -65,6 +67,10 @@ _ILLUSTRATION_DEFAULT_TEXT_BY_TEMPLATE_SHORT_ID = {
     "baseline_missingness_qc_panel": (
         "Baseline balance, missingness, and QC overview",
         "Bounded cohort-quality overview combining baseline balance, missingness, and QC summary evidence.",
+    ),
+    "center_coverage_batch_transportability_panel": (
+        "Center coverage, batch shift, and transportability overview",
+        "Bounded center-coverage overview combining support counts, batch-shift governance, and transportability boundary evidence.",
     ),
 }
 _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {

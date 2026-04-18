@@ -95,9 +95,9 @@ Current implemented display inventory:
 
 - Evidence figure classes: `9`
 - Implemented evidence figure templates: `53`
-- Illustration shells: `5`
+- Illustration shells: `6`
 - Table shells: `5`
-- Total implemented display templates: `63`
+- Total implemented display templates: `64`
 
 ### Evidence Classes
 
@@ -117,7 +117,7 @@ Current implemented display inventory:
 
 | Kind | Implemented Templates | Input Schemas | Contract Gate |
 | --- | ---: | --- | --- |
-| Illustration Shell | 5 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1`, `design_evidence_composite_shell_inputs_v1`, `baseline_missingness_qc_panel_inputs_v1` | shell profile + catalog contract |
+| Illustration Shell | 6 | `cohort_flow_shell_inputs_v1`, `submission_graphical_abstract_inputs_v1`, `workflow_fact_sheet_panel_inputs_v1`, `design_evidence_composite_shell_inputs_v1`, `baseline_missingness_qc_panel_inputs_v1`, `center_coverage_batch_transportability_panel_inputs_v1` | shell profile + catalog contract |
 | Table Shell | 5 | `baseline_characteristics_schema_v1`, `time_to_event_performance_summary_v1`, `clinical_interpretation_summary_v1`, `performance_summary_table_generic_v1`, `grouped_risk_event_summary_table_v1` | table profile + catalog contract |
 
 ## Current Audit-Family Map
@@ -344,6 +344,10 @@ Authoritative contract:
   - Input schema: `baseline_missingness_qc_panel_inputs_v1`
   - Required exports: `png`, `svg`
   - Role: bounded manuscript-facing three-panel shell that jointly governs baseline balance, missingness pattern, and QC summary cards
+- `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel`
+  - Input schema: `center_coverage_batch_transportability_panel_inputs_v1`
+  - Required exports: `png`, `svg`
+  - Role: bounded manuscript-facing three-panel shell that jointly governs center coverage, batch-shift heatmap evidence, and transportability boundary cards
 
 ### Table Shells
 
@@ -384,7 +388,8 @@ Phase 1 hardening should not start from abstract template counts. The first regr
 - `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel`
 - `fenggaolab.org.medical-display-core::design_evidence_composite_shell`
 - `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel`
-- lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, legend title/label semantics, tick-label readability, arrow-lane placement, balance-threshold governance, missingness-grid completeness, QC-card containment, and catalog/package routing consistency
+- `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel`
+- lower-bound focus: panel-label anchoring, section-title and fact-row containment, outboard cohort/subgroup label containment, legend title/label semantics, tick-label readability, arrow-lane placement, balance-threshold governance, missingness-grid completeness, batch-grid completeness, transportability-card containment, and catalog/package routing consistency
 
 ### D/E/G composite atlas lane
 

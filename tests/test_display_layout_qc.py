@@ -1012,6 +1012,146 @@ def test_run_display_layout_qc_fails_when_baseline_missingness_qc_grid_is_incomp
     assert any(issue["rule_id"] == "declared_missingness_grid_incomplete" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_center_coverage_batch_transportability_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_coverage_batch_transportability_panel",
+        layout_sidecar={
+            "template_id": "center_coverage_batch_transportability_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.06, y0=0.08, x1=0.09, y1=0.12),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.08, x1=0.61, y1=0.12),
+                make_box("panel_label_C", "panel_label", x0=0.58, y0=0.58, x1=0.61, y1=0.62),
+                make_box("coverage_panel_title", "panel_title", x0=0.10, y0=0.08, x1=0.34, y1=0.12),
+                make_box("coverage_x_axis_title", "subplot_x_axis_title", x0=0.15, y0=0.84, x1=0.41, y1=0.88),
+                make_box("batch_panel_title", "panel_title", x0=0.63, y0=0.08, x1=0.86, y1=0.12),
+                make_box("batch_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.44, x1=0.88, y1=0.48),
+                make_box("batch_y_axis_title", "subplot_y_axis_title", x0=0.56, y0=0.18, x1=0.60, y1=0.38),
+                make_box("transportability_panel_title", "panel_title", x0=0.63, y0=0.58, x1=0.86, y1=0.62),
+                make_box("transport_card_label_centers", "card_label", x0=0.63, y0=0.68, x1=0.77, y1=0.71),
+                make_box("transport_card_value_centers", "card_value", x0=0.63, y0=0.72, x1=0.77, y1=0.77),
+                make_box("transport_card_label_shift", "card_label", x0=0.63, y0=0.79, x1=0.77, y1=0.82),
+                make_box("transport_card_value_shift", "card_value", x0=0.63, y0=0.83, x1=0.77, y1=0.88),
+            ],
+            "panel_boxes": [
+                make_box("panel_coverage", "panel", x0=0.04, y0=0.06, x1=0.48, y1=0.90),
+                make_box("panel_batch", "panel", x0=0.56, y0=0.06, x1=0.94, y1=0.50),
+                make_box("panel_transportability", "panel", x0=0.56, y0=0.56, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [
+                make_box("batch_threshold", "reference_line", x0=0.88, y0=0.14, x1=0.89, y1=0.42),
+                make_box("batch_colorbar", "colorbar", x0=0.90, y0=0.14, x1=0.92, y1=0.42),
+            ],
+            "metrics": {
+                "batch_threshold": 0.20,
+                "center_rows": [
+                    {
+                        "center_id": "train_a",
+                        "center_label": "Train A",
+                        "cohort_role": "Derivation",
+                        "support_count": 412,
+                        "event_count": 63,
+                    },
+                    {
+                        "center_id": "external_b",
+                        "center_label": "External B",
+                        "cohort_role": "External",
+                        "support_count": 188,
+                        "event_count": 29,
+                    },
+                ],
+                "batch_rows": [{"label": "Train A"}, {"label": "External B"}],
+                "batch_columns": [{"label": "Specimen drift"}, {"label": "Scanner drift"}],
+                "batch_cells": [
+                    {"x": "Specimen drift", "y": "Train A", "value": 0.08},
+                    {"x": "Scanner drift", "y": "Train A", "value": 0.11},
+                    {"x": "Specimen drift", "y": "External B", "value": 0.14},
+                    {"x": "Scanner drift", "y": "External B", "value": 0.18},
+                ],
+                "transportability_cards": [
+                    {
+                        "card_id": "covered_centers",
+                        "label_box_id": "transport_card_label_centers",
+                        "value_box_id": "transport_card_value_centers",
+                    },
+                    {
+                        "card_id": "largest_shift",
+                        "label_box_id": "transport_card_label_shift",
+                        "value_box_id": "transport_card_value_shift",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass"
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_center_coverage_batch_grid_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_center_coverage_batch_transportability_panel",
+        layout_sidecar={
+            "template_id": "center_coverage_batch_transportability_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.06, y0=0.08, x1=0.09, y1=0.12),
+                make_box("panel_label_B", "panel_label", x0=0.58, y0=0.08, x1=0.61, y1=0.12),
+                make_box("panel_label_C", "panel_label", x0=0.58, y0=0.58, x1=0.61, y1=0.62),
+                make_box("coverage_panel_title", "panel_title", x0=0.10, y0=0.08, x1=0.34, y1=0.12),
+                make_box("coverage_x_axis_title", "subplot_x_axis_title", x0=0.15, y0=0.84, x1=0.41, y1=0.88),
+                make_box("batch_panel_title", "panel_title", x0=0.63, y0=0.08, x1=0.86, y1=0.12),
+                make_box("batch_x_axis_title", "subplot_x_axis_title", x0=0.67, y0=0.44, x1=0.88, y1=0.48),
+                make_box("batch_y_axis_title", "subplot_y_axis_title", x0=0.56, y0=0.18, x1=0.60, y1=0.38),
+                make_box("transportability_panel_title", "panel_title", x0=0.63, y0=0.58, x1=0.86, y1=0.62),
+                make_box("transport_card_label_centers", "card_label", x0=0.63, y0=0.68, x1=0.77, y1=0.71),
+                make_box("transport_card_value_centers", "card_value", x0=0.63, y0=0.72, x1=0.77, y1=0.77),
+            ],
+            "panel_boxes": [
+                make_box("panel_coverage", "panel", x0=0.04, y0=0.06, x1=0.48, y1=0.90),
+                make_box("panel_batch", "panel", x0=0.56, y0=0.06, x1=0.94, y1=0.50),
+                make_box("panel_transportability", "panel", x0=0.56, y0=0.56, x1=0.94, y1=0.90),
+            ],
+            "guide_boxes": [
+                make_box("batch_threshold", "reference_line", x0=0.88, y0=0.14, x1=0.89, y1=0.42),
+            ],
+            "metrics": {
+                "batch_threshold": 0.20,
+                "center_rows": [
+                    {
+                        "center_id": "train_a",
+                        "center_label": "Train A",
+                        "cohort_role": "Derivation",
+                        "support_count": 412,
+                        "event_count": 63,
+                    },
+                ],
+                "batch_rows": [{"label": "Train A"}, {"label": "External B"}],
+                "batch_columns": [{"label": "Specimen drift"}, {"label": "Scanner drift"}],
+                "batch_cells": [
+                    {"x": "Specimen drift", "y": "Train A", "value": 0.08},
+                    {"x": "Scanner drift", "y": "Train A", "value": 0.11},
+                    {"x": "Specimen drift", "y": "External B", "value": 0.14},
+                ],
+                "transportability_cards": [
+                    {
+                        "card_id": "covered_centers",
+                        "label_box_id": "transport_card_label_centers",
+                        "value_box_id": "transport_card_value_centers",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "declared_batch_grid_incomplete" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_for_overlapping_legend_and_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

@@ -1,0 +1,14 @@
+template_id = "center_coverage_batch_transportability_panel"
+full_template_id = "fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel"
+kind = "illustration_shell"
+display_name = "Center Coverage Batch Transportability Panel"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "center_coverage_batch_transportability_panel_inputs_v1"
+qc_profile_ref = "publication_center_coverage_batch_transportability_panel"
+required_exports = ["png", "svg"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.illustration_shells:render_illustration_shell"
+paper_proven = false

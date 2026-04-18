@@ -534,6 +534,7 @@ Current audited anchors:
 - `workflow_fact_sheet_panel`
 - `design_evidence_composite_shell`
 - `baseline_missingness_qc_panel`
+- `center_coverage_batch_transportability_panel`
 - `table1_baseline_characteristics`
 - `table2_time_to_event_performance_summary`
 - `table3_clinical_interpretation_summary`
@@ -542,9 +543,9 @@ Current audited anchors:
 
 Current gap direction:
 
-- broader balance / missingness governance beyond the first bounded balance-missingness-QC composite shell
-- explicit QC and batch-effect display families beyond the first bounded manuscript-facing QC summary shell
-- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline
+- broader balance / missingness governance beyond the current bounded balance-missingness-QC shell layer
+- broader QC and batch-effect display families beyond the first bounded center-coverage / batch-shift / transportability shell
+- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline + bounded center-coverage transportability shell
 - broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, the bounded workflow-ribbon-plus-summary composite shell, the first bounded balance-missingness-QC composite shell, and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families

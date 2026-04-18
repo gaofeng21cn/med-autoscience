@@ -73,6 +73,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     workflow_fact_sheet = module.get_input_schema_contract("workflow_fact_sheet_panel_inputs_v1")
     design_evidence_composite = module.get_input_schema_contract("design_evidence_composite_shell_inputs_v1")
     baseline_missingness_qc = module.get_input_schema_contract("baseline_missingness_qc_panel_inputs_v1")
+    center_coverage_batch_transportability = module.get_input_schema_contract(
+        "center_coverage_batch_transportability_panel_inputs_v1"
+    )
     time_to_event_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "time_to_event"
     )
@@ -88,6 +91,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     effect_estimate_class = next(
         item for item in module.list_display_schema_classes() if item.class_id == "effect_estimate"
+    )
+    publication_shells_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "publication_shells_and_tables"
     )
 
     assert binary.template_ids == (
@@ -1193,6 +1199,45 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "qc_cards_must_be_non_empty",
         "qc_card_ids_must_be_unique",
     )
+    assert center_coverage_batch_transportability.template_ids == (
+        _full_id("center_coverage_batch_transportability_panel"),
+    )
+    assert center_coverage_batch_transportability.required_top_level_fields == (
+        "schema_version",
+        "shell_id",
+        "display_id",
+        "title",
+        "coverage_panel_title",
+        "coverage_x_label",
+        "center_rows",
+        "batch_panel_title",
+        "batch_x_label",
+        "batch_y_label",
+        "batch_threshold",
+        "batch_rows",
+        "batch_columns",
+        "batch_cells",
+        "transportability_panel_title",
+        "transportability_cards",
+    )
+    assert center_coverage_batch_transportability.optional_top_level_fields == ("caption",)
+    assert center_coverage_batch_transportability.collection_required_fields["center_rows"] == (
+        "center_id",
+        "center_label",
+        "cohort_role",
+        "support_count",
+        "event_count",
+    )
+    assert center_coverage_batch_transportability.collection_required_fields["batch_rows"] == ("label",)
+    assert center_coverage_batch_transportability.collection_required_fields["batch_columns"] == ("label",)
+    assert center_coverage_batch_transportability.collection_required_fields["batch_cells"] == ("x", "y", "value")
+    assert center_coverage_batch_transportability.collection_required_fields["transportability_cards"] == (
+        "card_id",
+        "label",
+        "value",
+    )
+    assert center_coverage_batch_transportability.collection_optional_fields["transportability_cards"] == ("detail",)
+    assert "center_coverage_batch_transportability_panel_inputs_v1" in publication_shells_class.input_schema_ids
     cohort_flow_shell = module.get_input_schema_contract("cohort_flow_shell_inputs_v1")
     assert cohort_flow_shell.required_top_level_fields == ("schema_version", "shell_id", "display_id", "title", "steps")
     assert cohort_flow_shell.optional_top_level_fields == (
@@ -2076,6 +2121,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("roc_curve_binary") in markdown
     assert "shap_summary_inputs_v1" in markdown
     assert _full_id("cohort_flow_figure") in markdown
+    assert _full_id("center_coverage_batch_transportability_panel") in markdown
     assert _full_id("table1_baseline_characteristics") in markdown
     assert _full_id("time_dependent_roc_horizon") in markdown
     assert _full_id("time_dependent_roc_comparison_panel") in markdown
@@ -2099,6 +2145,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("tsne_scatter_grouped") in markdown
     assert _full_id("celltype_signature_heatmap") in markdown
     assert "celltype_signature_heatmap_inputs_v1" in markdown
+    assert "center_coverage_batch_transportability_panel_inputs_v1" in markdown
     assert _full_id("shap_dependence_panel") in markdown
     assert "shap_dependence_panel_inputs_v1" in markdown
     assert _full_id("shap_bar_importance") in markdown

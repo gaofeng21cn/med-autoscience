@@ -49,6 +49,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
     "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
     "baseline_missingness_qc_panel_inputs_v1": "baseline_missingness_qc_panel.json",
+    "center_coverage_batch_transportability_panel_inputs_v1": "center_coverage_batch_transportability_panel.json",
 }
 
 
