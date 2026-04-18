@@ -69,6 +69,62 @@ def test_read_supervision_status_reports_loaded_hermes_job(monkeypatch, tmp_path
     assert "Hermes-hosted runtime supervision 已在线" in result["summary"]
 
 
+def test_read_supervision_status_accepts_object_jobs_store_payload(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    script_path = module._script_path(profile)
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+
+    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
+    jobs_path.parent.mkdir(parents=True, exist_ok=True)
+    jobs_path.write_text(
+        json.dumps(
+            {
+                "jobs": [
+                    {
+                        "id": "job-002",
+                        "name": module._job_name(profile),
+                        "prompt": module._SILENT_PROMPT,
+                        "deliver": "local",
+                        "script": module._script_relpath(profile),
+                        "schedule": {"kind": "interval", "minutes": 5, "display": "every 5m"},
+                        "schedule_display": "every 5m",
+                        "enabled": True,
+                        "state": "scheduled",
+                        "next_run_at": "2026-04-18T09:16:14.132356+08:00",
+                        "created_at": "2026-04-18T09:11:14.132333+08:00",
+                    }
+                ],
+                "updated_at": "2026-04-18T09:11:14.132850+08:00",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_hermes_runtime_contract",
+        lambda **_: {
+            "ready": True,
+            "issues": [],
+            "gateway_service_manager": "launchd",
+            "gateway_service_label": "ai.hermes.gateway",
+            "gateway_service_loaded": True,
+        },
+    )
+
+    result = module.read_supervision_status(profile=profile)
+
+    assert result["status"] == "loaded"
+    assert result["loaded"] is True
+    assert result["job_id"] == "job-002"
+    assert result["drift_reasons"] == []
+
+
 def test_hermes_cli_command_prefers_managed_python_when_available(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
