@@ -52,6 +52,7 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
 )
 _RUNTIME_RECOVERY_DECISIONS = frozenset({"create_and_start", "resume", "relaunch_stopped"})
 _RUNTIME_ALERT_NOTIFICATION_HEALTH_STATUSES = frozenset({"recovering", "degraded", "escalated"})
+_RUNTIME_ALERT_OPEN_NOTIFICATION_STATES = frozenset({"recovering", "degraded", "manual_intervention_required"})
 
 
 def utc_now() -> str:
@@ -293,7 +294,28 @@ def _runtime_alert_notification_state(supervision_report: Mapping[str, Any]) -> 
         return "recovered"
     if health_status == "escalated" or bool(supervision_report.get("needs_human_intervention")):
         return "manual_intervention_required"
-    return health_status
+    if health_status in {"recovering", "degraded"}:
+        return health_status
+    return None
+
+
+def _runtime_alert_target_notification_state(
+    *,
+    supervision_report: Mapping[str, Any],
+    previous_delivery: Mapping[str, Any] | None,
+) -> str | None:
+    current_state = _runtime_alert_notification_state(supervision_report)
+    if current_state is not None:
+        return current_state
+    previous_state = _non_empty_text((previous_delivery or {}).get("notification_state"))
+    previous_delivery_status = _non_empty_text((previous_delivery or {}).get("delivery_status"))
+    if (
+        _non_empty_text(supervision_report.get("health_status")) == "live"
+        and previous_state in _RUNTIME_ALERT_OPEN_NOTIFICATION_STATES
+        and previous_delivery_status == "delivered"
+    ):
+        return "recovered"
+    return None
 
 
 def _should_deliver_runtime_alert(supervision_report: Mapping[str, Any]) -> bool:
@@ -303,12 +325,16 @@ def _should_deliver_runtime_alert(supervision_report: Mapping[str, Any]) -> bool
     return health_status == "live" and _non_empty_text(supervision_report.get("last_transition")) == "recovered"
 
 
-def _runtime_alert_fingerprint(supervision_report: Mapping[str, Any]) -> str:
+def _runtime_alert_fingerprint(
+    supervision_report: Mapping[str, Any],
+    *,
+    notification_state: str | None,
+) -> str:
     health_status = _non_empty_text(supervision_report.get("health_status"))
     payload = {
         "study_id": _non_empty_text(supervision_report.get("study_id")),
         "quest_id": _non_empty_text(supervision_report.get("quest_id")),
-        "notification_state": _runtime_alert_notification_state(supervision_report),
+        "notification_state": notification_state,
         "health_status": health_status,
         "runtime_reason": _non_empty_text(supervision_report.get("runtime_reason")),
         "next_action": _non_empty_text(supervision_report.get("next_action")),
@@ -320,10 +346,12 @@ def _runtime_alert_fingerprint(supervision_report: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _build_runtime_alert_message(supervision_report: Mapping[str, Any]) -> str:
+def _build_runtime_alert_message(supervision_report: Mapping[str, Any], *, notification_state: str | None) -> str:
     study_id = _non_empty_text(supervision_report.get("study_id")) or "当前研究"
     health_status = _non_empty_text(supervision_report.get("health_status"))
-    if health_status == "recovering":
+    if notification_state == "recovered":
+        headline = f"研究 {study_id} 已恢复在线。"
+    elif health_status == "recovering":
         headline = f"研究 {study_id} 当前处于自动恢复中。"
     elif health_status == "degraded":
         headline = f"研究 {study_id} 当前出现运行异常。"
@@ -343,17 +371,21 @@ def _build_runtime_alert_message(supervision_report: Mapping[str, Any]) -> str:
     return "\n".join((headline, detail, f"下一步：{next_action_summary}"))
 
 
-def _build_runtime_alert_payload(supervision_report: Mapping[str, Any]) -> dict[str, Any]:
+def _build_runtime_alert_payload(
+    supervision_report: Mapping[str, Any],
+    *,
+    notification_state: str | None,
+) -> dict[str, Any]:
     health_status = _non_empty_text(supervision_report.get("health_status"))
-    kind = "milestone" if health_status in {"escalated", "live"} else "progress"
+    kind = "milestone" if health_status in {"escalated", "live"} or notification_state == "recovered" else "progress"
     importance = "warning"
-    if health_status == "escalated":
-        importance = "critical"
-    elif health_status == "live":
+    if notification_state == "recovered" or health_status == "live":
         importance = "info"
+    elif health_status == "escalated":
+        importance = "critical"
     return {
         "kind": kind,
-        "message": _build_runtime_alert_message(supervision_report),
+        "message": _build_runtime_alert_message(supervision_report, notification_state=notification_state),
         "response_phase": "push",
         "importance": importance,
         "deliver_to_bound_conversations": True,
@@ -399,12 +431,18 @@ def _deliver_runtime_alert(
     apply: bool,
 ) -> dict[str, Any] | None:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    if not apply or not _should_deliver_runtime_alert(supervision_report):
+    if not apply:
         return None
 
     latest_path = _runtime_alert_delivery_latest_path(resolved_study_root)
     previous_delivery = _read_json_object(latest_path) or {}
-    alert_fingerprint = _runtime_alert_fingerprint(supervision_report)
+    notification_state = _runtime_alert_target_notification_state(
+        supervision_report=supervision_report,
+        previous_delivery=previous_delivery,
+    )
+    if notification_state is None:
+        return None
+    alert_fingerprint = _runtime_alert_fingerprint(supervision_report, notification_state=notification_state)
     if (
         _non_empty_text(previous_delivery.get("alert_fingerprint")) == alert_fingerprint
         and _non_empty_text(previous_delivery.get("delivery_status")) == "delivered"
@@ -419,7 +457,7 @@ def _deliver_runtime_alert(
         supervision_report=supervision_report,
         backend=backend,
     )
-    payload = _build_runtime_alert_payload(supervision_report)
+    payload = _build_runtime_alert_payload(supervision_report, notification_state=notification_state)
     delivered_at = utc_now()
     delivery_record: dict[str, Any] = {
         "schema_version": 1,
@@ -432,7 +470,7 @@ def _deliver_runtime_alert(
         "last_transition": _non_empty_text(supervision_report.get("last_transition")),
         "active_run_id": _non_empty_text(supervision_report.get("active_run_id")),
         "needs_human_intervention": bool(supervision_report.get("needs_human_intervention")),
-        "notification_state": _runtime_alert_notification_state(supervision_report),
+        "notification_state": notification_state,
         "alert_fingerprint": alert_fingerprint,
         "payload": payload,
         "latest_path": str(latest_path),

@@ -2144,6 +2144,133 @@ def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend
     assert latest_alert["delivery_status"] == "delivered"
 
 
+def test_watch_runtime_sends_recovery_resolution_after_previous_manual_intervention_alert(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 001-risk\n", encoding="utf-8")
+    quest_root = profile.runtime_root / "001-risk"
+    interactions: list[dict[str, object]] = []
+
+    previous_alert_path = study_root / "artifacts" / "runtime" / "runtime_alert_delivery" / "latest.json"
+    dump_json(
+        previous_alert_path,
+        {
+            "schema_version": 1,
+            "delivered_at": "2026-04-18T00:50:00+00:00",
+            "study_id": "001-risk",
+            "quest_id": "001-risk",
+            "health_status": "escalated",
+            "notification_state": "manual_intervention_required",
+            "delivery_status": "delivered",
+            "alert_fingerprint": "prior-alert",
+        },
+    )
+
+    live_status = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "study_root": str(study_root),
+        "entry_mode": "full_research",
+        "execution": {
+            "engine": "hermes",
+            "runtime_backend_id": "hermes",
+            "auto_entry": "on_managed_research_intent",
+            "quest_id": "001-risk",
+            "auto_resume": True,
+        },
+        "quest_id": "001-risk",
+        "quest_root": str(quest_root),
+        "quest_exists": True,
+        "quest_status": "running",
+        "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+        "runtime_binding_exists": True,
+        "study_completion_contract": {},
+        "decision": "noop",
+        "reason": "quest_already_running",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-live",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+        "autonomous_runtime_notice": {
+            "active_run_id": "run-live",
+        },
+        "execution_owner_guard": {
+            "active_run_id": "run-live",
+        },
+    }
+
+    class FakeBackend:
+        BACKEND_ID = "med_deepscientist"
+
+        def artifact_interact(self, *, runtime_root: Path, quest_id: str, payload: dict[str, object]) -> dict[str, object]:
+            interactions.append(
+                {
+                    "runtime_root": str(runtime_root),
+                    "quest_id": quest_id,
+                    "payload": dict(payload),
+                }
+            )
+            return {"status": "ok", "interaction_id": "interaction-recovered"}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "ensure_study_runtime",
+        lambda *, profile, study_root, source: live_status,
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda *, profile, study_root: live_status,
+    )
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.runtime_backend_contract,
+        "resolve_managed_runtime_backend",
+        lambda execution: FakeBackend(),
+    )
+    monkeypatch.setattr(
+        module.runtime_backend_contract,
+        "controlled_research_backend_metadata_for_backend_id",
+        lambda backend_id: ("med_deepscientist", "med-deepscientist"),
+    )
+    monkeypatch.setattr(
+        module.runtime_backend_contract,
+        "get_managed_runtime_backend",
+        lambda backend_id: FakeBackend(),
+    )
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    latest_alert = json.loads(previous_alert_path.read_text(encoding="utf-8"))
+
+    assert result["managed_study_supervision"][0]["health_status"] == "live"
+    assert result["managed_study_supervision"][0]["last_transition"] == "live_confirmed"
+    assert len(interactions) == 1
+    assert interactions[0]["payload"]["kind"] == "milestone"
+    assert "已恢复在线" in str(interactions[0]["payload"]["message"])
+    assert latest_alert["notification_state"] == "recovered"
+    assert latest_alert["delivery_status"] == "delivered"
+
+
 def test_suppresses_duplicate_data_asset_gate_blocker(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     quest_root = make_quest(tmp_path, "q001", status="running")
