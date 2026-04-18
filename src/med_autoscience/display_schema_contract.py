@@ -188,10 +188,16 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
         class_id="publication_shells_and_tables",
         display_name="Publication Shells and Tables",
         template_ids=tuple(
-            [item.shell_id for item in display_registry.list_illustration_shell_specs()]
+            [
+                item.template_id
+                for item in display_registry.list_evidence_figure_specs()
+                if item.evidence_class == "publication_shells_and_tables"
+            ]
+            + [item.shell_id for item in display_registry.list_illustration_shell_specs()]
             + [item.shell_id for item in display_registry.list_table_shell_specs()]
         ),
         input_schema_ids=(
+            "accepted_descriptive_display_data_v1",
             "cohort_flow_shell_inputs_v1",
             "submission_graphical_abstract_inputs_v1",
             "workflow_fact_sheet_panel_inputs_v1",
@@ -209,6 +215,36 @@ _DISPLAY_SCHEMA_CLASSES: tuple[DisplaySchemaClass, ...] = (
 
 
 _INPUT_SCHEMA_CONTRACTS: tuple[InputSchemaContract, ...] = (
+    InputSchemaContract(
+        input_schema_id="accepted_descriptive_display_data_v1",
+        display_kind="evidence_figure",
+        display_name="Accepted Descriptive Display Data",
+        template_ids=_template_ids_for_input_schema("accepted_descriptive_display_data_v1"),
+        required_top_level_fields=("schema_version", "input_schema_id", "displays"),
+        display_required_fields=("display_id", "template_id", "title", "caption", "panels"),
+        display_optional_fields=("paper_role", "x_label", "y_label"),
+        collection_required_fields={
+            "panels": ("panel_id", "title", "x_label", "y_label", "marks"),
+        },
+        collection_optional_fields={
+            "panels": ("annotation",),
+        },
+        nested_collection_required_fields={
+            "panels.marks": ("label", "value"),
+        },
+        nested_collection_optional_fields={
+            "panels.marks": ("group", "comparison_value", "color", "annotation"),
+        },
+        additional_constraints=(
+            "descriptive_displays_must_be_non_empty",
+            "descriptive_display_ids_must_be_unique",
+            "descriptive_panels_must_be_non_empty",
+            "descriptive_panel_ids_must_be_unique_within_display",
+            "descriptive_marks_must_be_non_empty",
+            "descriptive_mark_labels_must_be_unique_within_panel",
+            "descriptive_mark_values_must_be_finite_or_null_when_not_applicable",
+        ),
+    ),
     InputSchemaContract(
         input_schema_id="binary_prediction_curve_inputs_v1",
         display_kind="evidence_figure",

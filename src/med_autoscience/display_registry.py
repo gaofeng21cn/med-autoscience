@@ -75,6 +75,9 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "time_to_event_risk_group_summary",
         "time_to_event_decision_curve",
         "multicenter_generalizability_overview",
+        "treatment_shift_alignment_figure",
+        "practical_factor_dot_figure",
+        "preferred_class_sensitivity_figure",
     )
 )
 _ILLUSTRATION_SHELL_ORDER = tuple(

@@ -1,0 +1,14 @@
+template_id = "treatment_shift_alignment_figure"
+full_template_id = "fenggaolab.org.medical-display-core::treatment_shift_alignment_figure"
+kind = "evidence_figure"
+display_name = "Treatment Shift Alignment Figure"
+paper_family_ids = ["H"]
+audit_family = "Publication Shells and Tables"
+renderer_family = "python"
+input_schema_ref = "accepted_descriptive_display_data_v1"
+qc_profile_ref = "publication_result_display"
+required_exports = ["png", "svg"]
+allowed_paper_roles = ["main_text", "supplementary"]
+execution_mode = "python_plugin"
+entrypoint = "fenggaolab_org_medical_display_core.evidence_figures:render_python_evidence_figure"
+paper_proven = false

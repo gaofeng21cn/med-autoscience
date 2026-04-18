@@ -128,6 +128,9 @@ The current audited inventory is broader than the subset already proven against 
 
 | Template ID | Kind | Paper Family | Display Name | Renderer Family | Input Schema | QC Profile | Required Exports |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fenggaolab.org.medical-display-core::treatment_shift_alignment_figure` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Treatment Shift Alignment Figure | `python` | `accepted_descriptive_display_data_v1` | `publication_result_display` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::practical_factor_dot_figure` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Practical Factor Dot Figure | `python` | `accepted_descriptive_display_data_v1` | `publication_result_display` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::preferred_class_sensitivity_figure` | `evidence_figure` | `H. Cohort and Study Design Evidence` | Preferred Class Sensitivity Figure | `python` | `accepted_descriptive_display_data_v1` | `publication_result_display` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::cohort_flow_figure` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Cohort Flow Figure | `python` | `cohort_flow_shell_inputs_v1` | `publication_illustration_flow` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::submission_graphical_abstract` | `illustration_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Submission Graphical Abstract | `python` | `submission_graphical_abstract_inputs_v1` | `submission_graphical_abstract` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::workflow_fact_sheet_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Workflow Fact Sheet Panel | `python` | `workflow_fact_sheet_panel_inputs_v1` | `publication_workflow_fact_sheet_panel` | `png`, `svg` |
@@ -141,6 +144,21 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::grouped_risk_event_summary_table` | `table_shell` | `B. Survival and Time-to-Event` | Grouped Risk Event Summary Table | `n/a` | `grouped_risk_event_summary_table_v1` | `publication_table_interpretation` | `csv`, `md` |
 
 ## Input Schemas
+
+### `accepted_descriptive_display_data_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Accepted Descriptive Display Data
+- Templates: `fenggaolab.org.medical-display-core::treatment_shift_alignment_figure`, `fenggaolab.org.medical-display-core::practical_factor_dot_figure`, `fenggaolab.org.medical-display-core::preferred_class_sensitivity_figure`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `panels`
+- Optional display fields: `paper_role`, `x_label`, `y_label`
+- Required collection fields: `panels` -> `panel_id`, `title`, `x_label`, `y_label`, `marks`
+- Optional collection fields: `panels` -> `annotation`
+- Required nested collection fields: `panels.marks` -> `label`, `value`
+- Optional nested collection fields: `panels.marks` -> `group`, `comparison_value`, `color`, `annotation`
+- Additional constraints: `descriptive_displays_must_be_non_empty`, `descriptive_display_ids_must_be_unique`, `descriptive_panels_must_be_non_empty`, `descriptive_panel_ids_must_be_unique_within_display`, `descriptive_marks_must_be_non_empty`, `descriptive_mark_labels_must_be_unique_within_panel`, `descriptive_mark_values_must_be_finite_or_null_when_not_applicable`
 
 ### `binary_prediction_curve_inputs_v1`
 
