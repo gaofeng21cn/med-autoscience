@@ -444,6 +444,7 @@ Current audited anchors:
 - `shap_force_like_summary_panel`
 - `shap_grouped_local_explanation_panel`
 - `shap_grouped_decision_path_panel`
+- `shap_multigroup_decision_path_panel`
 - `partial_dependence_ice_panel`
 - `partial_dependence_interaction_contour_panel`
 - `partial_dependence_interaction_slice_panel`
@@ -454,7 +455,7 @@ Current audited anchors:
 Current gap direction:
 
 - higher-order explanation scenes only when real paper demand proves the current summary + bar-importance + signed bar-importance + multicohort bar-importance + dependence + waterfall + force-like + grouped-local + grouped decision-path + bounded PDP/ICE baseline + bounded pairwise interaction-contour lower bound + interaction slice + subgroup comparison + ALE lower bound + support-domain lower bound is insufficient
-- more complex grouped-local / decision-path scenes only when real paper demand proves the current two-group shared-baseline lower bound should expand
+- more complex grouped-local scenes only when real paper demand proves the current grouped-local lower bound should expand beyond the existing grouped and multigroup decision-path baseline
 - stronger explanation-panel readability, subgroup-legend, and annotation contracts now that support-domain is no longer a paper-facing contract gap
 
 ### G. 生物信息与组学证据类

@@ -603,6 +603,135 @@ def test_shap_grouped_decision_path_panel_preserves_f_grouped_decision_path_cont
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_shap_multigroup_decision_path_panel_preserves_f_multigroup_decision_path_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multigroup_decision_path_panel",
+                    "catalog_id": "F49",
+                    "shell_path": "paper/figures/Figure49.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "template_id": "shap_multigroup_decision_path_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "shap_multigroup_decision_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "template_id": "fenggaolab.org.medical-display-core::shap_multigroup_decision_path_panel",
+                    "title": "SHAP multigroup decision path panel for phenotype-level local explanation contrast",
+                    "caption": "Regression lock for multigroup manuscript-facing decision-path explanations.",
+                    "panel_title": "Decision-path comparison across representative phenotypes",
+                    "x_label": "Cumulative model output",
+                    "y_label": "Ordered feature contributions",
+                    "legend_title": "Phenotype",
+                    "baseline_value": 0.19,
+                    "groups": [
+                        {
+                            "group_id": "immune_inflamed",
+                            "group_label": "Phenotype 1 · immune-inflamed",
+                            "predicted_value": 0.34,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": 0.10},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.03},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": 0.08},
+                            ],
+                        },
+                        {
+                            "group_id": "stromal_low",
+                            "group_label": "Phenotype 2 · stromal-low",
+                            "predicted_value": 0.08,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": -0.04},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.02},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": -0.05},
+                            ],
+                        },
+                        {
+                            "group_id": "immune_excluded",
+                            "group_label": "Phenotype 3 · immune-excluded",
+                            "predicted_value": 0.21,
+                            "contributions": [
+                                {"rank": 1, "feature": "Age", "shap_value": 0.02},
+                                {"rank": 2, "feature": "Albumin", "shap_value": -0.01},
+                                {"rank": 3, "feature": "Tumor size", "shap_value": 0.01},
+                            ],
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F49_shap_multigroup_decision_path_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 1
+    assert any(box["box_type"] == "legend_box" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_type"] == "legend_title" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "baseline_reference_line"]) == 1
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "prediction_marker"]) == 3
+    assert layout_sidecar["metrics"]["feature_order"] == ["Age", "Albumin", "Tumor size"]
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["groups"]] == [
+        "Phenotype 1 · immune-inflamed",
+        "Phenotype 2 · stromal-low",
+        "Phenotype 3 · immune-excluded",
+    ]
+    assert layout_sidecar["metrics"]["groups"][0]["contributions"][0]["start_value"] == 0.19
+    assert layout_sidecar["metrics"]["groups"][0]["contributions"][-1]["end_value"] == 0.34
+    assert layout_sidecar["metrics"]["groups"][1]["contributions"][-1]["end_value"] == 0.08
+    assert layout_sidecar["metrics"]["groups"][2]["contributions"][-1]["end_value"] == 0.21
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_partial_dependence_interaction_contour_panel_preserves_f_pairwise_interaction_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

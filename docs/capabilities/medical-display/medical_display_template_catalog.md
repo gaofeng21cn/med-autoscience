@@ -105,6 +105,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::shap_force_like_summary_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Force-like Summary Panel | `python` | `shap_force_like_summary_panel_inputs_v1` | `publication_shap_force_like_summary_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_grouped_local_explanation_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Grouped Local Explanation Panel | `python` | `shap_grouped_local_explanation_panel_inputs_v1` | `publication_shap_grouped_local_explanation_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::shap_grouped_decision_path_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Grouped Decision Path Panel | `python` | `shap_grouped_decision_path_panel_inputs_v1` | `publication_shap_grouped_decision_path_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::shap_multigroup_decision_path_panel` | `evidence_figure` | `F. Model Explanation` | SHAP Multigroup Decision Path Panel | `python` | `shap_multigroup_decision_path_panel_inputs_v1` | `publication_shap_multigroup_decision_path_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_ice_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence and ICE Panel | `python` | `partial_dependence_ice_panel_inputs_v1` | `publication_partial_dependence_ice_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_interaction_contour_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Interaction Contour Panel | `python` | `partial_dependence_interaction_contour_panel_inputs_v1` | `publication_partial_dependence_interaction_contour_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::partial_dependence_interaction_slice_panel` | `evidence_figure` | `F. Model Explanation` | Partial Dependence Interaction Slice Panel | `python` | `partial_dependence_interaction_slice_panel_inputs_v1` | `publication_partial_dependence_interaction_slice_panel` | `png`, `pdf` |
@@ -716,6 +717,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `groups.contributions` -> `rank`, `feature`, `shap_value`
 - Optional nested collection fields: None
 - Additional constraints: `group_count_must_equal_two`, `group_ids_must_be_unique`, `group_labels_must_be_unique`, `baseline_value_must_be_finite`, `group_prediction_value_must_equal_baseline_plus_contributions`, `group_contribution_ranks_must_be_strictly_increasing`, `group_contribution_values_must_be_finite_and_non_zero`, `group_feature_orders_must_match`
+
+### `shap_multigroup_decision_path_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: SHAP Multigroup Decision Path Panel
+- Templates: `fenggaolab.org.medical-display-core::shap_multigroup_decision_path_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `panel_title`, `x_label`, `y_label`, `legend_title`, `baseline_value`, `groups`
+- Optional display fields: `paper_role`
+- Required collection fields: `groups` -> `group_id`, `group_label`, `predicted_value`, `contributions`
+- Optional collection fields: None
+- Required nested collection fields: `groups.contributions` -> `rank`, `feature`, `shap_value`
+- Optional nested collection fields: None
+- Additional constraints: `group_count_must_equal_three`, `group_ids_must_be_unique`, `group_labels_must_be_unique`, `baseline_value_must_be_finite`, `group_prediction_value_must_equal_baseline_plus_contributions`, `group_contribution_ranks_must_be_strictly_increasing`, `group_contribution_values_must_be_finite_and_non_zero`, `group_feature_orders_must_match`
 
 ### `partial_dependence_ice_panel_inputs_v1`
 

@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `shap_multigroup_decision_path_panel` as the next audited `F` multigroup decision-path explanation slice in the core display pack.
+- Lock its pack-facing contract to `shap_multigroup_decision_path_panel_inputs_v1`, `publication_shap_multigroup_decision_path_panel`, and the Python fixed-three-group shared-baseline decision-path renderer path.
+
 - Add `transportability_recalibration_governance_panel` as the next audited `H` center-coverage / transportability recalibration-governance illustration shell in the core display pack.
 - Lock its pack-facing contract to `transportability_recalibration_governance_panel_inputs_v1`, `publication_transportability_recalibration_governance_panel`, and the Python bounded center-coverage / batch-grid / recalibration-governance renderer path.
 

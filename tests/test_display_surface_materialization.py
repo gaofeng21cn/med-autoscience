@@ -9020,6 +9020,55 @@ def _make_shap_grouped_decision_path_panel_display(display_id: str = "Figure42")
     }
 
 
+def _make_shap_multigroup_decision_path_panel_display(display_id: str = "Figure49") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "shap_multigroup_decision_path_panel",
+        "title": "SHAP multigroup decision path panel for phenotype-level local explanation contrast",
+        "caption": (
+            "Bounded multigroup decision paths summarize how a shared ordered feature set moves the audited "
+            "model output from the common baseline toward phenotype-specific predictions."
+        ),
+        "panel_title": "Decision-path comparison across representative phenotypes",
+        "x_label": "Cumulative model output",
+        "y_label": "Ordered feature contributions",
+        "legend_title": "Phenotype",
+        "baseline_value": 0.19,
+        "groups": [
+            {
+                "group_id": "immune_inflamed",
+                "group_label": "Phenotype 1 · immune-inflamed",
+                "predicted_value": 0.34,
+                "contributions": [
+                    {"rank": 1, "feature": "Age", "shap_value": 0.10},
+                    {"rank": 2, "feature": "Albumin", "shap_value": -0.03},
+                    {"rank": 3, "feature": "Tumor size", "shap_value": 0.08},
+                ],
+            },
+            {
+                "group_id": "stromal_low",
+                "group_label": "Phenotype 2 · stromal-low",
+                "predicted_value": 0.08,
+                "contributions": [
+                    {"rank": 1, "feature": "Age", "shap_value": -0.04},
+                    {"rank": 2, "feature": "Albumin", "shap_value": -0.02},
+                    {"rank": 3, "feature": "Tumor size", "shap_value": -0.05},
+                ],
+            },
+            {
+                "group_id": "immune_excluded",
+                "group_label": "Phenotype 3 · immune-excluded",
+                "predicted_value": 0.21,
+                "contributions": [
+                    {"rank": 1, "feature": "Age", "shap_value": 0.02},
+                    {"rank": 2, "feature": "Albumin", "shap_value": -0.01},
+                    {"rank": 3, "feature": "Tumor size", "shap_value": 0.01},
+                ],
+            },
+        ],
+    }
+
+
 def _make_partial_dependence_ice_panel_display(display_id: str = "Figure36") -> dict[str, object]:
     return {
         "display_id": display_id,
@@ -9854,6 +9903,32 @@ def test_load_evidence_display_payload_rejects_group_count_for_shap_grouped_deci
         )
 
 
+def test_load_evidence_display_payload_rejects_group_count_for_shap_multigroup_decision_path_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_shap_multigroup_decision_path_panel_display()
+    display_payload["groups"].pop()
+    dump_json(
+        paper_root / "shap_multigroup_decision_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("shap_multigroup_decision_path_panel")
+
+    with pytest.raises(ValueError, match="groups must contain exactly three entries"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure49",
+        )
+
+
 def test_load_evidence_display_payload_rejects_ice_curve_grid_mismatch_for_partial_dependence_ice_panel(
     tmp_path: Path,
 ) -> None:
@@ -10372,6 +10447,75 @@ def test_materialize_display_surface_generates_shap_grouped_decision_path_panel(
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "shap_grouped_decision_path_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_shap_grouped_decision_path_panel"
+
+
+def test_materialize_display_surface_generates_shap_multigroup_decision_path_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "display_kind": "figure",
+                    "requirement_key": "shap_multigroup_decision_path_panel",
+                    "catalog_id": "F49",
+                    "shell_path": "paper/figures/Figure49.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure49",
+                    "template_id": "shap_multigroup_decision_path_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "shap_multigroup_decision_path_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "shap_multigroup_decision_path_panel_inputs_v1",
+            "displays": [_make_shap_multigroup_decision_path_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert (paper_root / "figures" / "generated" / "F49_shap_multigroup_decision_path_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F49_shap_multigroup_decision_path_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F49_shap_multigroup_decision_path_panel.layout.json"
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 1
+    assert any(box["box_type"] == "legend_box" for box in layout_sidecar["layout_boxes"])
+    assert len([box for box in layout_sidecar["guide_boxes"] if box["box_type"] == "prediction_marker"]) == 3
+    assert layout_sidecar["metrics"]["feature_order"] == ["Age", "Albumin", "Tumor size"]
+    assert [item["group_label"] for item in layout_sidecar["metrics"]["groups"]] == [
+        "Phenotype 1 · immune-inflamed",
+        "Phenotype 2 · stromal-low",
+        "Phenotype 3 · immune-excluded",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["template_id"] == full_id("shap_multigroup_decision_path_panel")
+    assert figure_entry["input_schema_id"] == "shap_multigroup_decision_path_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_shap_multigroup_decision_path_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 
