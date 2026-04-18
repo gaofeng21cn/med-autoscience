@@ -258,8 +258,15 @@ def _append_human_status_lines(lines: list[str], payload: Mapping[str, Any]) -> 
 
 _OPERATOR_VERDICT_LABELS = {
     "attention_required": "需要处理",
+    "preflight_blocked": "前置检查未通过",
     "ready_for_task": "可直接开始",
     "monitor_only": "持续观察",
+}
+
+_WORKSPACE_STATUS_LABELS = {
+    "ready": "已就绪",
+    "attention_required": "需要处理",
+    "blocked": "前置检查未通过",
 }
 
 
@@ -268,6 +275,36 @@ def _operator_verdict_label(value: object) -> str:
     if text is None:
         return "未知"
     return _OPERATOR_VERDICT_LABELS.get(text, text)
+
+
+def _workspace_status_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _WORKSPACE_STATUS_LABELS.get(text, text)
+
+
+def _operator_handling_state_label(payload: Mapping[str, Any]) -> str | None:
+    explicit_label = _non_empty_text(payload.get("handling_state_label"))
+    if explicit_label is not None:
+        return explicit_label
+    handling_state = _non_empty_text(payload.get("handling_state"))
+    if handling_state is None:
+        return None
+    return study_progress._OPERATOR_STATUS_HANDLING_LABELS.get(
+        handling_state,
+        handling_state.replace("_", " "),
+    )
+
+
+def _recovery_action_mode_label(payload: Mapping[str, Any]) -> str | None:
+    action_mode = _non_empty_text(payload.get("action_mode"))
+    if action_mode is None:
+        return None
+    return study_progress._RECOVERY_ACTION_MODE_LABELS.get(
+        action_mode,
+        action_mode.replace("_", " "),
+    )
 
 
 def _normalized_strings(values: Iterable[object]) -> tuple[str, ...]:
@@ -1629,15 +1666,15 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         "",
         f"- profile: `{payload.get('profile_name')}`",
         f"- workspace_root: `{payload.get('workspace_root')}`",
-        f"- workspace_status: `{payload.get('workspace_status')}`",
+        f"- 当前 workspace 状态: {_workspace_status_label(payload.get('workspace_status'))}",
         "",
         "## Now",
         "",
     ]
     if operator_brief:
-        lines.append(f"- 当前判断: `{operator_brief.get('verdict') or 'none'}`")
+        lines.append(f"- 当前状态: {_operator_verdict_label(operator_brief.get('verdict'))}")
         lines.append(f"- 当前处理摘要: {operator_brief.get('summary') or 'none'}")
-        lines.append(f"- 是否需要立刻介入: `{operator_brief.get('should_intervene_now')}`")
+        lines.append(f"- 是否需要立刻介入: {'是' if operator_brief.get('should_intervene_now') else '否'}")
         lines.append(f"- 推荐动作: `{operator_brief.get('recommended_step_id') or 'none'}`")
         lines.append(f"- 推荐命令: `{operator_brief.get('recommended_command') or 'none'}`")
         if operator_brief.get("focus_study_id"):
@@ -1675,18 +1712,18 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
         "",
     ])
     if workspace_supervision:
-        lines.append(f"- summary: {workspace_supervision.get('summary')}")
+        lines.append(f"- 当前监管摘要: {workspace_supervision.get('summary')}")
         if service.get("summary"):
-            lines.append(f"- service: {service.get('summary')}")
+            lines.append(f"- 监管服务: {service.get('summary')}")
         if study_counts:
             lines.append(
-                "- counts: "
-                f"supervisor_gap={study_counts.get('supervisor_gap', 0)}, "
-                f"recovery_required={study_counts.get('recovery_required', 0)}, "
-                f"quality_blocked={study_counts.get('quality_blocked', 0)}, "
-                f"progress_stale={study_counts.get('progress_stale', 0)}, "
-                f"progress_missing={study_counts.get('progress_missing', 0)}, "
-                f"needs_physician_decision={study_counts.get('needs_physician_decision', 0)}"
+                "- 当前计数: "
+                f"监管缺口 {study_counts.get('supervisor_gap', 0)}；"
+                f"需要恢复 {study_counts.get('recovery_required', 0)}；"
+                f"质量阻塞 {study_counts.get('quality_blocked', 0)}；"
+                f"进度陈旧 {study_counts.get('progress_stale', 0)}；"
+                f"进度缺失 {study_counts.get('progress_missing', 0)}；"
+                f"等待医生判断 {study_counts.get('needs_physician_decision', 0)}"
             )
     else:
         lines.append("- 当前还没有 workspace 级监管汇总。")
@@ -1707,21 +1744,24 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
     if attention_queue:
         for item in attention_queue:
             title = _non_empty_text(item.get("title")) or "未命名关注项"
-            lines.append(f"- {title}: {item.get('summary')}")
+            lines.append(f"- 当前关注项: {title}")
+            if item.get("summary"):
+                lines.append(f"  当前判断: {item.get('summary')}")
             if item.get("recommended_command"):
-                lines.append(f"  command: `{item.get('recommended_command')}`")
+                lines.append(f"  处理命令: `{item.get('recommended_command')}`")
             operator_status_card = dict(item.get("operator_status_card") or {})
-            if operator_status_card.get("handling_state"):
-                lines.append(f"  handling_state: `{operator_status_card.get('handling_state')}`")
+            handling_state_label = _operator_handling_state_label(operator_status_card)
+            if handling_state_label:
+                lines.append(f"  当前处理状态: {handling_state_label}")
             if operator_status_card.get("next_confirmation_signal"):
-                lines.append(f"  next_signal: {operator_status_card.get('next_confirmation_signal')}")
+                lines.append(f"  下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
     else:
         lines.append("- 当前没有新的 attention item。")
     lines.extend(["", "## User Loop", ""])
     for name, command in (payload.get("user_loop") or {}).items():
         lines.append(f"- `{name}`: `{command}`")
     lines.extend(["", "## Phase 2 User Loop", ""])
-    lines.append(f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}")
+    lines.append(f"- 当前路径摘要: {phase2_user_product_loop.get('summary') or 'none'}")
     lines.append(f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`")
     lines.append(f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`")
     for item in phase2_user_product_loop.get("operator_questions") or []:
@@ -1737,43 +1777,45 @@ def render_workspace_cockpit_markdown(payload: dict[str, Any]) -> str:
             [
                 f"### {item.get('study_id')}",
                 "",
-                f"- browser_url: `{((item.get('monitoring') or {}).get('browser_url') or 'none')}`",
-                f"- active_run_id: `{((item.get('monitoring') or {}).get('active_run_id') or 'none')}`",
+                f"- 浏览器入口: `{((item.get('monitoring') or {}).get('browser_url') or 'none')}`",
+                f"- 当前运行批次: `{((item.get('monitoring') or {}).get('active_run_id') or 'none')}`",
             ]
         )
         _append_human_status_lines(lines, item)
         task_intake = dict(item.get("task_intake") or {})
         if task_intake:
-            lines.append(f"- task_intent: {task_intake.get('task_intent') or '未提供'}")
-            lines.append(f"- journal_target: {task_intake.get('journal_target') or 'none'}")
+            lines.append(f"- 当前任务意图: {task_intake.get('task_intent') or '未提供'}")
+            lines.append(f"- 当前投稿目标: {task_intake.get('journal_target') or 'none'}")
         progress_freshness = dict(item.get("progress_freshness") or {})
         if progress_freshness.get("summary"):
-            lines.append(f"- progress_signal: {progress_freshness.get('summary')}")
+            lines.append(f"- 进度信号: {progress_freshness.get('summary')}")
         intervention_lane = dict(item.get("intervention_lane") or {})
         if intervention_lane.get("title"):
-            lines.append(f"- intervention_lane: {intervention_lane.get('title')}")
+            lines.append(f"- 当前介入通道: {intervention_lane.get('title')}")
         if intervention_lane.get("summary"):
-            lines.append(f"- intervention_summary: {intervention_lane.get('summary')}")
+            lines.append(f"- 当前介入摘要: {intervention_lane.get('summary')}")
         operator_verdict = dict(item.get("operator_verdict") or {})
         if operator_verdict.get("decision_mode"):
-            lines.append(f"- 当前决策模式: `{operator_verdict.get('decision_mode')}`")
+            lines.append(f"- 当前决策模式: {_operator_verdict_label(operator_verdict.get('decision_mode'))}")
         if operator_verdict.get("summary"):
             lines.append(f"- 当前处理摘要: {operator_verdict.get('summary')}")
         operator_status_card = dict(item.get("operator_status_card") or {})
-        if operator_status_card.get("handling_state"):
-            lines.append(f"- 当前处理状态: `{operator_status_card.get('handling_state')}`")
+        handling_state_label = _operator_handling_state_label(operator_status_card)
+        if handling_state_label:
+            lines.append(f"- 当前处理状态: {handling_state_label}")
         if operator_status_card.get("user_visible_verdict"):
             lines.append(f"- 当前处理结论: {operator_status_card.get('user_visible_verdict')}")
         if operator_status_card.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_status_card.get('next_confirmation_signal')}")
         recovery_contract = dict(item.get("recovery_contract") or {})
-        if recovery_contract.get("action_mode"):
-            lines.append(f"- recovery_contract: `{recovery_contract.get('action_mode')}`")
+        recovery_action_mode_label = _recovery_action_mode_label(recovery_contract)
+        if recovery_action_mode_label:
+            lines.append(f"- 恢复建议: {recovery_action_mode_label}")
         if item.get("recommended_command"):
             lines.append(f"- 推荐动作命令: `{item.get('recommended_command')}`")
         blockers = list(item.get("current_blockers") or [])
-        lines.append(f"- blockers: {', '.join(blockers) if blockers else 'none'}")
-        lines.append(f"- launch: `{((item.get('commands') or {}).get('launch') or '')}`")
+        lines.append(f"- 当前卡点: {', '.join(blockers) if blockers else '当前没有新的卡点。'}")
+        lines.append(f"- 启动命令: `{((item.get('commands') or {}).get('launch') or '')}`")
         lines.append("")
     return "\n".join(lines)
 
