@@ -1205,6 +1205,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "bootstrap":
         profile = load_profile(args.profile)
+        workspace_surface_refresh = workspace_init_controller.init_workspace(
+            workspace_root=profile.workspace_root,
+            workspace_name=profile.name,
+            dry_run=False,
+            force=False,
+            default_publication_profile=profile.default_publication_profile,
+            default_citation_style=profile.default_citation_style,
+            hermes_agent_repo_root=profile.hermes_agent_repo_root,
+            hermes_home_root=profile.hermes_home_root,
+        )
         doctor = _load_doctor_module()
         doctor_report = doctor.build_doctor_report(profile)
         overlay_install = None
@@ -1223,6 +1233,7 @@ def main(argv: list[str] | None = None) -> int:
         data_assets_refresh = data_asset_updates_controller.refresh_data_assets(workspace_root=workspace_root)
         result = {
             "profile": profile.name,
+            "workspace_surface_refresh": workspace_surface_refresh,
             "doctor": {
                 "workspace_exists": doctor_report.workspace_exists,
                 "runtime_exists": doctor_report.runtime_exists,
