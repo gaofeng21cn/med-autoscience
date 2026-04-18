@@ -41,6 +41,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     spatial_niche_map = module.get_input_schema_contract("spatial_niche_map_inputs_v1")
     trajectory_progression = module.get_input_schema_contract("trajectory_progression_inputs_v1")
     density_coverage = module.get_input_schema_contract("atlas_spatial_trajectory_density_coverage_panel_inputs_v1")
+    context_support = module.get_input_schema_contract("atlas_spatial_trajectory_context_support_panel_inputs_v1")
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
@@ -518,6 +519,72 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         item.template_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     )
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in next(
+        item.input_schema_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    )
+    assert context_support.template_ids == (_full_id("atlas_spatial_trajectory_context_support_panel"),)
+    assert context_support.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "atlas_panel_title",
+        "atlas_x_label",
+        "atlas_y_label",
+        "atlas_points",
+        "spatial_panel_title",
+        "spatial_x_label",
+        "spatial_y_label",
+        "spatial_points",
+        "trajectory_panel_title",
+        "trajectory_x_label",
+        "trajectory_y_label",
+        "trajectory_points",
+        "composition_panel_title",
+        "composition_x_label",
+        "composition_y_label",
+        "composition_groups",
+        "heatmap_panel_title",
+        "heatmap_x_label",
+        "heatmap_y_label",
+        "score_method",
+        "state_order",
+        "branch_order",
+        "progression_bins",
+        "row_order",
+        "column_order",
+        "cells",
+        "support_panel_title",
+        "support_x_label",
+        "support_y_label",
+        "support_scale_label",
+        "context_order",
+        "support_cells",
+    )
+    assert context_support.display_optional_fields == (
+        "paper_role",
+        "atlas_annotation",
+        "spatial_annotation",
+        "trajectory_annotation",
+        "composition_annotation",
+        "heatmap_annotation",
+        "support_annotation",
+    )
+    assert context_support.collection_required_fields["spatial_points"] == ("x", "y", "state_label", "region_label")
+    assert context_support.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "state_proportions",
+    )
+    assert context_support.collection_required_fields["context_order"] == ("label", "context_kind")
+    assert context_support.collection_required_fields["support_cells"] == ("x", "y", "value")
+    assert "declared_column_labels_must_match_progression_bins" in context_support.additional_constraints
+    assert "context_order_kinds_must_cover_all_required_contexts" in context_support.additional_constraints
+    assert "declared_context_labels_must_match_support_columns" in context_support.additional_constraints
+    assert "declared_support_grid_must_be_complete_and_unique" in context_support.additional_constraints
+    assert _full_id("atlas_spatial_trajectory_context_support_panel") in next(
+        item.template_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    )
+    assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in next(
         item.input_schema_ids for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     )
     assert clustered_heatmap.template_ids == (_full_id("clustered_heatmap"),)
@@ -1647,6 +1714,54 @@ def test_atlas_spatial_trajectory_density_coverage_schema_contract_is_registered
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in data_geometry_class.input_schema_ids
 
 
+def test_atlas_spatial_trajectory_context_support_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    context_support = module.get_input_schema_contract("atlas_spatial_trajectory_context_support_panel_inputs_v1")
+    data_geometry_class = next(item for item in module.list_display_schema_classes() if item.class_id == "data_geometry")
+
+    assert context_support.template_ids == (_full_id("atlas_spatial_trajectory_context_support_panel"),)
+    assert context_support.display_name == "Atlas-Spatial Trajectory Context Support Panel"
+    assert context_support.collection_required_fields["atlas_points"] == ("x", "y", "state_label")
+    assert context_support.collection_required_fields["spatial_points"] == ("x", "y", "state_label", "region_label")
+    assert context_support.collection_required_fields["trajectory_points"] == (
+        "x",
+        "y",
+        "branch_label",
+        "state_label",
+        "pseudotime",
+    )
+    assert context_support.collection_required_fields["composition_groups"] == (
+        "group_label",
+        "group_order",
+        "state_proportions",
+    )
+    assert context_support.collection_required_fields["progression_bins"] == (
+        "bin_label",
+        "bin_order",
+        "pseudotime_start",
+        "pseudotime_end",
+        "branch_weights",
+    )
+    assert context_support.collection_required_fields["context_order"] == ("label", "context_kind")
+    assert context_support.collection_required_fields["support_cells"] == ("x", "y", "value")
+    assert context_support.nested_collection_required_fields["composition_groups.state_proportions"] == (
+        "state_label",
+        "proportion",
+    )
+    assert context_support.nested_collection_required_fields["progression_bins.branch_weights"] == (
+        "branch_label",
+        "proportion",
+    )
+    assert "declared_state_labels_must_match_atlas_states" in context_support.additional_constraints
+    assert "declared_state_labels_must_match_trajectory_states" in context_support.additional_constraints
+    assert "declared_column_labels_must_match_progression_bins" in context_support.additional_constraints
+    assert "declared_state_labels_must_match_support_rows" in context_support.additional_constraints
+    assert "declared_support_grid_must_be_complete_and_unique" in context_support.additional_constraints
+    assert _full_id("atlas_spatial_trajectory_context_support_panel") in data_geometry_class.template_ids
+    assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in data_geometry_class.input_schema_ids
+
+
 def test_shap_waterfall_local_explanation_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -2269,11 +2384,13 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("atlas_spatial_bridge_panel") in markdown
     assert _full_id("trajectory_progression_panel") in markdown
     assert _full_id("atlas_spatial_trajectory_density_coverage_panel") in markdown
+    assert _full_id("atlas_spatial_trajectory_context_support_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
     assert "single_cell_atlas_overview_inputs_v1" in markdown
     assert "atlas_spatial_bridge_panel_inputs_v1" in markdown
     assert "trajectory_progression_inputs_v1" in markdown
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in markdown
+    assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown
     assert _full_id("time_to_event_threshold_governance_panel") in markdown

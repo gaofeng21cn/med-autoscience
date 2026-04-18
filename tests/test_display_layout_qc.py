@@ -4019,6 +4019,315 @@ def test_run_display_layout_qc_fails_when_shap_feature_rows_overlap() -> None:
     assert any(issue["rule_id"] == "feature_row_overlap" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_atlas_spatial_trajectory_context_support_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_trajectory_context_support_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_trajectory_context_support_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.16, y0=0.95, x1=0.84, y1=0.98),
+                make_box("atlas_panel_title", "panel_title", x0=0.06, y0=0.88, x1=0.23, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.10, y0=0.52, x1=0.20, y1=0.55),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.01, y0=0.65, x1=0.04, y1=0.79),
+                make_box("spatial_panel_title", "panel_title", x0=0.37, y0=0.88, x1=0.54, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.40, y0=0.52, x1=0.54, y1=0.55),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.31, y0=0.62, x1=0.34, y1=0.80),
+                make_box("trajectory_panel_title", "panel_title", x0=0.67, y0=0.88, x1=0.85, y1=0.91),
+                make_box("trajectory_x_axis_title", "subplot_x_axis_title", x0=0.71, y0=0.52, x1=0.84, y1=0.55),
+                make_box("trajectory_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.62, x1=0.65, y1=0.80),
+                make_box("composition_panel_title", "panel_title", x0=0.06, y0=0.46, x1=0.25, y1=0.49),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.08, y0=0.10, x1=0.23, y1=0.13),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.01, y0=0.20, x1=0.04, y1=0.39),
+                make_box("heatmap_panel_title", "panel_title", x0=0.36, y0=0.46, x1=0.56, y1=0.49),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.39, y0=0.10, x1=0.53, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.30, y0=0.20, x1=0.33, y1=0.39),
+                make_box("support_panel_title", "panel_title", x0=0.68, y0=0.46, x1=0.88, y1=0.49),
+                make_box("support_x_axis_title", "subplot_x_axis_title", x0=0.74, y0=0.10, x1=0.84, y1=0.13),
+                make_box("support_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.20, x1=0.65, y1=0.39),
+                make_box("panel_label_A", "panel_label", x0=0.05, y0=0.82, x1=0.07, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.35, y0=0.82, x1=0.37, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.65, y0=0.82, x1=0.67, y1=0.85),
+                make_box("panel_label_D", "panel_label", x0=0.05, y0=0.40, x1=0.07, y1=0.43),
+                make_box("panel_label_E", "panel_label", x0=0.35, y0=0.40, x1=0.37, y1=0.43),
+                make_box("panel_label_F", "panel_label", x0=0.65, y0=0.40, x1=0.67, y1=0.43),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.05, y0=0.56, x1=0.28, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.35, y0=0.56, x1=0.58, y1=0.86),
+                make_box("panel_trajectory", "panel", x0=0.65, y0=0.56, x1=0.88, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.05, y0=0.16, x1=0.28, y1=0.44),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.35, y0=0.16, x1=0.58, y1=0.44),
+                make_box("panel_support", "heatmap_tile_region", x0=0.67, y0=0.16, x1=0.90, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.06, y0=0.02, x1=0.34, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.60, y0=0.18, x1=0.63, y1=0.42),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.09, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.13, "y": 0.74, "state_label": "Stem-like"},
+                    {"x": 0.20, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.25, "y": 0.61, "state_label": "Effector"},
+                ],
+                "spatial_points": [
+                    {"x": 0.38, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.42, "y": 0.75, "state_label": "Stem-like"},
+                    {"x": 0.50, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.55, "y": 0.61, "state_label": "Effector"},
+                ],
+                "trajectory_points": [
+                    {"x": 0.69, "y": 0.80, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+                    {"x": 0.74, "y": 0.73, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.34},
+                    {"x": 0.82, "y": 0.61, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+                    {"x": 0.86, "y": 0.79, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+                    {"x": 0.82, "y": 0.70, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.52},
+                    {"x": 0.76, "y": 0.59, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+                ],
+                "state_labels": ["Stem-like", "Cycling", "Effector"],
+                "branch_labels": ["Branch A", "Branch B"],
+                "bin_labels": ["Early", "Mid", "Late"],
+                "row_labels": ["IFN response", "EMT module"],
+                "context_labels": ["Atlas density", "Spatial coverage", "Trajectory coverage"],
+                "context_kinds": ["atlas_density", "spatial_coverage", "trajectory_coverage"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "state_proportions": [
+                            {"state_label": "Stem-like", "proportion": 0.48},
+                            {"state_label": "Cycling", "proportion": 0.32},
+                            {"state_label": "Effector", "proportion": 0.20},
+                        ],
+                    },
+                    {
+                        "group_label": "Invasive margin",
+                        "group_order": 2,
+                        "state_proportions": [
+                            {"state_label": "Stem-like", "proportion": 0.18},
+                            {"state_label": "Cycling", "proportion": 0.34},
+                            {"state_label": "Effector", "proportion": 0.48},
+                        ],
+                    },
+                ],
+                "progression_bins": [
+                    {
+                        "bin_label": "Early",
+                        "bin_order": 1,
+                        "pseudotime_start": 0.0,
+                        "pseudotime_end": 0.33,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.58},
+                            {"branch_label": "Branch B", "proportion": 0.42},
+                        ],
+                    },
+                    {
+                        "bin_label": "Mid",
+                        "bin_order": 2,
+                        "pseudotime_start": 0.33,
+                        "pseudotime_end": 0.67,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.46},
+                            {"branch_label": "Branch B", "proportion": 0.54},
+                        ],
+                    },
+                    {
+                        "bin_label": "Late",
+                        "bin_order": 3,
+                        "pseudotime_start": 0.67,
+                        "pseudotime_end": 1.0,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.39},
+                            {"branch_label": "Branch B", "proportion": 0.61},
+                        ],
+                    },
+                ],
+                "matrix_cells": [
+                    {"x": "Early", "y": "IFN response", "value": 0.74},
+                    {"x": "Mid", "y": "IFN response", "value": 0.26},
+                    {"x": "Late", "y": "IFN response", "value": -0.14},
+                    {"x": "Early", "y": "EMT module", "value": -0.28},
+                    {"x": "Mid", "y": "EMT module", "value": 0.18},
+                    {"x": "Late", "y": "EMT module", "value": 0.72},
+                ],
+                "support_cells": [
+                    {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+                    {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+                    {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+                    {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+                    {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+                    {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+                    {"x": "Atlas density", "y": "Effector", "value": 0.31},
+                    {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+                    {"x": "Trajectory coverage", "y": "Effector", "value": 0.81},
+                ],
+                "score_method": "GSVA",
+                "support_scale_label": "Coverage fraction",
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_context_support_grid_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_trajectory_context_support_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_trajectory_context_support_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.16, y0=0.95, x1=0.84, y1=0.98),
+                make_box("atlas_panel_title", "panel_title", x0=0.06, y0=0.88, x1=0.23, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.10, y0=0.52, x1=0.20, y1=0.55),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.01, y0=0.65, x1=0.04, y1=0.79),
+                make_box("spatial_panel_title", "panel_title", x0=0.37, y0=0.88, x1=0.54, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.40, y0=0.52, x1=0.54, y1=0.55),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.31, y0=0.62, x1=0.34, y1=0.80),
+                make_box("trajectory_panel_title", "panel_title", x0=0.67, y0=0.88, x1=0.85, y1=0.91),
+                make_box("trajectory_x_axis_title", "subplot_x_axis_title", x0=0.71, y0=0.52, x1=0.84, y1=0.55),
+                make_box("trajectory_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.62, x1=0.65, y1=0.80),
+                make_box("composition_panel_title", "panel_title", x0=0.06, y0=0.46, x1=0.25, y1=0.49),
+                make_box("composition_x_axis_title", "subplot_x_axis_title", x0=0.08, y0=0.10, x1=0.23, y1=0.13),
+                make_box("composition_y_axis_title", "subplot_y_axis_title", x0=0.01, y0=0.20, x1=0.04, y1=0.39),
+                make_box("heatmap_panel_title", "panel_title", x0=0.36, y0=0.46, x1=0.56, y1=0.49),
+                make_box("heatmap_x_axis_title", "subplot_x_axis_title", x0=0.39, y0=0.10, x1=0.53, y1=0.13),
+                make_box("heatmap_y_axis_title", "subplot_y_axis_title", x0=0.30, y0=0.20, x1=0.33, y1=0.39),
+                make_box("support_panel_title", "panel_title", x0=0.68, y0=0.46, x1=0.88, y1=0.49),
+                make_box("support_x_axis_title", "subplot_x_axis_title", x0=0.74, y0=0.10, x1=0.84, y1=0.13),
+                make_box("support_y_axis_title", "subplot_y_axis_title", x0=0.62, y0=0.20, x1=0.65, y1=0.39),
+                make_box("panel_label_A", "panel_label", x0=0.05, y0=0.82, x1=0.07, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.35, y0=0.82, x1=0.37, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.65, y0=0.82, x1=0.67, y1=0.85),
+                make_box("panel_label_D", "panel_label", x0=0.05, y0=0.40, x1=0.07, y1=0.43),
+                make_box("panel_label_E", "panel_label", x0=0.35, y0=0.40, x1=0.37, y1=0.43),
+                make_box("panel_label_F", "panel_label", x0=0.65, y0=0.40, x1=0.67, y1=0.43),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.05, y0=0.56, x1=0.28, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.35, y0=0.56, x1=0.58, y1=0.86),
+                make_box("panel_trajectory", "panel", x0=0.65, y0=0.56, x1=0.88, y1=0.86),
+                make_box("panel_composition", "composition_panel", x0=0.05, y0=0.16, x1=0.28, y1=0.44),
+                make_box("panel_heatmap", "heatmap_tile_region", x0=0.35, y0=0.16, x1=0.58, y1=0.44),
+                make_box("panel_support", "heatmap_tile_region", x0=0.67, y0=0.16, x1=0.90, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.06, y0=0.02, x1=0.34, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.60, y0=0.18, x1=0.63, y1=0.42),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.09, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.13, "y": 0.74, "state_label": "Stem-like"},
+                    {"x": 0.20, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.25, "y": 0.61, "state_label": "Effector"},
+                ],
+                "spatial_points": [
+                    {"x": 0.38, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.42, "y": 0.75, "state_label": "Stem-like"},
+                    {"x": 0.50, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.55, "y": 0.61, "state_label": "Effector"},
+                ],
+                "trajectory_points": [
+                    {"x": 0.69, "y": 0.80, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+                    {"x": 0.74, "y": 0.73, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.34},
+                    {"x": 0.82, "y": 0.61, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+                    {"x": 0.86, "y": 0.79, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+                    {"x": 0.82, "y": 0.70, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.52},
+                    {"x": 0.76, "y": 0.59, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+                ],
+                "state_labels": ["Stem-like", "Cycling", "Effector"],
+                "branch_labels": ["Branch A", "Branch B"],
+                "bin_labels": ["Early", "Mid", "Late"],
+                "row_labels": ["IFN response", "EMT module"],
+                "context_labels": ["Atlas density", "Spatial coverage", "Trajectory coverage"],
+                "context_kinds": ["atlas_density", "spatial_coverage", "trajectory_coverage"],
+                "composition_groups": [
+                    {
+                        "group_label": "Tumor core",
+                        "group_order": 1,
+                        "state_proportions": [
+                            {"state_label": "Stem-like", "proportion": 0.48},
+                            {"state_label": "Cycling", "proportion": 0.32},
+                            {"state_label": "Effector", "proportion": 0.20},
+                        ],
+                    },
+                    {
+                        "group_label": "Invasive margin",
+                        "group_order": 2,
+                        "state_proportions": [
+                            {"state_label": "Stem-like", "proportion": 0.18},
+                            {"state_label": "Cycling", "proportion": 0.34},
+                            {"state_label": "Effector", "proportion": 0.48},
+                        ],
+                    },
+                ],
+                "progression_bins": [
+                    {
+                        "bin_label": "Early",
+                        "bin_order": 1,
+                        "pseudotime_start": 0.0,
+                        "pseudotime_end": 0.33,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.58},
+                            {"branch_label": "Branch B", "proportion": 0.42},
+                        ],
+                    },
+                    {
+                        "bin_label": "Mid",
+                        "bin_order": 2,
+                        "pseudotime_start": 0.33,
+                        "pseudotime_end": 0.67,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.46},
+                            {"branch_label": "Branch B", "proportion": 0.54},
+                        ],
+                    },
+                    {
+                        "bin_label": "Late",
+                        "bin_order": 3,
+                        "pseudotime_start": 0.67,
+                        "pseudotime_end": 1.0,
+                        "branch_weights": [
+                            {"branch_label": "Branch A", "proportion": 0.39},
+                            {"branch_label": "Branch B", "proportion": 0.61},
+                        ],
+                    },
+                ],
+                "matrix_cells": [
+                    {"x": "Early", "y": "IFN response", "value": 0.74},
+                    {"x": "Mid", "y": "IFN response", "value": 0.26},
+                    {"x": "Late", "y": "IFN response", "value": -0.14},
+                    {"x": "Early", "y": "EMT module", "value": -0.28},
+                    {"x": "Mid", "y": "EMT module", "value": 0.18},
+                    {"x": "Late", "y": "EMT module", "value": 0.72},
+                ],
+                "support_cells": [
+                    {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+                    {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+                    {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+                    {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+                    {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+                    {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+                    {"x": "Atlas density", "y": "Effector", "value": 0.31},
+                    {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+                ],
+                "score_method": "GSVA",
+                "support_scale_label": "Coverage fraction",
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_grid_incomplete" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_passes_for_shap_summary_without_figure_title_by_default() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

@@ -349,11 +349,12 @@ Current audited anchors:
 - `trajectory_progression_panel`
 - `atlas_spatial_trajectory_storyboard_panel`
 - `atlas_spatial_trajectory_density_coverage_panel`
+- `atlas_spatial_trajectory_context_support_panel`
 
 Current gap direction:
 
-- PHATE and richer manifold overlays beyond the current atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard baseline
-- richer multi-view density/coverage variants beyond the current bounded four-panel atlas / spatial / trajectory support contract
+- PHATE and richer manifold overlays beyond the current atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support baseline
+- richer higher-order atlas / spatial / trajectory composites beyond the current bounded six-panel context-support contract
 - stronger crowding / labeling / legend QC for atlas-style, spatial, and trajectory publication-facing composites
 
 ### E. 特征模式与矩阵类
@@ -392,12 +393,13 @@ Current audited anchors:
 - `trajectory_progression_panel`
 - `atlas_spatial_trajectory_storyboard_panel`
 - `atlas_spatial_trajectory_density_coverage_panel`
+- `atlas_spatial_trajectory_context_support_panel`
 
 Current gap direction:
 
 - missingness and QC-oriented matrices
 - attention/importances matrix displays
-- celltype/program/kinetics/support composite matrices beyond the current atlas-overview / atlas-spatial-bridge / spatial-niche / trajectory / storyboard / density-coverage baseline
+- celltype/program/kinetics/support/context composite matrices beyond the current atlas-overview / atlas-spatial-bridge / spatial-niche / trajectory / storyboard / density-coverage / context-support baseline
 - omics-oriented matrix surfaces with manuscript-facing annotation control
 
 ### F. 模型解释类
@@ -495,11 +497,12 @@ Current audited anchors:
 - `trajectory_progression_panel`
 - `atlas_spatial_trajectory_storyboard_panel`
 - `atlas_spatial_trajectory_density_coverage_panel`
+- `atlas_spatial_trajectory_context_support_panel`
 
 Current gap direction:
 
 - expand from GSVA-only heatmaps into structured celltype/program composite omics panels where real paper demand is already explicit
-- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a five-panel atlas-spatial-trajectory storyboard, and now further into a four-panel density / coverage support contract; larger multi-view omics composites remain follow-on slices
+- atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a five-panel atlas-spatial-trajectory storyboard, then into a four-panel density / coverage support contract, and now further into a six-panel context-support baseline; larger multi-view omics composites remain follow-on slices
 - expand beyond the first omics-native baseline into volcano, enrichment, oncoplot, and mutation-landscape families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 

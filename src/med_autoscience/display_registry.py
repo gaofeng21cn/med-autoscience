@@ -47,6 +47,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "trajectory_progression_panel",
         "atlas_spatial_trajectory_storyboard_panel",
         "atlas_spatial_trajectory_density_coverage_panel",
+        "atlas_spatial_trajectory_context_support_panel",
         "heatmap_group_comparison",
         "performance_heatmap",
         "correlation_heatmap",
