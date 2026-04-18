@@ -17,7 +17,7 @@
 - 不替代 `medautosci`
 - 不替代 controller contract
 - 不取消 profile 驱动的 workspace 绑定
-- 不改变 `MedDeepScientist` overlay 的安装模型
+- 不改变 medical research overlay 的安装模型
 - 不会替你安装 `MedDeepScientist`；研究运行前仍需本机准备 `med-deepscientist` 并在 profile 中配置
 
 ## 兼容性边界
@@ -52,7 +52,7 @@ Compatibility note:
 - CLI: `medautosci workspace bootstrap --profile <profile>`
 - CLI: `medautosci runtime watch --runtime-root <runtime-root>`
 - CLI: `medautosci runtime overlay-status --profile <profile>`
-- CLI: `medautosci doctor med-deepscientist-upgrade --profile <profile> --refresh`
+- CLI: `medautosci doctor backend-upgrade --profile <profile> --refresh`
 
 ## Live Runtime Guard
 

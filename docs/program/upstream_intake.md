@@ -48,12 +48,12 @@
 
 ## Remote 命名
 
-`med-deepscientist` 本身是受控 fork，因此 remote 语义要明确分工。对于普通非 fork 仓库，`origin/main` 仍然可以当作默认 upstream，并直接作为 `med-deepscientist-upgrade-check` 的 comparison ref；但在受控 fork 场景里，必须避免把 `origin/main` 当成真正的上游。
+`med-deepscientist` 本身是受控 fork，因此 remote 语义要明确分工。对于普通非 fork 仓库，`origin/main` 仍然可以当作默认 upstream，并直接作为 `backend-upgrade-check` 的 comparison ref；但在受控 fork 场景里，必须避免把 `origin/main` 当成真正的上游。
 
 在 intake 流程里应保持以下 remote 约定：
 
 - `origin` 指向 fork 自己的 GitHub 主仓，用于维护 `med-deepscientist/main` 的稳定线和 intake 合并点；
-- `upstream` 指向原始的 `DeepScientist` 仓库，针对兼容审计（如 `med-deepscientist-upgrade-check`）和 intake 分叉准备的命令都应以 `upstream/main` 作为 comparison ref，确保不会误用 fork 的 `origin/main` 做上游引用。
+- `upstream` 指向原始的 `DeepScientist` 仓库，针对兼容审计（如 `backend-upgrade-check`）和 intake 分叉准备的命令都应以 `upstream/main` 作为 comparison ref，确保不会误用 fork 的 `origin/main` 做上游引用。
 
 ## 允许吸收的更新类型
 
@@ -98,7 +98,7 @@ git worktree add .worktree/intake-2026-03-31-daemon-fix -b intake/2026-03-31-dae
 
 ```bash
 cd <med-autoscience-root>
-PYTHONPATH=src python3 -m med_autoscience.cli med-deepscientist-upgrade-check --profile /path/to/profile.toml --refresh
+PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile /path/to/profile.toml --refresh
 ```
 
 至少要确认：
@@ -150,7 +150,7 @@ PYTHONPATH=src pytest -q tests/test_daemon_api.py -k 'document_asset_resolves_pa
 
 至少覆盖：
 
-- `med-deepscientist-upgrade-check`
+- `backend-upgrade-check`
 - `workspace_contracts`
 - 与本次 intake 相关的 controller / protocol 测试
 

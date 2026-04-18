@@ -6,6 +6,7 @@ import hashlib
 import json
 from importlib import resources
 from pathlib import Path
+import shutil
 from typing import Any
 
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
@@ -26,7 +27,9 @@ from med_autoscience.submission_targets import render_submission_target_overlay_
 
 
 SCHEMA_VERSION = 1
-OVERLAY_NAME = "med_autoscience_med_deepscientist_overlay"
+OVERLAY_NAME = "med_autoscience_medical_research_overlay"
+OVERLAY_TARGET_PREFIX = "medical-research"
+LEGACY_OVERLAY_TARGET_PREFIX = "med-deepscientist"
 MANIFEST_NAME = ".med_autoscience_overlay.json"
 ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
 STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
@@ -42,21 +45,21 @@ FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
 FULL_TEMPLATE_MAP = {
-    "scout": "med-deepscientist-scout.SKILL.md",
-    "idea": "med-deepscientist-idea.SKILL.md",
-    "decision": "med-deepscientist-decision.SKILL.md",
-    "figure-polish": "med-deepscientist-figure-polish.SKILL.md",
-    "write": "med-deepscientist-write.SKILL.md",
-    "finalize": "med-deepscientist-finalize.SKILL.md",
-    "journal-resolution": "med-deepscientist-journal-resolution.SKILL.md",
+    "scout": "medical-research-scout.SKILL.md",
+    "idea": "medical-research-idea.SKILL.md",
+    "decision": "medical-research-decision.SKILL.md",
+    "figure-polish": "medical-research-figure-polish.SKILL.md",
+    "write": "medical-research-write.SKILL.md",
+    "finalize": "medical-research-finalize.SKILL.md",
+    "journal-resolution": "medical-research-journal-resolution.SKILL.md",
 }
 APPEND_BLOCK_TEMPLATE_MAP = {
-    "intake-audit": "med-deepscientist-intake-audit.block.md",
-    "baseline": "med-deepscientist-baseline.block.md",
-    "experiment": "med-deepscientist-experiment.block.md",
-    "analysis-campaign": "med-deepscientist-analysis-campaign.block.md",
-    "review": "med-deepscientist-review.block.md",
-    "rebuttal": "med-deepscientist-rebuttal.block.md",
+    "intake-audit": "medical-research-intake-audit.block.md",
+    "baseline": "medical-research-baseline.block.md",
+    "experiment": "medical-research-experiment.block.md",
+    "analysis-campaign": "medical-research-analysis-campaign.block.md",
+    "review": "medical-research-review.block.md",
+    "rebuttal": "medical-research-rebuttal.block.md",
 }
 
 
@@ -67,6 +70,35 @@ class OverlayTarget:
     target_root: Path
     skill_path: Path
     manifest_path: Path
+
+
+def _skill_target_dirname(*, skill_id: str, prefix: str = OVERLAY_TARGET_PREFIX) -> str:
+    return f"{prefix}-{skill_id}"
+
+
+def _legacy_target_root(target: OverlayTarget) -> Path:
+    return target.target_root.parent / _skill_target_dirname(
+        skill_id=target.skill_id,
+        prefix=LEGACY_OVERLAY_TARGET_PREFIX,
+    )
+
+
+def _migrate_legacy_target_if_present(target: OverlayTarget) -> None:
+    legacy_target_root = _legacy_target_root(target)
+    if target.target_root.exists() or not legacy_target_root.exists():
+        return
+    target.target_root.parent.mkdir(parents=True, exist_ok=True)
+    legacy_target_root.rename(target.target_root)
+
+
+def _retire_legacy_target_if_present(target: OverlayTarget) -> None:
+    legacy_target_root = _legacy_target_root(target)
+    if legacy_target_root == target.target_root or not legacy_target_root.exists():
+        return
+    if legacy_target_root.is_symlink() or legacy_target_root.is_file():
+        legacy_target_root.unlink()
+        return
+    shutil.rmtree(legacy_target_root)
 
 
 def _utc_now() -> str:
@@ -212,9 +244,9 @@ def _resolve_targets(
         OverlayTarget(
             skill_id=skill_id,
             scope=scope,
-            target_root=skills_root / f"med-deepscientist-{skill_id}",
-            skill_path=skills_root / f"med-deepscientist-{skill_id}" / "SKILL.md",
-            manifest_path=skills_root / f"med-deepscientist-{skill_id}" / MANIFEST_NAME,
+            target_root=skills_root / _skill_target_dirname(skill_id=skill_id),
+            skill_path=skills_root / _skill_target_dirname(skill_id=skill_id) / "SKILL.md",
+            manifest_path=skills_root / _skill_target_dirname(skill_id=skill_id) / MANIFEST_NAME,
         )
         for skill_id in normalized_skill_ids
     ]
@@ -224,7 +256,17 @@ def _resolve_targets(
 def _resolve_authoritative_target_root(*, authoritative_root: Path | None, skill_id: str) -> Path | None:
     if authoritative_root is None:
         return None
-    return Path(authoritative_root).expanduser().resolve() / ".codex" / "skills" / f"med-deepscientist-{skill_id}"
+    authoritative_skills_root = Path(authoritative_root).expanduser().resolve() / ".codex" / "skills"
+    preferred_target_root = authoritative_skills_root / _skill_target_dirname(skill_id=skill_id)
+    if preferred_target_root.exists():
+        return preferred_target_root
+    legacy_target_root = authoritative_skills_root / _skill_target_dirname(
+        skill_id=skill_id,
+        prefix=LEGACY_OVERLAY_TARGET_PREFIX,
+    )
+    if legacy_target_root.exists():
+        return legacy_target_root
+    return preferred_target_root
 
 
 def _copy_authoritative_target_seed(*, target: OverlayTarget, authoritative_root: Path | None) -> None:
@@ -421,12 +463,13 @@ def describe_medical_overlay(
 
 
 def _ensure_target_ready(target: OverlayTarget) -> str:
+    _migrate_legacy_target_if_present(target)
     if target.skill_path.exists():
         return target.skill_path.read_text(encoding="utf-8")
     if target.skill_id in FULL_TEMPLATE_MAP:
         target.target_root.mkdir(parents=True, exist_ok=True)
         return ""
-    raise FileNotFoundError(f"MedDeepScientist skill target missing: {target.target_root}")
+    raise FileNotFoundError(f"Medical research overlay target missing: {target.target_root}")
 
 
 def _resolve_runtime_repo_skill_path(*, med_deepscientist_repo_root: Path | None, skill_id: str) -> Path | None:
@@ -455,7 +498,7 @@ def _seed_workspace_target_from_runtime_repo(
             else "<unset med_deepscientist_repo_root>/src/skills/<skill-id>/SKILL.md"
         )
         raise FileNotFoundError(
-            "Workspace-local overlay target missing and no authoritative med-deepscientist skill seed "
+            "Workspace-local overlay target missing and no authoritative controlled-backend skill seed "
             f"found for `{target.skill_id}` at {expected}"
         )
     target.target_root.mkdir(parents=True, exist_ok=True)
@@ -552,6 +595,7 @@ def _install_for_target(
         policy_id=policy_id,
         archetype_ids=archetype_ids,
     )
+    _retire_legacy_target_if_present(target)
     return {
         "skill_id": target.skill_id,
         "action": "reapplied" if force else "installed",

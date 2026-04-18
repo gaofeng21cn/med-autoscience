@@ -436,9 +436,16 @@ def build_parser() -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--dry-run", action="store_true")
     init_workspace_parser.add_argument("--force", action="store_true")
 
-    med_deepscientist_upgrade_check_parser = subparsers.add_parser("med-deepscientist-upgrade-check")
-    med_deepscientist_upgrade_check_parser.add_argument("--profile", required=True)
-    med_deepscientist_upgrade_check_parser.add_argument("--refresh", action="store_true")
+    backend_upgrade_check_parser = subparsers.add_parser("backend-upgrade-check")
+    backend_upgrade_check_parser.add_argument("--profile", required=True)
+    backend_upgrade_check_parser.add_argument("--refresh", action="store_true")
+
+    legacy_backend_upgrade_check_parser = subparsers.add_parser(
+        "med-deepscientist-upgrade-check",
+        help=argparse.SUPPRESS,
+    )
+    legacy_backend_upgrade_check_parser.add_argument("--profile", required=True)
+    legacy_backend_upgrade_check_parser.add_argument("--refresh", action="store_true")
 
     hermes_runtime_check_parser = subparsers.add_parser("hermes-runtime-check")
     hermes_runtime_check_parser.add_argument("--profile")
@@ -459,7 +466,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "entry-modes"): "show-agent-entry-modes",
     ("doctor", "sync-entry-assets"): "sync-agent-entry-assets",
     ("doctor", "preflight"): "preflight-changes",
-    ("doctor", "med-deepscientist-upgrade"): "med-deepscientist-upgrade-check",
+    ("doctor", "backend-upgrade"): "backend-upgrade-check",
     ("doctor", "hermes-runtime"): "hermes-runtime-check",
     ("workspace", "bootstrap"): "bootstrap",
     ("workspace", "init"): "init-workspace",
@@ -511,6 +518,14 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("product", "start"): "product-start",
     ("product", "manifest"): "product-entry-manifest",
     ("product", "build-entry"): "build-product-entry",
+}
+
+INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
+    ("doctor", "med-deepscientist-upgrade"): "backend-upgrade-check",
+}
+
+INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES: dict[str, str] = {
+    "med-deepscientist-upgrade-check": "backend-upgrade-check",
 }
 
 GROUPED_COMMAND_NAMES = {group for group, _ in GROUPED_COMMAND_ALIASES}
@@ -585,6 +600,12 @@ def _normalize_public_command_argv(argv: list[str] | None) -> list[str] | None:
 
     if len(argv) >= 2 and (argv[0], argv[1]) in GROUPED_COMMAND_ALIASES:
         return [GROUPED_COMMAND_ALIASES[(argv[0], argv[1])], *argv[2:]]
+
+    if len(argv) >= 2 and (argv[0], argv[1]) in INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES:
+        return [INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES[(argv[0], argv[1])], *argv[2:]]
+
+    if argv[0] in INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES:
+        return [INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES[argv[0]], *argv[1:]]
 
     if argv[0] in GROUPED_COMMAND_NAMES:
         raise SystemExit(f"Grouped command requires a supported subcommand under `{argv[0]}`.")
@@ -667,7 +688,7 @@ def main(argv: list[str] | None = None) -> int:
             print(dev_preflight.render_preflight_text(result), end="")
         return 0 if result.ok else 1
 
-    if args.command == "med-deepscientist-upgrade-check":
+    if args.command == "backend-upgrade-check":
         profile = load_profile(args.profile)
         result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
         print(json.dumps(result, ensure_ascii=False, indent=2))

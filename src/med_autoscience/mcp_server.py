@@ -100,7 +100,7 @@ def list_tools() -> list[dict[str, Any]]:
     return [
         {
             "name": "doctor_audit",
-            "description": "Run doctor-side MedAutoScience audits through one task tool: report, profile, overlay_status, med_deepscientist_upgrade, or hermes_runtime.",
+            "description": "Run doctor-side MedAutoScience audits through one task tool: report, profile, overlay_status, backend_upgrade, or hermes_runtime.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -331,7 +331,7 @@ def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_med_deepscientist_upgrade_check(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_backend_upgrade_check(arguments: dict[str, Any]) -> dict[str, Any]:
     profile = load_profile(_require_string(arguments, "profile_path"))
     result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=_optional_bool(arguments, "refresh"))
     return _tool_text_result(_json_text(result), structured=result)
@@ -473,8 +473,8 @@ def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
         return _call_show_profile(arguments)
     if mode == "overlay_status":
         return _call_overlay_status(arguments)
-    if mode == "med_deepscientist_upgrade":
-        return _call_med_deepscientist_upgrade_check(arguments)
+    if mode in {"backend_upgrade", "med_deepscientist_upgrade"}:
+        return _call_backend_upgrade_check(arguments)
     if mode == "hermes_runtime":
         profile_path = arguments.get("profile_path")
         hermes_agent_repo_root = arguments.get("hermes_agent_repo_root")

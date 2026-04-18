@@ -121,7 +121,7 @@
 - `doctor`
 - `bootstrap`
 - `overlay-status`
-- `med-deepscientist-upgrade-check`
+- `backend-upgrade-check`
 
 这些命令对目标 workspace 都是通过状态。
 

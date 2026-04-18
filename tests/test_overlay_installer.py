@@ -31,10 +31,11 @@ MEDICAL_RUNTIME_CONTRACT_PATHS = (
     "paper/baseline_characteristics_schema.json",
     "paper/reporting_guideline_checklist.json",
 )
+OVERLAY_PREFIX = "medical-research"
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
-    target_root = root / f"med-deepscientist-{skill_id}"
+    target_root = root / f"{OVERLAY_PREFIX}-{skill_id}"
     target_root.mkdir(parents=True, exist_ok=True)
     skill_path = target_root / "SKILL.md"
     skill_path.write_text(body, encoding="utf-8")
@@ -65,7 +66,7 @@ def test_template_resource_names_use_med_deepscientist_prefix() -> None:
     template_names = tuple(module.FULL_TEMPLATE_MAP.values()) + tuple(module.APPEND_BLOCK_TEMPLATE_MAP.values())
 
     assert template_names
-    assert all(name.startswith("med-deepscientist-") for name in template_names)
+    assert all(name.startswith(f"{OVERLAY_PREFIX}-") for name in template_names)
 
 
 def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path) -> None:
@@ -95,7 +96,7 @@ def test_overlay_status_uses_quest_local_skill_targets_when_quest_root_provided(
     assert result["scope"] == "quest"
     assert result["quest_root"] == str(quest_root)
     assert [Path(item["target_root"]) for item in result["targets"]] == [
-        skills_root / f"med-deepscientist-{skill_id}" for skill_id in SKILL_IDS
+        skills_root / f"{OVERLAY_PREFIX}-{skill_id}" for skill_id in SKILL_IDS
     ]
 
 
@@ -127,7 +128,7 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
     assert status["all_targets_ready"] is True
     assert {item["status"] for item in status["targets"]} == {"overlay_applied"}
     for skill_id in SKILL_IDS:
-        target_root = skills_root / f"med-deepscientist-{skill_id}"
+        target_root = skills_root / f"{OVERLAY_PREFIX}-{skill_id}"
         manifest = read_manifest(target_root)
         assert manifest["skill_id"] == skill_id
         assert manifest["scope"] == "global"
@@ -197,7 +198,7 @@ def test_install_medical_overlay_requires_existing_target_directories(tmp_path: 
     else:
         message = ""
 
-    assert "med-deepscientist-intake-audit" in message
+    assert "medical-research-intake-audit" in message
 
 
 def test_install_medical_overlay_requires_runtime_repo_seed_for_workspace_append_stage(tmp_path: Path) -> None:
@@ -210,7 +211,7 @@ def test_install_medical_overlay_requires_runtime_repo_seed_for_workspace_append
             skill_ids=("intake-audit",),
         )
 
-    assert "med-deepscientist skill seed" in str(excinfo.value)
+    assert "controlled-backend skill seed" in str(excinfo.value)
     assert "intake-audit" in str(excinfo.value)
 
 
@@ -244,7 +245,7 @@ def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skill
 
     assert result["installed_count"] == len(SKILL_IDS)
     for skill_id in SKILL_IDS:
-        skill_path = quest_root / ".codex" / "skills" / f"med-deepscientist-{skill_id}" / "SKILL.md"
+        skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / "SKILL.md"
         assert skill_path.exists(), skill_path
         assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(
             skill_id,
@@ -265,7 +266,7 @@ def test_install_medical_overlay_materializes_workspace_full_template_skill_with
 
     assert [item["skill_id"] for item in result["targets"]] == ["write", "journal-resolution"]
     for skill_id in ("write", "journal-resolution"):
-        skill_path = quest_root / ".codex" / "skills" / f"med-deepscientist-{skill_id}" / "SKILL.md"
+        skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}" / "SKILL.md"
         assert skill_path.exists(), skill_path
         assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(skill_id)
 
@@ -428,10 +429,10 @@ def test_ensure_medical_overlay_reapplies_when_manifest_paths_drift(tmp_path: Pa
         write_skill(skills_root, skill_id, f"upstream {skill_id}\n")
 
     module.install_medical_overlay(home=home)
-    target_root = skills_root / "med-deepscientist-write"
+    target_root = skills_root / f"{OVERLAY_PREFIX}-write"
     manifest = read_manifest(target_root)
-    manifest["target_root"] = str(target_root.parent / "med-deepscientist-write-old")
-    manifest["skill_path"] = str((target_root.parent / "med-deepscientist-write-old") / "SKILL.md")
+    manifest["target_root"] = str(target_root.parent / f"{OVERLAY_PREFIX}-write-old")
+    manifest["skill_path"] = str((target_root.parent / f"{OVERLAY_PREFIX}-write-old") / "SKILL.md")
     (target_root / ".med_autoscience_overlay.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     result = module.ensure_medical_overlay(home=home, mode="ensure_ready")
@@ -637,7 +638,7 @@ def test_install_medical_overlay_can_seed_from_authoritative_workspace_overlay(t
 
     assert [item["skill_id"] for item in result["targets"]] == ["write", "journal-resolution"]
     assert (
-        quest_root / ".codex" / "skills" / "med-deepscientist-write" / ".med_autoscience_overlay.json"
+        quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write" / ".med_autoscience_overlay.json"
     ).exists()
 
 
@@ -661,11 +662,11 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
 
     assert result["materialized_surface_count"] == 2
     assert (
-        worktree_root / ".codex" / "skills" / "med-deepscientist-write" / ".med_autoscience_overlay.json"
+        worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write" / ".med_autoscience_overlay.json"
     ).exists()
-    manifest = read_manifest(worktree_root / ".codex" / "skills" / "med-deepscientist-write")
+    manifest = read_manifest(worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write")
     assert manifest["quest_root"] == str(worktree_root)
-    assert manifest["target_root"] == str(worktree_root / ".codex" / "skills" / "med-deepscientist-write")
+    assert manifest["target_root"] == str(worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write")
 
     audit = module.audit_runtime_medical_overlay(
         quest_root=quest_root,
@@ -694,8 +695,8 @@ def test_materialize_runtime_medical_overlay_rewrites_stale_worktree_manifest_pa
         skill_ids=("write",),
     )
 
-    quest_skill_root = quest_root / ".codex" / "skills" / "med-deepscientist-write"
-    worktree_skill_root = worktree_root / ".codex" / "skills" / "med-deepscientist-write"
+    quest_skill_root = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write"
+    worktree_skill_root = worktree_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write"
     worktree_skill_root.mkdir(parents=True, exist_ok=True)
     (worktree_skill_root / "SKILL.md").write_text(
         (quest_skill_root / "SKILL.md").read_text(encoding="utf-8"),

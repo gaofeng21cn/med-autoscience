@@ -820,7 +820,7 @@ def test_external_research_status_command_dispatches_controller(monkeypatch, tmp
     assert '"prompt_file_count": 1' in captured.out
 
 
-def test_med_deepscientist_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_backend_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
@@ -833,13 +833,24 @@ def test_med_deepscientist_upgrade_check_command_dispatches_controller(monkeypat
 
     monkeypatch.setattr(cli.med_deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
 
-    exit_code = cli.main(["doctor", "med-deepscientist-upgrade", "--profile", str(profile_path), "--refresh"])
+    exit_code = cli.main(["doctor", "backend-upgrade", "--profile", str(profile_path), "--refresh"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert called["profile"].med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert called["refresh"] is True
     assert '"decision": "upgrade_available"' in captured.out
+
+
+def test_doctor_group_help_surfaces_backend_upgrade_and_hides_legacy_name(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["doctor"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "backend-upgrade" in captured.out
+    assert "med-deepscientist-upgrade" not in captured.out
 
 
 def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:

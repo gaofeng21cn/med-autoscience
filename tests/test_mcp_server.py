@@ -69,6 +69,16 @@ def test_mcp_server_documents_live_runtime_guard_on_study_runtime_tools() -> Non
     assert "bundle/build/proofing" in description
 
 
+def test_mcp_server_doctor_tool_describes_backend_upgrade_surface() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    descriptions = {tool["name"]: tool["description"] for tool in module.build_tool_manifest()}
+
+    description = descriptions["doctor_audit"]
+
+    assert "backend_upgrade" in description
+    assert "med_deepscientist_upgrade" not in description
+
+
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"

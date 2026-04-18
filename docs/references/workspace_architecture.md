@@ -303,7 +303,7 @@ wrapper 不应继续硬编码：
 - `ops/med-deepscientist/config.env`
   - 显式指定外部共享 `MedDeepScientist` repo，或其受控 launcher 入口
 
-当前阶段 `med_deepscientist_repo_root` 主要为 `med-deepscientist-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行。当前 repo-side 已把 `managed_runtime_backend_id=hermes` 固定为默认 outer substrate owner，但 external `Hermes` runtime truth 仍未单独放行，因此真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 controlled backend repo 身份已受控，不说明 external runtime cutover 已可放行。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 controlled backend 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`med-deepscientist-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
+当前阶段 `med_deepscientist_repo_root` 主要为 `backend-upgrade-check` 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行。当前 repo-side 已把 `managed_runtime_backend_id=hermes` 固定为默认 outer substrate owner，但 external `Hermes` runtime truth 仍未单独放行，因此真正的执行真相仍可能在 workspace 内部 `site-packages` 级 overlay 或 legacy controller 补丁里。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这仍然只说明 controlled backend repo 身份已受控，不说明 external runtime cutover 已可放行。为了不在 Phase 1 过早把运行源切走，workspace 必须在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`，只有当 `phase_25_ready` 被显式置为 `true` 且 `critical_overrides` 里列出的 site-packages 补丁都被迁出或替换后，才可以考虑把 controlled backend 当作真实执行来源。只要 `phase_25_ready=false`，就不能宣称已经完成外部执行切换，`backend-upgrade-check` 也会返回 `blocked_behavior_equivalence_gate`，提醒我们继续固化 audit-level 合约。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。
@@ -468,7 +468,7 @@ wrapper 不应继续做：
 
 这是后续迁移的审计基线。
 
-目前 Phase 1 只完成 state contract、launcher/runtime contract 与 behavior equivalence gate 的文档梳理与校验，真实执行仍可能是 workspace 内 legacy 的 `site-packages` overlay 或本地补丁。只有当 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 里的 `phase_25_ready` 显式变为 `true`，并且 `critical_overrides` 中提到的 site-packages 层补丁都被明确迁出或替换后，`med-deepscientist-upgrade-check` 才会放行 Phase 2 及以后的外部执行迁移工作；在这之前不能宣称已经完成对外执行源的切换。
+目前 Phase 1 只完成 state contract、launcher/runtime contract 与 behavior equivalence gate 的文档梳理与校验，真实执行仍可能是 workspace 内 legacy 的 `site-packages` overlay 或本地补丁。只有当 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 里的 `phase_25_ready` 显式变为 `true`，并且 `critical_overrides` 中提到的 site-packages 层补丁都被明确迁出或替换后，`backend-upgrade-check` 才会放行 Phase 2 及以后的外部执行迁移工作；在这之前不能宣称已经完成对外执行源的切换。
 ### Phase 2: wrapper 全量 profile-driven
 
 先改 workspace 入口层，而不是先动 quest。
@@ -494,7 +494,7 @@ wrapper 不应继续做：
 
 如果这个门没有通过，就不能先切到外部共享程序来源再回头补救；否则会先丢行为，再谈迁移。
 
-`behavior_equivalence_gate.yaml` 是 workspace 的长期 artifact，必须放在 `ops/med-deepscientist/` 里并交给 `med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 审核。这个文件会验证 `schema_version`、`phase_25_ready`、`critical_overrides`，其中 `critical_overrides` 正是对可能仍在 `site-packages` 或 controller 目录执行的本地补丁的清单；只有这些补丁被显式迁走、`phase_25_ready` 变为 `true` 时，才认定行为等价门通过，否则就会产生 `behavior_gate.phase_25_ready_false` 之类的阻断信息，`med-deepscientist-upgrade-check` 会把 `behavior_gate` 直接标记为阻塞，从而避免我们在还没确认等价的情况下把 `med_deepscientist_repo_root` 当作真实执行源。Phase 1 的 `MEDICAL_FORK_MANIFEST.json` 只是 repo-level 受控身份 artifact；它不能替代这道门。这道门既是 Phase 1 审计的结果，也是 Phase 2.5 对 site-packages overlay 级别补丁的最终挡板。
+`behavior_equivalence_gate.yaml` 是 workspace 的长期 artifact，必须放在 `ops/med-deepscientist/` 里并交给 `med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 审核。这个文件会验证 `schema_version`、`phase_25_ready`、`critical_overrides`，其中 `critical_overrides` 正是对可能仍在 `site-packages` 或 controller 目录执行的本地补丁的清单；只有这些补丁被显式迁走、`phase_25_ready` 变为 `true` 时，才认定行为等价门通过，否则就会产生 `behavior_gate.phase_25_ready_false` 之类的阻断信息，`backend-upgrade-check` 会把 `behavior_gate` 直接标记为阻塞，从而避免我们在还没确认等价的情况下把 `med_deepscientist_repo_root` 当作真实执行源。Phase 1 的 `MEDICAL_FORK_MANIFEST.json` 只是 repo-level 受控身份 artifact；它不能替代这道门。这道门既是 Phase 1 审计的结果，也是 Phase 2.5 对 site-packages overlay 级别补丁的最终挡板。
 ### Phase 3: MedDeepScientist 调用外部程序化
 
 这一阶段的核心不是迁走项目状态，而是迁走程序本体依赖。
