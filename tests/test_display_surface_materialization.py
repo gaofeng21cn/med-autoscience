@@ -5095,6 +5095,72 @@ def _make_atlas_spatial_trajectory_storyboard_display(display_id: str = "Figure3
     }
 
 
+def _make_atlas_spatial_trajectory_density_coverage_panel_display(display_id: str = "Figure32") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "atlas_spatial_trajectory_density_coverage_panel",
+        "title": "Atlas, spatial, and trajectory density-coverage support panel",
+        "caption": (
+            "Atlas occupancy, tissue coverage, progression support, and state-by-context support remain bound inside "
+            "one audited density-coverage contract."
+        ),
+        "atlas_panel_title": "Atlas density",
+        "atlas_x_label": "UMAP 1",
+        "atlas_y_label": "UMAP 2",
+        "atlas_points": [
+            {"x": -2.1, "y": 1.0, "state_label": "Stem-like"},
+            {"x": -1.7, "y": 0.8, "state_label": "Stem-like"},
+            {"x": -0.2, "y": -0.1, "state_label": "Cycling"},
+            {"x": 1.1, "y": -0.6, "state_label": "Effector"},
+        ],
+        "spatial_panel_title": "Spatial coverage topography",
+        "spatial_x_label": "Tissue x coordinate",
+        "spatial_y_label": "Tissue y coordinate",
+        "spatial_points": [
+            {"x": 0.12, "y": 0.82, "state_label": "Stem-like", "region_label": "Tumor core"},
+            {"x": 0.18, "y": 0.76, "state_label": "Stem-like", "region_label": "Tumor core"},
+            {"x": 0.54, "y": 0.48, "state_label": "Cycling", "region_label": "Invasive margin"},
+            {"x": 0.82, "y": 0.20, "state_label": "Effector", "region_label": "Invasive margin"},
+        ],
+        "trajectory_panel_title": "Trajectory coverage progression",
+        "trajectory_x_label": "Trajectory 1",
+        "trajectory_y_label": "Trajectory 2",
+        "trajectory_points": [
+            {"x": -1.7, "y": 0.9, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+            {"x": -0.9, "y": 0.4, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.34},
+            {"x": -0.2, "y": -0.2, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+            {"x": 1.5, "y": 0.8, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+            {"x": 1.1, "y": 0.2, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.52},
+            {"x": 0.7, "y": -0.6, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+        ],
+        "support_panel_title": "State-by-context support",
+        "support_x_label": "Context",
+        "support_y_label": "Cell state",
+        "support_scale_label": "Coverage fraction",
+        "state_order": [
+            {"label": "Stem-like"},
+            {"label": "Cycling"},
+            {"label": "Effector"},
+        ],
+        "context_order": [
+            {"label": "Atlas density", "context_kind": "atlas_density"},
+            {"label": "Spatial coverage", "context_kind": "spatial_coverage"},
+            {"label": "Trajectory coverage", "context_kind": "trajectory_coverage"},
+        ],
+        "support_cells": [
+            {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+            {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+            {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+            {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+            {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+            {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+            {"x": "Atlas density", "y": "Effector", "value": 0.31},
+            {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+            {"x": "Trajectory coverage", "y": "Effector", "value": 0.81},
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -5605,6 +5671,120 @@ def test_load_evidence_display_payload_rejects_storyboard_when_trajectory_states
             paper_root=paper_root,
             spec=spec,
             display_id="Figure31",
+        )
+
+
+def test_materialize_display_surface_generates_atlas_spatial_trajectory_density_coverage_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure32",
+                    "display_kind": "figure",
+                    "requirement_key": "atlas_spatial_trajectory_density_coverage_panel",
+                    "catalog_id": "F32",
+                    "shell_path": "paper/figures/Figure32.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure32",
+                    "template_id": "atlas_spatial_trajectory_density_coverage_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_trajectory_density_coverage_panel_inputs_v1",
+            "displays": [_make_atlas_spatial_trajectory_density_coverage_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F32"]
+    assert (paper_root / "figures" / "generated" / "F32_atlas_spatial_trajectory_density_coverage_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F32_atlas_spatial_trajectory_density_coverage_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F32_atlas_spatial_trajectory_density_coverage_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_atlas",
+        "panel_spatial",
+        "panel_trajectory",
+        "panel_support",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_D" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["state_labels"] == ["Stem-like", "Cycling", "Effector"]
+    assert layout_sidecar["metrics"]["context_labels"] == [
+        "Atlas density",
+        "Spatial coverage",
+        "Trajectory coverage",
+    ]
+    assert layout_sidecar["metrics"]["support_scale_label"] == "Coverage fraction"
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F32"
+    assert figure_entry["template_id"] == full_id("atlas_spatial_trajectory_density_coverage_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "atlas_spatial_trajectory_density_coverage_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_atlas_spatial_trajectory_density_coverage_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_load_evidence_display_payload_rejects_density_coverage_when_support_grid_drifts(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_atlas_spatial_trajectory_density_coverage_panel_display()
+    display_payload["support_cells"] = [
+        item
+        for item in display_payload["support_cells"]
+        if not (item["x"] == "Trajectory coverage" and item["y"] == "Effector")
+    ]
+    dump_json(
+        paper_root / "atlas_spatial_trajectory_density_coverage_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "atlas_spatial_trajectory_density_coverage_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("atlas_spatial_trajectory_density_coverage_panel")
+
+    with pytest.raises(ValueError, match="support_cells must cover the declared state-context grid exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure32",
         )
 
 

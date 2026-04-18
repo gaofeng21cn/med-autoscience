@@ -2957,6 +2957,171 @@ def test_run_display_layout_qc_fails_when_storyboard_trajectory_state_drifts() -
     assert any(issue["rule_id"] == "trajectory_point_state_label_unknown" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_atlas_spatial_trajectory_density_coverage_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_trajectory_density_coverage_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_trajectory_density_coverage_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.18, y0=0.95, x1=0.84, y1=0.98),
+                make_box("atlas_panel_title", "panel_title", x0=0.08, y0=0.88, x1=0.24, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.11, y0=0.49, x1=0.22, y1=0.52),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.63, x1=0.05, y1=0.80),
+                make_box("spatial_panel_title", "panel_title", x0=0.39, y0=0.88, x1=0.56, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.41, y0=0.49, x1=0.55, y1=0.52),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.33, y0=0.60, x1=0.36, y1=0.82),
+                make_box("trajectory_panel_title", "panel_title", x0=0.69, y0=0.88, x1=0.87, y1=0.91),
+                make_box("trajectory_x_axis_title", "subplot_x_axis_title", x0=0.72, y0=0.49, x1=0.86, y1=0.52),
+                make_box("trajectory_y_axis_title", "subplot_y_axis_title", x0=0.63, y0=0.60, x1=0.66, y1=0.82),
+                make_box("support_panel_title", "panel_title", x0=0.30, y0=0.46, x1=0.54, y1=0.49),
+                make_box("support_x_axis_title", "subplot_x_axis_title", x0=0.39, y0=0.10, x1=0.49, y1=0.13),
+                make_box("support_y_axis_title", "subplot_y_axis_title", x0=0.22, y0=0.20, x1=0.25, y1=0.40),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.82, x1=0.10, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.82, x1=0.40, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+                make_box("panel_label_D", "panel_label", x0=0.29, y0=0.40, x1=0.31, y1=0.43),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.07, y0=0.53, x1=0.30, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.37, y0=0.53, x1=0.60, y1=0.86),
+                make_box("panel_trajectory", "panel", x0=0.67, y0=0.53, x1=0.90, y1=0.86),
+                make_box("panel_support", "heatmap_tile_region", x0=0.28, y0=0.16, x1=0.70, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.08, y0=0.02, x1=0.42, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.74, y0=0.18, x1=0.78, y1=0.42),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.10, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.14, "y": 0.74, "state_label": "Stem-like"},
+                    {"x": 0.22, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.27, "y": 0.61, "state_label": "Effector"},
+                ],
+                "spatial_points": [
+                    {"x": 0.40, "y": 0.81, "state_label": "Stem-like", "region_label": "Tumor core"},
+                    {"x": 0.43, "y": 0.75, "state_label": "Stem-like", "region_label": "Tumor core"},
+                    {"x": 0.51, "y": 0.69, "state_label": "Cycling", "region_label": "Invasive margin"},
+                    {"x": 0.57, "y": 0.61, "state_label": "Effector", "region_label": "Invasive margin"},
+                ],
+                "trajectory_points": [
+                    {"x": 0.70, "y": 0.81, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+                    {"x": 0.75, "y": 0.73, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.32},
+                    {"x": 0.83, "y": 0.62, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+                    {"x": 0.88, "y": 0.79, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+                    {"x": 0.84, "y": 0.69, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.51},
+                    {"x": 0.78, "y": 0.59, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+                ],
+                "state_labels": ["Stem-like", "Cycling", "Effector"],
+                "region_labels": ["Tumor core", "Invasive margin"],
+                "branch_labels": ["Branch A", "Branch B"],
+                "context_labels": ["Atlas density", "Spatial coverage", "Trajectory coverage"],
+                "context_kinds": ["atlas_density", "spatial_coverage", "trajectory_coverage"],
+                "support_scale_label": "Coverage fraction",
+                "support_cells": [
+                    {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+                    {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+                    {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+                    {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+                    {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+                    {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+                    {"x": "Atlas density", "y": "Effector", "value": 0.31},
+                    {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+                    {"x": "Trajectory coverage", "y": "Effector", "value": 0.81},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_density_coverage_support_grid_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_atlas_spatial_trajectory_density_coverage_panel",
+        layout_sidecar={
+            "template_id": "atlas_spatial_trajectory_density_coverage_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("title", "title", x0=0.18, y0=0.95, x1=0.84, y1=0.98),
+                make_box("atlas_panel_title", "panel_title", x0=0.08, y0=0.88, x1=0.24, y1=0.91),
+                make_box("atlas_x_axis_title", "subplot_x_axis_title", x0=0.11, y0=0.49, x1=0.22, y1=0.52),
+                make_box("atlas_y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.63, x1=0.05, y1=0.80),
+                make_box("spatial_panel_title", "panel_title", x0=0.39, y0=0.88, x1=0.56, y1=0.91),
+                make_box("spatial_x_axis_title", "subplot_x_axis_title", x0=0.41, y0=0.49, x1=0.55, y1=0.52),
+                make_box("spatial_y_axis_title", "subplot_y_axis_title", x0=0.33, y0=0.60, x1=0.36, y1=0.82),
+                make_box("trajectory_panel_title", "panel_title", x0=0.69, y0=0.88, x1=0.87, y1=0.91),
+                make_box("trajectory_x_axis_title", "subplot_x_axis_title", x0=0.72, y0=0.49, x1=0.86, y1=0.52),
+                make_box("trajectory_y_axis_title", "subplot_y_axis_title", x0=0.63, y0=0.60, x1=0.66, y1=0.82),
+                make_box("support_panel_title", "panel_title", x0=0.30, y0=0.46, x1=0.54, y1=0.49),
+                make_box("support_x_axis_title", "subplot_x_axis_title", x0=0.39, y0=0.10, x1=0.49, y1=0.13),
+                make_box("support_y_axis_title", "subplot_y_axis_title", x0=0.22, y0=0.20, x1=0.25, y1=0.40),
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.82, x1=0.10, y1=0.85),
+                make_box("panel_label_B", "panel_label", x0=0.38, y0=0.82, x1=0.40, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.68, y0=0.82, x1=0.70, y1=0.85),
+                make_box("panel_label_D", "panel_label", x0=0.29, y0=0.40, x1=0.31, y1=0.43),
+            ],
+            "panel_boxes": [
+                make_box("panel_atlas", "panel", x0=0.07, y0=0.53, x1=0.30, y1=0.86),
+                make_box("panel_spatial", "panel", x0=0.37, y0=0.53, x1=0.60, y1=0.86),
+                make_box("panel_trajectory", "panel", x0=0.67, y0=0.53, x1=0.90, y1=0.86),
+                make_box("panel_support", "heatmap_tile_region", x0=0.28, y0=0.16, x1=0.70, y1=0.44),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.08, y0=0.02, x1=0.42, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.74, y0=0.18, x1=0.78, y1=0.42),
+            ],
+            "metrics": {
+                "atlas_points": [
+                    {"x": 0.10, "y": 0.80, "state_label": "Stem-like"},
+                    {"x": 0.14, "y": 0.74, "state_label": "Stem-like"},
+                    {"x": 0.22, "y": 0.68, "state_label": "Cycling"},
+                    {"x": 0.27, "y": 0.61, "state_label": "Effector"},
+                ],
+                "spatial_points": [
+                    {"x": 0.40, "y": 0.81, "state_label": "Stem-like", "region_label": "Tumor core"},
+                    {"x": 0.43, "y": 0.75, "state_label": "Stem-like", "region_label": "Tumor core"},
+                    {"x": 0.51, "y": 0.69, "state_label": "Cycling", "region_label": "Invasive margin"},
+                    {"x": 0.57, "y": 0.61, "state_label": "Effector", "region_label": "Invasive margin"},
+                ],
+                "trajectory_points": [
+                    {"x": 0.70, "y": 0.81, "branch_label": "Branch A", "state_label": "Stem-like", "pseudotime": 0.08},
+                    {"x": 0.75, "y": 0.73, "branch_label": "Branch A", "state_label": "Cycling", "pseudotime": 0.32},
+                    {"x": 0.83, "y": 0.62, "branch_label": "Branch A", "state_label": "Effector", "pseudotime": 0.76},
+                    {"x": 0.88, "y": 0.79, "branch_label": "Branch B", "state_label": "Stem-like", "pseudotime": 0.12},
+                    {"x": 0.84, "y": 0.69, "branch_label": "Branch B", "state_label": "Cycling", "pseudotime": 0.51},
+                    {"x": 0.78, "y": 0.59, "branch_label": "Branch B", "state_label": "Effector", "pseudotime": 0.88},
+                ],
+                "state_labels": ["Stem-like", "Cycling", "Effector"],
+                "region_labels": ["Tumor core", "Invasive margin"],
+                "branch_labels": ["Branch A", "Branch B"],
+                "context_labels": ["Atlas density", "Spatial coverage", "Trajectory coverage"],
+                "context_kinds": ["atlas_density", "spatial_coverage", "trajectory_coverage"],
+                "support_scale_label": "Coverage fraction",
+                "support_cells": [
+                    {"x": "Atlas density", "y": "Stem-like", "value": 0.84},
+                    {"x": "Spatial coverage", "y": "Stem-like", "value": 0.73},
+                    {"x": "Trajectory coverage", "y": "Stem-like", "value": 0.58},
+                    {"x": "Atlas density", "y": "Cycling", "value": 0.49},
+                    {"x": "Spatial coverage", "y": "Cycling", "value": 0.61},
+                    {"x": "Trajectory coverage", "y": "Cycling", "value": 0.66},
+                    {"x": "Atlas density", "y": "Effector", "value": 0.31},
+                    {"x": "Spatial coverage", "y": "Effector", "value": 0.54},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "support_grid_incomplete" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_forest_marker_is_outside_interval() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
