@@ -305,11 +305,12 @@ Current audited anchors:
 - `generalizability_subgroup_composite_panel`
 - `compact_effect_estimate_panel`
 - `coefficient_path_panel`
+- `broader_heterogeneity_summary_panel`
 
 Current gap direction:
 
 - interaction-effect displays
-- broader heterogeneous effect summaries beyond the first bounded generalizability + compact-estimate + coefficient-path baseline
+- calibration appendix and robustness scenes beyond the first bounded generalizability + compact-estimate + coefficient-path + broader-heterogeneity baseline
 
 ### D. 表征结构与数据几何类
 
@@ -548,12 +549,13 @@ Current audited anchors:
 - `generalizability_subgroup_composite_panel`
 - `compact_effect_estimate_panel`
 - `coefficient_path_panel`
+- `broader_heterogeneity_summary_panel`
 
 Current gap direction:
 
 - broader balance / missingness governance beyond the current bounded balance-missingness-QC shell layer
 - broader QC and batch-effect display families beyond the current bounded center-coverage / batch-shift / recalibration-governance shell stack
-- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline + compact/coefficient stability summaries + bounded center-coverage transportability shell + recalibration-governance shell
+- transportability and center-coverage surfaces beyond the current multicenter overview + generalizability composite baseline + compact/coefficient/broader-heterogeneity stability summaries + bounded center-coverage transportability shell + recalibration-governance shell
 - broader design-evidence shells beyond current paper tables, the fixed workflow fact sheet shell, the bounded workflow-ribbon-plus-summary composite shell, the first bounded balance-missingness-QC composite shell, and the first bounded generalizability + subgroup composite baseline
 
 ## Cross-Cutting Audit Families

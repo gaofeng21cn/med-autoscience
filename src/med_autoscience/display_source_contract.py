@@ -32,6 +32,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
     "compact_effect_estimate_panel_inputs_v1": "compact_effect_estimate_panel_inputs.json",
     "coefficient_path_panel_inputs_v1": "coefficient_path_panel_inputs.json",
+    "broader_heterogeneity_summary_panel_inputs_v1": "broader_heterogeneity_summary_panel_inputs.json",
     "shap_summary_inputs_v1": "shap_summary_inputs.json",
     "shap_bar_importance_inputs_v1": "shap_bar_importance_inputs.json",
     "shap_signed_importance_panel_inputs_v1": "shap_signed_importance_panel_inputs.json",

@@ -92,6 +92,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::subgroup_forest` | `evidence_figure` | `C. Effect Size and Heterogeneity` | Forest Plot (Subgroup Effects) | `r_ggplot2` | `forest_effect_inputs_v1` | `publication_forest_plot` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::compact_effect_estimate_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Compact Effect Estimate Panel | `python` | `compact_effect_estimate_panel_inputs_v1` | `publication_compact_effect_estimate_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `python` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::broader_heterogeneity_summary_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Broader Heterogeneity Summary Panel | `python` | `broader_heterogeneity_summary_panel_inputs_v1` | `publication_broader_heterogeneity_summary_panel` | `png`, `pdf` |
 
 ### Model Explanation
 
@@ -598,6 +599,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `coefficient_rows.points` -> `step_id`, `estimate`, `lower`, `upper`
 - Optional nested collection fields: `coefficient_rows.points` -> `support_n`
 - Additional constraints: `steps_must_contain_between_two_and_five_entries`, `step_ids_must_be_unique`, `step_orders_must_be_strictly_increasing`, `reference_value_must_be_finite`, `coefficient_rows_must_be_non_empty`, `coefficient_row_ids_must_be_unique`, `coefficient_row_labels_must_be_unique`, `coefficient_points_must_cover_all_declared_steps_once`, `coefficient_point_values_must_be_finite`, `coefficient_point_intervals_must_wrap_estimate`, `coefficient_point_support_n_must_be_positive_when_present`, `summary_cards_must_contain_between_two_and_four_entries`, `summary_card_ids_must_be_unique`
+
+### `broader_heterogeneity_summary_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Broader Heterogeneity Summary Panel
+- Templates: `fenggaolab.org.medical-display-core::broader_heterogeneity_summary_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `matrix_panel_title`, `x_label`, `reference_value`, `slice_legend_title`, `slices`, `effect_rows`, `summary_panel_title`
+- Optional display fields: `paper_role`
+- Required collection fields: `slices` -> `slice_id`, `slice_label`, `slice_kind`, `slice_order`<br>`effect_rows` -> `row_id`, `row_label`, `verdict`, `slice_estimates`
+- Optional collection fields: `effect_rows` -> `detail`
+- Required nested collection fields: `effect_rows.slice_estimates` -> `slice_id`, `estimate`, `lower`, `upper`
+- Optional nested collection fields: `effect_rows.slice_estimates` -> `support_n`
+- Additional constraints: `slices_must_be_non_empty`, `slice_count_must_be_between_two_and_five`, `slice_ids_must_be_unique`, `slice_labels_must_be_unique`, `slice_orders_must_be_strictly_increasing`, `slice_kinds_must_be_supported`, `reference_value_must_be_finite`, `effect_rows_must_be_non_empty`, `effect_row_ids_must_be_unique`, `effect_row_labels_must_be_unique`, `effect_row_verdicts_must_be_supported`, `effect_row_slice_estimates_must_be_non_empty`, `effect_row_slice_estimates_must_cover_declared_slices_exactly_once`, `effect_row_values_must_be_finite`, `effect_row_intervals_must_wrap_estimate`, `effect_row_support_n_must_be_positive_when_present`, `effect_row_detail_must_be_non_empty_when_present`
 
 ### `shap_summary_inputs_v1`
 

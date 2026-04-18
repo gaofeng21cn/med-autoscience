@@ -2365,6 +2365,32 @@ def test_compact_effect_estimate_panel_schema_contract_is_registered() -> None:
     assert "compact_effect_estimate_panel_inputs_v1" in effect_estimate_class.input_schema_ids
 
 
+def test_broader_heterogeneity_summary_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    broader = module.get_input_schema_contract("broader_heterogeneity_summary_panel_inputs_v1")
+    effect_estimate_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "effect_estimate"
+    )
+
+    assert broader.template_ids == (_full_id("broader_heterogeneity_summary_panel"),)
+    assert broader.display_name == "Broader Heterogeneity Summary Panel"
+    assert broader.collection_required_fields["slices"] == ("slice_id", "slice_label", "slice_kind", "slice_order")
+    assert broader.collection_required_fields["effect_rows"] == ("row_id", "row_label", "verdict", "slice_estimates")
+    assert broader.nested_collection_required_fields["effect_rows.slice_estimates"] == (
+        "slice_id",
+        "estimate",
+        "lower",
+        "upper",
+    )
+    assert "slice_count_must_be_between_two_and_five" in broader.additional_constraints
+    assert "slice_kinds_must_be_supported" in broader.additional_constraints
+    assert "effect_row_verdicts_must_be_supported" in broader.additional_constraints
+    assert "effect_row_slice_estimates_must_cover_declared_slices_exactly_once" in broader.additional_constraints
+    assert _full_id("broader_heterogeneity_summary_panel") in effect_estimate_class.template_ids
+    assert "broader_heterogeneity_summary_panel_inputs_v1" in effect_estimate_class.input_schema_ids
+
+
 def test_render_display_template_catalog_covers_all_registered_templates() -> None:
     module = importlib.import_module("med_autoscience.display_template_catalog")
 
@@ -2385,12 +2411,14 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("trajectory_progression_panel") in markdown
     assert _full_id("atlas_spatial_trajectory_density_coverage_panel") in markdown
     assert _full_id("atlas_spatial_trajectory_context_support_panel") in markdown
+    assert _full_id("broader_heterogeneity_summary_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
     assert "single_cell_atlas_overview_inputs_v1" in markdown
     assert "atlas_spatial_bridge_panel_inputs_v1" in markdown
     assert "trajectory_progression_inputs_v1" in markdown
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in markdown
     assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in markdown
+    assert "broader_heterogeneity_summary_panel_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown
     assert _full_id("time_to_event_threshold_governance_panel") in markdown

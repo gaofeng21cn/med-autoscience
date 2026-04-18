@@ -5724,6 +5724,247 @@ def _validate_coefficient_path_panel_display_payload(
     }
 
 
+def _validate_broader_heterogeneity_summary_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    matrix_panel_title = _require_non_empty_string(
+        payload.get("matrix_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` matrix_panel_title",
+    )
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    reference_value = _require_numeric_value(
+        payload.get("reference_value"),
+        label=f"{path.name} display `{expected_display_id}` reference_value",
+    )
+    if not math.isfinite(reference_value):
+        raise ValueError(f"{path.name} display `{expected_display_id}` reference_value must be finite")
+    slice_legend_title = _require_non_empty_string(
+        payload.get("slice_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` slice_legend_title",
+    )
+    summary_panel_title = _require_non_empty_string(
+        payload.get("summary_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` summary_panel_title",
+    )
+
+    slices_payload = payload.get("slices")
+    if not isinstance(slices_payload, list) or not slices_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty slices list")
+    if len(slices_payload) < 2 or len(slices_payload) > 5:
+        raise ValueError(f"{path.name} display `{expected_display_id}` slices must contain between 2 and 5 entries")
+    supported_slice_kinds = {"cohort", "subgroup", "adjustment", "sensitivity"}
+    normalized_slices: list[dict[str, Any]] = []
+    declared_slice_ids: list[str] = []
+    seen_slice_ids: set[str] = set()
+    seen_slice_labels: set[str] = set()
+    previous_slice_order: int | None = None
+    for index, item in enumerate(slices_payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` slices[{index}] must be an object")
+        slice_id = _require_non_empty_string(
+            item.get("slice_id"),
+            label=f"{path.name} display `{expected_display_id}` slices[{index}].slice_id",
+        )
+        if slice_id in seen_slice_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` slices[{index}].slice_id must be unique")
+        seen_slice_ids.add(slice_id)
+        slice_label = _require_non_empty_string(
+            item.get("slice_label"),
+            label=f"{path.name} display `{expected_display_id}` slices[{index}].slice_label",
+        )
+        if slice_label in seen_slice_labels:
+            raise ValueError(f"{path.name} display `{expected_display_id}` slices[{index}].slice_label must be unique")
+        seen_slice_labels.add(slice_label)
+        slice_order = _require_non_negative_int(
+            item.get("slice_order"),
+            label=f"{path.name} display `{expected_display_id}` slices[{index}].slice_order",
+            allow_zero=False,
+        )
+        if previous_slice_order is not None and slice_order <= previous_slice_order:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` slices must have strictly increasing slice_order"
+            )
+        previous_slice_order = slice_order
+        slice_kind = _require_non_empty_string(
+            item.get("slice_kind"),
+            label=f"{path.name} display `{expected_display_id}` slices[{index}].slice_kind",
+        )
+        if slice_kind not in supported_slice_kinds:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` slices[{index}].slice_kind must be one of {sorted(supported_slice_kinds)}"
+            )
+        declared_slice_ids.append(slice_id)
+        normalized_slices.append(
+            {
+                "slice_id": slice_id,
+                "slice_label": slice_label,
+                "slice_kind": slice_kind,
+                "slice_order": slice_order,
+            }
+        )
+
+    effect_rows_payload = payload.get("effect_rows")
+    if not isinstance(effect_rows_payload, list) or not effect_rows_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty effect_rows list")
+    supported_verdicts = {"stable", "attenuated", "context_dependent", "unstable"}
+    declared_slice_id_set = set(declared_slice_ids)
+    normalized_effect_rows: list[dict[str, Any]] = []
+    seen_row_ids: set[str] = set()
+    seen_row_labels: set[str] = set()
+    for row_index, row_payload in enumerate(effect_rows_payload):
+        if not isinstance(row_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` effect_rows[{row_index}] must be an object")
+        row_id = _require_non_empty_string(
+            row_payload.get("row_id"),
+            label=f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].row_id",
+        )
+        if row_id in seen_row_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].row_id must be unique")
+        seen_row_ids.add(row_id)
+        row_label = _require_non_empty_string(
+            row_payload.get("row_label"),
+            label=f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].row_label",
+        )
+        if row_label in seen_row_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].row_label must be unique"
+            )
+        seen_row_labels.add(row_label)
+        verdict = _require_non_empty_string(
+            row_payload.get("verdict"),
+            label=f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].verdict",
+        )
+        if verdict not in supported_verdicts:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].verdict must be one of {sorted(supported_verdicts)}"
+            )
+        detail_text = str(row_payload.get("detail") or "").strip()
+        if row_payload.get("detail") is not None and not detail_text:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].detail must be non-empty when present"
+            )
+
+        slice_estimates_payload = row_payload.get("slice_estimates")
+        if not isinstance(slice_estimates_payload, list) or not slice_estimates_payload:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates must be a non-empty list"
+            )
+        normalized_slice_estimates: list[dict[str, Any]] = []
+        seen_row_slice_ids: set[str] = set()
+        for estimate_index, estimate_payload in enumerate(slice_estimates_payload):
+            if not isinstance(estimate_payload, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates[{estimate_index}] must be an object"
+                )
+            slice_id = _require_non_empty_string(
+                estimate_payload.get("slice_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"effect_rows[{row_index}].slice_estimates[{estimate_index}].slice_id"
+                ),
+            )
+            if slice_id not in declared_slice_id_set:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates[{estimate_index}].slice_id must match a declared slice"
+                )
+            if slice_id in seen_row_slice_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates[{estimate_index}].slice_id must be unique within the row"
+                )
+            seen_row_slice_ids.add(slice_id)
+            estimate = _require_numeric_value(
+                estimate_payload.get("estimate"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"effect_rows[{row_index}].slice_estimates[{estimate_index}].estimate"
+                ),
+            )
+            lower = _require_numeric_value(
+                estimate_payload.get("lower"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"effect_rows[{row_index}].slice_estimates[{estimate_index}].lower"
+                ),
+            )
+            upper = _require_numeric_value(
+                estimate_payload.get("upper"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"effect_rows[{row_index}].slice_estimates[{estimate_index}].upper"
+                ),
+            )
+            if not all(math.isfinite(value) for value in (estimate, lower, upper)):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates[{estimate_index}] values must be finite"
+                )
+            if not (lower <= estimate <= upper):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` effect_rows[{row_index}].slice_estimates[{estimate_index}] must satisfy lower <= estimate <= upper"
+                )
+            normalized_estimate: dict[str, Any] = {
+                "slice_id": slice_id,
+                "estimate": estimate,
+                "lower": lower,
+                "upper": upper,
+            }
+            if estimate_payload.get("support_n") is not None:
+                normalized_estimate["support_n"] = _require_non_negative_int(
+                    estimate_payload.get("support_n"),
+                    label=(
+                        f"{path.name} display `{expected_display_id}` "
+                        f"effect_rows[{row_index}].slice_estimates[{estimate_index}].support_n"
+                    ),
+                    allow_zero=False,
+                )
+            normalized_slice_estimates.append(normalized_estimate)
+        if seen_row_slice_ids != declared_slice_id_set:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` effect_rows[{row_index}] slice_estimates must cover every declared slice_id exactly once"
+            )
+        normalized_slice_estimates.sort(key=lambda item: declared_slice_ids.index(str(item["slice_id"])))
+        normalized_row = {
+            "row_id": row_id,
+            "row_label": row_label,
+            "verdict": verdict,
+            "slice_estimates": normalized_slice_estimates,
+        }
+        if detail_text:
+            normalized_row["detail"] = detail_text
+        normalized_effect_rows.append(normalized_row)
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "matrix_panel_title": matrix_panel_title,
+        "x_label": x_label,
+        "reference_value": reference_value,
+        "slice_legend_title": slice_legend_title,
+        "slices": normalized_slices,
+        "effect_rows": normalized_effect_rows,
+        "summary_panel_title": summary_panel_title,
+    }
+
+
 def _validate_shap_summary_display_payload(
     *,
     path: Path,
@@ -8966,6 +9207,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "coefficient_path_panel_inputs_v1":
         return payload_path, _validate_coefficient_path_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "broader_heterogeneity_summary_panel_inputs_v1":
+        return payload_path, _validate_broader_heterogeneity_summary_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,
