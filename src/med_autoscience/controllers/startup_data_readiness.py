@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -20,8 +19,7 @@ def _startup_report_path(workspace_root: Path) -> Path:
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    data_assets._write_json(path, payload)
 
 
 def _latest_private_releases_by_family(releases: list[dict[str, object]]) -> list[dict[str, object]]:

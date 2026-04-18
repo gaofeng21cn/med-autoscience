@@ -85,6 +85,27 @@ def test_init_data_assets_creates_private_public_and_impact_layout(tmp_path: Pat
     }
 
 
+def test_write_json_does_not_open_final_path_for_truncating_write(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    target = tmp_path / "state" / "registry.json"
+    target.parent.mkdir(parents=True)
+    target.write_text('{"existing": true}\n', encoding="utf-8")
+    original_write_text = Path.write_text
+    direct_final_writes: list[Path] = []
+
+    def tracking_write_text(self: Path, text: str, *args: object, **kwargs: object) -> int:
+        if self == target:
+            direct_final_writes.append(self)
+        return original_write_text(self, text, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", tracking_write_text)
+
+    module._write_json(target, {"existing": False})
+
+    assert direct_final_writes == []
+    assert json.loads(target.read_text(encoding="utf-8")) == {"existing": False}
+
+
 def test_assess_data_asset_impact_marks_studies_with_newer_private_release_and_public_support(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"

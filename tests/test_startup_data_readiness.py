@@ -171,6 +171,27 @@ def test_startup_data_readiness_summarizes_private_and_public_opportunities(tmp_
     assert Path(result["report_path"]).exists()
 
 
+def test_startup_data_readiness_write_json_does_not_truncate_final_path(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    target = tmp_path / "startup" / "latest.json"
+    target.parent.mkdir(parents=True)
+    target.write_text('{"existing": true}\n', encoding="utf-8")
+    original_write_text = Path.write_text
+    direct_final_writes: list[Path] = []
+
+    def tracking_write_text(self: Path, text: str, *args: object, **kwargs: object) -> int:
+        if self == target:
+            direct_final_writes.append(self)
+        return original_write_text(self, text, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", tracking_write_text)
+
+    module._write_json(target, {"existing": False})
+
+    assert direct_final_writes == []
+    assert json.loads(target.read_text(encoding="utf-8")) == {"existing": False}
+
+
 def test_startup_data_readiness_treats_locked_older_wave_as_clear_historical_comparator(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"
