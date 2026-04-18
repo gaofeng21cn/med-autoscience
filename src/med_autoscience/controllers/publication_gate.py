@@ -381,6 +381,21 @@ def active_main_text_figure_count(paper_root: Path | None) -> int | None:
     return count
 
 
+def infer_submission_publication_profile(submission_minimal_manifest: dict[str, Any]) -> str:
+    for key in ("publication_profile", "requested_publication_profile"):
+        value = _non_empty_text(submission_minimal_manifest.get(key))
+        if value:
+            return value
+    manuscript = submission_minimal_manifest.get("manuscript") or {}
+    output_candidates = [
+        _non_empty_text(manuscript.get("docx_path")),
+        _non_empty_text(manuscript.get("pdf_path")),
+    ]
+    if any(candidate and "journal_submissions/frontiers_family_harvard/" in candidate for candidate in output_candidates):
+        return submission_minimal.FRONTIERS_FAMILY_HARVARD_PROFILE
+    return submission_minimal.GENERAL_MEDICAL_JOURNAL_PROFILE
+
+
 def collect_submission_surface_qc_failures(
     submission_minimal_manifest: dict[str, Any] | None,
     *,
@@ -428,7 +443,7 @@ def collect_submission_surface_qc_failures(
             submission_minimal_manifest=submission_minimal_manifest,
         )
         manuscript_surface_qc = submission_minimal.build_submission_manuscript_surface_qc(
-            publication_profile=str(submission_minimal_manifest.get("publication_profile") or "").strip(),
+            publication_profile=infer_submission_publication_profile(submission_minimal_manifest),
             source_markdown_path=source_markdown_path,
             docx_path=docx_path or Path(""),
             pdf_path=pdf_path or Path(""),
