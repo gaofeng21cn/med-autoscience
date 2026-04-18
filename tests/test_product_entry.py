@@ -28,6 +28,12 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
         ),
     )
 
@@ -277,10 +283,15 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         "focus_scope": "workspace",
         "focus_study_id": None,
         "recommended_step_id": "handle_attention_item",
-        "recommended_command": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+        "recommended_command": (
+            "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+            + str(profile_ref.resolve())
+        ),
     }
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
-    assert payload["attention_queue"][0]["recommended_command"].endswith("watch-runtime-service-status")
+    assert payload["attention_queue"][0]["recommended_command"].endswith(
+        "runtime-supervision-status --profile " + str(profile_ref.resolve())
+    )
     assert any(
         item["study_id"] == "001-risk"
         and item["code"] == "study_supervision_gap"
@@ -588,6 +599,12 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
         ),
     )
 
@@ -1014,6 +1031,17 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                     + str(profile_ref.resolve())
                 ),
             },
+            {
+                "check_id": "workspace_supervision_contract_ready",
+                "title": "Workspace Supervision Contract Ready",
+                "status": "pass",
+                "blocking": True,
+                "summary": "workspace supervision owner 已收敛到 canonical Hermes supervision。",
+                "command": (
+                    "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
         ],
     }
     assert payload["product_entry_guardrails"] == {
@@ -1134,7 +1162,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "target_id": "supervisor_service",
                 "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
-                    str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+                    (
+                        "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+                        + str(profile_ref.resolve())
+                    ),
                     (
                         "uv run python -m med_autoscience.cli watch --runtime-root "
                         + str(profile.runtime_root)
@@ -1184,7 +1215,10 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
                 "step_id": "supervisor_service",
                 "title": "确认 workspace 常驻监管在线",
                 "surface_kind": "workspace_supervisor_service",
-                "command": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+                "command": (
+                    "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+                    + str(profile_ref.resolve())
+                ),
             },
             {
                 "step_id": "refresh_supervision",
@@ -1536,6 +1570,12 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
         ),
     )
     monkeypatch.setattr(
@@ -1623,6 +1663,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         "research_backend_runtime_ready",
         "medical_overlay_ready",
         "external_runtime_contract_ready",
+        "workspace_supervision_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
         "product-frontdesk --profile " + str(profile_ref.resolve())
@@ -1668,6 +1709,194 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
     assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
+
+
+def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progress_is_fresh(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "legacy_only",
+                "loaded": False,
+                "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
+                "drift_reasons": ["legacy_service_loaded"],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_inspect_workspace_supervision",
+        lambda profile: {
+            "manager": "launchd",
+            "status": "legacy_only",
+            "loaded": False,
+            "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
+            "drift_reasons": ["legacy_service_loaded"],
+            "legacy_service": {"loaded": True, "service_exists": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.mainline_status,
+        "read_mainline_status",
+        lambda: {
+            "program_id": "research-foundry-medical-mainline",
+            "current_stage": {
+                "id": "f4_blocker_closeout",
+                "status": "in_progress",
+                "summary": "当前主线仍在 blocker 收口与 product-entry hardening。",
+            },
+            "current_program_phase": {
+                "id": "phase_1_mainline_established",
+                "status": "in_progress",
+                "summary": "当前仍在第一阶段尾声。",
+            },
+            "next_focus": ["keep runtime truth visible"],
+            "explicitly_not_now": [],
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **kwargs: {
+            "study_id": "001-risk",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "论文可发表性监管。",
+            "current_blockers": [],
+            "next_system_action": "继续当前主线。",
+            "intervention_lane": {
+                "lane_id": "monitor_only",
+                "title": "继续监督当前 study",
+                "severity": "info",
+                "summary": "当前继续监督即可。",
+                "recommended_action_id": "inspect_progress",
+            },
+            "operator_verdict": {
+                "surface_kind": "study_operator_verdict",
+                "verdict_id": "study_operator_verdict::001-risk::monitor_only",
+                "study_id": "001-risk",
+                "lane_id": "monitor_only",
+                "severity": "info",
+                "decision_mode": "monitor_only",
+                "needs_intervention": False,
+                "focus_scope": "study",
+                "summary": "当前继续监督即可。",
+                "reason_summary": "当前继续监督即可。",
+                "primary_step_id": "inspect_progress",
+                "primary_surface_kind": "study_progress",
+                "primary_command": (
+                    "uv run python -m med_autoscience.cli study-progress --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id 001-risk"
+                ),
+            },
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli study-progress --profile "
+                + str(profile_ref.resolve())
+                + " --study-id 001-risk"
+            ),
+            "recommended_commands": [],
+            "recovery_contract": {
+                "contract_kind": "study_recovery_contract",
+                "lane_id": "monitor_only",
+                "action_mode": "inspect_progress",
+                "summary": "当前继续监督即可。",
+                "recommended_step_id": "inspect_progress",
+                "steps": [],
+            },
+            "needs_physician_decision": False,
+            "supervision": {
+                "browser_url": "http://127.0.0.1:21001",
+                "quest_session_api_url": None,
+                "active_run_id": "run-001",
+                "health_status": "live",
+                "supervisor_tick_status": "fresh",
+            },
+            "progress_freshness": {
+                "status": "fresh",
+                "summary": "最近 12 小时内仍有明确研究推进记录。",
+            },
+        },
+    )
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    assert payload["workspace_status"] == "blocked"
+    assert payload["workspace_supervision"]["service"]["status"] == "legacy_only"
+    assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
+    assert payload["attention_queue"][0]["recommended_command"].endswith(
+        "runtime-supervision-status --profile " + str(profile_ref.resolve())
+    )
+
+
+def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner_drift(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile_ref = tmp_path / "profile.local.toml"
+    profile = make_profile(tmp_path)
+
+    monkeypatch.setattr(
+        module,
+        "build_doctor_report",
+        lambda profile: SimpleNamespace(
+            workspace_exists=True,
+            runtime_exists=True,
+            studies_exists=True,
+            portfolio_exists=True,
+            med_deepscientist_runtime_exists=True,
+            medical_overlay_ready=True,
+            external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "legacy_only",
+                "loaded": False,
+                "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
+                "drift_reasons": ["legacy_service_loaded"],
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "read_workspace_cockpit",
+        lambda **kwargs: {
+            "operator_brief": {
+                "surface_kind": "workspace_operator_brief",
+                "verdict": "ready_for_task",
+                "summary": "当前 workspace 已 ready，下一步先给目标 study 写 durable task intake。",
+                "should_intervene_now": False,
+                "focus_scope": "workspace",
+                "focus_study_id": None,
+                "recommended_step_id": "submit_task",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli submit-study-task --profile "
+                    + str(profile_ref.resolve())
+                    + " --study-id <study_id> --task-intent '<task_intent>'"
+                ),
+            },
+            "attention_queue": [],
+        },
+    )
+
+    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+
+    assert payload["product_entry_preflight"]["ready_to_try_now"] is False
+    assert "workspace_supervision_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
+    assert payload["operator_brief"]["verdict"] == "preflight_blocked"
+    assert "legacy workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
     assert payload["product_entry_start"]["recommended_mode_id"] == "open_frontdesk"
     assert payload["product_entry_start"]["modes"][1]["mode_id"] == "submit_task"
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
@@ -1732,6 +1961,12 @@ def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_cont
             med_deepscientist_runtime_exists=True,
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
+            workspace_supervision_contract={
+                "status": "loaded",
+                "loaded": True,
+                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "drift_reasons": [],
+            },
         ),
     )
     monkeypatch.setattr(

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import json
 import platform
 
+from med_autoscience.controllers import hermes_supervision
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
@@ -25,6 +26,7 @@ class DoctorReport:
     launcher_contract: dict[str, object] = field(default_factory=dict)
     behavior_gate: dict[str, object] = field(default_factory=dict)
     external_runtime_contract: dict[str, object] = field(default_factory=dict)
+    workspace_supervision_contract: dict[str, object] = field(default_factory=dict)
 
 
 def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]:
@@ -71,6 +73,7 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
                 ),
             )
         ),
+        workspace_supervision_contract=dict(hermes_supervision.read_supervision_status(profile=profile)),
     )
 
 
@@ -113,6 +116,10 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"launcher_contract: {json.dumps(report.launcher_contract, ensure_ascii=False, sort_keys=True)}",
         f"behavior_gate: {json.dumps(report.behavior_gate, ensure_ascii=False, sort_keys=True)}",
         f"external_runtime_contract: {json.dumps(report.external_runtime_contract, ensure_ascii=False, sort_keys=True)}",
+        (
+            "workspace_supervision_contract: "
+            + json.dumps(report.workspace_supervision_contract, ensure_ascii=False, sort_keys=True)
+        ),
     ]
     return "\n".join(lines) + "\n"
 

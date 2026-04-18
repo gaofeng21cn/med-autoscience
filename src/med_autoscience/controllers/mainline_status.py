@@ -236,7 +236,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
                 "target_id": "supervisor_service",
                 "title": "Keep Hermes-hosted workspace supervision online",
                 "commands": [
-                    "ops/medautoscience/bin/watch-runtime-service-status",
+                    "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
                     "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
                 ],
             },
@@ -266,7 +266,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
                 "step_id": "supervisor_service",
                 "title": "确认 workspace 常驻监管在线",
                 "surface_kind": "workspace_supervisor_service",
-                "command": "ops/medautoscience/bin/watch-runtime-service-status",
+                "command": "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>",
             },
             {
                 "step_id": "refresh_supervision",

@@ -63,6 +63,44 @@ def test_read_supervision_status_reports_loaded_hermes_job(monkeypatch, tmp_path
     assert "Hermes-hosted runtime supervision 已在线" in result["summary"]
 
 
+def test_read_supervision_status_reports_legacy_only_when_workspace_local_service_still_loaded(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+
+    monkeypatch.setattr(
+        module,
+        "inspect_hermes_runtime_contract",
+        lambda **_: {
+            "ready": True,
+            "issues": [],
+            "gateway_service_manager": "launchd",
+            "gateway_service_label": "ai.hermes.gateway",
+            "gateway_service_loaded": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_read_legacy_service_status",
+        lambda profile: {
+            "manager": "launchd",
+            "service_label": "ai.medautoscience.diabetes.watch-runtime",
+            "service_file": str(tmp_path / "Library" / "LaunchAgents" / "legacy.plist"),
+            "service_exists": True,
+            "loaded": True,
+        },
+    )
+
+    result = module.read_supervision_status(profile=profile)
+
+    assert result["status"] == "legacy_only"
+    assert result["loaded"] is False
+    assert "legacy_service_loaded" in result["drift_reasons"]
+    assert result["legacy_service"]["loaded"] is True
+    assert "legacy workspace-local runtime supervision service" in result["summary"]
+
+
 def test_ensure_supervision_creates_job_and_triggers_run(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)

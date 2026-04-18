@@ -223,6 +223,13 @@ def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
     return hermes_supervision.read_supervision_status(profile=profile)
 
 
+def _doctor_workspace_supervision_contract(doctor_report: Any) -> dict[str, Any]:
+    contract = getattr(doctor_report, "workspace_supervision_contract", None)
+    if isinstance(contract, Mapping):
+        return dict(contract)
+    return {}
+
+
 def _workspace_ready_alerts(doctor_report) -> list[str]:
     alerts: list[str] = []
     if not doctor_report.workspace_exists:
@@ -240,6 +247,14 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
     external_runtime_ready = bool((doctor_report.external_runtime_contract or {}).get("ready"))
     if not external_runtime_ready:
         alerts.append("external Hermes runtime 还未 ready，MAS 会对托管运行 fail-closed。")
+    workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
+    workspace_supervision_ready = bool(workspace_supervision_contract.get("loaded"))
+    workspace_supervision_summary = _non_empty_text(workspace_supervision_contract.get("summary"))
+    if not workspace_supervision_ready:
+        alerts.append(
+            workspace_supervision_summary
+            or "workspace supervision owner 尚未收敛到 canonical Hermes supervision。"
+        )
     return alerts
 
 
@@ -250,6 +265,7 @@ def _build_product_entry_preflight(
 ) -> dict[str, Any]:
     doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
     start_command = f"{_command_prefix(profile_ref)} product-frontdesk --profile {_profile_arg(profile_ref)}"
+    workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
     checks = [
         {
             "check_id": "workspace_root_exists",
@@ -315,6 +331,19 @@ def _build_product_entry_preflight(
             ),
             "command": doctor_command,
         },
+        {
+            "check_id": "workspace_supervision_contract_ready",
+            "title": "Workspace Supervision Contract Ready",
+            "status": "pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
+            "blocking": True,
+            "summary": (
+                "workspace supervision owner 已收敛到 canonical Hermes supervision。"
+                if bool(workspace_supervision_contract.get("loaded"))
+                else _non_empty_text(workspace_supervision_contract.get("summary"))
+                or "workspace supervision owner 仍未收敛到 canonical Hermes supervision。"
+            ),
+            "command": f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
+        },
     ]
     blocking_check_ids = [
         check["check_id"]
@@ -322,10 +351,15 @@ def _build_product_entry_preflight(
         if check["blocking"] and check["status"] != "pass"
     ]
     ready_to_try_now = not blocking_check_ids
+    first_blocking_summary = next(
+        (check["summary"] for check in checks if check["check_id"] in blocking_check_ids and _non_empty_text(check.get("summary"))),
+        None,
+    )
     summary = (
         "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research frontdesk。"
         if ready_to_try_now
-        else "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime contract 再进入 research frontdesk。"
+        else first_blocking_summary
+        or "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime/supervision contract 再进入 research frontdesk。"
     )
     return {
         "surface_kind": "product_entry_preflight",
@@ -483,7 +517,7 @@ def _build_phase3_clearance_lane(
     profile_arg = _profile_arg(profile_ref)
     doctor_command = f"{prefix} doctor --profile {profile_arg}"
     hermes_runtime_check_command = f"{prefix} hermes-runtime-check --profile {profile_arg}"
-    supervisor_service_command = str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status")
+    supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
     refresh_supervision_command = (
         f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
         f"--profile {profile_arg} --ensure-study-runtimes --apply"
@@ -859,11 +893,7 @@ def _attention_queue(
     service = dict(workspace_supervision.get("service") or {})
     study_counts = dict(workspace_supervision.get("study_counts") or {})
     service_loaded = bool(service.get("loaded"))
-    if not service_loaded and (
-        study_counts.get("supervisor_gap", 0) > 0
-        or study_counts.get("progress_stale", 0) > 0
-        or study_counts.get("progress_missing", 0) > 0
-    ):
+    if not service_loaded or bool(service.get("drift_reasons")):
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
@@ -1109,8 +1139,7 @@ def read_workspace_cockpit(
     service = _inspect_workspace_supervision(profile)
     workspace_supervision = _workspace_supervision_summary(studies=studies, service=service)
     if (
-        not bool(service.get("loaded"))
-        and workspace_supervision["study_counts"]["supervisor_gap"] > 0
+        (not bool(service.get("loaded")) or bool(service.get("drift_reasons")))
         and service.get("summary") not in workspace_alerts
     ):
         workspace_alerts.append(str(service.get("summary")))
@@ -1130,8 +1159,8 @@ def read_workspace_cockpit(
             f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
             f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply"
         ),
-        "service_install": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"),
-        "service_status": str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"),
+        "service_install": f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
+        "service_status": f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
     }
     attention_queue = _attention_queue(
         workspace_status=workspace_status,

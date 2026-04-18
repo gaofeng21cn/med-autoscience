@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import os
 from pathlib import Path
+import platform
 import re
 import subprocess
 from typing import Any, Iterable
@@ -152,7 +154,15 @@ def _status_summary(
     gateway_service_loaded: bool,
     job_present: bool,
     drift_reasons: list[str],
+    legacy_service: dict[str, Any] | None = None,
 ) -> str:
+    legacy_service = dict(legacy_service or {})
+    legacy_loaded = bool(legacy_service.get("loaded"))
+    legacy_exists = bool(legacy_service.get("service_exists"))
+    if status == "legacy_only" and (legacy_loaded or legacy_exists):
+        return "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。"
+    if status == "owner_drift" and (legacy_loaded or legacy_exists):
+        return "canonical Hermes supervision 与 legacy workspace-local runtime supervision service 同时存在，当前需要迁移到单一 Hermes owner。"
     return _shared_status_summary(
         status=status,
         gateway_service_loaded=gateway_service_loaded,
@@ -173,6 +183,108 @@ def _remove_empty_parent_dirs(path: Path, *, stop_at: Path) -> None:
     _shared_remove_empty_parent_dirs(path, stop_at=stop_at)
 
 
+def _legacy_launchd_label(profile: WorkspaceProfile) -> str:
+    return f"ai.medautoscience.{_slugify(profile.name)}.watch-runtime"
+
+
+def _legacy_launchd_service_file(profile: WorkspaceProfile) -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / f"{_legacy_launchd_label(profile)}.plist"
+
+
+def _legacy_systemd_service_name(profile: WorkspaceProfile) -> str:
+    return f"medautoscience-watch-runtime-{_slugify(profile.name)}"
+
+
+def _legacy_systemd_service_file(profile: WorkspaceProfile) -> Path:
+    return Path.home() / ".config" / "systemd" / "user" / f"{_legacy_systemd_service_name(profile)}.service"
+
+
+def _read_legacy_service_status(profile: WorkspaceProfile) -> dict[str, Any]:
+    system = platform.system()
+    if system == "Darwin":
+        label = _legacy_launchd_label(profile)
+        service_file = _legacy_launchd_service_file(profile)
+        completed = subprocess.run(
+            ["launchctl", "print", f"gui/{os.getuid()}/{label}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        output = completed.stdout.strip() or completed.stderr.strip()
+        return {
+            "manager": "launchd",
+            "service_label": label,
+            "service_file": str(service_file),
+            "service_exists": service_file.exists(),
+            "loaded": completed.returncode == 0,
+            "details": output or None,
+        }
+    if system == "Linux":
+        service_name = _legacy_systemd_service_name(profile)
+        service_file = _legacy_systemd_service_file(profile)
+        completed = subprocess.run(
+            ["systemctl", "--user", "is-active", f"{service_name}.service"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        output = completed.stdout.strip() or completed.stderr.strip()
+        return {
+            "manager": "systemd",
+            "service_label": service_name,
+            "service_file": str(service_file),
+            "service_exists": service_file.exists(),
+            "loaded": completed.returncode == 0 and output == "active",
+            "details": output or None,
+        }
+    return {
+        "manager": system.lower() or "unknown",
+        "service_label": None,
+        "service_file": None,
+        "service_exists": False,
+        "loaded": False,
+        "details": None,
+    }
+
+
+def _remove_legacy_service(profile: WorkspaceProfile) -> dict[str, Any]:
+    status = _read_legacy_service_status(profile)
+    manager = str(status.get("manager") or "")
+    service_label = str(status.get("service_label") or "").strip()
+    service_file_text = str(status.get("service_file") or "").strip()
+    service_file = Path(service_file_text) if service_file_text else None
+    command_outputs: list[dict[str, Any]] = []
+    unloaded = False
+    removed_service_file = False
+
+    if manager == "launchd" and service_label:
+        command = ["launchctl", "bootout", f"gui/{os.getuid()}/{service_label}"]
+        exit_code, output = _run_command(command=command)
+        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
+        unloaded = exit_code == 0
+    elif manager == "systemd" and service_label:
+        command = ["systemctl", "--user", "disable", "--now", f"{service_label}.service"]
+        exit_code, output = _run_command(command=command)
+        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
+        unloaded = exit_code == 0
+
+    if service_file is not None and service_file.exists():
+        service_file.unlink()
+        removed_service_file = True
+
+    if manager == "systemd" and removed_service_file:
+        command = ["systemctl", "--user", "daemon-reload"]
+        exit_code, output = _run_command(command=command)
+        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
+
+    return {
+        "before": status,
+        "unloaded": unloaded,
+        "removed_service_file": removed_service_file,
+        "command_outputs": command_outputs,
+    }
+
+
 def read_supervision_status(
     *,
     profile: WorkspaceProfile,
@@ -187,17 +299,28 @@ def read_supervision_status(
     primary_job, duplicate_jobs = _select_primary_job(matching_jobs)
     script_path = _script_path(profile)
     drift_reasons = _job_drift(profile=profile, job=primary_job, interval_seconds=interval_seconds)
+    legacy_service = _read_legacy_service_status(profile)
     gateway_service_loaded = bool(runtime_contract.get("gateway_service_loaded"))
     job_present = primary_job is not None
     script_exists = script_path.is_file()
     job_enabled = bool((primary_job or {}).get("enabled", False))
     job_state = str((primary_job or {}).get("state") or "").strip() or None
+    legacy_loaded = bool(legacy_service.get("loaded"))
+    legacy_exists = bool(legacy_service.get("service_exists"))
+    if legacy_loaded:
+        drift_reasons = [*drift_reasons, "legacy_service_loaded"]
+    elif legacy_exists:
+        drift_reasons = [*drift_reasons, "legacy_service_present"]
     if job_present and gateway_service_loaded and job_enabled and job_state == "scheduled" and script_exists:
         status = "loaded"
     elif job_present:
         status = "not_loaded"
+    elif legacy_loaded or legacy_exists:
+        status = "legacy_only"
     else:
         status = "not_installed"
+    if status in {"loaded", "not_loaded"} and (legacy_loaded or legacy_exists):
+        status = "owner_drift"
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "workspace_runtime_supervision",
@@ -211,6 +334,7 @@ def read_supervision_status(
             gateway_service_loaded=gateway_service_loaded,
             job_present=job_present,
             drift_reasons=drift_reasons,
+            legacy_service=legacy_service,
         ),
         "gateway_service_label": runtime_contract.get("gateway_service_label"),
         "gateway_service_loaded": gateway_service_loaded,
@@ -236,6 +360,7 @@ def read_supervision_status(
         ],
         "runtime_contract_ready": bool(runtime_contract.get("ready")),
         "runtime_contract_issues": list(runtime_contract.get("issues") or []),
+        "legacy_service": legacy_service,
     }
 
 
@@ -344,12 +469,22 @@ def ensure_supervision(
         if exit_code == 0 and action == "noop":
             action = "scheduled_now"
 
+    legacy_removal = None
+    if bool((before.get("legacy_service") or {}).get("service_exists")):
+        legacy_removal = _remove_legacy_service(profile)
+        if action == "noop" and (
+            legacy_removal["unloaded"]
+            or legacy_removal["removed_service_file"]
+        ):
+            action = "migrated_legacy_service"
+
     after = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     return {
         "action": action,
         "before": before,
         "after": after,
         "removed_duplicate_job_ids": removed_duplicate_job_ids,
+        "legacy_removal": legacy_removal,
         "command_outputs": command_outputs,
         "script_path": str(_script_path(profile)),
     }
@@ -379,11 +514,16 @@ def remove_supervision(
         script_removed = True
         _remove_empty_parent_dirs(script_path, stop_at=profile.hermes_home_root / "scripts")
 
+    legacy_removal = None
+    if bool((before.get("legacy_service") or {}).get("service_exists")):
+        legacy_removal = _remove_legacy_service(profile)
+
     after = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     return {
         "before": before,
         "after": after,
         "removed_job_ids": removed_job_ids,
         "script_removed": script_removed,
+        "legacy_removal": legacy_removal,
         "command_outputs": command_outputs,
     }
