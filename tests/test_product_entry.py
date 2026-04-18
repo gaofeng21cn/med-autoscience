@@ -670,6 +670,22 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
             "runtime_cannot_invent_domain_publishability_truth",
         ],
     }
+    assert payload["runtime_inventory"]["surface_kind"] == "runtime_inventory"
+    assert payload["runtime_inventory"]["runtime_owner"] == "upstream_hermes_agent"
+    assert payload["runtime_inventory"]["domain_owner"] == "med-autoscience"
+    assert payload["runtime_inventory"]["executor_owner"] == "med_deepscientist"
+    assert payload["runtime_inventory"]["substrate"] == "external_hermes_agent_target"
+    assert payload["runtime_inventory"]["availability"] == "ready"
+    assert payload["runtime_inventory"]["health_status"] == "healthy"
+    assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
+    assert payload["runtime_inventory"]["status_surface"]["ref"] == "studies/<study_id>/artifacts/runtime_watch/latest.json"
+    assert payload["runtime_inventory"]["attention_surface"]["ref_kind"] == "json_pointer"
+    assert payload["runtime_inventory"]["attention_surface"]["ref"] == "/operator_loop_surface"
+    assert payload["runtime_inventory"]["recovery_surface"]["ref_kind"] == "json_pointer"
+    assert payload["runtime_inventory"]["recovery_surface"]["ref"] == "/managed_runtime_contract/recovery_contract_surface"
+    assert payload["runtime_inventory"]["workspace_binding"]["workspace_root"] == str(profile.workspace_root)
+    assert payload["runtime_inventory"]["workspace_binding"]["profile_name"] == profile.name
+    assert payload["runtime_inventory"]["domain_projection"]["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
     assert payload["executor_defaults"]["default_executor"] == "codex_cli_autonomous"
     assert payload["executor_defaults"]["default_model"] == "inherit_local_codex_default"
     assert payload["executor_defaults"]["default_reasoning_effort"] == "inherit_local_codex_default"
@@ -742,6 +758,93 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
     assert payload["product_entry_status"]["remaining_gaps_count"] == 1
     assert payload["product_entry_status"]["next_focus"] == [
         "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
+    ]
+    assert payload["task_lifecycle"]["surface_kind"] == "task_lifecycle"
+    assert payload["task_lifecycle"]["task_kind"] == "mas_product_entry_mainline"
+    assert payload["task_lifecycle"]["task_id"] == "research-foundry-medical-mainline:f4_blocker_closeout"
+    assert payload["task_lifecycle"]["status"] == "in_progress"
+    assert payload["task_lifecycle"]["summary"] == payload["product_entry_status"]["summary"]
+    assert payload["task_lifecycle"]["progress_surface"]["surface_kind"] == "workspace_cockpit"
+    assert payload["task_lifecycle"]["progress_surface"]["step_id"] == "inspect_workspace_inbox"
+    assert payload["task_lifecycle"]["progress_surface"]["command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+    )
+    assert payload["task_lifecycle"]["resume_surface"]["surface_kind"] == "launch_study"
+    assert payload["task_lifecycle"]["resume_surface"]["command"].endswith(
+        "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
+    )
+    assert payload["task_lifecycle"]["checkpoint_summary"]["surface_kind"] == "checkpoint_summary"
+    assert payload["task_lifecycle"]["checkpoint_summary"]["status"] == "monitoring_required"
+    assert payload["task_lifecycle"]["checkpoint_summary"]["lineage_ref"] == {
+        "ref_kind": "workspace_locator",
+        "ref": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+        "label": "controller checkpoint lineage companion",
+    }
+    assert payload["task_lifecycle"]["checkpoint_summary"]["verification_ref"] == {
+        "ref_kind": "workspace_locator",
+        "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+        "label": "runtime watch event companion",
+    }
+    assert payload["task_lifecycle"]["human_gate_ids"] == [
+        "study_physician_decision_gate",
+        "publication_release_gate",
+    ]
+    assert payload["task_lifecycle"]["domain_projection"]["current_program_phase_id"] == "phase_2_user_product_loop"
+    assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_surface"] == "workspace_cockpit"
+    assert payload["task_lifecycle"]["domain_projection"]["recommended_loop_command"].endswith(
+        "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
+    )
+    assert payload["skill_catalog"]["surface_kind"] == "skill_catalog"
+    assert payload["skill_catalog"]["summary"] == payload["product_entry_status"]["summary"]
+    assert payload["skill_catalog"]["supported_commands"] == payload["domain_entry_contract"]["supported_commands"]
+    assert payload["skill_catalog"]["command_contracts"] == payload["domain_entry_contract"]["command_contracts"]
+    assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == [
+        "mas_product_frontdesk",
+        "mas_workspace_cockpit",
+        "mas_submit_study_task",
+        "mas_launch_study",
+        "mas_study_progress",
+    ]
+    assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_frontdesk"
+    assert payload["skill_catalog"]["skills"][1]["target_surface_kind"] == "workspace_cockpit"
+    assert payload["skill_catalog"]["skills"][2]["target_surface_kind"] == "study_task_intake"
+    assert payload["skill_catalog"]["skills"][2]["command"].endswith(
+        "--study-id <study_id> --task-intent '<task_intent>'"
+    )
+    assert payload["skill_catalog"]["skills"][4]["target_surface_kind"] == "study_progress"
+    assert payload["automation"]["surface_kind"] == "automation"
+    assert payload["automation"]["summary"] == payload["product_entry_status"]["summary"]
+    assert payload["automation"]["readiness_summary"].startswith("Automation-ready rule:")
+    assert payload["automation"]["automations"] == [
+        {
+            "surface_kind": "automation_descriptor",
+            "automation_id": "mas_runtime_supervision_loop",
+            "title": "MAS runtime supervision loop",
+            "owner": "med-autoscience",
+            "trigger_kind": "interval",
+            "target_surface_kind": "runtime_watch_refresh",
+            "summary": "按监督节拍刷新 study runtime，保持恢复建议和 attention queue 为最新状态。",
+            "readiness_status": "automation_ready",
+            "gate_policy": "publication_gated",
+            "output_expectation": [
+                "refresh runtime watch",
+                "update workspace attention queue",
+                "preserve controller decision lineage",
+            ],
+            "target_command": (
+                "uv run python -m med_autoscience.cli watch --runtime-root "
+                + str(profile.runtime_root)
+                + " --profile "
+                + str(profile_ref.resolve())
+                + " --ensure-study-runtimes --apply"
+            ),
+            "domain_projection": {
+                "service_status_command": str(
+                    profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+                ),
+                "recommended_entry_surface": "workspace_cockpit",
+            },
+        }
     ]
     assert payload["product_entry_overview"]["surface_kind"] == "product_entry_overview"
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
@@ -1922,6 +2025,10 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert payload["product_entry_manifest"]["phase3_clearance_lane"] == payload["phase3_clearance_lane"]
     assert payload["product_entry_manifest"]["phase4_backend_deconstruction"] == payload["phase4_backend_deconstruction"]
     assert payload["product_entry_manifest"]["phase5_platform_target"] == payload["phase5_platform_target"]
+    assert payload["product_entry_manifest"]["runtime_inventory"] == payload["runtime_inventory"]
+    assert payload["product_entry_manifest"]["task_lifecycle"] == payload["task_lifecycle"]
+    assert payload["product_entry_manifest"]["skill_catalog"] == payload["skill_catalog"]
+    assert payload["product_entry_manifest"]["automation"] == payload["automation"]
 
     markdown = module.render_product_frontdesk_markdown(payload)
     assert "Now" in markdown

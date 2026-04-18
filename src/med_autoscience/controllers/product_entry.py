@@ -15,6 +15,7 @@ from med_autoscience.domain_entry_contract import (
     build_gateway_interaction_contract as _build_gateway_interaction_contract,
 )
 from med_autoscience.doctor import build_doctor_report
+from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.study_task_intake import (
@@ -23,6 +24,10 @@ from med_autoscience.study_task_intake import (
     upsert_startup_brief_task_block,
     write_task_intake,
 )
+from opl_harness_shared.automation_companions import (
+    build_automation_catalog as _build_shared_automation_catalog,
+    build_automation_descriptor as _build_shared_automation_descriptor,
+)
 from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
 from opl_harness_shared.product_entry_companions import (
     build_product_entry_overview as _build_shared_product_entry_overview,
@@ -30,6 +35,15 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_readiness as _build_shared_product_entry_readiness,
     build_product_entry_resume_surface as _build_shared_product_entry_resume_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
+)
+from opl_harness_shared.runtime_task_companions import (
+    build_checkpoint_summary as _build_shared_checkpoint_summary,
+    build_runtime_inventory as _build_shared_runtime_inventory,
+    build_task_lifecycle as _build_shared_task_lifecycle,
+)
+from opl_harness_shared.skill_catalog import (
+    build_skill_catalog as _build_shared_skill_catalog,
+    build_skill_descriptor as _build_shared_skill_descriptor,
 )
 
 
@@ -108,6 +122,21 @@ def _validate_gateway_interaction_contract_shape(contract: Mapping[str, Any], *,
         raise ValueError(f"{context}.shared_handoff_envelope 必须是非空 list。")
 
 
+def _validate_surface_kind_mapping(
+    payload: Mapping[str, Any],
+    *,
+    field: str,
+    expected_surface_kind: str,
+    context: str,
+) -> None:
+    surface = _require_mapping(payload, field, context=context)
+    surface_kind = _require_nonempty_string_from_mapping(surface, "surface_kind", context=f"{context}.{field}")
+    if surface_kind != expected_surface_kind:
+        raise ValueError(
+            f"{context}.{field}.surface_kind 必须是 {expected_surface_kind}，当前为 {surface_kind}。"
+        )
+
+
 def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> None:
     _require_nonempty_string_from_mapping(payload, "schema_ref", context="product_entry_manifest")
     _validate_domain_entry_contract_shape(
@@ -117,6 +146,30 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
     _validate_gateway_interaction_contract_shape(
         _require_mapping(payload, "gateway_interaction_contract", context="product_entry_manifest"),
         context="product_entry_manifest.gateway_interaction_contract",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="runtime_inventory",
+        expected_surface_kind="runtime_inventory",
+        context="product_entry_manifest",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="task_lifecycle",
+        expected_surface_kind="task_lifecycle",
+        context="product_entry_manifest",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="skill_catalog",
+        expected_surface_kind="skill_catalog",
+        context="product_entry_manifest",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="automation",
+        expected_surface_kind="automation",
+        context="product_entry_manifest",
     )
 
 
@@ -712,6 +765,236 @@ def _build_product_entry_start(
             if isinstance(gate, dict) and _non_empty_text(gate.get("gate_id")) is not None
         ],
     }
+
+
+def _build_runtime_inventory_surface(
+    *,
+    profile: WorkspaceProfile,
+    runtime: Mapping[str, Any],
+    managed_runtime_contract: Mapping[str, Any],
+    product_entry_preflight: Mapping[str, Any],
+    operator_loop_surface: Mapping[str, Any],
+) -> dict[str, Any]:
+    blocking_check_ids = list(product_entry_preflight.get("blocking_check_ids") or [])
+    ready_to_try_now = bool(product_entry_preflight.get("ready_to_try_now")) and not blocking_check_ids
+    availability = "ready" if ready_to_try_now else "blocked"
+    health_status = "healthy" if ready_to_try_now else "attention_required"
+    summary = (
+        "MAS runtime inventory 已连接 external Hermes runtime，当前可通过 workspace cockpit 持续监管并续跑 study。"
+        if ready_to_try_now
+        else "MAS runtime inventory 当前存在 blocking preflight，需要先恢复 runtime/监督前置状态。"
+    )
+    return _build_shared_runtime_inventory(
+        summary=summary,
+        runtime_owner=str(runtime.get("runtime_owner") or ""),
+        domain_owner=str(runtime.get("domain_owner") or ""),
+        executor_owner=str(runtime.get("executor_owner") or ""),
+        substrate=str(runtime.get("runtime_substrate") or ""),
+        availability=availability,
+        health_status=health_status,
+        status_surface={
+            "ref_kind": "workspace_locator",
+            "ref": "studies/<study_id>/artifacts/runtime_watch/latest.json",
+            "label": "runtime watch event companion",
+        },
+        attention_surface={
+            "ref_kind": "json_pointer",
+            "ref": "/operator_loop_surface",
+            "label": "workspace cockpit attention surface",
+        },
+        recovery_surface={
+            "ref_kind": "json_pointer",
+            "ref": "/managed_runtime_contract/recovery_contract_surface",
+            "label": "managed runtime recovery contract surface",
+        },
+        workspace_binding={
+            "workspace_root": str(profile.workspace_root),
+            "profile_name": profile.name,
+        },
+        domain_projection={
+            "managed_runtime_backend_id": runtime.get("managed_runtime_backend_id"),
+            "managed_runtime_contract": dict(managed_runtime_contract),
+            "recommended_loop_surface": operator_loop_surface.get("surface_kind"),
+        },
+    )
+
+
+def _build_task_lifecycle_surface(
+    *,
+    repo_mainline: Mapping[str, Any],
+    product_entry_status: Mapping[str, Any],
+    product_entry_readiness: Mapping[str, Any],
+    family_orchestration: Mapping[str, Any],
+    operator_loop_surface: Mapping[str, Any],
+    product_entry_shell: Mapping[str, Any],
+) -> dict[str, Any]:
+    program_id = _non_empty_text(repo_mainline.get("program_id")) or TARGET_DOMAIN_ID
+    stage_id = _non_empty_text(repo_mainline.get("current_stage_id")) or _non_empty_text(
+        repo_mainline.get("current_program_phase_id")
+    ) or "unknown-stage"
+    lifecycle_status = _non_empty_text(repo_mainline.get("current_stage_status")) or _non_empty_text(
+        repo_mainline.get("current_program_phase_status")
+    ) or "unknown"
+    lifecycle_summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry lane is active."
+    checkpoint_summary = _build_shared_checkpoint_summary(
+        status="ready" if bool(product_entry_readiness.get("good_to_use_now")) else "monitoring_required",
+        summary=(
+            "当前 lane 已进入可执行状态，继续通过 workspace cockpit 和 study progress 维持监督与恢复闭环。"
+            if bool(product_entry_readiness.get("usable_now"))
+            else "当前 lane 需要先完成 blocking preflight 后再恢复常规执行。"
+        ),
+        checkpoint_id=f"{program_id}:{stage_id}",
+        lineage_ref=dict(family_orchestration.get("checkpoint_lineage_surface") or {}),
+        verification_ref=dict(family_orchestration.get("event_envelope_surface") or {}),
+    )
+    return _build_shared_task_lifecycle(
+        task_kind="mas_product_entry_mainline",
+        task_id=f"{program_id}:{stage_id}",
+        status=lifecycle_status,
+        summary=lifecycle_summary,
+        progress_surface={
+            "surface_kind": "workspace_cockpit",
+            "summary": "读取 workspace attention queue、监督在线态与研究入口回路。",
+            "command": str(operator_loop_surface.get("command") or ""),
+            "step_id": "inspect_workspace_inbox",
+            "locator_fields": ["profile_ref"],
+        },
+        resume_surface={
+            "surface_kind": "launch_study",
+            "summary": "按 study_id 启动或续跑当前研究。",
+            "command": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+            "step_id": "continue_study",
+            "locator_fields": ["study_id"],
+        },
+        checkpoint_summary=checkpoint_summary,
+        human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
+        domain_projection={
+            "current_program_phase_id": repo_mainline.get("current_program_phase_id"),
+            "recommended_loop_surface": operator_loop_surface.get("surface_kind"),
+            "recommended_loop_command": operator_loop_surface.get("command"),
+        },
+    )
+
+
+def _build_skill_catalog_surface(
+    *,
+    product_entry_status: Mapping[str, Any],
+    domain_entry_contract: Mapping[str, Any],
+    product_entry_shell: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry skill catalog."
+    skills = [
+        _build_shared_skill_descriptor(
+            skill_id="mas_product_frontdesk",
+            title="MAS product frontdesk",
+            owner=TARGET_DOMAIN_ID,
+            distribution_mode="repo_tracked",
+            surface_kind=PRODUCT_FRONTDESK_KIND,
+            description="启动 MAS 当前产品入口并进入 research frontdoor。",
+            command=str((product_entry_shell.get("product_frontdesk") or {}).get("command") or ""),
+            readiness="landed",
+            tags=["entry", "frontdesk", "study"],
+            domain_projection={"shell_key": "product_frontdesk"},
+        ),
+        _build_shared_skill_descriptor(
+            skill_id="mas_workspace_cockpit",
+            title="MAS workspace cockpit",
+            owner=TARGET_DOMAIN_ID,
+            distribution_mode="repo_tracked",
+            surface_kind="workspace_cockpit",
+            description="读取 workspace attention queue、监督状态与当前研究入口回路。",
+            command=str((product_entry_shell.get("workspace_cockpit") or {}).get("command") or ""),
+            readiness="landed",
+            tags=["workspace", "runtime", "monitoring"],
+            domain_projection={"shell_key": "workspace_cockpit"},
+        ),
+        _build_shared_skill_descriptor(
+            skill_id="mas_submit_study_task",
+            title="MAS submit study task",
+            owner=TARGET_DOMAIN_ID,
+            distribution_mode="repo_tracked",
+            surface_kind="study_task_intake",
+            description="把任务写入 durable study task intake，作为后续执行真相源。",
+            command=str((product_entry_shell.get("submit_study_task") or {}).get("command") or ""),
+            readiness="landed",
+            tags=["study", "intake", "task"],
+            domain_projection={"shell_key": "submit_study_task"},
+        ),
+        _build_shared_skill_descriptor(
+            skill_id="mas_launch_study",
+            title="MAS launch study",
+            owner=TARGET_DOMAIN_ID,
+            distribution_mode="repo_tracked",
+            surface_kind="launch_study",
+            description="创建或恢复 study runtime，并切回当前研究主线。",
+            command=str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
+            readiness="landed",
+            tags=["study", "runtime", "resume"],
+            domain_projection={"shell_key": "launch_study"},
+        ),
+        _build_shared_skill_descriptor(
+            skill_id="mas_study_progress",
+            title="MAS study progress",
+            owner=TARGET_DOMAIN_ID,
+            distribution_mode="repo_tracked",
+            surface_kind="study_progress",
+            description="持续读取当前阶段、阻塞、监督 freshness 与恢复建议。",
+            command=str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
+            readiness="landed",
+            tags=["study", "progress", "recovery"],
+            domain_projection={"shell_key": "study_progress"},
+        ),
+    ]
+    return _build_shared_skill_catalog(
+        summary=summary,
+        skills=skills,
+        supported_commands=list(domain_entry_contract.get("supported_commands") or []),
+        command_contracts=[
+            dict(item)
+            for item in (domain_entry_contract.get("command_contracts") or [])
+            if isinstance(item, Mapping)
+        ],
+    )
+
+
+def _build_automation_surface(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    product_entry_status: Mapping[str, Any],
+) -> dict[str, Any]:
+    summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
+    refresh_command = (
+        f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
+        f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply"
+    )
+    runtime_supervision = _build_shared_automation_descriptor(
+        automation_id="mas_runtime_supervision_loop",
+        title="MAS runtime supervision loop",
+        owner=TARGET_DOMAIN_ID,
+        trigger_kind="interval",
+        target_surface_kind="runtime_watch_refresh",
+        summary="按监督节拍刷新 study runtime，保持恢复建议和 attention queue 为最新状态。",
+        readiness_status="automation_ready",
+        gate_policy="publication_gated",
+        output_expectation=[
+            "refresh runtime watch",
+            "update workspace attention queue",
+            "preserve controller decision lineage",
+        ],
+        target_command=refresh_command,
+        domain_projection={
+            "service_status_command": str(
+                profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+            ),
+            "recommended_entry_surface": "workspace_cockpit",
+        },
+    )
+    return _build_shared_automation_catalog(
+        summary=summary,
+        automations=[runtime_supervision],
+        readiness_summary=render_automation_ready_summary(),
+    )
 
 
 def _workspace_supervision_summary(
@@ -1782,6 +2065,62 @@ def build_product_entry_manifest(
         attention_queue_surface="workspace_cockpit",
         recovery_contract_surface="study_runtime_status",
     )
+    runtime = {
+        "runtime_owner": "upstream_hermes_agent",
+        "domain_owner": TARGET_DOMAIN_ID,
+        "executor_owner": "med_deepscientist",
+        "runtime_substrate": "external_hermes_agent_target",
+        "managed_runtime_backend_id": profile.managed_runtime_backend_id,
+        "runtime_root": str(profile.runtime_root),
+        "hermes_home_root": str(profile.hermes_home_root),
+    }
+    operator_loop_surface = {
+        "shell_key": "workspace_cockpit",
+        "command": product_entry_shell["workspace_cockpit"]["command"],
+        "surface_kind": "workspace_cockpit",
+        "summary": product_entry_shell["workspace_cockpit"]["purpose"],
+    }
+    repo_mainline = {
+        "program_id": mainline_snapshot.get("program_id"),
+        "current_stage_id": mainline_snapshot.get("current_stage_id"),
+        "current_stage_status": mainline_snapshot.get("current_stage_status"),
+        "current_stage_summary": mainline_snapshot.get("current_stage_summary"),
+        "current_program_phase_id": mainline_snapshot.get("current_program_phase_id"),
+        "current_program_phase_status": mainline_snapshot.get("current_program_phase_status"),
+        "current_program_phase_summary": mainline_snapshot.get("current_program_phase_summary"),
+        "next_focus": list(mainline_snapshot.get("next_focus") or []),
+    }
+    product_entry_status = {
+        "summary": mainline_snapshot.get("current_stage_summary")
+        or mainline_snapshot.get("current_program_phase_summary"),
+        "next_focus": list(mainline_snapshot.get("next_focus") or []),
+        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
+    }
+    runtime_inventory = _build_runtime_inventory_surface(
+        profile=profile,
+        runtime=runtime,
+        managed_runtime_contract=managed_runtime_contract,
+        product_entry_preflight=product_entry_preflight,
+        operator_loop_surface=operator_loop_surface,
+    )
+    task_lifecycle = _build_task_lifecycle_surface(
+        repo_mainline=repo_mainline,
+        product_entry_status=product_entry_status,
+        product_entry_readiness=product_entry_readiness,
+        family_orchestration=family_orchestration,
+        operator_loop_surface=operator_loop_surface,
+        product_entry_shell=product_entry_shell,
+    )
+    skill_catalog = _build_skill_catalog_surface(
+        product_entry_status=product_entry_status,
+        domain_entry_contract=domain_entry_contract,
+        product_entry_shell=product_entry_shell,
+    )
+    automation = _build_automation_surface(
+        profile=profile,
+        profile_ref=profile_ref,
+        product_entry_status=product_entry_status,
+    )
 
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1795,15 +2134,7 @@ def build_product_entry_manifest(
             "supported_protocols": ["MCP"],
             "internal_surface": "controller",
         },
-        "runtime": {
-            "runtime_owner": "upstream_hermes_agent",
-            "domain_owner": TARGET_DOMAIN_ID,
-            "executor_owner": "med_deepscientist",
-            "runtime_substrate": "external_hermes_agent_target",
-            "managed_runtime_backend_id": profile.managed_runtime_backend_id,
-            "runtime_root": str(profile.runtime_root),
-            "hermes_home_root": str(profile.hermes_home_root),
-        },
+        "runtime": runtime,
         "managed_runtime_contract": managed_runtime_contract,
         "executor_defaults": {
             "default_executor": "codex_cli_autonomous",
@@ -1841,31 +2172,16 @@ def build_product_entry_manifest(
             "surface_kind": PRODUCT_FRONTDESK_KIND,
             "summary": product_entry_shell["product_frontdesk"]["purpose"],
         },
-        "operator_loop_surface": {
-            "shell_key": "workspace_cockpit",
-            "command": product_entry_shell["workspace_cockpit"]["command"],
-            "surface_kind": "workspace_cockpit",
-            "summary": product_entry_shell["workspace_cockpit"]["purpose"],
-        },
+        "operator_loop_surface": operator_loop_surface,
         "operator_loop_actions": operator_loop_actions,
-        "repo_mainline": {
-            "program_id": mainline_snapshot.get("program_id"),
-            "current_stage_id": mainline_snapshot.get("current_stage_id"),
-            "current_stage_status": mainline_snapshot.get("current_stage_status"),
-            "current_stage_summary": mainline_snapshot.get("current_stage_summary"),
-            "current_program_phase_id": mainline_snapshot.get("current_program_phase_id"),
-            "current_program_phase_status": mainline_snapshot.get("current_program_phase_status"),
-            "current_program_phase_summary": mainline_snapshot.get("current_program_phase_summary"),
-            "next_focus": list(mainline_snapshot.get("next_focus") or []),
-        },
-        "product_entry_status": {
-            "summary": mainline_snapshot.get("current_stage_summary")
-            or mainline_snapshot.get("current_program_phase_summary"),
-            "next_focus": list(mainline_snapshot.get("next_focus") or []),
-            "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
-        },
+        "repo_mainline": repo_mainline,
+        "product_entry_status": product_entry_status,
         "product_entry_shell": product_entry_shell,
         "shared_handoff": shared_handoff,
+        "runtime_inventory": runtime_inventory,
+        "task_lifecycle": task_lifecycle,
+        "skill_catalog": skill_catalog,
+        "automation": automation,
         "product_entry_start": product_entry_start,
         "product_entry_overview": product_entry_overview,
         "product_entry_preflight": product_entry_preflight,
@@ -2054,6 +2370,10 @@ def build_product_frontdesk(
         "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
         "gateway_interaction_contract": dict(manifest.get("gateway_interaction_contract") or {}),
         "product_entry_status": dict(manifest.get("product_entry_status") or {}),
+        "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
+        "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
+        "skill_catalog": dict(manifest.get("skill_catalog") or {}),
+        "automation": dict(manifest.get("automation") or {}),
         "frontdesk_surface": dict(manifest.get("frontdesk_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
