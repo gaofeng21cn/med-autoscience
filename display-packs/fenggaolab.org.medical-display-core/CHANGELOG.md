@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `atlas_spatial_trajectory_context_support_panel` as the next audited `D/E/G` atlas-spatial-trajectory context-support composite slice in the core display pack.
+- Lock its pack-facing contract to `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `publication_atlas_spatial_trajectory_context_support_panel`, and the Python bounded six-panel context-support renderer path.
+
 - Add `shap_multigroup_decision_path_panel` as the next audited `F` multigroup decision-path explanation slice in the core display pack.
 - Lock its pack-facing contract to `shap_multigroup_decision_path_panel_inputs_v1`, `publication_shap_multigroup_decision_path_panel`, and the Python fixed-three-group shared-baseline decision-path renderer path.
 

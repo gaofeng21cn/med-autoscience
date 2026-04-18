@@ -5016,6 +5016,37 @@ def _validate_atlas_spatial_trajectory_density_coverage_display_payload(
     }
 
 
+def _validate_atlas_spatial_trajectory_context_support_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    storyboard_payload = _validate_atlas_spatial_trajectory_storyboard_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    support_payload = _validate_atlas_spatial_trajectory_density_coverage_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    return {
+        **storyboard_payload,
+        "support_panel_title": support_payload["support_panel_title"],
+        "support_x_label": support_payload["support_x_label"],
+        "support_y_label": support_payload["support_y_label"],
+        "support_annotation": support_payload["support_annotation"],
+        "support_scale_label": support_payload["support_scale_label"],
+        "context_order": support_payload["context_order"],
+        "support_cells": support_payload["support_cells"],
+    }
+
+
 def _validate_heatmap_display_payload(
     *,
     path: Path,
@@ -8879,6 +8910,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "atlas_spatial_trajectory_density_coverage_panel_inputs_v1":
         return payload_path, _validate_atlas_spatial_trajectory_density_coverage_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "atlas_spatial_trajectory_context_support_panel_inputs_v1":
+        return payload_path, _validate_atlas_spatial_trajectory_context_support_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

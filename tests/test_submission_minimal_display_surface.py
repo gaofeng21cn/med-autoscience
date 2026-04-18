@@ -9,8 +9,8 @@ from typing import Any
 from med_autoscience import display_registry
 
 PNG_1X1_BASE64 = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8"
-    "/x8AAwMCAO+aRX0AAAAASUVORK5CYII="
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNg"
+    "AAAAAgABSK+kcQAAAABJRU5ErkJggg=="
 )
 
 

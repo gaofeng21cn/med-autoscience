@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `58`
+- Evidence figure templates: `59`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `70`
+- Total audited templates: `71`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,11 +46,14 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on beyond the current density / coverage support baseline`
+- `C/H / broader heterogeneity summary follow-on beyond the current compact + coefficient-path lower bound`
+- `H / broader transportability and center-coverage follow-on beyond the current recalibration-governance lower bound`
+- `F / stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound`
 
 其中：
 
 - `D/E/G / atlas-spatial-trajectory density / coverage contract follow-on beyond the current storyboard lower bound` 已在上一轮正式收口为 `atlas_spatial_trajectory_density_coverage_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
+- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 已在本轮正式收口为 `atlas_spatial_trajectory_context_support_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
 - `D/E/G / PHATE or richer manifold overlay follow-on` 本轮不再作为当前 active 候选保留：
   - 原因：单独扩到替代 projection / manifold overlay 会把当前 round 收缩成偏 `D` 的 geometry 变体，更容易滑回 projection gallery，而不是 `D/E/G` 联动的 manuscript-facing composite contract。
@@ -63,8 +66,8 @@
   - 原因：这两个方向都服务 `C/H` 的 manuscript-facing effect heterogeneity 收口，在进入 owner brief 之前保持合并候选更有利于把 panel 数、语义边界与 appendix-facing scope 一次收紧。
 - `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式 absorb 为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。
 - `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已在本轮正式收口为 `feature_response_support_domain_panel`，并已 absorb 入当前 `main` 且通过 fresh verify，不再留在 backlog 候选池。
-- `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 当前作为下一轮 primary reroute 保留：
-  - 原因：`D/E/G` 已经沉淀出 atlas overview、spatial bridge、spatial niche、trajectory progression、storyboard 与 density-coverage support 六块稳定基线，当前最有价值的扩容方向是把这些已证明子能力进一步收束成更强的 bounded multi-view manuscript-facing composite。
+- `C/H / broader heterogeneity summary follow-on` 当前作为下一轮 primary reroute 保留：
+  - 原因：`C/H` 已经沉淀出 subgroup generalizability、compact estimate 与 coefficient-path 三块稳定基线，当前最有价值的扩容方向是把这些已证明子能力进一步收束成更强的 bounded manuscript-facing comparative summary。
 - `F / multi-group decision-path follow-on` 已在本轮正式 absorb 为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
 - `F / multi-group grouped-local follow-on` 当前也不作为当前 active 候选保留：
   - 原因：`shap_grouped_local_explanation_panel` 当前合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才应重开更高阶 explanation scene。
