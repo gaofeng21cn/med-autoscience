@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `57`
+- Evidence figure templates: `58`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `69`
+- Total audited templates: `70`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -64,18 +64,18 @@
 - `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式 absorb 为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。
 - `F / support-domain explanation panel follow-on beyond the current higher-order partial-dependence lower bound` 已在本轮正式收口为 `feature_response_support_domain_panel`，并已 absorb 入当前 `main` 且通过 fresh verify，不再留在 backlog 候选池。
 - `F / multi-group grouped-local follow-on` 当前作为下一轮 primary reroute 保留：
-  - 原因：`feature_response_support_domain_panel` 已经把 support-domain、legend 与 annotation 的最低合同固定下来，下一轮最有价值的扩容方向是继续把 multi-group grouped-local explanation 场景收进单一 bounded manuscript-facing 合同。
-- `F / multi-group decision-path follow-on` 当前与 `F / multi-group grouped-local follow-on` 共享同一 reroute 入口：
-  - 原因：这两个方向都服务 `F` 家族 multi-group explanation manuscript-facing 收口，在进入 owner brief 之前保持合并候选更有利于把 panel 数、shared feature-order、shared baseline 与 appendix-facing scope 一次收紧。
+  - 原因：`shap_multigroup_decision_path_panel` 已经把三组 decision-path 的 manuscript-facing 下限固定下来，下一轮最有价值的扩容方向是继续把 multi-group grouped-local explanation 场景收进单一 bounded manuscript-facing 合同。
+- `F / multi-group decision-path follow-on` 已在本轮正式 absorb 为 `shap_multigroup_decision_path_panel`，不再保留在 backlog 候选池。
 - `F / annotation-only readability hardening` 本轮也不作为当前 active 候选保留：
-  - 原因：当前需要的是把 support-domain、subgroup-legend 与 annotation 语义一起收进正式模板契约，而不是拆成 paper-local 标注微调或独立 readability patch。
+  - 原因：当前需要的是把 grouped-local scene、subgroup-legend 与 annotation 语义一起收进正式模板契约，而不是拆成 paper-local 标注微调或独立 readability patch。
 - `D/E/G / atlas_spatial_trajectory_storyboard_panel` 已在本轮正式提升为 audited five-panel storyboard baseline，不再保留为当前候选。
 - `F / higher-order partial-dependence follow-on` 已在本轮正式收口为 `partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel` 与 `accumulated_local_effects_panel`，不再保留为当前候选。
 - `H / workflow_fact_sheet_panel` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `H / design_evidence_composite_shell` 已在本轮正式提升为 audited illustration shell，不再保留为当前候选。
 - `H / baseline-balance / missingness / QC-shell follow-on` 已在本轮正式收口为 `baseline_missingness_qc_panel`，不再保留为当前候选。
 - `D/E/G / atlas_spatial_bridge_panel` 已在本轮正式提升为 audited four-block bridge baseline，不再保留为当前候选。
-- `F / richer grouped-local-explanation variants beyond the first audited baseline` 已在本轮收口为 `shap_grouped_decision_path_panel`，不再保留为当前候选。
+- `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前继续保留为下一轮 primary reroute：
+  - 原因：decision-path 多组 lower bound 已完成 absorb，grouped-local 多组 manuscript-facing 收口成为当前最直接的剩余 explanation 扩容入口。
 
 这些候选不等于必须立即实现。
 

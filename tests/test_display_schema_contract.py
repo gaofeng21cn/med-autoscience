@@ -1788,6 +1788,50 @@ def test_shap_grouped_decision_path_schema_contract_is_registered() -> None:
     assert "shap_grouped_decision_path_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_multigroup_decision_path_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    decision_path = module.get_input_schema_contract("shap_multigroup_decision_path_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert decision_path.template_ids == (_full_id("shap_multigroup_decision_path_panel"),)
+    assert decision_path.display_name == "SHAP Multigroup Decision Path Panel"
+    assert decision_path.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "panel_title",
+        "x_label",
+        "y_label",
+        "legend_title",
+        "baseline_value",
+        "groups",
+    )
+    assert decision_path.collection_required_fields["groups"] == (
+        "group_id",
+        "group_label",
+        "predicted_value",
+        "contributions",
+    )
+    assert decision_path.nested_collection_required_fields["groups.contributions"] == (
+        "rank",
+        "feature",
+        "shap_value",
+    )
+    assert "group_count_must_equal_three" in decision_path.additional_constraints
+    assert "group_labels_must_be_unique" in decision_path.additional_constraints
+    assert "baseline_value_must_be_finite" in decision_path.additional_constraints
+    assert "group_prediction_value_must_equal_baseline_plus_contributions" in decision_path.additional_constraints
+    assert "group_contribution_ranks_must_be_strictly_increasing" in decision_path.additional_constraints
+    assert "group_contribution_values_must_be_finite_and_non_zero" in decision_path.additional_constraints
+    assert "group_feature_orders_must_match" in decision_path.additional_constraints
+    assert _full_id("shap_multigroup_decision_path_panel") in model_explanation_class.template_ids
+    assert "shap_multigroup_decision_path_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_partial_dependence_ice_panel_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -2258,6 +2302,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_grouped_local_explanation_panel_inputs_v1" in markdown
     assert _full_id("shap_grouped_decision_path_panel") in markdown
     assert "shap_grouped_decision_path_panel_inputs_v1" in markdown
+    assert _full_id("shap_multigroup_decision_path_panel") in markdown
+    assert "shap_multigroup_decision_path_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_interaction_contour_panel") in markdown
