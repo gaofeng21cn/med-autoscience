@@ -253,7 +253,7 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert exit_code == 0
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
-    assert "runtime-status" in captured.out
+    assert "runtime-status" not in captured.out
 
 
 def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -853,6 +853,25 @@ def test_doctor_group_help_surfaces_backend_upgrade_and_hides_legacy_name(capsys
     assert "med-deepscientist-upgrade" not in captured.out
 
 
+def test_legacy_grouped_backend_upgrade_alias_is_removed() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `doctor`\.$"):
+        cli.main(["doctor", "med-deepscientist-upgrade", "--profile", "/tmp/profile.toml"])
+
+
+def test_legacy_flat_backend_upgrade_alias_is_removed(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["med-deepscientist-upgrade-check", "--profile", "/tmp/profile.toml"])
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "med-deepscientist-upgrade-check" in captured.err
+
+
 def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -970,8 +989,7 @@ def test_study_runtime_status_command_dispatches_controller(monkeypatch, tmp_pat
 
     exit_code = cli.main(
         [
-            "study",
-            "runtime-status",
+            "study-runtime-status",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -1019,8 +1037,7 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
 
     exit_code = cli.main(
         [
-            "study",
-            "runtime-status",
+            "study-runtime-status",
             "--profile",
             str(profile_path),
             "--study-id",
@@ -1032,6 +1049,13 @@ def test_study_runtime_status_command_serializes_typed_controller_result(monkeyp
     assert exit_code == 0
     assert '"decision": "noop"' in captured.out
     assert '"study_id": "001-risk"' in captured.out
+
+
+def test_legacy_grouped_study_runtime_status_alias_is_removed() -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `study`\.$"):
+        cli.main(["study", "runtime-status", "--profile", "/tmp/profile.toml", "--study-id", "001-risk"])
 
 
 def test_workspace_cockpit_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:

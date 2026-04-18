@@ -201,7 +201,7 @@
 低层兼容入口仍然保留：
 
 - `study ensure-runtime`
-- `study runtime-status`
+- `study-runtime-status`
 - `runtime watch`
 
 如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。

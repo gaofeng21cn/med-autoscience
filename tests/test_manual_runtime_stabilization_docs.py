@@ -17,7 +17,7 @@ def test_manual_runtime_stabilization_doc_lists_stable_surfaces_and_external_blo
         "EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB",
         "doctor --profile <profile>",
         "doctor backend-upgrade --profile <profile> --refresh",
-        "study runtime-status --profile <profile> --study-id <study_id>",
+        "study-runtime-status --profile <profile> --study-id <study_id>",
         "study ensure-runtime --profile <profile> --study-id <study_id>",
         "study progress --profile <profile> --study-id <study_id>",
         "runtime watch --quest-root <quest_root> --apply",

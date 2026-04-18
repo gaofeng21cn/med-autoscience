@@ -440,13 +440,6 @@ def build_parser() -> argparse.ArgumentParser:
     backend_upgrade_check_parser.add_argument("--profile", required=True)
     backend_upgrade_check_parser.add_argument("--refresh", action="store_true")
 
-    legacy_backend_upgrade_check_parser = subparsers.add_parser(
-        "med-deepscientist-upgrade-check",
-        help=argparse.SUPPRESS,
-    )
-    legacy_backend_upgrade_check_parser.add_argument("--profile", required=True)
-    legacy_backend_upgrade_check_parser.add_argument("--refresh", action="store_true")
-
     hermes_runtime_check_parser = subparsers.add_parser("hermes-runtime-check")
     hermes_runtime_check_parser.add_argument("--profile")
     hermes_runtime_check_parser.add_argument("--hermes-agent-repo-root")
@@ -495,7 +488,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
     ("runtime", "ensure-analysis-bundle"): "ensure-study-runtime-analysis-bundle",
     ("study", "ensure-runtime"): "ensure-study-runtime",
-    ("study", "runtime-status"): "study-runtime-status",
     ("study", "progress"): "study-progress",
     ("study", "launch"): "launch-study",
     ("study", "submit-task"): "submit-study-task",
@@ -520,20 +512,11 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("product", "build-entry"): "build-product-entry",
 }
 
-INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
-    ("doctor", "med-deepscientist-upgrade"): "backend-upgrade-check",
-}
-
-INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES: dict[str, str] = {
-    "med-deepscientist-upgrade-check": "backend-upgrade-check",
-}
-
 GROUPED_COMMAND_NAMES = {group for group, _ in GROUPED_COMMAND_ALIASES}
 GROUPED_COMMAND_PROGS = {
     flat_command: f"medautosci {group} {subcommand}"
     for (group, subcommand), flat_command in GROUPED_COMMAND_ALIASES.items()
 }
-LEGACY_PUBLIC_COMMANDS = set(GROUPED_COMMAND_ALIASES.values()) - {"doctor"}
 GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
@@ -601,19 +584,8 @@ def _normalize_public_command_argv(argv: list[str] | None) -> list[str] | None:
     if len(argv) >= 2 and (argv[0], argv[1]) in GROUPED_COMMAND_ALIASES:
         return [GROUPED_COMMAND_ALIASES[(argv[0], argv[1])], *argv[2:]]
 
-    if len(argv) >= 2 and (argv[0], argv[1]) in INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES:
-        return [INTERNAL_COMPATIBILITY_GROUPED_COMMAND_ALIASES[(argv[0], argv[1])], *argv[2:]]
-
-    if argv[0] in INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES:
-        return [INTERNAL_COMPATIBILITY_FLAT_COMMAND_ALIASES[argv[0]], *argv[1:]]
-
     if argv[0] in GROUPED_COMMAND_NAMES:
         raise SystemExit(f"Grouped command requires a supported subcommand under `{argv[0]}`.")
-
-    if argv[0] in LEGACY_PUBLIC_COMMANDS:
-        raise SystemExit(
-            f"Legacy flat command `{argv[0]}` has been removed. Use the grouped command surface instead."
-        )
 
     return argv
 

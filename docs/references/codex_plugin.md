@@ -56,7 +56,7 @@ Compatibility note:
 
 ## Live Runtime Guard
 
-当 `study runtime-status` 或 `study ensure-runtime` 返回 `execution_owner_guard.supervisor_only = true` 时，Codex 前台必须切换成 supervisor-only 模式：
+当 `study-runtime-status` 或 `study ensure-runtime` 返回 `execution_owner_guard.supervisor_only = true` 时，Codex 前台必须切换成 supervisor-only 模式：
 
 - 只负责读取状态、通知用户、提供监督入口和接收 pause/resume/stop/takeover 决策
 - 不继续直接推进 study-local 写作、bundle、proofing、review 或编译链

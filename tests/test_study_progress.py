@@ -813,7 +813,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
                 "title": "读取结构化运行真相",
                 "surface_kind": "study_runtime_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli study runtime-status --profile "
+                    "uv run python -m med_autoscience.cli study-runtime-status --profile "
                     + str(profile_ref.resolve())
                     + " --study-id 001-risk"
                 ),
