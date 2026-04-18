@@ -12,6 +12,10 @@ TASK_INTAKE_RELATIVE_ROOT = Path("artifacts") / "controller" / "task_intake"
 STARTUP_BRIEF_BLOCK_BEGIN = "<!-- MAS_TASK_INTAKE:BEGIN -->"
 STARTUP_BRIEF_BLOCK_END = "<!-- MAS_TASK_INTAKE:END -->"
 
+_ENTRY_MODE_LABELS = {
+    "full_research": "完整研究（full_research）",
+}
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -33,6 +37,11 @@ def _normalized_strings(values: Iterable[object]) -> list[str]:
         if text is not None:
             normalized.append(text)
     return normalized
+
+
+def _entry_mode_label(value: object) -> str:
+    text = _non_empty_text(value) or "full_research"
+    return _ENTRY_MODE_LABELS.get(text, text)
 
 
 def task_intake_root(*, study_root: Path) -> Path:
@@ -91,16 +100,16 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Study Task Intake",
         "",
-        f"- study_id: `{payload['study_id']}`",
-        f"- emitted_at: `{payload['emitted_at']}`",
-        f"- entry_mode: `{payload.get('entry_mode') or 'full_research'}`",
-        f"- journal_target: `{payload.get('journal_target') or 'none'}`",
+        f"- 当前 study: `{payload['study_id']}`",
+        f"- 写入时间: `{payload['emitted_at']}`",
+        f"- 当前入口模式: {_entry_mode_label(payload.get('entry_mode'))}",
+        f"- 当前投稿目标: `{payload.get('journal_target') or 'none'}`",
         "",
-        "## Task Intent",
+        "## 当前任务意图",
         "",
         str(payload.get("task_intent") or "").strip() or "未提供",
         "",
-        "## Constraints",
+        "## 约束",
         "",
     ]
     constraints = list(payload.get("constraints") or [])
@@ -108,25 +117,25 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {item}" for item in constraints)
     else:
         lines.append("- None")
-    lines.extend(["", "## Evidence Boundary", ""])
+    lines.extend(["", "## 证据边界", ""])
     evidence_boundary = list(payload.get("evidence_boundary") or [])
     if evidence_boundary:
         lines.extend(f"- {item}" for item in evidence_boundary)
     else:
         lines.append("- None")
-    lines.extend(["", "## Trusted Inputs", ""])
+    lines.extend(["", "## 可信输入", ""])
     trusted_inputs = list(payload.get("trusted_inputs") or [])
     if trusted_inputs:
         lines.extend(f"- {item}" for item in trusted_inputs)
     else:
         lines.append("- None")
-    lines.extend(["", "## Reference Papers", ""])
+    lines.extend(["", "## 参考文献", ""])
     reference_papers = list(payload.get("reference_papers") or [])
     if reference_papers:
         lines.extend(f"- {item}" for item in reference_papers)
     else:
         lines.append("- None")
-    lines.extend(["", "## First-Cycle Outputs", ""])
+    lines.extend(["", "## 首轮交付", ""])
     first_cycle_outputs = list(payload.get("first_cycle_outputs") or [])
     if first_cycle_outputs:
         lines.extend(f"- {item}" for item in first_cycle_outputs)

@@ -532,6 +532,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
     markdown = module.render_workspace_cockpit_markdown(payload)
 
     assert "当前 workspace 状态" in markdown
+    assert "当前 program" in markdown
     assert "当前监管摘要" in markdown
     assert "当前关注项" in markdown
     assert "处理命令" in markdown
@@ -545,6 +546,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
     assert "当前卡点" in markdown
     assert "启动命令" in markdown
     assert "workspace_status:" not in markdown
+    assert "program_id:" not in markdown
     assert "summary:" not in markdown
     assert "service:" not in markdown
     assert "counts:" not in markdown
@@ -1079,6 +1081,53 @@ def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
     assert "next_system_action:" not in markdown
 
 
+def test_launch_study_markdown_prefers_human_facing_labels() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    payload = {
+        "study_id": "001-risk",
+        "runtime_status": {"decision": "resume"},
+        "progress": {
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "论文可发表性监管。",
+            "current_blockers": ["论文叙事或方法/结果书写面仍有硬阻塞。"],
+            "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+            "supervision": {"browser_url": "http://127.0.0.1:20999", "active_run_id": "run-001"},
+            "task_intake": {
+                "task_intent": "优先发现卡住、无进度和 figure 质量回退，再决定是否继续自动推进。",
+                "journal_target": "JAMA Network Open",
+            },
+            "progress_freshness": {"summary": "最近 12 小时内仍有明确研究推进记录。"},
+            "recovery_contract": {"action_mode": "inspect_progress", "summary": "论文叙事仍需先修。"},
+            "recommended_commands": [
+                {
+                    "title": "读取当前研究进度",
+                    "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+                }
+            ],
+        },
+        "commands": {
+            "progress": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml --study-id 001-risk",
+        },
+    }
+
+    markdown = module.render_launch_study_markdown(payload)
+
+    assert "当前运行判断" in markdown
+    assert "浏览器入口" in markdown
+    assert "当前任务意图" in markdown
+    assert "当前投稿目标" in markdown
+    assert "进度信号" in markdown
+    assert "恢复建议" in markdown
+    assert "browser_url:" not in markdown
+    assert "task_intent:" not in markdown
+    assert "journal_target:" not in markdown
+    assert "progress_signal:" not in markdown
+    assert "action_mode:" not in markdown
+    assert "summary:" not in markdown
+
+
+
 def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
@@ -1102,6 +1151,7 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
     latest_markdown = Path(payload["artifacts"]["latest_markdown"])
     written_payload = json.loads(latest_json.read_text(encoding="utf-8"))
     startup_brief_text = startup_brief_path.read_text(encoding="utf-8")
+    latest_markdown_text = latest_markdown.read_text(encoding="utf-8")
 
     assert latest_json.is_file()
     assert latest_markdown.is_file()
@@ -1110,7 +1160,11 @@ def test_submit_study_task_writes_durable_intake_and_updates_startup_brief_block
     assert written_payload["constraints"] == ["始终中文汇报", "不得跳过 publication gate"]
     assert "MAS_TASK_INTAKE:BEGIN" in startup_brief_text
     assert "已有人工上下文。" in startup_brief_text
-    assert "The Lancet Digital Health" in latest_markdown.read_text(encoding="utf-8")
+    assert "当前入口模式" in latest_markdown_text
+    assert "当前投稿目标" in latest_markdown_text
+    assert "entry_mode:" not in latest_markdown_text
+    assert "journal_target:" not in latest_markdown_text
+    assert "The Lancet Digital Health" in latest_markdown_text
     assert payload["study_root"] == str(study_root)
 
 
@@ -1187,6 +1241,15 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
+    markdown = module.render_build_product_entry_markdown(payload)
+    assert "当前任务意图" in markdown
+    assert "当前投稿目标" in markdown
+    assert "当前入口模式" in markdown
+    assert "目标域" in markdown
+    assert "task_intent:" not in markdown
+    assert "journal_target:" not in markdown
+    assert "entry_mode:" not in markdown
+    assert "target_domain_id:" not in markdown
 
 
 def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_templates(monkeypatch, tmp_path: Path) -> None:
@@ -2261,6 +2324,13 @@ def test_build_product_entry_manifest_projects_repo_shell_and_shared_handoff_tem
         "publication_release_gate",
     ]
     assert "standalone medical product entry" in payload["remaining_gaps"][0]
+    start_markdown = module.render_product_entry_start_markdown(payload["product_entry_start"])
+    assert "当前摘要" in start_markdown
+    assert "建议入口" in start_markdown
+    assert "恢复入口" in start_markdown
+    assert "可用入口" in start_markdown
+    assert "recommended_mode_id:" not in start_markdown
+    assert "resume_surface:" not in start_markdown
 
 
 def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
@@ -2653,15 +2723,34 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert "Monorepo Sequence" in markdown
     assert "stabilize_user_product_loop" in markdown
     assert "post_gate_target" in markdown
+    assert "summary:" not in markdown
 
     manifest_markdown = module.render_product_entry_manifest_markdown(payload["product_entry_manifest"])
     assert "Product Entry Manifest" in manifest_markdown
+    assert "manifest 类型" in manifest_markdown
+    assert "目标域" in manifest_markdown
     assert "当前主线阶段" in manifest_markdown
     assert "当前 program phase" in manifest_markdown
     assert "程序摘要" in manifest_markdown
+    assert "前台入口归属" in manifest_markdown
+    assert "交互模式" in manifest_markdown
     assert "推荐动作" in manifest_markdown
     assert "推荐命令" in manifest_markdown
     assert "单一路径 `continue_study`" in manifest_markdown
+    assert "summary:" not in manifest_markdown
+    assert "manifest_kind:" not in manifest_markdown
+    assert "target_domain_id:" not in manifest_markdown
+    assert "frontdoor_owner:" not in manifest_markdown
+    assert "user_interaction_mode:" not in manifest_markdown
+
+    preflight_markdown = module.render_product_entry_preflight_markdown(payload["product_entry_preflight"])
+    assert "当前可直接尝试" in preflight_markdown
+    assert "当前摘要" in preflight_markdown
+    assert "前置检查命令" in preflight_markdown
+    assert "推荐启动命令" in preflight_markdown
+    assert "ready_to_try_now:" not in preflight_markdown
+    assert "recommended_check_command:" not in preflight_markdown
+    assert "recommended_start_command:" not in preflight_markdown
 
 
 def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(

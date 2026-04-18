@@ -22,9 +22,78 @@ CURRENT_STAGE_STATUS = "in_progress"
 CURRENT_PROGRAM_PHASE_ID = "phase_1_mainline_established"
 CURRENT_PROGRAM_PHASE_STATUS = "in_progress"
 
+_PHASE_STATUS_LABELS = {
+    "in_progress": "进行中",
+    "completed": "已完成",
+    "pending": "待开始",
+    "blocked": "阻塞中",
+    "blocked_post_gate": "等待前置门后进入",
+}
+
+_ENTRY_POINT_LABELS = {
+    "mainline_status": "查看主线状态",
+    "workspace_cockpit": "打开 workspace cockpit",
+    "study_progress": "查看 study 进度",
+    "submit_study_task": "提交 study 任务",
+    "launch_study": "启动或续跑 study",
+    "doctor": "运行 doctor",
+    "hermes_runtime_check": "检查 Hermes runtime",
+    "watch": "刷新监管与恢复",
+}
+
+_SEQUENCE_SCOPE_LABELS = {
+    "monorepo_landing_readiness": "monorepo 落地就绪度",
+}
+
+_MONOREPO_STATUS_LABELS = {
+    "post_gate_target": "post-gate 目标态",
+}
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _non_empty_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _phase_status_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _PHASE_STATUS_LABELS.get(text, text)
+
+
+def _bool_label(value: object) -> str:
+    if isinstance(value, bool):
+        return "是" if value else "否"
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return text
+
+
+def _entry_point_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未命名入口"
+    return _ENTRY_POINT_LABELS.get(text, text.replace("_", " "))
+
+
+def _sequence_scope_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _SEQUENCE_SCOPE_LABELS.get(text, text)
+
+
+def _monorepo_status_label(value: object) -> str:
+    text = _non_empty_text(value)
+    if text is None:
+        return "未知"
+    return _MONOREPO_STATUS_LABELS.get(text, text)
 
 
 def _platform_target() -> dict[str, Any]:
@@ -725,13 +794,13 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Mainline Phase",
         "",
-        f"- program_id: `{payload.get('program_id')}`",
-        f"- phase_id: `{phase.get('id')}`",
-        f"- phase_status: `{phase.get('status')}`",
-        f"- usable_now: `{phase.get('usable_now')}`",
-        f"- summary: {phase.get('summary')}",
+        f"- 当前 program: `{payload.get('program_id')}`",
+        f"- 当前阶段: `{phase.get('id')}`",
+        f"- 当前状态: {_phase_status_label(phase.get('status'))}",
+        f"- 当前可用性: {_bool_label(phase.get('usable_now'))}",
+        f"- 当前摘要: {phase.get('summary') or 'none'}",
         "",
-        "## Entry Points",
+        "## 可用入口",
         "",
     ]
     entry_points = list(phase.get("entry_points") or [])
@@ -739,22 +808,20 @@ def render_mainline_phase_markdown(payload: dict[str, Any]) -> str:
         for item in entry_points:
             if not isinstance(item, dict):
                 continue
-            lines.append(
-                f"- `{item.get('name')}`: `{item.get('command')}`"
-            )
+            lines.append(f"- {_entry_point_label(item.get('name'))}: `{item.get('command') or 'none'}`")
             purpose = str(item.get("purpose") or "").strip()
             if purpose:
-                lines.append(f"  purpose: {purpose}")
+                lines.append(f"  入口说明: {purpose}")
     else:
         lines.append("- none")
-    lines.extend(["", "## Exit Criteria", ""])
+    lines.extend(["", "## 退出条件", ""])
     exit_criteria = list(phase.get("exit_criteria") or [])
     if exit_criteria:
         for item in exit_criteria:
             lines.append(f"- {item}")
     else:
         lines.append("- none")
-    lines.extend(["", "## Key Docs", ""])
+    lines.extend(["", "## 相关文档", ""])
     phase_docs = list(phase.get("phase_docs") or [])
     if phase_docs:
         for item in phase_docs:
@@ -775,19 +842,19 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Mainline Status",
         "",
-        f"- program_id: `{payload.get('program_id')}`",
+        f"- 当前 program: `{payload.get('program_id')}`",
         f"- 当前主线阶段: `{current_stage.get('id')}`",
-        f"- 当前主线阶段状态: `{current_stage.get('status')}`",
-        f"- 当前判断: {current_stage.get('summary')}",
+        f"- 当前状态: {_phase_status_label(current_stage.get('status'))}",
+        f"- 当前判断: {current_stage.get('summary') or 'none'}",
         f"- 当前 program phase: `{current_program_phase.get('id')}`",
-        f"- program phase 状态: `{current_program_phase.get('status')}`",
+        f"- program phase 状态: {_phase_status_label(current_program_phase.get('status'))}",
         "",
-        "## Ideal State",
+        "## 理想目标",
         "",
-        f"- domain_gateway: {runtime_topology.get('domain_gateway')}",
-        f"- outer_runtime_substrate_owner: {runtime_topology.get('outer_runtime_substrate_owner')}",
-        f"- research_backend: {runtime_topology.get('research_backend')}",
-        f"- entry_shape: {runtime_topology.get('entry_shape')}",
+        f"- 域入口归属: {runtime_topology.get('domain_gateway') or 'none'}",
+        f"- 外环运行基座: {runtime_topology.get('outer_runtime_substrate_owner') or 'none'}",
+        f"- 研究后端: {runtime_topology.get('research_backend') or 'none'}",
+        f"- 入口形态: {runtime_topology.get('entry_shape') or 'none'}",
         "",
         "## Phase 2 User Loop",
         "",
@@ -818,7 +885,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Phase 4 Deconstruction",
             "",
-            f"- summary: {phase4_backend_deconstruction.get('summary') or 'none'}",
+            f"- 当前摘要: {phase4_backend_deconstruction.get('summary') or 'none'}",
         ]
     )
     for item in phase4_backend_deconstruction.get("substrate_targets") or []:
@@ -830,13 +897,13 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             "",
             "## Platform Target",
             "",
-            f"- surface_kind: `{platform_target.get('surface_kind') or 'none'}`",
-            f"- summary: {platform_target.get('summary') or 'none'}",
-            f"- sequence_scope: `{platform_target.get('sequence_scope') or 'none'}`",
-            f"- current_step_id: `{platform_target.get('current_step_id') or 'none'}`",
-            f"- current_readiness_summary: {platform_target.get('current_readiness_summary') or 'none'}",
-            f"- monorepo_status: `{((platform_target.get('north_star_topology') or {}).get('monorepo_status') or 'none')}`",
-            f"- recommended_phase_command: `{platform_target.get('recommended_phase_command') or 'none'}`",
+            f"- 当前平台目标: `{platform_target.get('surface_kind') or 'none'}`",
+            f"- 当前摘要: {platform_target.get('summary') or 'none'}",
+            f"- 当前序列范围: {_sequence_scope_label(platform_target.get('sequence_scope'))}",
+            f"- 当前步骤: `{platform_target.get('current_step_id') or 'none'}`",
+            f"- 当前就绪判断: {platform_target.get('current_readiness_summary') or 'none'}",
+            f"- monorepo 目标状态: {_monorepo_status_label((platform_target.get('north_star_topology') or {}).get('monorepo_status'))}",
+            f"- 推荐 phase 命令: `{platform_target.get('recommended_phase_command') or 'none'}`",
             "",
             "## Monorepo Sequence",
             "",
@@ -848,7 +915,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             if not isinstance(item, dict):
                 continue
             lines.append(
-                f"- `{item.get('step_id')}` [{item.get('status')}] / `{item.get('phase_id')}`: {item.get('summary') or 'none'}"
+                f"- `{item.get('step_id')}` [{_phase_status_label(item.get('status'))}] / `{item.get('phase_id')}`: {item.get('summary') or 'none'}"
             )
     else:
         lines.append("- none")
@@ -856,9 +923,7 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     for item in payload.get("phase_ladder") or []:
         if not isinstance(item, dict):
             continue
-        lines.append(
-            f"- `{item.get('id')}` [{item.get('status')}]: {item.get('summary')}"
-        )
+        lines.append(f"- `{item.get('id')}` [{_phase_status_label(item.get('status'))}]: {item.get('summary')}")
     lines.extend([
         "",
         "## Completed Tranches",

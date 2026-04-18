@@ -123,9 +123,10 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     markdown = module.render_mainline_status_markdown(module.read_mainline_status())
 
     assert "# Mainline Status" in markdown
-    assert "f4_blocker_closeout" in markdown
+    assert "当前 program" in markdown
+    assert "当前主线阶段" in markdown
     assert "当前判断" in markdown
-    assert "Ideal State" in markdown
+    assert "理想目标" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Phase 2 User Loop" in markdown
@@ -141,6 +142,13 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
+    assert "program_id:" not in markdown
+    assert "domain_gateway:" not in markdown
+    assert "outer_runtime_substrate_owner:" not in markdown
+    assert "entry_shape:" not in markdown
+    assert "surface_kind:" not in markdown
+    assert "sequence_scope:" not in markdown
+    assert "monorepo_status:" not in markdown
 
 
 def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
@@ -162,9 +170,18 @@ def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria(
     markdown = module.render_mainline_phase_markdown(module.read_mainline_phase_status("phase_2_user_product_loop"))
 
     assert "# Mainline Phase" in markdown
-    assert "phase_2_user_product_loop" in markdown
-    assert "Entry Points" in markdown
-    assert "Exit Criteria" in markdown
+    assert "当前阶段" in markdown
+    assert "当前状态" in markdown
+    assert "当前可用性" in markdown
+    assert "当前摘要" in markdown
+    assert "可用入口" in markdown
+    assert "退出条件" in markdown
+    assert "相关文档" in markdown
+    assert "phase_id:" not in markdown
+    assert "phase_status:" not in markdown
+    assert "usable_now:" not in markdown
+    assert "summary:" not in markdown
+    assert "purpose:" not in markdown
 
 
 def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
