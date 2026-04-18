@@ -38,6 +38,7 @@ from opl_harness_shared.family_orchestration import (
     build_family_orchestration_template as _build_shared_family_orchestration_template,
 )
 from opl_harness_shared.product_entry_companions import (
+    build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_product_entry_start as _build_shared_product_entry_start,
     build_product_frontdesk as _build_shared_product_frontdesk,
     build_product_entry_overview as _build_shared_product_entry_overview,
@@ -2419,84 +2420,84 @@ def build_product_entry_manifest(
         product_entry_status=product_entry_status,
     )
 
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "manifest_version": 2,
-        "surface_kind": "product_entry_manifest",
-        "manifest_kind": PRODUCT_ENTRY_MANIFEST_KIND,
-        "schema_ref": PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
-        "target_domain_id": TARGET_DOMAIN_ID,
-        "formal_entry": {
+    payload = _build_shared_family_product_entry_manifest(
+        manifest_kind=PRODUCT_ENTRY_MANIFEST_KIND,
+        target_domain_id=TARGET_DOMAIN_ID,
+        formal_entry={
             "default": "CLI",
             "supported_protocols": ["MCP"],
             "internal_surface": "controller",
         },
-        "runtime": runtime,
-        "managed_runtime_contract": managed_runtime_contract,
-        "executor_defaults": {
-            "default_executor": "codex_cli_autonomous",
-            "default_model": "inherit_local_codex_default",
-            "default_reasoning_effort": "inherit_local_codex_default",
-            "chat_completion_only_executor_forbidden": True,
-            "hermes_native_requires_full_agent_loop": True,
-            "current_backend_chain": [
-                "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
-                "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
-            ],
-            "optional_executor_proofs": [
-                {
-                    "executor_kind": "hermes_native_proof",
-                    "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
-                    "requires_full_agent_loop": True,
-                    "default_model": "inherit_local_hermes_default",
-                    "default_reasoning_effort": "inherit_local_hermes_default",
-                }
-            ],
-        },
-        "workspace_locator": {
+        workspace_locator={
             "workspace_surface_kind": "med_autoscience_workspace_profile",
             "profile_name": profile.name,
             "workspace_root": workspace_root,
             "profile_ref": str(Path(profile_ref).expanduser().resolve()) if profile_ref is not None else None,
         },
-        "domain_entry_contract": domain_entry_contract,
-        "gateway_interaction_contract": gateway_interaction_contract,
-        "recommended_shell": "workspace_cockpit",
-        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
-        "frontdesk_surface": {
+        runtime=runtime,
+        managed_runtime_contract=managed_runtime_contract,
+        repo_mainline=repo_mainline,
+        product_entry_status=product_entry_status,
+        frontdesk_surface={
             "shell_key": "product_frontdesk",
             "command": product_entry_shell["product_frontdesk"]["command"],
             "surface_kind": PRODUCT_FRONTDESK_KIND,
             "summary": product_entry_shell["product_frontdesk"]["purpose"],
         },
-        "operator_loop_surface": operator_loop_surface,
-        "operator_loop_actions": operator_loop_actions,
-        "repo_mainline": repo_mainline,
-        "product_entry_status": product_entry_status,
-        "product_entry_shell": product_entry_shell,
-        "shared_handoff": shared_handoff,
-        "runtime_inventory": runtime_inventory,
-        "task_lifecycle": task_lifecycle,
-        "skill_catalog": skill_catalog,
-        "automation": automation,
-        "product_entry_start": product_entry_start,
-        "product_entry_overview": product_entry_overview,
-        "product_entry_preflight": product_entry_preflight,
-        "product_entry_readiness": product_entry_readiness,
-        "phase2_user_product_loop": phase2_user_product_loop,
-        "product_entry_guardrails": product_entry_guardrails,
-        "phase3_clearance_lane": phase3_clearance_lane,
-        "phase4_backend_deconstruction": phase4_backend_deconstruction,
-        "product_entry_quickstart": product_entry_quickstart,
-        "family_orchestration": family_orchestration,
-        "phase5_platform_target": phase5_platform_target,
-        "remaining_gaps": list(mainline_payload.get("remaining_gaps") or []),
-        "notes": [
+        operator_loop_surface=operator_loop_surface,
+        operator_loop_actions=operator_loop_actions,
+        recommended_shell="workspace_cockpit",
+        recommended_command=product_entry_shell["workspace_cockpit"]["command"],
+        product_entry_shell=product_entry_shell,
+        shared_handoff=shared_handoff,
+        runtime_inventory=runtime_inventory,
+        task_lifecycle=task_lifecycle,
+        skill_catalog=skill_catalog,
+        automation=automation,
+        product_entry_start=product_entry_start,
+        product_entry_overview=product_entry_overview,
+        product_entry_preflight=product_entry_preflight,
+        product_entry_readiness=product_entry_readiness,
+        product_entry_quickstart=product_entry_quickstart,
+        family_orchestration=family_orchestration,
+        remaining_gaps=list(mainline_payload.get("remaining_gaps") or []),
+        notes=[
             "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
             "It does not include the display / paper-figure asset line.",
             "It does not claim that a mature standalone medical frontend is already landed.",
         ],
-    }
+        extra_payload={
+            "schema_version": SCHEMA_VERSION,
+            "schema_ref": PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
+            "domain_entry_contract": domain_entry_contract,
+            "gateway_interaction_contract": gateway_interaction_contract,
+            "executor_defaults": {
+                "default_executor": "codex_cli_autonomous",
+                "default_model": "inherit_local_codex_default",
+                "default_reasoning_effort": "inherit_local_codex_default",
+                "chat_completion_only_executor_forbidden": True,
+                "hermes_native_requires_full_agent_loop": True,
+                "current_backend_chain": [
+                    "med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist",
+                    "med_deepscientist CodexRunner -> codex exec autonomous agent loop",
+                ],
+                "optional_executor_proofs": [
+                    {
+                        "executor_kind": "hermes_native_proof",
+                        "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                        "requires_full_agent_loop": True,
+                        "default_model": "inherit_local_hermes_default",
+                        "default_reasoning_effort": "inherit_local_hermes_default",
+                    }
+                ],
+            },
+            "phase2_user_product_loop": phase2_user_product_loop,
+            "product_entry_guardrails": product_entry_guardrails,
+            "phase3_clearance_lane": phase3_clearance_lane,
+            "phase4_backend_deconstruction": phase4_backend_deconstruction,
+            "phase5_platform_target": phase5_platform_target,
+        },
+    )
     _validate_product_entry_manifest_contract(payload)
     return payload
 
