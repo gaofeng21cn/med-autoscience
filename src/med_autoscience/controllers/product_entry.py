@@ -32,6 +32,10 @@ from opl_harness_shared.managed_runtime import build_managed_runtime_contract as
 from opl_harness_shared.family_orchestration import (
     build_family_product_entry_orchestration as _build_shared_family_product_entry_orchestration,
 )
+from opl_harness_shared.family_entry_contracts import (
+    validate_family_domain_entry_contract as _validate_shared_family_domain_entry_contract,
+    validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
+)
 from opl_harness_shared.product_entry_companions import (
     build_family_product_frontdesk as _build_shared_family_product_frontdesk,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
@@ -106,45 +110,11 @@ def _require_nonempty_string_from_mapping(payload: Mapping[str, Any], field: str
 
 
 def _validate_domain_entry_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
-    if not isinstance(contract, Mapping):
-        raise ValueError(f"{context} 必须是 mapping。")
-    _require_nonempty_string_from_mapping(contract, "entry_adapter", context=context)
-    _require_nonempty_string_from_mapping(contract, "service_safe_surface_kind", context=context)
-    _require_nonempty_string_from_mapping(contract, "product_entry_builder_command", context=context)
-    supported_commands = contract.get("supported_commands")
-    if not isinstance(supported_commands, list) or not supported_commands:
-        raise ValueError(f"{context} 缺少 supported_commands。")
-    command_contracts = contract.get("command_contracts")
-    if not isinstance(command_contracts, list) or not command_contracts:
-        raise ValueError(f"{context} 缺少 command_contracts。")
-    for index, item in enumerate(command_contracts):
-        if not isinstance(item, Mapping):
-            raise ValueError(f"{context}.command_contracts[{index}] 必须是 mapping。")
-        _require_nonempty_string_from_mapping(
-            item,
-            "command",
-            context=f"{context}.command_contracts[{index}]",
-        )
-        for field_name in ("required_fields", "optional_fields"):
-            value = item.get(field_name)
-            if not isinstance(value, list):
-                raise ValueError(f"{context}.command_contracts[{index}].{field_name} 必须是 list。")
+    _validate_shared_family_domain_entry_contract(contract, context)
 
 
 def _validate_gateway_interaction_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
-    if not isinstance(contract, Mapping):
-        raise ValueError(f"{context} 必须是 mapping。")
-    _require_nonempty_string_from_mapping(contract, "surface_kind", context=context)
-    _require_nonempty_string_from_mapping(contract, "frontdoor_owner", context=context)
-    _require_nonempty_string_from_mapping(contract, "user_interaction_mode", context=context)
-    if not isinstance(contract.get("user_commands_required"), bool):
-        raise ValueError(f"{context}.user_commands_required 必须是 bool。")
-    if not isinstance(contract.get("command_surfaces_for_agent_consumption_only"), bool):
-        raise ValueError(f"{context}.command_surfaces_for_agent_consumption_only 必须是 bool。")
-    _require_nonempty_string_from_mapping(contract, "shared_downstream_entry", context=context)
-    shared_handoff_envelope = contract.get("shared_handoff_envelope")
-    if not isinstance(shared_handoff_envelope, list) or not shared_handoff_envelope:
-        raise ValueError(f"{context}.shared_handoff_envelope 必须是非空 list。")
+    _validate_shared_gateway_interaction_contract(contract, context)
 
 
 def _validate_surface_kind_mapping(

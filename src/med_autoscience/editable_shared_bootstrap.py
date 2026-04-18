@@ -51,21 +51,31 @@ def _prepend_path(candidate_root: Path) -> bool:
     return True
 
 
+def _prefer_existing_package_path(candidate_root: Path) -> None:
+    package = sys.modules.get(_SHARED_PACKAGE_NAME)
+    if package is None or not hasattr(package, "__path__"):
+        return
+    package_root = str(candidate_root / _SHARED_PACKAGE_NAME)
+    existing = [entry for entry in package.__path__ if entry != package_root]
+    package.__path__[:] = [package_root, *existing]
+
+
 def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     added_paths: list[Path] = []
+    for candidate_root in _candidate_shared_src_roots():
+        if not (candidate_root / _SHARED_PACKAGE_NAME).exists():
+            continue
+        inserted = _prepend_path(candidate_root)
+        _prefer_existing_package_path(candidate_root)
+        if _module_spec(_SHARED_PACKAGE_NAME) is not None:
+            if inserted:
+                added_paths.append(candidate_root)
+            return tuple(added_paths)
+
     for candidate_root in _candidate_repo_site_packages_roots():
         if _prepend_path(candidate_root):
             added_paths.append(candidate_root)
 
     if _module_spec(_SHARED_PACKAGE_NAME) is not None:
         return tuple(added_paths)
-
-    for candidate_root in _candidate_shared_src_roots():
-        if not (candidate_root / _SHARED_PACKAGE_NAME).exists():
-            continue
-        inserted = _prepend_path(candidate_root)
-        if _module_spec(_SHARED_PACKAGE_NAME) is not None:
-            if inserted:
-                added_paths.append(candidate_root)
-            return tuple(added_paths)
     return tuple(added_paths)
