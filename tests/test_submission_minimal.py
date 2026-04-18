@@ -397,6 +397,7 @@ Discussion paragraph.
 
 def make_materialized_submission_source_workspace(tmp_path: Path) -> Path:
     paper_root = make_current_draft_workspace(tmp_path)
+    write_png(paper_root / "submission_minimal" / "figures" / "F1.png")
 
     write_text(
         paper_root / "submission_minimal" / "manuscript_source.md",
@@ -430,7 +431,7 @@ Materialized conclusion paragraph.
 
 ### F1. Main figure
 
-![](../figures/F1_main.png)
+![F1](figures/F1.png)
 
 Materialized figure caption.
 """,
@@ -1143,11 +1144,12 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     )
 
     submission_root = paper_root / "submission_minimal"
+    assert (submission_root / "manuscript_source.md").exists()
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert 'title: "Materialized Submission Title"' in submission_markdown
     assert "# Figures" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "![F1](figures/Figure1.png)" in submission_markdown
     assert "Materialized figure caption." in submission_markdown
     assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
 

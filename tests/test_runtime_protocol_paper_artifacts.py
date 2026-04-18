@@ -125,6 +125,54 @@ def test_resolve_submission_minimal_output_paths_from_manifest(tmp_path: Path) -
     assert pdf_path == pdf
 
 
+def test_resolve_submission_minimal_paths_follow_authoritative_projected_paper_line(tmp_path: Path) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    submission_manifest_path = worktree_paper_root / "submission_minimal" / "submission_manifest.json"
+    docx = worktree_paper_root / "submission_minimal" / "manuscript.docx"
+    pdf = worktree_paper_root / "submission_minimal" / "paper.pdf"
+
+    dump_json(
+        projected_manifest,
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/run-1",
+        },
+    )
+    dump_json(
+        quest_root / "paper" / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/run-1",
+            "paper_root": str(worktree_paper_root),
+        },
+    )
+    dump_json(
+        submission_manifest_path,
+        {
+            "schema_version": 1,
+            "manuscript": {
+                "docx_path": "paper/submission_minimal/manuscript.docx",
+                "pdf_path": "paper/submission_minimal/paper.pdf",
+            },
+        },
+    )
+    docx.parent.mkdir(parents=True, exist_ok=True)
+    docx.write_text("docx", encoding="utf-8")
+    pdf.write_text("%PDF", encoding="utf-8")
+
+    resolved_submission = resolve_submission_minimal_manifest(projected_manifest)
+    docx_path, pdf_path = resolve_submission_minimal_output_paths(
+        paper_bundle_manifest_path=projected_manifest,
+        submission_minimal_manifest=json.loads(submission_manifest_path.read_text(encoding="utf-8")),
+    )
+
+    assert resolved_submission == submission_manifest_path
+    assert docx_path == docx
+    assert pdf_path == pdf
+
+
 def test_submission_surface_resolution_distinguishes_managed_and_unmanaged_roots(tmp_path: Path) -> None:
     paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
     (paper_root / "submission_minimal").mkdir(parents=True, exist_ok=True)

@@ -528,7 +528,11 @@ def export_docx(
     reference_doc_path: Path | None = None,
 ) -> None:
     output_docx_path.parent.mkdir(parents=True, exist_ok=True)
-    resource_path = os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve())
+    resource_candidates = [
+        ".",
+        os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve()),
+    ]
+    resource_path = os.pathsep.join(dict.fromkeys(resource_candidates))
     command = [
         "pandoc",
         compiled_markdown_path.name,
@@ -562,7 +566,11 @@ def export_pdf(
     csl_path: Path,
 ) -> None:
     output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    resource_path = os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve())
+    resource_candidates = [
+        ".",
+        os.path.relpath(paper_root.resolve(), compiled_markdown_path.parent.resolve()),
+    ]
+    resource_path = os.pathsep.join(dict.fromkeys(resource_candidates))
     subprocess.run(
         [
             "pandoc",
@@ -910,8 +918,39 @@ def build_figure_legend_blocks(
     return figure_legend_blocks
 
 
+def is_markdown_image_line(line: str) -> bool:
+    return bool(re.match(r"!\[[^\]]*]\([^)]+\)\s*$", line.strip()))
+
+
 def extract_image_lines(text: str) -> list[str]:
-    return [line.strip() for line in text.splitlines() if line.strip().startswith("![](")]
+    return [line.strip() for line in text.splitlines() if is_markdown_image_line(line)]
+
+
+def rewrite_submission_surface_image_lines(*, image_lines: list[str], figure_id: str | None) -> list[str]:
+    normalized_figure_id = str(figure_id or "").strip()
+    if not normalized_figure_id:
+        return image_lines
+
+    figure_aliases = figure_id_aliases(normalized_figure_id)
+    target_basename = build_figure_basename(normalized_figure_id)
+    image_pattern = re.compile(r"(!\[[^\]]*]\()([^)]+)(\))")
+    rewritten_lines: list[str] = []
+
+    for line in image_lines:
+        def replace(match: re.Match[str]) -> str:
+            raw_path = match.group(2).strip()
+            if raw_path.startswith(("http://", "https://", "/", "../")):
+                return match.group(0)
+            if "figures/" not in raw_path and not raw_path.startswith("figures"):
+                return match.group(0)
+            path_obj = Path(raw_path)
+            if path_obj.stem not in figure_aliases:
+                return match.group(0)
+            rewritten_path = path_obj.with_name(f"{target_basename}{path_obj.suffix}").as_posix()
+            return f"{match.group(1)}{rewritten_path}{match.group(3)}"
+
+        rewritten_lines.append(image_pattern.sub(replace, line))
+    return rewritten_lines
 
 
 def build_submission_figure_blocks(
@@ -922,7 +961,10 @@ def build_submission_figure_blocks(
     figure_blocks: list[str] = []
     for heading, block_body in extract_main_figure_blocks(main_figures):
         figure_id = parse_figure_id_from_heading(heading)
-        image_lines = extract_image_lines(block_body)
+        image_lines = rewrite_submission_surface_image_lines(
+            image_lines=extract_image_lines(block_body),
+            figure_id=figure_id,
+        )
         legend = merge_legend_with_figure_semantics(
             base_legend=strip_image_lines(block_body),
             figure_semantics=figure_semantics_map.get(figure_id or ""),
@@ -947,7 +989,7 @@ def build_table_blocks(*, main_tables: str) -> list[str]:
 
 
 def strip_image_lines(text: str) -> str:
-    cleaned_lines = [line for line in text.splitlines() if not line.strip().startswith("![](")]
+    cleaned_lines = [line for line in text.splitlines() if not is_markdown_image_line(line)]
     return "\n".join(cleaned_lines).strip()
 
 
@@ -1481,10 +1523,17 @@ def create_submission_minimal_package(
         raise FileNotFoundError(f"missing compiled pdf: {compiled_pdf_path}")
 
     compiled_markdown_text = compiled_markdown_path.read_text(encoding="utf-8")
+    preserved_compiled_markdown_rel: Path | None = None
+    try:
+        preserved_compiled_markdown_rel = compiled_markdown_path.relative_to(submission_root)
+    except ValueError:
+        preserved_compiled_markdown_rel = None
 
     if submission_root.exists():
         shutil.rmtree(submission_root)
     submission_root.mkdir(parents=True, exist_ok=True)
+    if preserved_compiled_markdown_rel is not None:
+        write_text(submission_root / preserved_compiled_markdown_rel, compiled_markdown_text)
     readme_path = submission_root / "README.md"
     output_docx_path = submission_root / "manuscript.docx"
     output_pdf_path = submission_root / "paper.pdf"
@@ -1511,28 +1560,6 @@ def create_submission_minimal_package(
             compiled_markdown_text=compiled_markdown_text,
         )
         supplementary_output_docx_path = submission_root / str(profile_config.supplementary_docx_name)
-
-    export_docx(
-        compiled_markdown_path=source_markdown_path,
-        paper_root=paper_root,
-        output_docx_path=output_docx_path,
-        csl_path=profile_config.csl_path,
-        reference_doc_path=profile_config.reference_doc_path,
-    )
-    export_pdf(
-        compiled_markdown_path=source_markdown_path,
-        paper_root=paper_root,
-        output_pdf_path=output_pdf_path,
-        csl_path=profile_config.csl_path,
-    )
-    if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
-        export_docx(
-            compiled_markdown_path=supplementary_source_markdown_path,
-            paper_root=paper_root,
-            output_docx_path=supplementary_output_docx_path,
-            csl_path=profile_config.csl_path,
-            reference_doc_path=profile_config.supplementary_reference_doc_path,
-        )
 
     figure_entries: list[dict[str, Any]] = []
     figure_naming_map: dict[str, str] = {}
@@ -1612,6 +1639,28 @@ def create_submission_minimal_package(
             pack_summary_by_id=pack_summary_by_id,
         )
         table_entries.append(table_entry)
+
+    export_docx(
+        compiled_markdown_path=source_markdown_path,
+        paper_root=paper_root,
+        output_docx_path=output_docx_path,
+        csl_path=profile_config.csl_path,
+        reference_doc_path=profile_config.reference_doc_path,
+    )
+    export_pdf(
+        compiled_markdown_path=source_markdown_path,
+        paper_root=paper_root,
+        output_pdf_path=output_pdf_path,
+        csl_path=profile_config.csl_path,
+    )
+    if supplementary_source_markdown_path is not None and supplementary_output_docx_path is not None:
+        export_docx(
+            compiled_markdown_path=supplementary_source_markdown_path,
+            paper_root=paper_root,
+            output_docx_path=supplementary_output_docx_path,
+            csl_path=profile_config.csl_path,
+            reference_doc_path=profile_config.supplementary_reference_doc_path,
+        )
 
     pruned_legacy_paths = prune_legacy_paper_surface_exports(
         paper_root=paper_root,
