@@ -72,6 +72,21 @@ def test_resolve_paper_bundle_manifest_prefers_paper_worktree_over_newer_analysi
     assert resolved_bundle == paper_manifest
 
 
+def test_resolve_paper_bundle_manifest_prefers_runtime_worktree_over_newer_projected_mirror(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_manifest = quest_root / ".ds" / "worktrees" / "paper-run-2" / "paper" / "paper_bundle_manifest.json"
+    projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
+    dump_json(worktree_manifest, {"schema_version": 1, "paper_branch": "paper/run-2"})
+    time.sleep(0.01)
+    dump_json(projected_manifest, {"schema_version": 1, "paper_branch": "paper/run-legacy"})
+
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+
+    assert resolved_bundle == worktree_manifest
+
+
 def test_resolve_artifact_manifest_from_main_result_evidence_paths(tmp_path: Path) -> None:
     worktree_root = tmp_path / "worktree"
     manifest = worktree_root / "artifacts" / "artifact_manifest.json"

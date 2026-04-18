@@ -13,6 +13,14 @@ def _resolve_path(path: Path) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def _load_json_mapping(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 ARCHIVED_REFERENCE_ONLY_SURFACE_STATUS = "archived_reference_only"
 SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = frozenset(
     {
@@ -43,6 +51,33 @@ def resolve_latest_paper_root(quest_root: Path) -> Path:
     return latest_manifest.parent
 
 
+def _projected_manifest_has_authoritative_paper_line(quest_root: Path, manifest_path: Path) -> bool:
+    projected_root = _resolve_path(quest_root) / "paper"
+    projected_manifest_path = projected_root / "paper_bundle_manifest.json"
+    if _resolve_path(manifest_path) != projected_manifest_path:
+        return False
+    manifest_payload = _load_json_mapping(projected_manifest_path)
+    paper_line_state = _load_json_mapping(projected_root / "paper_line_state.json")
+    if manifest_payload is None or paper_line_state is None:
+        return False
+    manifest_branch = str(manifest_payload.get("paper_branch") or "").strip()
+    line_branch = str(paper_line_state.get("paper_branch") or "").strip()
+    if not manifest_branch or not line_branch or manifest_branch != line_branch:
+        return False
+    paper_root_raw = str(paper_line_state.get("paper_root") or "").strip()
+    if not paper_root_raw:
+        return False
+    candidate = Path(paper_root_raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = (projected_root.parent / candidate).resolve()
+    else:
+        candidate = candidate.resolve()
+    if not candidate.exists() or candidate.name != "paper":
+        return False
+    worktree_root = candidate.parent
+    return worktree_root.parent.name == "worktrees" and worktree_root.parent.parent.name == ".ds"
+
+
 def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[int, float]:
     resolved_manifest = _resolve_path(manifest_path)
     try:
@@ -50,11 +85,13 @@ def _paper_bundle_manifest_rank(quest_root: Path, manifest_path: Path) -> tuple[
     except ValueError:
         relative_parts = resolved_manifest.parts
     if relative_parts == ("paper", "paper_bundle_manifest.json"):
-        return (2, resolved_manifest.stat().st_mtime)
+        if _projected_manifest_has_authoritative_paper_line(quest_root, resolved_manifest):
+            return (3, resolved_manifest.stat().st_mtime)
+        return (1, resolved_manifest.stat().st_mtime)
     if len(relative_parts) >= 4 and relative_parts[:2] == (".ds", "worktrees"):
         worktree_name = relative_parts[2]
         if worktree_name.startswith("paper-"):
-            return (1, resolved_manifest.stat().st_mtime)
+            return (2, resolved_manifest.stat().st_mtime)
     return (0, resolved_manifest.stat().st_mtime)
 
 

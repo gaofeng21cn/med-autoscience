@@ -1435,6 +1435,78 @@ def test_build_gate_report_ignores_newer_surface_report_from_other_paper_line(tm
     )
 
 
+def test_build_gate_report_prefers_runtime_paper_worktree_over_stale_projected_mirror(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    current_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    idea_worktree_root = quest_root / ".ds" / "worktrees" / "idea-run-1"
+
+    dump_json(
+        quest_root / ".ds" / "worktrees" / "paper-run-1" / "experiments" / "main" / "run-1" / "RESULT.json",
+        {
+            "quest_id": "002-early-residual-risk",
+            "run_id": "run-1",
+            "worktree_root": str(idea_worktree_root),
+            "metric_contract": {
+                "required_non_scalar_deliverables": [],
+            },
+            "metrics_summary": {
+                "roc_auc": 0.81,
+            },
+            "baseline_comparisons": {"items": []},
+            "results_summary": "summary",
+            "conclusion": "conclusion",
+        },
+    )
+    dump_json(
+        current_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(current_paper_root.resolve()),
+            "paper_branch": "paper/run-1",
+        },
+    )
+    dump_json(
+        projected_paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/stale-mirror",
+            "compile_report_path": "paper/build/compile_report.json",
+        },
+    )
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(projected_paper_root.resolve()),
+            "paper_branch": "paper/stale-mirror",
+        },
+    )
+    dump_json(
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:32Z.json",
+        {
+            "paper_root": str(projected_paper_root.resolve()),
+            "status": "blocked",
+            "blockers": ["forbidden_manuscript_terms_present"],
+        },
+    )
+    dump_json(
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "2026-04-05T15:29:33Z.json",
+        {
+            "paper_root": str(current_paper_root.resolve()),
+            "status": "clear",
+            "blockers": [],
+        },
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert state.paper_bundle_manifest_path == current_paper_root / "paper_bundle_manifest.json"
+    assert report["paper_root"] == str(current_paper_root.resolve())
+    assert report["medical_publication_surface_status"] == "clear"
+    assert "medical_publication_surface_blocked" not in report["blockers"]
+
+
 def test_build_gate_report_allows_clinical_cohort_wording_without_internal_labels(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(
