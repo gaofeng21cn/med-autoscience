@@ -51,6 +51,8 @@ __all__ = [
     "_run_runtime_preflight",
 ]
 
+_LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD = 3
+
 
 def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
@@ -140,6 +142,30 @@ def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRu
     if str(payload.get("status") or "").strip().lower() != StudyRuntimeAuditStatus.LIVE.value:
         return False
     return isinstance(runtime_audit, dict) and runtime_audit.get("worker_running") is True
+
+
+def _should_force_restart_for_live_controller_reroute(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> bool:
+    if not _should_skip_redundant_resume_for_live_controller_reroute(status=status):
+        return False
+    publication_supervisor_state = status.extras.get("publication_supervisor_state")
+    if not isinstance(publication_supervisor_state, dict):
+        return False
+    current_required_action = str(publication_supervisor_state.get("current_required_action") or "").strip()
+    if current_required_action != "return_to_publishability_gate":
+        return False
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        return False
+    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip()
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip()
+    if continuation_anchor != "decision" or not continuation_reason.startswith("decision:"):
+        return False
+    same_fingerprint_auto_turn_count = int(runtime_state.get("same_fingerprint_auto_turn_count") or 0)
+    return same_fingerprint_auto_turn_count >= _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD
 
 
 @dataclass(frozen=True)
@@ -662,8 +688,30 @@ def _execute_resume_runtime_decision(
             )
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             return outcome
+    force_live_controller_reroute_restart = _should_force_restart_for_live_controller_reroute(
+        status=status,
+        context=context,
+    )
+    if force_live_controller_reroute_restart:
+        pause_result = router._pause_quest(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+            source=context.source,
+            runtime_backend=context.runtime_backend,
+        )
+        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
+        status.update_quest_runtime(
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+        )
+        status.extras["controller_reroute_restart"] = {
+            "forced": True,
+            "threshold": _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD,
+            "same_fingerprint_auto_turn_count": int(
+                quest_state.load_runtime_state(context.quest_root).get("same_fingerprint_auto_turn_count") or 0
+            ),
+        }
     _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
-    if _should_skip_redundant_resume_for_live_controller_reroute(status=status):
+    if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
         return outcome
     try:
