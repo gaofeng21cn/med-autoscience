@@ -51,6 +51,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
     "baseline_missingness_qc_panel_inputs_v1": "baseline_missingness_qc_panel.json",
     "center_coverage_batch_transportability_panel_inputs_v1": "center_coverage_batch_transportability_panel.json",
+    "transportability_recalibration_governance_panel_inputs_v1": "transportability_recalibration_governance_panel.json",
 }
 
 

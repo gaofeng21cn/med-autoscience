@@ -76,6 +76,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("design_evidence_composite_shell"),
         _full_id("baseline_missingness_qc_panel"),
         _full_id("center_coverage_batch_transportability_panel"),
+        _full_id("transportability_recalibration_governance_panel"),
     }
     assert {item.shell_id for item in table_specs} >= {
         _full_id("table1_baseline_characteristics"),
@@ -409,6 +410,15 @@ def test_center_coverage_batch_transportability_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "center_coverage_batch_transportability_panel_inputs_v1"
     assert spec.shell_qc_profile == "publication_center_coverage_batch_transportability_panel"
+
+
+def test_transportability_recalibration_governance_panel_is_registered() -> None:
+    spec = display_registry.get_illustration_shell_spec(_full_id("transportability_recalibration_governance_panel"))
+
+    assert spec.paper_family_ids == ("H",)
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "transportability_recalibration_governance_panel_inputs_v1"
+    assert spec.shell_qc_profile == "publication_transportability_recalibration_governance_panel"
 
 
 def test_registry_exposes_pack_manifest_paper_proven_truth() -> None:

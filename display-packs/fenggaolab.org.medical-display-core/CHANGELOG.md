@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `transportability_recalibration_governance_panel` as the next audited `H` center-coverage / transportability recalibration-governance illustration shell in the core display pack.
+- Lock its pack-facing contract to `transportability_recalibration_governance_panel_inputs_v1`, `publication_transportability_recalibration_governance_panel`, and the Python bounded center-coverage / batch-grid / recalibration-governance renderer path.
+
 - Add `coefficient_path_panel` as the next audited `C/H` coefficient-stability follow-on in the core display pack.
 - Lock its pack-facing contract to `coefficient_path_panel_inputs_v1`, `publication_coefficient_path_panel`, and the Python bounded coefficient-path plus stability-summary renderer path.
 

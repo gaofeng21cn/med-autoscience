@@ -138,6 +138,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::design_evidence_composite_shell` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Design Evidence Composite Shell | `python` | `design_evidence_composite_shell_inputs_v1` | `publication_design_evidence_composite_shell` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::baseline_missingness_qc_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Baseline Missingness QC Panel | `python` | `baseline_missingness_qc_panel_inputs_v1` | `publication_baseline_missingness_qc_panel` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::center_coverage_batch_transportability_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Center Coverage Batch Transportability Panel | `python` | `center_coverage_batch_transportability_panel_inputs_v1` | `publication_center_coverage_batch_transportability_panel` | `png`, `svg` |
+| `fenggaolab.org.medical-display-core::transportability_recalibration_governance_panel` | `illustration_shell` | `H. Cohort and Study Design Evidence` | Transportability Recalibration Governance Panel | `python` | `transportability_recalibration_governance_panel_inputs_v1` | `publication_transportability_recalibration_governance_panel` | `png`, `svg` |
 | `fenggaolab.org.medical-display-core::table1_baseline_characteristics` | `table_shell` | `H. Cohort and Study Design Evidence` | Table 1 Baseline Characteristics | `n/a` | `baseline_characteristics_schema_v1` | `publication_table_baseline` | `csv`, `md` |
 | `fenggaolab.org.medical-display-core::table2_time_to_event_performance_summary` | `table_shell` | `A. Predictive Performance and Decision`, `B. Survival and Time-to-Event` | Table 2 Time-to-Event Performance Summary | `n/a` | `time_to_event_performance_summary_v1` | `publication_table_performance` | `md` |
 | `fenggaolab.org.medical-display-core::table3_clinical_interpretation_summary` | `table_shell` | `A. Predictive Performance and Decision`, `H. Cohort and Study Design Evidence` | Table 3 Clinical Interpretation Summary | `n/a` | `clinical_interpretation_summary_v1` | `publication_table_interpretation` | `md` |
@@ -925,6 +926,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `center_rows_must_be_non_empty`, `center_row_ids_must_be_unique`, `center_row_labels_must_be_unique`, `center_support_counts_must_be_positive_integers`, `center_event_counts_must_be_non_negative_integers`, `center_event_counts_must_not_exceed_support_counts`, `batch_threshold_must_be_positive_finite`, `batch_rows_must_be_non_empty`, `batch_row_labels_must_be_unique`, `batch_columns_must_be_non_empty`, `batch_column_labels_must_be_unique`, `batch_cells_must_be_non_empty`, `batch_cell_values_must_be_probability`, `declared_batch_rows_must_match_cells`, `declared_batch_columns_must_match_cells`, `declared_batch_grid_must_be_complete_and_unique`, `transportability_cards_must_be_non_empty`, `transportability_card_ids_must_be_unique`
+
+### `transportability_recalibration_governance_panel_inputs_v1`
+
+- Display kind: `illustration_shell`
+- Display name: Transportability Recalibration Governance Panel
+- Templates: `fenggaolab.org.medical-display-core::transportability_recalibration_governance_panel`
+- Required top-level fields: `schema_version`, `shell_id`, `display_id`, `title`, `coverage_panel_title`, `coverage_x_label`, `center_rows`, `batch_panel_title`, `batch_x_label`, `batch_y_label`, `batch_threshold`, `batch_rows`, `batch_columns`, `batch_cells`, `recalibration_panel_title`, `slope_acceptance_lower`, `slope_acceptance_upper`, `oe_ratio_acceptance_lower`, `oe_ratio_acceptance_upper`, `recalibration_rows`
+- Optional top-level fields: `caption`
+- Required display fields: None
+- Optional display fields: None
+- Required collection fields: `center_rows` -> `center_id`, `center_label`, `cohort_role`, `support_count`, `event_count`<br>`batch_rows` -> `label`<br>`batch_columns` -> `label`<br>`batch_cells` -> `x`, `y`, `value`<br>`recalibration_rows` -> `center_id`, `slope`, `oe_ratio`, `action`
+- Optional collection fields: `recalibration_rows` -> `detail`
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `center_rows_must_be_non_empty`, `center_row_ids_must_be_unique`, `center_row_labels_must_be_unique`, `center_support_counts_must_be_positive_integers`, `center_event_counts_must_be_non_negative_integers`, `center_event_counts_must_not_exceed_support_counts`, `batch_threshold_must_be_positive_finite`, `batch_rows_must_be_non_empty`, `batch_row_labels_must_be_unique`, `batch_columns_must_be_non_empty`, `batch_column_labels_must_be_unique`, `batch_cells_must_be_non_empty`, `batch_cell_values_must_be_probability`, `declared_batch_rows_must_match_cells`, `declared_batch_columns_must_match_cells`, `declared_batch_grid_must_be_complete_and_unique`, `slope_acceptance_band_must_be_positive_finite_and_ordered`, `oe_ratio_acceptance_band_must_be_positive_finite_and_ordered`, `recalibration_rows_must_be_non_empty`, `recalibration_row_center_ids_must_be_unique`, `recalibration_row_center_ids_must_reference_declared_centers`, `recalibration_rows_must_cover_declared_centers`, `recalibration_slopes_must_be_positive_finite`, `recalibration_oe_ratios_must_be_positive_finite`
 
 ### `baseline_characteristics_schema_v1`
 
