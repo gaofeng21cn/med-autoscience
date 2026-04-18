@@ -659,6 +659,57 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     if suffix == ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"):
         if "runtime remove-supervision" not in existing_content:
             return "legacy_watch_runtime_service_uninstall"
+    if suffix == ("ops", "medautoscience", "bin", "bootstrap"):
+        if "workspace bootstrap" not in existing_content and "run_medautosci bootstrap" in existing_content:
+            return "legacy_workspace_bootstrap_entry"
+    if suffix == ("ops", "medautoscience", "bin", "show-profile"):
+        if "doctor profile" not in existing_content and "run_medautosci show-profile" in existing_content:
+            return "legacy_show_profile_entry"
+    if suffix == ("ops", "medautoscience", "bin", "enter-study"):
+        if "study ensure-runtime" not in existing_content and "run_medautosci ensure-study-runtime" in existing_content:
+            return "legacy_enter_study_entry"
+    if suffix == ("ops", "medautoscience", "bin", "publication-gate"):
+        if "publication gate" not in existing_content and "run_medautosci publication-gate" in existing_content:
+            return "legacy_publication_gate_entry"
+    if suffix == ("ops", "medautoscience", "bin", "medical-surface"):
+        if "publication surface" not in existing_content and "run_medautosci medical-publication-surface" in existing_content:
+            return "legacy_publication_surface_entry"
+    if suffix == ("ops", "medautoscience", "bin", "figure-loop-guard"):
+        if "publication figure-loop-guard" not in existing_content and "run_medautosci figure-loop-guard" in existing_content:
+            return "legacy_figure_loop_guard_entry"
+    if suffix == ("ops", "medautoscience", "bin", "resolve-submission-targets"):
+        if "publication resolve-targets" not in existing_content and "run_medautosci resolve-submission-targets" in existing_content:
+            return "legacy_resolve_submission_targets_entry"
+    if suffix == ("ops", "medautoscience", "bin", "resolve-journal-shortlist"):
+        if "publication resolve-journal-shortlist" not in existing_content and "run_medautosci resolve-journal-shortlist" in existing_content:
+            return "legacy_resolve_journal_shortlist_entry"
+    if suffix == ("ops", "medautoscience", "bin", "init-portfolio-memory"):
+        if "data init-memory" not in existing_content and "run_medautosci init-portfolio-memory" in existing_content:
+            return "legacy_init_portfolio_memory_entry"
+    if suffix == ("ops", "medautoscience", "bin", "portfolio-memory-status"):
+        if "data memory-status" not in existing_content and "run_medautosci portfolio-memory-status" in existing_content:
+            return "legacy_portfolio_memory_status_entry"
+    if suffix == ("ops", "medautoscience", "bin", "init-workspace-literature"):
+        if "data init-literature" not in existing_content and "run_medautosci init-workspace-literature" in existing_content:
+            return "legacy_init_workspace_literature_entry"
+    if suffix == ("ops", "medautoscience", "bin", "workspace-literature-status"):
+        if "data literature-status" not in existing_content and "run_medautosci workspace-literature-status" in existing_content:
+            return "legacy_workspace_literature_status_entry"
+    if suffix == ("ops", "medautoscience", "bin", "prepare-external-research"):
+        if (
+            "data prepare-external-research" not in existing_content
+            and "run_medautosci prepare-external-research" in existing_content
+        ):
+            return "legacy_prepare_external_research_entry"
+    if suffix == ("ops", "medautoscience", "bin", "external-research-status"):
+        if "data external-research-status" not in existing_content and "run_medautosci external-research-status" in existing_content:
+            return "legacy_external_research_status_entry"
+    if suffix == ("ops", "medautoscience", "bin", "export-submission"):
+        if "publication export-targets" not in existing_content and "run_medautosci export-submission-targets" in existing_content:
+            return "legacy_export_submission_targets_entry"
+    if suffix == ("ops", "medautoscience", "bin", "sync-delivery"):
+        if "study delivery-sync" not in existing_content and "run_medautosci sync-study-delivery" in existing_content:
+            return "legacy_sync_study_delivery_entry"
     return None
 
 
@@ -846,17 +897,17 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap",
-            content=_render_forward_script("bootstrap", with_profile=True),
+            content=_render_forward_script("workspace bootstrap", with_profile=True),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "show-profile",
-            content=_render_forward_script("show-profile", with_profile=True),
+            content=_render_forward_script("doctor profile", with_profile=True),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "enter-study",
-            content=_render_forward_script("ensure-study-runtime", with_profile=True),
+            content=_render_forward_script("study ensure-runtime", with_profile=True),
             executable=True,
         ),
         RenderedFile(
@@ -886,67 +937,67 @@ def _rendered_files(
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate",
-            content=_render_forward_script("publication-gate"),
+            content=_render_forward_script("publication gate"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "medical-surface",
-            content=_render_forward_script("medical-publication-surface"),
+            content=_render_forward_script("publication surface"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "figure-loop-guard",
-            content=_render_forward_script("figure-loop-guard"),
+            content=_render_forward_script("publication figure-loop-guard"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "resolve-submission-targets",
-            content=_render_profile_optional_forward_script("resolve-submission-targets"),
+            content=_render_profile_optional_forward_script("publication resolve-targets"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist",
-            content=_render_forward_script("resolve-journal-shortlist"),
+            content=_render_forward_script("publication resolve-journal-shortlist"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory",
-            content=_render_forward_script("init-portfolio-memory"),
+            content=_render_forward_script("data init-memory"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status",
-            content=_render_forward_script("portfolio-memory-status"),
+            content=_render_forward_script("data memory-status"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "init-workspace-literature",
-            content=_render_forward_script("init-workspace-literature"),
+            content=_render_forward_script("data init-literature"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "workspace-literature-status",
-            content=_render_forward_script("workspace-literature-status"),
+            content=_render_forward_script("data literature-status"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research",
-            content=_render_forward_script("prepare-external-research"),
+            content=_render_forward_script("data prepare-external-research"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status",
-            content=_render_forward_script("external-research-status"),
+            content=_render_forward_script("data external-research-status"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "export-submission",
-            content=_render_profile_optional_forward_script("export-submission-targets"),
+            content=_render_profile_optional_forward_script("publication export-targets"),
             executable=True,
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "sync-delivery",
-            content=_render_forward_script("sync-study-delivery"),
+            content=_render_forward_script("study delivery-sync"),
             executable=True,
         ),
         RenderedFile(
