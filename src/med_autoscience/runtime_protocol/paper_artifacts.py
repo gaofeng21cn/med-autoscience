@@ -19,6 +19,7 @@ def _load_json_mapping(path: Path) -> dict[str, Any] | None:
 
 
 ARCHIVED_REFERENCE_ONLY_SURFACE_STATUS = "archived_reference_only"
+ARCHIVED_REFERENCE_ONLY_ARCHIVE_REASON = "Retained only as a historical journal-target package."
 SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = frozenset(
     {
         "author_metadata",
@@ -254,6 +255,91 @@ def is_archived_reference_only_submission_surface_manifest(
     if not is_supported_publication_profile(active_publication_profile):
         return False
     return active_manifest_path.parent.resolve() != _resolve_path(surface_root)
+
+
+def _workspace_relative_manifest_path(*, paper_root: Path, manifest_path: Path) -> str:
+    resolved_paper_root = _resolve_path(paper_root)
+    resolved_manifest_path = _resolve_path(manifest_path)
+    try:
+        return resolved_manifest_path.relative_to(resolved_paper_root.parent).as_posix()
+    except ValueError:
+        return str(resolved_manifest_path)
+
+
+def _iter_legacy_submission_surface_roots(paper_root: Path) -> tuple[Path, ...]:
+    resolved_paper_root = _resolve_path(paper_root)
+    if not resolved_paper_root.exists():
+        return tuple()
+
+    roots: list[Path] = []
+    for candidate in sorted(resolved_paper_root.iterdir()):
+        if candidate.is_dir() and candidate.name.startswith("submission_") and candidate.name != "submission_minimal":
+            roots.append(candidate.resolve())
+
+    journal_submissions_root = resolved_paper_root / "journal_submissions"
+    if journal_submissions_root.is_dir():
+        for candidate in sorted(journal_submissions_root.iterdir()):
+            if not candidate.is_dir():
+                continue
+            normalized_profile = normalize_publication_profile(candidate.name)
+            if not is_supported_publication_profile(normalized_profile):
+                roots.append(candidate.resolve())
+    return tuple(roots)
+
+
+def materialize_archived_reference_only_submission_surface_manifests(
+    paper_root: Path,
+    *,
+    active_manifest_path: Path | None = None,
+) -> tuple[Path, ...]:
+    resolved_paper_root = _resolve_path(paper_root)
+    if not resolved_paper_root.exists():
+        return tuple()
+
+    managed_manifest_paths = set(resolve_managed_submission_manifest_paths(resolved_paper_root))
+    if not managed_manifest_paths:
+        return tuple()
+
+    if active_manifest_path is None:
+        preferred_manifest_path = (resolved_paper_root / "submission_minimal" / "submission_manifest.json").resolve()
+        resolved_active_manifest_path = (
+            preferred_manifest_path if preferred_manifest_path in managed_manifest_paths else sorted(managed_manifest_paths)[0]
+        )
+    else:
+        resolved_active_manifest_path = _resolve_path(active_manifest_path)
+
+    if resolved_active_manifest_path not in managed_manifest_paths:
+        return tuple()
+
+    active_manifest = load_submission_surface_manifest(resolved_active_manifest_path.parent)
+    if not isinstance(active_manifest, dict):
+        return tuple()
+    active_publication_profile = str(active_manifest.get("publication_profile") or "").strip()
+    if not is_supported_publication_profile(active_publication_profile):
+        return tuple()
+
+    archive_manifest = {
+        "schema_version": 1,
+        "surface_status": ARCHIVED_REFERENCE_ONLY_SURFACE_STATUS,
+        "archive_reason": ARCHIVED_REFERENCE_ONLY_ARCHIVE_REASON,
+        "active_managed_submission_manifest_path": _workspace_relative_manifest_path(
+            paper_root=resolved_paper_root,
+            manifest_path=resolved_active_manifest_path,
+        ),
+    }
+    materialized_roots: list[Path] = []
+    for surface_root in _iter_legacy_submission_surface_roots(resolved_paper_root):
+        if surface_root == resolved_active_manifest_path.parent.resolve():
+            continue
+        manifest_path = surface_root / "submission_manifest.json"
+        existing_manifest = load_submission_surface_manifest(surface_root)
+        if existing_manifest == archive_manifest:
+            continue
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps(archive_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        materialized_roots.append(surface_root.resolve())
+
+    return tuple(materialized_roots)
 
 
 def resolve_artifact_manifest_from_main_result(main_result: dict[str, Any]) -> Path | None:

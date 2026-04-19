@@ -1797,7 +1797,7 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
             "paper_stage_summary": "投稿打包阶段已放行。",
             "runtime_decision": "noop",
             "runtime_reason": "quest_already_running",
-            "current_blockers": ["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+            "current_blockers": ["论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。"],
             "next_system_action": "旧版 next_system_action 字段",
             "latest_events": [],
             "supervision": {
@@ -1812,14 +1812,14 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
                     "current_stage": "publication_supervision",
                     "recommended_next_stage": "bundle_stage_ready",
                 },
-                current_blockers=["当前论文交付目录与注册/合同约定不一致，需要先修正交付面。"],
+                current_blockers=["论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。"],
                 latest_update="论文主体内容已经完成，当前进入投稿打包收口。",
                 next_step="优先核对 submission package 与 studies 目录中的交付面是否一致。",
             ),
         }
     )
 
-    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in markdown
+    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in markdown
     assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
     assert "旧版阶段摘要字段" not in markdown
     assert "旧版 next_system_action 字段" not in markdown
@@ -2030,7 +2030,7 @@ def test_study_progress_suppresses_conflicting_bundle_ready_runtime_events(monke
     assert all(item["category"] != "runtime_watch" for item in result["latest_events"])
     assert all(item["category"] != "launch_report" for item in result["latest_events"])
     assert "活跃主稿图数量仍低于投稿级下限，当前图证不足以支撑投稿级稿件。" in result["current_blockers"]
-    assert "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in result["current_blockers"]
+    assert "论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in result["current_blockers"]
 
 
 def test_study_progress_does_not_treat_optional_publication_eval_gap_as_quality_blocker(
@@ -2326,5 +2326,5 @@ def test_study_progress_blockers_override_bundle_stage_next_action(monkeypatch, 
     result = module.read_study_progress(profile=profile, study_id="004-invasive-architecture")
 
     assert result["intervention_lane"]["lane_id"] == "quality_floor_blocker"
-    assert "当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in result["current_blockers"]
+    assert "论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in result["current_blockers"]
     assert result["next_system_action"] == "先修正当前质量阻塞，再决定是否继续投稿打包。"

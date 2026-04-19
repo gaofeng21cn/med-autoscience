@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+from textwrap import dedent
 
 
 def dump_json(path: Path, payload: dict) -> None:
@@ -27,13 +28,48 @@ def make_quest(
     paper_line_state: dict[str, object] | None = None,
     figure_catalog: dict[str, object] | None = None,
 ) -> Path:
-    quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
+    quest_id = "002-early-residual-risk"
+    study_id = quest_id
+    quest_root = tmp_path / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+    study_root = tmp_path / "studies" / study_id
+
+    worktree_root.mkdir(parents=True, exist_ok=True)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
+    (study_root / "runtime_binding.yaml").write_text("quest_id: 002-early-residual-risk\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(
+        dedent(
+            """
+            quest_id: 002-early-residual-risk
+            study_id: 002-early-residual-risk
+            """
+        ).lstrip(),
+        encoding="utf-8",
+    )
+    (worktree_root / "quest.yaml").write_text(
+        dedent(
+            """
+            quest_id: 002-early-residual-risk
+            study_id: 002-early-residual-risk
+            """
+        ).lstrip(),
+        encoding="utf-8",
+    )
+    dump_json(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        {
+            "schema_version": 1,
+            "charter_id": "charter::002-early-residual-risk::v1",
+            "study_id": study_id,
+            "publication_objective": "risk stratification external validation",
+        },
+    )
 
     dump_json(
         quest_root / ".ds" / "runtime_state.json",
         {
-            "quest_id": "002-early-residual-risk",
+            "quest_id": quest_id,
             "status": runtime_status,
             "active_run_id": "run-1" if include_main_result else None,
         },
@@ -898,6 +934,126 @@ def test_run_controller_handles_finalize_only_bundle_blockers_without_main_metri
     assert result["intervention_enqueued"] is True
     assert len(queue["pending"]) == 1
     assert "missing_submission_minimal" in queue["pending"][0]["content"]
+
+
+def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+        include_current_medical_publication_surface_report=True,
+    )
+    state = module.build_gate_state(quest_root)
+    assert state.paper_root is not None
+
+    monkeypatch.setattr(
+        module,
+        "build_gate_report",
+        lambda gate_state: {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-18T18:12:13+00:00",
+            "anchor_kind": "paper_bundle",
+            "anchor_path": str(gate_state.paper_root / "paper_bundle_manifest.json"),
+            "quest_id": "002-early-residual-risk",
+            "run_id": "paper-run-1",
+            "main_result_path": None,
+            "paper_root": str(gate_state.paper_root),
+            "compile_report_path": str(gate_state.paper_root / "build" / "compile_report.json"),
+            "latest_gate_path": str(
+                quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+            ),
+            "medical_publication_surface_report_path": str(
+                quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"
+            ),
+            "medical_publication_surface_current": True,
+            "allow_write": True,
+            "recommended_action": "continue_per_gate",
+            "status": "clear",
+            "blockers": [],
+            "write_drift_detected": False,
+            "required_non_scalar_deliverables": [],
+            "present_non_scalar_deliverables": [],
+            "missing_non_scalar_deliverables": [],
+            "paper_bundle_manifest_path": str(gate_state.paper_root / "paper_bundle_manifest.json"),
+            "submission_checklist_path": None,
+            "submission_checklist_present": False,
+            "submission_checklist_overall_status": None,
+            "submission_checklist_handoff_ready": False,
+            "submission_checklist_blocking_items": [],
+            "submission_checklist_unclassified_blocking_items": [],
+            "non_scientific_handoff_gaps": [],
+            "closure_bundle_ready": True,
+            "submission_minimal_manifest_path": str(
+                gate_state.paper_root / "submission_minimal" / "submission_manifest.json"
+            ),
+            "submission_minimal_present": True,
+            "submission_minimal_docx_present": True,
+            "submission_minimal_pdf_present": True,
+            "study_delivery_status": "current",
+            "study_delivery_stale_reason": None,
+            "study_delivery_manifest_path": None,
+            "study_delivery_current_package_root": None,
+            "study_delivery_current_package_zip": None,
+            "study_delivery_missing_source_paths": [],
+            "draft_handoff_delivery_required": False,
+            "draft_handoff_delivery_status": "current",
+            "draft_handoff_delivery_manifest_path": None,
+            "draft_handoff_current_package_root": None,
+            "draft_handoff_current_package_zip": None,
+            "paper_line_open_supplementary_count": 0,
+            "paper_line_recommended_action": "continue_per_gate",
+            "paper_line_blocking_reasons": [],
+            "active_manuscript_figure_count": 5,
+            "submission_grade_min_active_figures": 4,
+            "prebundle_display_floor_pending": False,
+            "prebundle_display_floor_gap": None,
+            "prebundle_display_advisories": [],
+            "medical_publication_surface_status": "clear",
+            "submission_surface_qc_failures": [],
+            "archived_submission_surface_roots": [],
+            "unmanaged_submission_surface_roots": [],
+            "manuscript_terminology_violations": [],
+            "headline_metrics": {},
+            "primary_metric_delta_vs_baseline": None,
+            "results_summary": "bundle-stage work is unlocked and can proceed on the current line",
+            "conclusion": "bundle-stage work is unlocked and can proceed on the current line",
+            "controller_note": "The controller does not decide scientific publishability by itself.",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_write_stage",
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "Publication gate is clear and the current line can continue.",
+        },
+    )
+
+    result = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert result["status"] == "clear"
+    latest_eval_path = (
+        tmp_path
+        / "studies"
+        / "002-early-residual-risk"
+        / "artifacts"
+        / "publication_eval"
+        / "latest.json"
+    )
+    assert latest_eval_path.is_file()
+    payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
+
+    assert payload["emitted_at"] == "2026-04-18T18:12:13+00:00"
+    assert payload["verdict"]["overall_verdict"] == "promising"
+    assert payload["recommended_actions"][0]["action_type"] == "continue_same_line"
+    assert payload["runtime_context_refs"]["main_result_ref"] == str(
+        quest_root / "artifacts" / "results" / "main_result.json"
+    )
 
 
 def test_run_controller_materializes_stale_study_delivery_notice_when_apply_enabled(

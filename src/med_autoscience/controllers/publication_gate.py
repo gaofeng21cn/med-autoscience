@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import import_module
 import json
 import re
 from dataclasses import dataclass
@@ -10,7 +11,12 @@ from typing import Any
 
 from med_autoscience.controllers import study_delivery_sync, submission_minimal
 from med_autoscience.policies import publication_gate as publication_gate_policy
-from med_autoscience.runtime_protocol import paper_artifacts, quest_state, user_message
+from med_autoscience.runtime_protocol import (
+    paper_artifacts,
+    quest_state,
+    resolve_paper_root_context,
+    user_message,
+)
 from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
 
 PUBLICATION_SUPERVISOR_KEYS: tuple[str, ...] = (
@@ -1121,6 +1127,27 @@ def write_gate_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Pa
     )
 
 
+def _materialize_publication_eval_latest(
+    *,
+    state: GateState,
+    report: dict[str, Any],
+) -> dict[str, str] | None:
+    if state.paper_root is None:
+        return None
+    try:
+        paper_context = resolve_paper_root_context(state.paper_root)
+    except (FileNotFoundError, ValueError):
+        return None
+    decision_module = import_module("med_autoscience.controllers.study_runtime_decision")
+    return decision_module._materialize_publication_eval_from_gate_report(
+        study_root=paper_context.study_root,
+        study_id=paper_context.study_id,
+        quest_root=state.quest_root,
+        quest_id=paper_context.quest_id,
+        publication_gate_report=report,
+    )
+
+
 def run_controller(
     *,
     quest_root: Path,
@@ -1165,10 +1192,18 @@ def run_controller(
                 paper_root=state.paper_root,
                 stale_reason=stale_reason,
                 missing_source_paths=list(report.get("study_delivery_missing_source_paths") or []),
-            )
+        )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
     json_path, md_path = write_gate_files(quest_root, report)
+    if apply:
+        _materialize_publication_eval_latest(
+            state=state,
+            report={
+                **report,
+                "latest_gate_path": str(json_path),
+            },
+        )
     intervention = None
     if apply and report["blockers"]:
         intervention = user_message.enqueue_user_message(

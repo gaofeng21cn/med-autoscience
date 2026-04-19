@@ -69,6 +69,7 @@ def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
 
 def _overlay_request_kwargs(profile: WorkspaceProfile) -> dict[str, Any]:
     return {
+        "med_deepscientist_repo_root": profile.med_deepscientist_repo_root,
         "skill_ids": profile.medical_overlay_skills,
         "policy_id": profile.research_route_bias_policy,
         "archetype_ids": profile.preferred_study_archetypes,

@@ -887,6 +887,7 @@ def materialize_runtime_medical_overlay(
     quest_root: Path,
     authoritative_root: Path,
     home: Path | None = None,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -902,6 +903,7 @@ def materialize_runtime_medical_overlay(
             quest_root=root,
             home=home,
             authoritative_root=resolved_authoritative_root,
+            med_deepscientist_repo_root=med_deepscientist_repo_root,
             skill_ids=skill_ids,
             policy_id=policy_id,
             archetype_ids=archetype_ids,
@@ -929,6 +931,7 @@ def materialize_runtime_medical_overlay(
 def audit_runtime_medical_overlay(
     *,
     quest_root: Path,
+    med_deepscientist_repo_root: Path | None = None,
     skill_ids: tuple[str, ...] | list[str] | None = None,
     policy_id: str | None = None,
     archetype_ids: tuple[str, ...] | list[str] | None = None,
@@ -941,6 +944,7 @@ def audit_runtime_medical_overlay(
     for root in _runtime_materialization_roots(quest_root=resolved_quest_root):
         status = describe_medical_overlay(
             quest_root=root,
+            med_deepscientist_repo_root=med_deepscientist_repo_root,
             skill_ids=skill_ids,
             policy_id=policy_id,
             archetype_ids=archetype_ids,

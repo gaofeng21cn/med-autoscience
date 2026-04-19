@@ -642,6 +642,27 @@ def test_install_medical_overlay_can_seed_from_authoritative_workspace_overlay(t
     ).exists()
 
 
+def test_materialize_runtime_medical_overlay_can_seed_missing_runtime_overlay_from_repo(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    repo_root = tmp_path / "med-deepscientist"
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    workspace_root = tmp_path / "workspace"
+    write_runtime_skill(repo_root, "write", "runtime write\n")
+    write_runtime_skill(repo_root, "journal-resolution", "runtime journal\n")
+
+    result = module.materialize_runtime_medical_overlay(
+        quest_root=quest_root,
+        authoritative_root=workspace_root,
+        med_deepscientist_repo_root=repo_root,
+        skill_ids=("write",),
+    )
+
+    assert result["materialized_surface_count"] == 1
+    assert (
+        quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write" / ".med_autoscience_overlay.json"
+    ).exists()
+
+
 def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     workspace_root = tmp_path / "workspace"

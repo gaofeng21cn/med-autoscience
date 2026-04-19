@@ -23,6 +23,9 @@ from med_autoscience.publication_profiles import (
     is_frontiers_family_harvard_profile,
     normalize_publication_profile,
 )
+from med_autoscience.runtime_protocol.paper_artifacts import (
+    materialize_archived_reference_only_submission_surface_manifests,
+)
 
 
 STYLES_ROOT = Path(__file__).resolve().parents[1] / "styles"
@@ -749,6 +752,18 @@ def parse_top_level_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def normalize_markdown_heading_key(heading: str) -> str:
+    return re.sub(r"\s+", " ", str(heading or "").strip()).casefold()
+
+
+def extract_top_level_markdown_block(body: str, *headings: str) -> str:
+    heading_keys = {normalize_markdown_heading_key(heading) for heading in headings}
+    for heading, block_body in parse_top_level_blocks(body):
+        if normalize_markdown_heading_key(heading) in heading_keys:
+            return block_body.strip()
+    return ""
+
+
 def parse_second_level_blocks(text: str) -> list[tuple[str, str]]:
     pattern = re.compile(r"(?ms)^## ([^\n]+)\n\n(.*?)(?=^## |\Z)")
     blocks: list[tuple[str, str]] = []
@@ -794,9 +809,15 @@ def parse_figure_id_from_heading(heading: str) -> str | None:
     supplementary_match = re.match(r"^Supplementary Figure S(\d+)\b", heading.strip(), flags=re.IGNORECASE)
     if supplementary_match:
         return f"FS{supplementary_match.group(1)}"
+    supplementary_short_match = re.match(r"^FS(\d+)\b", heading.strip(), flags=re.IGNORECASE)
+    if supplementary_short_match:
+        return f"FS{supplementary_short_match.group(1)}"
     main_match = re.match(r"^Figure (\d+)\b", heading.strip(), flags=re.IGNORECASE)
     if main_match:
         return f"F{main_match.group(1)}"
+    main_short_match = re.match(r"^F(\d+)\b", heading.strip(), flags=re.IGNORECASE)
+    if main_short_match:
+        return f"F{main_short_match.group(1)}"
     return None
 
 
@@ -822,7 +843,7 @@ def normalize_materialized_figure_heading(heading: str) -> str | None:
 
 
 def extract_main_figure_blocks(main_figures: str) -> list[tuple[str, str]]:
-    figure_blocks = parse_heading_blocks(main_figures, "Figure ")
+    figure_blocks = parse_figure_blocks(main_figures)
     if figure_blocks:
         return figure_blocks
 
@@ -832,6 +853,27 @@ def extract_main_figure_blocks(main_figures: str) -> list[tuple[str, str]]:
         if normalized_heading and normalized_heading.lower().startswith("figure "):
             normalized_blocks.append((normalized_heading, block_body))
     return normalized_blocks
+
+
+def parse_figure_blocks(text: str) -> list[tuple[str, str]]:
+    blocks: list[tuple[str, str]] = []
+    for heading, body in parse_second_level_blocks(text):
+        if parse_figure_id_from_heading(heading):
+            blocks.append((heading, body))
+    return blocks
+
+
+def normalize_submission_figure_heading(heading: str) -> str:
+    normalized_heading = str(heading or "").strip()
+    if not normalized_heading:
+        return normalized_heading
+    supplementary_short_match = re.match(r"^FS(\d+)(\b.*)$", normalized_heading, flags=re.IGNORECASE)
+    if supplementary_short_match:
+        return f"Supplementary Figure S{supplementary_short_match.group(1)}{supplementary_short_match.group(2)}"
+    main_short_match = re.match(r"^F(\d+)(\b.*)$", normalized_heading, flags=re.IGNORECASE)
+    if main_short_match:
+        return f"Figure {main_short_match.group(1)}{main_short_match.group(2)}"
+    return normalized_heading
 
 
 def figure_id_aliases(figure_id: str) -> set[str]:
@@ -871,6 +913,97 @@ def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
         for alias in figure_id_aliases(figure_id):
             normalized[alias] = item
     return normalized
+
+
+def _build_catalog_figure_heading(*, figure_id: str, title: str) -> str:
+    normalized_id = str(figure_id or "").strip()
+    normalized_title = str(title or "").strip()
+    match = re.match(r"^F(\d+)$", normalized_id, flags=re.IGNORECASE)
+    if match:
+        heading = f"Figure {match.group(1)}"
+        if normalized_title:
+            return f"{heading}. {normalized_title}"
+        return heading
+    if normalized_title:
+        return normalized_title
+    return normalized_id
+
+
+def _select_submission_markdown_figure_source(entry: dict[str, Any]) -> str:
+    source_paths = resolve_figure_source_paths(entry)
+    if not source_paths:
+        return ""
+    preferred_suffixes = (".png", ".jpg", ".jpeg", ".webp", ".svg", ".pdf")
+    normalized_paths = [str(item).strip() for item in source_paths if str(item).strip()]
+    for suffix in preferred_suffixes:
+        for candidate in normalized_paths:
+            if candidate.lower().endswith(suffix):
+                return candidate
+    return normalized_paths[0] if normalized_paths else ""
+
+
+def build_catalog_backed_main_figures(*, paper_root: Path, submission_root: Path) -> str:
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    if not figure_catalog_path.exists():
+        return ""
+    payload = load_json(figure_catalog_path)
+    figures = payload.get("figures") if isinstance(payload, dict) else None
+    if not isinstance(figures, list):
+        return ""
+
+    workspace_root = paper_root.parent
+    figure_blocks: list[str] = []
+    for entry in figures:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("paper_role") or "").strip().lower() != "main_text":
+            continue
+        figure_id = str(entry.get("figure_id") or "").strip()
+        image_source_rel = _select_submission_markdown_figure_source(entry)
+        if not figure_id or not image_source_rel:
+            continue
+        image_source_path = resolve_relpath(workspace_root, image_source_rel)
+        if not image_source_path.exists():
+            continue
+        image_rel = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
+        heading = _build_catalog_figure_heading(
+            figure_id=figure_id,
+            title=str(entry.get("title") or ""),
+        )
+        legend = str(entry.get("caption") or "").strip()
+        block_parts: list[str] = []
+        if legend:
+            block_parts.append(legend)
+        block_parts.append(f"![]({image_rel})")
+        figure_blocks.append(f"## {heading}\n\n" + "\n\n".join(block_parts))
+    return "\n\n".join(figure_blocks).strip()
+
+
+def build_catalog_backed_submission_figure_image_map(*, paper_root: Path, submission_root: Path) -> dict[str, str]:
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    if not figure_catalog_path.exists():
+        return {}
+    payload = load_json(figure_catalog_path)
+    figures = payload.get("figures") if isinstance(payload, dict) else None
+    if not isinstance(figures, list):
+        return {}
+
+    workspace_root = paper_root.parent
+    image_map: dict[str, str] = {}
+    for entry in figures:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("paper_role") or "").strip().lower() != "main_text":
+            continue
+        figure_id = str(entry.get("figure_id") or "").strip()
+        image_source_rel = _select_submission_markdown_figure_source(entry)
+        if not figure_id or not image_source_rel:
+            continue
+        image_source_path = resolve_relpath(workspace_root, image_source_rel)
+        if not image_source_path.exists():
+            continue
+        image_map[figure_id] = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
+    return image_map
 
 
 def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: dict[str, Any] | None) -> str:
@@ -959,12 +1092,16 @@ def build_figure_legend_blocks(
             figure_semantics=figure_semantics_map.get(figure_id or ""),
         )
         if legend:
-            figure_legend_blocks.append(f"## {heading}\n\n{legend}")
+            normalized_heading = normalize_submission_figure_heading(heading)
+            figure_legend_blocks.append(f"## {normalized_heading}\n\n{legend}")
     return figure_legend_blocks
 
 
+MARKDOWN_IMAGE_LINE_PATTERN = re.compile(r"^!\[[^\]]*]\([^)]+\)(?:\s*\{[^}]+\})?$")
+
+
 def is_markdown_image_line(line: str) -> bool:
-    return bool(re.match(r"!\[[^\]]*]\([^)]+\)\s*$", line.strip()))
+    return bool(MARKDOWN_IMAGE_LINE_PATTERN.match(line.strip()))
 
 
 def extract_image_lines(text: str) -> list[str]:
@@ -1002,14 +1139,20 @@ def build_submission_figure_blocks(
     *,
     main_figures: str,
     figure_semantics_map: dict[str, dict[str, Any]],
+    catalog_image_map: dict[str, str] | None = None,
 ) -> list[str]:
     figure_blocks: list[str] = []
+    resolved_catalog_image_map = catalog_image_map or {}
     for heading, block_body in extract_main_figure_blocks(main_figures):
         figure_id = parse_figure_id_from_heading(heading)
         image_lines = rewrite_submission_surface_image_lines(
             image_lines=extract_image_lines(block_body),
             figure_id=figure_id,
         )
+        if not image_lines and figure_id:
+            fallback_image_rel = resolved_catalog_image_map.get(figure_id)
+            if fallback_image_rel:
+                image_lines = [f"![]({fallback_image_rel})"]
         legend = merge_legend_with_figure_semantics(
             base_legend=strip_image_lines(block_body),
             figure_semantics=figure_semantics_map.get(figure_id or ""),
@@ -1020,7 +1163,8 @@ def build_submission_figure_blocks(
         if legend:
             content_parts.append(legend)
         if content_parts:
-            figure_blocks.append(f"## {heading}\n\n{'\n\n'.join(content_parts)}")
+            normalized_heading = normalize_submission_figure_heading(heading)
+            figure_blocks.append(f"## {normalized_heading}\n\n{'\n\n'.join(content_parts)}")
     return figure_blocks
 
 
@@ -1062,6 +1206,25 @@ def count_main_text_figures_in_catalog(figure_catalog: dict[str, Any]) -> int:
     return count
 
 
+def parse_independent_figure_legend_map(figure_legends_section: str) -> dict[str, str]:
+    legend_by_figure_id: dict[str, str] = {}
+    for heading, block_body in parse_figure_blocks(figure_legends_section):
+        figure_id = parse_figure_id_from_heading(heading)
+        legend = strip_image_lines(block_body).strip()
+        if figure_id and legend:
+            legend_by_figure_id[figure_id] = legend
+
+    for paragraph in re.split(r"\n\s*\n", figure_legends_section.strip()):
+        lines = [line.strip() for line in paragraph.splitlines() if line.strip()]
+        if not lines:
+            continue
+        first_line = lines[0].lstrip("#").strip()
+        figure_id = parse_figure_id_from_heading(first_line)
+        if figure_id and figure_id not in legend_by_figure_id:
+            legend_by_figure_id[figure_id] = "\n".join(lines)
+    return legend_by_figure_id
+
+
 def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, Any]:
     if not source_markdown_path.exists():
         return {
@@ -1072,14 +1235,17 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
         }
     markdown_text = source_markdown_path.read_text(encoding="utf-8")
     _, body = split_front_matter(markdown_text)
-    figures_section = extract_optional_markdown_block(body, "Figures", ["Figure Legends", "Tables", "Appendix"])
-    figure_blocks = parse_heading_blocks(figures_section, "Figure ") if figures_section.strip() else []
+    figures_section = extract_top_level_markdown_block(body, "Figures")
+    figure_legends_section = extract_top_level_markdown_block(body, "Figure Legends", "Figure Legend")
+    independent_legend_by_figure_id = parse_independent_figure_legend_map(figure_legends_section)
+    figure_blocks = parse_figure_blocks(figures_section) if figures_section.strip() else []
     figure_blocks_with_images = 0
     figure_blocks_with_legends = 0
-    for _, block_body in figure_blocks:
+    for heading, block_body in figure_blocks:
+        figure_id = parse_figure_id_from_heading(heading)
         if extract_image_lines(block_body):
             figure_blocks_with_images += 1
-        if strip_image_lines(block_body).strip():
+        if strip_image_lines(block_body).strip() or (figure_id and independent_legend_by_figure_id.get(figure_id)):
             figure_blocks_with_legends += 1
     return {
         "exists": True,
@@ -1348,10 +1514,23 @@ def build_general_medical_submission_markdown(
             main_figures = extract_optional_markdown_block(body, "Figures", ["Figure Legends", "Tables", "Appendix"])
         figure_semantics_map = load_figure_semantics_map(paper_root)
 
+    if not main_figures.strip():
+        main_figures = build_catalog_backed_main_figures(
+            paper_root=paper_root,
+            submission_root=submission_root,
+        )
+        if main_figures.strip() and not figure_semantics_map:
+            figure_semantics_map = load_figure_semantics_map(paper_root)
+
     bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    catalog_image_map = build_catalog_backed_submission_figure_image_map(
+        paper_root=paper_root,
+        submission_root=submission_root,
+    )
     submission_figure_blocks = build_submission_figure_blocks(
         main_figures=main_figures,
         figure_semantics_map=figure_semantics_map,
+        catalog_image_map=catalog_image_map,
     )
     figure_legend_blocks = build_figure_legend_blocks(
         main_figures=main_figures,
@@ -1781,7 +1960,17 @@ def create_submission_minimal_package(
         build_submission_minimal_readme(publication_profile=resolved_publication_profile),
     )
     manifest["readme_path"] = relpath_from_workspace(readme_path, workspace_root)
-    dump_json(submission_root / "submission_manifest.json", manifest)
+    submission_manifest_path = submission_root / "submission_manifest.json"
+    dump_json(submission_manifest_path, manifest)
+    archived_surface_roots = materialize_archived_reference_only_submission_surface_manifests(
+        paper_root,
+        active_manifest_path=submission_manifest_path,
+    )
+    if archived_surface_roots:
+        manifest["archived_reference_only_submission_surface_roots"] = [
+            relpath_from_workspace(surface_root, workspace_root) for surface_root in archived_surface_roots
+        ]
+        dump_json(submission_manifest_path, manifest)
     delivery_sync_result: dict[str, Any] | None = None
     if study_delivery_sync.can_sync_study_delivery(paper_root=paper_root):
         delivery_sync_result = study_delivery_sync.sync_study_delivery(

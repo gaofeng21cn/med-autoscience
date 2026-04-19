@@ -4,6 +4,7 @@ import json
 import time
 from pathlib import Path
 
+from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.runtime_protocol.paper_artifacts import (
     find_unmanaged_submission_surface_roots,
     resolve_archived_submission_surface_roots,
@@ -219,6 +220,32 @@ def test_submission_surface_resolution_recognizes_archived_reference_only_legacy
 
     assert archived == ((paper_root / "submission_pituitary").resolve(),)
     assert unmanaged == ()
+
+
+def test_materializes_archived_reference_only_manifest_for_legacy_journal_surface(tmp_path: Path) -> None:
+    paper_root = tmp_path / "quest" / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    dump_json(
+        paper_root / "submission_minimal" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "publication_profile": "general_medical_journal",
+        },
+    )
+    legacy_surface_root = paper_root / "journal_submissions" / "rheumatology_international"
+    legacy_surface_root.mkdir(parents=True, exist_ok=True)
+
+    materialized = paper_artifacts.materialize_archived_reference_only_submission_surface_manifests(paper_root)
+
+    assert materialized == (legacy_surface_root.resolve(),)
+    archived_manifest = json.loads((legacy_surface_root / "submission_manifest.json").read_text(encoding="utf-8"))
+    assert archived_manifest == {
+        "schema_version": 1,
+        "surface_status": "archived_reference_only",
+        "archive_reason": "Retained only as a historical journal-target package.",
+        "active_managed_submission_manifest_path": "paper/submission_minimal/submission_manifest.json",
+    }
+    assert resolve_archived_submission_surface_roots(paper_root) == (legacy_surface_root.resolve(),)
+    assert find_unmanaged_submission_surface_roots(paper_root) == ()
 
 
 def test_submission_surface_resolution_rejects_archived_reference_only_when_target_manifest_is_outside_current_paper(

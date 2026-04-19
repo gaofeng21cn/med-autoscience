@@ -492,7 +492,10 @@ def _publication_gate_allows_live_runtime_write_stage_resume(
         return False
     if bool(publication_gate_report.get("bundle_tasks_downstream_only")):
         return False
-    if _publication_supervisor_current_required_action(publication_gate_report) != "continue_write_stage":
+    if _publication_supervisor_current_required_action(publication_gate_report) not in {
+        "continue_write_stage",
+        "continue_bundle_stage",
+    }:
         return False
     if str(publication_gate_report.get("status") or "").strip() not in {"", "clear"}:
         return False

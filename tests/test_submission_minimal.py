@@ -1098,6 +1098,298 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
     assert not any("ref1?" in paragraph for paragraph in paragraphs)
 
 
+def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_backed_figures(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_current_draft_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "direct_message": "Catalog-backed fallback keeps the main manuscript figure visible.",
+                    "panel_messages": [
+                        {
+                            "panel_id": "A",
+                            "message": "The primary display remains embedded even when the draft omits a Main Figures section.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "\n# Figures\n" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "Catalog-backed fallback keeps the main manuscript figure visible." in submission_markdown
+    assert "Panel A: The primary display remains embedded even when the draft omits a Main Figures section." in submission_markdown
+
+    manuscript_surface_qc = manifest["manuscript"]["surface_qc"]
+    assert manuscript_surface_qc["status"] == "pass"
+    assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_images"] == 1
+    assert manuscript_surface_qc["source_markdown"]["figure_blocks_with_legends"] == 1
+
+    with zipfile.ZipFile(submission_root / "manuscript.docx") as archive:
+        names = archive.namelist()
+        document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert any(name.startswith("word/media/") for name in names)
+    assert "<w:drawing" in document_xml
+
+    pdf_reader = PdfReader(str(submission_root / "paper.pdf"))
+    assert sum(len(page.images) for page in pdf_reader.pages) >= 1
+
+
+def test_create_submission_minimal_package_uses_catalog_backed_figures_when_main_figure_section_has_only_legends(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        """---
+title: "Legend-only Medical Manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+# Abstract
+
+Legend-only manuscript abstract with evidence [@ref1].
+
+# Main Figures
+
+## Figure 1. Main figure
+
+Caption only. The inline image line was dropped from the reviewer manuscript.
+
+# Main Tables
+
+| Characteristic | Value |
+| --- | --- |
+| Age | 52 |
+""",
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "\n# Figures\n" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "Caption only. The inline image line was dropped from the reviewer manuscript." in submission_markdown
+    assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
+    assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 1
+
+    with zipfile.ZipFile(submission_root / "manuscript.docx") as archive:
+        names = archive.namelist()
+        document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert any(name.startswith("word/media/") for name in names)
+    assert "<w:drawing" in document_xml
+
+
+def test_create_submission_minimal_package_supports_short_f_figure_headings_from_review_manuscript(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    write_text(
+        paper_root / "build" / "review_manuscript.md",
+        """---
+title: "Short F Medical Manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+# Abstract
+
+Short-F manuscript abstract with evidence [@ref1].
+
+# Main Figures
+
+## F1. Main figure
+
+Caption retained under the short F heading.
+
+![](../figures/F1_main.png){ width=100% }
+
+# Main Tables
+
+| Characteristic | Value |
+| --- | --- |
+| Age | 52 |
+""",
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "\n# Figures\n" in submission_markdown
+    assert "## Figure 1. Main figure" in submission_markdown
+    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "Caption retained under the short F heading." in submission_markdown
+    assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
+    assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 1
+    assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_legends"] == 1
+
+    with zipfile.ZipFile(submission_root / "manuscript.docx") as archive:
+        names = archive.namelist()
+        document_xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert any(name.startswith("word/media/") for name in names)
+    assert "<w:drawing" in document_xml
+
+
+def test_inspect_submission_source_markdown_counts_alt_text_inline_figures(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Figures
+
+## Figure 1. Main figure
+
+![F1](figures/F1_main.png)
+
+Legend text for the main figure.
+""",
+    )
+
+    inspection = module.inspect_submission_source_markdown(source_markdown)
+
+    assert inspection["figure_block_count"] == 1
+    assert inspection["figure_blocks_with_images"] == 1
+    assert inspection["figure_blocks_with_legends"] == 1
+
+
+def test_inspect_submission_source_markdown_counts_short_f_headings_as_figures(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Figures
+
+## F1. Main figure
+
+![](figures/F1_main.png)
+
+Legend text for the short-F main figure.
+""",
+    )
+
+    inspection = module.inspect_submission_source_markdown(source_markdown)
+
+    assert inspection["figure_block_count"] == 1
+    assert inspection["figure_blocks_with_images"] == 1
+    assert inspection["figure_blocks_with_legends"] == 1
+
+
+def test_inspect_submission_source_markdown_counts_independent_figure_legends_section(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Figures
+
+## Figure 1. Main figure
+
+![](figures/F1_main.png)
+
+# Figure Legends
+
+Figure 1. Legend text for the independent figure legend section.
+
+# Tables
+
+## Table 1
+
+| Characteristic | Value |
+| --- | --- |
+| Age | 52 |
+""",
+    )
+
+    inspection = module.inspect_submission_source_markdown(source_markdown)
+
+    assert inspection["figure_block_count"] == 1
+    assert inspection["figure_blocks_with_images"] == 1
+    assert inspection["figure_blocks_with_legends"] == 1
+
+
+def test_inspect_submission_source_markdown_treats_lowercase_figure_legends_as_separate_section(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Figures
+
+## Figure 1. Main figure
+
+![](figures/F1_main.png)
+
+# Figure legends
+
+## Figure 1. Main figure
+
+Legend text for the lowercase independent figure legend section.
+
+# Tables
+
+## Table 1
+
+| Characteristic | Value |
+| --- | --- |
+| Age | 52 |
+""",
+    )
+
+    inspection = module.inspect_submission_source_markdown(source_markdown)
+
+    assert inspection["figure_block_count"] == 1
+    assert inspection["figure_blocks_with_images"] == 1
+    assert inspection["figure_blocks_with_legends"] == 1
+
+
 def test_create_submission_minimal_package_supports_manuscript_shaped_draft_without_front_matter(
     tmp_path: Path,
 ) -> None:
