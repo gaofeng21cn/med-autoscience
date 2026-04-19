@@ -6308,7 +6308,12 @@ def _check_publication_genomic_alteration_landscape_panel(sidecar: LayoutSidecar
     return issues
 
 
-def _check_publication_genomic_alteration_consequence_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+def _check_publication_genomic_alteration_consequence_panel(
+    sidecar: LayoutSidecar,
+    *,
+    max_panel_count: int = 2,
+    required_panel_ids: tuple[str, ...] | None = None,
+) -> list[dict[str, Any]]:
     issues = _check_publication_genomic_alteration_landscape_panel(sidecar)
     panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
     layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
@@ -6413,11 +6418,11 @@ def _check_publication_genomic_alteration_consequence_panel(sidecar: LayoutSidec
             )
         )
         return issues
-    if len(consequence_panels) > 2:
+    if len(consequence_panels) > max_panel_count:
         issues.append(
             _issue(
                 rule_id="consequence_panel_count_invalid",
-                message="genomic alteration consequence panel supports at most two consequence panels",
+                message=f"genomic alteration consequence panel supports at most {max_panel_count} consequence panels",
                 target="metrics.consequence_panels",
                 observed=len(consequence_panels),
             )
@@ -6683,6 +6688,37 @@ def _check_publication_genomic_alteration_consequence_panel(sidecar: LayoutSidec
             )
         )
 
+    if required_panel_ids is not None and seen_panel_ids != set(required_panel_ids):
+        issues.append(
+            _issue(
+                rule_id="consequence_panel_ids_invalid",
+                message="consequence panel ids must match the declared multiomic layer vocabulary",
+                target="metrics.consequence_panels",
+                observed=sorted(seen_panel_ids),
+                expected=sorted(required_panel_ids),
+            )
+        )
+
+    return issues
+
+
+def _check_publication_genomic_alteration_multiomic_consequence_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues = _check_publication_genomic_alteration_consequence_panel(
+        sidecar,
+        max_panel_count=3,
+        required_panel_ids=("proteome", "phosphoproteome", "glycoproteome"),
+    )
+    consequence_panels = sidecar.metrics.get("consequence_panels")
+    if isinstance(consequence_panels, list) and len(consequence_panels) != 3:
+        issues.append(
+            _issue(
+                rule_id="consequence_panel_count_invalid",
+                message="genomic alteration multiomic consequence panel requires exactly three consequence panels",
+                target="metrics.consequence_panels",
+                observed=len(consequence_panels),
+                expected=3,
+            )
+        )
     return issues
 
 
@@ -17125,6 +17161,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_genomic_alteration_landscape_panel(normalized_sidecar)
     elif normalized_profile == "publication_genomic_alteration_consequence_panel":
         layout_issues = _check_publication_genomic_alteration_consequence_panel(normalized_sidecar)
+    elif normalized_profile == "publication_genomic_alteration_multiomic_consequence_panel":
+        layout_issues = _check_publication_genomic_alteration_multiomic_consequence_panel(normalized_sidecar)
     elif normalized_profile == "publication_omics_volcano_panel":
         layout_issues = _check_publication_omics_volcano_panel(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":

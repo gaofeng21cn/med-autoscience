@@ -16666,7 +16666,7 @@ def _render_python_genomic_alteration_consequence_panel(
     y_limit_top = max(y_limit_top, significance_threshold + 0.50)
 
     figure_width = max(12.6, 0.52 * len(sample_ids) + 7.6)
-    figure_height = max(6.4, 0.60 * len(gene_labels) + 3.2)
+    figure_height = max(6.4, 0.60 * len(gene_labels) + 3.2, 2.4 + 1.75 * len(panel_id_order))
     fig = plt.figure(figsize=(figure_width, figure_height))
     fig.patch.set_facecolor("white")
 
@@ -22034,6 +22034,7 @@ _PYTHON_EVIDENCE_RENDERERS = {
     "cnv_recurrence_summary_panel": _render_python_cnv_recurrence_summary_panel,
     "genomic_alteration_landscape_panel": _render_python_genomic_alteration_landscape_panel,
     "genomic_alteration_consequence_panel": _render_python_genomic_alteration_consequence_panel,
+    "genomic_alteration_multiomic_consequence_panel": _render_python_genomic_alteration_consequence_panel,
     "omics_volcano_panel": _render_python_omics_volcano_panel,
     "atlas_spatial_bridge_panel": _render_python_atlas_spatial_bridge_panel,
     "spatial_niche_map_panel": _render_python_spatial_niche_map_panel,

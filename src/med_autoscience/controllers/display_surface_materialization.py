@@ -5260,11 +5260,12 @@ def _validate_panel_order_payload(
     path: Path,
     payload: object,
     label: str,
+    max_panels: int = 2,
 ) -> list[dict[str, str]]:
     if not isinstance(payload, list) or not payload:
         raise ValueError(f"{path.name} {label} must contain a non-empty list")
-    if len(payload) > 2:
-        raise ValueError(f"{path.name} {label} must contain at most two panels")
+    if len(payload) > max_panels:
+        raise ValueError(f"{path.name} {label} must contain at most {max_panels} panels")
     normalized_items: list[dict[str, str]] = []
     seen_panel_ids: set[str] = set()
     for index, item in enumerate(payload):
@@ -5988,6 +5989,7 @@ def _validate_genomic_alteration_consequence_panel_display_payload(
     payload: dict[str, Any],
     expected_template_id: str,
     expected_display_id: str,
+    max_consequence_panels: int = 2,
 ) -> dict[str, Any]:
     normalized_payload = _validate_genomic_alteration_landscape_panel_display_payload(
         path=path,
@@ -6034,6 +6036,7 @@ def _validate_genomic_alteration_consequence_panel_display_payload(
         path=path,
         payload=payload.get("consequence_panel_order"),
         label=f"display `{expected_display_id}` consequence_panel_order",
+        max_panels=max_consequence_panels,
     )
     declared_panel_ids = {item["panel_id"] for item in consequence_panel_order}
 
@@ -6117,6 +6120,31 @@ def _validate_genomic_alteration_consequence_panel_display_payload(
     normalized_payload["driver_gene_order"] = driver_gene_order
     normalized_payload["consequence_panel_order"] = consequence_panel_order
     normalized_payload["consequence_points"] = normalized_consequence_points
+    return normalized_payload
+
+
+def _validate_genomic_alteration_multiomic_consequence_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    normalized_payload = _validate_genomic_alteration_consequence_panel_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+        max_consequence_panels=3,
+    )
+    expected_panel_ids = {"proteome", "phosphoproteome", "glycoproteome"}
+    declared_panel_ids = {str(item["panel_id"]) for item in normalized_payload["consequence_panel_order"]}
+    if len(normalized_payload["consequence_panel_order"]) != 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` consequence_panel_order must contain exactly three panels")
+    if declared_panel_ids != expected_panel_ids:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` consequence_panel_order panel_id values must be proteome, phosphoproteome, and glycoproteome"
+        )
     return normalized_payload
 
 
@@ -10597,6 +10625,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "genomic_alteration_consequence_panel_inputs_v1":
         return payload_path, _validate_genomic_alteration_consequence_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "genomic_alteration_multiomic_consequence_panel_inputs_v1":
+        return payload_path, _validate_genomic_alteration_multiomic_consequence_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

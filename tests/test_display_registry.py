@@ -59,6 +59,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("cnv_recurrence_summary_panel"),
         _full_id("genomic_alteration_landscape_panel"),
         _full_id("genomic_alteration_consequence_panel"),
+        _full_id("genomic_alteration_multiomic_consequence_panel"),
         _full_id("forest_effect_main"),
         _full_id("subgroup_forest"),
         _full_id("generalizability_subgroup_composite_panel"),
@@ -273,6 +274,16 @@ def test_genomic_alteration_consequence_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "genomic_alteration_consequence_panel_inputs_v1"
     assert spec.layout_qc_profile == "publication_genomic_alteration_consequence_panel"
+
+
+def test_genomic_alteration_multiomic_consequence_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("genomic_alteration_multiomic_consequence_panel"))
+
+    assert spec.paper_family_ids == ("G",)
+    assert spec.evidence_class == "matrix_pattern"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "genomic_alteration_multiomic_consequence_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_genomic_alteration_multiomic_consequence_panel"
 
 
 def test_shap_waterfall_local_explanation_panel_is_registered() -> None:
