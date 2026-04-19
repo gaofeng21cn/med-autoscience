@@ -486,6 +486,24 @@ def _publication_gate_allows_live_runtime_write_stage_resume(
     status: StudyRuntimeStatus,
     publication_gate_report: dict[str, object] | None,
 ) -> bool:
+    if not _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report):
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    return (
+        continuation_state.active_run_id is not None
+        and continuation_state.continuation_policy == "auto"
+        and continuation_state.continuation_anchor == "decision"
+        and continuation_state.continuation_reason is not None
+        and continuation_state.continuation_reason.startswith("decision:")
+    )
+
+
+def _publication_gate_allows_post_clear_runtime_continuation(
+    publication_gate_report: dict[str, object] | None,
+) -> bool:
     if not isinstance(publication_gate_report, dict):
         return False
     if _publication_gate_requires_live_runtime_reroute(publication_gate_report):
@@ -499,21 +517,9 @@ def _publication_gate_allows_live_runtime_write_stage_resume(
         return False
     if str(publication_gate_report.get("status") or "").strip() not in {"", "clear"}:
         return False
-    if not _publication_supervisor_requests_automated_continuation(
+    return _publication_supervisor_requests_automated_continuation(
         publication_gate_report,
         require_blocked_status=False,
-    ):
-        return False
-    try:
-        continuation_state = status.continuation_state
-    except KeyError:
-        return False
-    return (
-        continuation_state.active_run_id is not None
-        and continuation_state.continuation_policy == "auto"
-        and continuation_state.continuation_anchor == "decision"
-        and continuation_state.continuation_reason is not None
-        and continuation_state.continuation_reason.startswith("decision:")
     )
 
 
@@ -1140,7 +1146,7 @@ def _controller_stop_is_auto_recoverable(
     return _publication_supervisor_requests_automated_continuation(
         publication_gate_report,
         require_blocked_status=True,
-    )
+    ) or _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
 
 
 def _stopped_controller_owned_auto_recovery_context(
@@ -1152,7 +1158,7 @@ def _stopped_controller_owned_auto_recovery_context(
     if status.quest_status is not StudyRuntimeQuestStatus.STOPPED:
         return None
     publication_gate_status = str((publication_gate_report or {}).get("status") or "").strip() or None
-    if publication_gate_status in {None, "clear"} or _publication_supervisor_requires_human_confirmation(status):
+    if publication_gate_status is None or _publication_supervisor_requires_human_confirmation(status):
         return None
     runtime_state = _load_json_dict(_runtime_state_path(quest_root))
     continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
@@ -1811,6 +1817,7 @@ def _status_state(
             isinstance(stopped_recovery_context, dict)
             and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "controller_guard"
         ):
+            post_clear_continuation = _publication_gate_allows_post_clear_runtime_continuation(publication_gate_report)
             if not result.startup_boundary_allows_compute_stage:
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
@@ -1824,7 +1831,11 @@ def _status_state(
             elif execution.get("auto_resume") is True:
                 result.set_decision(
                     StudyRuntimeDecision.RESUME,
-                    StudyRuntimeReason.QUEST_STOPPED_BY_CONTROLLER_GUARD,
+                    (
+                        StudyRuntimeReason.QUEST_STALE_DECISION_AFTER_WRITE_STAGE_READY
+                        if post_clear_continuation
+                        else StudyRuntimeReason.QUEST_STOPPED_BY_CONTROLLER_GUARD
+                    ),
                 )
             else:
                 result.set_decision(
