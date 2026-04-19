@@ -4655,6 +4655,225 @@ def _check_publication_heatmap(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     return issues
 
 
+def _check_publication_pathway_enrichment_dotplot_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("legend", "colorbar", "subplot_y_axis_title")))
+    issues.extend(_check_legend_panel_overlap(sidecar))
+    issues.extend(_check_colorbar_panel_overlap(sidecar))
+
+    effect_scale_label = str(sidecar.metrics.get("effect_scale_label") or "").strip()
+    if not effect_scale_label:
+        issues.append(
+            _issue(
+                rule_id="effect_scale_label_missing",
+                message="pathway enrichment dotplot requires a non-empty effect_scale_label",
+                target="metrics.effect_scale_label",
+            )
+        )
+    size_scale_label = str(sidecar.metrics.get("size_scale_label") or "").strip()
+    if not size_scale_label:
+        issues.append(
+            _issue(
+                rule_id="size_scale_label_missing",
+                message="pathway enrichment dotplot requires a non-empty size_scale_label",
+                target="metrics.size_scale_label",
+            )
+        )
+
+    pathway_payload = sidecar.metrics.get("pathway_labels")
+    if not isinstance(pathway_payload, list) or not pathway_payload:
+        issues.append(
+            _issue(
+                rule_id="pathway_labels_missing",
+                message="pathway enrichment dotplot requires non-empty pathway_labels metrics",
+                target="metrics.pathway_labels",
+            )
+        )
+        return issues
+    pathway_labels = [str(label).strip() for label in pathway_payload]
+    if any(not label for label in pathway_labels):
+        issues.append(
+            _issue(
+                rule_id="pathway_label_empty",
+                message="pathway_labels must be non-empty",
+                target="metrics.pathway_labels",
+            )
+        )
+    if len(set(pathway_labels)) != len(pathway_labels):
+        issues.append(
+            _issue(
+                rule_id="pathway_labels_not_unique",
+                message="pathway_labels must be unique",
+                target="metrics.pathway_labels",
+            )
+        )
+
+    panels_payload = sidecar.metrics.get("panels")
+    if not isinstance(panels_payload, list) or not panels_payload:
+        issues.append(
+            _issue(
+                rule_id="panels_missing",
+                message="pathway enrichment dotplot requires non-empty panels metrics",
+                target="metrics.panels",
+            )
+        )
+        return issues
+    if len(panels_payload) > 2:
+        issues.append(
+            _issue(
+                rule_id="panel_count_invalid",
+                message="pathway enrichment dotplot supports at most two panels",
+                target="metrics.panels",
+                observed=len(panels_payload),
+            )
+        )
+
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    declared_pathways = set(pathway_labels)
+    seen_panel_ids: set[str] = set()
+
+    for index, payload in enumerate(panels_payload):
+        if not isinstance(payload, dict):
+            raise ValueError(f"layout_sidecar.metrics.panels[{index}] must be an object")
+        panel_id = str(payload.get("panel_id") or "").strip()
+        if not panel_id:
+            raise ValueError(f"layout_sidecar.metrics.panels[{index}].panel_id must be non-empty")
+        if panel_id in seen_panel_ids:
+            issues.append(
+                _issue(
+                    rule_id="panel_id_not_unique",
+                    message="panel_id must be unique across panels",
+                    target=f"metrics.panels[{index}].panel_id",
+                    observed=panel_id,
+                )
+            )
+        seen_panel_ids.add(panel_id)
+
+        panel_box_id = str(payload.get("panel_box_id") or "").strip()
+        panel_box = panel_boxes_by_id.get(panel_box_id)
+        if panel_box is None:
+            issues.append(
+                _issue(
+                    rule_id="panel_box_missing",
+                    message="panel_box_id must resolve to an existing panel box",
+                    target=f"metrics.panels[{index}].panel_box_id",
+                    observed=panel_box_id,
+                )
+            )
+        panel_label_box_id = str(payload.get("panel_label_box_id") or "").strip()
+        panel_label_box = layout_boxes_by_id.get(panel_label_box_id)
+        if panel_label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="panel_label_box_missing",
+                    message="panel_label_box_id must resolve to an existing layout box",
+                    target=f"metrics.panels[{index}].panel_label_box_id",
+                    observed=panel_label_box_id,
+                )
+            )
+        elif panel_box is not None and not _boxes_overlap(panel_label_box, panel_box):
+            issues.append(
+                _issue(
+                    rule_id="panel_label_anchor_drift",
+                    message="panel label must stay anchored inside its panel",
+                    target=f"metrics.panels[{index}].panel_label_box_id",
+                    box_refs=(panel_label_box.box_id, panel_box.box_id),
+                )
+            )
+        for field_name in ("panel_title_box_id", "x_axis_title_box_id"):
+            box_id = str(payload.get(field_name) or "").strip()
+            if box_id and box_id in layout_boxes_by_id:
+                continue
+            issues.append(
+                _issue(
+                    rule_id="layout_box_missing",
+                    message=f"{field_name} must resolve to an existing layout box",
+                    target=f"metrics.panels[{index}].{field_name}",
+                    observed=box_id,
+                )
+            )
+
+        points_payload = payload.get("points")
+        if not isinstance(points_payload, list) or not points_payload:
+            issues.append(
+                _issue(
+                    rule_id="panel_points_missing",
+                    message="every panel must expose non-empty points metrics",
+                    target=f"metrics.panels[{index}].points",
+                )
+            )
+            continue
+
+        observed_pathways: set[str] = set()
+        for point_index, point in enumerate(points_payload):
+            if not isinstance(point, dict):
+                raise ValueError(f"layout_sidecar.metrics.panels[{index}].points[{point_index}] must be an object")
+            pathway_label = str(point.get("pathway_label") or "").strip()
+            if not pathway_label:
+                raise ValueError(
+                    f"layout_sidecar.metrics.panels[{index}].points[{point_index}].pathway_label must be non-empty"
+                )
+            if pathway_label not in declared_pathways:
+                issues.append(
+                    _issue(
+                        rule_id="point_pathway_unknown",
+                        message="point pathway_label must stay inside declared pathway_labels",
+                        target=f"metrics.panels[{index}].points[{point_index}].pathway_label",
+                        observed=pathway_label,
+                    )
+                )
+            observed_pathways.add(pathway_label)
+            x_value = _require_numeric(
+                point.get("x"),
+                label=f"layout_sidecar.metrics.panels[{index}].points[{point_index}].x",
+            )
+            y_value = _require_numeric(
+                point.get("y"),
+                label=f"layout_sidecar.metrics.panels[{index}].points[{point_index}].y",
+            )
+            _require_numeric(
+                point.get("effect_value"),
+                label=f"layout_sidecar.metrics.panels[{index}].points[{point_index}].effect_value",
+            )
+            size_value = _require_numeric(
+                point.get("size_value"),
+                label=f"layout_sidecar.metrics.panels[{index}].points[{point_index}].size_value",
+            )
+            if size_value < 0.0:
+                issues.append(
+                    _issue(
+                        rule_id="point_size_negative",
+                        message="point size_value must be non-negative",
+                        target=f"metrics.panels[{index}].points[{point_index}].size_value",
+                        observed=size_value,
+                    )
+                )
+            if panel_box is not None and not _point_within_box(panel_box, x=x_value, y=y_value):
+                issues.append(
+                    _issue(
+                        rule_id="dot_out_of_panel",
+                        message="dot center must stay within its panel domain",
+                        target=f"metrics.panels[{index}].points[{point_index}]",
+                        box_refs=(panel_box.box_id,),
+                    )
+                )
+        if observed_pathways != declared_pathways:
+            issues.append(
+                _issue(
+                    rule_id="panel_pathway_coverage_mismatch",
+                    message="each panel must cover every declared pathway exactly once",
+                    target=f"metrics.panels[{index}].points",
+                    observed=sorted(observed_pathways),
+                    expected=sorted(declared_pathways),
+                )
+            )
+
+    return issues
+
+
 def _check_publication_forest_plot(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -14801,6 +15020,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_atlas_spatial_trajectory_context_support_panel(normalized_sidecar)
     elif normalized_profile == "publication_heatmap":
         layout_issues = _check_publication_heatmap(normalized_sidecar)
+    elif normalized_profile == "publication_pathway_enrichment_dotplot_panel":
+        layout_issues = _check_publication_pathway_enrichment_dotplot_panel(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":
         layout_issues = _check_publication_forest_plot(normalized_sidecar)
     elif normalized_profile == "publication_compact_effect_estimate_panel":

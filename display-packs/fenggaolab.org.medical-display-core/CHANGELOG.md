@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased - 2026-04-18
+## Unreleased - 2026-04-19
+
+- Add `pathway_enrichment_dotplot_panel` as the next audited `E/G` shared-pathway omics enrichment dotplot slice in the core display pack.
+- Lock its pack-facing contract to `pathway_enrichment_dotplot_panel_inputs_v1`, `publication_pathway_enrichment_dotplot_panel`, and the Python bounded up-to-two-panel shared-pathway enrichment renderer path.
 
 - Add `shap_grouped_local_support_domain_panel` as the next audited `F` grouped-local plus support-domain explanation scene in the core display pack.
 - Lock its pack-facing contract to `shap_grouped_local_support_domain_panel_inputs_v1`, `publication_shap_grouped_local_support_domain_panel`, and the Python bounded upper-local / lower-support composite renderer path.
