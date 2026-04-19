@@ -13,6 +13,7 @@ from med_autoscience.domain_entry_contract import (
     SERVICE_SAFE_ENTRY_ADAPTER,
     build_domain_entry_contract as _build_domain_entry_contract,
     build_gateway_interaction_contract as _build_gateway_interaction_contract,
+    build_shared_handoff as _build_shared_handoff,
 )
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
@@ -2032,22 +2033,16 @@ def build_product_entry_manifest(
             "purpose": "查看某一阶段当前可用入口、退出条件与关键文档。",
         },
     }
-    shared_handoff = {
-        "direct_entry_builder": {
-            "command": (
-                f"{prefix} build-product-entry --profile {profile_arg} "
-                "--study-id <study_id> --entry-mode direct"
-            ),
-            "entry_mode": "direct",
-        },
-        "opl_handoff_builder": {
-            "command": (
-                f"{prefix} build-product-entry --profile {profile_arg} "
-                "--study-id <study_id> --entry-mode opl-handoff"
-            ),
-            "entry_mode": "opl-handoff",
-        },
-    }
+    shared_handoff = _build_shared_handoff(
+        direct_entry_builder_command=(
+            f"{prefix} build-product-entry --profile {profile_arg} "
+            "--study-id <study_id> --entry-mode direct"
+        ),
+        opl_handoff_builder_command=(
+            f"{prefix} build-product-entry --profile {profile_arg} "
+            "--study-id <study_id> --entry-mode opl-handoff"
+        ),
+    )
     operator_loop_actions = {
         "open_loop": {
             "command": product_entry_shell["workspace_cockpit"]["command"],
@@ -2602,20 +2597,26 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
 
+    entry_surfaces = {
+        "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
+        "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
+        "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
+        "launch_study": dict(product_entry_shell.get("launch_study") or {}),
+        "study_progress": dict(product_entry_shell.get("study_progress") or {}),
+        "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
+        "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
+    }
+    entry_surfaces.update(
+        {
+            name: dict(shared_handoff.get(name) or {})
+            for name in ("direct_entry_builder", "opl_handoff_builder")
+        }
+    )
+
     payload = _build_shared_family_product_frontdesk(
         recommended_action="inspect_or_prepare_research_loop",
         product_entry_manifest=manifest,
-        entry_surfaces={
-            "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
-            "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
-            "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
-            "launch_study": dict(product_entry_shell.get("launch_study") or {}),
-            "study_progress": dict(product_entry_shell.get("study_progress") or {}),
-            "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
-            "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
-            "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
-            "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
-        },
+        entry_surfaces=entry_surfaces,
         schema_ref=PRODUCT_FRONTDESK_SCHEMA_REF,
         notes=[
             "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",

@@ -7,6 +7,7 @@ from opl_harness_shared.family_entry_contracts import (
     build_domain_entry_command_contract as _build_shared_domain_entry_command_contract,
     build_family_domain_entry_contract as _build_shared_family_domain_entry_contract,
     build_gateway_interaction_contract as _build_shared_gateway_interaction_contract,
+    build_shared_handoff_builder as _build_shared_handoff_builder,
 )
 
 
@@ -95,3 +96,20 @@ def build_gateway_interaction_contract() -> dict[str, Any]:
             "return_surface_contract",
         ],
     )
+
+
+def build_shared_handoff(
+    *,
+    direct_entry_builder_command: str,
+    opl_handoff_builder_command: str,
+) -> dict[str, Any]:
+    return {
+        "direct_entry_builder": _build_shared_handoff_builder(
+            command=direct_entry_builder_command,
+            entry_mode="direct",
+        ),
+        "opl_handoff_builder": _build_shared_handoff_builder(
+            command=opl_handoff_builder_command,
+            entry_mode="opl-handoff",
+        ),
+    }
