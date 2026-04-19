@@ -49,6 +49,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     omics_volcano = module.get_input_schema_contract("omics_volcano_panel_inputs_v1")
     oncoplot_landscape = module.get_input_schema_contract("oncoplot_mutation_landscape_panel_inputs_v1")
     cnv_recurrence = module.get_input_schema_contract("cnv_recurrence_summary_panel_inputs_v1")
+    genomic_alteration_landscape = module.get_input_schema_contract("genomic_alteration_landscape_panel_inputs_v1")
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -811,6 +812,53 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "cnv_region_labels_must_match_declared_region_order",
         "cnv_sample_region_coordinates_must_be_unique",
         "cnv_state_must_be_supported",
+    )
+    assert genomic_alteration_landscape.template_ids == (_full_id("genomic_alteration_landscape_panel"),)
+    assert genomic_alteration_landscape.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "burden_axis_label",
+        "frequency_axis_label",
+        "alteration_legend_title",
+        "gene_order",
+        "sample_order",
+        "annotation_tracks",
+        "alteration_records",
+    )
+    assert genomic_alteration_landscape.collection_required_fields == {
+        "gene_order": ("label",),
+        "sample_order": ("sample_id",),
+        "annotation_tracks": ("track_id", "track_label", "values"),
+        "alteration_records": ("sample_id", "gene_label"),
+    }
+    assert genomic_alteration_landscape.nested_collection_required_fields == {
+        "annotation_tracks.values": ("sample_id", "category_label"),
+    }
+    assert genomic_alteration_landscape.additional_constraints == (
+        "y_label_must_be_non_empty",
+        "burden_axis_label_must_be_non_empty",
+        "frequency_axis_label_must_be_non_empty",
+        "alteration_legend_title_must_be_non_empty",
+        "gene_order_must_be_non_empty",
+        "gene_order_labels_must_be_unique",
+        "sample_order_must_be_non_empty",
+        "sample_ids_must_be_unique",
+        "annotation_tracks_must_be_non_empty",
+        "annotation_track_count_must_be_at_most_three",
+        "annotation_track_ids_must_be_unique",
+        "annotation_track_labels_must_be_non_empty",
+        "annotation_track_sample_coverage_must_match_declared_sample_order",
+        "annotation_track_category_labels_must_be_non_empty",
+        "alteration_records_must_be_non_empty",
+        "alteration_sample_ids_must_match_declared_sample_order",
+        "alteration_gene_labels_must_match_declared_gene_order",
+        "alteration_sample_gene_coordinates_must_be_unique",
+        "alteration_record_must_define_mutation_or_cnv",
+        "mutation_class_must_be_supported_when_present",
+        "cnv_state_must_be_supported_when_present",
     )
 
     assert correlation.template_ids == (_full_id("correlation_heatmap"),)
@@ -2763,6 +2811,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "oncoplot_mutation_landscape_panel_inputs_v1" in markdown
     assert _full_id("cnv_recurrence_summary_panel") in markdown
     assert "cnv_recurrence_summary_panel_inputs_v1" in markdown
+    assert _full_id("genomic_alteration_landscape_panel") in markdown
+    assert "genomic_alteration_landscape_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

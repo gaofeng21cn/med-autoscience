@@ -5798,6 +5798,516 @@ def _check_publication_cnv_recurrence_summary_panel(sidecar: LayoutSidecar) -> l
     return issues
 
 
+def _check_publication_genomic_alteration_landscape_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("legend", "subplot_y_axis_title", "panel_label")))
+    issues.extend(_check_legend_panel_overlap(sidecar))
+
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    required_panel_ids = ("panel_burden", "panel_annotations", "panel_matrix", "panel_frequency")
+    for panel_id in required_panel_ids:
+        if panel_id not in panel_boxes_by_id:
+            issues.append(
+                _issue(
+                    rule_id="panel_box_missing",
+                    message=f"genomic alteration landscape requires `{panel_id}` panel box",
+                    target=f"panel_boxes.{panel_id}",
+                    observed=sorted(panel_boxes_by_id),
+                )
+            )
+
+    if layout_boxes_by_id.get("panel_label_A") is None:
+        issues.append(
+            _issue(
+                rule_id="missing_panel_label",
+                message="genomic alteration landscape requires panel_label_A",
+                target="layout_boxes.panel_label_A",
+            )
+        )
+
+    alteration_legend_title = str(sidecar.metrics.get("alteration_legend_title") or "").strip()
+    if not alteration_legend_title:
+        issues.append(
+            _issue(
+                rule_id="alteration_legend_title_missing",
+                message="genomic alteration landscape requires a non-empty alteration_legend_title",
+                target="metrics.alteration_legend_title",
+            )
+        )
+
+    sample_payload = sidecar.metrics.get("sample_ids")
+    if not isinstance(sample_payload, list) or not sample_payload:
+        issues.append(
+            _issue(
+                rule_id="sample_ids_missing",
+                message="genomic alteration landscape requires non-empty sample_ids metrics",
+                target="metrics.sample_ids",
+            )
+        )
+        return issues
+    sample_ids = [str(item).strip() for item in sample_payload]
+    if any(not item for item in sample_ids):
+        issues.append(
+            _issue(
+                rule_id="sample_id_empty",
+                message="sample_ids must be non-empty",
+                target="metrics.sample_ids",
+            )
+        )
+    if len(set(sample_ids)) != len(sample_ids):
+        issues.append(
+            _issue(
+                rule_id="sample_ids_not_unique",
+                message="sample_ids must be unique",
+                target="metrics.sample_ids",
+            )
+        )
+    declared_sample_ids = set(sample_ids)
+
+    gene_payload = sidecar.metrics.get("gene_labels")
+    if not isinstance(gene_payload, list) or not gene_payload:
+        issues.append(
+            _issue(
+                rule_id="gene_labels_missing",
+                message="genomic alteration landscape requires non-empty gene_labels metrics",
+                target="metrics.gene_labels",
+            )
+        )
+        return issues
+    gene_labels = [str(item).strip() for item in gene_payload]
+    if any(not item for item in gene_labels):
+        issues.append(
+            _issue(
+                rule_id="gene_label_empty",
+                message="gene_labels must be non-empty",
+                target="metrics.gene_labels",
+            )
+        )
+    if len(set(gene_labels)) != len(gene_labels):
+        issues.append(
+            _issue(
+                rule_id="gene_labels_not_unique",
+                message="gene_labels must be unique",
+                target="metrics.gene_labels",
+            )
+        )
+    declared_gene_labels = set(gene_labels)
+
+    burden_panel_box = panel_boxes_by_id.get("panel_burden")
+    sample_burdens = sidecar.metrics.get("sample_burdens")
+    if not isinstance(sample_burdens, list) or not sample_burdens:
+        issues.append(
+            _issue(
+                rule_id="sample_burdens_missing",
+                message="genomic alteration landscape requires non-empty sample_burdens metrics",
+                target="metrics.sample_burdens",
+            )
+        )
+    else:
+        observed_burden_samples: set[str] = set()
+        for index, item in enumerate(sample_burdens):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.sample_burdens[{index}] must be an object")
+            sample_id = str(item.get("sample_id") or "").strip()
+            if sample_id not in declared_sample_ids:
+                issues.append(
+                    _issue(
+                        rule_id="sample_burden_sample_unknown",
+                        message="sample_burdens must stay inside declared sample_ids",
+                        target=f"metrics.sample_burdens[{index}].sample_id",
+                        observed=sample_id,
+                    )
+                )
+            if sample_id in observed_burden_samples:
+                issues.append(
+                    _issue(
+                        rule_id="sample_burden_duplicate",
+                        message="sample_burdens must cover each declared sample exactly once",
+                        target=f"metrics.sample_burdens[{index}].sample_id",
+                        observed=sample_id,
+                    )
+                )
+            observed_burden_samples.add(sample_id)
+            _require_numeric(
+                item.get("altered_gene_count"),
+                label=f"layout_sidecar.metrics.sample_burdens[{index}].altered_gene_count",
+            )
+            bar_box_id = str(item.get("bar_box_id") or "").strip()
+            bar_box = layout_boxes_by_id.get(bar_box_id)
+            if bar_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="sample_burden_box_missing",
+                        message="sample_burdens bar_box_id must resolve to an existing layout box",
+                        target=f"metrics.sample_burdens[{index}].bar_box_id",
+                        observed=bar_box_id,
+                    )
+                )
+            elif burden_panel_box is not None and not _boxes_overlap(bar_box, burden_panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="sample_burden_out_of_panel",
+                        message="sample burden bars must stay inside panel_burden",
+                        target=f"metrics.sample_burdens[{index}].bar_box_id",
+                        box_refs=(bar_box.box_id, burden_panel_box.box_id),
+                    )
+                )
+        if observed_burden_samples != declared_sample_ids:
+            issues.append(
+                _issue(
+                    rule_id="sample_burden_coverage_mismatch",
+                    message="sample_burdens must cover every declared sample exactly once",
+                    target="metrics.sample_burdens",
+                    observed=sorted(observed_burden_samples),
+                    expected=sorted(declared_sample_ids),
+                )
+            )
+
+    frequency_panel_box = panel_boxes_by_id.get("panel_frequency")
+    gene_frequencies = sidecar.metrics.get("gene_alteration_frequencies")
+    if not isinstance(gene_frequencies, list) or not gene_frequencies:
+        issues.append(
+            _issue(
+                rule_id="gene_alteration_frequencies_missing",
+                message="genomic alteration landscape requires non-empty gene_alteration_frequencies metrics",
+                target="metrics.gene_alteration_frequencies",
+            )
+        )
+    else:
+        observed_frequency_genes: set[str] = set()
+        for index, item in enumerate(gene_frequencies):
+            if not isinstance(item, dict):
+                raise ValueError(f"layout_sidecar.metrics.gene_alteration_frequencies[{index}] must be an object")
+            gene_label = str(item.get("gene_label") or "").strip()
+            if gene_label not in declared_gene_labels:
+                issues.append(
+                    _issue(
+                        rule_id="gene_frequency_gene_unknown",
+                        message="gene_alteration_frequencies must stay inside declared gene_labels",
+                        target=f"metrics.gene_alteration_frequencies[{index}].gene_label",
+                        observed=gene_label,
+                    )
+                )
+            if gene_label in observed_frequency_genes:
+                issues.append(
+                    _issue(
+                        rule_id="gene_frequency_duplicate",
+                        message="gene_alteration_frequencies must cover each declared gene exactly once",
+                        target=f"metrics.gene_alteration_frequencies[{index}].gene_label",
+                        observed=gene_label,
+                    )
+                )
+            observed_frequency_genes.add(gene_label)
+            altered_fraction = _require_numeric(
+                item.get("altered_fraction"),
+                label=f"layout_sidecar.metrics.gene_alteration_frequencies[{index}].altered_fraction",
+            )
+            if altered_fraction < 0.0 or altered_fraction > 1.0:
+                issues.append(
+                    _issue(
+                        rule_id="gene_frequency_fraction_invalid",
+                        message="altered_fraction must stay within [0, 1]",
+                        target=f"metrics.gene_alteration_frequencies[{index}].altered_fraction",
+                        observed=altered_fraction,
+                    )
+                )
+            bar_box_id = str(item.get("bar_box_id") or "").strip()
+            bar_box = layout_boxes_by_id.get(bar_box_id)
+            if bar_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="gene_frequency_box_missing",
+                        message="gene_alteration_frequencies bar_box_id must resolve to an existing layout box",
+                        target=f"metrics.gene_alteration_frequencies[{index}].bar_box_id",
+                        observed=bar_box_id,
+                    )
+                )
+            elif frequency_panel_box is not None and not _boxes_overlap(bar_box, frequency_panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="gene_frequency_out_of_panel",
+                        message="gene alteration-frequency bars must stay inside panel_frequency",
+                        target=f"metrics.gene_alteration_frequencies[{index}].bar_box_id",
+                        box_refs=(bar_box.box_id, frequency_panel_box.box_id),
+                    )
+                )
+        if observed_frequency_genes != declared_gene_labels:
+            issues.append(
+                _issue(
+                    rule_id="gene_frequency_coverage_mismatch",
+                    message="gene_alteration_frequencies must cover every declared gene exactly once",
+                    target="metrics.gene_alteration_frequencies",
+                    observed=sorted(observed_frequency_genes),
+                    expected=sorted(declared_gene_labels),
+                )
+            )
+
+    annotation_panel_box = panel_boxes_by_id.get("panel_annotations")
+    annotation_tracks = sidecar.metrics.get("annotation_tracks")
+    if not isinstance(annotation_tracks, list) or not annotation_tracks:
+        issues.append(
+            _issue(
+                rule_id="annotation_tracks_missing",
+                message="genomic alteration landscape requires non-empty annotation_tracks metrics",
+                target="metrics.annotation_tracks",
+            )
+        )
+    else:
+        if len(annotation_tracks) > 3:
+            issues.append(
+                _issue(
+                    rule_id="annotation_track_count_invalid",
+                    message="genomic alteration landscape supports at most three annotation tracks",
+                    target="metrics.annotation_tracks",
+                    observed=len(annotation_tracks),
+                )
+            )
+        seen_track_ids: set[str] = set()
+        for index, track in enumerate(annotation_tracks):
+            if not isinstance(track, dict):
+                raise ValueError(f"layout_sidecar.metrics.annotation_tracks[{index}] must be an object")
+            track_id = str(track.get("track_id") or "").strip()
+            if not track_id:
+                raise ValueError(f"layout_sidecar.metrics.annotation_tracks[{index}].track_id must be non-empty")
+            if track_id in seen_track_ids:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_track_id_not_unique",
+                        message="annotation track ids must be unique",
+                        target=f"metrics.annotation_tracks[{index}].track_id",
+                        observed=track_id,
+                    )
+                )
+            seen_track_ids.add(track_id)
+            if not str(track.get("track_label") or "").strip():
+                issues.append(
+                    _issue(
+                        rule_id="annotation_track_label_invalid",
+                        message="annotation track labels must be non-empty",
+                        target=f"metrics.annotation_tracks[{index}].track_label",
+                    )
+                )
+            track_label_box_id = str(track.get("track_label_box_id") or "").strip()
+            track_label_box = layout_boxes_by_id.get(track_label_box_id)
+            if track_label_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_track_label_box_missing",
+                        message="annotation track label box must resolve to an existing layout box",
+                        target=f"metrics.annotation_tracks[{index}].track_label_box_id",
+                        observed=track_label_box_id,
+                    )
+                )
+            cells = track.get("cells")
+            if not isinstance(cells, list) or not cells:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_track_cells_missing",
+                        message="annotation track must expose non-empty cells metrics",
+                        target=f"metrics.annotation_tracks[{index}].cells",
+                    )
+                )
+                continue
+            observed_track_samples: set[str] = set()
+            for cell_index, cell in enumerate(cells):
+                if not isinstance(cell, dict):
+                    raise ValueError(
+                        f"layout_sidecar.metrics.annotation_tracks[{index}].cells[{cell_index}] must be an object"
+                    )
+                sample_id = str(cell.get("sample_id") or "").strip()
+                if sample_id not in declared_sample_ids:
+                    issues.append(
+                        _issue(
+                            rule_id="annotation_track_sample_unknown",
+                            message="annotation track cells must stay inside declared sample_ids",
+                            target=f"metrics.annotation_tracks[{index}].cells[{cell_index}].sample_id",
+                            observed=sample_id,
+                        )
+                    )
+                if sample_id in observed_track_samples:
+                    issues.append(
+                        _issue(
+                            rule_id="annotation_track_sample_duplicate",
+                            message="annotation track cells must cover each sample exactly once",
+                            target=f"metrics.annotation_tracks[{index}].cells[{cell_index}].sample_id",
+                            observed=sample_id,
+                        )
+                    )
+                observed_track_samples.add(sample_id)
+                if not str(cell.get("category_label") or "").strip():
+                    issues.append(
+                        _issue(
+                            rule_id="annotation_track_category_invalid",
+                            message="annotation track category labels must be non-empty",
+                            target=f"metrics.annotation_tracks[{index}].cells[{cell_index}].category_label",
+                        )
+                    )
+                box_id = str(cell.get("box_id") or "").strip()
+                box = layout_boxes_by_id.get(box_id)
+                if box is None:
+                    issues.append(
+                        _issue(
+                            rule_id="annotation_track_box_missing",
+                            message="annotation track cell box_id must resolve to an existing layout box",
+                            target=f"metrics.annotation_tracks[{index}].cells[{cell_index}].box_id",
+                            observed=box_id,
+                        )
+                    )
+                elif annotation_panel_box is not None and not _boxes_overlap(box, annotation_panel_box):
+                    issues.append(
+                        _issue(
+                            rule_id="annotation_track_box_out_of_panel",
+                            message="annotation track cells must stay inside panel_annotations",
+                            target=f"metrics.annotation_tracks[{index}].cells[{cell_index}].box_id",
+                            box_refs=(box.box_id, annotation_panel_box.box_id),
+                        )
+                    )
+            if observed_track_samples != declared_sample_ids:
+                issues.append(
+                    _issue(
+                        rule_id="annotation_track_coverage_mismatch",
+                        message="each annotation track must cover every declared sample exactly once",
+                        target=f"metrics.annotation_tracks[{index}].cells",
+                        observed=sorted(observed_track_samples),
+                        expected=sorted(declared_sample_ids),
+                    )
+                )
+
+    matrix_panel_box = panel_boxes_by_id.get("panel_matrix")
+    alteration_cells = sidecar.metrics.get("alteration_cells")
+    if not isinstance(alteration_cells, list) or not alteration_cells:
+        issues.append(
+            _issue(
+                rule_id="alteration_cells_missing",
+                message="genomic alteration landscape requires non-empty alteration_cells metrics",
+                target="metrics.alteration_cells",
+            )
+        )
+    else:
+        supported_mutation_classes = {"missense", "truncating", "fusion"}
+        supported_cnv_states = {"amplification", "gain", "loss", "deep_loss"}
+        observed_coordinates: set[tuple[str, str]] = set()
+        for index, cell in enumerate(alteration_cells):
+            if not isinstance(cell, dict):
+                raise ValueError(f"layout_sidecar.metrics.alteration_cells[{index}] must be an object")
+            sample_id = str(cell.get("sample_id") or "").strip()
+            gene_label = str(cell.get("gene_label") or "").strip()
+            if sample_id not in declared_sample_ids:
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_sample_unknown",
+                        message="alteration_cells sample ids must stay inside declared sample_ids",
+                        target=f"metrics.alteration_cells[{index}].sample_id",
+                        observed=sample_id,
+                    )
+                )
+            if gene_label not in declared_gene_labels:
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_gene_unknown",
+                        message="alteration_cells gene labels must stay inside declared gene_labels",
+                        target=f"metrics.alteration_cells[{index}].gene_label",
+                        observed=gene_label,
+                    )
+                )
+            coordinate = (sample_id, gene_label)
+            if coordinate in observed_coordinates:
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_coordinate_duplicate",
+                        message="alteration_cells must keep sample/gene coordinates unique",
+                        target=f"metrics.alteration_cells[{index}]",
+                        observed={"sample_id": sample_id, "gene_label": gene_label},
+                    )
+                )
+            observed_coordinates.add(coordinate)
+
+            mutation_class = str(cell.get("mutation_class") or "").strip()
+            cnv_state = str(cell.get("cnv_state") or "").strip()
+            if not mutation_class and not cnv_state:
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_state_missing",
+                        message="alteration_cells must define mutation_class or cnv_state",
+                        target=f"metrics.alteration_cells[{index}]",
+                    )
+                )
+            if mutation_class and mutation_class not in supported_mutation_classes:
+                issues.append(
+                    _issue(
+                        rule_id="mutation_class_invalid",
+                        message="alteration_cells mutation_class must use the supported mutation vocabulary",
+                        target=f"metrics.alteration_cells[{index}].mutation_class",
+                        observed=mutation_class,
+                    )
+                )
+            if cnv_state and cnv_state not in supported_cnv_states:
+                issues.append(
+                    _issue(
+                        rule_id="cnv_state_invalid",
+                        message="alteration_cells cnv_state must use the supported cnv vocabulary",
+                        target=f"metrics.alteration_cells[{index}].cnv_state",
+                        observed=cnv_state,
+                    )
+                )
+            box_id = str(cell.get("box_id") or "").strip()
+            box = layout_boxes_by_id.get(box_id)
+            if box is None:
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_box_missing",
+                        message="alteration_cells box_id must resolve to an existing layout box",
+                        target=f"metrics.alteration_cells[{index}].box_id",
+                        observed=box_id,
+                    )
+                )
+            elif matrix_panel_box is not None and not _boxes_overlap(box, matrix_panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="alteration_cell_box_out_of_panel",
+                        message="alteration cells must stay inside panel_matrix",
+                        target=f"metrics.alteration_cells[{index}].box_id",
+                        box_refs=(box.box_id, matrix_panel_box.box_id),
+                    )
+                )
+            overlay_box_id = str(cell.get("overlay_box_id") or "").strip()
+            if overlay_box_id:
+                overlay_box = layout_boxes_by_id.get(overlay_box_id)
+                if overlay_box is None:
+                    issues.append(
+                        _issue(
+                            rule_id="alteration_overlay_box_missing",
+                            message="overlay_box_id must resolve to an existing layout box",
+                            target=f"metrics.alteration_cells[{index}].overlay_box_id",
+                            observed=overlay_box_id,
+                        )
+                    )
+                else:
+                    if matrix_panel_box is not None and not _boxes_overlap(overlay_box, matrix_panel_box):
+                        issues.append(
+                            _issue(
+                                rule_id="alteration_overlay_out_of_panel",
+                                message="alteration overlays must stay inside panel_matrix",
+                                target=f"metrics.alteration_cells[{index}].overlay_box_id",
+                                box_refs=(overlay_box.box_id, matrix_panel_box.box_id),
+                            )
+                        )
+                    if box is not None and not _boxes_overlap(overlay_box, box):
+                        issues.append(
+                            _issue(
+                                rule_id="alteration_overlay_detached",
+                                message="alteration overlays must stay attached to their parent alteration cell",
+                                target=f"metrics.alteration_cells[{index}].overlay_box_id",
+                                box_refs=(overlay_box.box_id, box.box_id),
+                            )
+                        )
+
+    return issues
+
+
 def _check_publication_omics_volcano_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -16233,6 +16743,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_oncoplot_mutation_landscape_panel(normalized_sidecar)
     elif normalized_profile == "publication_cnv_recurrence_summary_panel":
         layout_issues = _check_publication_cnv_recurrence_summary_panel(normalized_sidecar)
+    elif normalized_profile == "publication_genomic_alteration_landscape_panel":
+        layout_issues = _check_publication_genomic_alteration_landscape_panel(normalized_sidecar)
     elif normalized_profile == "publication_omics_volcano_panel":
         layout_issues = _check_publication_omics_volcano_panel(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":
