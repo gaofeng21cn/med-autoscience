@@ -183,6 +183,27 @@ def _path_is_within_any_root(path: Path, roots: tuple[Path, ...]) -> bool:
     return False
 
 
+def _candidate_values_include_root(
+    *,
+    workspace_root: Path,
+    candidate_values: list[object],
+    root: Path,
+) -> bool:
+    root_resolved = root.resolve()
+    for candidate in candidate_values:
+        if not isinstance(candidate, str):
+            continue
+        normalized = candidate.strip()
+        if not normalized:
+            continue
+        try:
+            resolve_relpath(workspace_root, normalized).resolve().relative_to(root_resolved)
+        except ValueError:
+            continue
+        return True
+    return False
+
+
 def _resolve_compiled_surface_candidate(
     *,
     workspace_root: Path,
@@ -1783,13 +1804,23 @@ def create_submission_minimal_package(
         pack_lock_payload[0],
         _build_display_pack_summary_by_id(pack_lock_payload[1]),
     ) if pack_lock_payload is not None else (None, {})
-    excluded_compiled_source_roots = tuple(
-        dict.fromkeys(
-            [
-                *(root.resolve() for root in resolve_managed_submission_surface_roots(paper_root)),
-                submission_root.resolve(),
-            ]
-        )
+    managed_submission_surface_roots = tuple(
+        root.resolve()
+        for root in resolve_managed_submission_surface_roots(paper_root)
+        if root.resolve() != submission_root.resolve()
+    )
+    compiled_pdf_candidate_values = [
+        compile_report.get("output_pdf"),
+        compile_report.get("pdf_path"),
+        bundle_manifest.get("pdf_path"),
+    ]
+    exclude_live_submission_root = _candidate_values_include_root(
+        workspace_root=workspace_root,
+        candidate_values=compiled_pdf_candidate_values,
+        root=submission_root,
+    )
+    excluded_compiled_source_roots = managed_submission_surface_roots + (
+        (submission_root.resolve(),) if exclude_live_submission_root else ()
     )
 
     compiled_markdown_path = resolve_compiled_markdown_path(
