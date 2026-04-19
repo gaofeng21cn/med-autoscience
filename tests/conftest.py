@@ -19,16 +19,11 @@ META_FILES = {
     "tests/test_codex_plugin_scaffold.py",
     "tests/test_dev_preflight.py",
     "tests/test_dev_preflight_contract.py",
-    "tests/test_integration_harness_activation_package.py",
-    "tests/test_manual_runtime_stabilization_docs.py",
     "tests/test_med_deepscientist_repo_manifest.py",
     "tests/test_python_environment_contract.py",
     "tests/test_release_installer.py",
     "tests/test_release_metadata.py",
     "tests/test_release_workflow.py",
-    "tests/test_runtime_contract_docs.py",
-    "tests/test_runtime_supervision_docs.py",
-    "tests/test_study_progress_docs.py",
     "tests/test_workspace_contracts.py",
 }
 

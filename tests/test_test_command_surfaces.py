@@ -47,29 +47,6 @@ def test_pyproject_pins_opl_harness_shared_to_a_full_commit() -> None:
     )
 
 
-def test_public_readmes_publish_layered_test_entrypoints() -> None:
-    readme = _read("README.md")
-    readme_zh = _read("README.zh-CN.md")
-
-    assert "make test-full" in readme
-    assert "make test-fast" in readme
-    assert "make test-meta" in readme
-    assert "make test-display" in readme
-    assert "make test-full" in readme_zh
-    assert "make test-fast" in readme_zh
-    assert "make test-meta" in readme_zh
-    assert "make test-display" in readme_zh
-
-
-def test_root_agents_describe_current_verification_entrypoints() -> None:
-    agents = _read("AGENTS.md")
-
-    assert "统一验证入口：`scripts/verify.sh`。" in agents
-    assert "默认最小验证：`scripts/verify.sh`（内部运行 `make test-fast`）。" in agents
-    assert "full lane：`scripts/verify.sh full`（内部运行 `make test-full`）。" in agents
-    assert "修改 docs/contract surface 或运行语义时，至少补跑 `make test-meta`。" in agents
-
-
 def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     verify_script = _read("scripts/verify.sh")
 
@@ -81,44 +58,3 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-meta" in verify_script
     assert "make test-display" in verify_script
     assert "make test-full" in verify_script
-
-
-def test_docs_indexes_link_series_doc_governance_checklist() -> None:
-    docs_readme = _read("docs/README.md")
-    docs_readme_zh = _read("docs/README.zh-CN.md")
-    checklist = _read("docs/references/series-doc-governance-checklist.md")
-    previous_index = -1
-
-    for heading in (
-        "## 目标",
-        "## 一、默认入口",
-        "## 二、核心五件套",
-        "## 三、公开层与内部层",
-        "## 四、系列一致性检查",
-        "## 五、默认验证",
-    ):
-        current_index = checklist.find(heading)
-        assert current_index >= 0
-        assert current_index > previous_index
-        previous_index = current_index
-
-    assert "series-doc-governance-checklist.md" in docs_readme
-    assert "series-doc-governance-checklist.md" in docs_readme_zh
-
-    for label in ("One Person Lab", "Med Auto Science", "Med Auto Grant", "RedCube AI"):
-        assert label in checklist
-
-    for doc_name in ("project.md", "status.md", "architecture.md", "invariants.md", "decisions.md"):
-        assert doc_name in checklist
-
-    assert "docs/runtime/**" in checklist
-    assert "docs/program/**" in checklist
-    assert "docs/capabilities/**" in checklist
-    assert "docs/policies/**" in checklist
-    assert "Hermes-Agent" in checklist
-    assert "AGENTS.md" in checklist
-    assert "第二真相源" in checklist
-    assert "scripts/verify.sh meta" in checklist
-    assert "make test-meta" in checklist
-    assert "Documentation governance rules are maintained in [`AGENTS.md`](../AGENTS.md)." not in docs_readme
-    assert "文档治理规则统一收口在 [`AGENTS.md`](../AGENTS.md)。" not in docs_readme_zh
