@@ -36,13 +36,17 @@ def _candidate_repo_site_packages_roots() -> tuple[Path, ...]:
 
 
 def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
+    return tuple(
+        candidate_root / _SHARED_PACKAGE_NAME / _SHARED_BOOTSTRAP_MODULE_FILE
+        for candidate_root in _candidate_shared_src_roots()
+    )
+
+
+def _candidate_shared_src_roots() -> tuple[Path, ...]:
     repo_root = _repo_root()
     candidate_base_roots = [repo_root.parent]
     for ancestor in repo_root.parents:
-        if ancestor.name != ".worktrees":
-            continue
-        # Worktree layout: <workspace>/<repo>/.worktrees/<owner>/<wt>. Prefer the workspace sibling owner.
-        if ancestor.parent.parent not in candidate_base_roots:
+        if ancestor.name in {".worktrees", "worktrees"} and ancestor.parent.parent not in candidate_base_roots:
             candidate_base_roots.append(ancestor.parent.parent)
 
     unique_base_roots: list[Path] = []
@@ -51,19 +55,9 @@ def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
             unique_base_roots.append(candidate)
 
     return tuple(
-        base_root
-        / "one-person-lab"
-        / "python"
-        / "opl-harness-shared"
-        / "src"
-        / _SHARED_PACKAGE_NAME
-        / _SHARED_BOOTSTRAP_MODULE_FILE
+        base_root / "one-person-lab" / "python" / "opl-harness-shared" / "src"
         for base_root in unique_base_roots
     )
-
-
-def _candidate_shared_src_roots() -> tuple[Path, ...]:
-    return tuple(path.parent.parent for path in _candidate_shared_helper_module_paths())
 
 
 def _prepend_path(candidate_root: Path) -> bool:
@@ -98,9 +92,14 @@ def _load_shared_helper_module_from_path(helper_path: Path):
     return module
 
 
-def _import_shared_helper_module():
+def _import_shared_helper_module(added_paths: list[Path]):
     for helper_path in _candidate_shared_helper_module_paths():
         if helper_path.exists():
+            shared_src_root = helper_path.parent.parent
+            inserted = _prepend_path(shared_src_root)
+            _prefer_existing_package_path(shared_src_root)
+            if inserted:
+                added_paths.append(shared_src_root)
             return _load_shared_helper_module_from_path(helper_path)
     if _module_spec(_SHARED_HELPER_MODULE_NAME) is not None:
         return importlib.import_module(_SHARED_HELPER_MODULE_NAME)
@@ -110,20 +109,12 @@ def _import_shared_helper_module():
 def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
     added_paths: list[Path] = []
-    for candidate_root in _candidate_shared_src_roots():
-        if not (candidate_root / _SHARED_PACKAGE_NAME).exists():
-            continue
-        inserted = _prepend_path(candidate_root)
-        _prefer_existing_package_path(candidate_root)
-        if inserted:
-            added_paths.append(candidate_root)
-        break
-    helper_module = _import_shared_helper_module()
+    helper_module = _import_shared_helper_module(added_paths)
     if helper_module is None:
         for candidate_root in _candidate_repo_site_packages_roots():
             if _prepend_path(candidate_root):
                 added_paths.append(candidate_root)
-        helper_module = _import_shared_helper_module()
+        helper_module = _import_shared_helper_module(added_paths)
     if helper_module is None:
         return tuple(added_paths)
 
