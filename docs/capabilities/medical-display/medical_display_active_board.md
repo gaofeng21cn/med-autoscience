@@ -25,8 +25,8 @@
   - 表格壳层：`5`
   - 总模板数：`77`
 - 最近一次已吸收完成的 capability cluster：
-  - `G / omics volcano panel`
-  - `omics_volcano_panel`
+  - `G / oncoplot mutation landscape panel`
+  - `oncoplot_mutation_landscape_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,34 +35,34 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 5 / integration / merge-back / cleanup`
+- Phase：`Phase 4 / next-cluster routing and owner-round open`
 - Family cluster：`G`
-- Capability cluster：`oncoplot_mutation_landscape_panel`
-- Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-oncoplot-20260419T025341Z`
-- 状态：`merge_back_ready`
+- Capability cluster：`cnv_recurrence_summary_panel`
+- Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-genomic-summary-20260419T041334Z`
+- 状态：`owner_round_open`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel` 与 `omics_volcano_panel` 已经形成当前 `G/E` 三基线的前提下，如何把 top journal 常见的 oncoplot / mutation-landscape 主图正式沉淀成一个正文可直接使用的 bounded 模板，使论文能够稳定回答“哪些基因发生了什么类型的变异、样本级 mutation burden 如何分布、基因级 altered frequency 如何排序、关键临床或 cohort 注释如何和 mutation matrix 同步对齐”，并继续保持 sample order、gene order、mutation vocabulary、annotation-track completeness 与 burden/frequency 边栏语义全程可审计、可回归、可复用。
+> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel` 与 `oncoplot_mutation_landscape_panel` 已经形成当前 `G/E` 四基线的前提下，如何把 top journal 常见的 copy-number summary 主图正式沉淀成一个正文可直接使用的 bounded 模板，使论文能够稳定回答“哪些基因或区域发生了 gain/loss、样本级 CNV burden 如何分布、区域级 gain/loss 频率如何排序、关键临床或 cohort 注释如何和 CNV matrix 同步对齐”，并继续保持 region order、sample order、CNV vocabulary、annotation-track completeness 与 burden/frequency 边栏语义全程可审计、可回归、可复用。
 
 ### Fresh Route 收敛
 
 当前 reroute 已明确：
 
-1. `pathway_enrichment_dotplot_panel` 与 `omics_volcano_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小三基线已经成立。
-2. 当前 `G` round 收敛为单一 bounded 模板 `oncoplot_mutation_landscape_panel`，继续坚持高频组学正文图直接 pack 化的路线。
-3. richer mutation-landscape composite、`D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
-4. 当前 round 已完成 schema / renderer / QC / regression / tracked-docs 闭环，并已进入 absorb / push / cleanup。
+1. `oncoplot_mutation_landscape_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小四基线已经成立。
+2. 当前 `G` 新一轮 round 固定为单一 bounded follow-on：`cnv_recurrence_summary_panel`。
+3. 这条 follow-on 直接承接高水平组学论文里高频出现的 copy-number gain/loss summary 结构，并补齐当前 `G` 家族在 CNV manuscript-facing surface 上的正式 lower bound。
+4. richer mutation-landscape composite、broader genomic composite、`D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 固定 `G` 家族当前 owner 模板为 `oncoplot_mutation_landscape_panel`；
-2. 在当前 round 里，显式固定 shared `sample_order`、shared `gene_order`、mutation-class vocabulary、top burden bar、right-side altered-frequency bar 与 up-to-three annotation tracks 治理；
-3. 把 schema / renderer / QC / regression / tracked docs 一起闭环，不再把当前 round 停在 owner brief 阶段。
+1. 固定 `G` 家族当前 owner 模板为 `cnv_recurrence_summary_panel`；
+2. 在当前 round 里，显式固定 shared `sample_order`、shared `region_order`、CNV-state vocabulary、top burden bar、right-side gain/loss frequency bars 与 up-to-three annotation tracks 治理；
+3. 把 schema / renderer / QC / regression / tracked docs 一起闭环，并让 `G` 家族从 mutation landscape 扩到更完整的 genomic-summary lower bound。
 
 ## 预期写集
 
@@ -84,7 +84,7 @@
 
 只有同时满足下面条件，当前 `G` owner round 才算完成：
 
-1. `oncoplot_mutation_landscape_panel` 已正式入库为单一 bounded manuscript-facing template；
+1. `cnv_recurrence_summary_panel` 已正式入库为单一 bounded manuscript-facing template；
 2. input schema、source contract、materialization、renderer、layout QC 与 regression 已一起闭环；
 3. fresh verify 至少覆盖该 `G` lane、`scripts/verify.sh` 与 `make test-meta`；
 4. 本轮 worktree 已 absorb / push / cleanup，且未与其他 display owner write set 发生冲突。
@@ -93,7 +93,7 @@
 
 当前轮次结束后，secondary 候选按下面顺序继续：
 
-1. `G / richer mutation-landscape or multi-omics genomic summary beyond the first oncoplot lower bound`
+1. `G / richer mutation-landscape or broader genomic composite beyond the first CNV summary lower bound`
 2. `D/E/G / richer manifold or higher-order multi-view atlas follow-on only if new real-paper demand proves the current context-support lower bound insufficient`
 3. `F / higher-order explanation scene only if new real-paper demand proves the current grouped-local + support-domain lower bound insufficient`
 
