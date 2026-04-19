@@ -5747,6 +5747,39 @@ def _make_atlas_spatial_trajectory_context_support_panel_display(display_id: str
     }
 
 
+def _make_pathway_enrichment_dotplot_panel_display(display_id: str = "Figure34") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "pathway_enrichment_dotplot_panel",
+        "title": "Pathway enrichment comparison across transcriptome and proteome",
+        "caption": (
+            "Shared pathway ordering, signed enrichment direction, and hit-count magnitude remain bound "
+            "inside one audited enrichment dotplot contract."
+        ),
+        "x_label": "Normalized enrichment score",
+        "y_label": "Pathway",
+        "effect_scale_label": "Directionality score",
+        "size_scale_label": "Gene count",
+        "panel_order": [
+            {"panel_id": "transcriptome", "panel_title": "Transcriptome"},
+            {"panel_id": "proteome", "panel_title": "Proteome"},
+        ],
+        "pathway_order": [
+            {"label": "IFN response"},
+            {"label": "EMT signaling"},
+            {"label": "Cell cycle"},
+        ],
+        "points": [
+            {"panel_id": "transcriptome", "pathway_label": "IFN response", "x_value": 1.84, "effect_value": 0.91, "size_value": 34.0},
+            {"panel_id": "transcriptome", "pathway_label": "EMT signaling", "x_value": 1.18, "effect_value": 0.42, "size_value": 22.0},
+            {"panel_id": "transcriptome", "pathway_label": "Cell cycle", "x_value": 2.06, "effect_value": 0.76, "size_value": 29.0},
+            {"panel_id": "proteome", "pathway_label": "IFN response", "x_value": 1.41, "effect_value": 0.64, "size_value": 26.0},
+            {"panel_id": "proteome", "pathway_label": "EMT signaling", "x_value": 1.73, "effect_value": 0.88, "size_value": 31.0},
+            {"panel_id": "proteome", "pathway_label": "Cell cycle", "x_value": 1.22, "effect_value": 0.37, "size_value": 19.0},
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -5800,6 +5833,32 @@ def test_load_evidence_display_payload_rejects_incomplete_composition_for_spatia
             paper_root=paper_root,
             spec=spec,
             display_id="Figure28",
+        )
+
+
+def test_load_evidence_display_payload_rejects_incomplete_panel_pathway_grid_for_enrichment_dotplot(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_pathway_enrichment_dotplot_panel_display()
+    display_payload["points"] = list(display_payload["points"][:-1])
+    dump_json(
+        paper_root / "pathway_enrichment_dotplot_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "pathway_enrichment_dotplot_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("pathway_enrichment_dotplot_panel")
+
+    with pytest.raises(ValueError, match="must cover every declared panel/pathway coordinate exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure34",
         )
 
 
@@ -6148,6 +6207,80 @@ def test_materialize_display_surface_generates_trajectory_progression_panel(tmp_
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "trajectory_progression_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_trajectory_progression_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_pathway_enrichment_dotplot_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "display_kind": "figure",
+                    "requirement_key": "pathway_enrichment_dotplot_panel",
+                    "catalog_id": "F34",
+                    "shell_path": "paper/figures/Figure34.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "template_id": "pathway_enrichment_dotplot_panel",
+                    "layout_override": {"show_figure_title": True},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "pathway_enrichment_dotplot_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "pathway_enrichment_dotplot_panel_inputs_v1",
+            "displays": [_make_pathway_enrichment_dotplot_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F34"]
+    assert (paper_root / "figures" / "generated" / "F34_pathway_enrichment_dotplot_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F34_pathway_enrichment_dotplot_panel.pdf").exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F34_pathway_enrichment_dotplot_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == ["panel_A", "panel_B"]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["pathway_labels"] == ["IFN response", "EMT signaling", "Cell cycle"]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["panels"]] == ["transcriptome", "proteome"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F34"
+    assert figure_entry["template_id"] == full_id("pathway_enrichment_dotplot_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "pathway_enrichment_dotplot_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_pathway_enrichment_dotplot_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

@@ -53,6 +53,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "correlation_heatmap",
         "clustered_heatmap",
         "gsva_ssgsea_heatmap",
+        "pathway_enrichment_dotplot_panel",
         "forest_effect_main",
         "subgroup_forest",
         "generalizability_subgroup_composite_panel",

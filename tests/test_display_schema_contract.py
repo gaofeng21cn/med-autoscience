@@ -45,6 +45,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     performance_heatmap = module.get_input_schema_contract("performance_heatmap_inputs_v1")
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
+    enrichment_dotplot = module.get_input_schema_contract("pathway_enrichment_dotplot_panel_inputs_v1")
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -636,6 +637,46 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "declared_row_labels_must_match_cell_rows",
         "declared_column_labels_must_match_cell_columns",
         "declared_heatmap_grid_must_be_complete_and_unique",
+    )
+    assert enrichment_dotplot.template_ids == (_full_id("pathway_enrichment_dotplot_panel"),)
+    assert enrichment_dotplot.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "effect_scale_label",
+        "size_scale_label",
+        "panel_order",
+        "pathway_order",
+        "points",
+    )
+    assert enrichment_dotplot.display_optional_fields == ("paper_role",)
+    assert enrichment_dotplot.collection_required_fields["panel_order"] == ("panel_id", "panel_title")
+    assert enrichment_dotplot.collection_required_fields["pathway_order"] == ("label",)
+    assert enrichment_dotplot.collection_required_fields["points"] == (
+        "panel_id",
+        "pathway_label",
+        "x_value",
+        "effect_value",
+        "size_value",
+    )
+    assert enrichment_dotplot.additional_constraints == (
+        "effect_scale_label_must_be_non_empty",
+        "size_scale_label_must_be_non_empty",
+        "panel_order_must_be_non_empty",
+        "panel_order_count_must_be_at_most_two",
+        "panel_ids_must_be_unique",
+        "panel_titles_must_be_non_empty",
+        "pathway_order_labels_must_be_unique",
+        "points_must_be_non_empty",
+        "point_panel_ids_must_match_declared_panels",
+        "point_pathway_labels_must_match_declared_pathways",
+        "point_x_values_must_be_finite",
+        "point_effect_values_must_be_finite",
+        "point_size_values_must_be_non_negative",
+        "declared_panel_pathway_grid_must_be_complete_and_unique",
     )
 
     assert correlation.template_ids == (_full_id("correlation_heatmap"),)
@@ -2562,6 +2603,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "clustered_heatmap_inputs_v1" in markdown
     assert _full_id("gsva_ssgsea_heatmap") in markdown
     assert "gsva_ssgsea_heatmap_inputs_v1" in markdown
+    assert _full_id("pathway_enrichment_dotplot_panel") in markdown
+    assert "pathway_enrichment_dotplot_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

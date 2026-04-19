@@ -246,6 +246,112 @@ def test_single_cell_atlas_overview_panel_preserves_deg_atlas_contract(tmp_path:
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_pathway_enrichment_dotplot_panel_preserves_eg_omics_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "display_kind": "figure",
+                    "requirement_key": "pathway_enrichment_dotplot_panel",
+                    "catalog_id": "F34",
+                    "shell_path": "paper/figures/Figure34.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "template_id": "fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "pathway_enrichment_dotplot_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "pathway_enrichment_dotplot_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure34",
+                    "template_id": "fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel",
+                    "title": "Pathway enrichment comparison across transcriptome and proteome",
+                    "caption": "Shared pathway ordering and effect-size semantics remain stable across both omics panels.",
+                    "x_label": "Normalized enrichment score",
+                    "y_label": "Pathway",
+                    "effect_scale_label": "Directionality score",
+                    "size_scale_label": "Gene count",
+                    "panel_order": [
+                        {"panel_id": "transcriptome", "panel_title": "Transcriptome"},
+                        {"panel_id": "proteome", "panel_title": "Proteome"},
+                    ],
+                    "pathway_order": [
+                        {"label": "IFN response"},
+                        {"label": "EMT signaling"},
+                        {"label": "Cell cycle"},
+                    ],
+                    "points": [
+                        {"panel_id": "transcriptome", "pathway_label": "IFN response", "x_value": 1.84, "effect_value": 0.91, "size_value": 34.0},
+                        {"panel_id": "transcriptome", "pathway_label": "EMT signaling", "x_value": 1.18, "effect_value": 0.42, "size_value": 22.0},
+                        {"panel_id": "transcriptome", "pathway_label": "Cell cycle", "x_value": 2.06, "effect_value": 0.76, "size_value": 29.0},
+                        {"panel_id": "proteome", "pathway_label": "IFN response", "x_value": 1.41, "effect_value": 0.64, "size_value": 26.0},
+                        {"panel_id": "proteome", "pathway_label": "EMT signaling", "x_value": 1.73, "effect_value": 0.88, "size_value": 31.0},
+                        {"panel_id": "proteome", "pathway_label": "Cell cycle", "x_value": 1.22, "effect_value": 0.37, "size_value": 19.0},
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F34_pathway_enrichment_dotplot_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == ["panel_A", "panel_B"]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "colorbar"}
+    assert layout_sidecar["metrics"]["effect_scale_label"] == "Directionality score"
+    assert layout_sidecar["metrics"]["size_scale_label"] == "Gene count"
+    assert layout_sidecar["metrics"]["pathway_labels"] == ["IFN response", "EMT signaling", "Cell cycle"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_spatial_niche_map_panel_preserves_deg_spatial_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

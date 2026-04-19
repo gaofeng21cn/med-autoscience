@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `62`
+- Implemented evidence figure templates: `63`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total implemented display templates: `74`
+- Total implemented display templates: `75`
 
 ### Evidence Classes
 
@@ -107,7 +107,7 @@ Current implemented display inventory:
 | Clinical Utility | 4 | `binary_prediction_curve_inputs_v1`, `time_to_event_decision_curve_inputs_v1`, `time_to_event_threshold_governance_inputs_v1`, `binary_calibration_decision_curve_panel_inputs_v1` | `publication_evidence_curve`, `publication_binary_calibration_decision_curve`, `publication_decision_curve`, `publication_time_to_event_threshold_governance_panel` |
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
 | Data Geometry | 11 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel` |
-| Matrix Pattern | 5 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` |
+| Matrix Pattern | 6 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel` |
 | Effect Estimate | 5 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel` |
 | Model Explanation | 17 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `shap_grouped_local_support_domain_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_shap_grouped_local_support_domain_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
@@ -230,16 +230,17 @@ Templates:
 - `correlation_heatmap`
 - `clustered_heatmap`
 - `gsva_ssgsea_heatmap`
+- `pathway_enrichment_dotplot_panel`
 
 Audit purpose:
 
-- Group contrast matrices, audited performance grids, symmetric correlation structure, externally fixed clustered ordering, and omics-native GSVA/ssGSEA program heatmaps.
+- Group contrast matrices, audited performance grids, symmetric correlation structure, externally fixed clustered ordering, omics-native GSVA/ssGSEA program heatmaps, and pathway-enrichment dotplots that jointly govern effect direction, effect strength, hit-size encoding, and shared pathway ordering across up to two manuscript-facing panels.
 
 Authoritative contract:
 
-- Input schemas: `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`
-- Renderer family: `r_ggplot2`
-- QC: `publication_heatmap`
+- Input schemas: `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1`
+- Renderer families: `r_ggplot2`, `python`
+- QC: `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel`
 
 ### 6. Effect Estimate
 

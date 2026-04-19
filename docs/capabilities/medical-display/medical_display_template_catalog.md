@@ -83,6 +83,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::correlation_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Correlation Heatmap | `r_ggplot2` | `correlation_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `python` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` |
 
 ### Effect Estimate
 
@@ -556,6 +557,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_heatmap_grid_must_be_complete_and_unique`
+
+### `pathway_enrichment_dotplot_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Pathway Enrichment Dotplot Panel
+- Templates: `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `effect_scale_label`, `size_scale_label`, `panel_order`, `pathway_order`, `points`
+- Optional display fields: `paper_role`
+- Required collection fields: `panel_order` -> `panel_id`, `panel_title`<br>`pathway_order` -> `label`<br>`points` -> `panel_id`, `pathway_label`, `x_value`, `effect_value`, `size_value`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `effect_scale_label_must_be_non_empty`, `size_scale_label_must_be_non_empty`, `panel_order_must_be_non_empty`, `panel_order_count_must_be_at_most_two`, `panel_ids_must_be_unique`, `panel_titles_must_be_non_empty`, `pathway_order_labels_must_be_unique`, `points_must_be_non_empty`, `point_panel_ids_must_match_declared_panels`, `point_pathway_labels_must_match_declared_pathways`, `point_x_values_must_be_finite`, `point_effect_values_must_be_finite`, `point_size_values_must_be_non_negative`, `declared_panel_pathway_grid_must_be_complete_and_unique`
 
 ### `forest_effect_inputs_v1`
 

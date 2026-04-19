@@ -2567,6 +2567,121 @@ def test_run_display_layout_qc_fails_when_performance_heatmap_value_is_out_of_ra
     assert any(issue["rule_id"] == "performance_value_out_of_range" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_pathway_enrichment_dotplot_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_pathway_enrichment_dotplot_panel",
+        layout_sidecar={
+            "template_id": "pathway_enrichment_dotplot_panel",
+            "device": make_device(),
+                "layout_boxes": [
+                    make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.28, y1=0.89),
+                    make_box("panel_title_B", "panel_title", x0=0.52, y0=0.86, x1=0.68, y1=0.89),
+                    make_box("panel_label_A", "panel_label", x0=0.10, y0=0.76, x1=0.12, y1=0.79),
+                    make_box("panel_label_B", "panel_label", x0=0.52, y0=0.76, x1=0.54, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.56, y0=0.10, x1=0.72, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.36, x1=0.06, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+                make_box("panel_B", "panel", x0=0.52, y0=0.18, x1=0.84, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.88, y0=0.20, x1=0.92, y1=0.76),
+            ],
+            "metrics": {
+                "effect_scale_label": "Directionality score",
+                "size_scale_label": "Gene count",
+                "pathway_labels": ["IFN response", "EMT signaling", "Cell cycle"],
+                "panels": [
+                    {
+                        "panel_id": "transcriptome",
+                        "panel_title": "Transcriptome",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "points": [
+                            {"pathway_label": "IFN response", "x": 0.28, "y": 0.68, "size_value": 34.0, "effect_value": 0.91},
+                            {"pathway_label": "EMT signaling", "x": 0.22, "y": 0.50, "size_value": 22.0, "effect_value": 0.42},
+                            {"pathway_label": "Cell cycle", "x": 0.31, "y": 0.32, "size_value": 29.0, "effect_value": 0.76},
+                        ],
+                    },
+                    {
+                        "panel_id": "proteome",
+                        "panel_title": "Proteome",
+                        "panel_label": "B",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "points": [
+                            {"pathway_label": "IFN response", "x": 0.64, "y": 0.68, "size_value": 26.0, "effect_value": 0.64},
+                            {"pathway_label": "EMT signaling", "x": 0.72, "y": 0.50, "size_value": 31.0, "effect_value": 0.88},
+                            {"pathway_label": "Cell cycle", "x": 0.61, "y": 0.32, "size_value": 19.0, "effect_value": 0.37},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_pathway_enrichment_dotplot_scale_label_is_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_pathway_enrichment_dotplot_panel",
+        layout_sidecar={
+            "template_id": "pathway_enrichment_dotplot_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.28, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.80, x1=0.12, y1=0.83),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.14, y0=0.10, x1=0.30, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.36, x1=0.06, y1=0.66),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("colorbar", "colorbar", x0=0.88, y0=0.20, x1=0.92, y1=0.76),
+            ],
+            "metrics": {
+                "effect_scale_label": "Directionality score",
+                "size_scale_label": "",
+                "pathway_labels": ["IFN response", "EMT signaling"],
+                "panels": [
+                    {
+                        "panel_id": "transcriptome",
+                        "panel_title": "Transcriptome",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "points": [
+                            {"pathway_label": "IFN response", "x": 0.28, "y": 0.62, "size_value": 34.0, "effect_value": 0.91},
+                            {"pathway_label": "EMT signaling", "x": 0.22, "y": 0.38, "size_value": 22.0, "effect_value": 0.42},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "size_scale_label_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_celltype_signature_panel_is_missing_colorbar() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
