@@ -20,13 +20,13 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`69`
+  - 证据型模板：`70`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`81`
+  - 总模板数：`82`
 - 最近一次已吸收完成的 capability cluster：
-  - `G / genomic_alteration_multiomic_consequence_panel`
-  - `genomic_alteration_multiomic_consequence_panel`
+  - `G / genomic_alteration_pathway_integrated_composite_panel`
+  - `genomic_alteration_pathway_integrated_composite_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -36,15 +36,15 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting`
-- Family cluster：`G`
-- Capability cluster：`pathway-integrated genomic composite beyond the current landscape-plus-three-omics lower bound`
+- Family cluster：`reroute pending`
+- Capability cluster：`reroute after latest G absorb`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- `genomic_alteration_multiomic_consequence_panel` 已完成 absorb / push / cleanup；
-- `G/E` 当前 omics-native lower bound 已正式扩到八基线：
+- 当前主干已吸收 `genomic_alteration_pathway_integrated_composite_panel`，并完成 docs / changelog / verification 收口；
+- `G/E` 当前 omics-native lower bound 已正式扩到九基线：
   - `gsva_ssgsea_heatmap`
   - `pathway_enrichment_dotplot_panel`
   - `omics_volcano_panel`
@@ -53,31 +53,32 @@
   - `genomic_alteration_landscape_panel`
   - `genomic_alteration_consequence_panel`
   - `genomic_alteration_multiomic_consequence_panel`
-- display 主干当前只剩根 `main` 一个 worktree；
-- 下一步是先收口更高阶 `G` 家族 owner brief，再新开唯一 owner worktree 进入实现。
+  - `genomic_alteration_pathway_integrated_composite_panel`
+- display 当前没有新的 active owner worktree；
+- 下一步是按 reroute 规则选择新的 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `GSVA/ssGSEA` heatmap、pathway enrichment dotplot、omics volcano、oncoplot、CNV summary、gene-level genomic landscape、driver-centric consequence follow-on 与固定三层 multiomic consequence follow-on 已经成立的前提下，如何把 pathway-integrated broader genomic composite 固化成正文可直接使用的下一条 bounded 模板，并把更强的 pathway / omics 联动叙事推进到可审计、可回归、可复用的统一 contract。
+> 在 `GSVA/ssGSEA` heatmap、pathway enrichment dotplot、omics volcano、oncoplot、CNV summary、gene-level genomic landscape、driver-centric consequence follow-on、固定三层 multiomic consequence follow-on 与当前 pathway-integrated composite lower bound 已经成立的前提下，下一条最值得 absorb 的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. 当前主干已经吸收 `genomic_alteration_multiomic_consequence_panel`，并完成 push 与 cleanup。
-2. 当前下一步是基于最新 `main` fresh intake 高价值 exemplar，收口 pathway-integrated broader genomic composite 的 owner brief。
-3. 只有 owner brief 收口后，才新开唯一 owner worktree 进入实现。
-4. `D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
+1. `genomic_alteration_pathway_integrated_composite_panel` 已正式吸收到主干真相。
+2. 当前 omics-native lower bound 已从八基线推进到九基线。
+3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
+4. `G` 更高阶 genomic-governance synthesis、`D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在候选池。
 
 ### 下一轮边界
 
 下一轮只做下面三块：
 
-1. 固定 `G` 家族下一轮 owner 候选为 `pathway-integrated genomic composite beyond the current landscape-plus-three-omics lower bound`；
-2. 在 owner brief 阶段显式固定 exemplar、paper question、最小 panel structure、最小数据前提、继承自现有八基线的 contract surface；
-3. 进入实现后，再把 schema / renderer / QC / regression / tracked docs 一起闭环。
+1. 先 fresh 读取当前 audit guide / template catalog / arsenal / active board；
+2. 再比较 `G`、`D/E/G` 与 `F` 的真实论文 demand 哪一条最值得开启下一轮；
+3. 只有 reroute 固定后，才新开唯一 owner worktree 进入实现。
 
 ## 预期写集
 
@@ -99,16 +100,16 @@
 
 只有同时满足下面条件，下一轮 `G` owner round 才算完成：
 
-1. 新的 broader genomic composite 已正式入库为单一 bounded manuscript-facing template；
-2. input schema、source contract、materialization、renderer、layout QC 与 regression 已一起闭环；
-3. fresh verify 至少覆盖该 `G` lane、`scripts/verify.sh` 与 `make test-meta`；
-4. 本轮 worktree 已 absorb / push / cleanup，且未与其他 display owner write set 发生冲突。
+1. 新候选必须有清晰的论文问题、最小 panel 结构与最小数据前提；
+2. input schema、source contract、materialization、renderer、layout QC 与 regression 仍需一起闭环；
+3. fresh verify 至少覆盖对应 lane、`scripts/verify.sh` 与 `make test-meta`；
+4. 本轮 worktree 仍需 absorb / push / cleanup，且不与其他 owner write set 冲突。
 
 ## 当前轮次结束后的候选
 
-当前 pathway-integrated broader genomic composite 收口后，secondary 候选按下面顺序继续：
+当前 reroute 候选按下面顺序继续：
 
-1. `G / pathway-integrated genomic composite beyond the current landscape-plus-three-omics lower bound`
+1. `G / higher-order genomic-governance synthesis only if new real-paper demand proves the current pathway-integrated lower bound insufficient`
 2. `D/E/G / richer manifold or higher-order multi-view atlas follow-on only if new real-paper demand proves the current context-support lower bound insufficient`
 3. `F / higher-order explanation scene only if new real-paper demand proves the current grouped-local + support-domain lower bound insufficient`
 

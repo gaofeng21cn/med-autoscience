@@ -6148,6 +6148,130 @@ def _validate_genomic_alteration_multiomic_consequence_panel_display_payload(
     return normalized_payload
 
 
+def _validate_genomic_alteration_pathway_integrated_composite_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    normalized_payload = _validate_genomic_alteration_multiomic_consequence_panel_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    pathway_x_label = _require_non_empty_string(
+        payload.get("pathway_x_label"),
+        label=f"{path.name} display `{expected_display_id}` pathway_x_label",
+    )
+    pathway_y_label = _require_non_empty_string(
+        payload.get("pathway_y_label"),
+        label=f"{path.name} display `{expected_display_id}` pathway_y_label",
+    )
+    pathway_effect_scale_label = _require_non_empty_string(
+        payload.get("pathway_effect_scale_label"),
+        label=f"{path.name} display `{expected_display_id}` pathway_effect_scale_label",
+    )
+    pathway_size_scale_label = _require_non_empty_string(
+        payload.get("pathway_size_scale_label"),
+        label=f"{path.name} display `{expected_display_id}` pathway_size_scale_label",
+    )
+    pathway_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("pathway_order"),
+        label=f"display `{expected_display_id}` pathway_order",
+    )
+    pathway_panel_order = _validate_panel_order_payload(
+        path=path,
+        payload=payload.get("pathway_panel_order"),
+        label=f"display `{expected_display_id}` pathway_panel_order",
+        max_panels=3,
+    )
+    expected_panel_ids = {"proteome", "phosphoproteome", "glycoproteome"}
+    declared_panel_ids = {str(item["panel_id"]) for item in pathway_panel_order}
+    if len(pathway_panel_order) != 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` pathway_panel_order must contain exactly three panels")
+    if declared_panel_ids != expected_panel_ids:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` pathway_panel_order panel_id values must be proteome, phosphoproteome, and glycoproteome"
+        )
+
+    declared_pathway_labels = {item["label"] for item in pathway_order}
+    expected_coordinates = {
+        (panel["panel_id"], pathway["label"])
+        for panel in pathway_panel_order
+        for pathway in pathway_order
+    }
+    pathway_points = payload.get("pathway_points")
+    if not isinstance(pathway_points, list) or not pathway_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty pathway_points list")
+
+    observed_coordinates: set[tuple[str, str]] = set()
+    normalized_pathway_points: list[dict[str, Any]] = []
+    for index, item in enumerate(pathway_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` pathway_points[{index}] must be an object")
+        panel_id = _require_non_empty_string(
+            item.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` pathway_points[{index}].panel_id",
+        )
+        if panel_id not in declared_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` pathway_points[{index}].panel_id must match pathway_panel_order"
+            )
+        pathway_label = _require_non_empty_string(
+            item.get("pathway_label"),
+            label=f"{path.name} display `{expected_display_id}` pathway_points[{index}].pathway_label",
+        )
+        if pathway_label not in declared_pathway_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` pathway_points[{index}].pathway_label must match pathway_order"
+            )
+        coordinate = (panel_id, pathway_label)
+        if coordinate in observed_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` must cover every declared pathway panel/pathway coordinate exactly once"
+            )
+        observed_coordinates.add(coordinate)
+        size_value = _require_numeric_value(
+            item.get("size_value"),
+            label=f"{path.name} display `{expected_display_id}` pathway_points[{index}].size_value",
+        )
+        if size_value < 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` pathway_points[{index}].size_value must be non-negative"
+            )
+        normalized_pathway_points.append(
+            {
+                "panel_id": panel_id,
+                "pathway_label": pathway_label,
+                "x_value": _require_numeric_value(
+                    item.get("x_value"),
+                    label=f"{path.name} display `{expected_display_id}` pathway_points[{index}].x_value",
+                ),
+                "effect_value": _require_numeric_value(
+                    item.get("effect_value"),
+                    label=f"{path.name} display `{expected_display_id}` pathway_points[{index}].effect_value",
+                ),
+                "size_value": size_value,
+            }
+        )
+    if observed_coordinates != expected_coordinates:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must cover every declared pathway panel/pathway coordinate exactly once"
+        )
+
+    normalized_payload["pathway_x_label"] = pathway_x_label
+    normalized_payload["pathway_y_label"] = pathway_y_label
+    normalized_payload["pathway_effect_scale_label"] = pathway_effect_scale_label
+    normalized_payload["pathway_size_scale_label"] = pathway_size_scale_label
+    normalized_payload["pathway_order"] = pathway_order
+    normalized_payload["pathway_panel_order"] = pathway_panel_order
+    normalized_payload["pathway_points"] = normalized_pathway_points
+    return normalized_payload
+
+
 def _validate_omics_volcano_panel_display_payload(
     *,
     path: Path,
@@ -10632,6 +10756,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "genomic_alteration_multiomic_consequence_panel_inputs_v1":
         return payload_path, _validate_genomic_alteration_multiomic_consequence_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "genomic_alteration_pathway_integrated_composite_panel_inputs_v1":
+        return payload_path, _validate_genomic_alteration_pathway_integrated_composite_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

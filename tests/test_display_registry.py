@@ -286,6 +286,16 @@ def test_genomic_alteration_multiomic_consequence_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_genomic_alteration_multiomic_consequence_panel"
 
 
+def test_genomic_alteration_pathway_integrated_composite_panel_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("genomic_alteration_pathway_integrated_composite_panel"))
+
+    assert spec.paper_family_ids == ("G",)
+    assert spec.evidence_class == "matrix_pattern"
+    assert spec.renderer_family == "python"
+    assert spec.input_schema_id == "genomic_alteration_pathway_integrated_composite_panel_inputs_v1"
+    assert spec.layout_qc_profile == "publication_genomic_alteration_pathway_integrated_composite_panel"
+
+
 def test_shap_waterfall_local_explanation_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("shap_waterfall_local_explanation_panel"))
 

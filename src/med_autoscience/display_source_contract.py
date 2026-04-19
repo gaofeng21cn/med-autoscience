@@ -35,6 +35,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "genomic_alteration_landscape_panel_inputs_v1": "genomic_alteration_landscape_panel_inputs.json",
     "genomic_alteration_consequence_panel_inputs_v1": "genomic_alteration_consequence_panel_inputs.json",
     "genomic_alteration_multiomic_consequence_panel_inputs_v1": "genomic_alteration_multiomic_consequence_panel_inputs.json",
+    "genomic_alteration_pathway_integrated_composite_panel_inputs_v1": "genomic_alteration_pathway_integrated_composite_panel_inputs.json",
     "forest_effect_inputs_v1": "forest_effect_inputs.json",
     "generalizability_subgroup_composite_inputs_v1": "generalizability_subgroup_composite_inputs.json",
     "compact_effect_estimate_panel_inputs_v1": "compact_effect_estimate_panel_inputs.json",

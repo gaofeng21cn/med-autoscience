@@ -56,6 +56,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     genomic_alteration_multiomic_consequence = module.get_input_schema_contract(
         "genomic_alteration_multiomic_consequence_panel_inputs_v1"
     )
+    genomic_alteration_pathway_integrated = module.get_input_schema_contract(
+        "genomic_alteration_pathway_integrated_composite_panel_inputs_v1"
+    )
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -958,6 +961,51 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     )
     assert genomic_alteration_multiomic_consequence.template_ids == (
         _full_id("genomic_alteration_multiomic_consequence_panel"),
+    )
+    assert genomic_alteration_pathway_integrated.template_ids == (
+        _full_id("genomic_alteration_pathway_integrated_composite_panel"),
+    )
+    assert genomic_alteration_pathway_integrated.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "burden_axis_label",
+        "frequency_axis_label",
+        "alteration_legend_title",
+        "gene_order",
+        "sample_order",
+        "annotation_tracks",
+        "alteration_records",
+        "consequence_x_label",
+        "consequence_y_label",
+        "consequence_legend_title",
+        "effect_threshold",
+        "significance_threshold",
+        "driver_gene_order",
+        "consequence_panel_order",
+        "consequence_points",
+        "pathway_x_label",
+        "pathway_y_label",
+        "pathway_effect_scale_label",
+        "pathway_size_scale_label",
+        "pathway_order",
+        "pathway_panel_order",
+        "pathway_points",
+    )
+    assert genomic_alteration_pathway_integrated.display_optional_fields == ("paper_role",)
+    assert genomic_alteration_pathway_integrated.collection_required_fields["pathway_order"] == ("label",)
+    assert genomic_alteration_pathway_integrated.collection_required_fields["pathway_panel_order"] == (
+        "panel_id",
+        "panel_title",
+    )
+    assert genomic_alteration_pathway_integrated.collection_required_fields["pathway_points"] == (
+        "panel_id",
+        "pathway_label",
+        "x_value",
+        "effect_value",
+        "size_value",
     )
     assert genomic_alteration_multiomic_consequence.display_required_fields == (
         "display_id",
@@ -2999,6 +3047,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "genomic_alteration_consequence_panel_inputs_v1" in markdown
     assert _full_id("genomic_alteration_multiomic_consequence_panel") in markdown
     assert "genomic_alteration_multiomic_consequence_panel_inputs_v1" in markdown
+    assert _full_id("genomic_alteration_pathway_integrated_composite_panel") in markdown
+    assert "genomic_alteration_pathway_integrated_composite_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

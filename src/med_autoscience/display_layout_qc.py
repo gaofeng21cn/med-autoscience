@@ -6722,6 +6722,280 @@ def _check_publication_genomic_alteration_multiomic_consequence_panel(sidecar: L
     return issues
 
 
+def _check_publication_genomic_alteration_pathway_integrated_composite_panel(
+    sidecar: LayoutSidecar,
+) -> list[dict[str, Any]]:
+    issues = _check_publication_genomic_alteration_multiomic_consequence_panel(sidecar)
+    all_boxes = _all_boxes(sidecar)
+    issues.extend(_check_boxes_within_device(sidecar))
+    issues.extend(_check_required_box_types(all_boxes, required_box_types=("colorbar",)))
+
+    pathway_effect_scale_label = str(sidecar.metrics.get("pathway_effect_scale_label") or "").strip()
+    if not pathway_effect_scale_label:
+        issues.append(
+            _issue(
+                rule_id="pathway_effect_scale_label_missing",
+                message="pathway-integrated composite requires a non-empty pathway_effect_scale_label",
+                target="metrics.pathway_effect_scale_label",
+            )
+        )
+    pathway_size_scale_label = str(sidecar.metrics.get("pathway_size_scale_label") or "").strip()
+    if not pathway_size_scale_label:
+        issues.append(
+            _issue(
+                rule_id="pathway_size_scale_label_missing",
+                message="pathway-integrated composite requires a non-empty pathway_size_scale_label",
+                target="metrics.pathway_size_scale_label",
+            )
+        )
+
+    pathway_label_payload = sidecar.metrics.get("pathway_labels")
+    if not isinstance(pathway_label_payload, list) or not pathway_label_payload:
+        issues.append(
+            _issue(
+                rule_id="pathway_labels_missing",
+                message="pathway-integrated composite requires non-empty pathway_labels metrics",
+                target="metrics.pathway_labels",
+            )
+        )
+        return issues
+    pathway_labels = [str(item).strip() for item in pathway_label_payload]
+    if any(not item for item in pathway_labels):
+        issues.append(
+            _issue(
+                rule_id="pathway_label_invalid",
+                message="pathway_labels must be non-empty",
+                target="metrics.pathway_labels",
+            )
+        )
+    if len(set(pathway_labels)) != len(pathway_labels):
+        issues.append(
+            _issue(
+                rule_id="pathway_labels_not_unique",
+                message="pathway_labels must be unique",
+                target="metrics.pathway_labels",
+            )
+        )
+
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    guide_boxes_by_id = {box.box_id: box for box in sidecar.guide_boxes}
+    required_panel_ids = ("proteome", "phosphoproteome", "glycoproteome")
+    pathway_panels = sidecar.metrics.get("pathway_panels")
+    if not isinstance(pathway_panels, list) or not pathway_panels:
+        issues.append(
+            _issue(
+                rule_id="pathway_panels_missing",
+                message="pathway-integrated composite requires non-empty pathway_panels metrics",
+                target="metrics.pathway_panels",
+            )
+        )
+        return issues
+    if len(pathway_panels) != 3:
+        issues.append(
+            _issue(
+                rule_id="pathway_panel_count_invalid",
+                message="pathway-integrated composite requires exactly three pathway panels",
+                target="metrics.pathway_panels",
+                observed=len(pathway_panels),
+                expected=3,
+            )
+        )
+
+    expected_coordinates = {(panel_id, pathway_label) for panel_id in required_panel_ids for pathway_label in pathway_labels}
+    observed_coordinates: set[tuple[str, str]] = set()
+    observed_panel_ids: set[str] = set()
+
+    for panel_index, payload in enumerate(pathway_panels):
+        if not isinstance(payload, dict):
+            raise ValueError(f"layout_sidecar.metrics.pathway_panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_text(
+            payload.get("panel_id"),
+            label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].panel_id",
+        )
+        observed_panel_ids.add(panel_id)
+
+        panel_box_id = _require_non_empty_text(
+            payload.get("panel_box_id"),
+            label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].panel_box_id",
+        )
+        panel_box = panel_boxes_by_id.get(panel_box_id)
+        if panel_box is None:
+            issues.append(
+                _issue(
+                    rule_id="pathway_panel_box_missing",
+                    message="panel_box_id must resolve to an existing pathway panel box",
+                    target=f"metrics.pathway_panels[{panel_index}].panel_box_id",
+                    observed=panel_box_id,
+                )
+            )
+
+        panel_label_box_id = _require_non_empty_text(
+            payload.get("panel_label_box_id"),
+            label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].panel_label_box_id",
+        )
+        panel_label_box = layout_boxes_by_id.get(panel_label_box_id)
+        if panel_label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="pathway_panel_label_box_missing",
+                    message="panel_label_box_id must resolve to an existing layout box",
+                    target=f"metrics.pathway_panels[{panel_index}].panel_label_box_id",
+                    observed=panel_label_box_id,
+                )
+            )
+        elif panel_box is not None and not _boxes_overlap(panel_label_box, panel_box):
+            issues.append(
+                _issue(
+                    rule_id="pathway_panel_label_anchor_drift",
+                    message="pathway panel label must stay anchored inside its panel",
+                    target=f"metrics.pathway_panels[{panel_index}].panel_label_box_id",
+                    box_refs=(panel_label_box.box_id, panel_box.box_id),
+                )
+            )
+
+        for field_name in ("panel_title_box_id", "x_axis_title_box_id"):
+            box_id = _require_non_empty_text(
+                payload.get(field_name),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].{field_name}",
+            )
+            if box_id not in layout_boxes_by_id:
+                issues.append(
+                    _issue(
+                        rule_id="pathway_layout_box_missing",
+                        message=f"{field_name} must resolve to an existing layout box",
+                        target=f"metrics.pathway_panels[{panel_index}].{field_name}",
+                        observed=box_id,
+                    )
+                )
+
+        points_payload = payload.get("points")
+        if not isinstance(points_payload, list) or not points_payload:
+            issues.append(
+                _issue(
+                    rule_id="pathway_points_missing",
+                    message="every pathway panel must expose non-empty points metrics",
+                    target=f"metrics.pathway_panels[{panel_index}].points",
+                )
+            )
+            continue
+
+        seen_pathway_labels: set[str] = set()
+        for point_index, point in enumerate(points_payload):
+            if not isinstance(point, dict):
+                raise ValueError(f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}] must be an object")
+            pathway_label = _require_non_empty_text(
+                point.get("pathway_label"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].pathway_label",
+            )
+            if pathway_label in seen_pathway_labels:
+                issues.append(
+                    _issue(
+                        rule_id="pathway_point_label_duplicate",
+                        message="pathway_label must be unique within each pathway panel",
+                        target=f"metrics.pathway_panels[{panel_index}].points[{point_index}].pathway_label",
+                        observed=pathway_label,
+                    )
+                )
+            seen_pathway_labels.add(pathway_label)
+            observed_coordinates.add((panel_id, pathway_label))
+            if pathway_label not in set(pathway_labels):
+                issues.append(
+                    _issue(
+                        rule_id="pathway_point_label_unknown",
+                        message="pathway points must stay inside declared pathway_labels",
+                        target=f"metrics.pathway_panels[{panel_index}].points[{point_index}].pathway_label",
+                        observed=pathway_label,
+                    )
+                )
+
+            point_x = _require_numeric(
+                point.get("x"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].x",
+            )
+            point_y = _require_numeric(
+                point.get("y"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].y",
+            )
+            _require_numeric(
+                point.get("x_value"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].x_value",
+            )
+            _require_numeric(
+                point.get("effect_value"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].effect_value",
+            )
+            size_value = _require_numeric(
+                point.get("size_value"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].size_value",
+            )
+            if size_value < 0.0:
+                issues.append(
+                    _issue(
+                        rule_id="pathway_size_value_negative",
+                        message="pathway size_value must be non-negative",
+                        target=f"metrics.pathway_panels[{panel_index}].points[{point_index}].size_value",
+                        observed=size_value,
+                    )
+                )
+            if panel_box is not None and not _point_within_box(panel_box, x=point_x, y=point_y):
+                issues.append(
+                    _issue(
+                        rule_id="pathway_point_outside_panel",
+                        message="pathway point coordinates must stay within the panel bounds",
+                        target=f"metrics.pathway_panels[{panel_index}].points[{point_index}]",
+                        box_refs=(panel_box.box_id,),
+                    )
+                )
+
+            point_box_id = _require_non_empty_text(
+                point.get("point_box_id"),
+                label=f"layout_sidecar.metrics.pathway_panels[{panel_index}].points[{point_index}].point_box_id",
+            )
+            point_box = layout_boxes_by_id.get(point_box_id)
+            if point_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="pathway_point_box_missing",
+                        message="point_box_id must resolve to an existing layout box",
+                        target=f"metrics.pathway_panels[{panel_index}].points[{point_index}].point_box_id",
+                        observed=point_box_id,
+                    )
+                )
+            elif panel_box is not None and not _box_within_box(point_box, panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="pathway_point_box_outside_panel",
+                        message="pathway point boxes must stay within the panel bounds",
+                        target=f"layout_boxes.{point_box.box_id}",
+                        box_refs=(point_box.box_id, panel_box.box_id),
+                    )
+                )
+
+    if observed_panel_ids != set(required_panel_ids):
+        issues.append(
+            _issue(
+                rule_id="pathway_panel_ids_invalid",
+                message="pathway panel ids must match the declared multiomic layer vocabulary",
+                target="metrics.pathway_panels",
+                observed=sorted(observed_panel_ids),
+                expected=sorted(required_panel_ids),
+            )
+        )
+    if observed_coordinates != expected_coordinates:
+        issues.append(
+            _issue(
+                rule_id="pathway_point_coverage_mismatch",
+                message="pathway points must cover every declared panel/pathway coordinate exactly once",
+                target="metrics.pathway_panels",
+                observed=sorted(observed_coordinates),
+                expected=sorted(expected_coordinates),
+            )
+        )
+
+    return issues
+
+
 def _check_publication_omics_volcano_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -17163,6 +17437,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_genomic_alteration_consequence_panel(normalized_sidecar)
     elif normalized_profile == "publication_genomic_alteration_multiomic_consequence_panel":
         layout_issues = _check_publication_genomic_alteration_multiomic_consequence_panel(normalized_sidecar)
+    elif normalized_profile == "publication_genomic_alteration_pathway_integrated_composite_panel":
+        layout_issues = _check_publication_genomic_alteration_pathway_integrated_composite_panel(normalized_sidecar)
     elif normalized_profile == "publication_omics_volcano_panel":
         layout_issues = _check_publication_omics_volcano_panel(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":

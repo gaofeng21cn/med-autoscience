@@ -500,6 +500,7 @@ Current audited anchors:
 - `genomic_alteration_landscape_panel`
 - `genomic_alteration_consequence_panel`
 - `genomic_alteration_multiomic_consequence_panel`
+- `genomic_alteration_pathway_integrated_composite_panel`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
 - `atlas_spatial_bridge_panel`
@@ -511,9 +512,9 @@ Current audited anchors:
 
 Current gap direction:
 
-- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, a bounded up-to-two-panel volcano baseline, a bounded oncoplot mutation-landscape baseline, a bounded CNV recurrence-summary baseline, a bounded mutation-plus-CNV genomic-alteration landscape baseline, a bounded driver-centric genomic-alteration consequence follow-on baseline, and a fixed three-layer multiomic consequence follow-on baseline; broader pathway-integrated composites remain follow-on slices
+- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, a bounded up-to-two-panel volcano baseline, a bounded oncoplot mutation-landscape baseline, a bounded CNV recurrence-summary baseline, a bounded mutation-plus-CNV genomic-alteration landscape baseline, a bounded driver-centric genomic-alteration consequence follow-on baseline, a fixed three-layer multiomic consequence follow-on baseline, and a bounded `1 + 3 + 3` pathway-integrated genomic composite baseline; higher-order genomic-program composites remain follow-on slices
 - atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a five-panel atlas-spatial-trajectory storyboard, then into a four-panel density / coverage support contract, and now further into a six-panel context-support baseline; larger multi-view omics composites remain follow-on slices
-- expand beyond the current GSVA + enrichment + volcano + oncoplot + CNV-summary + genomic-alteration + three-layer multiomic-consequence lower bound into pathway-integrated broader genomic-composite families as real paper demand appears
+- expand beyond the current GSVA + enrichment + volcano + oncoplot + CNV-summary + genomic-alteration + three-layer multiomic-consequence + pathway-integrated lower bound into richer genomic-governance synthesis or broader multi-view omics families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 
 ### H. 队列与研究设计证据类

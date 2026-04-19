@@ -867,6 +867,118 @@ def test_genomic_alteration_multiomic_consequence_panel_preserves_g_multiomic_co
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_genomic_alteration_pathway_integrated_composite_panel_preserves_g_pathway_integrated_contract(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    surface_module = importlib.import_module("tests.test_display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "display_kind": "figure",
+                    "requirement_key": "genomic_alteration_pathway_integrated_composite_panel",
+                    "catalog_id": "F41",
+                    "shell_path": "paper/figures/Figure41.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "template_id": "fenggaolab.org.medical-display-core::genomic_alteration_pathway_integrated_composite_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "genomic_alteration_pathway_integrated_composite_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_alteration_pathway_integrated_composite_panel_inputs_v1",
+            "displays": [surface_module._make_genomic_alteration_pathway_integrated_composite_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (
+            paper_root / "figures" / "generated" / "F41_genomic_alteration_pathway_integrated_composite_panel.layout.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_burden",
+        "panel_annotations",
+        "panel_matrix",
+        "panel_frequency",
+        "panel_consequence_A",
+        "panel_consequence_B",
+        "panel_consequence_C",
+        "panel_pathway_A",
+        "panel_pathway_B",
+        "panel_pathway_C",
+    ]
+    assert layout_sidecar["metrics"]["driver_gene_labels"] == ["TP53", "EGFR"]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["consequence_panels"]] == [
+        "proteome",
+        "phosphoproteome",
+        "glycoproteome",
+    ]
+    assert layout_sidecar["metrics"]["pathway_labels"] == [
+        "PI3K-AKT signaling",
+        "Cell cycle",
+        "DNA damage response",
+        "Immune signaling",
+    ]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["pathway_panels"]] == [
+        "proteome",
+        "phosphoproteome",
+        "glycoproteome",
+    ]
+    assert all(
+        sorted(point["gene_label"] for point in panel["points"]) == ["EGFR", "TP53"]
+        for panel in layout_sidecar["metrics"]["consequence_panels"]
+    )
+    assert all(
+        sorted(point["pathway_label"] for point in panel["points"])
+        == ["Cell cycle", "DNA damage response", "Immune signaling", "PI3K-AKT signaling"]
+        for panel in layout_sidecar["metrics"]["pathway_panels"]
+    )
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_spatial_niche_map_panel_preserves_deg_spatial_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

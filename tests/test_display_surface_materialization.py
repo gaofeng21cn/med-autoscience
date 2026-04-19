@@ -6402,6 +6402,48 @@ def _make_genomic_alteration_multiomic_consequence_panel_display(display_id: str
     }
 
 
+def _make_genomic_alteration_pathway_integrated_composite_panel_display(
+    display_id: str = "Figure41",
+) -> dict[str, object]:
+    display = _make_genomic_alteration_multiomic_consequence_panel_display(display_id)
+    display["template_id"] = full_id("genomic_alteration_pathway_integrated_composite_panel")
+    display["title"] = "Driver-linked genomic alteration landscape with multiomic and pathway-integrated consequence panels"
+    display["caption"] = (
+        "One audited composite binds the alteration landscape to three-layer gene-level consequence and "
+        "three-layer pathway-level enrichment evidence."
+    )
+    display["pathway_x_label"] = "Normalized enrichment score"
+    display["pathway_y_label"] = "Pathway"
+    display["pathway_effect_scale_label"] = "Enrichment direction"
+    display["pathway_size_scale_label"] = "Hit count"
+    display["pathway_order"] = [
+        {"label": "PI3K-AKT signaling"},
+        {"label": "Cell cycle"},
+        {"label": "DNA damage response"},
+        {"label": "Immune signaling"},
+    ]
+    display["pathway_panel_order"] = [
+        {"panel_id": "proteome", "panel_title": "Proteome pathways"},
+        {"panel_id": "phosphoproteome", "panel_title": "Phosphoproteome pathways"},
+        {"panel_id": "glycoproteome", "panel_title": "Glycoproteome pathways"},
+    ]
+    display["pathway_points"] = [
+        {"panel_id": "proteome", "pathway_label": "PI3K-AKT signaling", "x_value": 1.48, "effect_value": 1.48, "size_value": 36.0},
+        {"panel_id": "proteome", "pathway_label": "Cell cycle", "x_value": 1.22, "effect_value": 1.22, "size_value": 30.0},
+        {"panel_id": "proteome", "pathway_label": "DNA damage response", "x_value": -1.06, "effect_value": -1.06, "size_value": 24.0},
+        {"panel_id": "proteome", "pathway_label": "Immune signaling", "x_value": 0.82, "effect_value": 0.82, "size_value": 20.0},
+        {"panel_id": "phosphoproteome", "pathway_label": "PI3K-AKT signaling", "x_value": 1.61, "effect_value": 1.61, "size_value": 38.0},
+        {"panel_id": "phosphoproteome", "pathway_label": "Cell cycle", "x_value": 1.34, "effect_value": 1.34, "size_value": 33.0},
+        {"panel_id": "phosphoproteome", "pathway_label": "DNA damage response", "x_value": -0.94, "effect_value": -0.94, "size_value": 25.0},
+        {"panel_id": "phosphoproteome", "pathway_label": "Immune signaling", "x_value": 0.71, "effect_value": 0.71, "size_value": 18.0},
+        {"panel_id": "glycoproteome", "pathway_label": "PI3K-AKT signaling", "x_value": 1.18, "effect_value": 1.18, "size_value": 31.0},
+        {"panel_id": "glycoproteome", "pathway_label": "Cell cycle", "x_value": 0.93, "effect_value": 0.93, "size_value": 27.0},
+        {"panel_id": "glycoproteome", "pathway_label": "DNA damage response", "x_value": -0.76, "effect_value": -0.76, "size_value": 22.0},
+        {"panel_id": "glycoproteome", "pathway_label": "Immune signaling", "x_value": 0.58, "effect_value": 0.58, "size_value": 16.0},
+    ]
+    return display
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -6559,6 +6601,32 @@ def test_load_evidence_display_payload_rejects_incomplete_multiomic_driver_panel
             paper_root=paper_root,
             spec=spec,
             display_id="Figure40",
+        )
+
+
+def test_load_evidence_display_payload_rejects_incomplete_pathway_grid_for_genomic_alteration_pathway_integrated_composite(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_genomic_alteration_pathway_integrated_composite_panel_display()
+    display_payload["pathway_points"] = list(display_payload["pathway_points"][:-1])
+    dump_json(
+        paper_root / "genomic_alteration_pathway_integrated_composite_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_alteration_pathway_integrated_composite_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("genomic_alteration_pathway_integrated_composite_panel")
+
+    with pytest.raises(ValueError, match="must cover every declared pathway panel/pathway coordinate exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure41",
         )
 
 
@@ -7493,6 +7561,111 @@ def test_materialize_display_surface_generates_genomic_alteration_multiomic_cons
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "genomic_alteration_multiomic_consequence_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_genomic_alteration_multiomic_consequence_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_genomic_alteration_pathway_integrated_composite_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "display_kind": "figure",
+                    "requirement_key": "genomic_alteration_pathway_integrated_composite_panel",
+                    "catalog_id": "F41",
+                    "shell_path": "paper/figures/Figure41.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure41",
+                    "template_id": "genomic_alteration_pathway_integrated_composite_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "genomic_alteration_pathway_integrated_composite_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_alteration_pathway_integrated_composite_panel_inputs_v1",
+            "displays": [_make_genomic_alteration_pathway_integrated_composite_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F41"]
+    assert (
+        paper_root / "figures" / "generated" / "F41_genomic_alteration_pathway_integrated_composite_panel.png"
+    ).exists()
+    assert (
+        paper_root / "figures" / "generated" / "F41_genomic_alteration_pathway_integrated_composite_panel.pdf"
+    ).exists()
+    layout_sidecar_path = (
+        paper_root / "figures" / "generated" / "F41_genomic_alteration_pathway_integrated_composite_panel.layout.json"
+    )
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_burden",
+        "panel_annotations",
+        "panel_matrix",
+        "panel_frequency",
+        "panel_consequence_A",
+        "panel_consequence_B",
+        "panel_consequence_C",
+        "panel_pathway_A",
+        "panel_pathway_B",
+        "panel_pathway_C",
+    ]
+    assert any(box["box_id"] == "panel_label_G" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} >= {"legend", "reference_line", "colorbar"}
+    assert layout_sidecar["metrics"]["driver_gene_labels"] == ["TP53", "EGFR"]
+    assert layout_sidecar["metrics"]["pathway_labels"] == [
+        "PI3K-AKT signaling",
+        "Cell cycle",
+        "DNA damage response",
+        "Immune signaling",
+    ]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["consequence_panels"]] == [
+        "proteome",
+        "phosphoproteome",
+        "glycoproteome",
+    ]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["pathway_panels"]] == [
+        "proteome",
+        "phosphoproteome",
+        "glycoproteome",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F41"
+    assert figure_entry["template_id"] == full_id("genomic_alteration_pathway_integrated_composite_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "genomic_alteration_pathway_integrated_composite_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_genomic_alteration_pathway_integrated_composite_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

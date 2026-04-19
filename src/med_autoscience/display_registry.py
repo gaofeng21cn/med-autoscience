@@ -60,6 +60,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "genomic_alteration_landscape_panel",
         "genomic_alteration_consequence_panel",
         "genomic_alteration_multiomic_consequence_panel",
+        "genomic_alteration_pathway_integrated_composite_panel",
         "forest_effect_main",
         "subgroup_forest",
         "generalizability_subgroup_composite_panel",
