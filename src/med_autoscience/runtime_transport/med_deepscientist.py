@@ -21,6 +21,7 @@ BACKEND_ID = "med_deepscientist"
 ENGINE_ID = "med-deepscientist"
 DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 ACTIVE_BASH_SESSION_STATUSES = frozenset({"running", "terminating"})
+_STALE_PROGRESS_SILENCE_SECONDS = 30 * 60
 _UNSET = object()
 
 
@@ -696,17 +697,78 @@ def _interaction_watchdog_payload(snapshot: dict[str, Any]) -> dict[str, Any] | 
     return dict(payload)
 
 
-def _stale_progress_watchdog(interaction_watchdog: dict[str, Any] | None) -> bool:
+def _nonnegative_int(value: object) -> int | None:
+    try:
+        resolved = int(value)
+    except (TypeError, ValueError):
+        return None
+    return max(resolved, 0)
+
+
+def _seconds_since_iso_timestamp(value: object) -> int | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return max(int((datetime.now(UTC) - parsed.astimezone(UTC)).total_seconds()), 0)
+
+
+def _missing_first_progress_watchdog(
+    *,
+    interaction_watchdog: dict[str, Any],
+    snapshot: dict[str, Any],
+    runtime_root: Path | None = None,
+    quest_id: str | None = None,
+) -> bool:
+    if not bool(interaction_watchdog.get("active_execution_window")):
+        return False
+    if str(interaction_watchdog.get("last_artifact_interact_at") or "").strip():
+        return False
+    if str(interaction_watchdog.get("last_tool_activity_at") or "").strip():
+        return False
+    tool_calls_since_last_artifact_interact = _nonnegative_int(
+        interaction_watchdog.get("tool_calls_since_last_artifact_interact")
+    )
+    if tool_calls_since_last_artifact_interact not in {None, 0}:
+        return False
+    last_transition_at = str(snapshot.get("last_transition_at") or "").strip() or None
+    if last_transition_at is None and runtime_root is not None and quest_id:
+        runtime_state_path = Path(runtime_root).expanduser().resolve() / "quests" / quest_id / ".ds" / "runtime_state.json"
+        runtime_state = _load_json_dict(runtime_state_path)
+        last_transition_at = str(runtime_state.get("last_transition_at") or "").strip() or None
+    silence_seconds = _seconds_since_iso_timestamp(last_transition_at)
+    return silence_seconds is not None and silence_seconds >= _STALE_PROGRESS_SILENCE_SECONDS
+
+
+def _stale_progress_watchdog(
+    interaction_watchdog: dict[str, Any] | None,
+    *,
+    snapshot: dict[str, Any],
+    runtime_root: Path | None = None,
+    quest_id: str | None = None,
+) -> bool:
     if not isinstance(interaction_watchdog, dict):
         return False
-    if "stale_visibility_gap" in interaction_watchdog:
-        return bool(interaction_watchdog.get("stale_visibility_gap"))
-    silence_seconds = interaction_watchdog.get("seconds_since_last_artifact_interact")
-    try:
-        resolved_silence_seconds = int(silence_seconds)
-    except (TypeError, ValueError):
+    if bool(interaction_watchdog.get("stale_visibility_gap")):
+        return True
+    if _missing_first_progress_watchdog(
+        interaction_watchdog=interaction_watchdog,
+        snapshot=snapshot,
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+    ):
+        return True
+    resolved_silence_seconds = _nonnegative_int(interaction_watchdog.get("seconds_since_last_artifact_interact"))
+    if resolved_silence_seconds is None:
         return False
-    return bool(interaction_watchdog.get("inspection_due")) and resolved_silence_seconds >= 30 * 60
+    return bool(interaction_watchdog.get("inspection_due")) and resolved_silence_seconds >= _STALE_PROGRESS_SILENCE_SECONDS
 
 
 def inspect_quest_live_runtime(
@@ -764,7 +826,12 @@ def inspect_quest_live_runtime(
         }
 
     interaction_watchdog = _interaction_watchdog_payload(snapshot)
-    stale_progress = status == "live" and _stale_progress_watchdog(interaction_watchdog)
+    stale_progress = status == "live" and _stale_progress_watchdog(
+        interaction_watchdog,
+        snapshot=snapshot,
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+    )
     result = {
         "ok": bool(runtime_audit.get("ok", True)),
         "status": status,

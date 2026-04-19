@@ -1905,6 +1905,122 @@ def test_inspect_quest_live_execution_degrades_stale_live_runtime_to_unknown(mon
     }
 
 
+def test_inspect_quest_live_runtime_flags_missing_first_progress_after_stale_run_start(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {
+                "active_run_id": "run-live-first-progress-missing",
+                "last_transition_at": "2026-04-08T10:05:03+00:00",
+                "interaction_watchdog": {
+                    "last_artifact_interact_at": None,
+                    "seconds_since_last_artifact_interact": None,
+                    "tool_calls_since_last_artifact_interact": 0,
+                    "last_tool_activity_at": None,
+                    "seconds_since_last_tool_activity": None,
+                    "active_execution_window": True,
+                    "stale_visibility_gap": False,
+                    "inspection_due": False,
+                    "user_update_due": False,
+                },
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-first-progress-missing",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+
+    result = module.inspect_quest_live_runtime(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "ok": True,
+        "status": "live",
+        "source": "daemon_turn_worker",
+        "active_run_id": "run-live-first-progress-missing",
+        "worker_running": True,
+        "worker_pending": False,
+        "stop_requested": False,
+        "interaction_watchdog": {
+            "last_artifact_interact_at": None,
+            "seconds_since_last_artifact_interact": None,
+            "tool_calls_since_last_artifact_interact": 0,
+            "last_tool_activity_at": None,
+            "seconds_since_last_tool_activity": None,
+            "active_execution_window": True,
+            "stale_visibility_gap": False,
+            "inspection_due": False,
+            "user_update_due": False,
+        },
+        "stale_progress": True,
+        "liveness_guard_reason": "stale_progress_watchdog",
+    }
+
+
+def test_inspect_quest_live_runtime_falls_back_to_local_transition_timestamp_for_missing_first_progress(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    runtime_root = tmp_path / "runtime"
+    write_text(
+        runtime_root / "quests" / "001-risk" / ".ds" / "runtime_state.json",
+        json.dumps({"last_transition_at": "2026-04-08T10:05:03+00:00"}) + "\n",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {
+                "active_run_id": "run-live-first-progress-missing",
+                "last_transition_at": None,
+                "interaction_watchdog": {
+                    "last_artifact_interact_at": None,
+                    "seconds_since_last_artifact_interact": None,
+                    "tool_calls_since_last_artifact_interact": 0,
+                    "last_tool_activity_at": None,
+                    "seconds_since_last_tool_activity": None,
+                    "active_execution_window": True,
+                    "stale_visibility_gap": False,
+                    "inspection_due": False,
+                    "user_update_due": False,
+                },
+            },
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live-first-progress-missing",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    )
+
+    result = module.inspect_quest_live_runtime(
+        runtime_root=runtime_root,
+        quest_id="001-risk",
+    )
+
+    assert result["stale_progress"] is True
+    assert result["liveness_guard_reason"] == "stale_progress_watchdog"
+
+
 def test_inspect_quest_live_execution_falls_back_to_local_runtime_state_contract(
     monkeypatch,
     tmp_path: Path,
