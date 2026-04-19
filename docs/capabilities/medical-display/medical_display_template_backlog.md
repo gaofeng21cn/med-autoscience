@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `66`
+- Evidence figure templates: `67`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `78`
+- Total audited templates: `79`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -107,7 +107,7 @@
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel` 与 `shap_grouped_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
-7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前最小五基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 richer mutation-landscape、broader genomic composite 或更复杂 enrichment 组合图。
+7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel`、`cnv_recurrence_summary_panel` 与 `genomic_alteration_landscape_panel` 已经形成当前最小六基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 broader genomic composite 或更复杂 enrichment 组合图。
 
 ## Promotion Rules
 

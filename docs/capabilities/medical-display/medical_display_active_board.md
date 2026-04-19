@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`66`
+  - 证据型模板：`67`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`78`
+  - 总模板数：`79`
 - 最近一次已吸收完成的 capability cluster：
   - `G / cnv_recurrence_summary_panel`
   - `cnv_recurrence_summary_panel`
@@ -35,36 +35,38 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 4 / next-cluster routing and owner-round open`
+- Phase：`Phase 5 / integration / merge-back ready`
 - Family cluster：`G`
 - Capability cluster：`genomic_alteration_landscape_panel`
 - Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-genomic-alteration-20260419T045941Z`
-- 状态：`owner_round_open`
+- 状态：`merge_back_ready`
 
-### Fresh Absorb Result
+### Fresh Owner Result
 
-- `cnv_recurrence_summary_panel` 已 absorb 到当前 `main`；
-- `G/E` 当前 omics-native lower bound 已正式扩到五基线：
+- `genomic_alteration_landscape_panel` 已在当前 owner round 内完成 schema / source contract / materialization / renderer / layout QC / regression 闭环；
+- `G/E` 当前 omics-native lower bound 已正式扩到六基线：
   - `gsva_ssgsea_heatmap`
   - `pathway_enrichment_dotplot_panel`
   - `omics_volcano_panel`
   - `oncoplot_mutation_landscape_panel`
   - `cnv_recurrence_summary_panel`
-- 当前下一轮已经固定为一个更高阶但仍 bounded 的 `G` 家族模板，接下来直接进入 owner round。
+  - `genomic_alteration_landscape_panel`
+- 当前 owner round 已完成 fresh focused verify、`scripts/verify.sh`、`make test-meta`、`py_compile` 与 `git diff --check`；
+- 当前下一步是 clean integration / merge-back lane，把这轮 owner 结果吸收到干净主干基线，再决定后继 capability cluster。
 
-### 本轮核心问题
+### 本轮收口结果
 
-当前这一轮要回答的是：
+当前这一轮已经回答：
 
-> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前 `G/E` 五基线的前提下，如何把 top journal 常见的基因级 mutation + CNV alteration landscape 正式沉淀成一个正文可直接使用的 bounded 模板，使论文能够稳定回答“哪些基因在 cohort 内反复发生 mutation 或 copy-number alteration、这些 alteration 是否共享同一 sample order 与 cohort 注释语义、样本级 alteration burden 与基因级 alteration frequency 能否在同一图面里保持全程可审计、可回归、可复用”。
+> 在 `GSVA/ssGSEA` heatmap、pathway enrichment dotplot、omics volcano、oncoplot 与 CNV summary 已经成立的前提下，如何把 top journal 常见的 mutation + CNV gene-level landscape 固化成正文可直接使用的 bounded 模板，并把 shared order、annotation completeness、sample burden、gene-level alteration frequency 与 dual-state overlay 一起推进到可审计、可回归、可复用的统一 contract。
 
-### Fresh Route 收敛
+### 当前 Merge-Back Baton
 
-当前 reroute 已明确：
+当前 baton 已明确：
 
-1. `cnv_recurrence_summary_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小五基线已经成立。
-2. 当前下一轮固定为 `genomic_alteration_landscape_panel`，优先做 richer mutation-landscape，而不是先扩成更宽的 genomic composite。
-3. 这条 follow-on 直接承接高水平组学论文里高频出现的 mutation + CNV alteration landscape 结构，并把 `oncoplot + cnv` 从相邻模板推进到更统一的 gene-level manuscript-facing lower bound。
+1. 当前 owner round 的 tracked code、tracked docs 与 pack changelog 已同步到 `genomic_alteration_landscape_panel` 真相。
+2. 当前需要的唯一外层动作是把这轮结果 merge-back 到干净主干 intake surface。
+3. 当前 merge-back 完成后，`G` 家族的 next candidate 回到 `broader genomic composite beyond the first gene-level mutation-plus-CNV landscape lower bound`。
 4. `D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
 
 ### 本轮边界
@@ -102,7 +104,7 @@
 
 ## 当前轮次结束后的候选
 
-当前轮次结束后，secondary 候选按下面顺序继续：
+当前 merge-back 完成后，secondary 候选按下面顺序继续：
 
 1. `G / broader genomic composite beyond the first gene-level mutation-plus-CNV landscape lower bound`
 2. `D/E/G / richer manifold or higher-order multi-view atlas follow-on only if new real-paper demand proves the current context-support lower bound insufficient`

@@ -5769,6 +5769,203 @@ def _validate_cnv_recurrence_summary_panel_display_payload(
     }
 
 
+def _validate_genomic_alteration_landscape_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    burden_axis_label = _require_non_empty_string(
+        payload.get("burden_axis_label"),
+        label=f"{path.name} display `{expected_display_id}` burden_axis_label",
+    )
+    frequency_axis_label = _require_non_empty_string(
+        payload.get("frequency_axis_label"),
+        label=f"{path.name} display `{expected_display_id}` frequency_axis_label",
+    )
+    alteration_legend_title = _require_non_empty_string(
+        payload.get("alteration_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` alteration_legend_title",
+    )
+    gene_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("gene_order"),
+        label=f"display `{expected_display_id}` gene_order",
+    )
+    sample_order = _validate_sample_order_payload(
+        path=path,
+        payload=payload.get("sample_order"),
+        label=f"display `{expected_display_id}` sample_order",
+    )
+    declared_gene_labels = {item["label"] for item in gene_order}
+    declared_sample_ids = {item["sample_id"] for item in sample_order}
+
+    annotation_tracks = payload.get("annotation_tracks")
+    if not isinstance(annotation_tracks, list) or not annotation_tracks:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty annotation_tracks list")
+    if len(annotation_tracks) > 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` annotation_tracks must contain at most three tracks")
+    normalized_tracks: list[dict[str, Any]] = []
+    seen_track_ids: set[str] = set()
+    for index, track in enumerate(annotation_tracks):
+        if not isinstance(track, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` annotation_tracks[{index}] must be an object")
+        track_id = _require_non_empty_string(
+            track.get("track_id"),
+            label=f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_id",
+        )
+        if track_id in seen_track_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_id must be unique"
+            )
+        seen_track_ids.add(track_id)
+        track_label = _require_non_empty_string(
+            track.get("track_label"),
+            label=f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_label",
+        )
+        values = track.get("values")
+        if not isinstance(values, list) or not values:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must be a non-empty list"
+            )
+        normalized_values: list[dict[str, str]] = []
+        seen_track_sample_ids: set[str] = set()
+        for value_index, item in enumerate(values):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values[{value_index}] must be an object"
+                )
+            sample_id = _require_non_empty_string(
+                item.get("sample_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"annotation_tracks[{index}].values[{value_index}].sample_id"
+                ),
+            )
+            if sample_id not in declared_sample_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values[{value_index}].sample_id "
+                    "must match sample_order"
+                )
+            if sample_id in seen_track_sample_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must cover the declared sample_order exactly once"
+                )
+            seen_track_sample_ids.add(sample_id)
+            normalized_values.append(
+                {
+                    "sample_id": sample_id,
+                    "category_label": _require_non_empty_string(
+                        item.get("category_label"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"annotation_tracks[{index}].values[{value_index}].category_label"
+                        ),
+                    ),
+                }
+            )
+        if seen_track_sample_ids != declared_sample_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must cover the declared sample_order exactly once"
+            )
+        normalized_tracks.append(
+            {
+                "track_id": track_id,
+                "track_label": track_label,
+                "values": normalized_values,
+            }
+        )
+
+    alteration_records = payload.get("alteration_records")
+    if not isinstance(alteration_records, list) or not alteration_records:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty alteration_records list")
+    supported_mutation_classes = {"missense", "truncating", "fusion"}
+    supported_cnv_states = {"amplification", "gain", "loss", "deep_loss"}
+    normalized_alteration_records: list[dict[str, str]] = []
+    observed_samples: set[str] = set()
+    observed_genes: set[str] = set()
+    seen_coordinates: set[tuple[str, str]] = set()
+    for index, item in enumerate(alteration_records):
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` alteration_records[{index}] must be an object"
+            )
+        sample_id = _require_non_empty_string(
+            item.get("sample_id"),
+            label=f"{path.name} display `{expected_display_id}` alteration_records[{index}].sample_id",
+        )
+        if sample_id not in declared_sample_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` alteration_records[{index}].sample_id must match sample_order"
+            )
+        gene_label = _require_non_empty_string(
+            item.get("gene_label"),
+            label=f"{path.name} display `{expected_display_id}` alteration_records[{index}].gene_label",
+        )
+        if gene_label not in declared_gene_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` alteration_records[{index}].gene_label must match gene_order"
+            )
+        coordinate = (sample_id, gene_label)
+        if coordinate in seen_coordinates:
+            raise ValueError(f"{path.name} display `{expected_display_id}` must keep sample/gene coordinates unique")
+        seen_coordinates.add(coordinate)
+
+        normalized_record = {"sample_id": sample_id, "gene_label": gene_label}
+        mutation_class = str(item.get("mutation_class") or "").strip()
+        cnv_state = str(item.get("cnv_state") or "").strip()
+        if not mutation_class and not cnv_state:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` alteration_records[{index}] must define mutation_class or cnv_state"
+            )
+        if mutation_class:
+            if mutation_class not in supported_mutation_classes:
+                supported = ", ".join(sorted(supported_mutation_classes))
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` alteration_records[{index}].mutation_class must be one of {supported}"
+                )
+            normalized_record["mutation_class"] = mutation_class
+        if cnv_state:
+            if cnv_state not in supported_cnv_states:
+                supported = ", ".join(sorted(supported_cnv_states))
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` alteration_records[{index}].cnv_state must be one of {supported}"
+                )
+            normalized_record["cnv_state"] = cnv_state
+        observed_samples.add(sample_id)
+        observed_genes.add(gene_label)
+        normalized_alteration_records.append(normalized_record)
+    if observed_samples != declared_sample_ids:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` alteration_records sample_id values must match sample_order"
+        )
+    if observed_genes != declared_gene_labels:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` alteration_records gene_label values must match gene_order"
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "y_label": y_label,
+        "burden_axis_label": burden_axis_label,
+        "frequency_axis_label": frequency_axis_label,
+        "alteration_legend_title": alteration_legend_title,
+        "gene_order": gene_order,
+        "sample_order": sample_order,
+        "annotation_tracks": normalized_tracks,
+        "alteration_records": normalized_alteration_records,
+    }
+
+
 def _validate_omics_volcano_panel_display_payload(
     *,
     path: Path,
@@ -10232,6 +10429,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "cnv_recurrence_summary_panel_inputs_v1":
         return payload_path, _validate_cnv_recurrence_summary_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "genomic_alteration_landscape_panel_inputs_v1":
+        return payload_path, _validate_genomic_alteration_landscape_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

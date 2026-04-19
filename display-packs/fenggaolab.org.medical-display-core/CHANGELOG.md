@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-19
 
+- Add `genomic_alteration_landscape_panel` as the next audited `G` bounded mutation-plus-CNV genomic landscape slice in the core display pack.
+- Lock its pack-facing contract to `genomic_alteration_landscape_panel_inputs_v1`, `publication_genomic_alteration_landscape_panel`, and the Python bounded burden-plus-annotation-plus-alteration-matrix-plus-frequency renderer path.
+
 - Add `cnv_recurrence_summary_panel` as the next audited `G` bounded copy-number summary slice in the core display pack.
 - Lock its pack-facing contract to `cnv_recurrence_summary_panel_inputs_v1`, `publication_cnv_recurrence_summary_panel`, and the Python bounded burden-plus-annotation-plus-CNV-matrix-plus-gain/loss-frequency renderer path.
 
