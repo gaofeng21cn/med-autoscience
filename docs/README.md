@@ -12,7 +12,7 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 | --- | --- | --- |
 | Potential users and medical experts | [Repository home](../README.md) | Understand what the system is for before reading technical internals |
 | Technical readers and planners | [Project](./project.md), [Status](./status.md), [Architecture](./architecture.md), [Invariants](./invariants.md), [Decisions](./decisions.md) | Get the current truth, boundaries, and mainline direction quickly |
-| Developers and maintainers | `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, `docs/policies/`, `docs/history/omx/` | Inspect implementation-facing material, operator guidance, and historical records |
+| Developers and maintainers | `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, `docs/policies/`, [History Archive](./history/README.md) | Inspect implementation-facing material, operator guidance, and historical records |
 
 ## Current Baseline
 
@@ -23,7 +23,7 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 - `product-entry-manifest` and `build-product-entry` stay as machine-readable bridges for `OPL` and other callers.
 - upstream `Hermes-Agent` names the external managed runtime target and supervision owner; the current repo-side seam plus controlled `MedDeepScientist` backend remain documented in the core docs.
 - The medical display line stays separate as a downstream capability line.
-- Historical program records, runtime-formation notes, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and `docs/history/omx/`.
+- Historical program records, runtime-formation notes, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and [History Archive](./history/README.md).
 
 ## Technical Working Set
 
@@ -82,7 +82,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 - [Program directory](program/)
 - [References directory](references/)
-- [OMX historical archive](history/omx/README.md)
+- [History archive](history/README.md)
 
 ### MAS user loop and internal bridge references
 
@@ -110,7 +110,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Repository history
 
-- [OMX historical archive](history/omx/README.md)
+- [History archive](history/README.md)
 
 ## Documentation Rules
 
@@ -125,4 +125,4 @@ Public-facing material should stay mirrored in English and Chinese.
 - `README*` and `docs/README*` are the default public entry.
 - `docs/runtime/`, `docs/program/`, `docs/capabilities/`, and `docs/references/` are repo-tracked technical material.
 - `docs/policies/` holds stable internal rules.
-- `docs/history/omx/` is historical archive only.
+- `docs/history/` is historical archive only.

@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 潜在用户、医生、医学专家 | [仓库首页](../README.zh-CN.md) | 先理解系统是干什么的，再决定是否进入技术细节 |
 | 技术规划者、架构读者、方向同步读者 | [项目概览](./project.md)、[当前状态](./status.md)、[架构](./architecture.md)、[不可变约束](./invariants.md)、[关键决策](./decisions.md) | 快速抓住当前真相、边界和主线方向 |
-| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、`docs/history/omx/` | 查看实现相关材料、操作说明和历史记录 |
+| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、[历史归档索引](./history/README.zh-CN.md) | 查看实现相关材料、操作说明和历史记录 |
 
 ## 当前基线
 
@@ -23,7 +23,7 @@
 - `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他 caller 使用的 machine-readable bridge。
 - 上游 `Hermes-Agent` 指外部 managed runtime target 与 supervision owner；当前 repo-side seam 与受控 `MedDeepScientist` backend 的关系继续由核心文档说明。
 - 医学展示支线继续作为下游能力线分开维护。
-- 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 `docs/history/omx/` 中供维护者追溯。
+- 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 [历史归档索引](./history/README.zh-CN.md) 中供维护者追溯。
 
 ## 技术工作集
 
@@ -82,7 +82,7 @@
 
 - [Program 目录](program/)
 - [References 目录](references/)
-- [OMX 历史资料索引](history/omx/README.zh-CN.md)
+- [历史归档索引](history/README.zh-CN.md)
 
 ### MAS 用户回路与内部桥接参考
 
@@ -110,7 +110,7 @@
 
 ### 仓库历史
 
-- [OMX 历史资料索引](history/omx/README.zh-CN.md)
+- [历史归档索引](history/README.zh-CN.md)
 
 ## 文档规则
 
@@ -125,4 +125,4 @@
 - `README*` 与 `docs/README*` 是默认公开入口。
 - `docs/runtime/`、`docs/program/`、`docs/capabilities/` 与 `docs/references/` 是仓库跟踪的技术材料。
 - `docs/policies/` 收口稳定内部规则。
-- `docs/history/omx/` 只作为历史归档入口。
+- `docs/history/` 只作为历史归档入口。
