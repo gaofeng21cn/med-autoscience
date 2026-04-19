@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-19
 
+- Add `genomic_alteration_multiomic_consequence_panel` as the next audited `G` broader genomic composite slice in the core display pack.
+- Lock its pack-facing contract to `genomic_alteration_multiomic_consequence_panel_inputs_v1`, `publication_genomic_alteration_multiomic_consequence_panel`, and the Python bounded genomic-landscape-plus-proteome/phosphoproteome/glycoproteome consequence renderer path.
+
 - Add `genomic_alteration_consequence_panel` as the next audited `G` driver-centric downstream consequence slice in the core display pack.
 - Lock its pack-facing contract to `genomic_alteration_consequence_panel_inputs_v1`, `publication_genomic_alteration_consequence_panel`, and the Python bounded genomic-landscape-plus-transcriptome/proteome-consequence renderer path.
 

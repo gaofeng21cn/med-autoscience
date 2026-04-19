@@ -3548,6 +3548,231 @@ def test_run_display_layout_qc_fails_when_genomic_alteration_consequence_panel_d
     assert any(issue["rule_id"] == "consequence_point_coverage_mismatch" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_genomic_alteration_multiomic_consequence_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_genomic_alteration_multiomic_consequence_panel",
+        layout_sidecar={
+            "template_id": "genomic_alteration_multiomic_consequence_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.91, x1=0.10, y1=0.94),
+                make_box("panel_label_B", "panel_label", x0=0.67, y0=0.82, x1=0.69, y1=0.85),
+                make_box("panel_label_C", "panel_label", x0=0.67, y0=0.54, x1=0.69, y1=0.57),
+                make_box("panel_label_D", "panel_label", x0=0.67, y0=0.26, x1=0.69, y1=0.29),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.26, x1=0.05, y1=0.60),
+                make_box("annotation_track_label_cohort", "annotation_track_label", x0=0.08, y0=0.71, x1=0.18, y1=0.74),
+                make_box("annotation_track_label_response", "annotation_track_label", x0=0.08, y0=0.65, x1=0.20, y1=0.68),
+                make_box("burden_bar_D1", "bar", x0=0.18, y0=0.82, x1=0.22, y1=0.88),
+                make_box("burden_bar_D2", "bar", x0=0.23, y0=0.82, x1=0.27, y1=0.86),
+                make_box("burden_bar_V1", "bar", x0=0.28, y0=0.82, x1=0.32, y1=0.90),
+                make_box("burden_bar_V2", "bar", x0=0.33, y0=0.82, x1=0.37, y1=0.88),
+                make_box("freq_bar_TP53", "bar", x0=0.52, y0=0.50, x1=0.60, y1=0.56),
+                make_box("freq_bar_KRAS", "bar", x0=0.52, y0=0.42, x1=0.56, y1=0.48),
+                make_box("freq_bar_EGFR", "bar", x0=0.52, y0=0.34, x1=0.56, y1=0.40),
+                make_box("freq_bar_PIK3CA", "bar", x0=0.52, y0=0.26, x1=0.56, y1=0.32),
+                make_box("annotation_cohort_D1", "annotation_cell", x0=0.18, y0=0.70, x1=0.22, y1=0.74),
+                make_box("annotation_cohort_D2", "annotation_cell", x0=0.23, y0=0.70, x1=0.27, y1=0.74),
+                make_box("annotation_cohort_V1", "annotation_cell", x0=0.28, y0=0.70, x1=0.32, y1=0.74),
+                make_box("annotation_cohort_V2", "annotation_cell", x0=0.33, y0=0.70, x1=0.37, y1=0.74),
+                make_box("annotation_response_D1", "annotation_cell", x0=0.18, y0=0.64, x1=0.22, y1=0.68),
+                make_box("annotation_response_D2", "annotation_cell", x0=0.23, y0=0.64, x1=0.27, y1=0.68),
+                make_box("annotation_response_V1", "annotation_cell", x0=0.28, y0=0.64, x1=0.32, y1=0.68),
+                make_box("annotation_response_V2", "annotation_cell", x0=0.33, y0=0.64, x1=0.37, y1=0.68),
+                make_box("alteration_TP53_D1", "alteration_cell", x0=0.18, y0=0.50, x1=0.22, y1=0.56),
+                make_box("overlay_TP53_D1", "alteration_overlay", x0=0.191, y0=0.514, x1=0.209, y1=0.546),
+                make_box("alteration_KRAS_D2", "alteration_cell", x0=0.23, y0=0.42, x1=0.27, y1=0.48),
+                make_box("alteration_TP53_V1", "alteration_cell", x0=0.28, y0=0.50, x1=0.32, y1=0.56),
+                make_box("alteration_PIK3CA_V1", "alteration_cell", x0=0.28, y0=0.26, x1=0.32, y1=0.32),
+                make_box("alteration_EGFR_V2", "alteration_cell", x0=0.33, y0=0.34, x1=0.37, y1=0.40),
+                make_box("overlay_EGFR_V2", "alteration_overlay", x0=0.341, y0=0.354, x1=0.359, y1=0.386),
+                make_box("consequence_title_A", "panel_title", x0=0.70, y0=0.85, x1=0.90, y1=0.88),
+                make_box("consequence_title_B", "panel_title", x0=0.70, y0=0.57, x1=0.90, y1=0.60),
+                make_box("consequence_title_C", "panel_title", x0=0.70, y0=0.29, x1=0.90, y1=0.32),
+                make_box("consequence_x_axis_title_A", "subplot_x_axis_title", x0=0.73, y0=0.67, x1=0.86, y1=0.70),
+                make_box("consequence_x_axis_title_B", "subplot_x_axis_title", x0=0.73, y0=0.39, x1=0.86, y1=0.42),
+                make_box("consequence_x_axis_title_C", "subplot_x_axis_title", x0=0.73, y0=0.11, x1=0.86, y1=0.14),
+                make_box("consequence_tp53_proteome", "scatter_point", x0=0.83, y0=0.80, x1=0.85, y1=0.82),
+                make_box("consequence_egfr_proteome", "scatter_point", x0=0.74, y0=0.73, x1=0.76, y1=0.75),
+                make_box("consequence_tp53_phosphoproteome", "scatter_point", x0=0.84, y0=0.52, x1=0.86, y1=0.54),
+                make_box("consequence_egfr_phosphoproteome", "scatter_point", x0=0.74, y0=0.45, x1=0.76, y1=0.47),
+                make_box("consequence_tp53_glycoproteome", "scatter_point", x0=0.82, y0=0.24, x1=0.84, y1=0.26),
+                make_box("consequence_egfr_glycoproteome", "scatter_point", x0=0.75, y0=0.18, x1=0.77, y1=0.20),
+                make_box("consequence_tp53_proteome_label", "annotation_label", x0=0.85, y0=0.82, x1=0.90, y1=0.85),
+                make_box("consequence_egfr_proteome_label", "annotation_label", x0=0.68, y0=0.73, x1=0.74, y1=0.76),
+                make_box("consequence_tp53_phosphoproteome_label", "annotation_label", x0=0.86, y0=0.54, x1=0.92, y1=0.57),
+                make_box("consequence_egfr_phosphoproteome_label", "annotation_label", x0=0.67, y0=0.45, x1=0.74, y1=0.48),
+                make_box("consequence_tp53_glycoproteome_label", "annotation_label", x0=0.84, y0=0.26, x1=0.91, y1=0.29),
+                make_box("consequence_egfr_glycoproteome_label", "annotation_label", x0=0.69, y0=0.18, x1=0.76, y1=0.21),
+            ],
+            "panel_boxes": [
+                make_box("panel_burden", "panel", x0=0.18, y0=0.80, x1=0.37, y1=0.90),
+                make_box("panel_annotations", "panel", x0=0.18, y0=0.62, x1=0.37, y1=0.75),
+                make_box("panel_matrix", "panel", x0=0.18, y0=0.24, x1=0.37, y1=0.58),
+                make_box("panel_frequency", "panel", x0=0.52, y0=0.24, x1=0.62, y1=0.58),
+                make_box("panel_consequence_A", "panel", x0=0.66, y0=0.66, x1=0.92, y1=0.86),
+                make_box("panel_consequence_B", "panel", x0=0.66, y0=0.38, x1=0.92, y1=0.58),
+                make_box("panel_consequence_C", "panel", x0=0.66, y0=0.10, x1=0.92, y1=0.30),
+            ],
+            "guide_boxes": [
+                make_box("legend_alteration", "legend", x0=0.18, y0=0.02, x1=0.56, y1=0.08),
+                make_box("legend_consequence", "legend", x0=0.64, y0=0.02, x1=0.92, y1=0.08),
+                make_box("proteome_threshold_left", "reference_line", x0=0.75, y0=0.66, x1=0.751, y1=0.86),
+                make_box("proteome_threshold_right", "reference_line", x0=0.84, y0=0.66, x1=0.841, y1=0.86),
+                make_box("proteome_significance_threshold", "reference_line", x0=0.66, y0=0.74, x1=0.92, y1=0.741),
+                make_box("phosphoproteome_threshold_left", "reference_line", x0=0.75, y0=0.38, x1=0.751, y1=0.58),
+                make_box("phosphoproteome_threshold_right", "reference_line", x0=0.84, y0=0.38, x1=0.841, y1=0.58),
+                make_box("phosphoproteome_significance_threshold", "reference_line", x0=0.66, y0=0.46, x1=0.92, y1=0.461),
+                make_box("glycoproteome_threshold_left", "reference_line", x0=0.75, y0=0.10, x1=0.751, y1=0.30),
+                make_box("glycoproteome_threshold_right", "reference_line", x0=0.84, y0=0.10, x1=0.841, y1=0.30),
+                make_box("glycoproteome_significance_threshold", "reference_line", x0=0.66, y0=0.18, x1=0.92, y1=0.181),
+            ],
+            "metrics": {
+                "alteration_legend_title": "Genomic alteration",
+                "consequence_legend_title": "Consequence class",
+                "effect_threshold": 1.0,
+                "significance_threshold": 2.0,
+                "sample_ids": ["D1", "D2", "V1", "V2"],
+                "gene_labels": ["TP53", "KRAS", "EGFR", "PIK3CA"],
+                "driver_gene_labels": ["TP53", "EGFR"],
+                "annotation_tracks": [
+                    {
+                        "track_id": "cohort",
+                        "track_label": "Cohort",
+                        "track_label_box_id": "annotation_track_label_cohort",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Discovery", "box_id": "annotation_cohort_D1"},
+                            {"sample_id": "D2", "category_label": "Discovery", "box_id": "annotation_cohort_D2"},
+                            {"sample_id": "V1", "category_label": "Validation", "box_id": "annotation_cohort_V1"},
+                            {"sample_id": "V2", "category_label": "Validation", "box_id": "annotation_cohort_V2"},
+                        ],
+                    },
+                    {
+                        "track_id": "response",
+                        "track_label": "Response",
+                        "track_label_box_id": "annotation_track_label_response",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Responder", "box_id": "annotation_response_D1"},
+                            {"sample_id": "D2", "category_label": "Non-responder", "box_id": "annotation_response_D2"},
+                            {"sample_id": "V1", "category_label": "Responder", "box_id": "annotation_response_V1"},
+                            {"sample_id": "V2", "category_label": "Non-responder", "box_id": "annotation_response_V2"},
+                        ],
+                    },
+                ],
+                "sample_burdens": [
+                    {"sample_id": "D1", "altered_gene_count": 1, "bar_box_id": "burden_bar_D1"},
+                    {"sample_id": "D2", "altered_gene_count": 1, "bar_box_id": "burden_bar_D2"},
+                    {"sample_id": "V1", "altered_gene_count": 2, "bar_box_id": "burden_bar_V1"},
+                    {"sample_id": "V2", "altered_gene_count": 1, "bar_box_id": "burden_bar_V2"},
+                ],
+                "gene_alteration_frequencies": [
+                    {"gene_label": "TP53", "altered_fraction": 0.5, "bar_box_id": "freq_bar_TP53"},
+                    {"gene_label": "KRAS", "altered_fraction": 0.25, "bar_box_id": "freq_bar_KRAS"},
+                    {"gene_label": "EGFR", "altered_fraction": 0.25, "bar_box_id": "freq_bar_EGFR"},
+                    {"gene_label": "PIK3CA", "altered_fraction": 0.25, "bar_box_id": "freq_bar_PIK3CA"},
+                ],
+                "alteration_cells": [
+                    {"sample_id": "D1", "gene_label": "TP53", "mutation_class": "missense", "cnv_state": "loss", "box_id": "alteration_TP53_D1", "overlay_box_id": "overlay_TP53_D1"},
+                    {"sample_id": "D2", "gene_label": "KRAS", "cnv_state": "amplification", "box_id": "alteration_KRAS_D2"},
+                    {"sample_id": "V1", "gene_label": "TP53", "mutation_class": "truncating", "box_id": "alteration_TP53_V1"},
+                    {"sample_id": "V1", "gene_label": "PIK3CA", "cnv_state": "gain", "box_id": "alteration_PIK3CA_V1"},
+                    {"sample_id": "V2", "gene_label": "EGFR", "mutation_class": "fusion", "cnv_state": "amplification", "box_id": "alteration_EGFR_V2", "overlay_box_id": "overlay_EGFR_V2"},
+                ],
+                "consequence_panels": [
+                    {
+                        "panel_id": "proteome",
+                        "panel_title": "Proteome consequence",
+                        "panel_label": "B",
+                        "panel_box_id": "panel_consequence_A",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "consequence_title_A",
+                        "x_axis_title_box_id": "consequence_x_axis_title_A",
+                        "effect_threshold_left_box_id": "proteome_threshold_left",
+                        "effect_threshold_right_box_id": "proteome_threshold_right",
+                        "significance_threshold_box_id": "proteome_significance_threshold",
+                        "points": [
+                            {"gene_label": "TP53", "x": 0.84, "y": 0.81, "effect_value": 1.18, "significance_value": 3.28, "regulation_class": "upregulated", "point_box_id": "consequence_tp53_proteome", "label_box_id": "consequence_tp53_proteome_label"},
+                            {"gene_label": "EGFR", "x": 0.75, "y": 0.74, "effect_value": -1.07, "significance_value": 2.84, "regulation_class": "downregulated", "point_box_id": "consequence_egfr_proteome", "label_box_id": "consequence_egfr_proteome_label"},
+                        ],
+                    },
+                    {
+                        "panel_id": "phosphoproteome",
+                        "panel_title": "Phosphoproteome consequence",
+                        "panel_label": "C",
+                        "panel_box_id": "panel_consequence_B",
+                        "panel_label_box_id": "panel_label_C",
+                        "panel_title_box_id": "consequence_title_B",
+                        "x_axis_title_box_id": "consequence_x_axis_title_B",
+                        "effect_threshold_left_box_id": "phosphoproteome_threshold_left",
+                        "effect_threshold_right_box_id": "phosphoproteome_threshold_right",
+                        "significance_threshold_box_id": "phosphoproteome_significance_threshold",
+                        "points": [
+                            {"gene_label": "TP53", "x": 0.85, "y": 0.53, "effect_value": 1.42, "significance_value": 3.75, "regulation_class": "upregulated", "point_box_id": "consequence_tp53_phosphoproteome", "label_box_id": "consequence_tp53_phosphoproteome_label"},
+                            {"gene_label": "EGFR", "x": 0.75, "y": 0.46, "effect_value": -1.24, "significance_value": 3.19, "regulation_class": "downregulated", "point_box_id": "consequence_egfr_phosphoproteome", "label_box_id": "consequence_egfr_phosphoproteome_label"},
+                        ],
+                    },
+                    {
+                        "panel_id": "glycoproteome",
+                        "panel_title": "Glycoproteome consequence",
+                        "panel_label": "D",
+                        "panel_box_id": "panel_consequence_C",
+                        "panel_label_box_id": "panel_label_D",
+                        "panel_title_box_id": "consequence_title_C",
+                        "x_axis_title_box_id": "consequence_x_axis_title_C",
+                        "effect_threshold_left_box_id": "glycoproteome_threshold_left",
+                        "effect_threshold_right_box_id": "glycoproteome_threshold_right",
+                        "significance_threshold_box_id": "glycoproteome_significance_threshold",
+                        "points": [
+                            {"gene_label": "TP53", "x": 0.83, "y": 0.25, "effect_value": 1.06, "significance_value": 2.91, "regulation_class": "upregulated", "point_box_id": "consequence_tp53_glycoproteome", "label_box_id": "consequence_tp53_glycoproteome_label"},
+                            {"gene_label": "EGFR", "x": 0.76, "y": 0.19, "effect_value": -0.95, "significance_value": 2.43, "regulation_class": "background", "point_box_id": "consequence_egfr_glycoproteome", "label_box_id": "consequence_egfr_glycoproteome_label"},
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_multiomic_consequence_panel_uses_wrong_layer_ids() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_genomic_alteration_multiomic_consequence_panel",
+        layout_sidecar={
+            "template_id": "genomic_alteration_multiomic_consequence_panel",
+            "device": make_device(),
+            "layout_boxes": [],
+            "panel_boxes": [],
+            "guide_boxes": [],
+            "metrics": {
+                "alteration_legend_title": "Genomic alteration",
+                "consequence_legend_title": "Consequence class",
+                "effect_threshold": 1.0,
+                "significance_threshold": 2.0,
+                "sample_ids": ["D1", "D2"],
+                "gene_labels": ["TP53", "EGFR"],
+                "driver_gene_labels": ["TP53", "EGFR"],
+                "annotation_tracks": [],
+                "sample_burdens": [],
+                "gene_alteration_frequencies": [],
+                "alteration_cells": [],
+                "consequence_panels": [
+                    {"panel_id": "transcriptome", "panel_title": "Transcriptome", "panel_label": "B", "panel_box_id": "panel_consequence_A", "panel_label_box_id": "panel_label_B", "panel_title_box_id": "consequence_title_A", "x_axis_title_box_id": "consequence_x_axis_title_A", "effect_threshold_left_box_id": "left_A", "effect_threshold_right_box_id": "right_A", "significance_threshold_box_id": "sig_A", "points": []},
+                    {"panel_id": "proteome", "panel_title": "Proteome", "panel_label": "C", "panel_box_id": "panel_consequence_B", "panel_label_box_id": "panel_label_C", "panel_title_box_id": "consequence_title_B", "x_axis_title_box_id": "consequence_x_axis_title_B", "effect_threshold_left_box_id": "left_B", "effect_threshold_right_box_id": "right_B", "significance_threshold_box_id": "sig_B", "points": []},
+                    {"panel_id": "glycoproteome", "panel_title": "Glycoproteome", "panel_label": "D", "panel_box_id": "panel_consequence_C", "panel_label_box_id": "panel_label_D", "panel_title_box_id": "consequence_title_C", "x_axis_title_box_id": "consequence_x_axis_title_C", "effect_threshold_left_box_id": "left_C", "effect_threshold_right_box_id": "right_C", "significance_threshold_box_id": "sig_C", "points": []},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "consequence_panel_ids_invalid" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_oncoplot_annotation_track_is_incomplete() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
