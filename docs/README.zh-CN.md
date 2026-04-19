@@ -22,7 +22,7 @@
 - 上游 `Hermes-Agent` 是外部备用模式与长期在线网关，负责 supervised runtime continuity。
 - MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
 - 医学展示支线继续作为下游能力线分开维护。
-- 内部 program history 继续保留 `P0 runtime native truth`、`P1 workspace canonical literature / knowledge truth`、`P2 controlled cutover -> physical monorepo migration`；external runtime gate 仍属于 blocker package。
+- 历史 program tranche、blocker package 与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 `docs/history/omx/` 中供维护者追溯。
 
 ## 技术工作集
 
@@ -68,7 +68,7 @@
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
 - [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### Program 与 gates
+### 当前 Program 主工作面
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
@@ -76,15 +76,17 @@
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
+- [仓库 CI 预检](program/repository_ci_preflight.md)
+- [Study progress projection](program/study_progress_projection.md)
+
+### 追溯与 blocker package
+
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
 - [手动 runtime 稳定化清单](program/manual_runtime_stabilization_checklist.md)
-- [仓库 CI 预检](program/repository_ci_preflight.md)
 - [真实课题 relaunch 验证记录](program/real_study_relaunch_verification.md)
-- [Study progress projection](program/study_progress_projection.md)
-
-`P2 controlled cutover -> physical monorepo migration` 仍保留在内部 program 材料中，Hermes backend continuation / activation 这组材料继续属于 blocker package。
+- [OMX 历史资料索引](history/omx/README.zh-CN.md)
 
 ### MAS 用户回路与内部桥接参考
 

@@ -22,7 +22,7 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 - upstream `Hermes-Agent` is the external backup mode and long-running gateway for supervised runtime continuity.
 - The default MAS loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`.
 - The medical display line stays separate as a downstream capability line.
-- Internal program history still tracks `P0 runtime native truth`, `P1 workspace canonical literature / knowledge truth`, and `P2 controlled cutover -> physical monorepo migration`; the external runtime gate remains part of the blocker package for `P2`.
+- Historical program tranches, blocker packages, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and `docs/history/omx/`.
 
 ## Technical Working Set
 
@@ -68,7 +68,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
 - [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### Program and gates
+### Active program surfaces
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
@@ -76,15 +76,17 @@ Public-facing material should stay mirrored in English and Chinese.
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Project repair priority map](program/project_repair_priority_map.md)
+- [Repository CI preflight](program/repository_ci_preflight.md)
+- [Study progress projection](program/study_progress_projection.md)
+
+### Traceability and blocker packages
+
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
 - [Manual runtime stabilization checklist](program/manual_runtime_stabilization_checklist.md)
-- [Repository CI preflight](program/repository_ci_preflight.md)
 - [Real study relaunch verification](program/real_study_relaunch_verification.md)
-- [Study progress projection](program/study_progress_projection.md)
-
-`P2 controlled cutover -> physical monorepo migration` remains open in internal program material, and the Hermes backend continuation / activation material is still part of the blocker package.
+- [OMX historical archive](history/omx/README.md)
 
 ### MAS user loop and internal bridge references
 

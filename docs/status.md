@@ -38,7 +38,7 @@
 
 ## 内部参考边界
 
-- `P0 runtime native truth`、`P1 workspace canonical literature / knowledge truth`、`P2 controlled cutover -> physical monorepo migration` 保留在 runtime / program 文档中，用于维护者理解历史 tranche 和 internal readiness。
+- 历史 tranche 命名、blocker package 与迁移 readiness 继续留在 runtime / program 文档中，用于维护者追溯当前边界如何形成。
 - `OPL -> Med Auto Science` integration contract、`build-product-entry`、handoff envelope、family product-entry manifest companion 属于 machine-readable bridge 和 internal reference。
 - `Domain Harness OS`、runtime owner、outer runtime substrate owner、backend deconstruction、physical monorepo absorb 继续留在 reference / program 层。
 - 医学展示 / 论文配图资产化是独立 capability line，仍不改写 MAS 研究任务回路。
