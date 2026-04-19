@@ -5273,6 +5273,30 @@ def _validate_panel_order_payload(
     return normalized_items
 
 
+def _validate_sample_order_payload(
+    *,
+    path: Path,
+    payload: object,
+    label: str,
+) -> list[dict[str, str]]:
+    if not isinstance(payload, list) or not payload:
+        raise ValueError(f"{path.name} {label} must contain a non-empty list")
+    normalized_items: list[dict[str, str]] = []
+    seen_sample_ids: set[str] = set()
+    for index, item in enumerate(payload):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} {label}[{index}] must be an object")
+        sample_id = _require_non_empty_string(
+            item.get("sample_id"),
+            label=f"{path.name} {label}[{index}].sample_id",
+        )
+        if sample_id in seen_sample_ids:
+            raise ValueError(f"{path.name} {label}[{index}].sample_id must be unique")
+        seen_sample_ids.add(sample_id)
+        normalized_items.append({"sample_id": sample_id})
+    return normalized_items
+
+
 def _validate_pathway_enrichment_dotplot_panel_display_payload(
     *,
     path: Path,
@@ -5376,6 +5400,189 @@ def _validate_pathway_enrichment_dotplot_panel_display_payload(
         "panel_order": panel_order,
         "pathway_order": pathway_order,
         "points": normalized_points,
+    }
+
+
+def _validate_oncoplot_mutation_landscape_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    burden_axis_label = _require_non_empty_string(
+        payload.get("burden_axis_label"),
+        label=f"{path.name} display `{expected_display_id}` burden_axis_label",
+    )
+    frequency_axis_label = _require_non_empty_string(
+        payload.get("frequency_axis_label"),
+        label=f"{path.name} display `{expected_display_id}` frequency_axis_label",
+    )
+    mutation_legend_title = _require_non_empty_string(
+        payload.get("mutation_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` mutation_legend_title",
+    )
+    gene_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("gene_order"),
+        label=f"display `{expected_display_id}` gene_order",
+    )
+    sample_order = _validate_sample_order_payload(
+        path=path,
+        payload=payload.get("sample_order"),
+        label=f"display `{expected_display_id}` sample_order",
+    )
+    declared_gene_labels = {item["label"] for item in gene_order}
+    declared_sample_ids = {item["sample_id"] for item in sample_order}
+
+    annotation_tracks = payload.get("annotation_tracks")
+    if not isinstance(annotation_tracks, list) or not annotation_tracks:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty annotation_tracks list")
+    if len(annotation_tracks) > 3:
+        raise ValueError(f"{path.name} display `{expected_display_id}` annotation_tracks must contain at most three tracks")
+    normalized_tracks: list[dict[str, Any]] = []
+    seen_track_ids: set[str] = set()
+    for index, track in enumerate(annotation_tracks):
+        if not isinstance(track, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` annotation_tracks[{index}] must be an object")
+        track_id = _require_non_empty_string(
+            track.get("track_id"),
+            label=f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_id",
+        )
+        if track_id in seen_track_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_id must be unique"
+            )
+        seen_track_ids.add(track_id)
+        track_label = _require_non_empty_string(
+            track.get("track_label"),
+            label=f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].track_label",
+        )
+        values = track.get("values")
+        if not isinstance(values, list) or not values:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must be a non-empty list"
+            )
+        normalized_values: list[dict[str, str]] = []
+        seen_track_sample_ids: set[str] = set()
+        for value_index, item in enumerate(values):
+            if not isinstance(item, dict):
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values[{value_index}] must be an object"
+                )
+            sample_id = _require_non_empty_string(
+                item.get("sample_id"),
+                label=(
+                    f"{path.name} display `{expected_display_id}` "
+                    f"annotation_tracks[{index}].values[{value_index}].sample_id"
+                ),
+            )
+            if sample_id not in declared_sample_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values[{value_index}].sample_id "
+                    "must match sample_order"
+                )
+            if sample_id in seen_track_sample_ids:
+                raise ValueError(
+                    f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must cover the declared sample_order exactly once"
+                )
+            seen_track_sample_ids.add(sample_id)
+            normalized_values.append(
+                {
+                    "sample_id": sample_id,
+                    "category_label": _require_non_empty_string(
+                        item.get("category_label"),
+                        label=(
+                            f"{path.name} display `{expected_display_id}` "
+                            f"annotation_tracks[{index}].values[{value_index}].category_label"
+                        ),
+                    ),
+                }
+            )
+        if seen_track_sample_ids != declared_sample_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` annotation_tracks[{index}].values must cover the declared sample_order exactly once"
+            )
+        normalized_tracks.append(
+            {
+                "track_id": track_id,
+                "track_label": track_label,
+                "values": normalized_values,
+            }
+        )
+
+    mutation_records = payload.get("mutation_records")
+    if not isinstance(mutation_records, list) or not mutation_records:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty mutation_records list")
+    supported_alteration_classes = {"missense", "truncating", "amplification", "fusion"}
+    normalized_mutation_records: list[dict[str, str]] = []
+    observed_mutation_samples: set[str] = set()
+    observed_mutation_genes: set[str] = set()
+    seen_coordinates: set[tuple[str, str]] = set()
+    for index, item in enumerate(mutation_records):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` mutation_records[{index}] must be an object")
+        sample_id = _require_non_empty_string(
+            item.get("sample_id"),
+            label=f"{path.name} display `{expected_display_id}` mutation_records[{index}].sample_id",
+        )
+        if sample_id not in declared_sample_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` mutation_records[{index}].sample_id must match sample_order"
+            )
+        gene_label = _require_non_empty_string(
+            item.get("gene_label"),
+            label=f"{path.name} display `{expected_display_id}` mutation_records[{index}].gene_label",
+        )
+        if gene_label not in declared_gene_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` mutation_records[{index}].gene_label must match gene_order"
+            )
+        coordinate = (sample_id, gene_label)
+        if coordinate in seen_coordinates:
+            raise ValueError(f"{path.name} display `{expected_display_id}` must keep sample/gene coordinates unique")
+        seen_coordinates.add(coordinate)
+        alteration_class = _require_non_empty_string(
+            item.get("alteration_class"),
+            label=f"{path.name} display `{expected_display_id}` mutation_records[{index}].alteration_class",
+        )
+        if alteration_class not in supported_alteration_classes:
+            supported = ", ".join(sorted(supported_alteration_classes))
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` mutation_records[{index}].alteration_class must be one of {supported}"
+            )
+        observed_mutation_samples.add(sample_id)
+        observed_mutation_genes.add(gene_label)
+        normalized_mutation_records.append(
+            {
+                "sample_id": sample_id,
+                "gene_label": gene_label,
+                "alteration_class": alteration_class,
+            }
+        )
+    if observed_mutation_samples != declared_sample_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` mutation_records sample_id values must match sample_order")
+    if observed_mutation_genes != declared_gene_labels:
+        raise ValueError(f"{path.name} display `{expected_display_id}` mutation_records gene_label values must match gene_order")
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "y_label": y_label,
+        "burden_axis_label": burden_axis_label,
+        "frequency_axis_label": frequency_axis_label,
+        "mutation_legend_title": mutation_legend_title,
+        "gene_order": gene_order,
+        "sample_order": sample_order,
+        "annotation_tracks": normalized_tracks,
+        "mutation_records": normalized_mutation_records,
     }
 
 
@@ -9828,6 +10035,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1":
         return payload_path, _validate_pathway_enrichment_dotplot_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "oncoplot_mutation_landscape_panel_inputs_v1":
+        return payload_path, _validate_oncoplot_mutation_landscape_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

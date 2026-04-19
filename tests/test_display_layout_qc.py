@@ -2893,6 +2893,178 @@ def test_run_display_layout_qc_fails_when_omics_volcano_threshold_box_is_missing
     assert any(issue["rule_id"] == "effect_threshold_box_missing" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_oncoplot_mutation_landscape_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_oncoplot_mutation_landscape_panel",
+        layout_sidecar={
+            "template_id": "oncoplot_mutation_landscape_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.91, x1=0.10, y1=0.94),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.26, x1=0.05, y1=0.60),
+                make_box("annotation_track_label_cohort", "annotation_track_label", x0=0.08, y0=0.71, x1=0.18, y1=0.74),
+                make_box("annotation_track_label_response", "annotation_track_label", x0=0.08, y0=0.65, x1=0.20, y1=0.68),
+                make_box("burden_bar_D1", "bar", x0=0.18, y0=0.82, x1=0.22, y1=0.88),
+                make_box("burden_bar_D2", "bar", x0=0.23, y0=0.82, x1=0.27, y1=0.86),
+                make_box("burden_bar_V1", "bar", x0=0.28, y0=0.82, x1=0.32, y1=0.88),
+                make_box("burden_bar_V2", "bar", x0=0.33, y0=0.82, x1=0.37, y1=0.86),
+                make_box("freq_bar_TP53", "bar", x0=0.74, y0=0.47, x1=0.82, y1=0.53),
+                make_box("freq_bar_KRAS", "bar", x0=0.74, y0=0.38, x1=0.78, y1=0.44),
+                make_box("freq_bar_EGFR", "bar", x0=0.74, y0=0.29, x1=0.78, y1=0.35),
+                make_box("annotation_cohort_D1", "annotation_cell", x0=0.18, y0=0.70, x1=0.22, y1=0.74),
+                make_box("annotation_cohort_D2", "annotation_cell", x0=0.23, y0=0.70, x1=0.27, y1=0.74),
+                make_box("annotation_cohort_V1", "annotation_cell", x0=0.28, y0=0.70, x1=0.32, y1=0.74),
+                make_box("annotation_cohort_V2", "annotation_cell", x0=0.33, y0=0.70, x1=0.37, y1=0.74),
+                make_box("annotation_response_D1", "annotation_cell", x0=0.18, y0=0.64, x1=0.22, y1=0.68),
+                make_box("annotation_response_D2", "annotation_cell", x0=0.23, y0=0.64, x1=0.27, y1=0.68),
+                make_box("annotation_response_V1", "annotation_cell", x0=0.28, y0=0.64, x1=0.32, y1=0.68),
+                make_box("annotation_response_V2", "annotation_cell", x0=0.33, y0=0.64, x1=0.37, y1=0.68),
+                make_box("mutation_TP53_D1", "mutation_cell", x0=0.18, y0=0.47, x1=0.22, y1=0.53),
+                make_box("mutation_KRAS_D2", "mutation_cell", x0=0.23, y0=0.38, x1=0.27, y1=0.44),
+                make_box("mutation_TP53_V1", "mutation_cell", x0=0.28, y0=0.47, x1=0.32, y1=0.53),
+                make_box("mutation_EGFR_V2", "mutation_cell", x0=0.33, y0=0.29, x1=0.37, y1=0.35),
+            ],
+            "panel_boxes": [
+                make_box("panel_burden", "panel", x0=0.18, y0=0.80, x1=0.37, y1=0.89),
+                make_box("panel_annotations", "panel", x0=0.18, y0=0.62, x1=0.37, y1=0.75),
+                make_box("panel_matrix", "panel", x0=0.18, y0=0.26, x1=0.37, y1=0.56),
+                make_box("panel_frequency", "panel", x0=0.74, y0=0.26, x1=0.84, y1=0.56),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.44, y0=0.02, x1=0.82, y1=0.10),
+            ],
+            "metrics": {
+                "mutation_legend_title": "Alteration",
+                "sample_ids": ["D1", "D2", "V1", "V2"],
+                "gene_labels": ["TP53", "KRAS", "EGFR"],
+                "annotation_tracks": [
+                    {
+                        "track_id": "cohort",
+                        "track_label": "Cohort",
+                        "track_label_box_id": "annotation_track_label_cohort",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Discovery", "box_id": "annotation_cohort_D1"},
+                            {"sample_id": "D2", "category_label": "Discovery", "box_id": "annotation_cohort_D2"},
+                            {"sample_id": "V1", "category_label": "Validation", "box_id": "annotation_cohort_V1"},
+                            {"sample_id": "V2", "category_label": "Validation", "box_id": "annotation_cohort_V2"},
+                        ],
+                    },
+                    {
+                        "track_id": "response",
+                        "track_label": "Response",
+                        "track_label_box_id": "annotation_track_label_response",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Responder", "box_id": "annotation_response_D1"},
+                            {"sample_id": "D2", "category_label": "Non-responder", "box_id": "annotation_response_D2"},
+                            {"sample_id": "V1", "category_label": "Responder", "box_id": "annotation_response_V1"},
+                            {"sample_id": "V2", "category_label": "Non-responder", "box_id": "annotation_response_V2"},
+                        ],
+                    },
+                ],
+                "sample_burdens": [
+                    {"sample_id": "D1", "altered_gene_count": 1, "bar_box_id": "burden_bar_D1"},
+                    {"sample_id": "D2", "altered_gene_count": 1, "bar_box_id": "burden_bar_D2"},
+                    {"sample_id": "V1", "altered_gene_count": 1, "bar_box_id": "burden_bar_V1"},
+                    {"sample_id": "V2", "altered_gene_count": 1, "bar_box_id": "burden_bar_V2"},
+                ],
+                "gene_altered_frequencies": [
+                    {"gene_label": "TP53", "altered_fraction": 0.5, "bar_box_id": "freq_bar_TP53"},
+                    {"gene_label": "KRAS", "altered_fraction": 0.25, "bar_box_id": "freq_bar_KRAS"},
+                    {"gene_label": "EGFR", "altered_fraction": 0.25, "bar_box_id": "freq_bar_EGFR"},
+                ],
+                "altered_cells": [
+                    {"sample_id": "D1", "gene_label": "TP53", "alteration_class": "missense", "box_id": "mutation_TP53_D1"},
+                    {"sample_id": "D2", "gene_label": "KRAS", "alteration_class": "amplification", "box_id": "mutation_KRAS_D2"},
+                    {"sample_id": "V1", "gene_label": "TP53", "alteration_class": "truncating", "box_id": "mutation_TP53_V1"},
+                    {"sample_id": "V2", "gene_label": "EGFR", "alteration_class": "fusion", "box_id": "mutation_EGFR_V2"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_oncoplot_annotation_track_is_incomplete() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_oncoplot_mutation_landscape_panel",
+        layout_sidecar={
+            "template_id": "oncoplot_mutation_landscape_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.91, x1=0.10, y1=0.94),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.26, x1=0.05, y1=0.60),
+                make_box("annotation_track_label_cohort", "annotation_track_label", x0=0.08, y0=0.71, x1=0.18, y1=0.74),
+                make_box("burden_bar_D1", "bar", x0=0.18, y0=0.82, x1=0.22, y1=0.88),
+                make_box("burden_bar_D2", "bar", x0=0.23, y0=0.82, x1=0.27, y1=0.86),
+                make_box("burden_bar_V1", "bar", x0=0.28, y0=0.82, x1=0.32, y1=0.88),
+                make_box("burden_bar_V2", "bar", x0=0.33, y0=0.82, x1=0.37, y1=0.86),
+                make_box("freq_bar_TP53", "bar", x0=0.74, y0=0.47, x1=0.82, y1=0.53),
+                make_box("freq_bar_KRAS", "bar", x0=0.74, y0=0.38, x1=0.78, y1=0.44),
+                make_box("freq_bar_EGFR", "bar", x0=0.74, y0=0.29, x1=0.78, y1=0.35),
+                make_box("annotation_cohort_D1", "annotation_cell", x0=0.18, y0=0.70, x1=0.22, y1=0.74),
+                make_box("annotation_cohort_D2", "annotation_cell", x0=0.23, y0=0.70, x1=0.27, y1=0.74),
+                make_box("annotation_cohort_V1", "annotation_cell", x0=0.28, y0=0.70, x1=0.32, y1=0.74),
+                make_box("mutation_TP53_D1", "mutation_cell", x0=0.18, y0=0.47, x1=0.22, y1=0.53),
+                make_box("mutation_KRAS_D2", "mutation_cell", x0=0.23, y0=0.38, x1=0.27, y1=0.44),
+                make_box("mutation_TP53_V1", "mutation_cell", x0=0.28, y0=0.47, x1=0.32, y1=0.53),
+                make_box("mutation_EGFR_V2", "mutation_cell", x0=0.33, y0=0.29, x1=0.37, y1=0.35),
+            ],
+            "panel_boxes": [
+                make_box("panel_burden", "panel", x0=0.18, y0=0.80, x1=0.37, y1=0.89),
+                make_box("panel_annotations", "panel", x0=0.18, y0=0.62, x1=0.37, y1=0.75),
+                make_box("panel_matrix", "panel", x0=0.18, y0=0.26, x1=0.37, y1=0.56),
+                make_box("panel_frequency", "panel", x0=0.74, y0=0.26, x1=0.84, y1=0.56),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.44, y0=0.02, x1=0.82, y1=0.10),
+            ],
+            "metrics": {
+                "mutation_legend_title": "Alteration",
+                "sample_ids": ["D1", "D2", "V1", "V2"],
+                "gene_labels": ["TP53", "KRAS", "EGFR"],
+                "annotation_tracks": [
+                    {
+                        "track_id": "cohort",
+                        "track_label": "Cohort",
+                        "track_label_box_id": "annotation_track_label_cohort",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Discovery", "box_id": "annotation_cohort_D1"},
+                            {"sample_id": "D2", "category_label": "Discovery", "box_id": "annotation_cohort_D2"},
+                            {"sample_id": "V1", "category_label": "Validation", "box_id": "annotation_cohort_V1"},
+                        ],
+                    },
+                ],
+                "sample_burdens": [
+                    {"sample_id": "D1", "altered_gene_count": 1, "bar_box_id": "burden_bar_D1"},
+                    {"sample_id": "D2", "altered_gene_count": 1, "bar_box_id": "burden_bar_D2"},
+                    {"sample_id": "V1", "altered_gene_count": 1, "bar_box_id": "burden_bar_V1"},
+                    {"sample_id": "V2", "altered_gene_count": 1, "bar_box_id": "burden_bar_V2"},
+                ],
+                "gene_altered_frequencies": [
+                    {"gene_label": "TP53", "altered_fraction": 0.5, "bar_box_id": "freq_bar_TP53"},
+                    {"gene_label": "KRAS", "altered_fraction": 0.25, "bar_box_id": "freq_bar_KRAS"},
+                    {"gene_label": "EGFR", "altered_fraction": 0.25, "bar_box_id": "freq_bar_EGFR"},
+                ],
+                "altered_cells": [
+                    {"sample_id": "D1", "gene_label": "TP53", "alteration_class": "missense", "box_id": "mutation_TP53_D1"},
+                    {"sample_id": "D2", "gene_label": "KRAS", "alteration_class": "amplification", "box_id": "mutation_KRAS_D2"},
+                    {"sample_id": "V1", "gene_label": "TP53", "alteration_class": "truncating", "box_id": "mutation_TP53_V1"},
+                    {"sample_id": "V2", "gene_label": "EGFR", "alteration_class": "fusion", "box_id": "mutation_EGFR_V2"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "annotation_track_coverage_mismatch" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_celltype_signature_panel_is_missing_colorbar() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

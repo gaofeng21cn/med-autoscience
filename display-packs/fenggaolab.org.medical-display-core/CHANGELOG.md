@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-19
 
+- Add `oncoplot_mutation_landscape_panel` as the next audited `G` bounded mutation-landscape slice in the core display pack.
+- Lock its pack-facing contract to `oncoplot_mutation_landscape_panel_inputs_v1`, `publication_oncoplot_mutation_landscape_panel`, and the Python bounded burden-plus-annotation-plus-matrix-plus-frequency renderer path.
+
 - Add `omics_volcano_panel` as the next audited `G` threshold-governed differential-omics volcano slice in the core display pack.
 - Lock its pack-facing contract to `omics_volcano_panel_inputs_v1`, `publication_omics_volcano_panel`, and the Python bounded up-to-two-panel threshold-governed volcano renderer path.
 

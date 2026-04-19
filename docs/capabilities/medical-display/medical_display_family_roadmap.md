@@ -495,6 +495,7 @@ Current audited anchors:
 - `gsva_ssgsea_heatmap`
 - `pathway_enrichment_dotplot_panel`
 - `omics_volcano_panel`
+- `oncoplot_mutation_landscape_panel`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
 - `atlas_spatial_bridge_panel`
@@ -506,9 +507,9 @@ Current audited anchors:
 
 Current gap direction:
 
-- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, and a bounded up-to-two-panel volcano baseline; broader omics composites and richer enrichment compositions remain follow-on slices
+- the current omics-native lower bound now includes `GSVA/ssGSEA` heatmaps, a shared-order pathway-enrichment dotplot baseline, a bounded up-to-two-panel volcano baseline, and a bounded oncoplot mutation-landscape baseline; broader omics composites and richer enrichment compositions remain follow-on slices
 - atlas overview baseline has now extended from embedding+signature into occupancy + composition + marker/program, then into atlas-to-spatial state transfer + region-wise composition + marker/program, then into tissue-coordinate niche topography + composition + marker/program, then into trajectory progression + branch composition + marker/module kinetics, then into a five-panel atlas-spatial-trajectory storyboard, then into a four-panel density / coverage support contract, and now further into a six-panel context-support baseline; larger multi-view omics composites remain follow-on slices
-- expand beyond the current GSVA + enrichment + volcano triple baseline into enrichment-bar, oncoplot, and mutation-landscape families as real paper demand appears
+- expand beyond the current GSVA + enrichment + volcano + oncoplot lower bound into enrichment-bar, richer mutation-landscape, CNV-summary, and broader genomic-composite families as real paper demand appears
 - strengthen manuscript-facing legend, annotation, and local readability contracts for omics-specific matrices and atlas composites without pretending shared neighboring templates already solve the whole family
 
 ### H. 队列与研究设计证据类

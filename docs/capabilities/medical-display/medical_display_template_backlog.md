@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `64`
+- Evidence figure templates: `65`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `76`
+- Total audited templates: `77`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,7 +46,7 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `G / oncoplot or mutation-landscape family beyond the current GSVA + enrichment + volcano triple baseline`
+- `G / richer mutation-landscape or multi-omics genomic summary beyond the first oncoplot lower bound`
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current context-support lower bound`
 - `F / higher-order explanation scene beyond the current grouped-local + support-domain composite lower bound`
 - `C/H / calibration appendix or higher-order robustness synthesis beyond the current broader-heterogeneity lower bound`
@@ -82,7 +82,8 @@
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前降级为 monitor-only：
   - 原因：当前 grouped-local 合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才重新提升优先级。
 - `G / enrichment dotplot follow-on` 已在本轮正式收口为 `pathway_enrichment_dotplot_panel`，并将随本轮 absorb 进入当前 `main`，不再保留在 backlog 候选池。
-- `G / volcano follow-on` 已在本轮正式收口为 `omics_volcano_panel`，并将随本轮 absorb 进入当前 `main`，不再保留在 backlog 候选池。
+- `G / volcano follow-on` 已在本轮正式收口为 `omics_volcano_panel`，并已 absorb 入当前 `main`，不再保留在 backlog 候选池。
+- `G / oncoplot follow-on` 已在本轮正式收口为 `oncoplot_mutation_landscape_panel`，当前 `G` 家族后续只保留 richer mutation-landscape 或 broader genomic summary 候选，不再保留这条旧 backlog 表述。
 
 这些候选不等于必须立即实现。
 
@@ -106,7 +107,7 @@
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel` 与 `shap_grouped_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
-7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel` 与 `omics_volcano_panel` 已经形成当前最小三基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 oncoplot、mutation landscape 或更复杂 enrichment 组合图。
+7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel` 与 `oncoplot_mutation_landscape_panel` 已经形成当前最小四基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 richer mutation-landscape、CNV summary 或更复杂 enrichment 组合图。
 
 ## Promotion Rules
 

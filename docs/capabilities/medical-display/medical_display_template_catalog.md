@@ -85,6 +85,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::clustered_heatmap` | `evidence_figure` | `E. Feature Pattern and Matrix` | Clustered Heatmap (Precomputed Ordering) | `r_ggplot2` | `clustered_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `python` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::oncoplot_mutation_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Oncoplot Mutation Landscape Panel | `python` | `oncoplot_mutation_landscape_panel_inputs_v1` | `publication_oncoplot_mutation_landscape_panel` | `png`, `pdf` |
 
 ### Effect Estimate
 
@@ -588,6 +589,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: None
 - Optional nested collection fields: None
 - Additional constraints: `effect_scale_label_must_be_non_empty`, `size_scale_label_must_be_non_empty`, `panel_order_must_be_non_empty`, `panel_order_count_must_be_at_most_two`, `panel_ids_must_be_unique`, `panel_titles_must_be_non_empty`, `pathway_order_labels_must_be_unique`, `points_must_be_non_empty`, `point_panel_ids_must_match_declared_panels`, `point_pathway_labels_must_match_declared_pathways`, `point_x_values_must_be_finite`, `point_effect_values_must_be_finite`, `point_size_values_must_be_non_negative`, `declared_panel_pathway_grid_must_be_complete_and_unique`
+
+### `oncoplot_mutation_landscape_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Oncoplot Mutation Landscape Panel
+- Templates: `fenggaolab.org.medical-display-core::oncoplot_mutation_landscape_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `burden_axis_label`, `frequency_axis_label`, `mutation_legend_title`, `gene_order`, `sample_order`, `annotation_tracks`, `mutation_records`
+- Optional display fields: `paper_role`
+- Required collection fields: `gene_order` -> `label`<br>`sample_order` -> `sample_id`<br>`annotation_tracks` -> `track_id`, `track_label`, `values`<br>`mutation_records` -> `sample_id`, `gene_label`, `alteration_class`
+- Optional collection fields: None
+- Required nested collection fields: `annotation_tracks.values` -> `sample_id`, `category_label`
+- Optional nested collection fields: None
+- Additional constraints: `y_label_must_be_non_empty`, `burden_axis_label_must_be_non_empty`, `frequency_axis_label_must_be_non_empty`, `mutation_legend_title_must_be_non_empty`, `gene_order_must_be_non_empty`, `gene_order_labels_must_be_unique`, `sample_order_must_be_non_empty`, `sample_ids_must_be_unique`, `annotation_tracks_must_be_non_empty`, `annotation_track_count_must_be_at_most_three`, `annotation_track_ids_must_be_unique`, `annotation_track_labels_must_be_non_empty`, `annotation_track_sample_coverage_must_match_declared_sample_order`, `annotation_track_category_labels_must_be_non_empty`, `mutation_records_must_be_non_empty`, `mutation_sample_ids_must_match_declared_sample_order`, `mutation_gene_labels_must_match_declared_gene_order`, `mutation_sample_gene_coordinates_must_be_unique`, `alteration_class_must_be_supported`
 
 ### `forest_effect_inputs_v1`
 
