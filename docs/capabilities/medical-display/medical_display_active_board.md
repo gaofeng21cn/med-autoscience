@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`61`
+  - 证据型模板：`62`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`73`
+  - 总模板数：`74`
 - 最近一次已吸收完成的 capability cluster：
   - `H / broader transportability and center-coverage follow-on beyond the current recalibration-governance lower bound`
   - `center_transportability_governance_summary_panel`
@@ -35,34 +35,34 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 4 / next-cluster reroute / owner brief needed`
+- Phase：`Phase 5 / integration / merge-back / cleanup`
 - Family cluster：`F`
-- Capability cluster：`stronger explanation-panel readability or higher-order explanation scene beyond the current grouped-local + multigroup decision-path lower bound`
-- Owner worktree：`未开启`
-- 状态：`brief_needed`
+- Capability cluster：`shap_grouped_local_support_domain_panel`
+- Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-f-explanation-20260419`
+- 状态：`merge_back_ready`
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `shap_summary_beeswarm`、`shap_bar_importance`、`shap_signed_importance_panel`、`shap_multicohort_importance_panel`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`shap_force_like_summary_panel`、`shap_grouped_local_explanation_panel`、`shap_grouped_decision_path_panel`、`shap_multigroup_decision_path_panel`、`partial_dependence_ice_panel`、`partial_dependence_interaction_contour_panel`、`partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel`、`accumulated_local_effects_panel` 与 `feature_response_support_domain_panel` 已经入库的前提下，如何把 explanation 面板的可读性、annotation / legend 语义与更高阶 explanation scene 的真实论文需求继续收束成新的 bounded `F` follow-on template，使论文能够稳定回答“为什么这个模型做出这样的判断”，并继续保持正文主叙事可审计、可回归、可复用。
+> 在 `shap_summary_beeswarm`、`shap_bar_importance`、`shap_signed_importance_panel`、`shap_multicohort_importance_panel`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`shap_force_like_summary_panel`、`shap_grouped_local_explanation_panel`、`shap_grouped_decision_path_panel`、`shap_multigroup_decision_path_panel`、`partial_dependence_ice_panel`、`partial_dependence_interaction_contour_panel`、`partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel`、`accumulated_local_effects_panel` 与 `feature_response_support_domain_panel` 已经入库的前提下，如何把 grouped-local comparison 与 matched support-domain context 合成一个正文可直接使用的 bounded explanation scene，使论文能够同时回答“为什么模型做出这样的判断”和“这个解释在什么支持域里站得住”，并继续保持正文主叙事可审计、可回归、可复用。
 
 ### Fresh Route 收敛
 
 当前 reroute 已明确：
 
 1. `H` broader transportability and center-coverage follow-on 已经用 `center_transportability_governance_summary_panel` 正式收口。
-2. 下一轮切到 `F` stronger explanation-panel readability or higher-order explanation scene，继续坚持 bounded manuscript-facing template 路线。
+2. 当前 `F` round 已收敛为单一 bounded 模板 `shap_grouped_local_support_domain_panel`，继续坚持 manuscript-facing composite 路线。
 3. `D/E/G` 更高阶 manifold / multi-view atlas follow-on 与 `C/H` calibration appendix / robustness synthesis 继续留在后继 reroute 池。
-4. 下一轮先收口 owner brief，再开唯一 owner worktree 进入实现。
+4. 当前 round 已完成 schema / renderer / QC / docs / verify 闭环，下一步进入 absorb / push / cleanup。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 固定 `F` 家族当前 owner 候选为 `stronger explanation-panel readability or higher-order explanation scene`；
-2. 在 `F` 当前 round 里，继续复用现有 global importance / local explanation / grouped-local / grouped decision-path / PDP-ICE / interaction / support-domain vocabulary 与 manuscript-facing explanation contract；
-3. 用新的 owner brief 明确最终单一候选后，再落正式 schema / renderer / QC / regression 写集。
+1. 固定 `F` 家族当前 owner 模板为 `shap_grouped_local_support_domain_panel`；
+2. 在 `F` 当前 round 里，复用现有 grouped-local 与 support-domain vocabulary，并显式新增 local-to-support feature-order governance；
+3. 把 schema / renderer / QC / regression / tracked docs 一起闭环，不再把当前 round 停在 owner brief 阶段。
 
 ## 预期写集
 
@@ -77,13 +77,14 @@
 - `src/med_autoscience/display_layout_qc.py`
 - 对应 `F` follow-on renderer 文件
 - 对应 `F` / cross-paper golden regression tests
-- 仅在 template inventory 真相变化后触碰 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`
+- `tests/test_display_layout_qc.py`
+- 仅在 template inventory 真相变化后触碰 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`、`medical_display_template_backlog.md`
 
 ## 最低退出条件
 
 只有同时满足下面条件，当前 `F` owner round 才算完成：
 
-1. `stronger explanation-panel readability or higher-order explanation scene` 已正式入库为单一 bounded manuscript-facing template；
+1. `shap_grouped_local_support_domain_panel` 已正式入库为单一 bounded manuscript-facing template；
 2. input schema、source contract、materialization、renderer、layout QC 与 regression 已一起闭环；
 3. fresh verify 至少覆盖该 `F` lane、`scripts/verify.sh` 与 `make test-meta`；
 4. 本轮 worktree 已 absorb / push / cleanup，且未与其他 display owner write set 发生冲突。

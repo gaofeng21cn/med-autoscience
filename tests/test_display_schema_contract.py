@@ -2216,6 +2216,70 @@ def test_feature_response_support_domain_panel_schema_contract_is_registered() -
     assert "feature_response_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
 
 
+def test_shap_grouped_local_support_domain_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    explanation_scene = module.get_input_schema_contract("shap_grouped_local_support_domain_panel_inputs_v1")
+    model_explanation_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "model_explanation"
+    )
+
+    assert explanation_scene.template_ids == (_full_id("shap_grouped_local_support_domain_panel"),)
+    assert explanation_scene.display_name == "SHAP Grouped Local Support-Domain Panel"
+    assert explanation_scene.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "grouped_local_x_label",
+        "support_y_label",
+        "support_legend_title",
+        "local_panels",
+        "support_panels",
+    )
+    assert explanation_scene.collection_required_fields["local_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "group_label",
+        "baseline_value",
+        "predicted_value",
+        "contributions",
+    )
+    assert explanation_scene.collection_required_fields["support_panels"] == (
+        "panel_id",
+        "panel_label",
+        "title",
+        "x_label",
+        "feature",
+        "reference_value",
+        "reference_label",
+        "response_curve",
+        "support_segments",
+    )
+    assert explanation_scene.nested_collection_required_fields["local_panels.contributions"] == (
+        "rank",
+        "feature",
+        "shap_value",
+    )
+    assert explanation_scene.nested_collection_required_fields["support_panels.response_curve"] == ("x", "y")
+    assert explanation_scene.nested_collection_required_fields["support_panels.support_segments"] == (
+        "segment_id",
+        "segment_label",
+        "support_kind",
+        "domain_start",
+        "domain_end",
+    )
+    assert "local_panel_count_must_be_between_two_and_three" in explanation_scene.additional_constraints
+    assert "local_panel_feature_orders_must_match_across_panels" in explanation_scene.additional_constraints
+    assert "support_panel_count_must_equal_two" in explanation_scene.additional_constraints
+    assert "support_panel_labels_must_be_distinct_from_local_panel_labels" in explanation_scene.additional_constraints
+    assert "support_panel_support_segments_must_cover_curve_range" in explanation_scene.additional_constraints
+    assert "support_panel_features_must_be_subset_of_local_feature_order" in explanation_scene.additional_constraints
+    assert _full_id("shap_grouped_local_support_domain_panel") in model_explanation_class.template_ids
+    assert "shap_grouped_local_support_domain_panel_inputs_v1" in model_explanation_class.input_schema_ids
+
+
 def test_shap_bar_importance_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -2484,6 +2548,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "shap_grouped_decision_path_panel_inputs_v1" in markdown
     assert _full_id("shap_multigroup_decision_path_panel") in markdown
     assert "shap_multigroup_decision_path_panel_inputs_v1" in markdown
+    assert _full_id("shap_grouped_local_support_domain_panel") in markdown
+    assert "shap_grouped_local_support_domain_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_ice_panel") in markdown
     assert "partial_dependence_ice_panel_inputs_v1" in markdown
     assert _full_id("partial_dependence_interaction_contour_panel") in markdown

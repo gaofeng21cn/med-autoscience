@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-18
 
+- Add `shap_grouped_local_support_domain_panel` as the next audited `F` grouped-local plus support-domain explanation scene in the core display pack.
+- Lock its pack-facing contract to `shap_grouped_local_support_domain_panel_inputs_v1`, `publication_shap_grouped_local_support_domain_panel`, and the Python bounded upper-local / lower-support composite renderer path.
+
 - Add `center_transportability_governance_summary_panel` as the next audited `H` center-level transportability governance summary slice in the core display pack.
 - Lock its pack-facing contract to `center_transportability_governance_summary_panel_inputs_v1`, `publication_center_transportability_governance_summary_panel`, and the Python bounded two-panel center-metric plus governance-summary renderer path.
 

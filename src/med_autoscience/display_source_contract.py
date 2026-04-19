@@ -50,6 +50,7 @@ INPUT_FILENAME_BY_SCHEMA_ID: dict[str, str] = {
     "partial_dependence_subgroup_comparison_panel_inputs_v1": "partial_dependence_subgroup_comparison_panel_inputs.json",
     "accumulated_local_effects_panel_inputs_v1": "accumulated_local_effects_panel_inputs.json",
     "feature_response_support_domain_panel_inputs_v1": "feature_response_support_domain_panel_inputs.json",
+    "shap_grouped_local_support_domain_panel_inputs_v1": "shap_grouped_local_support_domain_panel_inputs.json",
     "multicenter_generalizability_inputs_v1": "multicenter_generalizability_inputs.json",
     "workflow_fact_sheet_panel_inputs_v1": "workflow_fact_sheet_panel.json",
     "design_evidence_composite_shell_inputs_v1": "design_evidence_composite_shell.json",
