@@ -37,9 +37,9 @@
 
 - Phase：`Phase 4 / next-cluster routing and owner-round open`
 - Family cluster：`G`
-- Capability cluster：`richer mutation-landscape or broader genomic composite beyond the first CNV-summary lower bound`
-- Owner worktree：`unassigned`
-- 状态：`routing_open`
+- Capability cluster：`genomic_alteration_landscape_panel`
+- Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-genomic-alteration-20260419T045941Z`
+- 状态：`owner_round_open`
 
 ### Fresh Absorb Result
 
@@ -50,54 +50,61 @@
   - `omics_volcano_panel`
   - `oncoplot_mutation_landscape_panel`
   - `cnv_recurrence_summary_panel`
-- 当前下一轮还没有 owner worktree，接下来先做 candidate 固定与 owner brief 收口。
+- 当前下一轮已经固定为一个更高阶但仍 bounded 的 `G` 家族模板，接下来直接进入 owner round。
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前 `G/E` 五基线的前提下，下一条 `G` 家族 capability cluster 应该优先把哪一种更高阶正文图式收成单一 bounded follow-on，使论文能够进一步回答“更宽的 mutation-landscape 叙事是否值得正式模板化”或“更完整的 genomic composite 是否已经具备稳定的 schema / renderer / QC / regression 收口条件”。
+> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前 `G/E` 五基线的前提下，如何把 top journal 常见的基因级 mutation + CNV alteration landscape 正式沉淀成一个正文可直接使用的 bounded 模板，使论文能够稳定回答“哪些基因在 cohort 内反复发生 mutation 或 copy-number alteration、这些 alteration 是否共享同一 sample order 与 cohort 注释语义、样本级 alteration burden 与基因级 alteration frequency 能否在同一图面里保持全程可审计、可回归、可复用”。
 
 ### Fresh Route 收敛
 
 当前 reroute 已明确：
 
 1. `cnv_recurrence_summary_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小五基线已经成立。
-2. 当前下一轮仍优先留在 `G` 家族，先从 richer mutation-landscape 与 broader genomic composite 两个方向里收成一个单一 bounded candidate。
-3. 只有在 paper question、最小 panel 结构、最小数据前提、继承关系与最小 schema / renderer / QC / regression 写集全部清楚后，才开新的 owner worktree。
+2. 当前下一轮固定为 `genomic_alteration_landscape_panel`，优先做 richer mutation-landscape，而不是先扩成更宽的 genomic composite。
+3. 这条 follow-on 直接承接高水平组学论文里高频出现的 mutation + CNV alteration landscape 结构，并把 `oncoplot + cnv` 从相邻模板推进到更统一的 gene-level manuscript-facing lower bound。
 4. `D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 在 `G` 家族里把下一条 follow-on 收成单一 bounded candidate；
-2. 明确它相对当前五基线的继承关系，避免把下一轮扩成无边界的“更大组学拼图”；
-3. 在 owner round 真正打开前，就把 paper question、最小 panel 结构、最小数据前提、最小写集与退出条件写清楚。
+1. 固定 `G` 家族当前 owner 模板为 `genomic_alteration_landscape_panel`；
+2. 在当前 round 里，显式固定 shared `gene_order`、shared `sample_order`、alteration-state vocabulary、top burden bar、right-side gene-level alteration frequency 与 up-to-three annotation tracks 治理；
+3. 把 schema / renderer / QC / regression / tracked docs 一起闭环，并让 `G` 家族从“相邻 oncoplot + CNV lower bound”推进到更统一的 gene-level genomic landscape lower bound。
 
 ## 预期写集
 
-当前 routing round 预计只触碰下面这组最小写集：
+下一轮 owner implementation 预计触碰下面这组最小写集：
 
 - `docs/capabilities/medical-display/medical_display_active_board.md`
 - `docs/capabilities/medical-display/medical_display_template_backlog.md`
-- 必要时补充新的 bounded candidate brief
-- 只有 candidate fixed 后，才为下一个 `G` owner round 打开新的独立 worktree
+- `src/med_autoscience/display_registry.py`
+- `src/med_autoscience/display_schema_contract.py`
+- `src/med_autoscience/display_source_contract.py`
+- `src/med_autoscience/controllers/display_surface_materialization.py`
+- `src/med_autoscience/display_layout_qc.py`
+- 对应 `G` follow-on renderer 文件
+- 对应 `G` / cross-paper golden regression tests
+- `tests/test_display_layout_qc.py`
+- 仅在 template inventory 真相变化后触碰 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`、`medical_display_template_backlog.md`
 
 ## 最低退出条件
 
-只有同时满足下面条件，当前 routing round 才算完成：
+只有同时满足下面条件，当前 `G` owner round 才算完成：
 
-1. 下一个 `G` follow-on 已固定为单一 bounded capability cluster；
-2. owner brief 已明确 paper question、最小 panel 结构、最小数据前提、继承关系与最小写集；
-3. 新 owner worktree 已从最新干净 `main` 打开；
-4. secondary / tertiary 候选顺序已明确，不再让旧的 `cnv` round 状态持续污染路由判断。
+1. `genomic_alteration_landscape_panel` 已正式入库为单一 bounded manuscript-facing template；
+2. input schema、source contract、materialization、renderer、layout QC 与 regression 已一起闭环；
+3. fresh verify 至少覆盖该 `G` lane、`scripts/verify.sh` 与 `make test-meta`；
+4. 本轮 worktree 已 absorb / push / cleanup，且未与其他 display owner write set 发生冲突。
 
 ## 当前轮次结束后的候选
 
 当前轮次结束后，secondary 候选按下面顺序继续：
 
-1. `G / richer mutation-landscape or broader genomic composite beyond the first CNV summary lower bound`
+1. `G / broader genomic composite beyond the first gene-level mutation-plus-CNV landscape lower bound`
 2. `D/E/G / richer manifold or higher-order multi-view atlas follow-on only if new real-paper demand proves the current context-support lower bound insufficient`
 3. `F / higher-order explanation scene only if new real-paper demand proves the current grouped-local + support-domain lower bound insufficient`
 
