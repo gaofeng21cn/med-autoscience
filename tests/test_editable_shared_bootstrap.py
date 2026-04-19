@@ -22,6 +22,7 @@ def test_bootstrap_adds_repo_venv_site_packages_when_present(monkeypatch, tmp_pa
         return object()
 
     monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
+    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
     monkeypatch.setattr(module, "_module_spec", fake_module_spec)
 
     try:
