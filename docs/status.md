@@ -22,7 +22,8 @@
 - 写入 study 任务：`uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'`
 - 启动或续跑 study：`uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>`
 - 查看当前进度：`uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id>`
-- 查看 repo 状态：`uv run python -m med_autoscience.cli mainline-status` 与 `uv run python -m med_autoscience.cli mainline-phase --phase current`
+- 查看 repo 状态：`uv run python -m med_autoscience.cli mainline-status`
+- 查看维护者细节记录：`uv run python -m med_autoscience.cli mainline-phase --phase current`
 
 这条回路是当前公开推荐路径：`OPL shell -> MAS domain module/agent -> Codex default interaction + execution`。
 `product-entry-manifest` 与 `build-product-entry` 继续作为 OPL / agent 消费的 machine-readable bridge，公开叙事不再把它们放在用户认知中心。
@@ -43,9 +44,9 @@
 - `Domain Harness OS`、runtime owner、outer runtime substrate owner、backend deconstruction、physical monorepo absorb 继续留在 reference / program 层。
 - 医学展示 / 论文配图资产化是独立 capability line，仍不改写 MAS 研究任务回路。
 
-## 下一阶段
+## 当前维护重点
 
 1. 把 `README*`、`docs/status.md`、`docs/README*` 继续保持为 OPL/MAS/Codex/Hermes 的用户认知入口。
 2. 继续把 `docs/project.md`、`docs/architecture.md`、`mainline-status` 与 `product-entry-manifest` payload 保持在同一入口模型上。
 3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路。
-4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，不把 backup gateway wording 重新写成用户首屏 runtime-owner 叙事。
+4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。

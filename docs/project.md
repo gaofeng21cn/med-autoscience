@@ -8,7 +8,7 @@
 - formal-entry matrix：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
 - 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
 - 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内已落下 repo-side seam / real adapter
-- 当前入口真相：`CLI / MCP` 已经构成稳定的 formal entry surface。当前 repo-tracked 用户回路收口为 `product-frontdesk -> workspace-cockpit -> submit-study-task -> launch-study -> study-progress`：`product-frontdesk` 承担 controller-owned frontdoor，`workspace-cockpit` 承担当前用户 inbox，`study-progress` 负责投影任务摘要、监管 freshness 与人话进度；`mainline-phase` 继续作为阶段级视图；`product-entry-manifest` 与 `build-product-entry` 负责把这层回路输出为 shared direct / `OPL` handoff envelope。相关 guardrails、clearance lane、backend deconstruction 与 platform target 继续通过同一套 manifest/frontdesk/cockpit payload 对维护者显式给出，但成熟的 direct user-facing `product entry` 仍是后续工作。
+- 当前入口真相：`CLI / MCP` 已经构成稳定的 formal entry surface。当前 repo-tracked 用户回路收口为 `product-frontdesk -> workspace-cockpit -> submit-study-task -> launch-study -> study-progress`：`product-frontdesk` 承担 controller-owned frontdoor，`workspace-cockpit` 承担当前用户 inbox，`study-progress` 负责投影任务摘要、监管 freshness 与人话进度；`mainline-status` 与维护者参考命令继续提供 repo 级背景；`product-entry-manifest` 与 `build-product-entry` 负责把这层回路输出为 shared direct / `OPL` handoff envelope。相关 guardrails、clearance lane、backend deconstruction 与 maintainership notes 继续通过同一套 manifest/frontdesk/cockpit payload 对维护者显式给出，但成熟的 direct user-facing `product entry` 仍是后续工作。
 - 当前协作真相：`Hermes-Agent` 负责长期在线 runtime substrate / orchestration，`MedAutoScience` 负责研究入口与 outer-loop authority，`MedDeepScientist` 继续承载当前 research execution brain；这不要求现在就把 backend 内部依赖的 `Codex + skills` 全部替成 `Hermes`
 
 ## 目标
@@ -43,6 +43,6 @@
 ## 非目标
 
 - 不把项目级 `.codex/`、`.omx/` 或其他临时 handoff surface 当作权威真相。
-- 当前允许推进 family shared modules / shared boundary refactor；`physical migration / monorepo absorb` 继续跟随 external runtime gate 和 phase ladder 推进。
+- 当前允许推进 family shared modules / shared boundary refactor；`physical migration / monorepo absorb` 继续跟随 external runtime gate 与已冻结的维护记录推进。
 - 不以临时补丁或后处理补救方式替代严谨 contract 设计。
 - 不把 display / paper-facing asset packaging 独立线混入当前 runtime / gateway / architecture 主线迁移。

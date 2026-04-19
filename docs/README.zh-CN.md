@@ -68,11 +68,10 @@
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
 - [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### 当前 Program 主工作面
+### 当前 program 与维护工作面
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
-- [Research Foundry 医学五阶段梯子](program/research_foundry_medical_phase_ladder.md)
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
@@ -81,6 +80,7 @@
 
 ### 追溯记录
 
+- [Research Foundry 医学维护者阶段参考](program/research_foundry_medical_phase_ladder.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)

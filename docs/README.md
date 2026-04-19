@@ -68,11 +68,10 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
 - [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### Active program surfaces
+### Current program and operator surfaces
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
-- [Research Foundry medical phase ladder](program/research_foundry_medical_phase_ladder.md)
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Project repair priority map](program/project_repair_priority_map.md)
@@ -81,6 +80,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Traceability records
 
+- [Research Foundry medical maintainer phase reference](program/research_foundry_medical_phase_ladder.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
