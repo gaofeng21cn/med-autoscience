@@ -46,7 +46,6 @@ _HARD_AUTO_RECOVERY_REASONS = frozenset(
         "quest_parked_on_unchanged_finalize_state",
         "quest_waiting_on_invalid_blocking",
         "quest_completion_requested_before_publication_gate_clear",
-        "quest_waiting_for_submission_metadata",
         "quest_stopped_by_controller_guard",
     }
 )

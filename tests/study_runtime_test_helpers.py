@@ -225,6 +225,19 @@ def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids
     )
 
 
+def write_auditable_current_package(study_root: Path) -> None:
+    current_package_root = study_root / "manuscript" / "current_package"
+    write_text(current_package_root / "manuscript.docx", "docx placeholder")
+    write_text(current_package_root / "paper.pdf", "pdf placeholder")
+    write_text(current_package_root / "references.bib", "@article{ref1,title={Ref}}\n")
+    write_text(
+        current_package_root / "submission_checklist.json",
+        json.dumps({"status": "external_metadata_gap"}, ensure_ascii=False, indent=2) + "\n",
+    )
+    write_text(current_package_root / "SUBMISSION_TODO.md", "# Submission TODO\n")
+    write_text(study_root / "manuscript" / "current_package.zip", "zip placeholder")
+
+
 def write_study(
     workspace_root: Path,
     study_id: str,

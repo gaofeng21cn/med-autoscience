@@ -5,7 +5,12 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.study_runtime_test_helpers import (
+    make_profile,
+    write_auditable_current_package,
+    write_study,
+    write_submission_metadata_only_bundle,
+)
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -1107,6 +1112,130 @@ def test_study_progress_projects_finalize_metadata_wait_as_physician_decision(
     assert result["physician_decision_summary"] == "请确认最终作者顺序、单位映射与声明文案。"
     assert "等待医生/PI 明确确认" in result["next_system_action"]
     assert any("作者顺序" in item for item in result["current_blockers"])
+    assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+
+
+def test_study_progress_projects_auditable_submission_metadata_wait_as_manual_finishing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    write_auditable_current_package(study_root)
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+            "human_subjects_consent_statement",
+            "ai_declaration",
+        ],
+    )
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "auto_entry": "on_managed_research_intent",
+                "quest_id": "quest-001",
+                "auto_resume": True,
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "blocked",
+            "reason": "quest_waiting_for_submission_metadata",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "deferred_downstream_actions": [],
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "pending_user_interaction": {
+                "interaction_id": "progress-finalize-001",
+                "kind": "progress",
+                "waiting_interaction_id": "progress-finalize-001",
+                "default_reply_interaction_id": "progress-finalize-001",
+                "pending_decisions": ["progress-finalize-001"],
+                "blocking": True,
+                "reply_mode": "blocking",
+                "expects_reply": True,
+                "allow_free_text": True,
+                "message": "当前只剩题名页与投稿声明的最终外部元数据需要确认。",
+                "summary": "请确认最终作者顺序、单位映射与声明文案。",
+                "reply_schema": {
+                    "type": "object",
+                    "properties": {
+                        "choice": {"type": "string"},
+                    },
+                    "required": ["choice"],
+                },
+                "decision_type": None,
+                "options_count": 2,
+                "guidance_requires_user_decision": True,
+                "source_artifact_path": str(
+                    quest_root / ".ds" / "worktrees" / "paper-main" / "artifacts" / "progress" / "progress-finalize-001.json"
+                ),
+                "relay_required": True,
+            },
+            "interaction_arbitration": {
+                "classification": "submission_metadata_only",
+                "action": "block",
+                "reason_code": "submission_metadata_only",
+                "requires_user_input": True,
+                "valid_blocking": True,
+                "kind": None,
+                "decision_type": None,
+                "source_artifact_path": None,
+                "controller_stage_note": "The auditable current package is already delivered.",
+            },
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "decision",
+                "continuation_reason": "paper_bundle_submitted",
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MedAutoScience 外环监管心跳新鲜，当前仍在按合同持续监管。",
+                "next_action_summary": "继续按周期 supervisor tick 监管当前托管运行。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["current_stage"] == "manual_finishing"
+    assert result["needs_physician_decision"] is False
+    assert result["physician_decision_summary"] is None
+    assert "系统已停车" in result["current_stage_summary"]
+    assert "显式" in result["next_system_action"]
+    assert not any("作者顺序" in item for item in result["current_blockers"])
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
 
 

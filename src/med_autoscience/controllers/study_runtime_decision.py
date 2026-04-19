@@ -43,6 +43,7 @@ from med_autoscience.runtime_protocol import study_runtime as study_runtime_prot
 from med_autoscience.controllers.study_runtime_transport import _get_quest_session
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
+from med_autoscience.study_manual_finish import resolve_submission_metadata_only_manual_finish_contract
 
 
 _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS = paper_artifacts.SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS
@@ -224,6 +225,16 @@ def _waiting_submission_metadata_only(quest_root: Path) -> bool:
     if blocking_item_ids:
         return all(item_id in _SUBMISSION_METADATA_ONLY_BLOCKING_ITEM_KEYS for item_id in blocking_item_ids)
     return paper_artifacts.submission_checklist_requires_external_metadata(payload)
+
+
+def _submission_metadata_only_manual_finish_active(*, study_root: Path, quest_root: Path) -> bool:
+    return (
+        resolve_submission_metadata_only_manual_finish_contract(
+            study_root=study_root,
+            quest_root=quest_root,
+        )
+        is not None
+    )
 
 
 def _publication_eval_evidence_refs(*values: object) -> tuple[str, ...]:
@@ -1397,6 +1408,13 @@ def _status_state(
         enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
+    submission_metadata_only_manual_finish = (
+        quest_exists
+        and _submission_metadata_only_manual_finish_active(
+            study_root=study_root,
+            quest_root=quest_root,
+        )
+    )
     submission_metadata_only_wait = (
         quest_exists
         and quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER
@@ -1677,7 +1695,12 @@ def _status_state(
                     StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if _publication_gate_requires_live_runtime_reroute(publication_gate_report):
+            if submission_metadata_only_manual_finish:
+                result.set_decision(
+                    StudyRuntimeDecision.PAUSE,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                )
+            elif _publication_gate_requires_live_runtime_reroute(publication_gate_report):
                 if execution.get("auto_resume") is True:
                     result.set_decision(
                         StudyRuntimeDecision.RESUME,
@@ -1718,6 +1741,12 @@ def _status_state(
                     StudyRuntimeReason.QUEST_ALREADY_RUNNING,
                 )
         elif controller_owned_finalize_parking:
+            if submission_metadata_only_manual_finish:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                )
+                return _finalize_result()
             interaction_arbitration = result.extras.get("interaction_arbitration")
             if isinstance(interaction_arbitration, dict):
                 classification = str(interaction_arbitration.get("classification") or "").strip()
@@ -1776,6 +1805,12 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
+        if submission_metadata_only_manual_finish:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
+            return _finalize_result()
         if not result.startup_boundary_allows_compute_stage:
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -1807,6 +1842,12 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.STOPPED:
+        if submission_metadata_only_manual_finish:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
+            return _finalize_result()
         stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
             status=result,
             quest_root=quest_root,
@@ -1893,6 +1934,12 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
+        if submission_metadata_only_wait and submission_metadata_only_manual_finish:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
+            return _finalize_result()
         interaction_arbitration = result.extras.get("interaction_arbitration")
         if isinstance(interaction_arbitration, dict):
             classification = str(interaction_arbitration.get("classification") or "").strip()

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from med_autoscience.runtime_protocol import paper_artifacts
+
 
 class StudyManualFinishStatus(StrEnum):
     ACTIVE = "active"
@@ -34,6 +36,22 @@ class StudyManualFinishContract:
             raise ValueError(f"unknown manual_finish.status: {value}") from exc
 
 
+_AUTONOMOUS_CURRENT_PACKAGE_REQUIRED_FILES = (
+    "manuscript.docx",
+    "paper.pdf",
+    "references.bib",
+    "submission_checklist.json",
+    "SUBMISSION_TODO.md",
+)
+_AUTONOMOUS_MANUAL_FINISH_SUMMARY = (
+    "浅层投稿包已经交付并可供审计，当前只差作者、单位、伦理、基金、利益冲突、数据可用性等人工前置信息；"
+    "系统已停车，等待用户显式唤醒。"
+)
+_AUTONOMOUS_MANUAL_FINISH_NEXT_ACTION = (
+    "继续保持 current_package 可审状态；待作者补齐前置信息或明确要求继续后，再显式 resume 或 relaunch。"
+)
+
+
 def _load_yaml_dict(path: Path) -> dict[str, object]:
     if not path.exists():
         return {}
@@ -53,6 +71,41 @@ def _optional_string(raw_value: object) -> str | None:
     return raw_value.strip()
 
 
+def _autonomous_current_package_ready(*, study_root: Path) -> bool:
+    manuscript_root = study_root / "manuscript"
+    current_package_root = manuscript_root / "current_package"
+    current_package_zip = manuscript_root / "current_package.zip"
+    if not current_package_root.exists() or not current_package_zip.exists():
+        return False
+    return all((current_package_root / relative_path).exists() for relative_path in _AUTONOMOUS_CURRENT_PACKAGE_REQUIRED_FILES)
+
+
+def resolve_submission_metadata_only_manual_finish_contract(
+    *,
+    study_root: Path | None,
+    quest_root: Path | None,
+) -> StudyManualFinishContract | None:
+    if study_root is None or quest_root is None:
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    if not _autonomous_current_package_ready(study_root=resolved_study_root):
+        return None
+    paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(resolved_quest_root)
+    if paper_bundle_manifest_path is None:
+        return None
+    submission_checklist = paper_artifacts.load_submission_checklist(paper_bundle_manifest_path)
+    if not paper_artifacts.submission_checklist_requires_external_metadata(submission_checklist):
+        return None
+    return StudyManualFinishContract(
+        study_root=resolved_study_root,
+        status=StudyManualFinishStatus.ACTIVE,
+        summary=_AUTONOMOUS_MANUAL_FINISH_SUMMARY,
+        next_action_summary=_AUTONOMOUS_MANUAL_FINISH_NEXT_ACTION,
+        compatibility_guard_only=True,
+    )
+
+
 def resolve_study_manual_finish_contract(*, study_root: Path | None) -> StudyManualFinishContract | None:
     if study_root is None:
         return None
@@ -69,4 +122,18 @@ def resolve_study_manual_finish_contract(*, study_root: Path | None) -> StudyMan
         summary=_non_empty_string(raw_manual_finish.get("summary"), field_name="manual_finish.summary"),
         next_action_summary=_optional_string(raw_manual_finish.get("next_action_summary")),
         compatibility_guard_only=bool(raw_manual_finish.get("compatibility_guard_only", True)),
+    )
+
+
+def resolve_effective_study_manual_finish_contract(
+    *,
+    study_root: Path | None,
+    quest_root: Path | None = None,
+) -> StudyManualFinishContract | None:
+    explicit_contract = resolve_study_manual_finish_contract(study_root=study_root)
+    if explicit_contract is not None:
+        return explicit_contract
+    return resolve_submission_metadata_only_manual_finish_contract(
+        study_root=study_root,
+        quest_root=quest_root,
     )

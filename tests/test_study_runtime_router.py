@@ -15,6 +15,7 @@ from .study_runtime_test_helpers import (
     make_runtime_overlay_result,
     make_startup_hydration_report,
     make_startup_hydration_validation_report,
+    write_auditable_current_package,
     write_study,
     write_submission_metadata_only_bundle,
     write_text,
@@ -7769,6 +7770,131 @@ def test_study_runtime_status_treats_external_metadata_gap_status_as_submission_
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "waiting_for_user"
+
+
+def test_study_runtime_status_parks_submission_metadata_only_waiting_quest_after_auditable_package_delivery(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+            "human_subjects_consent_statement",
+            "ai_declaration",
+        ],
+    )
+    write_auditable_current_package(study_root)
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(profile=profile, study_id="001-risk")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "waiting_for_user"
+
+
+def test_ensure_study_runtime_keeps_submission_metadata_only_waiting_quest_parked_after_auditable_package_delivery(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"waiting_for_user"}\n')
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+            "human_subjects_consent_statement",
+            "ai_declaration",
+        ],
+    )
+    write_auditable_current_package(study_root)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append("prepare_overlay") or make_runtime_overlay_result(),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append("resume") or {"ok": True, "status": "active"},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="runtime_watch")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["quest_status"] == "waiting_for_user"
+    assert calls == ["prepare_overlay"]
 
 
 def test_study_runtime_status_auto_resumes_invalid_blocking_waiting_quest(

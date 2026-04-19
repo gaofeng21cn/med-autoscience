@@ -15,7 +15,7 @@ from opl_harness_shared.status_narration import (
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.study_manual_finish import resolve_study_manual_finish_contract
+from med_autoscience.study_manual_finish import resolve_effective_study_manual_finish_contract
 from med_autoscience.study_task_intake import read_latest_task_intake, summarize_task_intake
 
 
@@ -62,6 +62,7 @@ _REASON_LABELS = {
     "publishability_gate_blocked": "论文可发表性门控尚未放行。",
     "quest_completion_requested_before_publication_gate_clear": "运行时过早申请结题，论文门控仍要求继续自修。",
     "quest_parked_on_unchanged_finalize_state": "运行时停在本地 finalize 总结空转保护，MAS 将按控制面路由自动接管。",
+    "quest_waiting_for_submission_metadata": "浅层投稿包已经交付，当前只差作者、单位、伦理、基金和声明等人工前置信息；系统已停车，等待显式唤醒。",
     "quest_drifting_into_write_without_gate_approval": "运行时已经漂进写作/定稿，但发表门控尚未放行，MAS 正在把它拉回论文门控主线。",
     "quest_stale_decision_after_write_stage_ready": "论文写作阶段已经放行，但运行时仍停在旧 decision，MAS 正在把它切回写作主线。",
     "quest_stopped_by_controller_guard": "运行时被 MAS 纠偏控制器短暂停下，MAS 将自动继续修复当前论文硬阻塞。",
@@ -742,7 +743,7 @@ def _current_stage(
     runtime_health_status = _non_empty_text((runtime_supervision_payload or {}).get("health_status"))
     if decision == "completed" or (quest_status == "completed" and decision != "blocked"):
         return "study_completed"
-    if bool((manual_finish_contract or {}).get("compatibility_guard_only")) and runtime_reason == "quest_stopped_requires_explicit_rerun":
+    if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
         return "manual_finishing"
     if needs_physician_decision:
         return "waiting_physician_decision"
@@ -1044,6 +1045,8 @@ def _current_blockers(
             _non_empty_text((runtime_supervision_payload or {}).get("summary"))
             or _non_empty_text((runtime_supervision_payload or {}).get("clinician_update")),
         )
+    if manual_finish_active:
+        return blockers
     if _non_empty_text(status.get("decision")) == "blocked" and not manual_finish_active:
         _append_unique(
             blockers,
@@ -1944,8 +1947,12 @@ def build_study_progress_projection(
         if isinstance(status.get("continuation_state"), dict)
         else {}
     )
+    quest_root_for_manual_finish = _candidate_path(status.get("quest_root"))
     try:
-        manual_finish = resolve_study_manual_finish_contract(study_root=resolved_study_root)
+        manual_finish = resolve_effective_study_manual_finish_contract(
+            study_root=resolved_study_root,
+            quest_root=quest_root_for_manual_finish,
+        )
     except ValueError:
         manual_finish = None
     manual_finish_contract = (
@@ -1983,6 +1990,8 @@ def build_study_progress_projection(
         pending_user_interaction=pending_user_interaction,
         interaction_arbitration=interaction_arbitration,
     )
+    if _manual_finish_active(manual_finish_contract):
+        needs_physician_decision = False
     current_stage = _current_stage(
         status=status,
         needs_physician_decision=needs_physician_decision,
@@ -2047,7 +2056,7 @@ def build_study_progress_projection(
         controller_decision_payload=controller_decision_payload,
         pending_user_interaction=pending_user_interaction,
         interaction_arbitration=interaction_arbitration,
-    ))
+    )) if needs_physician_decision else None
     intervention_lane = _intervention_lane(
         current_stage=current_stage,
         current_stage_summary=current_stage_summary,
