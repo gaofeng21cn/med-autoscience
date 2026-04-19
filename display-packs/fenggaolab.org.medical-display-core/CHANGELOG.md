@@ -2,6 +2,15 @@
 
 ## Unreleased - 2026-04-19
 
+- Add `clinical_impact_curve_binary` as the next audited `A` binary clinical-impact counting slice in the core display pack.
+- Lock its pack-facing contract to `binary_prediction_curve_inputs_v1`, `publication_evidence_curve`, and the R grouped-threshold clinical-impact renderer path.
+
+- Add `multivariable_forest` as the next audited `C` multivariable-model forest slice in the core display pack.
+- Lock its pack-facing contract to `forest_effect_inputs_v1`, `publication_forest_plot`, and the R interval-estimate forest renderer path.
+
+- Add `phate_scatter_grouped` as the next audited `D` grouped PHATE manifold slice in the core display pack.
+- Lock its pack-facing contract to `embedding_grouped_inputs_v1`, `publication_embedding_scatter`, and the R grouped-embedding scatter renderer path.
+
 - Add `genomic_alteration_pathway_integrated_composite_panel` as the next audited `G` pathway-integrated broader genomic composite slice in the core display pack.
 - Lock its pack-facing contract to `genomic_alteration_pathway_integrated_composite_panel_inputs_v1`, `publication_genomic_alteration_pathway_integrated_composite_panel`, and the Python bounded `1 + 3 + 3` genomic-landscape-plus-multiomic-consequence-plus-pathway renderer path.
 

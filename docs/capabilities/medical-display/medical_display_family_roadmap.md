@@ -217,6 +217,7 @@ Current audited anchors:
 - `pr_curve_binary`
 - `calibration_curve_binary`
 - `decision_curve_binary`
+- `clinical_impact_curve_binary`
 - `binary_calibration_decision_curve_panel`
 - `time_to_event_decision_curve`
 - `time_to_event_landmark_performance_panel`
@@ -301,6 +302,7 @@ Current roadmap status:
 Current audited anchors:
 
 - `forest_effect_main`
+- `multivariable_forest`
 - `subgroup_forest`
 - `generalizability_subgroup_composite_panel`
 - `compact_effect_estimate_panel`
@@ -343,6 +345,7 @@ Current audited anchors:
 - `umap_scatter_grouped`
 - `pca_scatter_grouped`
 - `tsne_scatter_grouped`
+- `phate_scatter_grouped`
 - `celltype_signature_heatmap`
 - `single_cell_atlas_overview_panel`
 - `atlas_spatial_bridge_panel`
@@ -354,7 +357,7 @@ Current audited anchors:
 
 Current gap direction:
 
-- PHATE and richer manifold overlays beyond the current atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support baseline
+- richer manifold overlays and higher-order atlas geometry synthesis beyond the current PHATE-inclusive atlas-overview + atlas-spatial-bridge + spatial-niche + trajectory + storyboard + density/coverage + context-support baseline
 - richer higher-order atlas / spatial / trajectory composites beyond the current bounded six-panel context-support contract
 - stronger crowding / labeling / legend QC for atlas-style, spatial, and trajectory publication-facing composites
 

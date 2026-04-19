@@ -120,11 +120,13 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         _full_id("pr_curve_binary"),
         _full_id("calibration_curve_binary"),
         _full_id("decision_curve_binary"),
+        _full_id("clinical_impact_curve_binary"),
         _full_id("time_dependent_roc_horizon"),
     )
     assert embedding.template_ids == (
         _full_id("umap_scatter_grouped"),
         _full_id("pca_scatter_grouped"),
+        _full_id("phate_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
     )
     assert celltype_signature.template_ids == (_full_id("celltype_signature_heatmap"),)
@@ -1103,7 +1105,11 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "matrix_must_be_symmetric",
     )
 
-    assert forest.template_ids == (_full_id("forest_effect_main"), _full_id("subgroup_forest"))
+    assert forest.template_ids == (
+        _full_id("forest_effect_main"),
+        _full_id("subgroup_forest"),
+        _full_id("multivariable_forest"),
+    )
     assert generalizability_subgroup.template_ids == (_full_id("generalizability_subgroup_composite_panel"),)
     assert compact_effect_estimate.template_ids == (_full_id("compact_effect_estimate_panel"),)
     assert generalizability_subgroup.display_required_fields == (

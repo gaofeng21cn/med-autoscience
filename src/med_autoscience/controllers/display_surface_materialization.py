@@ -591,6 +591,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     pr_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     calibration_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     decision_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
+    clinical_impact_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line),
     time_dependent_roc_horizon = list(
       series = display_payload$series,
       reference_line = display_payload$reference_line,
@@ -608,6 +609,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     ),
     umap_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     pca_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
+    phate_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     tsne_scatter_grouped = build_embedding_metrics(display_payload, panel_box),
     heatmap_group_comparison = list(metric_scope = "heatmap_group_comparison"),
     performance_heatmap = list(
@@ -622,6 +624,7 @@ build_metrics <- function(template_id, display_payload, panel_box) {
     ),
     forest_effect_main = list(rows = display_payload$rows),
     subgroup_forest = list(rows = display_payload$rows),
+    multivariable_forest = list(rows = display_payload$rows),
     list()
   )
 }
@@ -662,7 +665,7 @@ build_layout_sidecar <- function(plot, template_id, display_payload) {
   layout_boxes <- Filter(Negate(is.null), list(title_box, x_axis_title_box, y_axis_title_box))
   guide_boxes <- Filter(Negate(is.null), list(guide_box))
   metrics <- build_metrics(template_id, display_payload, panel_box)
-  if (template_id %in% c("forest_effect_main", "subgroup_forest") && !is.null(panel_box)) {
+  if (template_id %in% c("forest_effect_main", "subgroup_forest", "multivariable_forest") && !is.null(panel_box)) {
     forest_layout <- build_forest_layout(display_payload, panel_box, axis_left_box)
     layout_boxes <- c(layout_boxes, forest_layout$layout_boxes)
     guide_boxes <- c(guide_boxes, forest_layout$guide_boxes)
@@ -684,11 +687,13 @@ plot <- switch(
   pr_curve_binary = plot_binary_curve(payload),
   calibration_curve_binary = plot_binary_curve(payload),
   decision_curve_binary = plot_binary_curve(payload),
+  clinical_impact_curve_binary = plot_binary_curve(payload),
   time_dependent_roc_horizon = plot_binary_curve(payload),
   kaplan_meier_grouped = plot_kaplan_meier(payload),
   cumulative_incidence_grouped = plot_kaplan_meier(payload),
   umap_scatter_grouped = plot_embedding_scatter(payload),
   pca_scatter_grouped = plot_embedding_scatter(payload),
+  phate_scatter_grouped = plot_embedding_scatter(payload),
   tsne_scatter_grouped = plot_embedding_scatter(payload),
   heatmap_group_comparison = plot_heatmap(payload),
   performance_heatmap = plot_performance_heatmap(payload),
@@ -697,6 +702,7 @@ plot <- switch(
   gsva_ssgsea_heatmap = plot_heatmap(payload),
   forest_effect_main = plot_forest(payload),
   subgroup_forest = plot_forest(payload),
+  multivariable_forest = plot_forest(payload),
   stop(sprintf("unsupported evidence template `%s`", template_id))
 )
 

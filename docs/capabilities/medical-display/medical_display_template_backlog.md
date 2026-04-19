@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `70`
+- Evidence figure templates: `73`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `82`
+- Total audited templates: `85`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -57,8 +57,7 @@
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
 - `C/H / broader heterogeneity summary follow-on` 已在本轮正式 absorb 为 `broader_heterogeneity_summary_panel`，不再保留在 backlog 候选池。
 - `H / broader transportability and center-coverage follow-on` 已在本轮正式 absorb 为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
-- `D/E/G / PHATE or richer manifold overlay follow-on` 本轮不再作为当前 active 候选保留：
-  - 原因：单独扩到替代 projection / manifold overlay 会把当前 round 收缩成偏 `D` 的 geometry 变体，更容易滑回 projection gallery，而不是 `D/E/G` 联动的 manuscript-facing composite contract。
+- `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 仍是 density / coverage semantics 尚未合同化；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
 - `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
@@ -122,8 +121,6 @@
 
 下面这些方向仍可作为更远期候选，但当前不是 active mainline：
 
-- `clinical_impact_curve_binary`
-- `multivariable_forest`
 - `confusion_matrix_heatmap_binary`
 - `temporal_external_validation_overview`
 - `multi_group_grouped_local_explanation_panel`

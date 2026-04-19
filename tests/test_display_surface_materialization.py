@@ -4,6 +4,7 @@ import importlib
 import json
 from pathlib import Path
 import re
+import sys
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -299,6 +300,24 @@ def build_display_surface_workspace(
                     "shell_path": "paper/figures/Figure21.shell.json",
                 },
                 {
+                    "display_id": "Figure22",
+                    "display_kind": "figure",
+                    "requirement_key": "clinical_impact_curve_binary",
+                    "shell_path": "paper/figures/Figure22.shell.json",
+                },
+                {
+                    "display_id": "Figure23",
+                    "display_kind": "figure",
+                    "requirement_key": "multivariable_forest",
+                    "shell_path": "paper/figures/Figure23.shell.json",
+                },
+                {
+                    "display_id": "Figure24",
+                    "display_kind": "figure",
+                    "requirement_key": "phate_scatter_grouped",
+                    "shell_path": "paper/figures/Figure24.shell.json",
+                },
+                {
                     "display_id": "Table2",
                     "display_kind": "table",
                     "requirement_key": "table2_time_to_event_performance_summary",
@@ -364,6 +383,9 @@ def build_display_surface_workspace(
                     (19, "tsne_scatter_grouped"),
                     (20, "subgroup_forest"),
                     (21, "clustered_heatmap"),
+                    (22, "clinical_impact_curve_binary"),
+                    (23, "multivariable_forest"),
+                    (24, "phate_scatter_grouped"),
                 ]
             )
         for figure_index, template_id in template_bindings:
@@ -518,6 +540,29 @@ def build_display_surface_workspace(
                             }
                         ],
                     },
+                    {
+                        "display_id": "Figure22",
+                        "template_id": "clinical_impact_curve_binary",
+                        "title": "Clinical impact curve for the primary model",
+                        "caption": "Estimated numbers of high-risk and event-positive patients across decision thresholds.",
+                        "x_label": "Threshold probability",
+                        "y_label": "Patients per 100",
+                        "reference_line": {"x": [0.05, 0.40], "y": [18.0, 18.0], "label": "Observed events"},
+                        "series": [
+                            {
+                                "label": "High risk",
+                                "x": [0.05, 0.10, 0.20, 0.30, 0.40],
+                                "y": [54.0, 43.0, 28.0, 16.0, 9.0],
+                                "annotation": "Predicted high risk",
+                            },
+                            {
+                                "label": "Event positive",
+                                "x": [0.05, 0.10, 0.20, 0.30, 0.40],
+                                "y": [18.0, 17.0, 14.0, 10.0, 7.0],
+                                "annotation": "Observed events",
+                            },
+                        ],
+                    },
                 ],
             },
         )
@@ -659,6 +704,20 @@ def build_display_surface_workspace(
                                 {"x": 12.7, "y": -8.9, "group": "Subtype B"},
                             ],
                         },
+                        {
+                            "display_id": "Figure24",
+                            "template_id": "phate_scatter_grouped",
+                            "title": "PHATE embedding by subtype",
+                            "caption": "Diffusion-based manifold projection across latent subgroups.",
+                            "x_label": "PHATE 1",
+                            "y_label": "PHATE 2",
+                            "points": [
+                                {"x": -4.6, "y": 3.8, "group": "Subtype A"},
+                                {"x": -4.1, "y": 3.4, "group": "Subtype A"},
+                                {"x": 4.4, "y": -3.3, "group": "Subtype B"},
+                                {"x": 4.9, "y": -3.8, "group": "Subtype B"},
+                            ],
+                        },
                     ],
                 },
             )
@@ -772,7 +831,20 @@ def build_display_surface_workspace(
                                 {"label": "Age > 60 years", "estimate": 1.21, "lower": 0.98, "upper": 1.49},
                                 {"label": "Macroadenoma", "estimate": 1.36, "lower": 1.08, "upper": 1.72},
                             ],
-                        }
+                        },
+                        {
+                            "display_id": "Figure23",
+                            "template_id": "multivariable_forest",
+                            "title": "Multivariable model forest plot",
+                            "caption": "Adjusted odds ratios from the locked multivariable model.",
+                            "x_label": "Adjusted odds ratio",
+                            "reference_value": 1.0,
+                            "rows": [
+                                {"label": "Age > 60 years", "estimate": 1.48, "lower": 1.16, "upper": 1.89},
+                                {"label": "HbA1c > 8%", "estimate": 1.72, "lower": 1.29, "upper": 2.29},
+                                {"label": "Albuminuria", "estimate": 1.63, "lower": 1.21, "upper": 2.18},
+                            ],
+                        },
                     ],
                 },
             )
@@ -1505,6 +1577,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
         "pr_curve_binary",
         "calibration_curve_binary",
         "decision_curve_binary",
+        "clinical_impact_curve_binary",
         "time_dependent_roc_horizon",
     }:
         return {
@@ -1653,7 +1726,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 "treated_fraction_series": {"label": "Model", "x": [0.5, 1.0, 2.0], "y": [40.0, 20.0, 5.0]},
             },
         }
-    if template_short_id in {"umap_scatter_grouped", "pca_scatter_grouped", "tsne_scatter_grouped"}:
+    if template_short_id in {"umap_scatter_grouped", "pca_scatter_grouped", "phate_scatter_grouped", "tsne_scatter_grouped"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -1718,7 +1791,7 @@ def _minimal_layout_sidecar_for_template(template_id: str) -> dict[str, object]:
                 ]
             },
         }
-    if template_short_id in {"forest_effect_main", "subgroup_forest"}:
+    if template_short_id in {"forest_effect_main", "subgroup_forest", "multivariable_forest"}:
         return {
             "template_id": template_id,
             "device": {"x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0},
@@ -3483,6 +3556,9 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         "F19",
         "F20",
         "F21",
+        "F22",
+        "F23",
+        "F24",
     ]
     assert result["tables_materialized"] == ["T1", "T2", "T3"]
     assert (paper_root / "figures" / "generated" / "F7_cumulative_incidence_grouped.png").exists()
@@ -3498,6 +3574,9 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert (paper_root / "figures" / "generated" / "F19_tsne_scatter_grouped.png").exists()
     assert (paper_root / "figures" / "generated" / "F20_subgroup_forest.pdf").exists()
     assert (paper_root / "figures" / "generated" / "F21_clustered_heatmap.png").exists()
+    assert (paper_root / "figures" / "generated" / "F22_clinical_impact_curve_binary.pdf").exists()
+    assert (paper_root / "figures" / "generated" / "F23_multivariable_forest.png").exists()
+    assert (paper_root / "figures" / "generated" / "F24_phate_scatter_grouped.pdf").exists()
     assert (paper_root / "tables" / "generated" / "T2_time_to_event_performance_summary.md").exists()
     assert (paper_root / "tables" / "generated" / "T3_clinical_interpretation_summary.md").exists()
     assert {template_id for template_id, _ in render_calls} == {
@@ -3514,8 +3593,11 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
         full_id("heatmap_group_comparison"),
         full_id("correlation_heatmap"),
         full_id("clustered_heatmap"),
+        full_id("clinical_impact_curve_binary"),
         full_id("forest_effect_main"),
+        full_id("multivariable_forest"),
         full_id("subgroup_forest"),
+        full_id("phate_scatter_grouped"),
         full_id("shap_summary_beeswarm"),
         full_id("time_to_event_discrimination_calibration_panel"),
         full_id("time_to_event_risk_group_summary"),
@@ -3544,6 +3626,15 @@ def test_materialize_display_surface_generates_full_registered_template_set(tmp_
     assert figures_by_id["F21"]["template_id"] == full_id("clustered_heatmap")
     assert figures_by_id["F21"]["input_schema_id"] == "clustered_heatmap_inputs_v1"
     assert figures_by_id["F21"]["qc_profile"] == "publication_heatmap"
+    assert figures_by_id["F22"]["template_id"] == full_id("clinical_impact_curve_binary")
+    assert figures_by_id["F22"]["input_schema_id"] == "binary_prediction_curve_inputs_v1"
+    assert figures_by_id["F22"]["qc_profile"] == "publication_evidence_curve"
+    assert figures_by_id["F23"]["template_id"] == full_id("multivariable_forest")
+    assert figures_by_id["F23"]["input_schema_id"] == "forest_effect_inputs_v1"
+    assert figures_by_id["F23"]["renderer_family"] == "r_ggplot2"
+    assert figures_by_id["F24"]["template_id"] == full_id("phate_scatter_grouped")
+    assert figures_by_id["F24"]["input_schema_id"] == "embedding_grouped_inputs_v1"
+    assert figures_by_id["F24"]["qc_profile"] == "publication_embedding_scatter"
 
     table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
     tables_by_id = {item["table_id"]: item for item in table_catalog["tables"]}
@@ -9375,6 +9466,26 @@ def test_render_r_evidence_figure_uses_pack_entrypoint_for_r_template(tmp_path: 
     assert output_png_path.exists()
     assert output_pdf_path.exists()
     assert layout_sidecar_path.exists()
+
+
+def test_r_evidence_renderer_sources_accept_new_concrete_backlog_templates() -> None:
+    controller_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    repo_root = Path(__file__).resolve().parents[1]
+    pack_src = repo_root / "display-packs" / "fenggaolab.org.medical-display-core" / "src"
+    sys.path.insert(0, str(pack_src))
+    try:
+        pack_module = importlib.import_module("fenggaolab_org_medical_display_core.evidence_figures")
+    finally:
+        sys.path.pop(0)
+
+    for source in (controller_module._R_EVIDENCE_RENDERER_SOURCE, pack_module._R_EVIDENCE_RENDERER_SOURCE):
+        assert 'clinical_impact_curve_binary = list(series = display_payload$series, reference_line = display_payload$reference_line)' in source
+        assert 'phate_scatter_grouped = build_embedding_metrics(display_payload, panel_box)' in source
+        assert 'multivariable_forest = list(rows = display_payload$rows)' in source
+        assert 'if (template_id %in% c("forest_effect_main", "subgroup_forest", "multivariable_forest") && !is.null(panel_box))' in source
+        assert 'clinical_impact_curve_binary = plot_binary_curve(payload)' in source
+        assert 'phate_scatter_grouped = plot_embedding_scatter(payload)' in source
+        assert 'multivariable_forest = plot_forest(payload)' in source
 
 
 def test_render_cohort_flow_figure_uses_pack_entrypoint(tmp_path: Path, monkeypatch) -> None:

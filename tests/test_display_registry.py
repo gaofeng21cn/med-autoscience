@@ -26,6 +26,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("pr_curve_binary"),
         _full_id("calibration_curve_binary"),
         _full_id("decision_curve_binary"),
+        _full_id("clinical_impact_curve_binary"),
         _full_id("risk_layering_monotonic_bars"),
         _full_id("binary_calibration_decision_curve_panel"),
         _full_id("model_complexity_audit_panel"),
@@ -39,6 +40,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("time_to_event_stratified_cumulative_incidence_panel"),
         _full_id("umap_scatter_grouped"),
         _full_id("pca_scatter_grouped"),
+        _full_id("phate_scatter_grouped"),
         _full_id("tsne_scatter_grouped"),
         _full_id("celltype_signature_heatmap"),
         _full_id("single_cell_atlas_overview_panel"),
@@ -62,6 +64,7 @@ def test_registry_exposes_current_display_surface_inventory() -> None:
         _full_id("genomic_alteration_multiomic_consequence_panel"),
         _full_id("forest_effect_main"),
         _full_id("subgroup_forest"),
+        _full_id("multivariable_forest"),
         _full_id("generalizability_subgroup_composite_panel"),
         _full_id("compact_effect_estimate_panel"),
         _full_id("coefficient_path_panel"),
@@ -122,6 +125,16 @@ def test_time_to_event_threshold_governance_panel_is_registered() -> None:
     assert spec.layout_qc_profile == "publication_time_to_event_threshold_governance_panel"
 
 
+def test_clinical_impact_curve_binary_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("clinical_impact_curve_binary"))
+
+    assert spec.paper_family_ids == ("A",)
+    assert spec.evidence_class == "clinical_utility"
+    assert spec.renderer_family == "r_ggplot2"
+    assert spec.input_schema_id == "binary_prediction_curve_inputs_v1"
+    assert spec.layout_qc_profile == "publication_evidence_curve"
+
+
 def test_time_to_event_multihorizon_calibration_panel_is_registered() -> None:
     spec = display_registry.get_evidence_figure_spec(_full_id("time_to_event_multihorizon_calibration_panel"))
 
@@ -150,6 +163,16 @@ def test_atlas_spatial_bridge_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "atlas_spatial_bridge_panel_inputs_v1"
     assert spec.layout_qc_profile == "publication_atlas_spatial_bridge_panel"
+
+
+def test_phate_scatter_grouped_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("phate_scatter_grouped"))
+
+    assert spec.paper_family_ids == ("D",)
+    assert spec.evidence_class == "data_geometry"
+    assert spec.renderer_family == "r_ggplot2"
+    assert spec.input_schema_id == "embedding_grouped_inputs_v1"
+    assert spec.layout_qc_profile == "publication_embedding_scatter"
 
 
 def test_spatial_niche_map_panel_is_registered() -> None:
@@ -224,6 +247,16 @@ def test_pathway_enrichment_dotplot_panel_is_registered() -> None:
     assert spec.renderer_family == "python"
     assert spec.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1"
     assert spec.layout_qc_profile == "publication_pathway_enrichment_dotplot_panel"
+
+
+def test_multivariable_forest_is_registered() -> None:
+    spec = display_registry.get_evidence_figure_spec(_full_id("multivariable_forest"))
+
+    assert spec.paper_family_ids == ("C",)
+    assert spec.evidence_class == "effect_estimate"
+    assert spec.renderer_family == "r_ggplot2"
+    assert spec.input_schema_id == "forest_effect_inputs_v1"
+    assert spec.layout_qc_profile == "publication_forest_plot"
 
 
 def test_omics_volcano_panel_is_registered() -> None:
