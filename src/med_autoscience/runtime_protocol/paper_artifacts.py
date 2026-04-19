@@ -62,10 +62,6 @@ def _resolve_projected_manifest_authoritative_paper_root(quest_root: Path, manif
     paper_line_state = _load_json_mapping(projected_root / "paper_line_state.json")
     if manifest_payload is None or paper_line_state is None:
         return None
-    manifest_branch = str(manifest_payload.get("paper_branch") or "").strip()
-    line_branch = str(paper_line_state.get("paper_branch") or "").strip()
-    if not manifest_branch or not line_branch or manifest_branch != line_branch:
-        return None
     paper_root_raw = str(paper_line_state.get("paper_root") or "").strip()
     if not paper_root_raw:
         return None

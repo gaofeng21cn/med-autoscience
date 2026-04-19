@@ -42,6 +42,7 @@ _REQUIRED_SNAPSHOT_KEYS = (
     "worker_running",
     "stop_reason",
     "continuation_policy",
+    "continuation_anchor",
     "continuation_reason",
     "pending_user_message_count",
     "interaction_action",
@@ -65,6 +66,7 @@ def _normalize_snapshot(payload: Any, *, field_name: str) -> dict[str, Any]:
     normalized["worker_running"] = _normalize_optional_bool(normalized.get("worker_running"))
     normalized["stop_reason"] = _normalize_optional_text(normalized.get("stop_reason"))
     normalized["continuation_policy"] = _normalize_optional_text(normalized.get("continuation_policy"))
+    normalized["continuation_anchor"] = _normalize_optional_text(normalized.get("continuation_anchor"))
     normalized["continuation_reason"] = _normalize_optional_text(normalized.get("continuation_reason"))
     normalized["pending_user_message_count"] = _normalize_optional_int(normalized.get("pending_user_message_count"))
     normalized["interaction_action"] = _normalize_optional_text(normalized.get("interaction_action"))

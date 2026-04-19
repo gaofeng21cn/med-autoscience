@@ -1331,7 +1331,7 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
 
 
 def inspect_submission_docx_surface(docx_path: Path) -> dict[str, Any]:
-    if not docx_path.exists():
+    if not docx_path.exists() or docx_path.is_dir():
         return {
             "exists": False,
             "embedded_image_count": 0,
@@ -1860,6 +1860,7 @@ def create_submission_minimal_package(
     source_markdown_path = compiled_markdown_path
     supplementary_source_markdown_path: Path | None = None
     supplementary_output_docx_path: Path | None = None
+    source_markdown_alias_path: Path | None = None
 
     if resolved_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE:
         source_markdown_path = build_general_medical_submission_markdown(
@@ -1879,6 +1880,10 @@ def create_submission_minimal_package(
             compiled_markdown_text=compiled_markdown_text,
         )
         supplementary_output_docx_path = submission_root / str(profile_config.supplementary_docx_name)
+    if source_markdown_path.name != "manuscript_source.md":
+        source_markdown_alias_path = submission_root / "manuscript_source.md"
+        if source_markdown_alias_path.resolve() != source_markdown_path.resolve():
+            shutil.copy2(source_markdown_path, source_markdown_alias_path)
 
     figure_entries: list[dict[str, Any]] = []
     figure_naming_map: dict[str, str] = {}
@@ -2025,6 +2030,11 @@ def create_submission_minimal_package(
     }
     if references_manifest is not None:
         manifest["references"] = references_manifest
+    if source_markdown_alias_path is not None:
+        manifest["manuscript"]["source_markdown_alias_path"] = relpath_from_workspace(
+            source_markdown_alias_path,
+            workspace_root,
+        )
     if pack_lock_path is not None:
         manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
         manifest["enabled_display_packs"] = list(pack_summary_by_id.values())

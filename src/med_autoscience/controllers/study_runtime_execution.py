@@ -1029,6 +1029,11 @@ def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, obje
             if isinstance(continuation_state, dict)
             else None
         ),
+        "continuation_anchor": (
+            str(continuation_state.get("continuation_anchor") or "").strip() or None
+            if isinstance(continuation_state, dict)
+            else None
+        ),
         "continuation_reason": (
             str(continuation_state.get("continuation_reason") or "").strip() or None
             if isinstance(continuation_state, dict)

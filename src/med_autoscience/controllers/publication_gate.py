@@ -260,6 +260,118 @@ def _dedupe_resolved_paths(paths: list[Path]) -> list[Path]:
     return [resolved[key] for key in sorted(resolved)]
 
 
+def _bundle_manifest_branch(manifest_payload: dict[str, Any] | None) -> str | None:
+    if not isinstance(manifest_payload, dict):
+        return None
+    return _non_empty_text(manifest_payload.get("paper_branch"))
+
+
+def _paper_line_branch(paper_line_state: dict[str, Any] | None) -> str | None:
+    if not isinstance(paper_line_state, dict):
+        return None
+    return _non_empty_text(paper_line_state.get("paper_branch"))
+
+
+def _projected_bundle_manifest_path(quest_root: Path) -> Path:
+    return quest_root.resolve() / "paper" / "paper_bundle_manifest.json"
+
+
+def _resolve_worktree_bundle_manifest_by_branch(*, quest_root: Path, paper_branch: str | None) -> Path | None:
+    if paper_branch is None:
+        return None
+    candidates: list[Path] = []
+    for candidate in quest_root.resolve().glob(".ds/worktrees/*/paper/paper_bundle_manifest.json"):
+        payload = load_json(candidate, default=None)
+        if _bundle_manifest_branch(payload) != paper_branch:
+            continue
+        candidates.append(candidate.resolve())
+    if not candidates:
+        return None
+
+    def rank(path: Path) -> tuple[int, float]:
+        try:
+            worktree_name = path.relative_to(quest_root.resolve()).parts[2]
+        except (ValueError, IndexError):
+            worktree_name = ""
+        return (1 if worktree_name.startswith("paper-") else 0, path.stat().st_mtime)
+
+    return max(candidates, key=rank)
+
+
+def resolve_bundle_authority_paper_root(
+    *,
+    quest_root: Path,
+    paper_bundle_manifest_path: Path | None,
+    paper_bundle_manifest: dict[str, Any] | None,
+    paper_line_state: dict[str, Any] | None,
+) -> Path | None:
+    if paper_bundle_manifest_path is None:
+        return None
+    resolved_manifest_path = paper_bundle_manifest_path.resolve()
+    bundle_paper_root = resolved_manifest_path.parent.resolve()
+    if resolved_manifest_path != _projected_bundle_manifest_path(quest_root):
+        return bundle_paper_root
+
+    manifest_branch = _bundle_manifest_branch(paper_bundle_manifest)
+    line_branch = _paper_line_branch(paper_line_state)
+    paper_line_root_value = _non_empty_text((paper_line_state or {}).get("paper_root"))
+    if manifest_branch is not None and line_branch is not None and manifest_branch == line_branch and paper_line_root_value:
+        candidate = Path(paper_line_root_value).expanduser().resolve()
+        if candidate.exists():
+            return candidate
+
+    if manifest_branch is not None and line_branch is not None and manifest_branch != line_branch:
+        authoritative_manifest = _resolve_worktree_bundle_manifest_by_branch(
+            quest_root=quest_root,
+            paper_branch=manifest_branch,
+        )
+        if authoritative_manifest is not None:
+            return authoritative_manifest.parent.resolve()
+
+    if paper_line_root_value:
+        candidate = Path(paper_line_root_value).expanduser().resolve()
+        if candidate.exists():
+            return candidate
+    return bundle_paper_root
+
+
+def resolve_submission_checklist_path(*, paper_root: Path | None) -> Path | None:
+    if paper_root is None:
+        return None
+    candidate = paper_root / "review" / "submission_checklist.json"
+    return candidate if candidate.exists() else None
+
+
+def load_submission_checklist(*, paper_root: Path | None) -> dict[str, Any] | None:
+    checklist_path = resolve_submission_checklist_path(paper_root=paper_root)
+    if checklist_path is None:
+        return None
+    return load_json(checklist_path, default=None)
+
+
+def resolve_submission_minimal_manifest(*, paper_root: Path | None) -> Path | None:
+    if paper_root is None:
+        return None
+    candidate = paper_root / "submission_minimal" / "submission_manifest.json"
+    return candidate if candidate.exists() else None
+
+
+def resolve_submission_minimal_output_paths(
+    *,
+    paper_root: Path | None,
+    submission_minimal_manifest: dict[str, Any] | None,
+) -> tuple[Path | None, Path | None]:
+    if paper_root is None or submission_minimal_manifest is None:
+        return None, None
+    workspace_root = paper_root.parent
+    manuscript = submission_minimal_manifest.get("manuscript") or {}
+    docx_relpath = _non_empty_text(manuscript.get("docx_path"))
+    pdf_relpath = _non_empty_text(manuscript.get("pdf_path"))
+    docx_path = workspace_root / docx_relpath if docx_relpath else None
+    pdf_path = workspace_root / pdf_relpath if pdf_relpath else None
+    return docx_path, pdf_path
+
+
 def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -> tuple[list[str], list[str]]:
     required = list(main_result.get("metric_contract", {}).get("required_non_scalar_deliverables") or [])
     manifest_path = paper_artifacts.resolve_artifact_manifest_from_main_result(main_result)
@@ -277,22 +389,24 @@ def classify_deliverables(main_result_path: Path, main_result: dict[str, Any]) -
 
 def resolve_paper_root(
     *,
+    quest_root: Path,
     main_result: dict[str, Any] | None,
     paper_line_state: dict[str, Any] | None,
     paper_bundle_manifest_path: Path | None,
+    paper_bundle_manifest: dict[str, Any] | None,
 ) -> Path | None:
-    paper_line_root_value = str((paper_line_state or {}).get("paper_root") or "").strip()
-    if paper_line_root_value:
-        candidate = Path(paper_line_root_value).expanduser().resolve()
-        if candidate.exists():
-            return candidate
+    if bundle_authority_paper_root := resolve_bundle_authority_paper_root(
+        quest_root=quest_root,
+        paper_bundle_manifest_path=paper_bundle_manifest_path,
+        paper_bundle_manifest=paper_bundle_manifest,
+        paper_line_state=paper_line_state,
+    ):
+        return bundle_authority_paper_root
     worktree_root_value = str((main_result or {}).get("worktree_root") or "").strip()
     if worktree_root_value:
         candidate = Path(worktree_root_value).expanduser().resolve() / "paper"
         if candidate.exists():
             return candidate
-    if paper_bundle_manifest_path is not None:
-        return paper_bundle_manifest_path.parent.resolve()
     return None
 
 
@@ -631,9 +745,11 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest=paper_bundle_manifest,
     )
     paper_root = resolve_paper_root(
+        quest_root=quest_root,
         main_result=main_result,
         paper_line_state=paper_line_state,
         paper_bundle_manifest_path=paper_bundle_manifest_path,
+        paper_bundle_manifest=paper_bundle_manifest,
     )
     compile_report_path = resolve_compile_report_path(
         paper_bundle_manifest_path=paper_bundle_manifest_path,
@@ -655,14 +771,14 @@ def build_gate_state(quest_root: Path) -> GateState:
         present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
     else:
         present_deliverables, missing_deliverables = [], []
-    submission_checklist_path = paper_artifacts.resolve_submission_checklist_path(paper_bundle_manifest_path)
-    submission_checklist = paper_artifacts.load_submission_checklist(paper_bundle_manifest_path)
-    submission_minimal_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(paper_bundle_manifest_path)
+    submission_checklist_path = resolve_submission_checklist_path(paper_root=paper_root)
+    submission_checklist = load_submission_checklist(paper_root=paper_root)
+    submission_minimal_manifest_path = resolve_submission_minimal_manifest(paper_root=paper_root)
     submission_minimal_manifest = (
         load_json(submission_minimal_manifest_path) if submission_minimal_manifest_path else None
     )
-    submission_minimal_docx_path, submission_minimal_pdf_path = paper_artifacts.resolve_submission_minimal_output_paths(
-        paper_bundle_manifest_path=paper_bundle_manifest_path,
+    submission_minimal_docx_path, submission_minimal_pdf_path = resolve_submission_minimal_output_paths(
+        paper_root=paper_root,
         submission_minimal_manifest=submission_minimal_manifest,
     )
     submission_surface_qc_failures = collect_submission_surface_qc_failures(

@@ -58,3 +58,53 @@ def test_runtime_event_record_round_trips_and_writes_latest_alias(tmp_path: Path
     latest_payload = json.loads(latest_path.read_text(encoding="utf-8"))
     assert latest_payload["event_id"] == record.event_id
     assert latest_payload["outer_loop_input"]["quest_status"] == "stopped"
+
+
+def test_native_runtime_event_record_requires_continuation_anchor() -> None:
+    module = importlib.import_module("med_autoscience.native_runtime_event")
+    payload = {
+        "schema_version": 1,
+        "event_id": "runtime-event::quest-001::running::2026-04-11T00:00:00+00:00",
+        "quest_id": "quest-001",
+        "emitted_at": "2026-04-11T00:00:00+00:00",
+        "event_source": "daemon_app",
+        "event_kind": "runtime_control_applied",
+        "summary_ref": "quest:quest-001:running",
+        "status_snapshot": {
+            "quest_status": "running",
+            "display_status": "running",
+            "active_run_id": "run-001",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "stop_reason": None,
+            "continuation_policy": "auto",
+            "continuation_reason": "decision:decision-001",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+        "outer_loop_input": {
+            "quest_status": "running",
+            "display_status": "running",
+            "active_run_id": "run-001",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "stop_reason": None,
+            "continuation_policy": "auto",
+            "continuation_reason": "decision:decision-001",
+            "pending_user_message_count": 0,
+            "interaction_action": None,
+            "interaction_requires_user_input": False,
+            "active_interaction_id": None,
+            "last_transition_at": "2026-04-11T00:00:00+00:00",
+        },
+    }
+
+    try:
+        module.NativeRuntimeEventRecord.from_payload(payload)
+    except ValueError as exc:
+        assert "continuation_anchor" in str(exc)
+    else:
+        raise AssertionError("NativeRuntimeEventRecord should require continuation_anchor in snapshots")

@@ -219,3 +219,25 @@ def test_force_restart_for_live_controller_reroute_supports_write_stage_ready(mo
         )
         is True
     )
+
+
+def test_runtime_event_status_snapshot_includes_continuation_anchor(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    _patch_router(monkeypatch, module)
+    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status.record_continuation_state(
+        {
+            "quest_status": "running",
+            "active_run_id": "run-live-001",
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "decision:decision-live-001",
+            "runtime_state_path": "/tmp/runtime/quests/quest-001/.ds/runtime_state.json",
+        }
+    )
+
+    snapshot = module._runtime_event_status_snapshot(status)
+
+    assert snapshot["continuation_anchor"] == "decision"
+    assert snapshot["continuation_reason"] == "decision:decision-live-001"

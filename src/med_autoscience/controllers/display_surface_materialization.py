@@ -11420,7 +11420,73 @@ def _render_python_evidence_figure(
         output_pdf_path=output_pdf_path,
         layout_sidecar_path=layout_sidecar_path,
     )
+def _iter_display_surface_entries(
+    *,
+    paper_root: Path,
+    display_registry_payload: dict[str, Any],
+    figure_catalog: dict[str, Any],
+) -> list[dict[str, Any]]:
+    display_items: list[dict[str, Any]] = []
+    registered_display_ids: set[str] = set()
+    registered_figure_ids: set[str] = set()
 
+    for item in display_registry_payload.get("displays", []):
+        if not isinstance(item, dict):
+            raise ValueError("display_registry.json displays must contain objects")
+        display_items.append(item)
+
+        display_id = str(item.get("display_id") or "").strip()
+        display_kind = str(item.get("display_kind") or "").strip()
+        catalog_id = str(item.get("catalog_id") or "").strip()
+        if display_id:
+            registered_display_ids.add(display_id)
+        if display_kind == "figure":
+            figure_id = _resolve_figure_catalog_id(display_id=display_id, catalog_id=catalog_id)
+            if figure_id:
+                registered_figure_ids.add(figure_id)
+
+    # Older paper lines can keep a valid illustration payload plus a stale figure
+    # catalog entry even after the registry binding drifted away. Refresh those
+    # catalog-only illustration entries through the normal materialization loop.
+    for entry in figure_catalog.get("figures", []):
+        if not isinstance(entry, dict):
+            raise ValueError("figure_catalog.json figures must contain objects")
+        template_id = str(entry.get("template_id") or "").strip()
+        if not template_id or not display_registry.is_illustration_shell(template_id):
+            continue
+
+        spec = display_registry.get_illustration_shell_spec(template_id)
+        if get_template_short_id(spec.shell_id) == "submission_graphical_abstract":
+            continue
+
+        figure_id = _resolve_figure_catalog_id(
+            display_id=str(entry.get("display_id") or "").strip(),
+            catalog_id=str(entry.get("figure_id") or entry.get("catalog_id") or "").strip(),
+        )
+        if not figure_id or figure_id in registered_figure_ids:
+            continue
+
+        payload_path = _illustration_payload_path(paper_root=paper_root, input_schema_id=spec.input_schema_id)
+        if not payload_path.exists():
+            continue
+
+        shell_payload = load_json(payload_path)
+        display_id = str(shell_payload.get("display_id") or entry.get("display_id") or "").strip()
+        if not display_id or display_id in registered_display_ids:
+            continue
+
+        display_items.append(
+            {
+                "display_id": display_id,
+                "display_kind": "figure",
+                "requirement_key": spec.shell_id,
+                "catalog_id": figure_id,
+            }
+        )
+        registered_display_ids.add(display_id)
+        registered_figure_ids.add(figure_id)
+
+    return display_items
 
 
 def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
@@ -11437,9 +11503,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
         paper_root=resolved_paper_root
     )
 
-    for item in display_registry_payload.get("displays", []):
-        if not isinstance(item, dict):
-            raise ValueError("display_registry.json displays must contain objects")
+    for item in _iter_display_surface_entries(
+        paper_root=resolved_paper_root,
+        display_registry_payload=display_registry_payload,
+        figure_catalog=figure_catalog,
+    ):
         requirement_key = str(item.get("requirement_key") or "").strip()
         display_id = str(item.get("display_id") or "").strip()
         display_kind = str(item.get("display_kind") or "").strip()

@@ -643,6 +643,18 @@ def test_create_submission_minimal_package_general_profile_embeds_figures_into_d
     assert sum(len(page.images) for page in pdf_reader.pages) >= 1
 
 
+def test_inspect_submission_docx_surface_treats_directory_placeholder_as_missing() -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+
+    stats = module.inspect_submission_docx_surface(Path(""))
+
+    assert stats == {
+        "exists": False,
+        "embedded_image_count": 0,
+        "drawing_count": 0,
+    }
+
+
 def test_create_submission_minimal_package_accepts_current_bundle_contract_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)

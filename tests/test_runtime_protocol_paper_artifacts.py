@@ -88,6 +88,34 @@ def test_resolve_paper_bundle_manifest_prefers_runtime_worktree_over_newer_proje
     assert resolved_bundle == worktree_manifest
 
 
+def test_resolve_paper_bundle_manifest_prefers_projected_state_authority_with_stale_manifest_branch(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    active_paper_root = quest_root / ".ds" / "worktrees" / "run-current" / "paper"
+    stale_paper_root = quest_root / ".ds" / "worktrees" / "paper-paper-legacy" / "paper"
+    active_manifest = active_paper_root / "paper_bundle_manifest.json"
+    stale_manifest = stale_paper_root / "paper_bundle_manifest.json"
+    projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
+    projected_state = quest_root / "paper" / "paper_line_state.json"
+
+    dump_json(active_manifest, {"schema_version": 1, "paper_branch": "paper/legacy"})
+    dump_json(stale_manifest, {"schema_version": 1, "paper_branch": "paper/legacy"})
+    dump_json(projected_manifest, {"schema_version": 1, "paper_branch": "paper/legacy"})
+    dump_json(
+        projected_state,
+        {
+            "schema_version": 1,
+            "paper_branch": "run/current",
+            "paper_root": str(active_paper_root),
+        },
+    )
+
+    resolved_bundle = resolve_paper_bundle_manifest(quest_root)
+
+    assert resolved_bundle == projected_manifest
+
+
 def test_resolve_artifact_manifest_from_main_result_evidence_paths(tmp_path: Path) -> None:
     worktree_root = tmp_path / "worktree"
     manifest = worktree_root / "artifacts" / "artifact_manifest.json"

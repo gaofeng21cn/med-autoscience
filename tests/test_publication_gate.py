@@ -893,6 +893,44 @@ def test_build_gate_state_prefers_paper_line_authority_root_over_run_worktree_pa
     assert state.paper_root == (paper_worktree_root / "paper").resolve()
 
 
+def test_build_gate_state_prefers_bundle_authority_worktree_when_projected_line_state_switches_to_analysis_slice(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_main_result=False,
+        runtime_status="waiting_for_user",
+    )
+    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    analysis_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
+
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(authoritative_paper_root / "paper_bundle_manifest.json", projected_manifest)
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(analysis_paper_root.resolve()),
+            "paper_branch": "analysis/paper-line-paper-main-outline-001-run/analysis-12bdab30-authority-root-delivery-alignment",
+        },
+    )
+    (analysis_paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (analysis_paper_root / "draft.md").write_text("analysis slice mirror", encoding="utf-8")
+    projected_stat = projected_manifest.stat()
+    os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
+
+    state = module.build_gate_state(quest_root)
+
+    assert state.paper_bundle_manifest_path == projected_manifest
+    assert state.paper_root == authoritative_paper_root.resolve()
+    assert state.submission_minimal_manifest_path == authoritative_paper_root / "submission_minimal" / "submission_manifest.json"
+    assert state.submission_minimal_docx_present is True
+    assert state.submission_minimal_pdf_present is True
+
+
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
     tmp_path: Path,
     monkeypatch,

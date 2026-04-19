@@ -1409,6 +1409,22 @@ def child_heading_blocks(
     ]
 
 
+def first_subsection_heading_blocks(
+    blocks: list[MarkdownHeadingBlock],
+    *,
+    parent: MarkdownHeadingBlock,
+) -> list[MarkdownHeadingBlock]:
+    descendant_blocks = [
+        block
+        for block in blocks
+        if parent.start_line < block.start_line <= parent.end_line and block.level > parent.level
+    ]
+    if not descendant_blocks:
+        return []
+    subsection_level = min(block.level for block in descendant_blocks)
+    return [block for block in descendant_blocks if block.level == subsection_level]
+
+
 def extract_nonempty_paragraphs(text: str) -> list[str]:
     without_headings = re.sub(r"(?m)^#{1,6}\s+.+$", "", text)
     return [block.strip() for block in re.split(r"\n\s*\n", without_headings) if block.strip()]
@@ -1539,7 +1555,7 @@ def inspect_methods_section_structure(path: Path) -> list[dict[str, Any]]:
                 "excerpt": "Manuscript is missing a second-level Methods section.",
             }
         ]
-    subsection_blocks = child_heading_blocks(blocks, parent=methods_block, level=3)
+    subsection_blocks = first_subsection_heading_blocks(blocks, parent=methods_block)
     subsection_map = {normalize_heading(block.heading): block for block in subsection_blocks if block.body.strip()}
     missing_headings = [
         heading
@@ -1582,7 +1598,7 @@ def inspect_results_section_structure(path: Path) -> list[dict[str, Any]]:
                 "excerpt": "Manuscript is missing a second-level `Results` section.",
             }
         ]
-    subsection_blocks = [block for block in child_heading_blocks(blocks, parent=results_block, level=3) if block.body.strip()]
+    subsection_blocks = [block for block in first_subsection_heading_blocks(blocks, parent=results_block) if block.body.strip()]
     if len(subsection_blocks) >= medical_surface_policy.RESULTS_MIN_SUBSECTION_COUNT:
         return []
     return [
