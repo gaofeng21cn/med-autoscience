@@ -3136,6 +3136,50 @@ def test_startup_contract_appends_latest_task_intake_context(monkeypatch, tmp_pa
     assert "figure 质量坏循环" in payload["custom_brief"]
 
 
+def test_submit_study_task_enqueues_task_context_for_live_runtime(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    write_text(quest_root / "quest.yaml", "id: 001-risk\n")
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": "001-risk",
+                "status": "running",
+                "active_interaction_id": "progress-1",
+                "pending_user_message_count": 0,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(quest_root / ".ds" / "user_message_queue.json", '{"version": 1, "pending": [], "completed": []}\n')
+
+    result = product_entry.submit_study_task(
+        profile=profile,
+        study_id="001-risk",
+        task_intent="优先清理 publication gate 文面阻塞。",
+        constraints=("不要继续泛化分析",),
+        evidence_boundary=("只使用现有证据",),
+    )
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    runtime_intervention = result["runtime_intervention"]
+
+    assert runtime_intervention["intervention_enqueued"] is True
+    assert runtime_intervention["quest_status"] == "running"
+    assert runtime_intervention["message_id"].startswith("msg-")
+    assert len(queue["pending"]) == 1
+    assert "优先清理 publication gate 文面阻塞" in queue["pending"][0]["content"]
+    assert "不要继续泛化分析" in queue["pending"][0]["content"]
+    assert "只使用现有证据" in queue["pending"][0]["content"]
+    assert runtime_state["pending_user_message_count"] == 1
+
+
 def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"

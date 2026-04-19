@@ -18,10 +18,12 @@ from med_autoscience.domain_entry_contract import (
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     render_task_intake_markdown,
+    render_task_intake_runtime_context,
     upsert_startup_brief_task_block,
     write_task_intake,
 )
@@ -83,6 +85,7 @@ PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_FRONTDESK_KIND = "product_frontdesk"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
+_LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_for_user"})
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_runtime_recovery_required": 1,
@@ -3032,6 +3035,53 @@ def render_build_product_entry_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _build_live_task_intake_runtime_message(payload: dict[str, Any]) -> str:
+    return (
+        "MAS managed task update. Prioritize this latest study task over stale background plans.\n\n"
+        f"{render_task_intake_runtime_context(payload)}\n\n"
+        "After absorbing this task, report the concrete next action through artifact.interact(...)."
+    )
+
+
+def _enqueue_task_intake_for_live_runtime(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    layout = build_workspace_runtime_layout_for_profile(profile)
+    quest_root = layout.quest_root(study_id)
+    result: dict[str, Any] = {
+        "quest_root": str(quest_root),
+        "quest_status": None,
+        "intervention_enqueued": False,
+        "message_id": None,
+        "reason": None,
+    }
+    if not (quest_root / "quest.yaml").exists():
+        result["reason"] = "quest_not_found"
+        return result
+
+    runtime_state = quest_state.load_runtime_state(quest_root)
+    quest_status = str(runtime_state.get("status") or "").strip().lower()
+    result["quest_status"] = quest_status or None
+    if quest_status not in _LIVE_TASK_INTAKE_RUNTIME_STATUSES:
+        result["reason"] = "quest_not_live"
+        return result
+
+    runtime_state["quest_id"] = study_id
+    record = user_message.enqueue_user_message(
+        quest_root=quest_root,
+        runtime_state=runtime_state,
+        message=_build_live_task_intake_runtime_message(payload),
+        source="codex-study-task-intake",
+    )
+    result["intervention_enqueued"] = True
+    result["message_id"] = record.get("message_id")
+    result["reason"] = "live_runtime_task_context_enqueued"
+    return result
+
+
 def submit_study_task(
     *,
     profile: WorkspaceProfile,
@@ -3081,6 +3131,11 @@ def submit_study_task(
     startup_brief_path.parent.mkdir(parents=True, exist_ok=True)
     startup_brief_path.write_text(updated_text, encoding="utf-8")
     latest_payload = read_latest_task_intake(study_root=resolved_study_root) or payload
+    runtime_intervention = _enqueue_task_intake_for_live_runtime(
+        profile=profile,
+        study_id=resolved_study_id,
+        payload=latest_payload,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "study_id": resolved_study_id,
@@ -3096,6 +3151,7 @@ def submit_study_task(
         "first_cycle_outputs": list(latest_payload.get("first_cycle_outputs") or []),
         "startup_brief_path": str(startup_brief_path),
         "artifacts": dict(payload.get("artifact_refs") or {}),
+        "runtime_intervention": runtime_intervention,
     }
 
 
