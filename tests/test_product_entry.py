@@ -725,10 +725,35 @@ def test_build_product_frontdesk_uses_operator_status_card_for_now_summary(monke
                 "product_frontdesk": {
                     "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
                     "surface_kind": "product_frontdesk",
-                }
+                },
+                "workspace_cockpit": {
+                    "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
+                    "surface_kind": "workspace_cockpit",
+                },
+                "submit_study_task": {
+                    "command": "uv run python -m med_autoscience.cli submit-study-task --profile profile.local.toml",
+                    "surface_kind": "study_task_intake",
+                },
+                "launch_study": {
+                    "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml",
+                    "surface_kind": "launch_study",
+                },
+                "study_progress": {
+                    "command": "uv run python -m med_autoscience.cli study-progress --profile profile.local.toml",
+                    "surface_kind": "study_progress",
+                },
+                "mainline_status": {
+                    "command": "uv run python -m med_autoscience.cli mainline-status",
+                    "surface_kind": "mainline_status",
+                },
+                "mainline_phase": {
+                    "command": "uv run python -m med_autoscience.cli mainline-phase",
+                    "surface_kind": "mainline_phase",
+                },
             },
             "shared_handoff": {
                 "direct_entry_builder": {
+                    "command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct",
                     "entry_mode": "direct",
                 }
             },

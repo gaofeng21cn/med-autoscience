@@ -40,6 +40,7 @@ from opl_harness_shared.family_entry_contracts import (
     validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
 )
 from opl_harness_shared.product_entry_companions import (
+    build_family_frontdesk_entry_surfaces as _build_shared_family_frontdesk_entry_surfaces,
     build_family_product_frontdesk as _build_shared_family_product_frontdesk,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_product_entry_start as _build_shared_product_entry_start,
@@ -2600,20 +2601,18 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
 
-    entry_surfaces = {
-        "frontdesk": dict(product_entry_shell.get("product_frontdesk") or {}),
-        "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
-        "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
-        "launch_study": dict(product_entry_shell.get("launch_study") or {}),
-        "study_progress": dict(product_entry_shell.get("study_progress") or {}),
-        "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
-        "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
-    }
-    entry_surfaces.update(
-        {
-            name: dict(shared_handoff.get(name) or {})
-            for name in ("direct_entry_builder", "opl_handoff_builder")
-        }
+    entry_surfaces = _build_shared_family_frontdesk_entry_surfaces(
+        product_entry_shell=product_entry_shell,
+        shell_aliases={
+            "frontdesk": "product_frontdesk",
+            "cockpit": "workspace_cockpit",
+            "submit_task": "submit_study_task",
+            "launch_study": "launch_study",
+            "study_progress": "study_progress",
+            "mainline_status": "mainline_status",
+            "mainline_phase": "mainline_phase",
+        },
+        shared_handoff=shared_handoff,
     )
 
     payload = _build_shared_family_product_frontdesk(
