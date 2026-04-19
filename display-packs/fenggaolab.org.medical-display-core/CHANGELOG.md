@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-19
 
+- Add `omics_volcano_panel` as the next audited `G` threshold-governed differential-omics volcano slice in the core display pack.
+- Lock its pack-facing contract to `omics_volcano_panel_inputs_v1`, `publication_omics_volcano_panel`, and the Python bounded up-to-two-panel threshold-governed volcano renderer path.
+
 - Add `pathway_enrichment_dotplot_panel` as the next audited `E/G` shared-pathway omics enrichment dotplot slice in the core display pack.
 - Lock its pack-facing contract to `pathway_enrichment_dotplot_panel_inputs_v1`, `publication_pathway_enrichment_dotplot_panel`, and the Python bounded up-to-two-panel shared-pathway enrichment renderer path.
 

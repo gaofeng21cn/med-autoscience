@@ -46,6 +46,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     clustered_heatmap = module.get_input_schema_contract("clustered_heatmap_inputs_v1")
     gsva_heatmap = module.get_input_schema_contract("gsva_ssgsea_heatmap_inputs_v1")
     enrichment_dotplot = module.get_input_schema_contract("pathway_enrichment_dotplot_panel_inputs_v1")
+    omics_volcano = module.get_input_schema_contract("omics_volcano_panel_inputs_v1")
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -678,6 +679,47 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "point_size_values_must_be_non_negative",
         "declared_panel_pathway_grid_must_be_complete_and_unique",
     )
+    assert omics_volcano.template_ids == (_full_id("omics_volcano_panel"),)
+    assert omics_volcano.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "x_label",
+        "y_label",
+        "legend_title",
+        "effect_threshold",
+        "significance_threshold",
+        "panel_order",
+        "points",
+    )
+    assert omics_volcano.display_optional_fields == ("paper_role",)
+    assert omics_volcano.collection_required_fields["panel_order"] == ("panel_id", "panel_title")
+    assert omics_volcano.collection_required_fields["points"] == (
+        "panel_id",
+        "feature_label",
+        "effect_value",
+        "significance_value",
+        "regulation_class",
+    )
+    assert omics_volcano.collection_optional_fields["points"] == ("label_text",)
+    assert omics_volcano.additional_constraints == (
+        "legend_title_must_be_non_empty",
+        "effect_threshold_must_be_positive",
+        "significance_threshold_must_be_positive",
+        "panel_order_must_be_non_empty",
+        "panel_order_count_must_be_at_most_two",
+        "panel_ids_must_be_unique",
+        "panel_titles_must_be_non_empty",
+        "points_must_be_non_empty",
+        "point_panel_ids_must_match_declared_panels",
+        "each_declared_panel_must_contain_points",
+        "point_feature_labels_must_be_unique_within_panel",
+        "point_effect_values_must_be_finite",
+        "point_significance_values_must_be_non_negative",
+        "point_regulation_classes_must_use_supported_vocabulary",
+        "point_label_text_must_be_non_empty_when_present",
+    )
 
     assert correlation.template_ids == (_full_id("correlation_heatmap"),)
     assert correlation.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
@@ -919,6 +961,12 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     assert _full_id("celltype_signature_heatmap") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).template_ids
+    assert _full_id("omics_volcano_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).template_ids
+    assert "omics_volcano_panel_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
+    ).input_schema_ids
     assert _full_id("single_cell_atlas_overview_panel") in next(
         item for item in module.list_display_schema_classes() if item.class_id == "data_geometry"
     ).template_ids
@@ -2605,6 +2653,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "gsva_ssgsea_heatmap_inputs_v1" in markdown
     assert _full_id("pathway_enrichment_dotplot_panel") in markdown
     assert "pathway_enrichment_dotplot_panel_inputs_v1" in markdown
+    assert _full_id("omics_volcano_panel") in markdown
+    assert "omics_volcano_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

@@ -5379,6 +5379,125 @@ def _validate_pathway_enrichment_dotplot_panel_display_payload(
     }
 
 
+def _validate_omics_volcano_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    if str(payload.get("template_id") or "").strip() != expected_template_id:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    x_label = _require_non_empty_string(payload.get("x_label"), label=f"{path.name} display `{expected_display_id}` x_label")
+    y_label = _require_non_empty_string(payload.get("y_label"), label=f"{path.name} display `{expected_display_id}` y_label")
+    legend_title = _require_non_empty_string(
+        payload.get("legend_title"),
+        label=f"{path.name} display `{expected_display_id}` legend_title",
+    )
+    effect_threshold = _require_numeric_value(
+        payload.get("effect_threshold"),
+        label=f"{path.name} display `{expected_display_id}` effect_threshold",
+    )
+    if effect_threshold <= 0.0:
+        raise ValueError(f"{path.name} display `{expected_display_id}` effect_threshold must be positive")
+    significance_threshold = _require_numeric_value(
+        payload.get("significance_threshold"),
+        label=f"{path.name} display `{expected_display_id}` significance_threshold",
+    )
+    if significance_threshold <= 0.0:
+        raise ValueError(f"{path.name} display `{expected_display_id}` significance_threshold must be positive")
+    panel_order = _validate_panel_order_payload(
+        path=path,
+        payload=payload.get("panel_order"),
+        label=f"display `{expected_display_id}` panel_order",
+    )
+    points = payload.get("points")
+    if not isinstance(points, list) or not points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty points list")
+
+    declared_panel_ids = {item["panel_id"] for item in panel_order}
+    panel_point_counts = {panel_id: 0 for panel_id in declared_panel_ids}
+    feature_labels_by_panel = {panel_id: set() for panel_id in declared_panel_ids}
+    supported_regulation_classes = {"upregulated", "downregulated", "background"}
+    normalized_points: list[dict[str, Any]] = []
+    for index, item in enumerate(points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}] must be an object")
+        panel_id = _require_non_empty_string(
+            item.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].panel_id",
+        )
+        if panel_id not in declared_panel_ids:
+            raise ValueError(f"{path.name} display `{expected_display_id}` points[{index}].panel_id must match panel_order")
+        feature_label = _require_non_empty_string(
+            item.get("feature_label"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].feature_label",
+        )
+        if feature_label in feature_labels_by_panel[panel_id]:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].feature_label must be unique within its panel"
+            )
+        feature_labels_by_panel[panel_id].add(feature_label)
+        effect_value = _require_numeric_value(
+            item.get("effect_value"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].effect_value",
+        )
+        significance_value = _require_numeric_value(
+            item.get("significance_value"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].significance_value",
+        )
+        if significance_value < 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].significance_value must be non-negative"
+            )
+        regulation_class = _require_non_empty_string(
+            item.get("regulation_class"),
+            label=f"{path.name} display `{expected_display_id}` points[{index}].regulation_class",
+        )
+        if regulation_class not in supported_regulation_classes:
+            supported_classes = ", ".join(("upregulated", "downregulated", "background"))
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].regulation_class must be one of {supported_classes}"
+            )
+        label_text = str(item.get("label_text") or "").strip()
+        if "label_text" in item and not label_text:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` points[{index}].label_text must be non-empty when present"
+            )
+        normalized_point = {
+            "panel_id": panel_id,
+            "feature_label": feature_label,
+            "effect_value": effect_value,
+            "significance_value": significance_value,
+            "regulation_class": regulation_class,
+        }
+        if label_text:
+            normalized_point["label_text"] = label_text
+        normalized_points.append(normalized_point)
+        panel_point_counts[panel_id] += 1
+
+    for panel_id, point_count in panel_point_counts.items():
+        if point_count > 0:
+            continue
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain at least one point for panel `{panel_id}`")
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "x_label": x_label,
+        "y_label": y_label,
+        "legend_title": legend_title,
+        "effect_threshold": effect_threshold,
+        "significance_threshold": significance_threshold,
+        "panel_order": panel_order,
+        "points": normalized_points,
+    }
+
+
 def _validate_forest_display_payload(
     *,
     path: Path,
@@ -9709,6 +9828,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "pathway_enrichment_dotplot_panel_inputs_v1":
         return payload_path, _validate_pathway_enrichment_dotplot_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "omics_volcano_panel_inputs_v1":
+        return payload_path, _validate_omics_volcano_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

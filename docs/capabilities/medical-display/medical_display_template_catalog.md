@@ -73,6 +73,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::atlas_spatial_trajectory_storyboard_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Atlas-Spatial Trajectory Storyboard Panel | `python` | `atlas_spatial_trajectory_storyboard_inputs_v1` | `publication_atlas_spatial_trajectory_storyboard_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::atlas_spatial_trajectory_density_coverage_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Atlas-Spatial Trajectory Density Coverage Panel | `python` | `atlas_spatial_trajectory_density_coverage_panel_inputs_v1` | `publication_atlas_spatial_trajectory_density_coverage_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::atlas_spatial_trajectory_context_support_panel` | `evidence_figure` | `D. Representation Structure and Data Geometry`, `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Atlas-Spatial Trajectory Context Support Panel | `python` | `atlas_spatial_trajectory_context_support_panel_inputs_v1` | `publication_atlas_spatial_trajectory_context_support_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::omics_volcano_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Omics Volcano Panel | `python` | `omics_volcano_panel_inputs_v1` | `publication_omics_volcano_panel` | `png`, `pdf` |
 
 ### Matrix Pattern
 
@@ -482,6 +483,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `composition_groups.state_proportions` -> `state_label`, `proportion`<br>`progression_bins.branch_weights` -> `branch_label`, `proportion`
 - Optional nested collection fields: None
 - Additional constraints: `atlas_points_must_be_non_empty`, `atlas_point_coordinates_must_be_finite`, `atlas_point_state_label_must_be_non_empty`, `spatial_points_must_be_non_empty`, `spatial_point_coordinates_must_be_finite`, `spatial_point_state_label_must_be_non_empty`, `spatial_point_region_label_must_be_non_empty`, `trajectory_points_must_be_non_empty`, `trajectory_point_coordinates_must_be_finite`, `trajectory_point_state_label_must_be_non_empty`, `trajectory_point_pseudotime_must_be_probability`, `trajectory_point_branch_label_must_be_non_empty`, `composition_groups_must_be_non_empty`, `composition_group_labels_must_be_unique`, `composition_group_order_must_be_strictly_increasing`, `composition_group_state_proportions_must_be_non_empty`, `composition_group_state_labels_must_match_declared_states`, `composition_group_proportions_must_be_finite_probability`, `composition_group_proportions_must_sum_to_one`, `state_order_labels_must_be_unique`, `branch_order_labels_must_be_unique`, `progression_bins_must_be_non_empty`, `progression_bin_labels_must_be_unique`, `progression_bin_order_must_be_strictly_increasing`, `progression_bin_intervals_must_be_strictly_increasing`, `progression_bin_branch_weights_must_be_non_empty`, `progression_bin_branch_labels_must_match_declared_branches`, `progression_bin_branch_weights_must_sum_to_one`, `score_method_must_be_non_empty`, `cells_must_be_non_empty`, `cell_coordinates_must_be_non_empty`, `cell_values_must_be_finite`, `row_order_labels_must_be_unique`, `column_order_labels_must_be_unique`, `declared_row_labels_must_match_cell_rows`, `declared_column_labels_must_match_cell_columns`, `declared_column_labels_must_match_progression_bins`, `declared_heatmap_grid_must_be_complete_and_unique`, `support_scale_label_must_be_non_empty`, `context_order_labels_must_be_unique`, `context_order_kinds_must_be_supported_and_unique`, `context_order_kinds_must_cover_all_required_contexts`, `support_cells_must_be_non_empty`, `support_cell_coordinates_must_be_non_empty`, `support_cell_values_must_be_finite_probability`, `declared_state_labels_must_match_atlas_states`, `declared_state_labels_must_match_spatial_states`, `declared_state_labels_must_match_trajectory_states`, `declared_state_labels_must_match_support_rows`, `declared_context_labels_must_match_support_columns`, `declared_support_grid_must_be_complete_and_unique`
+
+### `omics_volcano_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Omics Volcano Panel
+- Templates: `fenggaolab.org.medical-display-core::omics_volcano_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `x_label`, `y_label`, `legend_title`, `effect_threshold`, `significance_threshold`, `panel_order`, `points`
+- Optional display fields: `paper_role`
+- Required collection fields: `panel_order` -> `panel_id`, `panel_title`<br>`points` -> `panel_id`, `feature_label`, `effect_value`, `significance_value`, `regulation_class`
+- Optional collection fields: `points` -> `label_text`
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `legend_title_must_be_non_empty`, `effect_threshold_must_be_positive`, `significance_threshold_must_be_positive`, `panel_order_must_be_non_empty`, `panel_order_count_must_be_at_most_two`, `panel_ids_must_be_unique`, `panel_titles_must_be_non_empty`, `points_must_be_non_empty`, `point_panel_ids_must_match_declared_panels`, `each_declared_panel_must_contain_points`, `point_feature_labels_must_be_unique_within_panel`, `point_effect_values_must_be_finite`, `point_significance_values_must_be_non_negative`, `point_regulation_classes_must_use_supported_vocabulary`, `point_label_text_must_be_non_empty_when_present`
 
 ### `heatmap_group_comparison_inputs_v1`
 

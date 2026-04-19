@@ -5780,6 +5780,89 @@ def _make_pathway_enrichment_dotplot_panel_display(display_id: str = "Figure34")
     }
 
 
+def _make_omics_volcano_panel_display(display_id: str = "Figure35") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": full_id("omics_volcano_panel"),
+        "title": "Differential omics volcano comparison across transcriptome and proteome",
+        "caption": (
+            "Fold-change thresholds, significance thresholds, and highlighted drivers remain bound "
+            "inside one audited volcano-panel contract."
+        ),
+        "x_label": "log2 fold change",
+        "y_label": "-log10 adjusted P",
+        "legend_title": "Regulation",
+        "effect_threshold": 1.0,
+        "significance_threshold": 2.0,
+        "panel_order": [
+            {"panel_id": "transcriptome", "panel_title": "Transcriptome"},
+            {"panel_id": "proteome", "panel_title": "Proteome"},
+        ],
+        "points": [
+            {
+                "panel_id": "transcriptome",
+                "feature_label": "CXCL9",
+                "effect_value": 1.72,
+                "significance_value": 4.41,
+                "regulation_class": "upregulated",
+                "label_text": "CXCL9",
+            },
+            {
+                "panel_id": "transcriptome",
+                "feature_label": "MKI67",
+                "effect_value": 1.19,
+                "significance_value": 3.28,
+                "regulation_class": "upregulated",
+            },
+            {
+                "panel_id": "transcriptome",
+                "feature_label": "COL1A1",
+                "effect_value": -1.34,
+                "significance_value": 3.92,
+                "regulation_class": "downregulated",
+                "label_text": "COL1A1",
+            },
+            {
+                "panel_id": "transcriptome",
+                "feature_label": "GAPDH",
+                "effect_value": 0.14,
+                "significance_value": 0.52,
+                "regulation_class": "background",
+            },
+            {
+                "panel_id": "proteome",
+                "feature_label": "CXCL9",
+                "effect_value": 1.26,
+                "significance_value": 3.36,
+                "regulation_class": "upregulated",
+                "label_text": "CXCL9",
+            },
+            {
+                "panel_id": "proteome",
+                "feature_label": "STAT1",
+                "effect_value": 1.08,
+                "significance_value": 2.91,
+                "regulation_class": "upregulated",
+            },
+            {
+                "panel_id": "proteome",
+                "feature_label": "COL1A1",
+                "effect_value": -1.11,
+                "significance_value": 3.07,
+                "regulation_class": "downregulated",
+                "label_text": "COL1A1",
+            },
+            {
+                "panel_id": "proteome",
+                "feature_label": "ACTB",
+                "effect_value": 0.11,
+                "significance_value": 0.61,
+                "regulation_class": "background",
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -5859,6 +5942,32 @@ def test_load_evidence_display_payload_rejects_incomplete_panel_pathway_grid_for
             paper_root=paper_root,
             spec=spec,
             display_id="Figure34",
+        )
+
+
+def test_load_evidence_display_payload_rejects_unsupported_regulation_class_for_omics_volcano_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_omics_volcano_panel_display()
+    display_payload["points"][0]["regulation_class"] = "mixed"
+    dump_json(
+        paper_root / "omics_volcano_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "omics_volcano_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("omics_volcano_panel")
+
+    with pytest.raises(ValueError, match="regulation_class must be one of upregulated, downregulated, background"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure35",
         )
 
 
@@ -6281,6 +6390,82 @@ def test_materialize_display_surface_generates_pathway_enrichment_dotplot_panel(
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "pathway_enrichment_dotplot_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_pathway_enrichment_dotplot_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_omics_volcano_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "display_kind": "figure",
+                    "requirement_key": "omics_volcano_panel",
+                    "catalog_id": "F35",
+                    "shell_path": "paper/figures/Figure35.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure35",
+                    "template_id": "omics_volcano_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "omics_volcano_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "omics_volcano_panel_inputs_v1",
+            "displays": [_make_omics_volcano_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F35"]
+    assert (paper_root / "figures" / "generated" / "F35_omics_volcano_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F35_omics_volcano_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F35_omics_volcano_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == ["panel_A", "panel_B"]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "label_A_0" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "label_B_0" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "reference_line"}
+    assert layout_sidecar["metrics"]["legend_title"] == "Regulation"
+    assert layout_sidecar["metrics"]["effect_threshold"] == 1.0
+    assert layout_sidecar["metrics"]["significance_threshold"] == 2.0
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["panels"]] == ["transcriptome", "proteome"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F35"
+    assert figure_entry["template_id"] == full_id("omics_volcano_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "omics_volcano_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_omics_volcano_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

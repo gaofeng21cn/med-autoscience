@@ -21,7 +21,7 @@
 
 本文统计的是“当前已进入 strict registry / template catalog / audited guide 真相面的绘图军火库”，不是任一时刻共享 `main` 工作树上恰好已经吸收完毕的全部代码状态。
 
-当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `75`。
+当前生效统计口径以 registry / template catalog / audited guide 的一致真相为准，现行库存是 `76`。
 
 `2026-04-07` 的 `31` 模板冻结边界只保留为历史 provenance，用来解释这条主线是如何从首批冻结快照继续扩容到当前库存的。对应历史锚点如下：
 
@@ -41,11 +41,11 @@
   - 证据型图模板 `24`
   - 插图壳层模板 `2`
   - 表格壳层模板 `5`
-- 当前 strict registry / template catalog 工程口径统一为 `75`：
-  - 证据型图模板 `63`
+- 当前 strict registry / template catalog 工程口径统一为 `76`：
+  - 证据型图模板 `64`
   - 插图壳层模板 `7`
   - 表格壳层模板 `5`
-- 截至 `2026-04-19`，post-baseline rolling expansion 已在冻结基线上正式收口三十七个 capability cluster：
+- 截至 `2026-04-19`，post-baseline rolling expansion 已在冻结基线上正式收口三十八个 capability cluster：
   - `celltype_signature_heatmap`：把 `D/E/G` 从“仅候选复合图式”推进到第一个 pack 化 `embedding + signature heatmap` 复合模板；
   - `time_to_event_landmark_performance_panel`：把 `A/B` 从“已有 horizon ROC / grouped calibration 组件”推进到正式的 landmark/time-slice discrimination + Brier error + calibration slope 治理模板；
   - `shap_dependence_panel`：把 `F` 从“只会 SHAP summary”推进到正式多 panel dependence + shared colorbar + zero-line governance 的本地解释模板；
@@ -83,6 +83,7 @@
   - `feature_response_support_domain_panel`：把 `F` 从“已有 PDP / subgroup / ALE lower bound，但 support-domain、subgroup-legend 与 extrapolation 提醒仍分散在多个模板里”继续推进到正式 support-domain explanation panel，并把 response-curve 区间、support-kind 受控词表、full-domain coverage、reference guide 与 segment/label containment 固化为单一模板；
   - `shap_grouped_local_support_domain_panel`：把 `F` 从“已有 grouped-local comparison 与 support-domain explanation，但还缺正文可直接使用的 explanation scene”继续推进到正式上下两排复合模板，并把 shared local feature order、exactly-two support panels、local/support panel-label 全局唯一性与 support legend title 治理固化为单一模板。
   - `pathway_enrichment_dotplot_panel`：把 `E/G` 从“已有 GSVA/ssGSEA 热图与 atlas 复合图，但仍缺高频正文 pathway enrichment 图式”继续推进到正式 bounded dotplot 模板，并把 shared pathway order、完整 `panel x pathway` 网格、effect/size 双标尺语义与非负 hit-size 治理固化为单一模板。
+  - `omics_volcano_panel`：把 `G` 从“已有 GSVA/ssGSEA 热图与 pathway enrichment dotplot，但仍缺差异表达正文常用的 volcano 主图”继续推进到正式 bounded up-to-two-panel volcano 模板，并把 fold-change/significance threshold、regulation vocabulary、highlight label 治理与 panel-level threshold-guide sidecar 固化为单一模板。
 - 此前文档里沿用过的早期 rolling headline，不再代表当前严格工程库存；从本轮起统一以 registry / template catalog 真相口径为准。
 - 真实由锚点论文 `001/003` 证明过的核心家族是 `A`、`B`、`H`。
 - 当前主线状态不应再被理解成“默认停车、显式重开才继续”。
@@ -133,7 +134,7 @@
 | `D. 表征结构与数据几何` | 嵌入空间、分群结构、atlas 到空间的状态桥接、tissue-coordinate 空间拓扑、trajectory / manifold 演进与低维投影表达 | `umap_scatter_grouped`、`pca_scatter_grouped`、`tsne_scatter_grouped`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已具备首个审计基线，并把 D/E/G baseline 从 `embedding + signature heatmap` 扩到 `atlas overview`、`atlas-to-spatial bridge`、`spatial niche topography + composition + marker/program`、`trajectory progression + branch composition + kinetics`、五块式 `atlas-spatial-trajectory storyboard`、四块式 `density / coverage` support composite，再推进到六块式 `context-support` baseline | 既有散点与嵌入契约 + `Nature Medicine` `2025` 炎症图谱图 1 + `npj Digital Medicine` `2025` 前列腺 XAI 图 1/2/3/7 + `Genome Research` `2021` / `Nature Communications` `2023` atlas overview exemplar + `Nature Medicine` `2024` / `Nature Medicine` `2025` / `Nature Communications` `2025` atlas-spatial bridge exemplar + `Nature Medicine` `2024` / `Nature Communications` `2025` / `npj Digital Medicine` `2025` spatial niche exemplar + `Nature Biotechnology` `2023` trajectory exemplar + atlas / spatial / trajectory density / coverage / context-support follow-on 学习 |
 | `E. 特征模式与矩阵` | 热图、矩阵对比、相关性、有序性能矩阵、通路富集点图与带 marker/program / kinetics / context-support 解释的复合图 | `heatmap_group_comparison`、`correlation_heatmap`、`clustered_heatmap`、`performance_heatmap`、`pathway_enrichment_dotplot_panel`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已具备首个审计基线，并开始从独立矩阵扩到带 shared-pathway enrichment dotplot、celltype/program、atlas-spatial 状态桥接、spatial niche、trajectory kinetics、storyboard 叙事、state-by-context support heatmap 与更完整 context-support 复合矩阵的 manuscript-facing 图面 | 通用热图能力 + `Nature Medicine` 风险论文图 4c + 高水平组学论文常见 enrichment dotplot 编排 + atlas/spatial/trajectory exemplar 学习 |
 | `F. 模型解释` | 特征归因、解释性摘要与复杂度审计 | `shap_summary_beeswarm`、`shap_bar_importance`、`shap_signed_importance_panel`、`shap_multicohort_importance_panel`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`shap_force_like_summary_panel`、`shap_grouped_local_explanation_panel`、`shap_grouped_decision_path_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel`、`partial_dependence_ice_panel`、`partial_dependence_interaction_contour_panel`、`partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel`、`accumulated_local_effects_panel`、`feature_response_support_domain_panel`、`model_complexity_audit_panel` | 已具备首个审计基线，并把 global bar-importance overview、zero-centered signed importance、cross-cohort global importance comparison、dependence、patient-level waterfall、representative-case force-like summary、最多三 panel 的 grouped-local comparison、双组与三组 decision-path comparison、上下两排 grouped-local + support-domain explanation scene、bounded PDP+ICE baseline、bounded pairwise interaction contour lower bound，以及 higher-order interaction slice / subgroup comparison / ALE / support-domain follow-on 一并提升为正式 pack 资产；当前剩余主缺口转向 AI-first visual audit 驱动的 annotation / legend 收紧与更高阶 explanation scene 的真实论文扩容 | `001/003` 锚点论文 + `npj Digital Medicine` `2025` SHAP dependence exemplar + `npj Digital Medicine` `2025` UMORSS 图 6 + `JBJS Open Access` `2025` PARITY 图 6A/B + SHAP force plot / bar importance / signed-importance / multicohort importance / grouped-local comparison / grouped decision-path / grouped-local-support-domain explanation scene / PDP-ICE / ALE 经典解释图式 + `npj Digital Medicine` `2026` pairwise partial-dependence interaction exemplar + support-domain explanation follow-on 实战需求 + `F` 家族视觉审计决策线 |
-| `G. 生物信息与组学证据` | 组学打分、通路富集、程序活性与组学原生热图表达 | `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已建立首个专用审计基线，并把组学/程序证据从单独热图推进到 shared-pathway enrichment dotplot、atlas occupancy、atlas-spatial 状态桥接、spatial niche composition、trajectory kinetics channel、五块式 storyboard 叙事、四块式 density/coverage support 与六块式 context-support 复合证据面 | 组学原生证据需求 + `Nature Medicine` `2025` / `Nature Cancer` / `npj Digital Medicine` `2025` 等高水平组学论文常见 enrichment dotplot 编排 + atlas/spatial/trajectory partial-fit 学习 |
+| `G. 生物信息与组学证据` | 组学打分、差异表达、通路富集、程序活性与组学原生热图表达 | `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`celltype_signature_heatmap`、`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel`、`atlas_spatial_trajectory_context_support_panel` | 已建立首个专用审计基线，并把组学/程序证据从单独热图推进到 shared-pathway enrichment dotplot、差异表达 volcano、atlas occupancy、atlas-spatial 状态桥接、spatial niche composition、trajectory kinetics channel、五块式 storyboard 叙事、四块式 density/coverage support 与六块式 context-support 复合证据面 | 组学原生证据需求 + `Nature Medicine` `2025` / `Nature Cancer` / `npj Digital Medicine` `2025` 等高水平组学论文常见 enrichment dotplot / volcano 编排 + atlas/spatial/trajectory partial-fit 学习 |
 | `H. 队列与研究设计证据` | 队列构成、泛化性、研究流程与投稿壳层 | `multicenter_generalizability_overview`、`generalizability_subgroup_composite_panel`、`center_transportability_governance_summary_panel`、`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel`、`cohort_flow_figure`、`submission_graphical_abstract`、`workflow_fact_sheet_panel`、`design_evidence_composite_shell`、`baseline_missingness_qc_panel`、`center_coverage_batch_transportability_panel`、`transportability_recalibration_governance_panel`、`table1_baseline_characteristics`、`table3_clinical_interpretation_summary` | 已形成真实论文证明的核心能力，并把 multicenter generalizability 继续扩到 cohort-level overview + subgroup robustness 的 bounded composite baseline，再补齐中心级 transportability 指标与 manuscript-facing 治理结论直接收束的 governance summary、shared-reference / shared-row-order 的 compact estimate lower bound、预设模型步骤下的 coefficient-path stability，以及逐行 manuscript verdict 收口的 broader heterogeneity summary 合同，同时补齐固定 `2x2` 的 workflow fact sheet 壳层、固定 `workflow ribbon + three summary panels` 的 design-evidence composite 下限、第一张可同时交代基线平衡/缺失模式/质控摘要的 bounded manuscript-facing 三联壳层、第一张可同时交代中心覆盖/批次漂移/transportability boundary 的 bounded manuscript-facing 三联壳层，以及第一张可正式交代中心级 recalibration 行动与 acceptance band 是否达标的 follow-on manuscript-facing 壳层 | `001/003` 锚点论文 + 投稿包装需求沉淀 + `JAMA Surgery` `2025` / `npj Digital Medicine` `2026` / `World Psychiatry` `2024` generalizability exemplar + transportability-governance follow-on 交付需求 + compact-estimate / coefficient-path / broader-heterogeneity follow-on 交付需求 + `H` 家族 manuscript-facing QC shell hardening follow-on |
 
 ## 各家族已完成模板清单（人话版）
@@ -148,7 +149,7 @@
 
 - 这里按“论文问题归属”统计，不按去重后的模板总数统计；
 - 同一个模板如果同时服务多个家族，会在多个家族里重复出现；
-- 所以下面各家族的小计相加，会大于当前军火库总数 `75`。
+- 所以下面各家族的小计相加，会大于当前军火库总数 `76`。
 
 ### A. 预测性能与决策类
 
@@ -338,12 +339,14 @@
 
 ### G. 生物信息与组学证据类
 
-当前已覆盖 `10` 个模板归属。
+当前已覆盖 `11` 个模板归属。
 
 - `GSVA / ssGSEA 热图`
   用途：展示通路、基因集或程序活性在不同样本/分组中的变化。
 - `通路富集点图面板`
   用途：把 pathway enrichment 的方向、强度和 hit count 放到一张正文可直接使用的组学总结图里，适合并列比较不同 omics 层或不同 panel 的富集结果。
+- `组学 volcano 面板`
+  用途：把差异表达的 fold-change、显著性阈值与重点基因标注压缩成一张正文可直接使用的 volcano 主图，适合并列比较两组条件、两个 omics 层或两个 cohort 的差异模式。
 - `细胞类型嵌入 + 签名热图`
   用途：把单细胞或组学程序的结构和分子特征放到同一张图里。
 - `单细胞图谱总览面板`
@@ -433,6 +436,7 @@
 | `Nature Medicine` `2024` spatial niche exemplar + `Nature Communications` `2025` spatial atlas exemplar + `Nature Biotechnology` `2023` trajectory exemplar | 把 atlas、空间与轨迹三条已经分开审计的证据链继续上提为五块式 storyboard composite，并把共享 state vocabulary、branch/bin 治理、composition 完整性、kinetics heatmap 网格与五个 panel label 锚定做成正式契约 | `D/E/G` / `atlas_spatial_trajectory_storyboard_panel` |
 | `Nature Medicine` `2024` spatial niche exemplar + `Nature Communications` `2025` spatial atlas exemplar + `Nature Biotechnology` `2023` trajectory exemplar + density / coverage follow-on real-paper demand | 把 atlas、空间与轨迹三条已经分开审计的证据链继续收束成四块式 density / coverage support composite，并把共享 state vocabulary、region/branch 受控语义、context-kind 治理与 state-by-context support heatmap 完整网格做成正式契约 | `D/E/G` / `atlas_spatial_trajectory_density_coverage_panel` |
 | `Nature Medicine` `2024` spatial niche exemplar + `Nature Communications` `2025` spatial atlas exemplar + `Nature Biotechnology` `2023` trajectory exemplar + context-support follow-on real-paper demand | 把 atlas、空间与轨迹三条已经收束到 density / coverage support baseline 的证据链继续推进到六联 context-support composite，并把 atlas occupancy、spatial state topography、trajectory progression、region-wise state composition、kinetics heatmap 与 state-by-context support heatmap 一并收进单一 bounded manuscript-facing 契约 | `D/E/G` / `atlas_spatial_trajectory_context_support_panel` |
+| `Nature Medicine` / `Nature Cancer` / `npj Digital Medicine` 等高水平组学论文常见 volcano 编排 + 真实正文差异组学交付需求 | 把差异表达结果从自由散点图提升为正式 bounded up-to-two-panel volcano 契约；固定 fold-change 阈值、显著性阈值、`upregulated/downregulated/background` 受控词表、highlight label 与 threshold-guide sidecar 治理 | `G` / `omics_volcano_panel` |
 | `npj Digital Medicine` `2025` 前列腺 XAI SHAP dependence 图面 | 把论文现场局部 dependence explanation 提升为正式多 panel SHAP dependence 契约，并把 shared colorbar、panel label 与 zero-line 变成可审计下限 | `F` / `shap_dependence_panel` |
 | `npj Digital Medicine` `2025` UMORSS ovarian workflow 图 6 + `JBJS Open Access` `2025` PARITY bone tumor explanation 图 6A/B | 把 patient-level SHAP explanation 从“单篇论文现场插图”提升为正式 waterfall 模板；固定 `baseline -> ordered contributions -> final prediction` additive path、case/panel 唯一性、贡献方向一致性与预测值守恒约束 | `F` / `shap_waterfall_local_explanation_panel` |
 | `真实解释型论文交付需求 + SHAP force plot 经典解释图式` | 把代表性病例的局部解释从 waterfall 再推进到 bounded force-like summary；固定 `baseline marker -> positive/negative directional lanes -> prediction marker` 的 panel 内表达，并把标签 containment、方向一致性与排序守恒做成正式契约 | `F` / `shap_force_like_summary_panel` |
@@ -493,7 +497,7 @@
 - `F` 家族虽已从 `shap_summary_beeswarm` 扩到 `shap_bar_importance`、`shap_signed_importance_panel`、`shap_multicohort_importance_panel`、`shap_dependence_panel`、`shap_waterfall_local_explanation_panel`、`shap_force_like_summary_panel`、`shap_grouped_local_explanation_panel`、`shap_grouped_decision_path_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel`、`partial_dependence_ice_panel`、`partial_dependence_interaction_contour_panel`、`partial_dependence_interaction_slice_panel`、`partial_dependence_subgroup_comparison_panel`、`accumulated_local_effects_panel` 与 `feature_response_support_domain_panel`，但 annotation / legend 治理与更高阶 explanation scene 仍需继续滚动 hardening；
 - `C/H` 虽已从 `subgroup_forest` / `multicenter_generalizability_overview` 扩到 `generalizability_subgroup_composite_panel`、`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel`，并补齐 workflow / design-evidence / baseline-missingness-QC shells、center-coverage / batch-shift / transportability 三联壳层与 recalibration-governance follow-on，但 calibration appendix 与更高层 transportability synthesis 仍在后续扩容范围内；
 - `D/E/G` 更大 atlas / spatial / trajectory 复合图谱结构；`single_cell_atlas_overview_panel`、`atlas_spatial_bridge_panel`、`spatial_niche_map_panel`、`trajectory_progression_panel`、`atlas_spatial_trajectory_storyboard_panel`、`atlas_spatial_trajectory_density_coverage_panel` 与 `atlas_spatial_trajectory_context_support_panel` 已把 baseline 扩到 occupancy / atlas-spatial bridge / spatial topography / progression / storyboard / density-coverage support / context-support，但 atlas / spatial / trajectory 平台仍在继续扩库；
-- `G/E` 虽已从 `gsva_ssgsea_heatmap` 扩到 `pathway_enrichment_dotplot_panel`，但 volcano、oncoplot、mutation landscape 与更复杂的 enrichment 组合图仍在后续扩容范围内；
+- `G/E` 已形成 `GSVA/ssGSEA 热图 + pathway enrichment dotplot + omics volcano` 三基线，后续扩容重点转向 oncoplot、mutation landscape 与更复杂的 enrichment 组合图；
 - 仅在外部范例中观察到、但还没形成正式模板与回归套件的高级图式。
 
 ## 后续维护规则

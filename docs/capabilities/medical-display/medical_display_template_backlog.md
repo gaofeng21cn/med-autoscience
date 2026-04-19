@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `63`
+- Evidence figure templates: `64`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `75`
+- Total audited templates: `76`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,7 +46,7 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `G / volcano or oncoplot family beyond the current GSVA + enrichment dual baseline`
+- `G / oncoplot or mutation-landscape family beyond the current GSVA + enrichment + volcano triple baseline`
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current context-support lower bound`
 - `F / higher-order explanation scene beyond the current grouped-local + support-domain composite lower bound`
 - `C/H / calibration appendix or higher-order robustness synthesis beyond the current broader-heterogeneity lower bound`
@@ -82,6 +82,7 @@
 - `F / richer grouped-local-explanation variants beyond the first audited baseline` 当前降级为 monitor-only：
   - 原因：当前 grouped-local 合同已经支持最多 `3` 个 panel；后续只有在新的真实论文 demand 明确证明现有 grouped-local lower bound 不足时，才重新提升优先级。
 - `G / enrichment dotplot follow-on` 已在本轮正式收口为 `pathway_enrichment_dotplot_panel`，并将随本轮 absorb 进入当前 `main`，不再保留在 backlog 候选池。
+- `G / volcano follow-on` 已在本轮正式收口为 `omics_volcano_panel`，并将随本轮 absorb 进入当前 `main`，不再保留在 backlog 候选池。
 
 这些候选不等于必须立即实现。
 
@@ -105,7 +106,7 @@
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel` 与 `shap_grouped_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
-7. 对 `G/E` 而言，`gsva_ssgsea_heatmap` 与 `pathway_enrichment_dotplot_panel` 已经形成当前最小双基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 volcano、oncoplot、mutation landscape 或更复杂 enrichment 组合图。
+7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel` 与 `omics_volcano_panel` 已经形成当前最小三基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 oncoplot、mutation landscape 或更复杂 enrichment 组合图。
 
 ## Promotion Rules
 

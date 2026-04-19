@@ -2682,6 +2682,217 @@ def test_run_display_layout_qc_fails_when_pathway_enrichment_dotplot_scale_label
     assert any(issue["rule_id"] == "size_scale_label_missing" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_omics_volcano_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_omics_volcano_panel",
+        layout_sidecar={
+            "template_id": "omics_volcano_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.52, y0=0.86, x1=0.70, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.76, x1=0.12, y1=0.79),
+                make_box("panel_label_B", "panel_label", x0=0.52, y0=0.76, x1=0.54, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.18, y0=0.10, x1=0.30, y1=0.13),
+                make_box("x_axis_title_B", "subplot_x_axis_title", x0=0.60, y0=0.10, x1=0.72, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.36, x1=0.06, y1=0.66),
+                make_box("label_A_0", "annotation_label", x0=0.31, y0=0.63, x1=0.39, y1=0.67),
+                make_box("label_B_0", "annotation_label", x0=0.73, y0=0.59, x1=0.81, y1=0.63),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+                make_box("panel_B", "panel", x0=0.52, y0=0.18, x1=0.84, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("panel_A_threshold_left", "reference_line", x0=0.17, y0=0.18, x1=0.171, y1=0.80),
+                make_box("panel_A_threshold_right", "reference_line", x0=0.35, y0=0.18, x1=0.351, y1=0.80),
+                make_box("panel_A_significance_threshold", "reference_line", x0=0.10, y0=0.50, x1=0.42, y1=0.501),
+                make_box("panel_B_threshold_left", "reference_line", x0=0.59, y0=0.18, x1=0.591, y1=0.80),
+                make_box("panel_B_threshold_right", "reference_line", x0=0.77, y0=0.18, x1=0.771, y1=0.80),
+                make_box("panel_B_significance_threshold", "reference_line", x0=0.52, y0=0.50, x1=0.84, y1=0.501),
+            ],
+            "metrics": {
+                "legend_title": "Regulation",
+                "effect_threshold": 1.0,
+                "significance_threshold": 2.0,
+                "panels": [
+                    {
+                        "panel_id": "transcriptome",
+                        "panel_title": "Transcriptome",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "effect_threshold_left_box_id": "panel_A_threshold_left",
+                        "effect_threshold_right_box_id": "panel_A_threshold_right",
+                        "significance_threshold_box_id": "panel_A_significance_threshold",
+                        "points": [
+                            {
+                                "feature_label": "CXCL9",
+                                "x": 0.33,
+                                "y": 0.65,
+                                "effect_value": 1.72,
+                                "significance_value": 4.41,
+                                "regulation_class": "upregulated",
+                                "label_text": "CXCL9",
+                                "label_box_id": "label_A_0",
+                            },
+                            {
+                                "feature_label": "MKI67",
+                                "x": 0.31,
+                                "y": 0.57,
+                                "effect_value": 1.19,
+                                "significance_value": 3.28,
+                                "regulation_class": "upregulated",
+                            },
+                            {
+                                "feature_label": "COL1A1",
+                                "x": 0.21,
+                                "y": 0.61,
+                                "effect_value": -1.34,
+                                "significance_value": 3.92,
+                                "regulation_class": "downregulated",
+                            },
+                            {
+                                "feature_label": "GAPDH",
+                                "x": 0.27,
+                                "y": 0.29,
+                                "effect_value": 0.14,
+                                "significance_value": 0.52,
+                                "regulation_class": "background",
+                            },
+                        ],
+                    },
+                    {
+                        "panel_id": "proteome",
+                        "panel_title": "Proteome",
+                        "panel_label": "B",
+                        "panel_box_id": "panel_B",
+                        "panel_label_box_id": "panel_label_B",
+                        "panel_title_box_id": "panel_title_B",
+                        "x_axis_title_box_id": "x_axis_title_B",
+                        "effect_threshold_left_box_id": "panel_B_threshold_left",
+                        "effect_threshold_right_box_id": "panel_B_threshold_right",
+                        "significance_threshold_box_id": "panel_B_significance_threshold",
+                        "points": [
+                            {
+                                "feature_label": "CXCL9",
+                                "x": 0.75,
+                                "y": 0.61,
+                                "effect_value": 1.26,
+                                "significance_value": 3.36,
+                                "regulation_class": "upregulated",
+                                "label_text": "CXCL9",
+                                "label_box_id": "label_B_0",
+                            },
+                            {
+                                "feature_label": "STAT1",
+                                "x": 0.73,
+                                "y": 0.56,
+                                "effect_value": 1.08,
+                                "significance_value": 2.91,
+                                "regulation_class": "upregulated",
+                            },
+                            {
+                                "feature_label": "COL1A1",
+                                "x": 0.61,
+                                "y": 0.57,
+                                "effect_value": -1.11,
+                                "significance_value": 3.07,
+                                "regulation_class": "downregulated",
+                            },
+                            {
+                                "feature_label": "ACTB",
+                                "x": 0.68,
+                                "y": 0.30,
+                                "effect_value": 0.11,
+                                "significance_value": 0.61,
+                                "regulation_class": "background",
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_omics_volcano_threshold_box_is_missing() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_omics_volcano_panel",
+        layout_sidecar={
+            "template_id": "omics_volcano_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.10, y0=0.86, x1=0.30, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.10, y0=0.76, x1=0.12, y1=0.79),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.18, y0=0.10, x1=0.30, y1=0.13),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.03, y0=0.36, x1=0.06, y1=0.66),
+                make_box("label_A_0", "annotation_label", x0=0.31, y0=0.63, x1=0.39, y1=0.67),
+            ],
+            "panel_boxes": [
+                make_box("panel_A", "panel", x0=0.10, y0=0.18, x1=0.42, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.26, y0=0.02, x1=0.56, y1=0.08),
+                make_box("panel_A_threshold_left", "reference_line", x0=0.17, y0=0.18, x1=0.171, y1=0.80),
+                make_box("panel_A_significance_threshold", "reference_line", x0=0.10, y0=0.50, x1=0.42, y1=0.501),
+            ],
+            "metrics": {
+                "legend_title": "Regulation",
+                "effect_threshold": 1.0,
+                "significance_threshold": 2.0,
+                "panels": [
+                    {
+                        "panel_id": "transcriptome",
+                        "panel_title": "Transcriptome",
+                        "panel_label": "A",
+                        "panel_box_id": "panel_A",
+                        "panel_label_box_id": "panel_label_A",
+                        "panel_title_box_id": "panel_title_A",
+                        "x_axis_title_box_id": "x_axis_title_A",
+                        "effect_threshold_left_box_id": "panel_A_threshold_left",
+                        "effect_threshold_right_box_id": "panel_A_threshold_right",
+                        "significance_threshold_box_id": "panel_A_significance_threshold",
+                        "points": [
+                            {
+                                "feature_label": "CXCL9",
+                                "x": 0.33,
+                                "y": 0.65,
+                                "effect_value": 1.72,
+                                "significance_value": 4.41,
+                                "regulation_class": "upregulated",
+                                "label_text": "CXCL9",
+                                "label_box_id": "label_A_0",
+                            },
+                            {
+                                "feature_label": "COL1A1",
+                                "x": 0.21,
+                                "y": 0.61,
+                                "effect_value": -1.34,
+                                "significance_value": 3.92,
+                                "regulation_class": "downregulated",
+                            },
+                        ],
+                    }
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "effect_threshold_box_missing" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_celltype_signature_panel_is_missing_colorbar() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
