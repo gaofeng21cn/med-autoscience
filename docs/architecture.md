@@ -7,10 +7,8 @@
 当前 runtime 拓扑固定为：
 
 - `MedAutoScience`：唯一研究入口、research gateway、study/workspace/outer-loop authority owner
-- repo-side future outer-runtime seam：负责承接 backend-generic runtime contract、runtime handle 与 durable surface 的边界
+- upstream `Hermes-Agent` target：外部 managed runtime substrate owner，由 repo-side outer-runtime seam 消费
 - `MedDeepScientist`：controlled research backend，保留当前仍需由 research runtime 承担的 backend execution 能力
-
-旧 `Codex-default host-agent runtime` 当前承担迁移期对照面与回归参考角色。
 
 ## 当前执行链路真相（family 默认）
 
@@ -48,11 +46,11 @@
 
 目标中的 domain 级链路应是：
 
-`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes Kernel -> Med Auto Science Domain Harness OS`
+`User -> Med Auto Science Product Entry -> Med Auto Science Gateway -> Hermes-Agent managed runtime -> Med Auto Science Domain Harness OS`
 
 与 `OPL` 的家族级衔接应是：
 
-`User -> OPL Product Entry -> OPL Gateway -> Hermes Kernel -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
+`User -> OPL Product Entry -> OPL Gateway -> Hermes-Agent managed runtime -> Domain Handoff -> Med Auto Science Product Entry / Med Auto Science Gateway`
 
 `OPL -> Med Auto Science` 的最小 handoff envelope 至少包括：
 

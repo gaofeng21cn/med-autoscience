@@ -110,17 +110,33 @@ def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for
     assert "scripts/verify.sh full" in release_workflow
 
 
-def test_ci_docs_describe_submission_pdf_tex_dependency_split() -> None:
+def test_ci_docs_keep_public_readmes_focused_on_user_entry() -> None:
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     readme_zh = (REPO_ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
     preflight_doc = (REPO_ROOT / "docs" / "program" / "repository_ci_preflight.md").read_text(encoding="utf-8")
 
-    assert "submission-facing DOCX/PDF coverage" in readme
-    assert "`pandoc` plus `BasicTeX`" in readme
-    assert "advisory on push" in readme
-    assert "submission-facing DOCX/PDF 覆盖" in readme_zh
-    assert "`pandoc` 与 `BasicTeX`" in readme_zh
-    assert "push 上保持 advisory 告警" in readme_zh
+    assert "Docs Guide" in readme
+    assert "Project" in readme
+    assert "product-frontdesk" not in readme
+    assert "workspace-cockpit" not in readme
+    assert "Repository CI preflight" not in readme
+    assert "repository_ci_preflight.md" not in readme
+    assert "Development Verification" not in readme
+    assert "Codex Plugin Integration" not in readme
+    assert "submission-facing DOCX/PDF coverage" not in readme
+    assert "`pandoc` plus `BasicTeX`" not in readme
+    assert "advisory on push" not in readme
+    assert "文档索引" in readme_zh
+    assert "项目概览" in readme_zh
+    assert "product-frontdesk" not in readme_zh
+    assert "workspace-cockpit" not in readme_zh
+    assert "仓库 CI 预检" not in readme_zh
+    assert "repository_ci_preflight.md" not in readme_zh
+    assert "开发验证" not in readme_zh
+    assert "Codex 接入说明" not in readme_zh
+    assert "submission-facing DOCX/PDF 覆盖" not in readme_zh
+    assert "`pandoc` 与 `BasicTeX`" not in readme_zh
+    assert "push 上保持 advisory 告警" not in readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
     assert "`pandoc` 与 `BasicTeX`" in preflight_doc
     assert "display-heavy` lane 保持 advisory 告警" in preflight_doc

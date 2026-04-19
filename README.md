@@ -67,32 +67,7 @@ You can start with prompts like:
 
 1. Potential users and medical experts should start here, then continue to the [Docs Guide](./docs/README.md).
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
-3. Developers and maintainers should continue into `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, and `docs/policies/`.
-
-## Technical Notes For Maintainers
-
-The repository home stays user-facing on purpose.
-Runtime contracts, durable handles, bridge surfaces, and historical tranche records live in the technical docs:
-
-- [Docs Guide](./docs/README.md)
-- [Status](./docs/status.md)
-- [Project](./docs/project.md)
-- [Runtime contracts](./docs/runtime/)
-- [Program records](./docs/program/)
-
-## Development Verification
-
-- `make test-fast`
-- `make test-meta`
-- `make test-display`
-- `make test-full`
-- GitHub `macOS CI` intentionally keeps `quick-checks` lightweight; it installs `pandoc` plus `BasicTeX` for submission-facing DOCX/PDF coverage, while the full study runtime analysis bundle plus `graphviz` / `R` stay on the `display-heavy` and `release/full` lanes.
-- The `display-heavy` lane stays advisory on push, so external bundle bootstrap outages still show up in GitHub Actions without failing the whole workflow; `release/full` remains strict.
-
-## Codex Plugin Integration
-
-If you primarily operate through Codex, start with the Codex plugin integration guide at `docs/references/codex_plugin.md`.
-Keep `docs/references/codex_plugin_release.md` nearby as the Codex plugin release guide.
+3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, and `docs/policies/`.
 
 ## Further Reading
 

@@ -16,11 +16,12 @@
 
 ## 当前基线
 
-- `OPL` 是家族级顶层 GUI 与管理壳。
-- `Med Auto Science` 是这个壳下面的一级医学 domain module / agent。
-- `Codex` 是 MAS 默认交互与执行表面，通过 `CLI`、`MCP` 和 controller 命令推进工作。
-- 上游 `Hermes-Agent` 是外部备用模式与长期在线网关，负责 supervised runtime continuity。
+- `OPL` 是位于 MAS 之上的家族级 gateway 与 domain handoff surface。
+- `Med Auto Science` 是医学 `Research Ops` domain gateway、workspace authority 与论文交付主线。
+- formal-entry matrix 继续固定为 `CLI`、`MCP`、`controller`。
 - MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
+- `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他 caller 使用的 machine-readable bridge。
+- 上游 `Hermes-Agent` 指外部 managed runtime target 与 supervision owner；当前 repo-side seam 与受控 `MedDeepScientist` backend 的关系继续由核心文档说明。
 - 医学展示支线继续作为下游能力线分开维护。
 - 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 `docs/history/omx/` 中供维护者追溯。
 
@@ -68,24 +69,19 @@
 - [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
 - [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### 当前 program 与维护工作面
+### 当前维护记录
 
 - [Research Foundry 医学执行地图](program/research_foundry_medical_execution_map.md)
 - [Research Foundry 医学主线](program/research_foundry_medical_mainline.md)
 - [External Runtime Dependency Gate](program/external_runtime_dependency_gate.md)
 - [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
 - [项目修复优先级地图](program/project_repair_priority_map.md)
-- [仓库 CI 预检](program/repository_ci_preflight.md)
 - [Study progress projection](program/study_progress_projection.md)
 
 ### 追溯记录
 
-- [Research Foundry 医学维护者阶段参考](references/research_foundry_medical_phase_ladder.md)
-- [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
-- [Hermes backend activation package](program/hermes_backend_activation_package.md)
-- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
-- [手动 runtime 稳定化清单](program/manual_runtime_stabilization_checklist.md)
-- [真实课题 relaunch 验证记录](program/real_study_relaunch_verification.md)
+- [Program 目录](program/)
+- [References 目录](references/)
 - [OMX 历史资料索引](history/omx/README.zh-CN.md)
 
 ### MAS 用户回路与内部桥接参考

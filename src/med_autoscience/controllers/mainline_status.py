@@ -489,9 +489,9 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "用户已经能稳定看到主线状态、workspace attention 和 study progress。",
             ],
             "phase_docs": [
-                "docs/program/upstream_hermes_agent_fast_cutover_board.md",
-                "docs/program/research_foundry_medical_mainline.md",
-                "docs/references/research_foundry_medical_phase_ladder.md",
+                "docs/status.md",
+                "docs/project.md",
+                "docs/architecture.md",
             ],
         },
         {
@@ -532,9 +532,9 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "当前 repo-tracked shell 已足够像真实 user loop，而不是命令散点集合。",
             ],
             "phase_docs": [
-                "docs/references/research_foundry_medical_phase_ladder.md",
-                "docs/references/lightweight_product_entry_and_opl_handoff.md",
+                "docs/README.md",
                 "docs/runtime/agent_runtime_interface.md",
+                "docs/references/lightweight_product_entry_and_opl_handoff.md",
             ],
         },
         {
@@ -570,9 +570,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "host/env compatibility 不再反复成为主阻塞类别。",
             ],
             "phase_docs": [
+                "docs/README.md",
+                "docs/status.md",
                 "docs/program/external_runtime_dependency_gate.md",
                 "docs/program/upstream_hermes_agent_fast_cutover_board.md",
-                "docs/references/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
@@ -603,8 +604,9 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "executor replacement 不依赖一次性重写或 truth rewrite。",
             ],
             "phase_docs": [
+                "docs/README.md",
+                "docs/project.md",
                 "docs/program/med_deepscientist_deconstruction_map.md",
-                "docs/references/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
@@ -635,7 +637,8 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "OPL family entry 与 MAS domain entry 已能自然衔接。",
             ],
             "phase_docs": [
-                "docs/references/research_foundry_medical_phase_ladder.md",
+                "docs/README.md",
+                "docs/project.md",
                 "docs/program/research_foundry_medical_mainline.md",
             ],
         },
@@ -742,12 +745,11 @@ def read_mainline_status() -> dict[str, Any]:
         ],
         "source_docs": [
             "README.md",
+            "docs/README.md",
             "docs/project.md",
             "docs/architecture.md",
             "docs/status.md",
-            "docs/program/upstream_hermes_agent_fast_cutover_board.md",
-            "docs/program/research_foundry_medical_mainline.md",
-            "docs/references/research_foundry_medical_phase_ladder.md",
+            "docs/runtime/agent_runtime_interface.md",
             "docs/references/lightweight_product_entry_and_opl_handoff.md",
         ],
         "commands": {

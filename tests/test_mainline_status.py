@@ -111,6 +111,25 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "phase_3_multi_workspace_host_clearance",
         "phase_4_backend_deconstruction",
     ]
+    assert payload["source_docs"] == [
+        "README.md",
+        "docs/README.md",
+        "docs/project.md",
+        "docs/architecture.md",
+        "docs/status.md",
+        "docs/runtime/agent_runtime_interface.md",
+        "docs/references/lightweight_product_entry_and_opl_handoff.md",
+    ]
+    assert payload["phase_ladder"][0]["phase_docs"] == [
+        "docs/status.md",
+        "docs/project.md",
+        "docs/architecture.md",
+    ]
+    assert payload["phase_ladder"][1]["phase_docs"] == [
+        "docs/README.md",
+        "docs/runtime/agent_runtime_interface.md",
+        "docs/references/lightweight_product_entry_and_opl_handoff.md",
+    ]
     assert any(item["name"] == "workspace_cockpit" for item in payload["phase_ladder"][1]["entry_points"])
     assert any(item["id"] == "f3_real_study_soak_recovery_proof" for item in payload["completed_tranches"])
     assert any("standalone" in item for item in payload["remaining_gaps"])
@@ -142,6 +161,10 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Phase 4 Deconstruction" in markdown
     assert "Remaining Gaps" in markdown
     assert "Next Focus" in markdown
+    assert "docs/README.md" in markdown
+    assert "docs/runtime/agent_runtime_interface.md" in markdown
+    assert "docs/program/research_foundry_medical_mainline.md" not in markdown
+    assert "docs/references/research_foundry_medical_phase_ladder.md" not in markdown
     assert "program_id:" not in markdown
     assert "domain_gateway:" not in markdown
     assert "outer_runtime_substrate_owner:" not in markdown
@@ -177,6 +200,8 @@ def test_render_mainline_phase_markdown_surfaces_entry_points_and_exit_criteria(
     assert "可用入口" in markdown
     assert "退出条件" in markdown
     assert "相关文档" in markdown
+    assert "docs/runtime/agent_runtime_interface.md" in markdown
+    assert "docs/references/research_foundry_medical_phase_ladder.md" not in markdown
     assert "phase_id:" not in markdown
     assert "phase_status:" not in markdown
     assert "usable_now:" not in markdown

@@ -16,11 +16,12 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 
 ## Current Baseline
 
-- `OPL` is the top-level GUI and management shell for the family.
-- `Med Auto Science` is the first-level medical domain module and agent under that shell.
-- `Codex` is the default interaction and execution surface for MAS work through `CLI`, `MCP`, and controller commands.
-- upstream `Hermes-Agent` is the external backup mode and long-running gateway for supervised runtime continuity.
+- `OPL` is the family-level gateway and domain handoff surface above MAS.
+- `Med Auto Science` is the medical `Research Ops` domain gateway, workspace authority, and manuscript-delivery line.
+- The formal-entry matrix stays `CLI`, `MCP`, and `controller`.
 - The default MAS loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`.
+- `product-entry-manifest` and `build-product-entry` stay as machine-readable bridges for `OPL` and other callers.
+- upstream `Hermes-Agent` names the external managed runtime target and supervision owner; the current repo-side seam plus controlled `MedDeepScientist` backend remain documented in the core docs.
 - The medical display line stays separate as a downstream capability line.
 - Historical program records, runtime-formation notes, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and `docs/history/omx/`.
 
@@ -68,24 +69,19 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
 - [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
 
-### Current program and operator surfaces
+### Current operator records
 
 - [Research Foundry medical execution map](program/research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](program/research_foundry_medical_mainline.md)
 - [External runtime dependency gate](program/external_runtime_dependency_gate.md)
 - [Merge and cutover gates](program/merge_and_cutover_gates.md)
 - [Project repair priority map](program/project_repair_priority_map.md)
-- [Repository CI preflight](program/repository_ci_preflight.md)
 - [Study progress projection](program/study_progress_projection.md)
 
 ### Traceability records
 
-- [Research Foundry medical maintainer phase reference](references/research_foundry_medical_phase_ladder.md)
-- [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
-- [Hermes backend activation package](program/hermes_backend_activation_package.md)
-- [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)
-- [Manual runtime stabilization checklist](program/manual_runtime_stabilization_checklist.md)
-- [Real study relaunch verification](program/real_study_relaunch_verification.md)
+- [Program directory](program/)
+- [References directory](references/)
 - [OMX historical archive](history/omx/README.md)
 
 ### MAS user loop and internal bridge references

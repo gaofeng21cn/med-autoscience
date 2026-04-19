@@ -1,15 +1,15 @@
 # 项目概览
 
-`Med Auto Science` 是共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` gateway 与 `Domain Harness OS`。仓库关注的是 gateway、controller、overlay、adapter 以及可审计的 durable surface，不把执行面 `MedDeepScientist` 当作本仓库本体。
+`Med Auto Science` 是共享 `Unified Harness Engineering Substrate` 之上的医学 `Research Ops` gateway 与 `Domain Harness OS`。它负责研究入口、workspace authority、证据推进、进度投影与面向论文的交付面；仓库持续维护 gateway、controller、overlay、adapter 与可审计 durable surface，同时把当前 research execution backend 保持在 `MedDeepScientist`。
 
 ## 当前运行形态
 
-- 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向
 - formal-entry matrix：默认正式入口 `CLI`、支持协议层 `MCP`、内部控制面 `controller`
-- 主线理解：repo-tracked 产品主线按 `Auto-only` 理解
-- 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`MedDeepScientist` 作为 controlled research backend；上游 `Hermes-Agent` 仍是目标外层 substrate，而当前仓内已落下 repo-side seam / real adapter
-- 当前入口真相：`CLI / MCP` 已经构成稳定的 formal entry surface。当前 repo-tracked 用户回路收口为 `product-frontdesk -> workspace-cockpit -> submit-study-task -> launch-study -> study-progress`：`product-frontdesk` 承担 controller-owned frontdoor，`workspace-cockpit` 承担当前用户 inbox，`study-progress` 负责投影任务摘要、监管 freshness 与人话进度；`mainline-status` 与维护者参考命令继续提供 repo 级背景；`product-entry-manifest` 与 `build-product-entry` 负责把这层回路输出为 shared direct / `OPL` handoff envelope。相关 guardrails、clearance lane、backend deconstruction 与 maintainership notes 继续通过同一套 manifest/frontdesk/cockpit payload 对维护者显式给出，但成熟的 direct user-facing `product entry` 仍是后续工作。
-- 当前协作真相：`Hermes-Agent` 负责长期在线 runtime substrate / orchestration，`MedAutoScience` 负责研究入口与 outer-loop authority，`MedDeepScientist` 继续承载当前 research execution brain；这不要求现在就把 backend 内部依赖的 `Codex + skills` 全部替成 `Hermes`
+- repo-tracked 主线继续按 `Auto-only` 理解
+- 当前 repo-tracked 基线：`MedAutoScience` 作为唯一研究入口与 research gateway，`Hermes-Agent` 作为上游外部 managed runtime target 与 supervision owner，`MedDeepScientist` 作为 controlled research backend
+- 当前入口真相：repo-tracked 用户回路收口为 `product-frontdesk -> workspace-cockpit -> submit-study-task -> launch-study -> study-progress`。`product-frontdesk` 承担 controller-owned frontdoor，`workspace-cockpit` 承担当前用户 inbox，`study-progress` 负责投影任务摘要、监管 freshness 与人话进度；`product-entry-manifest` 与 `build-product-entry` 负责把这层回路输出为 shared direct / `OPL` handoff envelope
+- 当前协作真相：当前仓内持有 repo-side seam / real adapter，并把研究治理、runtime supervision 与 progress semantics 固定在 repo-tracked surface 上；真实 research execution 继续由受控 backend 承担
+- 历史 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle
 
 ## 目标
 

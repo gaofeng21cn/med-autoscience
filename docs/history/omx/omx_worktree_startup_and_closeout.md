@@ -1,6 +1,8 @@
-# OMX Worktree 启动与收尾操作规约
+# 历史 OMX Worktree 启动与收尾操作规约
 
-这份文档是 `Med Auto Science` 当前仓库内使用 OMX 的固定操作手册。
+> 历史归档文档。它保留 OMX 时代的 worktree 运行手册，供审计与回溯使用。当前 worktree 规则以仓库根 `AGENTS.md`、`docs/README*` 和活跃核心文档为准。
+
+这份文档保留 `Med Auto Science` 当时使用 OMX 的操作手册。
 
 它解决的不是“怎么让 hook 完全变成 session 级”，因为这件事由 `oh-my-codex` 上游实现决定；它解决的是：
 
