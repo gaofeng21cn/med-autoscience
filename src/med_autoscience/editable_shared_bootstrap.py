@@ -38,9 +38,12 @@ def _candidate_repo_site_packages_roots() -> tuple[Path, ...]:
 def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
     candidate_base_roots = [repo_root.parent]
-    if repo_root.parent.name == ".worktrees":
-        # Worktree layout: <workspace>/<repo>/.worktrees/<wt>. Prefer the workspace sibling owner.
-        candidate_base_roots.append(repo_root.parent.parent.parent)
+    for ancestor in repo_root.parents:
+        if ancestor.name != ".worktrees":
+            continue
+        # Worktree layout: <workspace>/<repo>/.worktrees/<owner>/<wt>. Prefer the workspace sibling owner.
+        if ancestor.parent.parent not in candidate_base_roots:
+            candidate_base_roots.append(ancestor.parent.parent)
 
     unique_base_roots: list[Path] = []
     for candidate in candidate_base_roots:
@@ -59,6 +62,10 @@ def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
     )
 
 
+def _candidate_shared_src_roots() -> tuple[Path, ...]:
+    return tuple(path.parent.parent for path in _candidate_shared_helper_module_paths())
+
+
 def _prepend_path(candidate_root: Path) -> bool:
     if not candidate_root.exists():
         return False
@@ -68,6 +75,15 @@ def _prepend_path(candidate_root: Path) -> bool:
     sys.path.insert(0, candidate_root_str)
     importlib.invalidate_caches()
     return True
+
+
+def _prefer_existing_package_path(candidate_root: Path) -> None:
+    package = sys.modules.get(_SHARED_PACKAGE_NAME)
+    if package is None or not hasattr(package, "__path__"):
+        return
+    package_root = str(candidate_root / _SHARED_PACKAGE_NAME)
+    existing = [entry for entry in package.__path__ if entry != package_root]
+    package.__path__[:] = [package_root, *existing]
 
 
 def _load_shared_helper_module_from_path(helper_path: Path):
@@ -94,6 +110,14 @@ def _import_shared_helper_module():
 def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
     added_paths: list[Path] = []
+    for candidate_root in _candidate_shared_src_roots():
+        if not (candidate_root / _SHARED_PACKAGE_NAME).exists():
+            continue
+        inserted = _prepend_path(candidate_root)
+        _prefer_existing_package_path(candidate_root)
+        if inserted:
+            added_paths.append(candidate_root)
+        break
     helper_module = _import_shared_helper_module()
     if helper_module is None:
         for candidate_root in _candidate_repo_site_packages_roots():

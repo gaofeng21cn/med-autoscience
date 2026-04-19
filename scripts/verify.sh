@@ -23,10 +23,15 @@ if [[ "${lane}" == "display" ]]; then
   exit 0
 fi
 
+if [[ "${lane}" == "family" ]]; then
+  make test-family
+  exit 0
+fi
+
 if [[ "${lane}" == "full" ]]; then
   make test-full
   exit 0
 fi
 
-echo "Usage: scripts/verify.sh [fast|meta|display|full]" >&2
+echo "Usage: scripts/verify.sh [fast|meta|display|family|full]" >&2
 exit 1

@@ -139,8 +139,42 @@ def test_bootstrap_prefers_sibling_owner_helper_over_importable_site_packages(mo
 
     added = module.ensure_editable_dependency_paths()
 
-    assert added == ()
+    assert added == (helper_path.parent.parent,)
     assert (fake_repo_root / "preferred-sibling-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
+
+
+def test_bootstrap_detects_workspace_sibling_owner_from_nested_worktree_layout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "codex" / "family-release-pre-shape-mas"
+    fake_repo_root.mkdir(parents=True)
+    helper_path = (
+        tmp_path
+        / "one-person-lab"
+        / "python"
+        / "opl-harness-shared"
+        / "src"
+        / "opl_harness_shared"
+        / "editable_consumer_bootstrap.py"
+    )
+    helper_path.parent.mkdir(parents=True)
+    helper_path.write_text(
+        "from pathlib import Path\n"
+        "def ensure_consumer_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
+        "    marker = Path(repo_root) / 'nested-worktree-helper.txt'\n"
+        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
+        "    return (Path(repo_root).parents[3] / 'one-person-lab' / 'python' / 'opl-harness-shared' / 'src',)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
+    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: ())
+    monkeypatch.setattr(module, "_module_spec", lambda module_name: None)
+
+    added = module.ensure_editable_dependency_paths()
+
+    assert added == (tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src",)
+    assert (fake_repo_root / "nested-worktree-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
 
 
 def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_owner(
@@ -170,6 +204,10 @@ def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_own
         "SOURCE = 'family_entry_contracts'\n",
         encoding="utf-8",
     )
+    (package_root / "family_shared_release.py").write_text(
+        "SOURCE = 'family_shared_release'\n",
+        encoding="utf-8",
+    )
     (package_root / "product_entry_companions.py").write_text(
         "SOURCE = 'product_entry_companions'\n",
         encoding="utf-8",
@@ -181,6 +219,7 @@ def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_own
             "opl_harness_shared",
             "opl_harness_shared.editable_consumer_bootstrap",
             "opl_harness_shared.family_entry_contracts",
+            "opl_harness_shared.family_shared_release",
             "opl_harness_shared.product_entry_companions",
         )
     }
@@ -196,6 +235,7 @@ def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_own
             for module_name in (
                 "opl_harness_shared.editable_consumer_bootstrap",
                 "opl_harness_shared.family_entry_contracts",
+                "opl_harness_shared.family_shared_release",
                 "opl_harness_shared.product_entry_companions",
             )
         }
@@ -214,6 +254,9 @@ def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_own
     assert imported_paths["opl_harness_shared.family_entry_contracts"] == (
         package_root / "family_entry_contracts.py"
     ).resolve()
+    assert imported_paths["opl_harness_shared.family_shared_release"] == (
+        package_root / "family_shared_release.py"
+    ).resolve()
     assert imported_paths["opl_harness_shared.product_entry_companions"] == (
         package_root / "product_entry_companions.py"
     ).resolve()
@@ -226,6 +269,7 @@ def test_required_shared_entrypoints_are_resolvable_from_current_checkout() -> N
         required_modules = (
             "opl_harness_shared.editable_consumer_bootstrap",
             "opl_harness_shared.family_entry_contracts",
+            "opl_harness_shared.family_shared_release",
             "opl_harness_shared.product_entry_companions",
         )
         for module_name in required_modules:

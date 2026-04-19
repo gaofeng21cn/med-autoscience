@@ -211,6 +211,27 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "make test-meta",
         ),
     ),
+    PreflightCategorySpec(
+        category_id="family_shared_surface",
+        exact_paths=(
+            "Makefile",
+            "pyproject.toml",
+            "scripts/verify.sh",
+            "src/med_autoscience/editable_shared_bootstrap.py",
+            "src/med_autoscience/dev_preflight.py",
+            "src/med_autoscience/dev_preflight_contract.py",
+            "src/med_autoscience/family_shared_release.py",
+            "tests/test_dev_preflight.py",
+            "tests/test_dev_preflight_contract.py",
+            "tests/test_editable_shared_bootstrap.py",
+            "tests/test_family_shared_release.py",
+            "uv.lock",
+        ),
+        prefix_paths=(),
+        commands=(
+            "make test-family",
+        ),
+    ),
 )
 
 

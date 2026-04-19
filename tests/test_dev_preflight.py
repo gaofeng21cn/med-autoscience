@@ -109,6 +109,49 @@ def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_pa
     assert calls[0] == ["uv", "run", "pytest", "tests/test_dev_preflight_contract.py", "-q"]
 
 
+def test_run_preflight_executes_family_shared_lane(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(list(command))
+
+        class Result:
+            returncode = 0
+            stdout = "ok\n"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    result = module.run_preflight(
+        changed_files=["src/med_autoscience/editable_shared_bootstrap.py"],
+        repo_root=tmp_path,
+    )
+
+    assert result.ok is True
+    assert result.matched_categories == ("family_shared_surface",)
+    assert result.unclassified_changes == ()
+    assert result.planned_commands == ("make test-family",)
+    assert calls == [["make", "test-family"]]
+
+
+def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    makefile = (repo_root / "Makefile").read_text(encoding="utf-8")
+    verify_script = (repo_root / "scripts" / "verify.sh").read_text(encoding="utf-8")
+
+    assert ".PHONY: test test-fast test-meta test-display test-full test-family" in makefile
+    assert (
+        "test-family:\n"
+        "\tuv run --no-sync pytest tests/test_family_shared_release.py "
+        "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
+        "tests/test_dev_preflight.py -q\n"
+    ) in makefile
+    assert 'if [[ "${lane}" == "family" ]]; then\n  make test-family\n  exit 0\nfi\n' in verify_script
+
+
 def test_collect_changed_files_from_staged_diff(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
 

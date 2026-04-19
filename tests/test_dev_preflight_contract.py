@@ -116,7 +116,31 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
         ]
     )
 
-    assert result.matched_categories == ("integration_harness_surface",)
+    assert result.matched_categories == ("integration_harness_surface", "family_shared_surface")
+    assert result.unclassified_changes == ()
+
+
+def test_classify_changed_files_matches_family_shared_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "pyproject.toml",
+            "uv.lock",
+            "Makefile",
+            "scripts/verify.sh",
+            "src/med_autoscience/editable_shared_bootstrap.py",
+            "src/med_autoscience/dev_preflight.py",
+            "src/med_autoscience/dev_preflight_contract.py",
+            "src/med_autoscience/family_shared_release.py",
+            "tests/test_editable_shared_bootstrap.py",
+            "tests/test_dev_preflight.py",
+            "tests/test_dev_preflight_contract.py",
+            "tests/test_family_shared_release.py",
+        ]
+    )
+
+    assert result.matched_categories == ("workflow_surface", "family_shared_surface", "integration_harness_surface")
     assert result.unclassified_changes == ()
 
 
@@ -179,3 +203,11 @@ def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proof
     assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
     assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
     assert "make test-meta" in commands
+
+
+def test_plan_commands_for_family_shared_surface_use_focused_family_lane() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("family_shared_surface",))
+
+    assert commands == ["make test-family"]
