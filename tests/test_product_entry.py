@@ -1074,7 +1074,7 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
         },
     )
 
-    def _fake_build_family_product_frontdesk(**kwargs: object) -> dict[str, object]:
+    def _fake_build_family_product_frontdesk_from_manifest(**kwargs: object) -> dict[str, object]:
         captured.update(kwargs)
         return {
             "surface_kind": "product_frontdesk",
@@ -1083,8 +1083,8 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
 
     monkeypatch.setattr(
         module,
-        "_build_shared_family_product_frontdesk",
-        _fake_build_family_product_frontdesk,
+        "_build_shared_family_product_frontdesk_from_manifest",
+        _fake_build_family_product_frontdesk_from_manifest,
     )
     monkeypatch.setattr(module, "_validate_product_frontdesk_contract", lambda payload: None)
 
@@ -1092,13 +1092,17 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
 
     assert payload["surface_kind"] == "product_frontdesk"
     assert captured["schema_ref"] == module.PRODUCT_FRONTDESK_SCHEMA_REF
-    assert "domain_entry_contract" not in captured
-    assert "gateway_interaction_contract" not in captured
+    assert captured["shell_aliases"] == {
+        "frontdesk": "product_frontdesk",
+        "cockpit": "workspace_cockpit",
+        "submit_task": "submit_study_task",
+        "launch_study": "launch_study",
+        "study_progress": "study_progress",
+        "mainline_status": "mainline_status",
+        "mainline_phase": "mainline_phase",
+    }
     assert captured["product_entry_manifest"]["domain_entry_contract"] == manifest["domain_entry_contract"]
-    assert (
-        captured["product_entry_manifest"]["gateway_interaction_contract"]
-        == manifest["gateway_interaction_contract"]
-    )
+    assert captured["product_entry_manifest"]["gateway_interaction_contract"] == manifest["gateway_interaction_contract"]
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 

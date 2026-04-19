@@ -40,8 +40,7 @@ from opl_harness_shared.family_entry_contracts import (
     validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
 )
 from opl_harness_shared.product_entry_companions import (
-    build_family_frontdesk_entry_surfaces as _build_shared_family_frontdesk_entry_surfaces,
-    build_family_product_frontdesk as _build_shared_family_product_frontdesk,
+    build_family_product_frontdesk_from_manifest as _build_shared_family_product_frontdesk_from_manifest,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_product_entry_start as _build_shared_product_entry_start,
     build_product_entry_overview as _build_shared_product_entry_overview,
@@ -2601,8 +2600,9 @@ def build_product_frontdesk(
             "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command")),
         }
 
-    entry_surfaces = _build_shared_family_frontdesk_entry_surfaces(
-        product_entry_shell=product_entry_shell,
+    payload = _build_shared_family_product_frontdesk_from_manifest(
+        recommended_action="inspect_or_prepare_research_loop",
+        product_entry_manifest=manifest,
         shell_aliases={
             "frontdesk": "product_frontdesk",
             "cockpit": "workspace_cockpit",
@@ -2612,13 +2612,6 @@ def build_product_frontdesk(
             "mainline_status": "mainline_status",
             "mainline_phase": "mainline_phase",
         },
-        shared_handoff=shared_handoff,
-    )
-
-    payload = _build_shared_family_product_frontdesk(
-        recommended_action="inspect_or_prepare_research_loop",
-        product_entry_manifest=manifest,
-        entry_surfaces=entry_surfaces,
         schema_ref=PRODUCT_FRONTDESK_SCHEMA_REF,
         notes=[
             "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
