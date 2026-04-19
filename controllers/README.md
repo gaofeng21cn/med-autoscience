@@ -20,6 +20,7 @@
 6. data assets controller
 7. MedDeepScientist upstream upgrade check
 8. managed study runtime orchestration
+9. runtime storage maintenance
 
 对应的 Python 实现在包内：
 
@@ -33,6 +34,7 @@
 - `src/med_autoscience/controllers/med_deepscientist_upgrade_check.py`
 - `src/med_autoscience/controllers/study_runtime_router.py`
 - `src/med_autoscience/controllers/study_runtime_types.py`
+- `src/med_autoscience/controllers/runtime_storage_maintenance.py`
 
 对应测试：
 
@@ -45,6 +47,7 @@
 - `tests/test_data_asset_updates.py`
 - upgrade-check 的专用测试模块
 - `tests/test_study_runtime_router.py`
+- `tests/test_runtime_storage_maintenance.py`
 
 当前迁移策略是：
 

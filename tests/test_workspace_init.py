@@ -94,6 +94,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     bootstrap = workspace_root / "ops" / "medautoscience" / "bin" / "bootstrap"
     enter_study = workspace_root / "ops" / "medautoscience" / "bin" / "enter-study"
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
+    maintain_runtime_storage = workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage"
     resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
@@ -106,6 +107,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert show_profile.is_file()
     assert enter_study.is_file()
     assert watch_runtime.is_file()
+    assert maintain_runtime_storage.is_file()
     assert resolve_journal_shortlist.is_file()
     assert init_portfolio_memory.is_file()
     assert portfolio_memory_status.is_file()
@@ -118,6 +120,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
     assert os.access(watch_runtime, os.X_OK)
+    assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(init_portfolio_memory, os.X_OK)
     assert os.access(portfolio_memory_status, os.X_OK)
@@ -127,6 +130,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(external_research_status, os.X_OK)
     assert os.access(ds_doctor, os.X_OK)
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
+    maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
     show_profile_text = show_profile.read_text(encoding="utf-8")
     enter_study_text = enter_study.read_text(encoding="utf-8")
@@ -141,6 +145,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study_text
     assert '--profile "${PROFILE_PATH}"' in watch_runtime_text
+    assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert "--ensure-study-runtimes" in watch_runtime_text
     assert "--apply" in watch_runtime_text
     assert "--loop" in watch_runtime_text

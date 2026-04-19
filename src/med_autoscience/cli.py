@@ -53,6 +53,7 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
+runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime_storage_maintenance"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
 journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
@@ -207,6 +208,23 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
     runtime_remove_supervision_parser.add_argument("--profile", required=True)
     runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
+
+    runtime_maintain_storage_parser = subparsers.add_parser("runtime-maintain-storage")
+    runtime_maintain_storage_parser.add_argument("--profile", required=True)
+    runtime_maintain_storage_parser.add_argument("--study-id", type=str)
+    runtime_maintain_storage_parser.add_argument("--study-root", type=str)
+    runtime_maintain_storage_parser.add_argument("--no-worktrees", action="store_true")
+    runtime_maintain_storage_parser.add_argument("--older-than-hours", type=int, default=6)
+    runtime_maintain_storage_parser.add_argument("--jsonl-max-mb", type=int, default=64)
+    runtime_maintain_storage_parser.add_argument("--text-max-mb", type=int, default=16)
+    runtime_maintain_storage_parser.add_argument("--event-segment-max-mb", type=int, default=64)
+    runtime_maintain_storage_parser.add_argument("--no-slim-oversized-jsonl", action="store_true")
+    runtime_maintain_storage_parser.add_argument("--slim-jsonl-threshold-mb", type=int, default=8)
+    runtime_maintain_storage_parser.add_argument("--no-dedupe-worktrees", action="store_true")
+    runtime_maintain_storage_parser.add_argument("--dedupe-worktree-min-mb", type=int, default=16)
+    runtime_maintain_storage_parser.add_argument("--head-lines", type=int, default=200)
+    runtime_maintain_storage_parser.add_argument("--tail-lines", type=int, default=200)
+    runtime_maintain_storage_parser.add_argument("--allow-live-runtime", action="store_true")
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
@@ -521,6 +539,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "supervision-status"): "runtime-supervision-status",
     ("runtime", "ensure-supervision"): "runtime-ensure-supervision",
     ("runtime", "remove-supervision"): "runtime-remove-supervision",
+    ("runtime", "maintain-storage"): "runtime-maintain-storage",
     ("runtime", "overlay-status"): "overlay-status",
     ("runtime", "install-overlay"): "install-medical-overlay",
     ("runtime", "reapply-overlay"): "reapply-medical-overlay",
@@ -561,7 +580,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "runtime watch、Hermes supervision、overlay 与 analysis bundle 维护。",
+    "runtime": "runtime watch、Hermes supervision、overlay、analysis bundle 与 storage maintenance。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "product": "frontdesk、preflight、start、manifest 与 build-entry。",
@@ -949,6 +968,32 @@ def main(argv: list[str] | None = None) -> int:
         result = hermes_supervision.remove_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-maintain-storage":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        result = runtime_storage_maintenance.maintain_runtime_storage(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            include_worktrees=not bool(args.no_worktrees),
+            older_than_seconds=max(1, int(args.older_than_hours)) * 3600,
+            jsonl_max_mb=max(1, int(args.jsonl_max_mb)),
+            text_max_mb=max(1, int(args.text_max_mb)),
+            event_segment_max_mb=max(1, int(args.event_segment_max_mb)),
+            slim_jsonl_threshold_mb=(
+                None if bool(args.no_slim_oversized_jsonl) else max(1, int(args.slim_jsonl_threshold_mb))
+            ),
+            dedupe_worktree_min_mb=(
+                None if bool(args.no_dedupe_worktrees) else max(1, int(args.dedupe_worktree_min_mb))
+            ),
+            head_lines=max(1, int(args.head_lines)),
+            tail_lines=max(1, int(args.tail_lines)),
+            allow_live_runtime=bool(args.allow_live_runtime),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
