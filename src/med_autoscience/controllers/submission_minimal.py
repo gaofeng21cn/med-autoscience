@@ -25,6 +25,7 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.runtime_protocol.paper_artifacts import (
     materialize_archived_reference_only_submission_surface_manifests,
+    resolve_managed_submission_surface_roots,
 )
 
 
@@ -171,34 +172,75 @@ def _first_nonempty_string(*values: object) -> str | None:
     return None
 
 
-def resolve_compiled_markdown_path(
+def _path_is_within_any_root(path: Path, roots: tuple[Path, ...]) -> bool:
+    resolved_path = path.resolve()
+    for root in roots:
+        try:
+            resolved_path.relative_to(root.resolve())
+        except ValueError:
+            continue
+        return True
+    return False
+
+
+def _resolve_compiled_surface_candidate(
     *,
     workspace_root: Path,
-    bundle_manifest: dict[str, Any],
-    compile_report: dict[str, Any],
+    candidate_values: list[object],
+    excluded_roots: tuple[Path, ...],
+    missing_error: str,
 ) -> Path:
-    bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
-    candidate_values = [
-        bundle_inputs.get("compiled_markdown_path"),
-        compile_report.get("source_markdown_path"),
-        compile_report.get("source_markdown"),
-        bundle_manifest.get("draft_path"),
-    ]
     normalized_candidates = [
         str(value).strip()
         for value in candidate_values
         if isinstance(value, str) and str(value).strip()
     ]
     if not normalized_candidates:
-        raise KeyError(
-            "submission export could not resolve compiled markdown from bundle_manifest.bundle_inputs.compiled_markdown_path, "
-            "bundle_manifest.draft_path, compile_report.source_markdown_path, or compile_report.source_markdown"
-        )
+        raise KeyError(missing_error)
+
+    first_candidate: Path | None = None
+    first_nonexcluded_candidate: Path | None = None
     for candidate in normalized_candidates:
         resolved_candidate = resolve_relpath(workspace_root, candidate)
+        if first_candidate is None:
+            first_candidate = resolved_candidate
+        if _path_is_within_any_root(resolved_candidate, excluded_roots):
+            continue
+        if first_nonexcluded_candidate is None:
+            first_nonexcluded_candidate = resolved_candidate
         if resolved_candidate.exists():
             return resolved_candidate
-    return resolve_relpath(workspace_root, normalized_candidates[0])
+
+    if first_nonexcluded_candidate is not None:
+        return first_nonexcluded_candidate
+    assert first_candidate is not None
+    return first_candidate
+
+
+def resolve_compiled_markdown_path(
+    *,
+    workspace_root: Path,
+    bundle_manifest: dict[str, Any],
+    compile_report: dict[str, Any],
+    excluded_roots: tuple[Path, ...] = (),
+) -> Path:
+    bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
+    return _resolve_compiled_surface_candidate(
+        workspace_root=workspace_root,
+        candidate_values=[
+            bundle_inputs.get("compiled_markdown_path"),
+            compile_report.get("source_markdown_path"),
+            compile_report.get("source_markdown"),
+            bundle_manifest.get("draft_path"),
+        ],
+        excluded_roots=excluded_roots,
+        missing_error=(
+            "submission export could not resolve compiled markdown from "
+            "bundle_manifest.bundle_inputs.compiled_markdown_path, "
+            "bundle_manifest.draft_path, compile_report.source_markdown_path, "
+            "or compile_report.source_markdown"
+        ),
+    )
 
 
 def resolve_compiled_pdf_path(
@@ -206,18 +248,21 @@ def resolve_compiled_pdf_path(
     workspace_root: Path,
     bundle_manifest: dict[str, Any],
     compile_report: dict[str, Any],
+    excluded_roots: tuple[Path, ...] = (),
 ) -> Path:
-    candidate = _first_nonempty_string(
-        compile_report.get("output_pdf"),
-        compile_report.get("pdf_path"),
-        bundle_manifest.get("pdf_path"),
+    return _resolve_compiled_surface_candidate(
+        workspace_root=workspace_root,
+        candidate_values=[
+            compile_report.get("output_pdf"),
+            compile_report.get("pdf_path"),
+            bundle_manifest.get("pdf_path"),
+        ],
+        excluded_roots=excluded_roots,
+        missing_error=(
+            "submission export could not resolve compiled pdf from "
+            "compile_report.output_pdf, compile_report.pdf_path, or bundle_manifest.pdf_path"
+        ),
     )
-    if candidate is None:
-        raise KeyError(
-            "submission export could not resolve compiled pdf from compile_report.output_pdf, "
-            "compile_report.pdf_path, or bundle_manifest.pdf_path"
-        )
-    return resolve_relpath(workspace_root, candidate)
 
 
 def copy_with_renamed_targets(
@@ -1738,16 +1783,26 @@ def create_submission_minimal_package(
         pack_lock_payload[0],
         _build_display_pack_summary_by_id(pack_lock_payload[1]),
     ) if pack_lock_payload is not None else (None, {})
+    excluded_compiled_source_roots = tuple(
+        dict.fromkeys(
+            [
+                *(root.resolve() for root in resolve_managed_submission_surface_roots(paper_root)),
+                submission_root.resolve(),
+            ]
+        )
+    )
 
     compiled_markdown_path = resolve_compiled_markdown_path(
         workspace_root=workspace_root,
         bundle_manifest=bundle_manifest,
         compile_report=compile_report,
+        excluded_roots=excluded_compiled_source_roots,
     )
     compiled_pdf_path = resolve_compiled_pdf_path(
         workspace_root=workspace_root,
         bundle_manifest=bundle_manifest,
         compile_report=compile_report,
+        excluded_roots=excluded_compiled_source_roots,
     )
 
     if not compiled_markdown_path.exists():

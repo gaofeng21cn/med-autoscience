@@ -682,6 +682,125 @@ def test_create_submission_minimal_package_accepts_current_bundle_contract_shape
     assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
 
 
+def test_resolve_compiled_markdown_path_skips_submission_surface_candidates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    submission_root = paper_root / "submission_minimal"
+
+    write_text(
+        submission_root / "manuscript_source.md",
+        """---
+title: "Wrong self-referential manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+# Abstract
+
+Wrong self reference text.
+""",
+    )
+
+    resolved = module.resolve_compiled_markdown_path(
+        workspace_root=paper_root.parent,
+        bundle_manifest={
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+        },
+        compile_report={
+            "source_markdown_path": "paper/submission_minimal/manuscript_source.md",
+            "source_markdown": "paper/submission_minimal/manuscript_source.md",
+        },
+        excluded_roots=(submission_root,),
+    )
+
+    assert resolved == paper_root / "build" / "review_manuscript.md"
+
+
+def test_resolve_compiled_pdf_path_skips_submission_surface_candidates(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    submission_root = paper_root / "submission_minimal"
+
+    write_text(submission_root / "paper.pdf", "%PDF-1.4\n%self referential pdf\n")
+
+    resolved = module.resolve_compiled_pdf_path(
+        workspace_root=paper_root.parent,
+        bundle_manifest={
+            "schema_version": 1,
+            "pdf_path": "paper/paper.pdf",
+        },
+        compile_report={
+            "output_pdf": "paper/submission_minimal/paper.pdf",
+            "pdf_path": "paper/submission_minimal/paper.pdf",
+        },
+        excluded_roots=(submission_root,),
+    )
+
+    assert resolved == paper_root / "paper.pdf"
+
+
+def test_create_submission_minimal_package_skips_self_referential_compiled_sources(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    submission_root = paper_root / "submission_minimal"
+
+    write_text(
+        submission_root / "manuscript_source.md",
+        """---
+title: "Wrong self-referential manuscript"
+bibliography: ../references.bib
+link-citations: true
+---
+
+# Abstract
+
+Wrong self reference text.
+
+# Main Figures
+
+## Figure 1. Wrong figure
+
+Wrong caption.
+
+![](../figures/F1_main.png)
+""",
+    )
+    write_text(submission_root / "paper.pdf", "%PDF-1.4\n%self referential pdf\n")
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "source_markdown_path": "paper/submission_minimal/manuscript_source.md",
+            "source_markdown": "paper/submission_minimal/manuscript_source.md",
+            "output_pdf": "paper/submission_minimal/paper.pdf",
+            "pdf_path": "paper/submission_minimal/paper.pdf",
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+            "pdf_path": "paper/paper.pdf",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+
+    module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert "This is a manuscript citation [@ref1]." in submission_markdown
+    assert "Wrong self reference text." not in submission_markdown
+
+
 def test_create_submission_minimal_package_prefers_compiled_markdown_over_draft_path(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
