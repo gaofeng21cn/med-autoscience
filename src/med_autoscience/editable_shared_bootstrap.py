@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 
+_SHARED_HELPER_MODULE_NAME = "opl_harness_shared.editable_consumer_bootstrap"
 _SHARED_PACKAGE_NAME = "opl_harness_shared"
-_SHARED_BOOTSTRAP_MODULE_FILE = "editable_dependency_bootstrap.py"
+_SHARED_BOOTSTRAP_MODULE_FILE = "editable_consumer_bootstrap.py"
 
 
 def _module_spec(module_name: str):
@@ -36,7 +37,7 @@ def _candidate_repo_site_packages_roots() -> tuple[Path, ...]:
 
 def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
-    helper_paths = [
+    return (
         repo_root.parent
         / "one-person-lab"
         / "python"
@@ -44,12 +45,7 @@ def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
         / "src"
         / _SHARED_PACKAGE_NAME
         / _SHARED_BOOTSTRAP_MODULE_FILE,
-    ]
-    helper_paths.extend(
-        candidate_root / _SHARED_PACKAGE_NAME / _SHARED_BOOTSTRAP_MODULE_FILE
-        for candidate_root in _candidate_repo_site_packages_roots()
     )
-    return tuple(helper_paths)
 
 
 def _prepend_path(candidate_root: Path) -> bool:
@@ -63,9 +59,9 @@ def _prepend_path(candidate_root: Path) -> bool:
     return True
 
 
-def _load_shared_helper_module(helper_path: Path):
+def _load_shared_helper_module_from_path(helper_path: Path):
     spec = importlib.util.spec_from_file_location(
-        f"{_SHARED_PACKAGE_NAME}_editable_dependency_bootstrap_{abs(hash(helper_path))}",
+        f"{_SHARED_PACKAGE_NAME}_editable_consumer_bootstrap_{abs(hash(helper_path))}",
         helper_path,
     )
     if spec is None or spec.loader is None:
@@ -75,27 +71,38 @@ def _load_shared_helper_module(helper_path: Path):
     return module
 
 
-def ensure_editable_dependency_paths() -> tuple[Path, ...]:
-    if _module_spec(_SHARED_PACKAGE_NAME) is not None:
-        return ()
-
-    repo_root = _repo_root()
+def _import_shared_helper_module():
+    if _module_spec(_SHARED_HELPER_MODULE_NAME) is not None:
+        return importlib.import_module(_SHARED_HELPER_MODULE_NAME)
     for helper_path in _candidate_shared_helper_module_paths():
-        if not helper_path.exists():
-            continue
-        helper_module = _load_shared_helper_module(helper_path)
-        ensure_paths = getattr(helper_module, "ensure_editable_dependency_paths", None)
-        if callable(ensure_paths):
-            result = ensure_paths(repo_root=repo_root, shared_package_name=_SHARED_PACKAGE_NAME)
-            delegated_added_paths = tuple(Path(entry) for entry in result)
-            if delegated_added_paths or _module_spec(_SHARED_PACKAGE_NAME) is not None:
-                return delegated_added_paths
+        if helper_path.exists():
+            return _load_shared_helper_module_from_path(helper_path)
+    return None
 
+
+def ensure_editable_dependency_paths() -> tuple[Path, ...]:
+    repo_root = _repo_root()
     added_paths: list[Path] = []
-    for candidate_root in _candidate_repo_site_packages_roots():
-        if _prepend_path(candidate_root):
-            added_paths.append(candidate_root)
-
-    if _module_spec(_SHARED_PACKAGE_NAME) is not None:
+    helper_module = _import_shared_helper_module()
+    if helper_module is None:
+        for candidate_root in _candidate_repo_site_packages_roots():
+            if _prepend_path(candidate_root):
+                added_paths.append(candidate_root)
+        helper_module = _import_shared_helper_module()
+    if helper_module is None:
         return tuple(added_paths)
+
+    ensure_paths = getattr(helper_module, "ensure_consumer_editable_dependency_paths", None)
+    if not callable(ensure_paths):
+        return tuple(added_paths)
+
+    delegated_added_paths = tuple(
+        Path(entry)
+        for entry in ensure_paths(
+            repo_root=repo_root,
+            shared_package_name=_SHARED_PACKAGE_NAME,
+        )
+    )
+    if delegated_added_paths:
+        return delegated_added_paths
     return tuple(added_paths)
