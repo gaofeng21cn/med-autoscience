@@ -1161,3 +1161,37 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
 
     pdf_reader = PdfReader(str(submission_root / "paper.pdf"))
     assert sum(len(page.images) for page in pdf_reader.pages) >= 1
+
+
+def test_create_submission_minimal_package_materializes_references_and_pending_front_matter(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_current_draft_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    copied_references_path = submission_root / "references.bib"
+    assert copied_references_path.exists()
+    assert copied_references_path.read_text(encoding="utf-8") == (
+        paper_root / "references.bib"
+    ).read_text(encoding="utf-8")
+
+    assert manifest["references"] == {
+        "source_path": "paper/references.bib",
+        "output_path": "paper/submission_minimal/references.bib",
+        "entry_count": 1,
+    }
+    assert manifest["front_matter_placeholders"] == {
+        "authors": "pending",
+        "affiliations": "pending",
+        "corresponding_author": "pending",
+        "funding": "pending",
+        "conflict_of_interest": "pending",
+        "ethics": "pending",
+        "data_availability": "pending",
+    }

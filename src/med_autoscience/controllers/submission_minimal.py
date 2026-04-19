@@ -36,6 +36,15 @@ FRONTIERS_KEYWORDS = [
     "risk stratification",
     "pituitary surgery",
 ]
+SUBMISSION_FRONT_MATTER_FIELD_ALIASES = {
+    "authors": ("authors", "author"),
+    "affiliations": ("affiliations",),
+    "corresponding_author": ("corresponding_author", "correspondence"),
+    "funding": ("funding",),
+    "conflict_of_interest": ("conflict_of_interest", "conflicts_of_interest"),
+    "ethics": ("ethics", "ethics_statement"),
+    "data_availability": ("data_availability", "data_availability_statement"),
+}
 
 
 @dataclass(frozen=True)
@@ -68,6 +77,10 @@ def dump_json(path: Path, payload: dict[str, Any]) -> None:
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def count_bibtex_entries(text: str) -> int:
+    return sum(1 for line in text.splitlines() if line.lstrip().startswith("@"))
 
 
 def relpath_from_workspace(path: Path, workspace_root: Path) -> str:
@@ -606,6 +619,38 @@ def split_front_matter(markdown_text: str) -> tuple[dict[str, str], str]:
         key, value = line.split(":", 1)
         metadata[key.strip()] = value.strip().strip('"').strip("'")
     return metadata, body
+
+
+def build_front_matter_placeholders(*, metadata: dict[str, str]) -> dict[str, str]:
+    placeholders: dict[str, str] = {}
+    for field_name, aliases in SUBMISSION_FRONT_MATTER_FIELD_ALIASES.items():
+        resolved_value = ""
+        for alias in aliases:
+            candidate = str(metadata.get(alias) or "").strip()
+            if candidate:
+                resolved_value = candidate
+                break
+        placeholders[field_name] = resolved_value or "pending"
+    return placeholders
+
+
+def materialize_submission_references(
+    *,
+    paper_root: Path,
+    submission_root: Path,
+    workspace_root: Path,
+) -> dict[str, Any] | None:
+    source_path = paper_root / "references.bib"
+    if not source_path.exists():
+        return None
+    target_path = submission_root / "references.bib"
+    shutil.copy2(source_path, target_path)
+    entry_count = count_bibtex_entries(source_path.read_text(encoding="utf-8"))
+    return {
+        "source_path": relpath_from_workspace(source_path, workspace_root),
+        "output_path": relpath_from_workspace(target_path, workspace_root),
+        "entry_count": entry_count,
+    }
 
 
 def extract_block_between_markers(
@@ -1661,6 +1706,11 @@ def create_submission_minimal_package(
             csl_path=profile_config.csl_path,
             reference_doc_path=profile_config.supplementary_reference_doc_path,
         )
+    references_manifest = materialize_submission_references(
+        paper_root=paper_root,
+        submission_root=submission_root,
+        workspace_root=workspace_root,
+    )
 
     pruned_legacy_paths = prune_legacy_paper_surface_exports(
         paper_root=paper_root,
@@ -1675,6 +1725,7 @@ def create_submission_minimal_package(
         expected_main_figure_count=count_main_text_figures_in_catalog(figure_catalog),
     )
     submission_root_rel = relpath_from_workspace(submission_root, workspace_root)
+    source_markdown_metadata, _ = split_front_matter(source_markdown_path.read_text(encoding="utf-8"))
     manifest: dict[str, Any] = {
         "schema_version": 1,
         "generated_at": utc_now(),
@@ -1694,7 +1745,12 @@ def create_submission_minimal_package(
         },
         "figures": figure_entries,
         "tables": table_entries,
+        "front_matter_placeholders": build_front_matter_placeholders(
+            metadata=source_markdown_metadata,
+        ),
     }
+    if references_manifest is not None:
+        manifest["references"] = references_manifest
     if pack_lock_path is not None:
         manifest["display_pack_lock_path"] = relpath_from_workspace(pack_lock_path, workspace_root)
         manifest["enabled_display_packs"] = list(pack_summary_by_id.values())
