@@ -89,9 +89,7 @@
 ### MAS 用户回路与内部桥接参考
 
 - 面向用户的 MAS 回路从 `product-frontdesk` 开始，经由 `workspace-cockpit`，再使用 `submit-study-task`、`launch-study` 和 `study-progress`。
-- `operator entry` 与 `agent entry` 继续作为旧 runtime 文档的内部参考术语。
-- 旧短语“轻量医学 `product entry`”现在对应内部桥接层。
-- `build-product-entry` 继续作为需要结构化 envelope 的 caller 使用的窄 machine-readable bridge。
+- `product-entry-manifest` 与 `build-product-entry` 继续作为 `OPL` 与其他自动化 caller 使用的 machine-readable bridge。
 - [轻量产品入口与 OPL Handoff](references/lightweight_product_entry_and_opl_handoff.md)
 
 ### 参考资料

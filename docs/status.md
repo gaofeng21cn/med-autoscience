@@ -46,6 +46,6 @@
 ## 下一阶段
 
 1. 把 `README*`、`docs/status.md`、`docs/README*` 继续保持为 OPL/MAS/Codex/Hermes 的用户认知入口。
-2. 后续再把 `docs/project.md`、`docs/architecture.md`、生成型 `mainline-status` / `product-entry-manifest` payload 和对应测试同步到同一模型。
+2. 继续把 `docs/project.md`、`docs/architecture.md`、`mainline-status` 与 `product-entry-manifest` payload 保持在同一入口模型上。
 3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路。
 4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，不把 backup gateway wording 重新写成用户首屏 runtime-owner 叙事。

@@ -89,9 +89,7 @@ Public-facing material should stay mirrored in English and Chinese.
 ### MAS user loop and internal bridge references
 
 - The public-facing MAS loop starts at `product-frontdesk`, continues through `workspace-cockpit`, then uses `submit-study-task`, `launch-study`, and `study-progress`.
-- `operator entry` and `agent entry` remain internal reference terms for older runtime docs.
-- The older phrase `lightweight medical direct entry` now maps to the internal bridge layer.
-- `build-product-entry` remains the narrow machine-readable bridge for callers that need a structured envelope.
+- `product-entry-manifest` and `build-product-entry` stay as machine-readable bridge surfaces for `OPL` and other automation callers.
 - [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
 
 ### References
