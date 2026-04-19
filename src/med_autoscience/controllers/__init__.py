@@ -8,6 +8,8 @@ __all__ = [
     "med_deepscientist_upgrade_check",
     "external_research",
     "figure_loop_guard",
+    "journal_package",
+    "journal_requirements",
     "journal_shortlist",
     "medical_analysis_contract",
     "medical_literature_audit",

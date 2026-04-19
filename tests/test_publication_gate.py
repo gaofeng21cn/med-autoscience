@@ -13,6 +13,11 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
 def make_quest(
     tmp_path: Path,
     *,
@@ -179,6 +184,46 @@ def make_quest(
     return quest_root
 
 
+def write_primary_target(paper_root: Path) -> None:
+    dump_json(
+        paper_root / "submission_targets.resolved.json",
+        {
+            "schema_version": 1,
+            "decision_kind": "journal_selected",
+            "decision_source": "controller_explicit",
+            "primary_target": {
+                "journal_name": "Rheumatology International",
+                "publication_profile": "general_medical_journal",
+                "citation_style": "AMA",
+                "official_guidelines_url": "https://example.org/ri-guide",
+                "package_required": True,
+                "resolution_status": "resolved",
+            },
+            "blocked_items": [],
+        },
+    )
+
+
+def write_journal_requirements_snapshot(study_root: Path) -> None:
+    dump_json(
+        study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.json",
+        {
+            "schema_version": 1,
+            "generated_at": "2026-04-19T02:00:00+00:00",
+            "journal_name": "Rheumatology International",
+            "journal_slug": "rheumatology-international",
+            "official_guidelines_url": "https://example.org/ri-guide",
+            "publication_profile": "general_medical_journal",
+            "abstract_word_cap": 250,
+            "title_page_required": True,
+        },
+    )
+    write_text(
+        study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
+        "# Requirements\n",
+    )
+
+
 def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
@@ -208,6 +253,36 @@ def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path
     assert report["submission_minimal_present"] is False
     assert report["submission_minimal_docx_present"] is False
     assert report["submission_minimal_pdf_present"] is False
+
+
+def test_build_gate_report_reports_missing_journal_requirements_for_primary_target(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    write_primary_target(paper_root)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["primary_journal_target"]["journal_slug"] == "rheumatology-international"
+    assert report["journal_requirements_status"] == "missing"
+    assert "missing_journal_requirements" in report["blockers"]
+
+
+def test_build_gate_report_reports_missing_journal_package_when_requirements_exist(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_submission_minimal=True)
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    write_primary_target(paper_root)
+    write_journal_requirements_snapshot(study_root)
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["journal_requirements_status"] == "resolved"
+    assert report["journal_package_status"] == "missing"
+    assert "missing_journal_package" in report["blockers"]
 
 
 def test_build_gate_state_uses_latest_parseable_gate_report_when_newer_report_is_malformed(

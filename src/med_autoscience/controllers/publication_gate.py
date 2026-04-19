@@ -9,7 +9,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_delivery_sync, submission_minimal
+from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.journal_requirements import (
+    describe_journal_submission_package,
+    journal_requirements_json_path,
+    load_journal_requirements,
+    slugify_journal_name,
+)
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import (
     paper_artifacts,
@@ -35,6 +41,7 @@ _BUNDLE_STAGE_ONLY_BLOCKERS = frozenset(
     {
         "missing_paper_compile_report",
         "missing_submission_minimal",
+        "missing_journal_package",
         "submission_surface_qc_failure_present",
         "unmanaged_submission_surface_present",
     }
@@ -508,6 +515,85 @@ def resolve_compile_report_path(
     return None
 
 
+def _resolve_gate_study_root(*, paper_root: Path | None) -> Path | None:
+    if paper_root is None:
+        return None
+    try:
+        context = study_delivery_sync._resolve_delivery_context(paper_root.resolve())
+    except (FileNotFoundError, ValueError):
+        return None
+    return Path(context["study_root"]).expanduser().resolve()
+
+
+def resolve_primary_journal_target(*, paper_root: Path | None) -> dict[str, Any] | None:
+    if paper_root is None:
+        return None
+    payload = load_json(paper_root / "submission_targets.resolved.json", default=None)
+    if not isinstance(payload, dict):
+        return None
+    primary = payload.get("primary_target")
+    if not isinstance(primary, dict):
+        return None
+    journal_name = _non_empty_text(primary.get("journal_name"))
+    official_guidelines_url = _non_empty_text(primary.get("official_guidelines_url"))
+    if journal_name is None and official_guidelines_url is None:
+        return None
+    journal_slug = _non_empty_text(primary.get("journal_slug"))
+    if journal_slug is None and journal_name is not None:
+        journal_slug = slugify_journal_name(journal_name)
+    if journal_slug is None:
+        return None
+    return {
+        "journal_name": journal_name,
+        "journal_slug": journal_slug,
+        "official_guidelines_url": official_guidelines_url,
+        "publication_profile": _non_empty_text(primary.get("publication_profile")),
+        "citation_style": _non_empty_text(primary.get("citation_style")),
+        "package_required": bool(primary.get("package_required", True)),
+        "resolution_status": _non_empty_text(primary.get("resolution_status")),
+    }
+
+
+def resolve_journal_requirement_state(*, paper_root: Path | None) -> dict[str, Any]:
+    study_root = _resolve_gate_study_root(paper_root=paper_root)
+    primary_target = resolve_primary_journal_target(paper_root=paper_root)
+    if study_root is None or primary_target is None or primary_target["package_required"] is not True:
+        return {
+            "status": "not_applicable",
+            "study_root": str(study_root) if study_root is not None else None,
+            "requirements_path": None,
+        }
+    requirements = load_journal_requirements(
+        study_root=study_root,
+        journal_slug=str(primary_target["journal_slug"]),
+    )
+    requirements_path = journal_requirements_json_path(
+        study_root=study_root,
+        journal_slug=str(primary_target["journal_slug"]),
+    )
+    return {
+        "status": "resolved" if requirements is not None else "missing",
+        "study_root": str(study_root),
+        "requirements_path": str(requirements_path),
+    }
+
+
+def resolve_journal_package_state(*, paper_root: Path | None) -> dict[str, Any]:
+    study_root = _resolve_gate_study_root(paper_root=paper_root)
+    primary_target = resolve_primary_journal_target(paper_root=paper_root)
+    if study_root is None or primary_target is None or primary_target["package_required"] is not True:
+        return {
+            "status": "not_applicable",
+            "package_root": None,
+            "submission_manifest_path": None,
+            "zip_path": None,
+        }
+    return describe_journal_submission_package(
+        study_root=study_root,
+        journal_slug=str(primary_target["journal_slug"]),
+    )
+
+
 def resolve_primary_anchor(
     *,
     quest_root: Path,
@@ -673,6 +759,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     study_delivery = state.study_delivery or {}
     study_delivery_status = str(study_delivery.get("status") or "").strip() or "not_applicable"
     draft_handoff_delivery = state.draft_handoff_delivery or {}
+    primary_journal_target = resolve_primary_journal_target(paper_root=state.paper_root)
+    journal_requirements_state = resolve_journal_requirement_state(paper_root=state.paper_root)
+    journal_package_state = resolve_journal_package_state(paper_root=state.paper_root)
     paper_line_open_supplementary_count = _paper_line_open_supplementary_count(state.paper_line_state)
     paper_line_recommended_action = _paper_line_recommended_action(state.paper_line_state)
     paper_line_blocking_reasons = _paper_line_blocking_reasons(state.paper_line_state)
@@ -760,6 +849,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         blockers.append("submission_surface_qc_failure_present")
     if state.manuscript_terminology_violations:
         blockers.append("forbidden_manuscript_terminology")
+    if primary_journal_target is not None and primary_journal_target["package_required"] is True:
+        if journal_requirements_state["status"] == "missing":
+            blockers.append("missing_journal_requirements")
+        elif journal_package_state["status"] != "current":
+            blockers.append("missing_journal_package")
     allow_write = allow_write and not blockers
     supervisor_state = build_publication_supervisor_state(
         anchor_kind=state.anchor_kind,
@@ -825,6 +919,14 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "study_delivery_current_package_root": _non_empty_text(study_delivery.get("current_package_root")),
         "study_delivery_current_package_zip": _non_empty_text(study_delivery.get("current_package_zip")),
         "study_delivery_missing_source_paths": list(study_delivery.get("missing_source_paths") or []),
+        "primary_journal_target": primary_journal_target,
+        "journal_requirements_status": journal_requirements_state["status"],
+        "journal_requirements_path": journal_requirements_state.get("requirements_path"),
+        "journal_requirements_study_root": journal_requirements_state.get("study_root"),
+        "journal_package_status": journal_package_state["status"],
+        "journal_package_root": journal_package_state.get("package_root"),
+        "journal_package_manifest_path": journal_package_state.get("submission_manifest_path"),
+        "journal_package_zip_path": journal_package_state.get("zip_path"),
         "draft_handoff_delivery_required": draft_handoff_delivery_required,
         "draft_handoff_delivery_status": draft_handoff_delivery_status,
         "draft_handoff_delivery_manifest_path": _non_empty_text(draft_handoff_delivery.get("delivery_manifest_path")),
@@ -1158,6 +1260,7 @@ def run_controller(
     report = build_gate_report(state)
     draft_handoff_delivery_sync = None
     study_delivery_stale_sync = None
+    journal_package_sync = None
     if (
         apply
         and report.get("draft_handoff_delivery_required") is True
@@ -1195,6 +1298,23 @@ def run_controller(
         )
         state = build_gate_state(quest_root)
         report = build_gate_report(state)
+    if (
+        apply
+        and state.paper_root is not None
+        and isinstance(report.get("primary_journal_target"), dict)
+        and str(report.get("journal_requirements_status") or "").strip() == "resolved"
+        and str(report.get("journal_package_status") or "").strip() in {"missing", "incomplete"}
+        and _non_empty_text(report.get("journal_requirements_study_root"))
+    ):
+        primary_journal_target = report["primary_journal_target"]
+        journal_package_sync = journal_package_controller.materialize_journal_package(
+            paper_root=state.paper_root,
+            study_root=Path(str(report["journal_requirements_study_root"])),
+            journal_slug=str(primary_journal_target["journal_slug"]),
+            publication_profile=_non_empty_text(primary_journal_target.get("publication_profile")),
+        )
+        state = build_gate_state(quest_root)
+        report = build_gate_report(state)
     json_path, md_path = write_gate_files(quest_root, report)
     if apply:
         _materialize_publication_eval_latest(
@@ -1225,6 +1345,7 @@ def run_controller(
         "draft_handoff_delivery_manifest_path": report["draft_handoff_delivery_manifest_path"],
         "draft_handoff_delivery_sync": draft_handoff_delivery_sync,
         "study_delivery_stale_sync": study_delivery_stale_sync,
+        "journal_package_sync": journal_package_sync,
         "intervention_enqueued": bool(intervention),
         "message_id": intervention.get("message_id") if intervention else None,
         "source": source,

@@ -14,6 +14,8 @@ def test_render_controller_first_policy_block_lists_managed_task_domains() -> No
     assert "resolve-reference-papers" in text
     assert "resolve-journal-shortlist" in text
     assert "resolve-submission-targets" in text
+    assert "resolve-journal-requirements" in text
+    assert "materialize-journal-package" in text
     assert "apply-data-asset-update" in text
     assert "optional enrichment" in text
     assert "scout-first route selection" in text

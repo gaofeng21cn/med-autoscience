@@ -55,6 +55,8 @@ hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervisi
 med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
+journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
+journal_requirements_controller = _LazyModuleProxy(lambda: _load_controller("journal_requirements"))
 journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
@@ -104,6 +106,27 @@ def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
         payload = json.loads(Path(payload_file).read_text(encoding="utf-8"))
     else:
         payload = json.loads(payload_json)
+    if not isinstance(payload, dict):
+        raise SystemExit("JSON payload must be an object")
+    return payload
+
+
+def _load_optional_object_payload_from_args(
+    *,
+    payload_file: str | None,
+    payload_json: str | None,
+    file_label: str,
+    json_label: str,
+) -> dict[str, object] | None:
+    if not payload_file and not payload_json:
+        return None
+    if bool(payload_file) == bool(payload_json):
+        raise SystemExit(f"Specify exactly one of {file_label} or {json_label}")
+    payload: object
+    if payload_file:
+        payload = json.loads(Path(payload_file).read_text(encoding="utf-8"))
+    else:
+        payload = json.loads(str(payload_json))
     if not isinstance(payload, dict):
         raise SystemExit("JSON payload must be an object")
     return payload
@@ -260,6 +283,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     resolve_journal_shortlist_parser = subparsers.add_parser("resolve-journal-shortlist")
     resolve_journal_shortlist_parser.add_argument("--study-root", required=True, type=str)
+
+    resolve_journal_requirements_parser = subparsers.add_parser("resolve-journal-requirements")
+    resolve_journal_requirements_parser.add_argument("--study-root", required=True, type=str)
+    resolve_journal_requirements_parser.add_argument("--journal-name", type=str)
+    resolve_journal_requirements_parser.add_argument("--journal-slug", type=str)
+    resolve_journal_requirements_parser.add_argument("--official-guidelines-url", required=True, type=str)
+    resolve_journal_requirements_parser.add_argument("--publication-profile", type=str)
+    resolve_journal_requirements_parser.add_argument("--requirements-file", type=str)
+    resolve_journal_requirements_parser.add_argument("--requirements-json", type=str)
+
+    materialize_journal_package_parser = subparsers.add_parser("materialize-journal-package")
+    materialize_journal_package_parser.add_argument("--paper-root", required=True, type=str)
+    materialize_journal_package_parser.add_argument("--study-root", required=True, type=str)
+    materialize_journal_package_parser.add_argument("--journal-slug", required=True, type=str)
+    materialize_journal_package_parser.add_argument("--publication-profile", type=str)
 
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
@@ -499,6 +537,8 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "time-to-event-migration"): "time-to-event-direct-migration",
     ("publication", "resolve-targets"): "resolve-submission-targets",
     ("publication", "resolve-journal-shortlist"): "resolve-journal-shortlist",
+    ("publication", "resolve-journal-requirements"): "resolve-journal-requirements",
+    ("publication", "materialize-journal-package"): "materialize-journal-package",
     ("publication", "export-targets"): "export-submission-targets",
     ("publication", "gate"): "publication-gate",
     ("publication", "literature-audit"): "medical-literature-audit",
@@ -1107,6 +1147,33 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "resolve-journal-shortlist":
         result = journal_shortlist_controller.resolve_journal_shortlist(
             study_root=Path(args.study_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "resolve-journal-requirements":
+        result = journal_requirements_controller.resolve_journal_requirements(
+            study_root=Path(args.study_root),
+            journal_name=args.journal_name,
+            journal_slug=args.journal_slug,
+            official_guidelines_url=args.official_guidelines_url,
+            publication_profile=args.publication_profile,
+            requirements_payload=_load_optional_object_payload_from_args(
+                payload_file=args.requirements_file,
+                payload_json=args.requirements_json,
+                file_label="--requirements-file",
+                json_label="--requirements-json",
+            ),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "materialize-journal-package":
+        result = journal_package_controller.materialize_journal_package(
+            paper_root=Path(args.paper_root),
+            study_root=Path(args.study_root),
+            journal_slug=args.journal_slug,
+            publication_profile=args.publication_profile,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

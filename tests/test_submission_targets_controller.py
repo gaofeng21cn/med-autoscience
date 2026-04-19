@@ -198,6 +198,7 @@ startup_contract:
 
     assert result["primary_target"]["source"] == "quest_paper_resolved"
     assert result["primary_target"]["journal_name"] == "Diabetes Research and Clinical Practice"
+    assert result["primary_target"]["journal_slug"] == "diabetes-research-and-clinical-practice"
     assert result["primary_target"]["official_guidelines_url"] == "https://example.org/drcp-guide"
     assert result["primary_target"]["citation_style"] == "numeric_square_brackets"
     assert result["primary_target"]["exporter_profile"] == "general_medical_journal"

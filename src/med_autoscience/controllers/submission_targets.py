@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.controllers import submission_minimal
+from med_autoscience.journal_requirements import slugify_journal_name
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_protocol import paper_artifacts
 from med_autoscience.submission_targets import (
@@ -24,7 +25,10 @@ def _load_yaml_dict(path: Path) -> dict[str, Any]:
 
 
 def _serialize_target(target: SubmissionTarget) -> dict[str, Any]:
-    return dict(asdict(target))
+    payload = dict(asdict(target))
+    if target.journal_name:
+        payload["journal_slug"] = slugify_journal_name(target.journal_name)
+    return payload
 
 
 def _resolve_profile(profile_path: Path | None) -> tuple[Path | None, WorkspaceProfile | None]:

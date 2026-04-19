@@ -12,7 +12,8 @@ def render_controller_first_block() -> str:
         "- optional external AI deep research: only after portfolio memory reuse, use `prepare-external-research` / `external-research-status` as an optional enrichment surface; never treat it as a startup gate or a substitute for study-local evidence",
         "- literature and reference anchors: `resolve-reference-papers` before broad freeform literature expansion",
         "- venue selection and journal shortlist evidence: `resolve-journal-shortlist` before any journal-facing recommendation or tier discussion",
-        "- submission targets and journal requirements: only after a primary venue decision, use `resolve-submission-targets`, then `journal-resolution` when the target is still unresolved",
+        "- submission targets and journal requirements: only after a primary venue decision, use `resolve-submission-targets`, then `resolve-journal-requirements`; use `journal-resolution` only when the target is still unresolved",
+        "- journal-facing delivery surface: after requirements are resolved, use `materialize-journal-package` to build the stable shallow submission package",
         "- public dataset discovery and registration: for scout-first route selection and every paper-bound route, complete at least one proactive public-data discovery pass unless the study contract explicitly waives public sidecars; check `portfolio/data_assets/public/registry.json`, use `data-assets-status`, `startup-data-readiness`, and `tooluniverse-status` before acquisition, record retain / reject outcomes through `apply-data-asset-update`, and start immediate download or materialization follow-through for retained anchors",
         "- startup and publication gates: use the existing startup/data/publication gate controllers before inventing ad-hoc route logic",
         "",
@@ -32,7 +33,8 @@ def render_controller_first_summary() -> str:
         "Use `portfolio-memory-status` and the existing `portfolio/research_memory/*` layer before re-deriving disease topic landscapes, dataset question maps, or venue neighborhoods from scratch. "
         "When broader external AI deep research is still useful, use `prepare-external-research` as an optional enrichment scaffold and write raw reports to `portfolio/research_memory/external_reports/`; this is not a startup prerequisite. "
         "Use `resolve-reference-papers`, `resolve-journal-shortlist`, and, only after a venue decision, "
-        "`resolve-submission-targets` plus `journal-resolution`. For scout-first or paper-bound routes, complete "
+        "`resolve-submission-targets`, `resolve-journal-requirements`, and `materialize-journal-package`; "
+        "fall back to `journal-resolution` only when the target is still unresolved. For scout-first or paper-bound routes, complete "
         "one proactive public-data discovery pass unless the study contract explicitly waives public sidecars: "
         "check `portfolio/data_assets/public/registry.json`, then use `data-assets-status`, `startup-data-readiness`, "
         "`tooluniverse-status`, and `apply-data-asset-update`, and start immediate download or materialization "

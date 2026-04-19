@@ -698,6 +698,56 @@ def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tm
     assert '"status": "resolved"' in captured.out
 
 
+def test_resolve_journal_requirements_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_resolve(
+        *,
+        study_root: Path,
+        journal_name: str | None = None,
+        journal_slug: str | None = None,
+        official_guidelines_url: str | None = None,
+        publication_profile: str | None = None,
+        requirements_payload: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        called["study_root"] = study_root
+        called["journal_name"] = journal_name
+        called["journal_slug"] = journal_slug
+        called["official_guidelines_url"] = official_guidelines_url
+        called["publication_profile"] = publication_profile
+        called["requirements_payload"] = requirements_payload
+        return {"status": "resolved", "journal_slug": "rheumatology-international"}
+
+    monkeypatch.setattr(cli.journal_requirements_controller, "resolve_journal_requirements", fake_resolve)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "resolve-journal-requirements",
+            "--study-root",
+            str(tmp_path / "study"),
+            "--journal-name",
+            "Rheumatology International",
+            "--official-guidelines-url",
+            "https://example.org/ri-guide",
+            "--publication-profile",
+            "general_medical_journal",
+            "--requirements-json",
+            '{"abstract_word_cap": 250}',
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_root"] == tmp_path / "study"
+    assert called["journal_name"] == "Rheumatology International"
+    assert called["official_guidelines_url"] == "https://example.org/ri-guide"
+    assert called["publication_profile"] == "general_medical_journal"
+    assert called["requirements_payload"] == {"abstract_word_cap": 250}
+    assert '"journal_slug": "rheumatology-international"' in captured.out
+
+
 def test_init_portfolio_memory_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}
@@ -2005,6 +2055,49 @@ def test_publication_gate_command_dispatches_controller(monkeypatch, tmp_path: P
     assert called["quest_root"] == tmp_path / "q001"
     assert called["apply"] is True
     assert '"status": "blocked"' in captured.out
+
+
+def test_materialize_journal_package_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_materialize(
+        *,
+        paper_root: Path,
+        study_root: Path,
+        journal_slug: str,
+        publication_profile: str | None = None,
+    ) -> dict[str, object]:
+        called["paper_root"] = paper_root
+        called["study_root"] = study_root
+        called["journal_slug"] = journal_slug
+        called["publication_profile"] = publication_profile
+        return {"status": "materialized", "journal_slug": journal_slug}
+
+    monkeypatch.setattr(cli.journal_package_controller, "materialize_journal_package", fake_materialize)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "materialize-journal-package",
+            "--paper-root",
+            str(tmp_path / "paper"),
+            "--study-root",
+            str(tmp_path / "study"),
+            "--journal-slug",
+            "rheumatology-international",
+            "--publication-profile",
+            "general_medical_journal",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["paper_root"] == tmp_path / "paper"
+    assert called["study_root"] == tmp_path / "study"
+    assert called["journal_slug"] == "rheumatology-international"
+    assert called["publication_profile"] == "general_medical_journal"
+    assert '"status": "materialized"' in captured.out
 
 
 def test_medical_publication_surface_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
