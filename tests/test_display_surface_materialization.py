@@ -6187,6 +6187,106 @@ def _make_genomic_alteration_landscape_panel_display(display_id: str = "Figure38
     }
 
 
+def _make_genomic_alteration_consequence_panel_display(display_id: str = "Figure39") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": full_id("genomic_alteration_consequence_panel"),
+        "title": "Driver-centric genomic alteration landscape with downstream consequence panels",
+        "caption": (
+            "Shared gene/sample governance, driver-gene linkage, and bounded consequence evidence remain "
+            "inside one audited genomic-composite contract."
+        ),
+        "y_label": "Altered gene",
+        "burden_axis_label": "Altered genes",
+        "frequency_axis_label": "Altered samples (%)",
+        "alteration_legend_title": "Genomic alteration",
+        "gene_order": [
+            {"label": "TP53"},
+            {"label": "KRAS"},
+            {"label": "EGFR"},
+            {"label": "PIK3CA"},
+        ],
+        "sample_order": [
+            {"sample_id": "D1"},
+            {"sample_id": "D2"},
+            {"sample_id": "V1"},
+            {"sample_id": "V2"},
+        ],
+        "annotation_tracks": [
+            {
+                "track_id": "cohort",
+                "track_label": "Cohort",
+                "values": [
+                    {"sample_id": "D1", "category_label": "Discovery"},
+                    {"sample_id": "D2", "category_label": "Discovery"},
+                    {"sample_id": "V1", "category_label": "Validation"},
+                    {"sample_id": "V2", "category_label": "Validation"},
+                ],
+            },
+            {
+                "track_id": "response",
+                "track_label": "Response",
+                "values": [
+                    {"sample_id": "D1", "category_label": "Responder"},
+                    {"sample_id": "D2", "category_label": "Non-responder"},
+                    {"sample_id": "V1", "category_label": "Responder"},
+                    {"sample_id": "V2", "category_label": "Non-responder"},
+                ],
+            },
+        ],
+        "alteration_records": [
+            {"sample_id": "D1", "gene_label": "TP53", "mutation_class": "missense", "cnv_state": "loss"},
+            {"sample_id": "D2", "gene_label": "KRAS", "cnv_state": "amplification"},
+            {"sample_id": "V1", "gene_label": "TP53", "mutation_class": "truncating"},
+            {"sample_id": "V1", "gene_label": "PIK3CA", "cnv_state": "gain"},
+            {"sample_id": "V2", "gene_label": "EGFR", "mutation_class": "fusion", "cnv_state": "amplification"},
+        ],
+        "consequence_x_label": "Effect size",
+        "consequence_y_label": "-log10 adjusted P",
+        "consequence_legend_title": "Consequence class",
+        "effect_threshold": 1.0,
+        "significance_threshold": 2.0,
+        "driver_gene_order": [
+            {"label": "TP53"},
+            {"label": "EGFR"},
+        ],
+        "consequence_panel_order": [
+            {"panel_id": "transcriptome", "panel_title": "Transcriptome consequence"},
+            {"panel_id": "proteome", "panel_title": "Proteome consequence"},
+        ],
+        "consequence_points": [
+            {
+                "panel_id": "transcriptome",
+                "gene_label": "TP53",
+                "effect_value": 1.62,
+                "significance_value": 4.15,
+                "regulation_class": "upregulated",
+            },
+            {
+                "panel_id": "transcriptome",
+                "gene_label": "EGFR",
+                "effect_value": -1.31,
+                "significance_value": 3.42,
+                "regulation_class": "downregulated",
+            },
+            {
+                "panel_id": "proteome",
+                "gene_label": "TP53",
+                "effect_value": 1.18,
+                "significance_value": 3.28,
+                "regulation_class": "upregulated",
+            },
+            {
+                "panel_id": "proteome",
+                "gene_label": "EGFR",
+                "effect_value": -1.07,
+                "significance_value": 2.84,
+                "regulation_class": "downregulated",
+            },
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -6292,6 +6392,32 @@ def test_load_evidence_display_payload_rejects_unsupported_regulation_class_for_
             paper_root=paper_root,
             spec=spec,
             display_id="Figure35",
+        )
+
+
+def test_load_evidence_display_payload_rejects_incomplete_driver_panel_grid_for_genomic_alteration_consequence_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_genomic_alteration_consequence_panel_display()
+    display_payload["consequence_points"] = list(display_payload["consequence_points"][:-1])
+    dump_json(
+        paper_root / "genomic_alteration_consequence_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_alteration_consequence_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("genomic_alteration_consequence_panel")
+
+    with pytest.raises(ValueError, match="must cover every declared consequence panel/driver gene coordinate exactly once"):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure39",
         )
 
 
@@ -7056,6 +7182,91 @@ def test_materialize_display_surface_generates_genomic_alteration_landscape_pane
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "genomic_alteration_landscape_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_genomic_alteration_landscape_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_genomic_alteration_consequence_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "display_kind": "figure",
+                    "requirement_key": "genomic_alteration_consequence_panel",
+                    "catalog_id": "F39",
+                    "shell_path": "paper/figures/Figure39.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure39",
+                    "template_id": "genomic_alteration_consequence_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "genomic_alteration_consequence_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "genomic_alteration_consequence_panel_inputs_v1",
+            "displays": [_make_genomic_alteration_consequence_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F39"]
+    assert (paper_root / "figures" / "generated" / "F39_genomic_alteration_consequence_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F39_genomic_alteration_consequence_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F39_genomic_alteration_consequence_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_burden",
+        "panel_annotations",
+        "panel_matrix",
+        "panel_frequency",
+        "panel_consequence_A",
+        "panel_consequence_B",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_C" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend", "reference_line"}
+    assert layout_sidecar["metrics"]["alteration_legend_title"] == "Genomic alteration"
+    assert layout_sidecar["metrics"]["consequence_legend_title"] == "Consequence class"
+    assert layout_sidecar["metrics"]["driver_gene_labels"] == ["TP53", "EGFR"]
+    assert [panel["panel_id"] for panel in layout_sidecar["metrics"]["consequence_panels"]] == [
+        "transcriptome",
+        "proteome",
+    ]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F39"
+    assert figure_entry["template_id"] == full_id("genomic_alteration_consequence_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "genomic_alteration_consequence_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_genomic_alteration_consequence_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

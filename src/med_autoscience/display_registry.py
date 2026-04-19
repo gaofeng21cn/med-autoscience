@@ -58,6 +58,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "oncoplot_mutation_landscape_panel",
         "cnv_recurrence_summary_panel",
         "genomic_alteration_landscape_panel",
+        "genomic_alteration_consequence_panel",
         "forest_effect_main",
         "subgroup_forest",
         "generalizability_subgroup_composite_panel",

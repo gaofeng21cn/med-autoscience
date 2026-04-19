@@ -6308,6 +6308,384 @@ def _check_publication_genomic_alteration_landscape_panel(sidecar: LayoutSidecar
     return issues
 
 
+def _check_publication_genomic_alteration_consequence_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
+    issues = _check_publication_genomic_alteration_landscape_panel(sidecar)
+    panel_boxes_by_id = {box.box_id: box for box in sidecar.panel_boxes}
+    layout_boxes_by_id = {box.box_id: box for box in sidecar.layout_boxes}
+    guide_boxes_by_id = {box.box_id: box for box in sidecar.guide_boxes}
+
+    legend_boxes = [box for box in sidecar.guide_boxes if box.box_type == "legend"]
+    if len(legend_boxes) < 2:
+        issues.append(
+            _issue(
+                rule_id="legend_count_invalid",
+                message="genomic alteration consequence panel requires separate alteration and consequence legends",
+                target="guide_boxes",
+                observed=len(legend_boxes),
+                expected=">= 2",
+            )
+        )
+
+    consequence_legend_title = str(sidecar.metrics.get("consequence_legend_title") or "").strip()
+    if not consequence_legend_title:
+        issues.append(
+            _issue(
+                rule_id="consequence_legend_title_missing",
+                message="genomic alteration consequence panel requires a non-empty consequence_legend_title",
+                target="metrics.consequence_legend_title",
+            )
+        )
+
+    effect_threshold = _require_numeric(sidecar.metrics.get("effect_threshold"), label="layout_sidecar.metrics.effect_threshold")
+    if effect_threshold <= 0.0:
+        issues.append(
+            _issue(
+                rule_id="effect_threshold_invalid",
+                message="effect_threshold must be positive",
+                target="metrics.effect_threshold",
+                observed=effect_threshold,
+            )
+        )
+    significance_threshold = _require_numeric(
+        sidecar.metrics.get("significance_threshold"),
+        label="layout_sidecar.metrics.significance_threshold",
+    )
+    if significance_threshold <= 0.0:
+        issues.append(
+            _issue(
+                rule_id="significance_threshold_invalid",
+                message="significance_threshold must be positive",
+                target="metrics.significance_threshold",
+                observed=significance_threshold,
+            )
+        )
+
+    gene_payload = sidecar.metrics.get("gene_labels")
+    declared_gene_labels = {
+        str(item).strip()
+        for item in gene_payload
+        if isinstance(gene_payload, list) and str(item).strip()
+    }
+    driver_gene_payload = sidecar.metrics.get("driver_gene_labels")
+    if not isinstance(driver_gene_payload, list) or not driver_gene_payload:
+        issues.append(
+            _issue(
+                rule_id="driver_gene_labels_missing",
+                message="genomic alteration consequence panel requires non-empty driver_gene_labels metrics",
+                target="metrics.driver_gene_labels",
+            )
+        )
+        return issues
+    driver_gene_labels = [str(item).strip() for item in driver_gene_payload]
+    if any(not item for item in driver_gene_labels):
+        issues.append(
+            _issue(
+                rule_id="driver_gene_label_invalid",
+                message="driver_gene_labels must be non-empty",
+                target="metrics.driver_gene_labels",
+            )
+        )
+    if len(set(driver_gene_labels)) != len(driver_gene_labels):
+        issues.append(
+            _issue(
+                rule_id="driver_gene_labels_not_unique",
+                message="driver_gene_labels must be unique",
+                target="metrics.driver_gene_labels",
+            )
+        )
+    if declared_gene_labels and not set(driver_gene_labels).issubset(declared_gene_labels):
+        issues.append(
+            _issue(
+                rule_id="driver_gene_labels_outside_gene_order",
+                message="driver_gene_labels must stay inside gene_labels",
+                target="metrics.driver_gene_labels",
+                observed=sorted(set(driver_gene_labels) - declared_gene_labels),
+            )
+        )
+
+    consequence_panels = sidecar.metrics.get("consequence_panels")
+    if not isinstance(consequence_panels, list) or not consequence_panels:
+        issues.append(
+            _issue(
+                rule_id="consequence_panels_missing",
+                message="genomic alteration consequence panel requires non-empty consequence_panels metrics",
+                target="metrics.consequence_panels",
+            )
+        )
+        return issues
+    if len(consequence_panels) > 2:
+        issues.append(
+            _issue(
+                rule_id="consequence_panel_count_invalid",
+                message="genomic alteration consequence panel supports at most two consequence panels",
+                target="metrics.consequence_panels",
+                observed=len(consequence_panels),
+            )
+        )
+
+    supported_regulation_classes = {"upregulated", "downregulated", "background"}
+    seen_panel_ids: set[str] = set()
+    expected_coordinates: set[tuple[str, str]] = set()
+    observed_coordinates: set[tuple[str, str]] = set()
+
+    for panel_index, payload in enumerate(consequence_panels):
+        if not isinstance(payload, dict):
+            raise ValueError(f"layout_sidecar.metrics.consequence_panels[{panel_index}] must be an object")
+        panel_id = _require_non_empty_text(
+            payload.get("panel_id"),
+            label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].panel_id",
+        )
+        if panel_id in seen_panel_ids:
+            issues.append(
+                _issue(
+                    rule_id="consequence_panel_id_not_unique",
+                    message="consequence panel ids must be unique",
+                    target=f"metrics.consequence_panels[{panel_index}].panel_id",
+                    observed=panel_id,
+                )
+            )
+        seen_panel_ids.add(panel_id)
+        expected_coordinates.update((panel_id, gene_label) for gene_label in driver_gene_labels)
+
+        panel_box_id = _require_non_empty_text(
+            payload.get("panel_box_id"),
+            label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].panel_box_id",
+        )
+        panel_box = panel_boxes_by_id.get(panel_box_id)
+        if panel_box is None:
+            issues.append(
+                _issue(
+                    rule_id="consequence_panel_box_missing",
+                    message="panel_box_id must resolve to an existing consequence panel box",
+                    target=f"metrics.consequence_panels[{panel_index}].panel_box_id",
+                    observed=panel_box_id,
+                )
+            )
+
+        panel_label_box_id = _require_non_empty_text(
+            payload.get("panel_label_box_id"),
+            label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].panel_label_box_id",
+        )
+        panel_label_box = layout_boxes_by_id.get(panel_label_box_id)
+        if panel_label_box is None:
+            issues.append(
+                _issue(
+                    rule_id="consequence_panel_label_box_missing",
+                    message="panel_label_box_id must resolve to an existing layout box",
+                    target=f"metrics.consequence_panels[{panel_index}].panel_label_box_id",
+                    observed=panel_label_box_id,
+                )
+            )
+        elif panel_box is not None and not _boxes_overlap(panel_label_box, panel_box):
+            issues.append(
+                _issue(
+                    rule_id="consequence_panel_label_anchor_drift",
+                    message="consequence panel label must stay anchored inside its panel",
+                    target=f"metrics.consequence_panels[{panel_index}].panel_label_box_id",
+                    box_refs=(panel_label_box.box_id, panel_box.box_id),
+                )
+            )
+
+        for field_name in ("panel_title_box_id", "x_axis_title_box_id"):
+            box_id = _require_non_empty_text(
+                payload.get(field_name),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].{field_name}",
+            )
+            if box_id not in layout_boxes_by_id:
+                issues.append(
+                    _issue(
+                        rule_id="consequence_layout_box_missing",
+                        message=f"{field_name} must resolve to an existing layout box",
+                        target=f"metrics.consequence_panels[{panel_index}].{field_name}",
+                        observed=box_id,
+                    )
+                )
+
+        threshold_pairs = (
+            ("effect_threshold_left_box_id", "consequence_threshold_box_missing", "consequence_threshold_outside_panel"),
+            ("effect_threshold_right_box_id", "consequence_threshold_box_missing", "consequence_threshold_outside_panel"),
+            (
+                "significance_threshold_box_id",
+                "consequence_significance_box_missing",
+                "consequence_significance_outside_panel",
+            ),
+        )
+        for field_name, missing_rule_id, outside_rule_id in threshold_pairs:
+            box_id = _require_non_empty_text(
+                payload.get(field_name),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].{field_name}",
+            )
+            threshold_box = guide_boxes_by_id.get(box_id)
+            if threshold_box is None:
+                issues.append(
+                    _issue(
+                        rule_id=missing_rule_id,
+                        message=f"{field_name} must resolve to an existing guide box",
+                        target=f"metrics.consequence_panels[{panel_index}].{field_name}",
+                        observed=box_id,
+                    )
+                )
+                continue
+            if panel_box is not None and not _box_within_box(threshold_box, panel_box):
+                issues.append(
+                    _issue(
+                        rule_id=outside_rule_id,
+                        message=f"{field_name} must stay within its consequence panel",
+                        target=f"guide_boxes.{threshold_box.box_id}",
+                        box_refs=(threshold_box.box_id, panel_box.box_id),
+                    )
+                )
+
+        points_payload = payload.get("points")
+        if not isinstance(points_payload, list) or not points_payload:
+            issues.append(
+                _issue(
+                    rule_id="consequence_points_missing",
+                    message="every consequence panel must expose non-empty points metrics",
+                    target=f"metrics.consequence_panels[{panel_index}].points",
+                )
+            )
+            continue
+
+        seen_panel_gene_labels: set[str] = set()
+        for point_index, point in enumerate(points_payload):
+            if not isinstance(point, dict):
+                raise ValueError(
+                    f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}] must be an object"
+                )
+            gene_label = _require_non_empty_text(
+                point.get("gene_label"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].gene_label",
+            )
+            if gene_label in seen_panel_gene_labels:
+                issues.append(
+                    _issue(
+                        rule_id="consequence_point_gene_label_duplicate",
+                        message="gene_label must be unique within each consequence panel",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].gene_label",
+                        observed=gene_label,
+                    )
+                )
+            seen_panel_gene_labels.add(gene_label)
+            observed_coordinates.add((panel_id, gene_label))
+            if gene_label not in set(driver_gene_labels):
+                issues.append(
+                    _issue(
+                        rule_id="consequence_point_gene_unknown",
+                        message="consequence points must stay inside declared driver_gene_labels",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].gene_label",
+                        observed=gene_label,
+                    )
+                )
+            point_x = _require_numeric(
+                point.get("x"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].x",
+            )
+            point_y = _require_numeric(
+                point.get("y"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].y",
+            )
+            _require_numeric(
+                point.get("effect_value"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].effect_value",
+            )
+            significance_value = _require_numeric(
+                point.get("significance_value"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].significance_value",
+            )
+            if significance_value < 0.0:
+                issues.append(
+                    _issue(
+                        rule_id="consequence_significance_value_negative",
+                        message="consequence significance_value must be non-negative",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].significance_value",
+                        observed=significance_value,
+                    )
+                )
+            regulation_class = _require_non_empty_text(
+                point.get("regulation_class"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].regulation_class",
+            )
+            if regulation_class not in supported_regulation_classes:
+                issues.append(
+                    _issue(
+                        rule_id="consequence_regulation_class_invalid",
+                        message="consequence regulation_class must use the supported vocabulary",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].regulation_class",
+                        observed=regulation_class,
+                        expected=sorted(supported_regulation_classes),
+                    )
+                )
+            if panel_box is not None and not _point_within_box(panel_box, x=point_x, y=point_y):
+                issues.append(
+                    _issue(
+                        rule_id="consequence_point_outside_panel",
+                        message="consequence point coordinates must stay within the panel bounds",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}]",
+                        box_refs=(panel_box.box_id,),
+                    )
+                )
+
+            point_box_id = _require_non_empty_text(
+                point.get("point_box_id"),
+                label=f"layout_sidecar.metrics.consequence_panels[{panel_index}].points[{point_index}].point_box_id",
+            )
+            point_box = layout_boxes_by_id.get(point_box_id)
+            if point_box is None:
+                issues.append(
+                    _issue(
+                        rule_id="consequence_point_box_missing",
+                        message="point_box_id must resolve to an existing layout box",
+                        target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].point_box_id",
+                        observed=point_box_id,
+                    )
+                )
+            elif panel_box is not None and not _box_within_box(point_box, panel_box):
+                issues.append(
+                    _issue(
+                        rule_id="consequence_point_box_outside_panel",
+                        message="consequence point boxes must stay within the panel bounds",
+                        target=f"layout_boxes.{point_box.box_id}",
+                        box_refs=(point_box.box_id, panel_box.box_id),
+                    )
+                )
+
+            label_box_id = str(point.get("label_box_id") or "").strip()
+            if label_box_id:
+                label_box = layout_boxes_by_id.get(label_box_id)
+                if label_box is None:
+                    issues.append(
+                        _issue(
+                            rule_id="consequence_label_box_missing",
+                            message="label_box_id must resolve to an existing layout box",
+                            target=f"metrics.consequence_panels[{panel_index}].points[{point_index}].label_box_id",
+                            observed=label_box_id,
+                        )
+                    )
+                elif panel_box is not None and not _box_within_box(label_box, panel_box):
+                    issues.append(
+                        _issue(
+                            rule_id="consequence_label_box_outside_panel",
+                            message="consequence label boxes must stay within the panel bounds",
+                            target=f"layout_boxes.{label_box.box_id}",
+                            box_refs=(label_box.box_id, panel_box.box_id),
+                        )
+                    )
+
+    if observed_coordinates != expected_coordinates:
+        issues.append(
+            _issue(
+                rule_id="consequence_point_coverage_mismatch",
+                message="consequence points must cover every declared panel/driver gene coordinate exactly once",
+                target="metrics.consequence_panels",
+                observed=sorted(observed_coordinates),
+                expected=sorted(expected_coordinates),
+            )
+        )
+
+    return issues
+
+
 def _check_publication_omics_volcano_panel(sidecar: LayoutSidecar) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     all_boxes = _all_boxes(sidecar)
@@ -16745,6 +17123,8 @@ def run_display_layout_qc(*, qc_profile: str, layout_sidecar: dict[str, object])
         layout_issues = _check_publication_cnv_recurrence_summary_panel(normalized_sidecar)
     elif normalized_profile == "publication_genomic_alteration_landscape_panel":
         layout_issues = _check_publication_genomic_alteration_landscape_panel(normalized_sidecar)
+    elif normalized_profile == "publication_genomic_alteration_consequence_panel":
+        layout_issues = _check_publication_genomic_alteration_consequence_panel(normalized_sidecar)
     elif normalized_profile == "publication_omics_volcano_panel":
         layout_issues = _check_publication_omics_volcano_panel(normalized_sidecar)
     elif normalized_profile == "publication_forest_plot":

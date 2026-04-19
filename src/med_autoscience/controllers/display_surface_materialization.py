@@ -5982,6 +5982,144 @@ def _validate_genomic_alteration_landscape_panel_display_payload(
     }
 
 
+def _validate_genomic_alteration_consequence_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    normalized_payload = _validate_genomic_alteration_landscape_panel_display_payload(
+        path=path,
+        payload=payload,
+        expected_template_id=expected_template_id,
+        expected_display_id=expected_display_id,
+    )
+    consequence_x_label = _require_non_empty_string(
+        payload.get("consequence_x_label"),
+        label=f"{path.name} display `{expected_display_id}` consequence_x_label",
+    )
+    consequence_y_label = _require_non_empty_string(
+        payload.get("consequence_y_label"),
+        label=f"{path.name} display `{expected_display_id}` consequence_y_label",
+    )
+    consequence_legend_title = _require_non_empty_string(
+        payload.get("consequence_legend_title"),
+        label=f"{path.name} display `{expected_display_id}` consequence_legend_title",
+    )
+    effect_threshold = _require_numeric_value(
+        payload.get("effect_threshold"),
+        label=f"{path.name} display `{expected_display_id}` effect_threshold",
+    )
+    if effect_threshold <= 0.0:
+        raise ValueError(f"{path.name} display `{expected_display_id}` effect_threshold must be positive")
+    significance_threshold = _require_numeric_value(
+        payload.get("significance_threshold"),
+        label=f"{path.name} display `{expected_display_id}` significance_threshold",
+    )
+    if significance_threshold <= 0.0:
+        raise ValueError(f"{path.name} display `{expected_display_id}` significance_threshold must be positive")
+
+    driver_gene_order = _validate_labeled_order_payload(
+        path=path,
+        payload=payload.get("driver_gene_order"),
+        label=f"display `{expected_display_id}` driver_gene_order",
+    )
+    declared_gene_labels = {item["label"] for item in normalized_payload["gene_order"]}
+    driver_gene_labels = {item["label"] for item in driver_gene_order}
+    if not driver_gene_labels.issubset(declared_gene_labels):
+        raise ValueError(f"{path.name} display `{expected_display_id}` driver_gene_order labels must stay inside gene_order")
+
+    consequence_panel_order = _validate_panel_order_payload(
+        path=path,
+        payload=payload.get("consequence_panel_order"),
+        label=f"display `{expected_display_id}` consequence_panel_order",
+    )
+    declared_panel_ids = {item["panel_id"] for item in consequence_panel_order}
+
+    consequence_points = payload.get("consequence_points")
+    if not isinstance(consequence_points, list) or not consequence_points:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty consequence_points list")
+    supported_regulation_classes = {"upregulated", "downregulated", "background"}
+    observed_coordinates: set[tuple[str, str]] = set()
+    normalized_consequence_points: list[dict[str, Any]] = []
+    for index, item in enumerate(consequence_points):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` consequence_points[{index}] must be an object")
+        panel_id = _require_non_empty_string(
+            item.get("panel_id"),
+            label=f"{path.name} display `{expected_display_id}` consequence_points[{index}].panel_id",
+        )
+        if panel_id not in declared_panel_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` consequence_points[{index}].panel_id must match consequence_panel_order"
+            )
+        gene_label = _require_non_empty_string(
+            item.get("gene_label"),
+            label=f"{path.name} display `{expected_display_id}` consequence_points[{index}].gene_label",
+        )
+        if gene_label not in driver_gene_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` consequence_points[{index}].gene_label must match driver_gene_order"
+            )
+        coordinate = (panel_id, gene_label)
+        if coordinate in observed_coordinates:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` must cover every declared consequence panel/driver gene coordinate exactly once"
+            )
+        observed_coordinates.add(coordinate)
+        effect_value = _require_numeric_value(
+            item.get("effect_value"),
+            label=f"{path.name} display `{expected_display_id}` consequence_points[{index}].effect_value",
+        )
+        significance_value = _require_numeric_value(
+            item.get("significance_value"),
+            label=f"{path.name} display `{expected_display_id}` consequence_points[{index}].significance_value",
+        )
+        if significance_value < 0.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` consequence_points[{index}].significance_value must be non-negative"
+            )
+        regulation_class = _require_non_empty_string(
+            item.get("regulation_class"),
+            label=f"{path.name} display `{expected_display_id}` consequence_points[{index}].regulation_class",
+        )
+        if regulation_class not in supported_regulation_classes:
+            supported_classes = ", ".join(("upregulated", "downregulated", "background"))
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` consequence_points[{index}].regulation_class must be one of {supported_classes}"
+            )
+        normalized_consequence_points.append(
+            {
+                "panel_id": panel_id,
+                "gene_label": gene_label,
+                "effect_value": effect_value,
+                "significance_value": significance_value,
+                "regulation_class": regulation_class,
+            }
+        )
+
+    expected_coordinates = {
+        (panel["panel_id"], driver_gene["label"])
+        for panel in consequence_panel_order
+        for driver_gene in driver_gene_order
+    }
+    if observed_coordinates != expected_coordinates:
+        raise ValueError(
+            f"{path.name} display `{expected_display_id}` must cover every declared consequence panel/driver gene coordinate exactly once"
+        )
+
+    normalized_payload["consequence_x_label"] = consequence_x_label
+    normalized_payload["consequence_y_label"] = consequence_y_label
+    normalized_payload["consequence_legend_title"] = consequence_legend_title
+    normalized_payload["effect_threshold"] = effect_threshold
+    normalized_payload["significance_threshold"] = significance_threshold
+    normalized_payload["driver_gene_order"] = driver_gene_order
+    normalized_payload["consequence_panel_order"] = consequence_panel_order
+    normalized_payload["consequence_points"] = normalized_consequence_points
+    return normalized_payload
+
+
 def _validate_omics_volcano_panel_display_payload(
     *,
     path: Path,
@@ -10452,6 +10590,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "genomic_alteration_landscape_panel_inputs_v1":
         return payload_path, _validate_genomic_alteration_landscape_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "genomic_alteration_consequence_panel_inputs_v1":
+        return payload_path, _validate_genomic_alteration_consequence_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

@@ -50,6 +50,9 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     oncoplot_landscape = module.get_input_schema_contract("oncoplot_mutation_landscape_panel_inputs_v1")
     cnv_recurrence = module.get_input_schema_contract("cnv_recurrence_summary_panel_inputs_v1")
     genomic_alteration_landscape = module.get_input_schema_contract("genomic_alteration_landscape_panel_inputs_v1")
+    genomic_alteration_consequence = module.get_input_schema_contract(
+        "genomic_alteration_consequence_panel_inputs_v1"
+    )
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -860,6 +863,96 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "mutation_class_must_be_supported_when_present",
         "cnv_state_must_be_supported_when_present",
     )
+    assert genomic_alteration_consequence.template_ids == (_full_id("genomic_alteration_consequence_panel"),)
+    assert genomic_alteration_consequence.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "burden_axis_label",
+        "frequency_axis_label",
+        "alteration_legend_title",
+        "gene_order",
+        "sample_order",
+        "annotation_tracks",
+        "alteration_records",
+        "consequence_x_label",
+        "consequence_y_label",
+        "consequence_legend_title",
+        "effect_threshold",
+        "significance_threshold",
+        "driver_gene_order",
+        "consequence_panel_order",
+        "consequence_points",
+    )
+    assert genomic_alteration_consequence.display_optional_fields == ("paper_role",)
+    assert genomic_alteration_consequence.collection_required_fields["gene_order"] == ("label",)
+    assert genomic_alteration_consequence.collection_required_fields["sample_order"] == ("sample_id",)
+    assert genomic_alteration_consequence.collection_required_fields["annotation_tracks"] == (
+        "track_id",
+        "track_label",
+        "values",
+    )
+    assert genomic_alteration_consequence.nested_collection_required_fields["annotation_tracks.values"] == (
+        "sample_id",
+        "category_label",
+    )
+    assert genomic_alteration_consequence.collection_required_fields["alteration_records"] == ("sample_id", "gene_label")
+    assert genomic_alteration_consequence.collection_required_fields["driver_gene_order"] == ("label",)
+    assert genomic_alteration_consequence.collection_required_fields["consequence_panel_order"] == (
+        "panel_id",
+        "panel_title",
+    )
+    assert genomic_alteration_consequence.collection_required_fields["consequence_points"] == (
+        "panel_id",
+        "gene_label",
+        "effect_value",
+        "significance_value",
+        "regulation_class",
+    )
+    assert genomic_alteration_consequence.additional_constraints == (
+        "y_label_must_be_non_empty",
+        "burden_axis_label_must_be_non_empty",
+        "frequency_axis_label_must_be_non_empty",
+        "alteration_legend_title_must_be_non_empty",
+        "gene_order_must_be_non_empty",
+        "gene_order_labels_must_be_unique",
+        "sample_order_must_be_non_empty",
+        "sample_ids_must_be_unique",
+        "annotation_tracks_must_be_non_empty",
+        "annotation_track_count_must_be_at_most_three",
+        "annotation_track_ids_must_be_unique",
+        "annotation_track_labels_must_be_non_empty",
+        "annotation_track_sample_coverage_must_match_declared_sample_order",
+        "annotation_track_category_labels_must_be_non_empty",
+        "alteration_records_must_be_non_empty",
+        "alteration_sample_ids_must_match_declared_sample_order",
+        "alteration_gene_labels_must_match_declared_gene_order",
+        "alteration_sample_gene_coordinates_must_be_unique",
+        "alteration_record_must_define_mutation_or_cnv",
+        "mutation_class_must_be_supported_when_present",
+        "cnv_state_must_be_supported_when_present",
+        "consequence_x_label_must_be_non_empty",
+        "consequence_y_label_must_be_non_empty",
+        "consequence_legend_title_must_be_non_empty",
+        "effect_threshold_must_be_positive",
+        "significance_threshold_must_be_positive",
+        "driver_gene_order_must_be_non_empty",
+        "driver_gene_labels_must_be_unique",
+        "driver_gene_labels_must_be_subset_of_gene_order",
+        "consequence_panel_order_must_be_non_empty",
+        "consequence_panel_order_count_must_be_at_most_two",
+        "consequence_panel_ids_must_be_unique",
+        "consequence_panel_titles_must_be_non_empty",
+        "consequence_points_must_be_non_empty",
+        "consequence_point_panel_ids_must_match_declared_panels",
+        "consequence_point_gene_labels_must_match_declared_driver_genes",
+        "consequence_point_coordinates_must_be_complete_and_unique",
+        "consequence_point_effect_values_must_be_finite",
+        "consequence_point_significance_values_must_be_non_negative",
+        "consequence_point_regulation_classes_must_use_supported_vocabulary",
+    )
 
     assert correlation.template_ids == (_full_id("correlation_heatmap"),)
     assert correlation.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
@@ -1117,6 +1210,12 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).template_ids
     assert "cnv_recurrence_summary_panel_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).input_schema_ids
+    assert _full_id("genomic_alteration_consequence_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).template_ids
+    assert "genomic_alteration_consequence_panel_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).input_schema_ids
     assert _full_id("single_cell_atlas_overview_panel") in next(
@@ -2813,6 +2912,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "cnv_recurrence_summary_panel_inputs_v1" in markdown
     assert _full_id("genomic_alteration_landscape_panel") in markdown
     assert "genomic_alteration_landscape_panel_inputs_v1" in markdown
+    assert _full_id("genomic_alteration_consequence_panel") in markdown
+    assert "genomic_alteration_consequence_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown
