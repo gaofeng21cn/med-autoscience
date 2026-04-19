@@ -27,6 +27,7 @@ from matplotlib.textpath import TextPath  # noqa: E402
 from med_autoscience import display_layout_qc, display_pack_lock, display_pack_runtime, display_registry, publication_display_contract  # noqa: E402
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID, TABLE_INPUT_FILENAME_BY_SCHEMA_ID  # noqa: E402
 from med_autoscience.display_pack_resolver import get_pack_id, get_template_short_id  # noqa: E402
+from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key  # noqa: E402
 
 
 _INPUT_FILENAME_BY_SCHEMA_ID = INPUT_FILENAME_BY_SCHEMA_ID
@@ -112,6 +113,21 @@ _TABLE_OUTPUT_CONFIG_BY_TEMPLATE_SHORT_ID: dict[str, dict[str, Any]] = {
     },
 }
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _resolve_illustration_shell_paper_role(
+    *,
+    shell_payload: dict[str, Any],
+    requirement_key: str,
+    allowed_paper_roles: tuple[str, ...],
+) -> str:
+    explicit_paper_role = str(shell_payload.get("paper_role") or "").strip()
+    if explicit_paper_role:
+        return explicit_paper_role
+    story_role = display_story_role_for_requirement_key(requirement_key)
+    if story_role == "study_setup" and "supplementary" in allowed_paper_roles:
+        return "supplementary"
+    return allowed_paper_roles[0]
 
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
@@ -11765,7 +11781,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 input_schema_id=spec.input_schema_id,
             )
             shell_payload = load_json(payload_path)
-            paper_role = str(shell_payload.get("paper_role") or spec.allowed_paper_roles[0]).strip()
+            paper_role = _resolve_illustration_shell_paper_role(
+                shell_payload=shell_payload,
+                requirement_key=requirement_key,
+                allowed_paper_roles=spec.allowed_paper_roles,
+            )
             if paper_role not in spec.allowed_paper_roles:
                 allowed_roles = ", ".join(spec.allowed_paper_roles)
                 raise ValueError(
