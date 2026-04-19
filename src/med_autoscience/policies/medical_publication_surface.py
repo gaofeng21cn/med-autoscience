@@ -4,6 +4,7 @@ import re
 
 from med_autoscience import display_registry
 from med_autoscience import figure_renderer_contract
+from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
 
 
 FORBIDDEN_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
@@ -320,6 +321,18 @@ def validate_figure_semantics_manifest(payload: object) -> list[str]:
         renderer_contract_errors = figure_renderer_contract.validate_renderer_contract(renderer_contract_payload)
         if renderer_contract_errors:
             return [f"figures[{index}].renderer_contract invalid: {'; '.join(renderer_contract_errors)}"]
+        template_id = str(renderer_contract_payload.get("template_id") or "").strip()
+        if template_id and display_registry.is_illustration_shell(template_id):
+            shell_id = display_registry.get_illustration_shell_spec(template_id).shell_id
+            expected_story_role = display_story_role_for_requirement_key(shell_id)
+            if expected_story_role == "study_setup":
+                observed_story_role = str(figure.get("story_role") or "").strip()
+                if observed_story_role != expected_story_role:
+                    return [
+                        f"figures[{index}].story_role "
+                        f"`{observed_story_role}` does not match canonical story role "
+                        f"`{expected_story_role}` for illustration shell `{shell_id}`"
+                    ]
     return []
 
 

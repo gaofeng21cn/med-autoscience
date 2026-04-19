@@ -2325,6 +2325,54 @@ def test_validate_figure_catalog_blocks_failed_illustration_shell_qc() -> None:
     assert any("blocks publication" in error for error in errors)
 
 
+def test_validate_figure_semantics_manifest_blocks_story_role_drift_for_setup_shell() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    base_payload = {
+        "figure_id": "S1",
+        "research_question": "How was the formal analysis cohort assembled before model fitting?",
+        "direct_message": "The cohort-flow shell documents study assembly and exclusion logic for the audited analysis cohort.",
+        "clinical_implication": "Supports transparent setup reporting before the manuscript turns to result evidence.",
+        "interpretation_boundary": "Study setup only; it is not itself a result claim.",
+        "panel_messages": [
+            {
+                "panel_id": "A",
+                "message": "The figure traces screened, excluded, and analyzed patients.",
+            }
+        ],
+        "legend_glossary": [
+            {
+                "term": "analysis cohort",
+                "explanation": "Patients retained for the prespecified audited model analysis.",
+            }
+        ],
+        "threshold_semantics": "Not applicable to the cohort-flow shell.",
+        "stratification_basis": "Not applicable to the cohort-flow shell.",
+        "recommendation_boundary": "No treatment recommendation is made from this setup figure.",
+        "renderer_contract": {
+            "figure_semantics": "illustration",
+            "renderer_family": "python",
+            "template_id": full_id("cohort_flow_figure"),
+            "selection_rationale": "The registered cohort-flow shell preserves the audited study-setup surface.",
+            "layout_qc_profile": "publication_illustration_flow",
+            "required_exports": ["png", "svg"],
+            "fallback_on_failure": False,
+            "failure_action": "block_and_fix_environment",
+        },
+    }
+
+    assert module.validate_figure_semantics_manifest(
+        {"figures": [dict(base_payload, story_role="study_setup")]}
+    ) == []
+
+    errors = module.validate_figure_semantics_manifest(
+        {"figures": [dict(base_payload, story_role="study_assembly_support")]}
+    )
+
+    assert any("canonical story role" in error for error in errors)
+    assert any("study_setup" in error for error in errors)
+
+
 def test_validate_figure_catalog_allows_supplementary_cohort_flow_shell() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 
