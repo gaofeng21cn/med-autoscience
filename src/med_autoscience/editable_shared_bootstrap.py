@@ -87,7 +87,9 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
         ensure_paths = getattr(helper_module, "ensure_editable_dependency_paths", None)
         if callable(ensure_paths):
             result = ensure_paths(repo_root=repo_root, shared_package_name=_SHARED_PACKAGE_NAME)
-            return tuple(Path(entry) for entry in result)
+            delegated_added_paths = tuple(Path(entry) for entry in result)
+            if delegated_added_paths or _module_spec(_SHARED_PACKAGE_NAME) is not None:
+                return delegated_added_paths
 
     added_paths: list[Path] = []
     for candidate_root in _candidate_repo_site_packages_roots():
