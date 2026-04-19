@@ -483,25 +483,46 @@ def _normalize_stable_quest_session(
     runtime_event_payload = payload.get("runtime_event")
     normalized_runtime_event_ref: dict[str, str] | None = None
     normalized_runtime_event: dict[str, Any] | None = None
+    runtime_event_contract_errors: dict[str, str] = {}
     if runtime_event_ref_payload is not None:
         try:
             normalized_runtime_event_ref = RuntimeEventRecordRef.from_payload(runtime_event_ref_payload).to_dict()
         except (TypeError, ValueError) as exc:
-            raise RuntimeError("invalid stable quest session runtime_event_ref contract") from exc
+            runtime_event_contract_errors["runtime_event_ref_contract_error"] = str(exc)
     if runtime_event_payload is not None:
         try:
             native_runtime_event = NativeRuntimeEventRecord.from_payload(runtime_event_payload)
+            if native_runtime_event.quest_id != quest_id:
+                raise ValueError("stable quest session runtime_event quest_id mismatch")
         except (TypeError, ValueError) as exc:
-            raise RuntimeError("invalid stable quest session runtime_event contract") from exc
-        if native_runtime_event.quest_id != quest_id:
-            raise RuntimeError("stable quest session runtime_event quest_id mismatch")
-        normalized_runtime_event = native_runtime_event.to_dict()
-        if normalized_runtime_event_ref is not None and native_runtime_event.ref().to_dict() != normalized_runtime_event_ref:
-            raise RuntimeError("stable quest session runtime_event_ref mismatch against runtime_event")
+            runtime_event_contract_errors["runtime_event_contract_error"] = str(exc)
+            normalized_runtime_event_ref = None
+        else:
+            normalized_runtime_event = native_runtime_event.to_dict()
+            native_runtime_event_ref: dict[str, str] | None = None
+            try:
+                native_runtime_event_ref = native_runtime_event.ref().to_dict()
+            except ValueError:
+                native_runtime_event_ref = None
+            if (
+                normalized_runtime_event_ref is not None
+                and native_runtime_event_ref is not None
+                and native_runtime_event_ref != normalized_runtime_event_ref
+            ):
+                runtime_event_contract_errors["runtime_event_ref_contract_error"] = (
+                    "stable quest session runtime_event_ref mismatch against runtime_event"
+                )
+            if native_runtime_event_ref is not None:
+                normalized_runtime_event_ref = native_runtime_event_ref
     if normalized_runtime_event_ref is not None:
         normalized_payload["runtime_event_ref"] = normalized_runtime_event_ref
+    else:
+        normalized_payload.pop("runtime_event_ref", None)
     if normalized_runtime_event is not None:
         normalized_payload["runtime_event"] = normalized_runtime_event
+    else:
+        normalized_payload.pop("runtime_event", None)
+    normalized_payload.update(runtime_event_contract_errors)
     return normalized_payload
 
 
@@ -753,6 +774,12 @@ def inspect_quest_live_runtime(
         "worker_pending": bool(runtime_audit.get("worker_pending")) if "worker_pending" in runtime_audit else None,
         "stop_requested": bool(runtime_audit.get("stop_requested")) if "stop_requested" in runtime_audit else None,
     }
+    runtime_event_contract_error = str(payload.get("runtime_event_contract_error") or "").strip() or None
+    if runtime_event_contract_error is not None:
+        result["runtime_event_contract_error"] = runtime_event_contract_error
+    runtime_event_ref_contract_error = str(payload.get("runtime_event_ref_contract_error") or "").strip() or None
+    if runtime_event_ref_contract_error is not None:
+        result["runtime_event_ref_contract_error"] = runtime_event_ref_contract_error
     runtime_event_ref_payload = payload.get("runtime_event_ref")
     if isinstance(runtime_event_ref_payload, dict):
         result["runtime_event_ref"] = dict(runtime_event_ref_payload)

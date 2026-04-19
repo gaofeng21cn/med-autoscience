@@ -1498,6 +1498,64 @@ def test_get_quest_session_rejects_missing_runtime_audit_contract(monkeypatch) -
         module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
 
 
+def test_get_quest_session_preserves_live_runtime_audit_when_native_runtime_event_contract_is_invalid(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+    artifact_path = tmp_path / "runtime" / "quests" / "001-risk" / "artifacts" / "reports" / "runtime_events" / "latest.json"
+    native_event = _native_runtime_event_payload(quest_id="001-risk", artifact_path=artifact_path)
+    native_event["status_snapshot"].pop("continuation_anchor")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "ok": True,
+                    "quest_id": "001-risk",
+                    "snapshot": {"quest_id": "001-risk", "active_run_id": "run-live"},
+                    "runtime_audit": {
+                        "ok": True,
+                        "status": "live",
+                        "source": "daemon_turn_worker",
+                        "active_run_id": "run-live",
+                        "worker_running": True,
+                        "worker_pending": False,
+                        "stop_requested": False,
+                    },
+                    "runtime_event_ref": {
+                        "event_id": str(native_event["event_id"]),
+                        "artifact_path": str(artifact_path),
+                        "summary_ref": str(native_event["summary_ref"]),
+                    },
+                    "runtime_event": native_event,
+                }
+            ).encode("utf-8")
+
+    monkeypatch.setattr(module.request, "urlopen", lambda http_request, timeout: FakeResponse())
+
+    result = module.get_quest_session(daemon_url="http://127.0.0.1:20999", quest_id="001-risk")
+
+    assert result["runtime_audit"] == {
+        "ok": True,
+        "status": "live",
+        "source": "daemon_turn_worker",
+        "active_run_id": "run-live",
+        "worker_running": True,
+        "worker_pending": False,
+        "stop_requested": False,
+    }
+    assert "runtime_event_ref" not in result
+    assert "runtime_event" not in result
+    assert result["runtime_event_contract_error"] == "native runtime event status_snapshot missing continuation_anchor"
+
+
 def test_inspect_quest_live_runtime_reports_live_and_none(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
 
@@ -1563,6 +1621,47 @@ def test_inspect_quest_live_runtime_reports_live_and_none(monkeypatch) -> None:
         "worker_running": False,
         "worker_pending": False,
         "stop_requested": False,
+    }
+
+
+def test_inspect_quest_live_runtime_preserves_live_status_when_runtime_event_contract_is_invalid(
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+    monkeypatch.setattr(
+        module,
+        "get_quest_session",
+        lambda **kwargs: {
+            "ok": True,
+            "snapshot": {"active_run_id": "run-live"},
+            "runtime_audit": {
+                "ok": True,
+                "status": "live",
+                "source": "daemon_turn_worker",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+            "runtime_event_contract_error": "native runtime event status_snapshot missing continuation_anchor",
+        },
+    )
+
+    result = module.inspect_quest_live_runtime(
+        runtime_root=Path("/tmp/runtime"),
+        quest_id="001-risk",
+    )
+
+    assert result == {
+        "ok": True,
+        "status": "live",
+        "source": "daemon_turn_worker",
+        "active_run_id": "run-live",
+        "worker_running": True,
+        "worker_pending": False,
+        "stop_requested": False,
+        "runtime_event_contract_error": "native runtime event status_snapshot missing continuation_anchor",
     }
 
 
