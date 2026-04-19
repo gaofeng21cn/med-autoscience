@@ -729,14 +729,14 @@ def build_gate_state(quest_root: Path) -> GateState:
     runtime_state = quest_state.load_runtime_state(quest_root)
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
     paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
-    paper_line_state_path = (
+    projected_paper_line_state_path = (
         paper_bundle_manifest_path.parent / "paper_line_state.json"
         if paper_bundle_manifest_path is not None
         else None
     )
-    paper_line_state = (
-        load_json(paper_line_state_path)
-        if paper_line_state_path is not None and paper_line_state_path.exists()
+    projected_paper_line_state = (
+        load_json(projected_paper_line_state_path)
+        if projected_paper_line_state_path is not None and projected_paper_line_state_path.exists()
         else None
     )
     anchor_kind, anchor_path, main_result_path, main_result = resolve_primary_anchor(
@@ -747,9 +747,21 @@ def build_gate_state(quest_root: Path) -> GateState:
     paper_root = resolve_paper_root(
         quest_root=quest_root,
         main_result=main_result,
-        paper_line_state=paper_line_state,
+        paper_line_state=projected_paper_line_state,
         paper_bundle_manifest_path=paper_bundle_manifest_path,
         paper_bundle_manifest=paper_bundle_manifest,
+    )
+    authoritative_paper_line_state_path = paper_root / "paper_line_state.json" if paper_root is not None else None
+    authoritative_paper_line_state = (
+        load_json(authoritative_paper_line_state_path)
+        if authoritative_paper_line_state_path is not None and authoritative_paper_line_state_path.exists()
+        else None
+    )
+    paper_line_state_path = authoritative_paper_line_state_path or projected_paper_line_state_path
+    paper_line_state = (
+        authoritative_paper_line_state
+        if authoritative_paper_line_state is not None
+        else projected_paper_line_state
     )
     compile_report_path = resolve_compile_report_path(
         paper_bundle_manifest_path=paper_bundle_manifest_path,

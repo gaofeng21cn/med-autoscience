@@ -2656,6 +2656,34 @@ def test_build_surface_state_resolves_study_root_from_live_quest_paper(tmp_path:
     assert state.study_root == study_root.resolve()
 
 
+def test_build_surface_state_prefers_authoritative_projected_paper_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    worktree_paper_root = _paper_root_from_quest(quest_root)
+    projected_paper_root = quest_root / "paper"
+    dump_json(
+        projected_paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "bundle_inputs": {
+                "compiled_markdown_path": "paper/build/review_manuscript.md",
+            },
+        },
+    )
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/run-1",
+            "paper_root": str(worktree_paper_root.resolve()),
+        },
+    )
+
+    state = module.build_surface_state(quest_root)
+
+    assert state.paper_root == worktree_paper_root.resolve()
+
+
 def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
     quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)

@@ -46,7 +46,7 @@ def resolve_latest_paper_root(quest_root: Path) -> Path:
     latest_manifest = resolve_paper_bundle_manifest(quest_root)
     if latest_manifest is None:
         raise FileNotFoundError(f"No paper_bundle_manifest.json found under {quest_root}")
-    return latest_manifest.parent
+    return _resolve_authoritative_paper_root_from_bundle_manifest_path(latest_manifest)
 
 
 def _projected_manifest_has_authoritative_paper_line(quest_root: Path, manifest_path: Path) -> bool:

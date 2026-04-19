@@ -35,6 +35,26 @@ def test_resolve_latest_paper_root_prefers_latest_manifest(tmp_path: Path) -> No
     assert result == new_manifest.parent
 
 
+def test_resolve_latest_paper_root_follows_authoritative_projected_paper_line(tmp_path: Path) -> None:
+    quest_root = tmp_path / "runtime" / "quests" / "q001"
+    worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
+    dump_json(worktree_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/run-1"})
+    dump_json(projected_manifest, {"schema_version": 1, "paper_branch": "paper/projected"})
+    dump_json(
+        quest_root / "paper" / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_branch": "paper/run-1",
+            "paper_root": str(worktree_paper_root.resolve()),
+        },
+    )
+
+    result = resolve_latest_paper_root(quest_root)
+
+    assert result == worktree_paper_root.resolve()
+
+
 def test_resolve_paper_bundle_and_submission_minimal_manifest(tmp_path: Path) -> None:
     quest_root = tmp_path / "runtime" / "quests" / "q001"
     paper_bundle_manifest = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper" / "paper_bundle_manifest.json"

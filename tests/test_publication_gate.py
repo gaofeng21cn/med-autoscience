@@ -931,6 +931,64 @@ def test_build_gate_state_prefers_bundle_authority_worktree_when_projected_line_
     assert state.submission_minimal_pdf_present is True
 
 
+def test_build_gate_state_reads_authoritative_paper_line_state_when_projected_manifest_is_selected(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_current_medical_publication_surface_report=True,
+    )
+    authoritative_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
+    analysis_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-1" / "paper"
+    projected_paper_root = quest_root / "paper"
+    projected_manifest = projected_paper_root / "paper_bundle_manifest.json"
+
+    dump_json(
+        authoritative_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(authoritative_paper_root.resolve()),
+            "paper_branch": "paper/main",
+            "open_supplementary_count": 0,
+            "recommended_action": "continue_bundle_stage",
+            "blocking_reasons": [],
+        },
+    )
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(authoritative_paper_root / "paper_bundle_manifest.json", projected_manifest)
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "paper_root": str(analysis_paper_root.resolve()),
+            "paper_branch": "analysis/paper-line-paper-main-outline-001-run/analysis-faea0014-live-submission-package-projection-recovery",
+            "open_supplementary_count": 1,
+            "recommended_action": "complete_required_supplementary",
+            "blocking_reasons": ["analysis mirror still thinks a slice is open"],
+        },
+    )
+    (analysis_paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (analysis_paper_root / "draft.md").write_text("analysis slice mirror", encoding="utf-8")
+    projected_stat = projected_manifest.stat()
+    os.utime(projected_manifest, (projected_stat.st_atime, projected_stat.st_mtime + 60))
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert state.paper_bundle_manifest_path == projected_manifest
+    assert state.paper_root == authoritative_paper_root.resolve()
+    assert state.paper_line_state_path == (authoritative_paper_root / "paper_line_state.json").resolve()
+    assert state.paper_line_state == {
+        "paper_root": str(authoritative_paper_root.resolve()),
+        "paper_branch": "paper/main",
+        "open_supplementary_count": 0,
+        "recommended_action": "continue_bundle_stage",
+        "blocking_reasons": [],
+    }
+    assert report["paper_line_open_supplementary_count"] == 0
+    assert "paper_line_required_supplementary_pending" not in report["blockers"]
+
+
 def test_build_gate_report_marks_stale_study_delivery_mirror_when_authority_package_disappears(
     tmp_path: Path,
     monkeypatch,
