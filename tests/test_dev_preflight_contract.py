@@ -76,11 +76,12 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_integration_harness_surface() -> None:
+def test_classify_changed_files_matches_public_doc_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
+            "README.md",
             "README.zh-CN.md",
             "docs/README.md",
             "docs/README.zh-CN.md",
@@ -88,11 +89,27 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "docs/architecture.md",
             "docs/status.md",
             "docs/decisions.md",
+        ]
+    )
+
+    assert result.matched_categories == ("public_doc_surface",)
+    assert result.unclassified_changes == ()
+
+
+def test_classify_changed_files_matches_integration_harness_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
             "docs/program/hermes_backend_continuation_board.md",
             "docs/program/hermes_backend_activation_package.md",
             "docs/program/med_deepscientist_deconstruction_map.md",
             "docs/program/integration_harness_activation_package.md",
+            "docs/program/research_foundry_medical_mainline.md",
             "src/med_autoscience/controllers/workspace_init.py",
+            "src/med_autoscience/dev_preflight_contract.py",
+            "tests/test_dev_preflight.py",
+            "tests/test_dev_preflight_contract.py",
             "tests/test_workspace_init.py",
             "tests/test_integration_harness_activation_package.py",
         ]
@@ -113,6 +130,18 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
     assert "uv run pytest tests/test_codex_plugin.py -q" in commands
 
 
+def test_plan_commands_for_public_doc_surface_stay_lightweight() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("public_doc_surface",))
+
+    assert commands == [
+        "uv run pytest tests/test_dev_preflight_contract.py -q",
+        "uv run pytest tests/test_dev_preflight.py -q",
+        "make test-meta",
+    ]
+
+
 def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proofs() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -130,13 +159,12 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
     commands = module.plan_commands_for_categories(("integration_harness_surface",))
 
     assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
+    assert "uv run pytest tests/test_dev_preflight.py -q" in commands
     assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in commands
-    assert "uv run pytest tests/test_runtime_contract_docs.py -q" in commands
+    assert "uv run pytest tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
-    assert (
-        "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q"
-        in commands
-    )
+    assert "uv run pytest tests/test_runtime_contract_docs.py -q" not in commands
+    assert "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
 
 
 def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proofs() -> None:

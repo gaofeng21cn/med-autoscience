@@ -40,14 +40,14 @@ def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) ->
     )
 
     assert result.ok is True
-    assert result.matched_categories == ("codex_plugin_docs_surface",)
+    assert result.matched_categories == ("public_doc_surface",)
     assert result.unclassified_changes == ()
     assert result.planned_commands == (
-        "uv run pytest tests/test_codex_plugin.py -q",
-        "uv run pytest tests/test_codex_plugin_installer.py -q",
-        "uv run pytest tests/test_codex_plugin_installer_script.py -q",
+        "uv run pytest tests/test_dev_preflight_contract.py -q",
+        "uv run pytest tests/test_dev_preflight.py -q",
+        "make test-meta",
     )
-    assert calls[0] == ["uv", "run", "pytest", "tests/test_codex_plugin.py", "-q"]
+    assert calls[0] == ["uv", "run", "pytest", "tests/test_dev_preflight_contract.py", "-q"]
     assert result.results[0].stdout == "ok\n"
 
 
@@ -104,6 +104,8 @@ def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_pa
     assert result.matched_categories == ("integration_harness_surface",)
     assert result.unclassified_changes == ()
     assert "uv run pytest tests/test_integration_harness_activation_package.py -q" in result.planned_commands
+    assert "uv run pytest tests/test_workspace_init.py -q" in result.planned_commands
+    assert "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in result.planned_commands
     assert calls[0] == ["uv", "run", "pytest", "tests/test_dev_preflight_contract.py", "-q"]
 
 

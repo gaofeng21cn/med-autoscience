@@ -38,9 +38,27 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
-        category_id="codex_plugin_docs_surface",
+        category_id="public_doc_surface",
         exact_paths=(
             "README.md",
+            "README.zh-CN.md",
+            "docs/README.md",
+            "docs/README.zh-CN.md",
+            "docs/architecture.md",
+            "docs/decisions.md",
+            "docs/project.md",
+            "docs/status.md",
+        ),
+        prefix_paths=(),
+        commands=(
+            "uv run pytest tests/test_dev_preflight_contract.py -q",
+            "uv run pytest tests/test_dev_preflight.py -q",
+            "make test-meta",
+        ),
+    ),
+    PreflightCategorySpec(
+        category_id="codex_plugin_docs_surface",
+        exact_paths=(
             "docs/references/codex_plugin.md",
             "docs/references/codex_plugin_release.md",
             "scripts/install-codex-plugin.sh",
@@ -167,13 +185,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="integration_harness_surface",
         exact_paths=(
-            "README.zh-CN.md",
-            "docs/README.md",
-            "docs/README.zh-CN.md",
-            "docs/architecture.md",
-            "docs/decisions.md",
-            "docs/project.md",
-            "docs/status.md",
             "docs/runtime/agent_runtime_interface.md",
             "docs/program/hermes_backend_activation_package.md",
             "docs/program/hermes_backend_continuation_board.md",
@@ -195,9 +206,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "uv run pytest tests/test_dev_preflight_contract.py -q",
             "uv run pytest tests/test_dev_preflight.py -q",
             "uv run pytest tests/test_integration_harness_activation_package.py -q",
-            "uv run pytest tests/test_runtime_contract_docs.py -q",
             "uv run pytest tests/test_workspace_init.py -q",
-            "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q",
             "make test-meta",
         ),
     ),
