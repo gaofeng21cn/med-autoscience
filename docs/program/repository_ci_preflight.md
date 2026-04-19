@@ -8,7 +8,8 @@
 - 远端 CI 不再承担阻断式 gate 角色
 - 提交前如果想提前发现高频问题，应优先运行本地 preflight
 - 常规 `quick-checks` lane 只保留 `meta / fast / build` 这类轻量告警；系统依赖面保留 submission-facing DOCX/PDF 仍会实际消费的 `pandoc` 与 `BasicTeX`
-- `display-heavy` 与 `release/full` lane 继续承担 analysis bundle ready 的重型远端回归告警，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
+- `display-heavy` lane 保持 advisory 告警，继续承担 analysis bundle ready 的重型远端回归提示，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
+- `release/full` lane 继续保持严格，用来覆盖正式发布前的整条重型验证链路
 
 ## 何时运行
 

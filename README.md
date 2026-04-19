@@ -87,6 +87,7 @@ Runtime contracts, durable handles, bridge surfaces, and historical tranche reco
 - `make test-display`
 - `make test-full`
 - GitHub `macOS CI` intentionally keeps `quick-checks` lightweight; it installs `pandoc` plus `BasicTeX` for submission-facing DOCX/PDF coverage, while the full study runtime analysis bundle plus `graphviz` / `R` stay on the `display-heavy` and `release/full` lanes.
+- The `display-heavy` lane stays advisory on push, so external bundle bootstrap outages still show up in GitHub Actions without failing the whole workflow; `release/full` remains strict.
 
 ## Codex Plugin Integration
 

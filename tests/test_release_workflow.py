@@ -102,8 +102,11 @@ def test_ci_and_release_workflows_only_prepare_study_runtime_analysis_bundle_for
     assert "Ensure study runtime analysis bundle" not in quick_checks_workflow
     assert "Ensure study runtime analysis bundle" in display_workflow
     assert "Run display-heavy tests" in ci_workflow
+    assert "continue-on-error: true" not in quick_checks_workflow
+    assert "continue-on-error: true" in display_workflow
     assert "brew install pandoc graphviz pkg-config libxml2 r" in release_workflow
     assert "Ensure study runtime analysis bundle" in release_workflow
+    assert "continue-on-error: true" not in release_workflow
     assert "scripts/verify.sh full" in release_workflow
 
 
@@ -114,10 +117,13 @@ def test_ci_docs_describe_submission_pdf_tex_dependency_split() -> None:
 
     assert "submission-facing DOCX/PDF coverage" in readme
     assert "`pandoc` plus `BasicTeX`" in readme
+    assert "advisory on push" in readme
     assert "submission-facing DOCX/PDF 覆盖" in readme_zh
     assert "`pandoc` 与 `BasicTeX`" in readme_zh
+    assert "push 上保持 advisory 告警" in readme_zh
     assert "submission-facing DOCX/PDF" in preflight_doc
     assert "`pandoc` 与 `BasicTeX`" in preflight_doc
+    assert "display-heavy` lane 保持 advisory 告警" in preflight_doc
 
 
 def test_release_workflows_split_ci_fast_and_display_jobs() -> None:

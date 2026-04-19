@@ -53,6 +53,7 @@ jobs:
   display-surface:
     runs-on: macOS-latest
     name: Run display-heavy tests
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

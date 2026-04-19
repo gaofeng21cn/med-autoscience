@@ -87,6 +87,7 @@
 - `make test-display`
 - `make test-full`
 - GitHub `macOS CI` 会刻意把 `quick-checks` 保持为轻量告警；它保留 submission-facing DOCX/PDF 覆盖所需的 `pandoc` 与 `BasicTeX`，完整 study runtime analysis bundle 以及 `graphviz` / `R` 继续放在 `display-heavy` 和 `release/full` lane。
+- `display-heavy` 在 push 上保持 advisory 告警，所以外部 analysis bundle bootstrap 抖动会继续出现在 GitHub Actions 里，同时不会把整个 workflow 判红；`release/full` 继续保持严格。
 
 ## Codex 接入说明
 
