@@ -904,7 +904,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
     semantics_entries = [
         {
             "figure_id": "F1",
-            "story_role": "cohort_accounting",
+            "story_role": "study_setup",
             "research_question": "How was the analysis cohort derived and how were the primary endpoints inventoried?",
             "direct_message": "The analytic cohort and endpoint inventory were prespecified before model evaluation.",
             "clinical_implication": "Defines the denominator and endpoint framing for all downstream performance claims.",
