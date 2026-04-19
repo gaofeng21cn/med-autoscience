@@ -1021,6 +1021,128 @@ def test_run_watch_for_runtime_auto_recovers_stopped_controller_guard_quest(tmp_
     ]
 
 
+def test_run_watch_for_runtime_rechecks_managed_study_immediately_after_figure_loop_guard_stop(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    quest_root = profile.runtime_root / "001-risk"
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "001-risk",
+            "status": "running",
+            "active_run_id": "run-live",
+        },
+    )
+    calls: list[tuple[str, str]] = []
+
+    live_status = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        "study_root": str(study_root),
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+        "runtime_liveness_audit": {
+            "status": "live",
+            "active_run_id": "run-live",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        },
+    }
+    reroute_status = {
+        **live_status,
+        "decision": "resume",
+        "reason": "quest_stale_decision_after_write_stage_ready",
+        "publication_supervisor_state": {
+            "supervisor_phase": "write_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "current_required_action": "continue_write_stage",
+            "deferred_downstream_actions": ["continue_bundle_stage"],
+            "controller_stage_note": "write stage is clear and should continue",
+        },
+    }
+
+    def fake_ensure(*, profile, study_root, source):
+        calls.append(("ensure", source))
+        if source == "runtime_watch":
+            return live_status
+        if source == "runtime_watch_controller_reroute":
+            return reroute_status
+        raise AssertionError(f"unexpected ensure source: {source}")
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [quest_root])
+    monkeypatch.setattr(
+        module,
+        "run_watch_for_quest",
+        lambda *, quest_root, controller_runners, apply: {
+            "quest_root": str(quest_root),
+            "quest_status": "running",
+            "controllers": {
+                "figure_loop_guard": {
+                    "status": "blocked",
+                    "action": "applied",
+                    "blockers": ["figure_loop_budget_exceeded"],
+                    "advisories": [],
+                    "report_json": str(quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.json"),
+                    "report_markdown": str(quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.md"),
+                    "suppression_reason": None,
+                    "quest_stop_applied": True,
+                    "quest_stop_status": "stopped",
+                    "quest_stop_deferred": False,
+                    "quest_stop_defer_reason": None,
+                }
+            },
+        },
+    )
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert calls == [
+        ("ensure", "runtime_watch"),
+        ("ensure", "runtime_watch_controller_reroute"),
+    ]
+    assert result["managed_study_actions"] == [
+        {
+            "study_id": "001-risk",
+            "decision": "resume",
+            "reason": "quest_stale_decision_after_write_stage_ready",
+        }
+    ]
+    assert result["managed_study_auto_recoveries"] == [
+        {
+            "study_id": "001-risk",
+            "preflight_decision": "noop",
+            "preflight_reason": "quest_already_running",
+            "applied_decision": "resume",
+            "applied_reason": "quest_stale_decision_after_write_stage_ready",
+            "source": "runtime_watch_controller_reroute",
+        }
+    ]
+
+
 def test_run_watch_for_runtime_auto_recovers_blocked_stopped_auto_continuation_quest(
     tmp_path: Path,
     monkeypatch,

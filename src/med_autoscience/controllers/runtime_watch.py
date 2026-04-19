@@ -39,6 +39,7 @@ DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
 )
 
 _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
+_MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
 _HARD_AUTO_RECOVERY_REASONS = frozenset(
     {
@@ -530,6 +531,20 @@ def _serialize_managed_study_auto_recovery(
     }
 
 
+def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | None) -> bool:
+    if not isinstance(report, Mapping):
+        return False
+    controllers = report.get("controllers")
+    if not isinstance(controllers, Mapping):
+        return False
+    figure_loop_guard_report = controllers.get("figure_loop_guard")
+    if not isinstance(figure_loop_guard_report, Mapping):
+        return False
+    if _non_empty_text(figure_loop_guard_report.get("action")) != "applied":
+        return False
+    return bool(figure_loop_guard_report.get("quest_stop_applied"))
+
+
 def _write_latest_watch_alias(*, report_dir: Path, report: Mapping[str, Any], markdown: str) -> tuple[Path, Path]:
     latest_json = report_dir / "latest.json"
     latest_markdown = report_dir / "latest.md"
@@ -870,7 +885,6 @@ def run_watch_for_runtime(
     ensure_study_runtimes: bool = False,
 ) -> dict[str, Any]:
     controller_runners = controller_runners or build_default_controller_runners()
-    managed_study_actions: list[dict[str, Any]] = []
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
     managed_study_auto_recoveries: list[dict[str, Any]] = []
     managed_study_alert_deliveries: list[dict[str, Any]] = []
@@ -907,7 +921,6 @@ def run_watch_for_runtime(
                             source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
                         )
                     )
-            managed_study_actions.append(_serialize_managed_study_action(action_payload))
             managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
     scanned: list[str] = []
     reports: list[dict[str, Any]] = []
@@ -925,6 +938,28 @@ def run_watch_for_runtime(
         for report in reports
         if str(report.get("quest_root") or "").strip()
     }
+    if apply and ensure_study_runtimes and profile is not None:
+        rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
+        for study_root, status_payload in managed_study_statuses:
+            resolved_status_payload = status_payload
+            quest_root = status_payload.get("quest_root")
+            quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
+            if _quest_report_requests_managed_study_reroute(quest_report):
+                rerouted_payload = study_runtime_router.ensure_study_runtime(
+                    profile=profile,
+                    study_root=study_root,
+                    source=_MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE,
+                )
+                managed_study_auto_recoveries.append(
+                    _serialize_managed_study_auto_recovery(
+                        preflight_payload=status_payload,
+                        applied_payload=rerouted_payload,
+                        source=_MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE,
+                    )
+                )
+                resolved_status_payload = _managed_study_status_payload(rerouted_payload)
+            rerouted_managed_study_statuses.append((study_root, resolved_status_payload))
+        managed_study_statuses = rerouted_managed_study_statuses
     managed_study_supervision: list[dict[str, Any]] = []
     for study_root, status_payload in managed_study_statuses:
         if profile is not None:
@@ -958,6 +993,10 @@ def run_watch_for_runtime(
             )
             if alert_delivery is not None:
                 managed_study_alert_deliveries.append(alert_delivery)
+    managed_study_actions = [
+        _serialize_managed_study_action(status_payload)
+        for _, status_payload in managed_study_statuses
+    ]
     runtime_report = {
         "schema_version": 1,
         "scanned_at": utc_now(),
