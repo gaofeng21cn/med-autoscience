@@ -25,8 +25,8 @@
   - 表格壳层：`5`
   - 总模板数：`78`
 - 最近一次已吸收完成的 capability cluster：
-  - `G / oncoplot mutation landscape panel`
-  - `oncoplot_mutation_landscape_panel`
+  - `G / cnv_recurrence_summary_panel`
+  - `cnv_recurrence_summary_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,70 +35,63 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 5 / integration / merge-back / cleanup`
+- Phase：`Phase 4 / next-cluster routing and owner-round open`
 - Family cluster：`G`
-- Capability cluster：`cnv_recurrence_summary_panel`
-- Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-genomic-summary-20260419T041334Z`
-- 状态：`merge_back_ready`
+- Capability cluster：`richer mutation-landscape or broader genomic composite beyond the first CNV-summary lower bound`
+- Owner worktree：`unassigned`
+- 状态：`routing_open`
 
-### Fresh Owner Result
+### Fresh Absorb Result
 
-- `cnv_recurrence_summary_panel` 已完成 schema / source contract / materialization / renderer / QC / regression / tracked docs 闭环；
-- `G/E` 当前 omics-native lower bound 已从四基线扩到五基线：
+- `cnv_recurrence_summary_panel` 已 absorb 到当前 `main`；
+- `G/E` 当前 omics-native lower bound 已正式扩到五基线：
   - `gsva_ssgsea_heatmap`
   - `pathway_enrichment_dotplot_panel`
   - `omics_volcano_panel`
   - `oncoplot_mutation_landscape_panel`
   - `cnv_recurrence_summary_panel`
-- 当前 round 剩余动作已经收敛为 absorb、push、cleanup 与 reroute。
+- 当前下一轮还没有 owner worktree，接下来先做 candidate 固定与 owner brief 收口。
 
 ### 本轮核心问题
 
 当前这一轮要回答的是：
 
-> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel` 与 `oncoplot_mutation_landscape_panel` 已经形成当前 `G/E` 四基线的前提下，如何把 top journal 常见的 copy-number summary 主图正式沉淀成一个正文可直接使用的 bounded 模板，使论文能够稳定回答“哪些基因或区域发生了 gain/loss、样本级 CNV burden 如何分布、区域级 gain/loss 频率如何排序、关键临床或 cohort 注释如何和 CNV matrix 同步对齐”，并继续保持 region order、sample order、CNV vocabulary、annotation-track completeness 与 burden/frequency 边栏语义全程可审计、可回归、可复用。
+> 在 `gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前 `G/E` 五基线的前提下，下一条 `G` 家族 capability cluster 应该优先把哪一种更高阶正文图式收成单一 bounded follow-on，使论文能够进一步回答“更宽的 mutation-landscape 叙事是否值得正式模板化”或“更完整的 genomic composite 是否已经具备稳定的 schema / renderer / QC / regression 收口条件”。
 
 ### Fresh Route 收敛
 
 当前 reroute 已明确：
 
-1. `oncoplot_mutation_landscape_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小四基线已经成立。
-2. 当前 `G` 新一轮 round 固定为单一 bounded follow-on：`cnv_recurrence_summary_panel`。
-3. 这条 follow-on 已经把高水平组学论文里高频出现的 copy-number gain/loss summary 结构正式沉淀为 bounded 模板，并补齐当前 `G` 家族在 CNV manuscript-facing surface 上的正式 lower bound。
-4. richer mutation-landscape composite、broader genomic composite、`D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
+1. `cnv_recurrence_summary_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小五基线已经成立。
+2. 当前下一轮仍优先留在 `G` 家族，先从 richer mutation-landscape 与 broader genomic composite 两个方向里收成一个单一 bounded candidate。
+3. 只有在 paper question、最小 panel 结构、最小数据前提、继承关系与最小 schema / renderer / QC / regression 写集全部清楚后，才开新的 owner worktree。
+4. `D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
 
 ### 本轮边界
 
 本轮只做下面三块：
 
-1. 固定 `G` 家族当前 owner 模板为 `cnv_recurrence_summary_panel`；
-2. 在当前 round 里，显式固定 shared `sample_order`、shared `region_order`、CNV-state vocabulary、top burden bar、right-side gain/loss frequency bars 与 up-to-three annotation tracks 治理；
-3. 把 schema / renderer / QC / regression / tracked docs 一起闭环，并让 `G` 家族从 mutation landscape 扩到更完整的 genomic-summary lower bound。
+1. 在 `G` 家族里把下一条 follow-on 收成单一 bounded candidate；
+2. 明确它相对当前五基线的继承关系，避免把下一轮扩成无边界的“更大组学拼图”；
+3. 在 owner round 真正打开前，就把 paper question、最小 panel 结构、最小数据前提、最小写集与退出条件写清楚。
 
 ## 预期写集
 
-下一轮 owner implementation 预计触碰下面这组最小写集：
+当前 routing round 预计只触碰下面这组最小写集：
 
 - `docs/capabilities/medical-display/medical_display_active_board.md`
 - `docs/capabilities/medical-display/medical_display_template_backlog.md`
-- `src/med_autoscience/display_registry.py`
-- `src/med_autoscience/display_schema_contract.py`
-- `src/med_autoscience/display_source_contract.py`
-- `src/med_autoscience/controllers/display_surface_materialization.py`
-- `src/med_autoscience/display_layout_qc.py`
-- 对应 `G` follow-on renderer 文件
-- 对应 `G` / cross-paper golden regression tests
-- `tests/test_display_layout_qc.py`
-- 仅在 template inventory 真相变化后触碰 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`、`medical_display_template_backlog.md`
+- 必要时补充新的 bounded candidate brief
+- 只有 candidate fixed 后，才为下一个 `G` owner round 打开新的独立 worktree
 
 ## 最低退出条件
 
-只有同时满足下面条件，当前 `G` owner round 才算完成：
+只有同时满足下面条件，当前 routing round 才算完成：
 
-1. `cnv_recurrence_summary_panel` 已正式入库为单一 bounded manuscript-facing template；
-2. input schema、source contract、materialization、renderer、layout QC 与 regression 已一起闭环；
-3. fresh verify 至少覆盖该 `G` lane、`scripts/verify.sh` 与 `make test-meta`；
-4. 本轮 worktree 已 absorb / push / cleanup，且未与其他 display owner write set 发生冲突。
+1. 下一个 `G` follow-on 已固定为单一 bounded capability cluster；
+2. owner brief 已明确 paper question、最小 panel 结构、最小数据前提、继承关系与最小写集；
+3. 新 owner worktree 已从最新干净 `main` 打开；
+4. secondary / tertiary 候选顺序已明确，不再让旧的 `cnv` round 状态持续污染路由判断。
 
 ## 当前轮次结束后的候选
 
