@@ -24,7 +24,7 @@
   - 插图壳层：`7`
   - 表格壳层：`5`
   - 总模板数：`85`
-- 当前正在收口的 capability cluster：
+- 最近一次已吸收完成的 capability cluster：
   - `A / clinical_impact_curve_binary`
   - `C / multivariable_forest`
   - `D / phate_scatter_grouped`
@@ -36,75 +36,71 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 4 / concrete backlog sweep`
-- Family cluster：`A/C/D concrete absorb`
-- Capability cluster：`clinical_impact_curve_binary + multivariable_forest + phate_scatter_grouped`
-- Owner worktree：`medical-display-concrete-backlog-sweep-20260419T231949Z`
-- 状态：`merge_back_ready`
+- Phase：`Phase 4 / next-cluster scouting`
+- Family cluster：`reroute pending`
+- Capability cluster：`reroute after latest A/C/D absorb`
+- Owner worktree：`not_opened`
+- 状态：`ready_for_next_owner_round`
 
-### Fresh Worktree Result
+### Fresh Mainline Result
 
-- 当前 owner worktree 已把 `clinical_impact_curve_binary`、`multivariable_forest` 与 `phate_scatter_grouped` 吸收到 tracked docs 真相；
+- 当前主干已吸收 `clinical_impact_curve_binary`、`multivariable_forest` 与 `phate_scatter_grouped`；
 - strict audited inventory 已更新到：
   - `Clinical Utility`：`5`
   - `Effect Estimate`：`6`
   - `Data Geometry`：`13`
   - evidence figures：`73`
   - total templates：`85`
-- `phate_scatter_grouped` 已从 concrete backlog 候选转为本轮已吸收成果；
+- `clinical_impact_curve_binary`、`multivariable_forest` 与 `phate_scatter_grouped` 已全部从 concrete backlog 转为 audited inventory；
 - 当前 fresh verify 已完成：
   - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py tests/test_display_surface_materialization.py`
   - `scripts/verify.sh`
   - `make test-meta`
-- 下一步是执行 absorb-back、清理 owner worktree，并回到下一轮 reroute。
+- 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
-当前这一轮要回答：
+当前下一轮要回答：
 
-> 在现有 registry 已 materialize `clinical_impact_curve_binary`、`multivariable_forest` 与 `phate_scatter_grouped` 的前提下，如何把 `A/C/D` 三条 concrete backlog 吸收到同一套 audited inventory、docs truth 与 pack changelog，并在不扩 scope 的条件下完成 absorb-back 前收口。
+> 在 `A/C/D` concrete backlog sweep 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. `clinical_impact_curve_binary` 已进入 `Clinical Utility` 审计真相。
-2. `multivariable_forest` 已进入 `Effect Estimate` 审计真相。
-3. `phate_scatter_grouped` 已进入 `Data Geometry` 审计真相，并作为本轮 concrete backlog sweep 的显式吸收成果。
-4. 下一棒是完成主 lane verify、absorb、cleanup，然后再回到 `G` / `D/E/G` / `F` 的 reroute 候选池。
+1. 最新的 `A/C/D` concrete backlog sweep 已经 absorb 完成。
+2. 当前 strict audited inventory 已稳定在 `73 / 7 / 5 / 85`。
+3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
+4. `G`、`D/E/G` 与 `F` 的 higher-order follow-on 继续留在候选池。
 
 ### 下一轮边界
 
-本轮只做下面三块：
+下一轮只做下面三块：
 
-1. 先把 `clinical_impact_curve_binary`、`multivariable_forest`、`phate_scatter_grouped` 的 contract / catalog / docs truth 收齐；
-2. 再完成对应代码、测试与 verify 收口；
-3. absorb-back 完成后，再恢复下一轮 reroute。
+1. 先 fresh 读取当前 audit guide / template catalog / arsenal / active board；
+2. 再比较 `G`、`D/E/G` 与 `F` 的真实论文 demand 哪一条最值得开启下一轮；
+3. 只有 reroute 固定后，才新开唯一 owner worktree 进入实现。
 
 ## 预期写集
 
-当前 owner implementation 预计触碰下面这组最小写集：
+下一轮 owner implementation 预计先触碰下面这组前置路由写集：
 
 - `docs/capabilities/medical-display/medical_display_active_board.md`
 - `docs/capabilities/medical-display/medical_display_template_backlog.md`
-- `src/med_autoscience/display_registry.py`
-- `src/med_autoscience/display_schema_contract.py`
-- `src/med_autoscience/display_source_contract.py`
-- `src/med_autoscience/controllers/display_surface_materialization.py`
-- `src/med_autoscience/display_layout_qc.py`
-- 对应 `A/C/D` renderer 文件
-- 对应 `A/C/D` / cross-paper golden regression tests
-- `tests/test_display_layout_qc.py`
-- 仅在 template inventory 真相变化后触碰 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`、`medical_display_template_backlog.md`
+
+只有 reroute 固定后，才允许再触碰：
+
+- 对应新 cluster 的 registry / schema / source contract / materialization / renderer / QC / regression 文件
+- 以及仅在 template inventory 真相变化后需要同步的 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`
 
 ## 最低退出条件
 
-只有同时满足下面条件，本轮 `A/C/D` owner round 才算完成：
+只有同时满足下面条件，下一轮 owner round 才允许打开：
 
-1. 三个模板的 registry、schema/materialization、renderer、layout QC 与 regression 仍需一起闭环；
-2. docs / changelog / audited inventory 口径全部统一到 `73 / 7 / 5 / 85`；
-3. fresh verify 至少覆盖对应 lane、`scripts/verify.sh` 与 `make test-meta`；
-4. 本轮 worktree 仍需 absorb / cleanup，且不与其他 owner write set 冲突。
+1. 新候选必须有清晰的论文问题、最小 panel 结构与最小数据前提；
+2. 新候选必须明确继承当前 lower bound，而不是退回 paper-local 修图；
+3. reroute 必须明确为什么当前应该优先 `G`、`D/E/G` 或 `F`；
+4. 打开新的 owner worktree 前，当前已完成 round 的 absorb / cleanup 必须完成。
 
 ## 当前轮次结束后的候选
 
