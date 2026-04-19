@@ -37,14 +37,25 @@ def _candidate_repo_site_packages_roots() -> tuple[Path, ...]:
 
 def _candidate_shared_helper_module_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
-    return (
-        repo_root.parent
+    candidate_base_roots = [repo_root.parent]
+    if repo_root.parent.name == ".worktrees":
+        # Worktree layout: <workspace>/<repo>/.worktrees/<wt>. Prefer the workspace sibling owner.
+        candidate_base_roots.append(repo_root.parent.parent.parent)
+
+    unique_base_roots: list[Path] = []
+    for candidate in candidate_base_roots:
+        if candidate not in unique_base_roots:
+            unique_base_roots.append(candidate)
+
+    return tuple(
+        base_root
         / "one-person-lab"
         / "python"
         / "opl-harness-shared"
         / "src"
         / _SHARED_PACKAGE_NAME
-        / _SHARED_BOOTSTRAP_MODULE_FILE,
+        / _SHARED_BOOTSTRAP_MODULE_FILE
+        for base_root in unique_base_roots
     )
 
 
@@ -72,11 +83,11 @@ def _load_shared_helper_module_from_path(helper_path: Path):
 
 
 def _import_shared_helper_module():
-    if _module_spec(_SHARED_HELPER_MODULE_NAME) is not None:
-        return importlib.import_module(_SHARED_HELPER_MODULE_NAME)
     for helper_path in _candidate_shared_helper_module_paths():
         if helper_path.exists():
             return _load_shared_helper_module_from_path(helper_path)
+    if _module_spec(_SHARED_HELPER_MODULE_NAME) is not None:
+        return importlib.import_module(_SHARED_HELPER_MODULE_NAME)
     return None
 
 
