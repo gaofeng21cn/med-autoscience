@@ -178,18 +178,27 @@ def resolve_compiled_markdown_path(
     compile_report: dict[str, Any],
 ) -> Path:
     bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
-    candidate = _first_nonempty_string(
+    candidate_values = [
         bundle_inputs.get("compiled_markdown_path"),
         compile_report.get("source_markdown_path"),
         compile_report.get("source_markdown"),
         bundle_manifest.get("draft_path"),
-    )
-    if candidate is None:
+    ]
+    normalized_candidates = [
+        str(value).strip()
+        for value in candidate_values
+        if isinstance(value, str) and str(value).strip()
+    ]
+    if not normalized_candidates:
         raise KeyError(
             "submission export could not resolve compiled markdown from bundle_manifest.bundle_inputs.compiled_markdown_path, "
             "bundle_manifest.draft_path, compile_report.source_markdown_path, or compile_report.source_markdown"
         )
-    return resolve_relpath(workspace_root, candidate)
+    for candidate in normalized_candidates:
+        resolved_candidate = resolve_relpath(workspace_root, candidate)
+        if resolved_candidate.exists():
+            return resolved_candidate
+    return resolve_relpath(workspace_root, normalized_candidates[0])
 
 
 def resolve_compiled_pdf_path(

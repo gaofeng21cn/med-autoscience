@@ -1455,6 +1455,31 @@ def test_create_submission_minimal_package_accepts_materialized_submission_sourc
     assert sum(len(page.images) for page in pdf_reader.pages) >= 1
 
 
+def test_create_submission_minimal_package_falls_back_when_compile_report_points_to_missing_submission_source(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_current_draft_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "source_markdown_path": "paper/submission_minimal/manuscript_source.md",
+            "pdf_path": "paper/paper.pdf",
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
+    assert 'title: "Current Draft Title"' in submission_markdown
+    assert manifest["manuscript"]["source_markdown_path"] == "paper/submission_minimal/manuscript_submission.md"
+
+
 def test_create_submission_minimal_package_materializes_references_and_pending_front_matter(
     tmp_path: Path,
 ) -> None:
