@@ -22,7 +22,7 @@ This guide is for readers who need the repo-tracked runtime, program, capability
 - upstream `Hermes-Agent` is the external backup mode and long-running gateway for supervised runtime continuity.
 - The default MAS loop is `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`.
 - The medical display line stays separate as a downstream capability line.
-- Historical program tranches, blocker packages, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and `docs/history/omx/`.
+- Historical program records, runtime-formation notes, and absorbed migration proof stay in `docs/program/`, `docs/references/`, and `docs/history/omx/`.
 
 ## Technical Working Set
 
@@ -79,7 +79,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Repository CI preflight](program/repository_ci_preflight.md)
 - [Study progress projection](program/study_progress_projection.md)
 
-### Traceability and blocker packages
+### Traceability records
 
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)

@@ -22,7 +22,7 @@
 - 上游 `Hermes-Agent` 是外部备用模式与长期在线网关，负责 supervised runtime continuity。
 - MAS 默认回路是 `product-frontdesk` -> `workspace-cockpit` -> `submit-study-task` -> `launch-study` -> `study-progress`。
 - 医学展示支线继续作为下游能力线分开维护。
-- 历史 program tranche、blocker package 与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 `docs/history/omx/` 中供维护者追溯。
+- 历史 program 记录、运行边界形成说明与已吸收迁移 proof 继续留在 `docs/program/`、`docs/references/` 与 `docs/history/omx/` 中供维护者追溯。
 
 ## 技术工作集
 
@@ -79,7 +79,7 @@
 - [仓库 CI 预检](program/repository_ci_preflight.md)
 - [Study progress projection](program/study_progress_projection.md)
 
-### 追溯与 blocker package
+### 追溯记录
 
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
