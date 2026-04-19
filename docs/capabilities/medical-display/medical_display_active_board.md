@@ -20,10 +20,10 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`65`
+  - 证据型模板：`66`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`77`
+  - 总模板数：`78`
 - 最近一次已吸收完成的 capability cluster：
   - `G / oncoplot mutation landscape panel`
   - `oncoplot_mutation_landscape_panel`
@@ -35,11 +35,22 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 4 / next-cluster routing and owner-round open`
+- Phase：`Phase 5 / integration / merge-back / cleanup`
 - Family cluster：`G`
 - Capability cluster：`cnv_recurrence_summary_panel`
 - Owner worktree：`/Users/gaofeng/workspace/med-autoscience/.worktrees/medical-display-g-genomic-summary-20260419T041334Z`
-- 状态：`owner_round_open`
+- 状态：`merge_back_ready`
+
+### Fresh Owner Result
+
+- `cnv_recurrence_summary_panel` 已完成 schema / source contract / materialization / renderer / QC / regression / tracked docs 闭环；
+- `G/E` 当前 omics-native lower bound 已从四基线扩到五基线：
+  - `gsva_ssgsea_heatmap`
+  - `pathway_enrichment_dotplot_panel`
+  - `omics_volcano_panel`
+  - `oncoplot_mutation_landscape_panel`
+  - `cnv_recurrence_summary_panel`
+- 当前 round 剩余动作已经收敛为 absorb、push、cleanup 与 reroute。
 
 ### 本轮核心问题
 
@@ -53,7 +64,7 @@
 
 1. `oncoplot_mutation_landscape_panel` 已经 absorb 到当前 `main`，`G/E` 当前最小四基线已经成立。
 2. 当前 `G` 新一轮 round 固定为单一 bounded follow-on：`cnv_recurrence_summary_panel`。
-3. 这条 follow-on 直接承接高水平组学论文里高频出现的 copy-number gain/loss summary 结构，并补齐当前 `G` 家族在 CNV manuscript-facing surface 上的正式 lower bound。
+3. 这条 follow-on 已经把高水平组学论文里高频出现的 copy-number gain/loss summary 结构正式沉淀为 bounded 模板，并补齐当前 `G` 家族在 CNV manuscript-facing surface 上的正式 lower bound。
 4. richer mutation-landscape composite、broader genomic composite、`D/E/G` 更高阶 multi-view atlas follow-on 与 `F` 更高阶 explanation scene 继续留在后继 reroute 池。
 
 ### 本轮边界

@@ -86,6 +86,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::gsva_ssgsea_heatmap` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | GSVA/ssGSEA Heatmap | `r_ggplot2` | `gsva_ssgsea_heatmap_inputs_v1` | `publication_heatmap` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::pathway_enrichment_dotplot_panel` | `evidence_figure` | `E. Feature Pattern and Matrix`, `G. Bioinformatics and Omics Evidence` | Pathway Enrichment Dotplot Panel | `python` | `pathway_enrichment_dotplot_panel_inputs_v1` | `publication_pathway_enrichment_dotplot_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::oncoplot_mutation_landscape_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | Oncoplot Mutation Landscape Panel | `python` | `oncoplot_mutation_landscape_panel_inputs_v1` | `publication_oncoplot_mutation_landscape_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel` | `evidence_figure` | `G. Bioinformatics and Omics Evidence` | CNV Recurrence Summary Panel | `python` | `cnv_recurrence_summary_panel_inputs_v1` | `publication_cnv_recurrence_summary_panel` | `png`, `pdf` |
 
 ### Effect Estimate
 
@@ -604,6 +605,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `annotation_tracks.values` -> `sample_id`, `category_label`
 - Optional nested collection fields: None
 - Additional constraints: `y_label_must_be_non_empty`, `burden_axis_label_must_be_non_empty`, `frequency_axis_label_must_be_non_empty`, `mutation_legend_title_must_be_non_empty`, `gene_order_must_be_non_empty`, `gene_order_labels_must_be_unique`, `sample_order_must_be_non_empty`, `sample_ids_must_be_unique`, `annotation_tracks_must_be_non_empty`, `annotation_track_count_must_be_at_most_three`, `annotation_track_ids_must_be_unique`, `annotation_track_labels_must_be_non_empty`, `annotation_track_sample_coverage_must_match_declared_sample_order`, `annotation_track_category_labels_must_be_non_empty`, `mutation_records_must_be_non_empty`, `mutation_sample_ids_must_match_declared_sample_order`, `mutation_gene_labels_must_match_declared_gene_order`, `mutation_sample_gene_coordinates_must_be_unique`, `alteration_class_must_be_supported`
+
+### `cnv_recurrence_summary_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: CNV Recurrence Summary Panel
+- Templates: `fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `y_label`, `burden_axis_label`, `frequency_axis_label`, `cnv_legend_title`, `region_order`, `sample_order`, `annotation_tracks`, `cnv_records`
+- Optional display fields: `paper_role`
+- Required collection fields: `region_order` -> `label`<br>`sample_order` -> `sample_id`<br>`annotation_tracks` -> `track_id`, `track_label`, `values`<br>`cnv_records` -> `sample_id`, `region_label`, `cnv_state`
+- Optional collection fields: None
+- Required nested collection fields: `annotation_tracks.values` -> `sample_id`, `category_label`
+- Optional nested collection fields: None
+- Additional constraints: `y_label_must_be_non_empty`, `burden_axis_label_must_be_non_empty`, `frequency_axis_label_must_be_non_empty`, `cnv_legend_title_must_be_non_empty`, `region_order_must_be_non_empty`, `region_order_labels_must_be_unique`, `sample_order_must_be_non_empty`, `sample_ids_must_be_unique`, `annotation_tracks_must_be_non_empty`, `annotation_track_count_must_be_at_most_three`, `annotation_track_ids_must_be_unique`, `annotation_track_labels_must_be_non_empty`, `annotation_track_sample_coverage_must_match_declared_sample_order`, `annotation_track_category_labels_must_be_non_empty`, `cnv_records_must_be_non_empty`, `cnv_sample_ids_must_match_declared_sample_order`, `cnv_region_labels_must_match_declared_region_order`, `cnv_sample_region_coordinates_must_be_unique`, `cnv_state_must_be_supported`
 
 ### `forest_effect_inputs_v1`
 

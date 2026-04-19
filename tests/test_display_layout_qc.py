@@ -2988,6 +2988,139 @@ def test_run_display_layout_qc_passes_for_oncoplot_mutation_landscape_panel() ->
     assert result["issues"] == []
 
 
+def test_run_display_layout_qc_passes_for_cnv_recurrence_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_cnv_recurrence_summary_panel",
+        layout_sidecar={
+            "template_id": "cnv_recurrence_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_label_A", "panel_label", x0=0.08, y0=0.91, x1=0.10, y1=0.94),
+                make_box("y_axis_title", "subplot_y_axis_title", x0=0.02, y0=0.26, x1=0.05, y1=0.60),
+                make_box("annotation_track_label_cohort", "annotation_track_label", x0=0.08, y0=0.71, x1=0.18, y1=0.74),
+                make_box("annotation_track_label_response", "annotation_track_label", x0=0.08, y0=0.65, x1=0.20, y1=0.68),
+                make_box("burden_bar_D1", "bar", x0=0.18, y0=0.82, x1=0.22, y1=0.88),
+                make_box("burden_bar_D2", "bar", x0=0.23, y0=0.82, x1=0.27, y1=0.88),
+                make_box("burden_bar_V1", "bar", x0=0.28, y0=0.82, x1=0.32, y1=0.88),
+                make_box("burden_bar_V2", "bar", x0=0.33, y0=0.82, x1=0.37, y1=0.88),
+                make_box("freq_gain_TP53", "bar", x0=0.74, y0=0.50, x1=0.80, y1=0.55),
+                make_box("freq_loss_TP53", "bar", x0=0.68, y0=0.50, x1=0.74, y1=0.55),
+                make_box("freq_gain_MYC", "bar", x0=0.74, y0=0.42, x1=0.80, y1=0.47),
+                make_box("freq_loss_MYC", "bar", x0=0.68, y0=0.42, x1=0.74, y1=0.47),
+                make_box("freq_gain_EGFR", "bar", x0=0.74, y0=0.34, x1=0.80, y1=0.39),
+                make_box("freq_loss_EGFR", "bar", x0=0.68, y0=0.34, x1=0.74, y1=0.39),
+                make_box("freq_gain_CDKN2A", "bar", x0=0.74, y0=0.26, x1=0.80, y1=0.31),
+                make_box("freq_loss_CDKN2A", "bar", x0=0.68, y0=0.26, x1=0.74, y1=0.31),
+                make_box("annotation_cohort_D1", "annotation_cell", x0=0.18, y0=0.70, x1=0.22, y1=0.74),
+                make_box("annotation_cohort_D2", "annotation_cell", x0=0.23, y0=0.70, x1=0.27, y1=0.74),
+                make_box("annotation_cohort_V1", "annotation_cell", x0=0.28, y0=0.70, x1=0.32, y1=0.74),
+                make_box("annotation_cohort_V2", "annotation_cell", x0=0.33, y0=0.70, x1=0.37, y1=0.74),
+                make_box("annotation_response_D1", "annotation_cell", x0=0.18, y0=0.64, x1=0.22, y1=0.68),
+                make_box("annotation_response_D2", "annotation_cell", x0=0.23, y0=0.64, x1=0.27, y1=0.68),
+                make_box("annotation_response_V1", "annotation_cell", x0=0.28, y0=0.64, x1=0.32, y1=0.68),
+                make_box("annotation_response_V2", "annotation_cell", x0=0.33, y0=0.64, x1=0.37, y1=0.68),
+                make_box("cnv_TP53_D1", "cnv_cell", x0=0.18, y0=0.50, x1=0.22, y1=0.55),
+                make_box("cnv_TP53_D2", "cnv_cell", x0=0.23, y0=0.50, x1=0.27, y1=0.55),
+                make_box("cnv_MYC_D1", "cnv_cell", x0=0.18, y0=0.42, x1=0.22, y1=0.47),
+                make_box("cnv_MYC_V1", "cnv_cell", x0=0.28, y0=0.42, x1=0.32, y1=0.47),
+                make_box("cnv_EGFR_D2", "cnv_cell", x0=0.23, y0=0.34, x1=0.27, y1=0.39),
+                make_box("cnv_EGFR_V2", "cnv_cell", x0=0.33, y0=0.34, x1=0.37, y1=0.39),
+                make_box("cnv_CDKN2A_V1", "cnv_cell", x0=0.28, y0=0.26, x1=0.32, y1=0.31),
+                make_box("cnv_CDKN2A_V2", "cnv_cell", x0=0.33, y0=0.26, x1=0.37, y1=0.31),
+            ],
+            "panel_boxes": [
+                make_box("panel_burden", "panel", x0=0.18, y0=0.80, x1=0.37, y1=0.89),
+                make_box("panel_annotations", "panel", x0=0.18, y0=0.62, x1=0.37, y1=0.75),
+                make_box("panel_matrix", "panel", x0=0.18, y0=0.24, x1=0.37, y1=0.58),
+                make_box("panel_frequency", "panel", x0=0.68, y0=0.24, x1=0.82, y1=0.58),
+            ],
+            "guide_boxes": [
+                make_box("legend", "legend", x0=0.42, y0=0.02, x1=0.86, y1=0.10),
+            ],
+            "metrics": {
+                "cnv_legend_title": "CNV state",
+                "sample_ids": ["D1", "D2", "V1", "V2"],
+                "region_labels": ["TP53", "MYC", "EGFR", "CDKN2A"],
+                "annotation_tracks": [
+                    {
+                        "track_id": "cohort",
+                        "track_label": "Cohort",
+                        "track_label_box_id": "annotation_track_label_cohort",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Discovery", "box_id": "annotation_cohort_D1"},
+                            {"sample_id": "D2", "category_label": "Discovery", "box_id": "annotation_cohort_D2"},
+                            {"sample_id": "V1", "category_label": "Validation", "box_id": "annotation_cohort_V1"},
+                            {"sample_id": "V2", "category_label": "Validation", "box_id": "annotation_cohort_V2"},
+                        ],
+                    },
+                    {
+                        "track_id": "response",
+                        "track_label": "Response",
+                        "track_label_box_id": "annotation_track_label_response",
+                        "cells": [
+                            {"sample_id": "D1", "category_label": "Responder", "box_id": "annotation_response_D1"},
+                            {"sample_id": "D2", "category_label": "Non-responder", "box_id": "annotation_response_D2"},
+                            {"sample_id": "V1", "category_label": "Responder", "box_id": "annotation_response_V1"},
+                            {"sample_id": "V2", "category_label": "Non-responder", "box_id": "annotation_response_V2"},
+                        ],
+                    },
+                ],
+                "sample_burdens": [
+                    {"sample_id": "D1", "altered_region_count": 2, "bar_box_id": "burden_bar_D1"},
+                    {"sample_id": "D2", "altered_region_count": 2, "bar_box_id": "burden_bar_D2"},
+                    {"sample_id": "V1", "altered_region_count": 2, "bar_box_id": "burden_bar_V1"},
+                    {"sample_id": "V2", "altered_region_count": 2, "bar_box_id": "burden_bar_V2"},
+                ],
+                "region_gain_loss_frequencies": [
+                    {
+                        "region_label": "TP53",
+                        "gain_fraction": 0.25,
+                        "loss_fraction": 0.25,
+                        "gain_bar_box_id": "freq_gain_TP53",
+                        "loss_bar_box_id": "freq_loss_TP53",
+                    },
+                    {
+                        "region_label": "MYC",
+                        "gain_fraction": 0.25,
+                        "loss_fraction": 0.25,
+                        "gain_bar_box_id": "freq_gain_MYC",
+                        "loss_bar_box_id": "freq_loss_MYC",
+                    },
+                    {
+                        "region_label": "EGFR",
+                        "gain_fraction": 0.25,
+                        "loss_fraction": 0.25,
+                        "gain_bar_box_id": "freq_gain_EGFR",
+                        "loss_bar_box_id": "freq_loss_EGFR",
+                    },
+                    {
+                        "region_label": "CDKN2A",
+                        "gain_fraction": 0.25,
+                        "loss_fraction": 0.25,
+                        "gain_bar_box_id": "freq_gain_CDKN2A",
+                        "loss_bar_box_id": "freq_loss_CDKN2A",
+                    },
+                ],
+                "cnv_cells": [
+                    {"sample_id": "D1", "region_label": "TP53", "cnv_state": "amplification", "box_id": "cnv_TP53_D1"},
+                    {"sample_id": "D2", "region_label": "TP53", "cnv_state": "loss", "box_id": "cnv_TP53_D2"},
+                    {"sample_id": "D1", "region_label": "MYC", "cnv_state": "gain", "box_id": "cnv_MYC_D1"},
+                    {"sample_id": "V1", "region_label": "MYC", "cnv_state": "loss", "box_id": "cnv_MYC_V1"},
+                    {"sample_id": "D2", "region_label": "EGFR", "cnv_state": "gain", "box_id": "cnv_EGFR_D2"},
+                    {"sample_id": "V2", "region_label": "EGFR", "cnv_state": "loss", "box_id": "cnv_EGFR_V2"},
+                    {"sample_id": "V1", "region_label": "CDKN2A", "cnv_state": "deep_loss", "box_id": "cnv_CDKN2A_V1"},
+                    {"sample_id": "V2", "region_label": "CDKN2A", "cnv_state": "gain", "box_id": "cnv_CDKN2A_V2"},
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
 def test_run_display_layout_qc_fails_when_oncoplot_annotation_track_is_incomplete() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 

@@ -56,6 +56,7 @@ _EVIDENCE_TEMPLATE_ORDER = tuple(
         "gsva_ssgsea_heatmap",
         "pathway_enrichment_dotplot_panel",
         "oncoplot_mutation_landscape_panel",
+        "cnv_recurrence_summary_panel",
         "forest_effect_main",
         "subgroup_forest",
         "generalizability_subgroup_composite_panel",

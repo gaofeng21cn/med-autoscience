@@ -5918,6 +5918,66 @@ def _make_oncoplot_mutation_landscape_panel_display(display_id: str = "Figure36"
     }
 
 
+def _make_cnv_recurrence_summary_panel_display(display_id: str = "Figure37") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": full_id("cnv_recurrence_summary_panel"),
+        "title": "Recurrent copy-number landscape across discovery and validation cohorts",
+        "caption": (
+            "Declared region order, sample order, annotation-track coverage, top CNV burden, and right-side "
+            "gain/loss frequency governance remain bound inside one audited CNV-summary contract."
+        ),
+        "y_label": "Genomic region",
+        "burden_axis_label": "Altered regions",
+        "frequency_axis_label": "Gain/Loss samples (%)",
+        "cnv_legend_title": "CNV state",
+        "region_order": [
+            {"label": "TP53"},
+            {"label": "MYC"},
+            {"label": "EGFR"},
+            {"label": "CDKN2A"},
+        ],
+        "sample_order": [
+            {"sample_id": "D1"},
+            {"sample_id": "D2"},
+            {"sample_id": "V1"},
+            {"sample_id": "V2"},
+        ],
+        "annotation_tracks": [
+            {
+                "track_id": "cohort",
+                "track_label": "Cohort",
+                "values": [
+                    {"sample_id": "D1", "category_label": "Discovery"},
+                    {"sample_id": "D2", "category_label": "Discovery"},
+                    {"sample_id": "V1", "category_label": "Validation"},
+                    {"sample_id": "V2", "category_label": "Validation"},
+                ],
+            },
+            {
+                "track_id": "response",
+                "track_label": "Response",
+                "values": [
+                    {"sample_id": "D1", "category_label": "Responder"},
+                    {"sample_id": "D2", "category_label": "Non-responder"},
+                    {"sample_id": "V1", "category_label": "Responder"},
+                    {"sample_id": "V2", "category_label": "Non-responder"},
+                ],
+            },
+        ],
+        "cnv_records": [
+            {"sample_id": "D1", "region_label": "TP53", "cnv_state": "amplification"},
+            {"sample_id": "D2", "region_label": "TP53", "cnv_state": "loss"},
+            {"sample_id": "D1", "region_label": "MYC", "cnv_state": "gain"},
+            {"sample_id": "V1", "region_label": "MYC", "cnv_state": "loss"},
+            {"sample_id": "D2", "region_label": "EGFR", "cnv_state": "gain"},
+            {"sample_id": "V2", "region_label": "EGFR", "cnv_state": "loss"},
+            {"sample_id": "V1", "region_label": "CDKN2A", "cnv_state": "deep_loss"},
+            {"sample_id": "V2", "region_label": "CDKN2A", "cnv_state": "gain"},
+        ],
+    }
+
+
 def test_load_evidence_display_payload_rejects_incomplete_composition_for_single_cell_atlas_overview(
     tmp_path: Path,
 ) -> None:
@@ -6626,6 +6686,83 @@ def test_materialize_display_surface_generates_oncoplot_mutation_landscape_panel
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "oncoplot_mutation_landscape_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_oncoplot_mutation_landscape_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_cnv_recurrence_summary_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "display_kind": "figure",
+                    "requirement_key": "cnv_recurrence_summary_panel",
+                    "catalog_id": "F37",
+                    "shell_path": "paper/figures/Figure37.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "template_id": "cnv_recurrence_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "cnv_recurrence_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "cnv_recurrence_summary_panel_inputs_v1",
+            "displays": [_make_cnv_recurrence_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F37"]
+    assert (paper_root / "figures" / "generated" / "F37_cnv_recurrence_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F37_cnv_recurrence_summary_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F37_cnv_recurrence_summary_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_burden",
+        "panel_annotations",
+        "panel_matrix",
+        "panel_frequency",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert {box["box_type"] for box in layout_sidecar["guide_boxes"]} == {"legend"}
+    assert layout_sidecar["metrics"]["cnv_legend_title"] == "CNV state"
+    assert layout_sidecar["metrics"]["sample_ids"] == ["D1", "D2", "V1", "V2"]
+    assert layout_sidecar["metrics"]["region_labels"] == ["TP53", "MYC", "EGFR", "CDKN2A"]
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F37"
+    assert figure_entry["template_id"] == full_id("cnv_recurrence_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "cnv_recurrence_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_cnv_recurrence_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

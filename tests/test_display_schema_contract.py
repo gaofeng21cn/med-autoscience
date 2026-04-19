@@ -48,6 +48,7 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
     enrichment_dotplot = module.get_input_schema_contract("pathway_enrichment_dotplot_panel_inputs_v1")
     omics_volcano = module.get_input_schema_contract("omics_volcano_panel_inputs_v1")
     oncoplot_landscape = module.get_input_schema_contract("oncoplot_mutation_landscape_panel_inputs_v1")
+    cnv_recurrence = module.get_input_schema_contract("cnv_recurrence_summary_panel_inputs_v1")
     landmark_performance = module.get_input_schema_contract("time_to_event_landmark_performance_inputs_v1")
     correlation = module.get_input_schema_contract("correlation_heatmap_inputs_v1")
     forest = module.get_input_schema_contract("forest_effect_inputs_v1")
@@ -766,6 +767,51 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         "mutation_sample_gene_coordinates_must_be_unique",
         "alteration_class_must_be_supported",
     )
+    assert cnv_recurrence.template_ids == (_full_id("cnv_recurrence_summary_panel"),)
+    assert cnv_recurrence.display_required_fields == (
+        "display_id",
+        "template_id",
+        "title",
+        "caption",
+        "y_label",
+        "burden_axis_label",
+        "frequency_axis_label",
+        "cnv_legend_title",
+        "region_order",
+        "sample_order",
+        "annotation_tracks",
+        "cnv_records",
+    )
+    assert cnv_recurrence.collection_required_fields == {
+        "region_order": ("label",),
+        "sample_order": ("sample_id",),
+        "annotation_tracks": ("track_id", "track_label", "values"),
+        "cnv_records": ("sample_id", "region_label", "cnv_state"),
+    }
+    assert cnv_recurrence.nested_collection_required_fields == {
+        "annotation_tracks.values": ("sample_id", "category_label"),
+    }
+    assert cnv_recurrence.additional_constraints == (
+        "y_label_must_be_non_empty",
+        "burden_axis_label_must_be_non_empty",
+        "frequency_axis_label_must_be_non_empty",
+        "cnv_legend_title_must_be_non_empty",
+        "region_order_must_be_non_empty",
+        "region_order_labels_must_be_unique",
+        "sample_order_must_be_non_empty",
+        "sample_ids_must_be_unique",
+        "annotation_tracks_must_be_non_empty",
+        "annotation_track_count_must_be_at_most_three",
+        "annotation_track_ids_must_be_unique",
+        "annotation_track_labels_must_be_non_empty",
+        "annotation_track_sample_coverage_must_match_declared_sample_order",
+        "annotation_track_category_labels_must_be_non_empty",
+        "cnv_records_must_be_non_empty",
+        "cnv_sample_ids_must_match_declared_sample_order",
+        "cnv_region_labels_must_match_declared_region_order",
+        "cnv_sample_region_coordinates_must_be_unique",
+        "cnv_state_must_be_supported",
+    )
 
     assert correlation.template_ids == (_full_id("correlation_heatmap"),)
     assert correlation.required_top_level_fields == ("schema_version", "input_schema_id", "displays")
@@ -1017,6 +1063,12 @@ def test_schema_contract_tracks_registered_templates_and_input_shapes() -> None:
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).template_ids
     assert "oncoplot_mutation_landscape_panel_inputs_v1" in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).input_schema_ids
+    assert _full_id("cnv_recurrence_summary_panel") in next(
+        item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
+    ).template_ids
+    assert "cnv_recurrence_summary_panel_inputs_v1" in next(
         item for item in module.list_display_schema_classes() if item.class_id == "matrix_pattern"
     ).input_schema_ids
     assert _full_id("single_cell_atlas_overview_panel") in next(
@@ -2709,6 +2761,8 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "omics_volcano_panel_inputs_v1" in markdown
     assert _full_id("oncoplot_mutation_landscape_panel") in markdown
     assert "oncoplot_mutation_landscape_panel_inputs_v1" in markdown
+    assert _full_id("cnv_recurrence_summary_panel") in markdown
+    assert "cnv_recurrence_summary_panel_inputs_v1" in markdown
     assert _full_id("subgroup_forest") in markdown
     assert _full_id("generalizability_subgroup_composite_panel") in markdown
     assert "generalizability_subgroup_composite_inputs_v1" in markdown

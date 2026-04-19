@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `65`
+- Evidence figure templates: `66`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `77`
+- Total audited templates: `78`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -46,7 +46,7 @@
 
 当前真正还可以继续扩容、且仍停留在 backlog 而未进入当前 active round 的候选，主要是：
 
-- `G / richer mutation-landscape or multi-omics genomic summary beyond the first oncoplot lower bound`
+- `G / richer mutation-landscape or broader genomic composite beyond the first CNV-summary lower bound`
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current context-support lower bound`
 - `F / higher-order explanation scene beyond the current grouped-local + support-domain composite lower bound`
 - `C/H / calibration appendix or higher-order robustness synthesis beyond the current broader-heterogeneity lower bound`
@@ -107,7 +107,7 @@
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
 5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel` 与 `shap_grouped_local_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
-7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel` 与 `oncoplot_mutation_landscape_panel` 已经形成当前最小四基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 richer mutation-landscape、CNV summary 或更复杂 enrichment 组合图。
+7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel` 与 `cnv_recurrence_summary_panel` 已经形成当前最小五基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 richer mutation-landscape、broader genomic composite 或更复杂 enrichment 组合图。
 
 ## Promotion Rules
 

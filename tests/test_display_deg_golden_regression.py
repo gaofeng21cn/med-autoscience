@@ -507,12 +507,90 @@ def test_oncoplot_mutation_landscape_panel_preserves_g_omics_contract(tmp_path: 
     ]
     assert layout_sidecar["metrics"]["sample_ids"] == ["D1", "D2", "V1", "V2"]
     assert layout_sidecar["metrics"]["gene_labels"] == ["TP53", "KRAS", "EGFR"]
+
+
+def test_cnv_recurrence_summary_panel_preserves_g_omics_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    surface_module = importlib.import_module("tests.test_display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "display_kind": "figure",
+                    "requirement_key": "cnv_recurrence_summary_panel",
+                    "catalog_id": "F37",
+                    "shell_path": "paper/figures/Figure37.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure37",
+                    "template_id": "fenggaolab.org.medical-display-core::cnv_recurrence_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "cnv_recurrence_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "cnv_recurrence_summary_panel_inputs_v1",
+            "displays": [surface_module._make_cnv_recurrence_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F37_cnv_recurrence_summary_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [box["box_id"] for box in layout_sidecar["panel_boxes"]] == [
+        "panel_burden",
+        "panel_annotations",
+        "panel_matrix",
+        "panel_frequency",
+    ]
+    assert layout_sidecar["metrics"]["cnv_legend_title"] == "CNV state"
+    assert layout_sidecar["metrics"]["sample_ids"] == ["D1", "D2", "V1", "V2"]
+    assert layout_sidecar["metrics"]["region_labels"] == ["TP53", "MYC", "EGFR", "CDKN2A"]
     assert [track["track_id"] for track in layout_sidecar["metrics"]["annotation_tracks"]] == ["cohort", "response"]
-    assert sorted({cell["alteration_class"] for cell in layout_sidecar["metrics"]["altered_cells"]}) == [
+    assert sorted({cell["cnv_state"] for cell in layout_sidecar["metrics"]["cnv_cells"]}) == [
         "amplification",
-        "fusion",
-        "missense",
-        "truncating",
+        "deep_loss",
+        "gain",
+        "loss",
     ]
 
     figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
