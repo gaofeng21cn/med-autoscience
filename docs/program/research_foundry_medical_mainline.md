@@ -13,7 +13,7 @@
 如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
-- [Research Foundry Medical Phase Ladder](./research_foundry_medical_phase_ladder.md)
+- [Research Foundry Medical Phase Ladder](../references/research_foundry_medical_phase_ladder.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
 - [External Runtime Dependency Gate](./external_runtime_dependency_gate.md)
@@ -68,7 +68,7 @@
 
 这条 5 阶段梯子的详细口径见：
 
-- [Research Foundry Medical Phase Ladder](./research_foundry_medical_phase_ladder.md)
+- [Research Foundry Medical Phase Ladder](../references/research_foundry_medical_phase_ladder.md)
 
 对应的 repo-level 命令面也已经落下：
 

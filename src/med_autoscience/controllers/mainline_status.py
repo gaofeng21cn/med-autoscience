@@ -491,7 +491,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "phase_docs": [
                 "docs/program/upstream_hermes_agent_fast_cutover_board.md",
                 "docs/program/research_foundry_medical_mainline.md",
-                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
@@ -532,7 +532,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "当前 repo-tracked shell 已足够像真实 user loop，而不是命令散点集合。",
             ],
             "phase_docs": [
-                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/research_foundry_medical_phase_ladder.md",
                 "docs/references/lightweight_product_entry_and_opl_handoff.md",
                 "docs/runtime/agent_runtime_interface.md",
             ],
@@ -572,7 +572,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "phase_docs": [
                 "docs/program/external_runtime_dependency_gate.md",
                 "docs/program/upstream_hermes_agent_fast_cutover_board.md",
-                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
@@ -604,7 +604,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             ],
             "phase_docs": [
                 "docs/program/med_deepscientist_deconstruction_map.md",
-                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/research_foundry_medical_phase_ladder.md",
             ],
         },
         {
@@ -635,7 +635,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "OPL family entry 与 MAS domain entry 已能自然衔接。",
             ],
             "phase_docs": [
-                "docs/program/research_foundry_medical_phase_ladder.md",
+                "docs/references/research_foundry_medical_phase_ladder.md",
                 "docs/program/research_foundry_medical_mainline.md",
             ],
         },
@@ -747,7 +747,7 @@ def read_mainline_status() -> dict[str, Any]:
             "docs/status.md",
             "docs/program/upstream_hermes_agent_fast_cutover_board.md",
             "docs/program/research_foundry_medical_mainline.md",
-            "docs/program/research_foundry_medical_phase_ladder.md",
+            "docs/references/research_foundry_medical_phase_ladder.md",
             "docs/references/lightweight_product_entry_and_opl_handoff.md",
         ],
         "commands": {

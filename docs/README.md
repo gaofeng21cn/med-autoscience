@@ -80,7 +80,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Traceability records
 
-- [Research Foundry medical maintainer phase reference](program/research_foundry_medical_phase_ladder.md)
+- [Research Foundry medical maintainer phase reference](references/research_foundry_medical_phase_ladder.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist deconstruction map](program/med_deepscientist_deconstruction_map.md)

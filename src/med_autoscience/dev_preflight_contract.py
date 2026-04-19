@@ -194,6 +194,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "docs/program/repository_ci_preflight.md",
             "docs/program/research_foundry_medical_execution_map.md",
             "docs/program/research_foundry_medical_mainline.md",
+            "docs/references/research_foundry_medical_phase_ladder.md",
             "src/med_autoscience/controllers/workspace_init.py",
             "src/med_autoscience/dev_preflight_contract.py",
             "tests/test_dev_preflight.py",

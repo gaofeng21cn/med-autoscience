@@ -80,7 +80,7 @@
 
 ### 追溯记录
 
-- [Research Foundry 医学维护者阶段参考](program/research_foundry_medical_phase_ladder.md)
+- [Research Foundry 医学维护者阶段参考](references/research_foundry_medical_phase_ladder.md)
 - [Hermes backend continuation board](program/hermes_backend_continuation_board.md)
 - [Hermes backend activation package](program/hermes_backend_activation_package.md)
 - [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)

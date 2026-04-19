@@ -1,6 +1,6 @@
 # Research Foundry Medical Phase Ladder
 
-这份文档把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
+这份维护者参考把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
 
 它解决三个问题：
 
