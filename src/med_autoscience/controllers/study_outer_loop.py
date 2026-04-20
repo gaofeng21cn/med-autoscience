@@ -9,7 +9,11 @@ from med_autoscience import runtime_backend as runtime_backend_contract
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers.study_runtime_resolution import _resolve_study
-from med_autoscience.controller_confirmation_summary import materialize_controller_confirmation_summary
+from med_autoscience.controller_confirmation_summary import (
+    materialize_controller_confirmation_summary,
+    read_controller_confirmation_summary,
+    stable_controller_confirmation_summary_path,
+)
 from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
@@ -27,6 +31,7 @@ from med_autoscience.study_decision_record import (
     StudyDecisionControllerAction,
     StudyDecisionPublicationEvalRef,
     StudyDecisionRecord,
+    StudyDecisionType,
 )
 
 
@@ -313,6 +318,124 @@ def _build_human_confirmation_request(
         "current_required_action": "human_confirmation_required",
         "controller_actions": [action.to_dict() for action in controller_actions],
         "question_for_user": f"Approve controller action `{first_action}` for study `{study_id}`?",
+    }
+
+
+def _controller_confirmation_pending(*, study_root: Path) -> bool:
+    summary_path = stable_controller_confirmation_summary_path(study_root=study_root)
+    if not summary_path.exists():
+        return False
+    summary = read_controller_confirmation_summary(
+        study_root=study_root,
+        ref=summary_path,
+    )
+    return str(summary.get("status") or "").strip() == "pending"
+
+
+def _latest_controller_decision_requires_human_confirmation(*, study_root: Path) -> bool:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    if not decision_path.exists():
+        return False
+    payload = json.loads(decision_path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("controller decision latest artifact must contain a mapping payload")
+    return StudyDecisionRecord.from_payload(payload).requires_human_confirmation
+
+
+def _publication_supervisor_human_gate_requested(status_payload: dict[str, Any]) -> bool:
+    publication_supervisor_state = status_payload.get("publication_supervisor_state")
+    if not isinstance(publication_supervisor_state, dict):
+        return False
+    return str(publication_supervisor_state.get("current_required_action") or "").strip() == "human_confirmation_required"
+
+
+def _recommended_publication_eval_action(publication_eval_payload: dict[str, Any]) -> dict[str, Any] | None:
+    recommended_actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(recommended_actions, list):
+        return None
+    for action in recommended_actions:
+        if not isinstance(action, dict):
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        return dict(action)
+    return None
+
+
+def _autonomous_decision_type_for_publication_eval_action(action_payload: dict[str, Any]) -> str | None:
+    action_type = str(action_payload.get("action_type") or "").strip()
+    if action_type == StudyDecisionType.CONTINUE_SAME_LINE.value:
+        return StudyDecisionType.CONTINUE_SAME_LINE.value
+    return None
+
+
+def _autonomous_controller_action_type_for_runtime_status(status_payload: dict[str, Any]) -> str:
+    if str(status_payload.get("reason") or "").strip() == "quest_stopped_requires_explicit_rerun":
+        return StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED.value
+    return StudyDecisionActionType.ENSURE_STUDY_RUNTIME.value
+
+
+def build_runtime_watch_outer_loop_tick_request(
+    *,
+    study_root: Path,
+    status_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    if _publication_supervisor_human_gate_requested(status_payload):
+        return None
+    if _controller_confirmation_pending(study_root=resolved_study_root):
+        return None
+    if _latest_controller_decision_requires_human_confirmation(study_root=resolved_study_root):
+        return None
+
+    publication_eval_path = resolve_publication_eval_latest_ref(study_root=resolved_study_root)
+    if not publication_eval_path.exists():
+        return None
+    publication_eval_payload = read_publication_eval_latest(
+        study_root=resolved_study_root,
+        ref=publication_eval_path,
+    )
+    recommended_action = _recommended_publication_eval_action(publication_eval_payload)
+    if recommended_action is None:
+        return None
+    decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
+    if decision_type is None:
+        return None
+
+    charter_path = resolve_study_charter_ref(study_root=resolved_study_root)
+    if not charter_path.exists():
+        raise ValueError("runtime watch outer-loop wakeup requires stable study charter artifact")
+    charter_payload = read_study_charter(
+        study_root=resolved_study_root,
+        ref=charter_path,
+    )
+    charter_ref = StudyDecisionCharterRef(
+        charter_id=str(charter_payload.get("charter_id") or "").strip(),
+        artifact_path=str(charter_path),
+    ).to_dict()
+
+    runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
+    if not isinstance(runtime_escalation_payload, dict):
+        raise ValueError("runtime watch outer-loop wakeup requires runtime_escalation_ref from managed runtime status")
+    _resolve_runtime_escalation_record(runtime_escalation_payload=runtime_escalation_payload)
+
+    publication_eval_ref = StudyDecisionPublicationEvalRef(
+        eval_id=str(publication_eval_payload.get("eval_id") or "").strip(),
+        artifact_path=str(publication_eval_path),
+    ).to_dict()
+    controller_action = StudyDecisionControllerAction(
+        action_type=_autonomous_controller_action_type_for_runtime_status(status_payload),
+        payload_ref=str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+    ).to_dict()
+    return {
+        "study_root": resolved_study_root,
+        "charter_ref": charter_ref,
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": decision_type,
+        "requires_human_confirmation": False,
+        "controller_actions": [controller_action],
+        "reason": str(recommended_action.get("reason") or "").strip()
+        or "publication eval requests an autonomous controller decision for the current line.",
     }
 
 
