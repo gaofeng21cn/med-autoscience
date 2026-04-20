@@ -15,6 +15,34 @@
 
 从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断与 `bounded_analysis` 一类有限补充分析推进默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 
+## 当前 tranche
+
+当前 active tranche 已经固定，不再讨论主方向本身，而是把主线压成一套可验收的 `MAS` truth：
+
+1. **质量闭环结构化**
+   让 `study_charter`、`paper evidence ledger`、`review ledger` 形成同一条质量总合同与执行记录，覆盖方向锁定后的普通科研推进、论文质量裁决、`bounded_analysis` 边界、reviewer concern 处理与 submission hygiene。
+2. **用户可见真相投影**
+   让 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 形成同一条用户可见、维护可审计的 truth projection，能够解释当前阶段、关键证据、阻塞、下一步、恢复点和 human gate 原因。
+3. **proof / soak 口径收紧**
+   让 proof 直接围绕真实 study 的长期自治、质量裁决与前台 truth 是否一致展开；让 soak 直接围绕长时间运行、停滞恢复、有限补充分析自动收口、投稿前审计前的持续推进是否成立展开。
+
+这意味着当前 tranche 的判断标准已经从“是否还有双边 owner”切换为“`MAS` 是否已经形成单一 owner truth，`MDS` 是否只剩迁移期 oracle / backend / intake buffer 角色”。
+
+当前 repo-side 已经开始把这件事压成可读、可测的具体 truth：
+
+- 质量闭环不再只写成泛化 blocker，而是要求说清当前是同线质量修复还是 `bounded_analysis`，以及为什么要回到该现有主线。
+- 用户可见面不再把质量修复、有限补充分析、runtime recovery、human gate 混成同一种“待确认”，而是要求投影出不同 owner 语义。
+- program 口径不再把 `MDS` 当作长期并行 owner，而是把它固定在 oracle / backend / intake buffer 三个迁移期角色里。
+
+## 当前 tranche 的主张
+
+当前 tranche 有四条必须同时成立的主张：
+
+1. 方向锁定后，普通科研推进、质量判断与有限补充分析默认由 `MAS` 自主完成。
+2. human gate 只保留重大边界、外部授权与最终投稿审计，不再承担日常质量裁决。
+3. `MDS` 的存在只能解释为迁移期 oracle / backend / intake buffer，不再解释为长期双 owner、双治理面或双入口产品。
+4. 用户看到的进度、阻塞、证据与下一步，必须直接来自 `MAS` 的 durable truth，而不是额外的人肉解释层。
+
 ## 1. 为什么优化主体在 MAS
 
 `MAS` 已经承担医学研究的正式入口、study authority、workspace authority、证据推进、进度投影和人工决策点，因此它天然适合成为质量与自治能力的 owner。
@@ -192,6 +220,8 @@ human gate 收窄到少数重大边界：
 
 迁移期里，`MDS` 继续承担对照线价值：帮助 `MAS` 识别哪些自治行为已经成熟，哪些地方还需要 soak proof 和行为等价验证。
 
+这里的关键约束也需要写死：`MDS` 只保留 oracle、受控 backend、upstream intake buffer 三个迁移期用途。当前 tranche 的 proof 目标是证明 `MAS` 已经能独立持有 owner judgment，而不是把 `MDS` 长期保留成第二个 owner。
+
 ## 5. 按阶段怎么落地
 
 ### Phase 1：冻结主判断
@@ -220,6 +250,22 @@ human gate 收窄到少数重大边界：
 
 这个阶段里，`MDS` 继续承接迁移期 research backend 角色，`MAS` 开始成为质量和自治两条主线的实际 owner。
 
+当前 tranche 就处在这个阶段的收口段，验收重点不再是“有没有列出更多结构”，而是下面三件事是否已经接上同一条主线：
+
+- quality loop 已经结构化：study charter 质量总合同、evidence ledger、review ledger 可以解释同一条稿件推进线
+- user-visible truth 已经投影：当前阶段、关键证据、阻塞、下一步、恢复点可以从 `MAS` durable surface 直接读出
+- human gate 已经收窄：方向锁定后的日常质量裁决与 `bounded_analysis` 推进不再依赖 `MDS` 或人工兜底解释
+
+### Phase 2 当前 tranche 的最小验收口径
+
+这个 tranche 过线至少要求：
+
+1. `MAS` 文档已经明确把方向锁定后的普通科研推进、论文质量裁决与 `bounded_analysis` 推进写成默认自治。
+2. `MAS` 文档已经明确把用户可见 truth projection 写成 durable surface 责任，而不是额外口头说明。
+3. `MDS` 在同一套文档里只能被解释为 oracle / backend / intake buffer，不能再出现长期双 owner 含义。
+4. 质量总合同、执行账本、前台 truth 三层之间的 owner 与关系已经能在 `MAS` program truth 里闭合。
+5. 当质量闭环要求 route-back 时，`MAS` 可以把“回到哪条现有主线、该主线当前关键问题是什么、为什么这是最窄修复路径”解释成 repo-tracked truth。
+
 ### Phase 3：做单项目等价 proof
 
 目标：
@@ -233,6 +279,19 @@ human gate 收窄到少数重大边界：
 - 长时间运行场景
 - 人工接手与恢复场景
 - 论文证据链完整性场景
+
+### Phase 3 proof / soak 预期
+
+进入这个阶段后，proof 与 soak 口径固定为：
+
+1. **质量闭环 proof**
+   真实 study 上，study charter 的质量总合同可以持续约束 evidence / review ledger，并支撑方向锁定后的质量裁决与 `bounded_analysis` 自动收口。
+2. **truth projection proof**
+   用户面、维护面、controller 面读取到的当前阶段、关键证据、阻塞、下一步和恢复点来自同一组 `MAS` durable surface，文档口径与运行口径一致；同线质量修复、`bounded_analysis`、runtime recovery、human gate 四类语义不会在前台混淆。
+3. **autonomy soak**
+   真实 study 的长时间推进、停滞、恢复、有限补充分析追加、human gate 升级都能在长跑中保持稳定，不需要 `MDS` 作为第二个日常 owner 介入。
+4. **oracle proof**
+   `MDS` 只用于证明行为等价、兼容存量 study 与吸收上游更新；proof 的通过结果应表现为 `MAS` owner 面更完整，而不是 `MDS` owner 面继续扩张。
 
 ### Phase 4：让 MAS 成为默认维护面
 
@@ -251,7 +310,7 @@ human gate 收窄到少数重大边界：
 
 ## 6. 验收标准
 
-这条主线过线时，至少满足下面六条：
+这条主线过线时，至少满足下面八条：
 
 1. 每个关键优化 cell 都有 `MAS` owner、program 文档、验证口径和真实 study 证据。
 2. 医学论文质量判断可以沿着同一条 `MAS` 主线解释清楚：study charter 质量总合同、主结果、有限补充分析、review、submission hygiene 之间关系明确。
@@ -260,7 +319,8 @@ human gate 收窄到少数重大边界：
 5. `MDS` 的角色可以稳定描述为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 6. 旧的 study / artifact / runtime 轨迹都能继续被读取、审计和解释。
 7. 方向锁定后的普通科研推进、论文质量裁决与 `bounded_analysis` 推进默认由 `MAS` 自主完成；human gate 边界在文档、前台投影和 durable decision artifact 中保持一致。
+8. proof / soak 的通过结论会强化 `MAS` 的单一 owner truth，不会重新打开 `MDS` 作为长期双 owner 的解释空间。
 
 ## 正式主张
 
-因此，面向未来 monorepo 的“医学论文质量 + 长时间全自动驾驶”优化，当前就应该按 `MAS` 单项目主线落地；`MDS` 迁移期继续服务能力守恒、等价验证和低风险吸收。
+因此，面向未来 monorepo 的“医学论文质量 + 长时间全自动驾驶”优化，当前就应该按 `MAS` 单项目主线落地；当前 tranche 应集中完成质量闭环结构化、用户可见真相投影与 proof / soak 口径收紧；`MDS` 迁移期继续服务能力守恒、等价验证和低风险吸收，不再保留长期双 owner 含义。
