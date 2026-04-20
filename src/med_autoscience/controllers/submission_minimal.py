@@ -1310,7 +1310,12 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
         }
     markdown_text = source_markdown_path.read_text(encoding="utf-8")
     _, body = split_front_matter(markdown_text)
-    figures_section = extract_top_level_markdown_block(body, "Figures")
+    figures_section = extract_top_level_markdown_block(
+        body,
+        "Main Figures",
+        "Figures",
+        "Main-text figures",
+    )
     figure_legends_section = extract_top_level_markdown_block(body, "Figure Legends", "Figure Legend")
     independent_legend_by_figure_id = parse_independent_figure_legend_map(figure_legends_section)
     figure_blocks = parse_figure_blocks(figures_section) if figures_section.strip() else []
@@ -1324,6 +1329,7 @@ def inspect_submission_source_markdown(source_markdown_path: Path) -> dict[str, 
             figure_blocks_with_legends += 1
     return {
         "exists": True,
+        "mtime_ns": source_markdown_path.stat().st_mtime_ns,
         "figure_block_count": len(figure_blocks),
         "figure_blocks_with_images": figure_blocks_with_images,
         "figure_blocks_with_legends": figure_blocks_with_legends,
@@ -1344,12 +1350,14 @@ def inspect_submission_docx_surface(docx_path: Path) -> dict[str, Any]:
     except (KeyError, zipfile.BadZipFile):
         return {
             "exists": True,
+            "mtime_ns": docx_path.stat().st_mtime_ns,
             "embedded_image_count": 0,
             "drawing_count": 0,
             "unreadable": True,
         }
     return {
         "exists": True,
+        "mtime_ns": docx_path.stat().st_mtime_ns,
         "embedded_image_count": len([name for name in names if name.startswith("word/media/")]),
         "drawing_count": document_xml.count("<w:drawing"),
         "unreadable": False,
@@ -1369,12 +1377,14 @@ def inspect_submission_pdf_surface(pdf_path: Path) -> dict[str, Any]:
     except Exception:
         return {
             "exists": True,
+            "mtime_ns": pdf_path.stat().st_mtime_ns,
             "embedded_image_count": 0,
             "page_count": 0,
             "unreadable": True,
         }
     return {
         "exists": True,
+        "mtime_ns": pdf_path.stat().st_mtime_ns,
         "embedded_image_count": embedded_image_count,
         "page_count": len(reader.pages),
         "unreadable": False,
@@ -1402,6 +1412,19 @@ def build_submission_manuscript_surface_qc(
     docx_stats = inspect_submission_docx_surface(docx_path)
     pdf_stats = inspect_submission_pdf_surface(pdf_path)
     failures: list[dict[str, Any]] = []
+    source_mtime_ns = int(source_stats.get("mtime_ns") or 0)
+    docx_older_than_source_markdown = bool(
+        source_stats["exists"]
+        and docx_stats["exists"]
+        and source_mtime_ns > int(docx_stats.get("mtime_ns") or 0)
+    )
+    pdf_older_than_source_markdown = bool(
+        source_stats["exists"]
+        and pdf_stats["exists"]
+        and source_mtime_ns > int(pdf_stats.get("mtime_ns") or 0)
+    )
+    docx_stats["older_than_source_markdown"] = docx_older_than_source_markdown
+    pdf_stats["older_than_source_markdown"] = pdf_older_than_source_markdown
 
     if not source_stats["exists"]:
         failures.append(
@@ -1449,6 +1472,17 @@ def build_submission_manuscript_surface_qc(
                 "audit_classes": ["manuscript_surface"],
             }
         )
+    if docx_older_than_source_markdown:
+        failures.append(
+            {
+                "collection": "manuscript",
+                "item_id": "docx",
+                "descriptor": docx_path.name,
+                "qc_profile": qc_profile,
+                "failure_reason": "submission_docx_older_than_source_markdown",
+                "audit_classes": ["manuscript_surface", "freshness"],
+            }
+        )
     if pdf_stats["embedded_image_count"] < expected_main_figure_count:
         failures.append(
             {
@@ -1458,6 +1492,17 @@ def build_submission_manuscript_surface_qc(
                 "qc_profile": qc_profile,
                 "failure_reason": "submission_pdf_missing_embedded_figures",
                 "audit_classes": ["manuscript_surface"],
+            }
+        )
+    if pdf_older_than_source_markdown:
+        failures.append(
+            {
+                "collection": "manuscript",
+                "item_id": "pdf",
+                "descriptor": pdf_path.name,
+                "qc_profile": qc_profile,
+                "failure_reason": "submission_pdf_older_than_source_markdown",
+                "audit_classes": ["manuscript_surface", "freshness"],
             }
         )
 

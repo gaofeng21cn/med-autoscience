@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 import zipfile
 import zlib
@@ -1417,6 +1418,32 @@ Legend text for the main figure.
     assert inspection["figure_blocks_with_legends"] == 1
 
 
+def test_inspect_submission_source_markdown_accepts_main_figures_alias(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "Submission Manuscript"
+---
+
+# Main Figures
+
+## Figure 1. Main figure
+
+![](figures/F1_main.png)
+
+Legend text for the main figure under the Main Figures alias.
+""",
+    )
+
+    inspection = module.inspect_submission_source_markdown(source_markdown)
+
+    assert inspection["figure_block_count"] == 1
+    assert inspection["figure_blocks_with_images"] == 1
+    assert inspection["figure_blocks_with_legends"] == 1
+
+
 def test_inspect_submission_source_markdown_counts_short_f_headings_as_figures(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     source_markdown = tmp_path / "manuscript_submission.md"
@@ -1643,3 +1670,42 @@ def test_create_submission_minimal_package_materializes_references_and_pending_f
         "ethics": "pending",
         "data_availability": "pending",
     }
+
+
+def test_build_submission_manuscript_surface_qc_flags_stale_docx_and_pdf_against_newer_source_markdown(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_root = paper_root / "submission_minimal"
+    source_markdown_path = submission_root / "manuscript_submission.md"
+    docx_path = submission_root / "manuscript.docx"
+    pdf_path = submission_root / "paper.pdf"
+
+    source_markdown_text = source_markdown_path.read_text(encoding="utf-8")
+    source_markdown_path.write_text(
+        f"{source_markdown_text}\n<!-- freshness regression -->\n",
+        encoding="utf-8",
+    )
+    os.utime(docx_path, (1000, 1000))
+    os.utime(pdf_path, (1000, 1000))
+    os.utime(source_markdown_path, (2000, 2000))
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown_path,
+        docx_path=docx_path,
+        pdf_path=pdf_path,
+        expected_main_figure_count=manifest["manuscript"]["surface_qc"]["expected_main_figure_count"],
+    )
+
+    failure_reasons = {item["failure_reason"] for item in manuscript_surface_qc["failures"]}
+    assert manuscript_surface_qc["status"] == "fail"
+    assert "submission_docx_older_than_source_markdown" in failure_reasons
+    assert "submission_pdf_older_than_source_markdown" in failure_reasons

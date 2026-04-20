@@ -559,7 +559,14 @@ def collect_submission_surface_qc_failures(
     manuscript_payload = submission_minimal_manifest.get("manuscript") or {}
     if expected_main_figure_count > 0:
         source_markdown_rel = _non_empty_text(manuscript_payload.get("source_markdown_path"))
-        worktree_root = paper_bundle_manifest_path.resolve().parent.parent if paper_bundle_manifest_path else None
+        authoritative_submission_manifest_path = paper_artifacts.resolve_submission_minimal_manifest(
+            paper_bundle_manifest_path
+        )
+        worktree_root = (
+            authoritative_submission_manifest_path.resolve().parent.parent.parent
+            if authoritative_submission_manifest_path is not None
+            else (paper_bundle_manifest_path.resolve().parent.parent if paper_bundle_manifest_path else None)
+        )
         source_markdown_path = (
             (worktree_root / source_markdown_rel).resolve()
             if worktree_root is not None and source_markdown_rel is not None

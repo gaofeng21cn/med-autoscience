@@ -241,6 +241,85 @@ def test_build_gate_report_exposes_submission_minimal_status_when_present(tmp_pa
     assert report["submission_minimal_pdf_present"] is True
 
 
+def test_build_gate_report_uses_authoritative_source_markdown_path_for_submission_surface_qc(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(
+        tmp_path,
+        include_submission_minimal=True,
+        include_current_medical_publication_surface_report=True,
+        figure_catalog={
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "manuscript_status": "main_text",
+                }
+            ],
+        },
+    )
+    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
+    worktree_paper_root = worktree_root / "paper"
+    projected_paper_root = quest_root / "paper"
+    projected_paper_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(
+        worktree_paper_root / "paper_bundle_manifest.json",
+        projected_paper_root / "paper_bundle_manifest.json",
+    )
+    dump_json(
+        projected_paper_root / "paper_line_state.json",
+        {
+            "schema_version": 1,
+            "paper_root": str(worktree_paper_root),
+        },
+    )
+
+    submission_manifest_path = worktree_paper_root / "submission_minimal" / "submission_manifest.json"
+    payload = json.loads(submission_manifest_path.read_text(encoding="utf-8"))
+    payload["manuscript"]["source_markdown_path"] = "paper/submission_minimal/manuscript_submission.md"
+    submission_manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text(worktree_paper_root / "submission_minimal" / "manuscript_submission.md", "# authoritative\n")
+    write_text(projected_paper_root / "submission_minimal" / "manuscript_submission.md", "# projected copy\n")
+
+    captured: dict[str, Path] = {}
+
+    def fake_build_submission_manuscript_surface_qc(
+        *,
+        publication_profile: str,
+        source_markdown_path: Path,
+        docx_path: Path,
+        pdf_path: Path,
+        expected_main_figure_count: int,
+    ) -> dict[str, object]:
+        captured["source_markdown_path"] = source_markdown_path
+        captured["docx_path"] = docx_path
+        captured["pdf_path"] = pdf_path
+        assert publication_profile == "general_medical_journal"
+        assert expected_main_figure_count == 1
+        return {
+            "qc_profile": "submission_manuscript_surface",
+            "status": "pass",
+            "failures": [],
+        }
+
+    monkeypatch.setattr(
+        module.submission_minimal,
+        "build_submission_manuscript_surface_qc",
+        fake_build_submission_manuscript_surface_qc,
+    )
+
+    state = module.build_gate_state(quest_root)
+    report = module.build_gate_report(state)
+
+    assert report["paper_bundle_manifest_path"] == str(projected_paper_root / "paper_bundle_manifest.json")
+    assert captured["source_markdown_path"] == worktree_paper_root / "submission_minimal" / "manuscript_submission.md"
+    assert captured["docx_path"] == worktree_paper_root / "submission_minimal" / "manuscript.docx"
+    assert captured["pdf_path"] == worktree_paper_root / "submission_minimal" / "paper.pdf"
+
+
 def test_build_gate_report_marks_submission_minimal_missing_when_absent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
