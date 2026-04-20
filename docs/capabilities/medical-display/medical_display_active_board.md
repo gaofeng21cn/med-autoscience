@@ -25,7 +25,7 @@
   - 表格壳层：`5`
   - 总模板数：`87`
 - 最近一次已吸收完成的 capability cluster：
-  - `G / genomic_program_governance_summary_panel`
+  - `F / shap_multigroup_decision_path_support_domain_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -34,67 +34,68 @@
 
 ## 当前 Active Round
 
-- Phase：`Phase 5 / owner closeout`
-- Family cluster：`F / model explanation`
-- Capability cluster：`shap_multigroup_decision_path_support_domain_panel`
-- Owner worktree：`.worktrees/codex/medical-display-f-explanation-scene-20260420`
-- 状态：`verified_merge_back_ready`
+- Phase：`Phase 4 / next-cluster scouting`
+- Family cluster：`reroute pending`
+- Capability cluster：`reroute after latest F absorb`
+- Owner worktree：`not_opened`
+- 状态：`ready_for_next_owner_round`
 
-### Fresh Owner Round Result
+### Fresh Mainline Result
 
-- 当前 owner round 已把 `shap_multigroup_decision_path_support_domain_panel` 收口为 audited inventory；
+- 当前主干已吸收 `shap_multigroup_decision_path_support_domain_panel`；
 - strict audited inventory 已更新到：
   - `Model Explanation`：`18`
   - evidence figures：`75`
   - total templates：`87`
+- `shap_multigroup_decision_path_support_domain_panel` 已从 concrete backlog 转为 audited inventory；
 - 当前 fresh verify 已完成：
   - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py` → `93 passed`
   - `uv run pytest -q tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_f_golden_regression.py` → `332 passed`
-- 下一步是把当前 owner round 吸收到 `main`，然后按 reroute 规则固定下一个 capability cluster。
+- 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
-当前这轮已经回答清楚：
+当前下一轮要回答：
 
-> `F` 家族是否需要一张可直接进入正文的多组 explanation scene，把三组 shared decision path 与 matched support-domain follow-on 固化为同一张 audited 复合图。
+> 在 `F` 家族 multigroup decision-scene lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. 最新的 `G / genomic_program_governance_summary_panel` owner round 已经 absorb 完成。
-2. 当前 `F / shap_multigroup_decision_path_support_domain_panel` owner round 已完成实现与 fresh verify。
-3. 当前 strict audited inventory 已推进到 `75 / 7 / 5 / 87`。
-4. 下一步是 merge-back，然后把 `F`、`D/E/G` 与 `C/H` 的 higher-order follow-on 重新排序。
+1. 最新的 `F / shap_multigroup_decision_path_support_domain_panel` owner round 已经 absorb 完成。
+2. 当前 strict audited inventory 已稳定在 `75 / 7 / 5 / 87`。
+3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
+4. `F`、`D/E/G` 与 `C/H` 的 higher-order follow-on 继续留在候选池。
 
 ### 下一轮边界
 
-当前 closeout 只做下面三块：
+下一轮只做下面三块：
 
-1. 先把当前 `F` owner round 吸收到 `main`；
-2. 再 fresh 读取当前 audit guide / template catalog / arsenal / active board；
-3. 最后比较 `F`、`D/E/G` 与 `C/H` 的真实论文 demand 哪一条最值得开启下一轮。
+1. 先 fresh 读取当前 audit guide / template catalog / arsenal / active board；
+2. 再比较 `F`、`D/E/G` 与 `C/H` 的真实论文 demand 哪一条最值得开启下一轮；
+3. 只有 reroute 固定后，才新开唯一 owner worktree 进入实现。
 
 ## 预期写集
 
-当前 merge-back 预计先触碰下面这组写集：
+下一轮 owner implementation 预计先触碰下面这组前置路由写集：
 
 - `docs/capabilities/medical-display/medical_display_active_board.md`
 - `docs/capabilities/medical-display/medical_display_template_backlog.md`
 
-只有 absorb 完成并 reroute 固定后，才允许再触碰：
+只有 reroute 固定后，才允许再触碰：
 
 - 对应新 cluster 的 registry / schema / source contract / materialization / renderer / QC / regression 文件
 - 以及仅在 template inventory 真相变化后需要同步的 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_arsenal_history.md`、`medical_display_family_roadmap.md`
 
 ## 最低退出条件
 
-只有同时满足下面条件，当前 owner round 才允许关闭并让下一轮打开：
+只有同时满足下面条件，下一轮 owner round 才允许打开：
 
-1. 当前 owner round 的 absorb / cleanup 必须完成；
-2. 新候选必须有清晰的论文问题、最小 panel 结构与最小数据前提；
-3. 新候选必须明确继承当前 lower bound，而不是退回 paper-local 修图；
-4. reroute 必须明确为什么当前应该优先 `F`、`D/E/G` 或 `C/H`。
+1. 新候选必须有清晰的论文问题、最小 panel 结构与最小数据前提；
+2. 新候选必须明确继承当前 lower bound，而不是退回 paper-local 修图；
+3. reroute 必须明确为什么当前应该优先 `F`、`D/E/G` 或 `C/H`；
+4. 打开新的 owner worktree 前，当前已完成 round 的 absorb / cleanup 必须完成。
 
 ## 当前轮次结束后的候选
 
