@@ -6798,6 +6798,7 @@ def test_build_startup_contract_separates_runtime_owned_subset_from_controller_e
     assert controller_extensions["medical_reporting_contract_summary"] == startup_contract["medical_reporting_contract_summary"]
     assert controller_extensions["submission_targets"] == startup_contract["submission_targets"]
     assert controller_extensions["study_charter_ref"] == startup_contract["study_charter_ref"]
+    assert controller_extensions["controller_summary_ref"] == startup_contract["controller_summary_ref"]
     charter_ref = startup_contract["study_charter_ref"]
     assert charter_ref["charter_id"] == "charter::001-risk::v1"
     assert charter_ref["artifact_path"] == str((study_root / "artifacts" / "controller" / "study_charter.json").resolve())
@@ -6813,6 +6814,25 @@ def test_build_startup_contract_separates_runtime_owned_subset_from_controller_e
     assert charter_payload["manuscript_conclusion_redlines"] == [
         "Do not conclude only that the China-trained absolute-risk model is non-transportable.",
     ]
+    controller_summary_ref = startup_contract["controller_summary_ref"]
+    assert controller_summary_ref["summary_id"] == "controller-summary::001-risk::v1"
+    assert controller_summary_ref["artifact_path"] == str(
+        (study_root / "artifacts" / "controller" / "controller_summary.json").resolve()
+    )
+    controller_summary_payload = json.loads(Path(controller_summary_ref["artifact_path"]).read_text(encoding="utf-8"))
+    assert controller_summary_payload["summary_id"] == controller_summary_ref["summary_id"]
+    assert controller_summary_payload["study_charter_ref"] == charter_ref
+    assert controller_summary_payload["controller_policy"]["startup_boundary_gate"] == startup_contract["startup_boundary_gate"]
+    assert controller_summary_payload["controller_policy"]["runtime_reentry_gate"] == startup_contract["runtime_reentry_gate"]
+    assert controller_summary_payload["controller_policy"]["journal_shortlist"] == startup_contract["journal_shortlist"]
+    assert controller_summary_payload["controller_policy"]["medical_analysis_contract_summary"] == startup_contract["medical_analysis_contract_summary"]
+    assert controller_summary_payload["controller_policy"]["medical_reporting_contract_summary"] == startup_contract["medical_reporting_contract_summary"]
+    assert controller_summary_payload["controller_policy"]["submission_targets"] == startup_contract["submission_targets"]
+    assert controller_summary_payload["route_trigger_authority"] == {
+        "decision_policy": "autonomous",
+        "launch_profile": "continue_existing_state",
+        "startup_contract_profile": "paper_required_autonomous",
+    }
     assert "custom_brief" in controller_extensions
     assert "Why is the 5-year all-cause mortality gap between China and the US so large?" in controller_extensions["custom_brief"]
     assert "Decompose the observed mortality gap into endpoint alignment, follow-up/censoring, case-mix shift, score compression, and residual unexplained components." in controller_extensions["custom_brief"]

@@ -20,6 +20,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeStartupContextSyncResult,
     StudyRuntimeStatus,
 )
+from med_autoscience.controller_summary import materialize_controller_summary
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
@@ -151,6 +152,7 @@ def _build_startup_contract(
     if startup_contract_profile not in SUPPORTED_STARTUP_CONTRACT_PROFILES:
         raise ValueError(f"unsupported startup_contract_profile: {startup_contract_profile}")
 
+    decision_policy = str(execution.get("decision_policy") or "autonomous").strip() or "autonomous"
     startup_brief_path = _resolve_optional_path(anchor=study_root, raw_path=study_payload.get("startup_brief"))
     primary_question = str(study_payload.get("primary_question") or "").strip()
     title = str(study_payload.get("title") or study_id).strip()
@@ -239,56 +241,72 @@ def _build_startup_contract(
         time_budget_hours = 24
         runtime_constraints = "Honor workspace data contracts and prepare a submission-ready study."
 
+    controller_policy = {
+        "research_intensity": research_intensity,
+        "scope": scope,
+        "baseline_mode": baseline_mode,
+        "resource_policy": resource_policy,
+        "time_budget_hours": time_budget_hours,
+        "git_strategy": "semantic_head_plus_controlled_integration",
+        "runtime_constraints": runtime_constraints,
+        "objectives": objectives,
+        "baseline_urls": [],
+        "paper_urls": list(study_payload.get("paper_urls") or []),
+        "reference_papers": list(study_payload.get("reference_papers") or []),
+        "entry_state_summary": f"Study root: {study_root}",
+        "review_summary": "",
+        "controller_first_policy_summary": render_controller_first_summary(),
+        "automation_ready_summary": render_automation_ready_summary(),
+        "custom_brief": custom_brief,
+        "required_first_anchor": startup_boundary_gate.required_first_anchor,
+        "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
+        "startup_boundary_gate": startup_boundary_gate.to_dict(),
+        "runtime_reentry_gate": runtime_reentry_gate_result.to_dict(),
+        "journal_shortlist": journal_shortlist,
+        "medical_analysis_contract_summary": medical_analysis_contract_summary,
+        "medical_reporting_contract_summary": medical_reporting_contract_summary,
+        "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
+        if medical_reporting_contract_summary.get("status") == "resolved"
+        else None,
+        "submission_targets": _serialize_submission_targets(profile, study_root)
+        if _has_explicit_submission_targets(study_payload)
+        else [],
+        "task_intake_ref": (
+            {
+                "task_id": str(latest_task_intake.get("task_id") or "").strip(),
+                "study_id": str(latest_task_intake.get("study_id") or study_id).strip(),
+                "artifact_path": str(latest_task_intake_json_path(study_root=study_root)),
+            }
+            if isinstance(latest_task_intake, dict)
+            else None
+        ),
+    }
+    controller_summary_ref = materialize_controller_summary(
+        study_root=study_root,
+        study_id=study_id,
+        study_charter_ref=study_charter_ref,
+        controller_policy=controller_policy,
+        route_trigger_authority={
+            "decision_policy": decision_policy,
+            "launch_profile": requested_launch_profile,
+            "startup_contract_profile": startup_contract_profile,
+        },
+    )
+
     return compose_startup_contract(
         runtime_owned={
             "schema_version": 4,
             "user_language": str(study_payload.get("user_language") or "zh").strip() or "zh",
             "need_research_paper": True,
-            "decision_policy": str(execution.get("decision_policy") or "autonomous").strip() or "autonomous",
+            "decision_policy": decision_policy,
             "launch_mode": "custom",
             "custom_profile": startup_boundary_gate.effective_custom_profile,
             "baseline_execution_policy": baseline_execution_policy,
         },
         controller_extensions={
-            "research_intensity": research_intensity,
-            "scope": scope,
-            "baseline_mode": baseline_mode,
-            "resource_policy": resource_policy,
-            "time_budget_hours": time_budget_hours,
-            "git_strategy": "semantic_head_plus_controlled_integration",
-            "runtime_constraints": runtime_constraints,
-            "objectives": objectives,
-            "baseline_urls": [],
-            "paper_urls": list(study_payload.get("paper_urls") or []),
-            "reference_papers": list(study_payload.get("reference_papers") or []),
-            "entry_state_summary": f"Study root: {study_root}",
-            "review_summary": "",
-            "controller_first_policy_summary": render_controller_first_summary(),
-            "automation_ready_summary": render_automation_ready_summary(),
-            "custom_brief": custom_brief,
+            **controller_policy,
             "study_charter_ref": study_charter_ref,
-            "required_first_anchor": startup_boundary_gate.required_first_anchor,
-            "legacy_code_execution_allowed": startup_boundary_gate.legacy_code_execution_allowed,
-            "startup_boundary_gate": startup_boundary_gate.to_dict(),
-            "runtime_reentry_gate": runtime_reentry_gate_result.to_dict(),
-            "journal_shortlist": journal_shortlist,
-            "medical_analysis_contract_summary": medical_analysis_contract_summary,
-            "medical_reporting_contract_summary": medical_reporting_contract_summary,
-            "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
-            if medical_reporting_contract_summary.get("status") == "resolved"
-            else None,
-            "submission_targets": _serialize_submission_targets(profile, study_root)
-            if _has_explicit_submission_targets(study_payload)
-            else [],
-            "task_intake_ref": (
-                {
-                    "task_id": str(latest_task_intake.get("task_id") or "").strip(),
-                    "study_id": str(latest_task_intake.get("study_id") or study_id).strip(),
-                    "artifact_path": str(latest_task_intake_json_path(study_root=study_root)),
-                }
-                if isinstance(latest_task_intake, dict)
-                else None
-            ),
+            "controller_summary_ref": controller_summary_ref,
         },
     )
 

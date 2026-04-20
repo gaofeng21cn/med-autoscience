@@ -34,6 +34,7 @@ CONTROLLER_OWNED_STARTUP_CONTRACT_EXTENSION_KEYS: tuple[str, ...] = (
     "automation_ready_summary",
     "custom_brief",
     "study_charter_ref",
+    "controller_summary_ref",
     "required_first_anchor",
     "legacy_code_execution_allowed",
     "startup_boundary_gate",
