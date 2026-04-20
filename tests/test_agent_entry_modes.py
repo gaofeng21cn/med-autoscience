@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 
 from med_autoscience.agent_entry import load_entry_modes, load_entry_modes_payload
 from med_autoscience.agent_entry import modes as modes_module
@@ -31,9 +32,6 @@ def test_load_entry_modes_keeps_formal_chain_and_writing_constraints() -> None:
     assert full_research.preconditions == ("workspace/profile available",)
     assert full_research.managed_entry_actions == ("doctor", "bootstrap", "overlay-status", "ensure-study-runtime")
     assert full_research.managed_routes == (
-        "doctor",
-        "bootstrap",
-        "overlay-status",
         "scout",
         "idea",
         "write",
@@ -60,47 +58,43 @@ def test_load_entry_modes_payload_reads_canonical_agents_and_mode_count() -> Non
 
 def test_load_entry_modes_preserves_mode_level_managed_entry_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     def _payload_with_distinct_entry_actions() -> dict[str, object]:
-        return {
-            "compatible_agents": ["Codex", "Claude Code", "OpenClaw"],
-            "modes": [
-                {
-                    "mode_id": "full_research",
-                    "display_name": "Full Research",
-                    "default_runtime_mode": "managed",
-                    "preconditions": ["workspace/profile available"],
-                    "lightweight_scope": "none",
-                    "managed_entry_actions": ["doctor", "bootstrap", "ensure-study-runtime"],
-                    "lightweight_routes": [],
-                    "managed_routes": [
-                        "doctor",
-                        "bootstrap",
-                        "overlay-status",
-                        "scout",
-                        "idea",
-                        "write",
-                        "finalize",
-                    ],
-                    "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
-                    "governance_routes": ["decision"],
-                    "auxiliary_routes": [],
-                    "upgrade_triggers": [],
-                },
-                {
-                    "mode_id": "writing_delivery",
-                    "display_name": "Writing Delivery",
-                    "default_runtime_mode": "lightweight",
-                    "preconditions": ["workspace/profile available"],
-                    "lightweight_scope": "manuscript and delivery packaging",
-                    "managed_entry_actions": ["doctor", "overlay-status", "ensure-study-runtime"],
-                    "lightweight_routes": ["write"],
-                    "managed_routes": ["doctor", "bootstrap", "overlay-status", "write", "finalize"],
-                    "startup_boundary_gated_routes": [],
-                    "governance_routes": [],
-                    "auxiliary_routes": ["journal-resolution"],
-                    "upgrade_triggers": ["submission bundle or final delivery requested"],
-                },
-            ],
-        }
+        payload = load_entry_modes_payload()
+        payload["modes"] = [
+            {
+                "mode_id": "full_research",
+                "display_name": "Full Research",
+                "default_runtime_mode": "managed",
+                "preconditions": ["workspace/profile available"],
+                "lightweight_scope": "none",
+                "managed_entry_actions": ["doctor", "bootstrap", "ensure-study-runtime"],
+                "lightweight_routes": [],
+                "managed_routes": [
+                    "scout",
+                    "idea",
+                    "write",
+                    "finalize",
+                ],
+                "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
+                "governance_routes": ["decision"],
+                "auxiliary_routes": [],
+                "upgrade_triggers": [],
+            },
+            {
+                "mode_id": "writing_delivery",
+                "display_name": "Writing Delivery",
+                "default_runtime_mode": "lightweight",
+                "preconditions": ["workspace/profile available"],
+                "lightweight_scope": "manuscript and delivery packaging",
+                "managed_entry_actions": ["doctor", "overlay-status", "ensure-study-runtime"],
+                "lightweight_routes": ["write"],
+                "managed_routes": ["write", "finalize"],
+                "startup_boundary_gated_routes": [],
+                "governance_routes": [],
+                "auxiliary_routes": ["journal-resolution"],
+                "upgrade_triggers": ["submission bundle or final delivery requested"],
+            },
+        ]
+        return payload
 
     monkeypatch.setattr(modes_module, "load_entry_modes_payload", _payload_with_distinct_entry_actions)
 
@@ -125,33 +119,23 @@ def test_payload_and_typed_loader_use_top_level_compatible_agents() -> None:
 
 def test_load_entry_modes_payload_rejects_missing_required_list_field(tmp_path: Path) -> None:
     path = tmp_path / "invalid_entry_modes.yaml"
-    path.write_text(
-        """
-compatible_agents:
-  - Codex
-  - Claude Code
-  - OpenClaw
-modes:
-  - mode_id: broken_mode
-    display_name: Broken Mode
-    default_runtime_mode: lightweight
-    preconditions:
-      - workspace/profile available
-    lightweight_scope: demo
-    managed_entry_actions:
-      - doctor
-      - bootstrap
-      - overlay-status
-    lightweight_routes:
-      - write
-    startup_boundary_gated_routes: []
-    governance_routes: []
-    auxiliary_routes: []
-    upgrade_triggers: []
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+    payload = load_entry_modes_payload()
+    payload["modes"] = [
+        {
+            "mode_id": "broken_mode",
+            "display_name": "Broken Mode",
+            "default_runtime_mode": "lightweight",
+            "preconditions": ["workspace/profile available"],
+            "lightweight_scope": "demo",
+            "managed_entry_actions": ["doctor", "bootstrap", "overlay-status"],
+            "lightweight_routes": ["write"],
+            "startup_boundary_gated_routes": [],
+            "governance_routes": [],
+            "auxiliary_routes": [],
+            "upgrade_triggers": [],
+        }
+    ]
+    path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(ValueError, match="managed_routes"):
         load_entry_modes_payload(path=path)
@@ -159,34 +143,30 @@ modes:
 
 def test_load_entry_modes_rejects_mode_level_compatible_agents_override(monkeypatch: pytest.MonkeyPatch) -> None:
     def _payload_with_mode_override() -> dict[str, object]:
-        return {
-            "compatible_agents": ["Codex", "Claude Code", "OpenClaw"],
-            "modes": [
-                {
-                    "mode_id": "full_research",
-                    "display_name": "Full Research",
-                    "default_runtime_mode": "managed",
-                    "compatible_agents": ["Codex"],
-                    "preconditions": ["workspace/profile available"],
-                    "lightweight_scope": "none",
-                    "managed_entry_actions": ["doctor", "bootstrap", "overlay-status", "ensure-study-runtime"],
-                    "lightweight_routes": [],
-                    "managed_routes": [
-                        "doctor",
-                        "bootstrap",
-                        "overlay-status",
-                        "scout",
-                        "idea",
-                        "write",
-                        "finalize",
-                    ],
-                    "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
-                    "governance_routes": ["decision"],
-                    "auxiliary_routes": [],
-                    "upgrade_triggers": [],
-                }
-            ],
-        }
+        payload = load_entry_modes_payload()
+        payload["modes"] = [
+            {
+                "mode_id": "full_research",
+                "display_name": "Full Research",
+                "default_runtime_mode": "managed",
+                "compatible_agents": ["Codex"],
+                "preconditions": ["workspace/profile available"],
+                "lightweight_scope": "none",
+                "managed_entry_actions": ["doctor", "bootstrap", "overlay-status", "ensure-study-runtime"],
+                "lightweight_routes": [],
+                "managed_routes": [
+                    "scout",
+                    "idea",
+                    "write",
+                    "finalize",
+                ],
+                "startup_boundary_gated_routes": ["baseline", "experiment", "analysis-campaign"],
+                "governance_routes": ["decision"],
+                "auxiliary_routes": [],
+                "upgrade_triggers": [],
+            }
+        ]
+        return payload
 
     monkeypatch.setattr(modes_module, "load_entry_modes_payload", _payload_with_mode_override)
 
