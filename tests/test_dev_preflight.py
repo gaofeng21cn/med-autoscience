@@ -145,7 +145,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert ".PHONY: test test-fast test-meta test-display test-full test-family" in makefile
     assert (
         "test-family:\n"
-        "\tuv run --no-sync pytest tests/test_family_shared_release.py "
+        "\tuv run pytest tests/test_family_shared_release.py "
         "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q\n"
     ) in makefile

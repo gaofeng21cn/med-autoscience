@@ -11,9 +11,9 @@
 5. 这条主线按阶段如何落地
 6. 这条主线完成到什么程度才算过线
 
-## 一句话判断
+## 核心判断
 
-从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
+从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断默认由 `MAS` 自主完成；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 
 ## 1. 为什么优化主体在 MAS
 
@@ -29,7 +29,7 @@
 
 因此，这条优化主线的 owner 判断固定为：
 
-- `controller_charter`：负责研究启动合同、journal/reporting/evidence contract、人工决策点
+- `controller_charter`：负责研究启动合同、journal/reporting/evidence contract、人类 gate 边界
 - `runtime`：负责长时间自治、运行治理、恢复链路、study truth 投影
 - `eval_hygiene`：负责 baseline、analysis、paper evidence ledger、review、submission hygiene
 
@@ -101,6 +101,29 @@
 - 论文质量提升将主要表现为 `MAS` 对研究全过程的发表级约束更强
 - 写作本身继续重要，真正拉开差距的是前置研究设计、统一证据账本和更强的 review/hygiene
 
+### 3.5 方向锁定后的质量判断默认自治
+
+前期质量优化的关键边界，是把“方向选择”与“方向锁定后的质量推进”分清楚。
+
+初始方向锁定属于人类 gate。方向锁定之后，`MAS` 默认自主完成普通科研与论文质量判断，包括：
+
+- baseline 是否足够支撑当前 claim
+- 主分析、补充分析、稳健性分析的优先级
+- reviewer concern 是否已经被 evidence ledger 覆盖
+- 当前稿件是否具备继续写作、继续补实验、进入审阅或进入投稿包准备的条件
+- 论文主张、局限性和临床解释是否匹配现有证据
+
+人类 gate 收窄到少数客观边界：
+
+- 初始研究方向锁定
+- 重大研究转向
+- 止损与研究终止
+- 外部凭据、账户、秘密和授权
+- 作者、伦理、基金、利益冲突、数据可用性、声明等投稿客观信息
+- 最终投稿前审计
+
+这个边界让 `MAS` 的质量自治从“能表达待确认点”升级为“默认持有质量裁决权”。它也为 `MDS` 迁移提供明确验收面：`MDS` 继续作为对照线证明关键研究行为和质量判断保持等价，`MAS` 逐步接管 owner、账本和前台解释面。
+
 ## 4. 长时间全自动驾驶优化在单项目目标下怎么变化
 
 单项目目标下，自治能力优化的重点会从“某个 runtime 很能跑”提升为“整个 study lifecycle 在同一控制面上可长期治理、可恢复、可接手”。
@@ -112,7 +135,7 @@
 - 什么时候启动
 - 什么情况下暂停
 - 什么情况下继续跑
-- 什么情况下请求人工确认
+- 哪些少数边界触发人类 gate
 - 什么情况下收口、升级、归档
 
 这会让自治能力从局部 runtime 能力升级为研究平台能力。
@@ -170,8 +193,10 @@
 
 目标：
 
-- 把医学研究启动合同、证据账本、review 节点、submission hygiene 收到 `MAS`
-- 把启动、暂停、恢复、人工确认、升级、收口这些自治治理判断收到 `MAS`
+- 第一刀先落 `human gate boundary policy`：明确方向锁定后的普通科研/论文质量裁决由 `MAS` 自主完成，人类 gate 只覆盖初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息和最终投稿前审计
+- 第二步建设 `evidence ledger`：让 claim、analysis、figure、supplement、limitation 与投稿缺口统一落在 `MAS` durable truth 上
+- 第三步建设 `review ledger`：让 novelty、clinical relevance、reviewer concern、补充动作和稿件风险持续可读
+- 第四步打通 `runtime watch -> outer-loop wakeup`：让监管信号、进度停滞、恢复动作和下一步自治裁决进入同一条 outer-loop 决策链
 
 这个阶段里，`MDS` 继续承接迁移期 research backend 角色，`MAS` 开始成为质量和自治两条主线的实际 owner。
 
@@ -214,6 +239,7 @@
 4. 用户在 `MAS` 主线上能看到当前阶段、关键证据、阻塞、下一步和恢复点。
 5. `MDS` 的角色可以稳定描述为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 6. 旧的 study / artifact / runtime 轨迹都能继续被读取、审计和解释。
+7. 方向锁定后的普通科研与论文质量裁决默认由 `MAS` 自主完成，人类 gate 边界在文档、前台投影和 durable decision artifact 中保持一致。
 
 ## 正式主张
 

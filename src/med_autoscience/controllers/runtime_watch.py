@@ -18,13 +18,21 @@ from med_autoscience.controllers import (
     medical_reporting_audit,
     publication_gate,
     runtime_supervision,
+    study_outer_loop,
     study_runtime_family_orchestration as family_orchestration,
     study_runtime_router,
 )
 from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import runtime_watch as runtime_watch_protocol
+from med_autoscience.study_decision_record import (
+    StudyDecisionCharterRef,
+    StudyDecisionControllerAction,
+    StudyDecisionPublicationEvalRef,
+    StudyDecisionRecord,
+)
 
 
 ControllerRunner = Callable[..., dict[str, Any]]
@@ -40,6 +48,7 @@ DEFAULT_CONTROLLER_ORDER: tuple[str, ...] = (
 
 _MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
 _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
+_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
 _HARD_AUTO_RECOVERY_REASONS = frozenset(
     {
@@ -531,6 +540,44 @@ def _serialize_managed_study_auto_recovery(
     }
 
 
+def _controller_decision_latest_matches_outer_loop_request(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+) -> bool:
+    latest_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    payload = _read_json_object(latest_path)
+    if payload is None:
+        return False
+    record = StudyDecisionRecord.from_payload(payload)
+    desired_charter_ref = StudyDecisionCharterRef.from_payload(dict(tick_request.get("charter_ref") or {})).to_dict()
+    desired_publication_eval_ref = StudyDecisionPublicationEvalRef.from_payload(
+        dict(tick_request.get("publication_eval_ref") or {})
+    ).to_dict()
+    desired_controller_actions = tuple(
+        StudyDecisionControllerAction.from_payload(action).to_dict()
+        for action in (tick_request.get("controller_actions") or [])
+        if isinstance(action, dict)
+    )
+    desired_runtime_escalation_ref = RuntimeEscalationRecordRef.from_payload(
+        dict(status_payload.get("runtime_escalation_ref") or {})
+    ).to_dict()
+    if record.decision_type.value != _non_empty_text(tick_request.get("decision_type")):
+        return False
+    if record.requires_human_confirmation is not bool(tick_request.get("requires_human_confirmation")):
+        return False
+    if record.reason != (_non_empty_text(tick_request.get("reason")) or ""):
+        return False
+    if record.charter_ref.to_dict() != desired_charter_ref:
+        return False
+    if record.publication_eval_ref.to_dict() != desired_publication_eval_ref:
+        return False
+    if tuple(action.to_dict() for action in record.controller_actions) != desired_controller_actions:
+        return False
+    return record.runtime_escalation_ref.to_dict() == desired_runtime_escalation_ref
+
+
 def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | None) -> bool:
     if not isinstance(report, Mapping):
         return False
@@ -968,6 +1015,29 @@ def run_watch_for_runtime(
                 study_root=study_root,
                 status_payload=status_payload,
             )
+        if apply and profile is not None:
+            tick_request = study_outer_loop.build_runtime_watch_outer_loop_tick_request(
+                study_root=study_root,
+                status_payload=status_payload,
+            )
+            if tick_request is not None and not _controller_decision_latest_matches_outer_loop_request(
+                study_root=study_root,
+                status_payload=status_payload,
+                tick_request=tick_request,
+            ):
+                outer_loop_result = study_runtime_router.study_outer_loop_tick(
+                    profile=profile,
+                    source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
+                    **tick_request,
+                )
+                if _non_empty_text(outer_loop_result.get("dispatch_status")) != "executed":
+                    raise ValueError("runtime watch outer-loop wakeup requires executed autonomous dispatch")
+                status_payload = _managed_study_status_payload(
+                    study_runtime_router.study_runtime_status(
+                        profile=profile,
+                        study_root=study_root,
+                    )
+                )
         quest_root = status_payload.get("quest_root")
         quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
         supervision_report = runtime_supervision.materialize_runtime_supervision(

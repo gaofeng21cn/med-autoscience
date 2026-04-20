@@ -93,6 +93,31 @@ def dump_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_review_ledger(path: Path, *, summary: str = "Clarify the endpoint boundary in Results.") -> None:
+    dump_json(
+        path,
+        {
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer_1",
+                    "summary": summary,
+                    "severity": "major",
+                    "status": "open",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [
+                        {
+                            "revision_id": "rev-001",
+                            "revision_log_path": "paper/review/revision_log.md",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+
 def _paper_root_from_quest(quest_root: Path) -> Path:
     return quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
 
@@ -164,10 +189,12 @@ def make_quest(
     include_results_narrative_map: bool | None = None,
     include_figure_semantics_manifest: bool | None = None,
     include_claim_evidence_map: bool | None = None,
+    include_evidence_ledger: bool | None = None,
     include_derived_analysis_manifest: bool | None = None,
     figure_led_results: bool | None = None,
     include_reproducibility_supplement: bool | None = None,
     include_endpoint_provenance_note: bool | None = None,
+    include_review_ledger: bool | None = None,
     include_operational_method_labels: bool | None = None,
     include_complete_model_registry: bool | None = None,
     include_complete_results_sections: bool | None = None,
@@ -192,6 +219,8 @@ def make_quest(
         include_figure_semantics_manifest = medicalized
     if include_claim_evidence_map is None:
         include_claim_evidence_map = medicalized
+    if include_evidence_ledger is None:
+        include_evidence_ledger = medicalized
     if include_derived_analysis_manifest is None:
         include_derived_analysis_manifest = medicalized
     if figure_led_results is None:
@@ -200,6 +229,8 @@ def make_quest(
         include_reproducibility_supplement = medicalized
     if include_endpoint_provenance_note is None:
         include_endpoint_provenance_note = medicalized
+    if include_review_ledger is None:
+        include_review_ledger = medicalized
     if include_operational_method_labels is None:
         include_operational_method_labels = medicalized
     if include_complete_model_registry is None:
@@ -262,6 +293,9 @@ def make_quest(
         },
     )
     (paper_root / "paper.pdf").write_text("%PDF", encoding="utf-8")
+
+    if include_review_ledger:
+        _write_review_ledger(paper_root / "review" / "review_ledger.json")
 
     if medicalized:
         endpoint_statement = (
@@ -698,6 +732,45 @@ def make_quest(
             },
         )
 
+    if include_evidence_ledger:
+        dump_json(
+            paper_root / "evidence_ledger.json",
+            {
+                "schema_version": 1,
+                "claims": [
+                    {
+                        "claim_id": "C1",
+                        "statement": "The audited manuscript keeps one main-text claim with direct quantitative support and an explicit hold boundary.",
+                        "status": "supported",
+                        "submission_scope": "main_text",
+                        "evidence": [
+                            {
+                                "evidence_id": "EV1",
+                                "kind": "display",
+                                "source_paths": ["paper/claim_evidence_map.json", "paper/results_narrative_map.json"],
+                                "support_level": "direct",
+                                "summary": "The threshold interpretation figure and the baseline table support the retained main-text statement.",
+                            }
+                        ],
+                        "gaps": [
+                            {
+                                "gap_id": "G1",
+                                "description": "External transport validation is still pending for any treatment-facing escalation language.",
+                                "submission_impact": "Keep the claim inside an interpretation boundary and out of recommendation language.",
+                            }
+                        ],
+                        "recommended_actions": [
+                            {
+                                "action_id": "A1",
+                                "priority": "required",
+                                "description": "Retain conservative manuscript wording until transport validation is earned.",
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
+
     if include_derived_analysis_manifest:
         dump_json(
             paper_root / "derived_analysis_manifest.json",
@@ -1115,6 +1188,7 @@ def test_build_report_flags_forbidden_terms_and_missing_ama_defaults(tmp_path: P
     assert "methods_section_structure_missing_or_incomplete" in report["blockers"]
     assert "results_section_structure_missing_or_incomplete" in report["blockers"]
     assert "figure_semantics_manifest_missing_or_incomplete" in report["blockers"]
+    assert "evidence_ledger_missing_or_incomplete" in report["blockers"]
     assert "derived_analysis_manifest_missing_or_incomplete" in report["blockers"]
     assert "figure_table_led_results_narration_present" in report["blockers"]
     assert "manuscript_safe_reproducibility_supplement_missing_or_incomplete" in report["blockers"]
@@ -1148,9 +1222,57 @@ def test_build_report_clears_when_assets_are_medicalized_and_ama_defaults_exist(
 
     assert report["status"] == "clear"
     assert report["blockers"] == []
+    assert report["evidence_ledger_present"] is True
+    assert report["evidence_ledger_valid"] is True
+
+
+def test_build_report_blocks_when_evidence_ledger_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_evidence_ledger=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "evidence_ledger_missing_or_incomplete" in report["blockers"]
+    assert report["evidence_ledger_present"] is False
+    assert report["evidence_ledger_valid"] is False
+
+
+def test_build_report_blocks_when_evidence_ledger_shape_is_invalid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    evidence_ledger_path = _paper_root_from_quest(quest_root) / "evidence_ledger.json"
+    dump_json(
+        evidence_ledger_path,
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Incomplete shape for blocker coverage.",
+                }
+            ],
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "evidence_ledger_missing_or_incomplete" in report["blockers"]
+    assert report["evidence_ledger_present"] is True
+    assert report["evidence_ledger_valid"] is False
+    assert any(hit["pattern_id"] == "evidence_ledger" for hit in report["top_hits"])
     assert report["ama_csl_present"] is True
     assert report["ama_pdf_defaults_present"] is True
-    assert report["top_hits"] == []
 
 
 def test_build_report_ignores_unreferenced_generated_readme(tmp_path: Path) -> None:
@@ -1491,6 +1613,74 @@ def test_build_report_blocks_when_missing_data_policy_ids_are_inconsistent(tmp_p
     assert report["status"] == "blocked"
     assert "missing_data_policy_inconsistent" in report["blockers"]
     assert any(hit["pattern_id"] == "missing_data_policy_inconsistent" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_review_ledger_is_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+        include_review_ledger=False,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "review_ledger_missing_or_incomplete" in report["blockers"]
+    assert any(hit["pattern_id"] == "review_ledger" for hit in report["top_hits"])
+
+
+def test_build_report_blocks_when_review_ledger_shape_is_invalid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+    review_ledger_path = _paper_root_from_quest(quest_root) / "review" / "review_ledger.json"
+    dump_json(
+        review_ledger_path,
+        {
+            "schema_version": 1,
+            "concerns": [
+                {
+                    "concern_id": "RC1",
+                    "reviewer_id": "reviewer_1",
+                    "summary": "Clarify the endpoint boundary in Results.",
+                    "severity": "major",
+                    "status": "open",
+                    "owner_action": "rewrite_results_boundary_paragraph",
+                    "revision_links": [],
+                }
+            ],
+        },
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "blocked"
+    assert "review_ledger_missing_or_incomplete" in report["blockers"]
+    assert any(
+        hit["pattern_id"] == "review_ledger" and "revision_links" in hit["excerpt"]
+        for hit in report["top_hits"]
+    )
+
+
+def test_build_report_accepts_valid_review_ledger(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    quest_root = make_quest(
+        tmp_path,
+        medicalized=True,
+        ama_defaults=True,
+    )
+
+    report = module.build_surface_report(module.build_surface_state(quest_root))
+
+    assert report["status"] == "clear"
+    assert "review_ledger_missing_or_incomplete" not in report["blockers"]
+    assert report["review_ledger_present"] is True
+    assert report["review_ledger_valid"] is True
 
 
 def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrative_map(tmp_path: Path) -> None:
@@ -2610,6 +2800,7 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
     assert "methods_implementation_manifest.json" in content
     assert "results_narrative_map.json" in content
     assert "figure_semantics_manifest.json" in content
+    assert "evidence_ledger.json" in content
     assert "derived_analysis_manifest.json" in content
     assert "manuscript_safe_reproducibility_supplement.json" in content
     assert "endpoint_provenance_note.md" in content
@@ -2774,10 +2965,14 @@ def test_write_surface_files_uses_runtime_protocol_report_store(monkeypatch, tmp
         "table_catalog_valid": True,
         "methods_implementation_manifest_present": True,
         "methods_implementation_manifest_valid": True,
+        "review_ledger_present": True,
+        "review_ledger_valid": True,
         "results_narrative_map_present": True,
         "results_narrative_map_valid": True,
         "figure_semantics_manifest_present": True,
         "figure_semantics_manifest_valid": True,
+        "evidence_ledger_present": True,
+        "evidence_ledger_valid": True,
         "derived_analysis_manifest_present": True,
         "derived_analysis_manifest_valid": True,
         "reproducibility_supplement_present": True,

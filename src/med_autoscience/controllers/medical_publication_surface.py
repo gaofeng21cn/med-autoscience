@@ -45,9 +45,11 @@ class SurfaceState:
     figure_catalog_path: Path
     table_catalog_path: Path
     methods_implementation_manifest_path: Path
+    review_ledger_path: Path
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
     claim_evidence_map_path: Path
+    evidence_ledger_path: Path
     derived_analysis_manifest_path: Path
     reproducibility_supplement_path: Path
     endpoint_provenance_note_path: Path
@@ -108,9 +110,11 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         figure_catalog_path=paper_root / "figures" / "figure_catalog.json",
         table_catalog_path=paper_root / "tables" / "table_catalog.json",
         methods_implementation_manifest_path=paper_root / medical_surface_policy.METHODS_IMPLEMENTATION_MANIFEST_BASENAME,
+        review_ledger_path=paper_root / "review" / medical_surface_policy.REVIEW_LEDGER_BASENAME,
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
+        evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
         derived_analysis_manifest_path=paper_root / medical_surface_policy.DERIVED_ANALYSIS_MANIFEST_BASENAME,
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
         endpoint_provenance_note_path=paper_root / medical_surface_policy.ENDPOINT_PROVENANCE_NOTE_BASENAME,
@@ -1710,6 +1714,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         pattern_id="methods_implementation_manifest",
         label="medical methods implementation manifest",
     )
+    review_ledger_valid, review_ledger_hits = inspect_required_json_contract(
+        path=state.review_ledger_path,
+        validator=medical_surface_policy.validate_review_ledger,
+        pattern_id="review_ledger",
+        label="review ledger",
+    )
     results_narrative_valid, results_narrative_hits = inspect_required_json_contract(
         path=state.results_narrative_map_path,
         validator=medical_surface_policy.validate_results_narrative_map,
@@ -1727,6 +1737,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         validator=medical_surface_policy.validate_claim_evidence_map,
         pattern_id="claim_evidence_map",
         label="claim evidence map",
+    )
+    evidence_ledger_valid, evidence_ledger_hits = inspect_required_json_contract(
+        path=state.evidence_ledger_path,
+        validator=medical_surface_policy.validate_evidence_ledger,
+        pattern_id="evidence_ledger",
+        label="evidence ledger",
     )
     derived_analysis_valid, derived_analysis_hits = inspect_required_json_contract(
         path=state.derived_analysis_manifest_path,
@@ -1917,11 +1933,13 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(table_catalog_hits)
     hits.extend(required_display_catalog_hits)
     hits.extend(methods_manifest_hits)
+    hits.extend(review_ledger_hits)
     hits.extend(results_narrative_hits)
     hits.extend(results_display_surface_hits)
     hits.extend(figure_semantics_hits)
     hits.extend(figure_layout_sidecar_hits)
     hits.extend(claim_evidence_map_hits)
+    hits.extend(evidence_ledger_hits)
     hits.extend(derived_analysis_hits)
     hits.extend(reproducibility_hits)
     hits.extend(missing_data_policy_hits)
@@ -1955,6 +1973,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("ama_pdf_defaults_missing")
     if not methods_manifest_valid:
         blockers.append("methods_implementation_manifest_missing_or_incomplete")
+    if not review_ledger_valid:
+        blockers.append("review_ledger_missing_or_incomplete")
     if not results_narrative_valid:
         blockers.append("results_narrative_map_missing_or_incomplete")
     if results_display_surface_hits:
@@ -1971,6 +1991,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_layout_sidecar_missing_or_incomplete")
     if not claim_evidence_map_valid:
         blockers.append("claim_evidence_map_missing_or_incomplete")
+    if not evidence_ledger_valid:
+        blockers.append("evidence_ledger_missing_or_incomplete")
     if not derived_analysis_valid:
         blockers.append("derived_analysis_manifest_missing_or_incomplete")
     if not reproducibility_valid:
@@ -2025,6 +2047,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "methods_implementation_manifest_path": str(state.methods_implementation_manifest_path),
         "methods_implementation_manifest_present": state.methods_implementation_manifest_path.exists(),
         "methods_implementation_manifest_valid": methods_manifest_valid,
+        "review_ledger_path": str(state.review_ledger_path),
+        "review_ledger_present": state.review_ledger_path.exists(),
+        "review_ledger_valid": review_ledger_valid,
         "introduction_structure_valid": not introduction_structure_hits,
         "methods_section_structure_valid": not methods_section_structure_hits,
         "results_section_structure_valid": not results_section_structure_hits,
@@ -2041,6 +2066,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "claim_evidence_map_path": str(state.claim_evidence_map_path),
         "claim_evidence_map_present": state.claim_evidence_map_path.exists(),
         "claim_evidence_map_valid": claim_evidence_map_valid,
+        "evidence_ledger_path": str(state.evidence_ledger_path),
+        "evidence_ledger_present": state.evidence_ledger_path.exists(),
+        "evidence_ledger_valid": evidence_ledger_valid,
         "derived_analysis_manifest_path": str(state.derived_analysis_manifest_path),
         "derived_analysis_manifest_present": state.derived_analysis_manifest_path.exists(),
         "derived_analysis_manifest_valid": derived_analysis_valid,
@@ -2064,7 +2092,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "undefined_methodology_label_hit_count": len(undefined_methodology_label_hits),
         "results_narration_hit_count": len(results_narration_hits),
         "non_formal_question_hit_count": len(non_formal_question_hits),
-        "top_hits": hits[:40],
+        "top_hits": hits[:80],
     }
 
 
@@ -2087,6 +2115,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- required_display_catalog_coverage_valid: `{report.get('required_display_catalog_coverage_valid', True)}`",
         f"- methods_implementation_manifest_present: `{report['methods_implementation_manifest_present']}`",
         f"- methods_implementation_manifest_valid: `{report['methods_implementation_manifest_valid']}`",
+        f"- review_ledger_present: `{report['review_ledger_present']}`",
+        f"- review_ledger_valid: `{report['review_ledger_valid']}`",
         f"- introduction_structure_valid: `{report.get('introduction_structure_valid', True)}`",
         f"- methods_section_structure_valid: `{report.get('methods_section_structure_valid', True)}`",
         f"- results_section_structure_valid: `{report.get('results_section_structure_valid', True)}`",
@@ -2101,6 +2131,8 @@ def render_surface_markdown(report: dict[str, Any]) -> str:
         f"- figure_semantics_manifest_valid: `{report['figure_semantics_manifest_valid']}`",
         f"- claim_evidence_map_present: `{report.get('claim_evidence_map_present', False)}`",
         f"- claim_evidence_map_valid: `{report.get('claim_evidence_map_valid', False)}`",
+        f"- evidence_ledger_present: `{report.get('evidence_ledger_present', False)}`",
+        f"- evidence_ledger_valid: `{report.get('evidence_ledger_valid', False)}`",
         f"- derived_analysis_manifest_present: `{report['derived_analysis_manifest_present']}`",
         f"- derived_analysis_manifest_valid: `{report['derived_analysis_manifest_valid']}`",
         f"- reproducibility_supplement_present: `{report['reproducibility_supplement_present']}`",
