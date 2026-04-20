@@ -147,6 +147,18 @@ def _write_publication_eval(
     action_type: str = "continue_same_line",
     reason: str = "Controller should continue the same study line.",
 ) -> dict[str, str]:
+    if action_type == "bounded_analysis":
+        route_target = "analysis-campaign"
+        route_key_question = "What is the narrowest supplementary analysis still required before the paper line can continue?"
+        route_rationale = "The current line is clear enough to continue after one bounded supplementary analysis pass."
+    elif action_type == "continue_same_line":
+        route_target = "write"
+        route_key_question = "What is the narrowest same-line manuscript repair or continuation step required now?"
+        route_rationale = "The publication gate is clear and the current paper line can continue through same-line manuscript work."
+    else:
+        route_target = None
+        route_key_question = None
+        route_rationale = None
     payload = {
         "schema_version": 1,
         "eval_id": f"publication-eval::001-risk::quest-001::{action_type}::2026-04-05T05:58:00+00:00",
@@ -190,6 +202,15 @@ def _write_publication_eval(
                 "action_type": action_type,
                 "priority": "now",
                 "reason": reason,
+                **(
+                    {
+                        "route_target": route_target,
+                        "route_key_question": route_key_question,
+                        "route_rationale": route_rationale,
+                    }
+                    if route_target is not None
+                    else {}
+                ),
                 "evidence_refs": [str((study_root / "artifacts" / "publication_eval" / "latest.json").resolve())],
                 "requires_controller_decision": True,
             }

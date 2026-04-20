@@ -337,6 +337,38 @@ def _publication_eval_action(
     generated_at: str,
     evidence_refs: tuple[str, ...],
 ) -> PublicationEvalRecommendedAction:
+    def _route_contract_for_action(action_type: str) -> dict[str, str] | None:
+        current_required_action = str(report.get("current_required_action") or "").strip()
+        controller_stage_note = str(report.get("controller_stage_note") or "").strip()
+        if action_type == "bounded_analysis":
+            return {
+                "route_target": "analysis-campaign",
+                "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
+                "route_rationale": (
+                    controller_stage_note
+                    or "The current line is clear enough to continue after one bounded supplementary analysis pass."
+                ),
+            }
+        if action_type != "continue_same_line":
+            return None
+        if current_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+            return {
+                "route_target": "finalize",
+                "route_key_question": "What is the narrowest finalize or submission-bundle step still required on the current paper line?",
+                "route_rationale": (
+                    controller_stage_note
+                    or "The publication gate is clear and the current paper line can continue into finalize-stage work."
+                ),
+            }
+        return {
+            "route_target": "write",
+            "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
+            "route_rationale": (
+                controller_stage_note
+                or "The publication gate is clear and the current paper line can continue through same-line manuscript work."
+            ),
+        }
+
     status = str(report.get("status") or "").strip()
     if status == "clear":
         current_required_action = str(report.get("current_required_action") or "").strip()
@@ -356,12 +388,16 @@ def _publication_eval_action(
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."
         )
+    route_contract = _route_contract_for_action(action_type) or {}
     return PublicationEvalRecommendedAction(
         action_id=f"publication-eval-action::{action_type}::{generated_at}",
         action_type=action_type,
         priority="now",
         reason=reason,
         evidence_refs=evidence_refs,
+        route_target=route_contract.get("route_target"),
+        route_key_question=route_contract.get("route_key_question"),
+        route_rationale=route_contract.get("route_rationale"),
         requires_controller_decision=True,
     )
 

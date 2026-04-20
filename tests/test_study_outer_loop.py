@@ -145,6 +145,9 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
                 "action_type": "continue_same_line",
                 "priority": "now",
                 "reason": "Controller should continue the same study line.",
+                "route_target": "write",
+                "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
+                "route_rationale": "The publication gate is clear and the current paper line can continue through same-line manuscript work.",
                 "evidence_refs": [str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json")],
                 "requires_controller_decision": True,
             }
@@ -957,6 +960,9 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_bounded_analys
                     "action_type": "bounded_analysis",
                     "priority": "now",
                     "reason": "Run the bounded robustness analysis before the next publication gate pass.",
+                    "route_target": "analysis-campaign",
+                    "route_key_question": "What is the narrowest supplementary analysis still required before the paper line can continue?",
+                    "route_rationale": "The current line is clear enough to continue after one bounded supplementary analysis pass.",
                     "evidence_refs": [str(publication_eval_path)],
                     "requires_controller_decision": True,
                 }
@@ -1047,6 +1053,9 @@ def test_build_runtime_watch_outer_loop_tick_request_materializes_route_back_sam
                     "action_type": "route_back_same_line",
                     "priority": "now",
                     "reason": "Route back to the same core route; direction and claim boundary are unchanged.",
+                    "route_target": "write",
+                    "route_key_question": "What is the narrowest same-line manuscript repair or continuation step required now?",
+                    "route_rationale": "The publication gate is clear and the current paper line can continue through same-line manuscript work.",
                     "evidence_refs": [str(publication_eval_path)],
                     "requires_controller_decision": True,
                 }
