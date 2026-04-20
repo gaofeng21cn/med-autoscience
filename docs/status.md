@@ -13,6 +13,7 @@
 - 当前执行链路继续收口在 `med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
 - 从 `2026-04-18` 起，MAS 复用 `one-person-lab` 持有的 `opl-harness-shared` 来提供 managed runtime、Hermes supervision、product-entry companion 与 family orchestration helper。
 - 受控 backend、runtime adapter、handoff envelope、product-entry companion、monorepo / runtime core ingest / controlled cutover 继续留在 runtime / program / reference 层阅读。
+- 从当前主线判断开始，方向锁定后的普通科研推进、论文质量判断与 `bounded_analysis` 一类有限补充分析推进默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计。
 
 ## 当前可用用户回路
 
@@ -48,3 +49,4 @@
 3. 保持 `product-frontdesk`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 作为 MAS 的核心可执行回路。
 4. 保持 `Hermes-Agent` 作为外部长期在线网关的 readiness 检查，并把维护者细节继续留在 reference / program 层。
 5. 把“医学论文质量 + 长时间全自动驾驶优化”正式收口到 `MAS` 单项目主线，由 `controller_charter / runtime / eval_hygiene` 共同承担 owner；`MDS` 迁移期角色收敛为 research backend、行为等价 oracle、上游 intake buffer，详见 [MAS Single-Project Quality And Autonomy Mainline](./program/mas_single_project_quality_and_autonomy_mainline.md)。
+6. 把 study charter 升级为质量总合同入口；`paper evidence ledger` 与 `review ledger` 作为该合同的执行与审阅记录，统一承载主结果、`bounded_analysis`、reviewer concern 与 submission hygiene 的落地状态。

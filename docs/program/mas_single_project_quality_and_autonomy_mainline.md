@@ -13,7 +13,7 @@
 
 ## 核心判断
 
-从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断默认由 `MAS` 自主完成；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
+从现在开始，新增的“论文质量 + 全自动驾驶”优化主投入统一服务 `MAS` 单项目主线；方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断与 `bounded_analysis` 一类有限补充分析推进默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计；`MDS` 收敛为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 
 ## 1. 为什么优化主体在 MAS
 
@@ -23,15 +23,15 @@
 
 1. 医学论文质量可以前移到研究启动处统一定义。研究问题、终点、证据边界、目标期刊、发表口径、局限性约束都能在同一条主线上冻结。
 2. 全自动驾驶可以由同一个控制面治理。启动、暂停、恢复、人工确认、升级、收口都能挂在同一套 study truth 上。
-3. 质量门和自治门可以共用一份 durable truth。研究设计、主实验、补充分析、写作、评审、交付可以共享同一份证据账本和决策记录。
+3. 质量门和自治门可以共用一份 durable truth。study charter 持有质量总合同，研究设计、主实验、有限补充分析、写作、评审、交付沿着同一份执行账本推进。
 4. 用户认知会更稳定。对内对外都围绕 `MAS` 理解当前主线，维护面、产品面、program 面保持一致。
 5. 单项目投入的复用率更高。医学研究方法、发表 hygiene、自治治理、workspace 可见性都能沉淀成平台能力，直接服务长期主线。
 
 因此，这条优化主线的 owner 判断固定为：
 
-- `controller_charter`：负责研究启动合同、journal/reporting/evidence contract、人类 gate 边界
+- `controller_charter`：负责研究启动合同、study charter 质量总合同、journal/reporting/evidence contract、human gate 边界
 - `runtime`：负责长时间自治、运行治理、恢复链路、study truth 投影
-- `eval_hygiene`：负责 baseline、analysis、paper evidence ledger、review、submission hygiene
+- `eval_hygiene`：负责 baseline、analysis、paper evidence ledger、review ledger、submission hygiene，并把执行结果持续回写到 charter contract
 
 ## 2. MDS 在迁移期只保留什么角色
 
@@ -61,7 +61,7 @@
 
 ### 3.1 研究设计前移到 controller_charter
 
-最有价值的投入是把医学研究设计前移到 study 启动时冻结：
+最有价值的投入是把医学研究设计前移到 study 启动时冻结，并由 study charter 统一承载质量总合同：
 
 - 研究问题和临床场景
 - 终点与评价口径
@@ -70,9 +70,27 @@
 - 目标期刊与写作口径
 - 局限性边界和过度主张约束
 
-这样做的价值是让后面的 baseline、experiment、analysis、write、finalize 都围绕同一份医学发表合同推进。
+这样做的价值是让后面的 baseline、experiment、analysis、write、finalize 都围绕同一份医学发表合同推进；后续的 evidence ledger 和 review ledger 负责把这份合同翻译成持续执行、持续验收的 durable record。
 
-### 3.2 证据账本升级为 MAS 统一主账本
+### 3.2 study charter 承载质量总合同，ledger 承载执行
+
+单项目目标下，`MAS` 先在 study charter 冻结质量总合同，再让 ledger 体系承载执行。
+
+这份合同至少覆盖：
+
+- 研究问题与临床场景
+- 核心 claim、可接受证据强度与发表口径
+- 主分析与有限补充分析的边界
+- reviewer concern、局限性与 submission hygiene 约束
+
+围绕这份合同，ledger 的 owner 分工保持清晰：
+
+- `paper evidence ledger` 记录 claim 与 evidence 的覆盖关系、主结果与补充分析的兑现情况
+- `review ledger` 记录 reviewer concern、稿件风险、补充动作与当前缺口
+
+这样可以把“质量标准是什么”和“质量标准执行到哪里了”长期放在同一条 `MAS` 主线上解释。
+
+### 3.3 证据账本升级为 MAS 统一主账本
 
 论文质量最关键的提升，是让 `MAS` 统一持有：
 
@@ -83,7 +101,7 @@
 
 这会让论文质量判断从“阶段性局部判断”升级为“全链统一判断”。
 
-### 3.3 reviewer-first 提前成为 program 常规动作
+### 3.4 reviewer-first 提前成为 program 常规动作
 
 单项目目标下，reviewer-first 适合在两个时点固定执行：
 
@@ -92,7 +110,7 @@
 
 这样可以更早发现高代价返工点，让研究线围绕投稿标准持续收敛。
 
-### 3.4 医学发表 hygiene 升级为平台能力
+### 3.5 医学发表 hygiene 升级为平台能力
 
 结构化摘要、外部验证、校准、临床效用、局限性、补充材料、投稿 bundle 这些能力，适合在 `MAS` 里沉淀成长期能力。
 
@@ -101,19 +119,20 @@
 - 论文质量提升将主要表现为 `MAS` 对研究全过程的发表级约束更强
 - 写作本身继续重要，真正拉开差距的是前置研究设计、统一证据账本和更强的 review/hygiene
 
-### 3.5 方向锁定后的质量判断默认自治
+### 3.6 方向锁定后的质量判断默认自治
 
 前期质量优化的关键边界，是把“方向选择”与“方向锁定后的质量推进”分清楚。
 
-初始方向锁定属于人类 gate。方向锁定之后，`MAS` 默认自主完成普通科研与论文质量判断，包括：
+初始方向锁定属于 human gate。方向锁定之后，`MAS` 默认自主完成普通科研与论文质量判断，包括：
 
 - baseline 是否足够支撑当前 claim
 - 主分析、补充分析、稳健性分析的优先级
+- `bounded_analysis` 一类有限补充分析是否应自动推进、何时收口、何时回写 ledger
 - reviewer concern 是否已经被 evidence ledger 覆盖
 - 当前稿件是否具备继续写作、继续补实验、进入审阅或进入投稿包准备的条件
 - 论文主张、局限性和临床解释是否匹配现有证据
 
-人类 gate 收窄到少数客观边界：
+human gate 收窄到少数重大边界：
 
 - 初始研究方向锁定
 - 重大研究转向
@@ -122,11 +141,11 @@
 - 作者、伦理、基金、利益冲突、数据可用性、声明等投稿客观信息
 - 最终投稿前审计
 
-这个边界让 `MAS` 的质量自治从“能表达待确认点”升级为“默认持有质量裁决权”。它也为 `MDS` 迁移提供明确验收面：`MDS` 继续作为对照线证明关键研究行为和质量判断保持等价，`MAS` 逐步接管 owner、账本和前台解释面。
+这个边界让 `MAS` 的质量自治从“能表达待确认点”升级为“默认持有质量裁决权”。它也为 `MDS` 迁移提供明确验收面：`MDS` 继续作为对照线证明关键研究行为和质量判断保持等价，`MAS` 逐步接管 owner、charter contract、ledger 和前台解释面。
 
 ## 4. 长时间全自动驾驶优化在单项目目标下怎么变化
 
-单项目目标下，自治能力优化的重点会从“某个 runtime 很能跑”提升为“整个 study lifecycle 在同一控制面上可长期治理、可恢复、可接手”。
+单项目目标下，自治能力优化的重点会从“某个 runtime 很能跑”提升为“整个 study lifecycle 在同一控制面上可长期治理、可恢复、可接手，并能自动推进有限补充分析与质量收口动作”。
 
 ### 4.1 单一 authority 变成首要目标
 
@@ -167,7 +186,7 @@
 ### 4.4 预算治理成为长期自治的放大器
 
 单项目之后，自治系统最值得提升的是“把算力、时间、证据收益、投稿价值放在同一套排序里”。  
-这样系统才能更稳地决定先跑主结果、先补分析、先写稿、还是先等待人类判断。
+这样系统才能更稳地决定先跑主结果、先补 `bounded_analysis`、先写稿、还是先进入重大边界审计。
 
 ### 4.5 MDS 作为影子对照线保留到等价 proof 过线
 
@@ -193,10 +212,11 @@
 
 目标：
 
-- 第一刀先落 `human gate boundary policy`：明确方向锁定后的普通科研/论文质量裁决由 `MAS` 自主完成，人类 gate 只覆盖初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息和最终投稿前审计
-- 第二步建设 `evidence ledger`：让 claim、analysis、figure、supplement、limitation 与投稿缺口统一落在 `MAS` durable truth 上
-- 第三步建设 `review ledger`：让 novelty、clinical relevance、reviewer concern、补充动作和稿件风险持续可读
-- 第四步打通 `runtime watch -> outer-loop wakeup`：让监管信号、进度停滞、恢复动作和下一步自治裁决进入同一条 outer-loop 决策链
+- 第一刀先落 `human gate boundary policy`：明确方向锁定后的普通科研、论文质量裁决与 `bounded_analysis` 推进由 `MAS` 自主完成；human gate 只覆盖重大边界、投稿客观信息和最终投稿前审计
+- 第二步建设 `study charter quality contract`：让研究问题、claim、证据强度、有限补充分析边界、submission hygiene 统一冻结在 study charter
+- 第三步建设 `evidence ledger`：让 claim、analysis、figure、supplement、limitation 与投稿缺口统一落在 `MAS` durable truth 上，作为 charter contract 的执行记录
+- 第四步建设 `review ledger`：让 novelty、clinical relevance、reviewer concern、补充动作和稿件风险持续可读，作为 charter contract 的审阅记录
+- 第五步打通 `runtime watch -> outer-loop wakeup`：让监管信号、进度停滞、恢复动作和下一步自治裁决进入同一条 outer-loop 决策链
 
 这个阶段里，`MDS` 继续承接迁移期 research backend 角色，`MAS` 开始成为质量和自治两条主线的实际 owner。
 
@@ -234,12 +254,12 @@
 这条主线过线时，至少满足下面六条：
 
 1. 每个关键优化 cell 都有 `MAS` owner、program 文档、验证口径和真实 study 证据。
-2. 医学论文质量判断可以沿着同一条 `MAS` 主线解释清楚：研究设计、主结果、补充分析、review、submission hygiene 之间关系明确。
+2. 医学论文质量判断可以沿着同一条 `MAS` 主线解释清楚：study charter 质量总合同、主结果、有限补充分析、review、submission hygiene 之间关系明确。
 3. 长时间自治可以沿着同一条 `MAS` 主线解释清楚：启动、运行、阻塞、恢复、人工接手、收口之间关系明确。
 4. 用户在 `MAS` 主线上能看到当前阶段、关键证据、阻塞、下一步和恢复点。
 5. `MDS` 的角色可以稳定描述为迁移期 research backend、行为等价 oracle、上游 intake buffer。
 6. 旧的 study / artifact / runtime 轨迹都能继续被读取、审计和解释。
-7. 方向锁定后的普通科研与论文质量裁决默认由 `MAS` 自主完成，人类 gate 边界在文档、前台投影和 durable decision artifact 中保持一致。
+7. 方向锁定后的普通科研推进、论文质量裁决与 `bounded_analysis` 推进默认由 `MAS` 自主完成；human gate 边界在文档、前台投影和 durable decision artifact 中保持一致。
 
 ## 正式主张
 
