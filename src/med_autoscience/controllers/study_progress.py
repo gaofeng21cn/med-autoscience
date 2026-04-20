@@ -740,6 +740,7 @@ def _evaluation_module_surface(
         if (
             publication_eval_payload is None
             or runtime_escalation_path is None
+            or not runtime_escalation_path.exists()
             or gate_report_path is None
             or not gate_report_path.exists()
             or not charter_path.exists()

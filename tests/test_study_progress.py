@@ -559,6 +559,91 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert publishability_gate_report_path.exists()
 
 
+def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalation_record_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="研究主线是糖尿病死亡风险外部验证。",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine"],
+        minimum_sci_ready_evidence_package=["external_validation"],
+    )
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    runtime_escalation_path = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+
+    _write_study_charter_and_controller_summary(study_root)
+    publication_eval_path = _write_publication_eval(study_root, quest_root)
+    publishability_gate_report_path = _write_publishability_gate_report(quest_root)
+    runtime_watch_path = _write_runtime_watch(quest_root)
+
+    _write_json(
+        launch_report_path,
+        {
+            "recorded_at": "2026-04-10T09:05:00+00:00",
+            "source": "controller",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "quest_status": "running",
+        },
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": True,
+                "current_required_action": "return_to_publishability_gate",
+                "deferred_downstream_actions": ["submission_minimal"],
+                "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
+            },
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::missing",
+                "artifact_path": str(runtime_escalation_path),
+                "summary_ref": str(launch_report_path),
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["study_id"] == "001-risk"
+    assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
+    assert result["refs"]["runtime_watch_report_path"] == str(runtime_watch_path)
+    assert result["refs"]["runtime_escalation_path"] == str(runtime_escalation_path)
+    assert result["refs"]["evaluation_summary_path"] is None
+    assert result["refs"]["promotion_gate_path"] is None
+    assert "eval_hygiene" not in result["module_surfaces"]
+    assert not runtime_escalation_path.exists()
+    assert publishability_gate_report_path.exists()
+
+
 def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
