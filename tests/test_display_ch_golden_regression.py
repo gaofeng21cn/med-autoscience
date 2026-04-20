@@ -581,6 +581,125 @@ def test_broader_heterogeneity_summary_panel_preserves_ch_bounded_contract(tmp_p
     assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
 
 
+def test_interaction_effect_summary_panel_preserves_ch_bounded_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    _dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "interaction_effect_summary_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    _dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    _dump_json(
+        paper_root / "medical_reporting_contract.json",
+        {
+            "schema_version": 1,
+            "style_roles": {
+                "model_curve": "#1f77b4",
+                "comparator_curve": "#d62728",
+                "reference_line": "#334155",
+            },
+            "palette": {"primary": "#1f77b4", "secondary_soft": "#cbd5e1", "light": "#eff6ff"},
+            "typography": {"title_size": 12.5, "axis_title_size": 11.0, "tick_size": 10.0, "panel_label_size": 11.0},
+            "stroke": {"marker_size": 4.5},
+        },
+    )
+    _dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "interaction_effect_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    _dump_json(
+        paper_root / "interaction_effect_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "interaction_effect_summary_panel_inputs_v1",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "fenggaolab.org.medical-display-core::interaction_effect_summary_panel",
+                    "title": "Interaction effect summary panel for modifier-focused heterogeneity review",
+                    "caption": "Regression lock for bounded modifier-level interaction-effect evidence.",
+                    "estimate_panel_title": "Prespecified interaction effects",
+                    "x_label": "Interaction beta (log hazard ratio difference)",
+                    "reference_value": 0.0,
+                    "summary_panel_title": "Interaction verdict summary",
+                    "modifiers": [
+                        {
+                            "modifier_id": "age_ge_65",
+                            "modifier_label": "Age ≥65 years",
+                            "interaction_estimate": 0.18,
+                            "lower": 0.05,
+                            "upper": 0.31,
+                            "support_n": 184,
+                            "favored_group_label": "Stronger in age ≥65 years",
+                            "interaction_p_value": 0.014,
+                            "verdict": "credible",
+                        },
+                        {
+                            "modifier_id": "female",
+                            "modifier_label": "Female",
+                            "interaction_estimate": 0.09,
+                            "lower": -0.02,
+                            "upper": 0.20,
+                            "support_n": 201,
+                            "favored_group_label": "More pronounced in female patients",
+                            "interaction_p_value": 0.081,
+                            "verdict": "suggestive",
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    layout_sidecar = json.loads(
+        (paper_root / "figures" / "generated" / "F51_interaction_effect_summary_panel.layout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert layout_sidecar["metrics"]["reference_value"] == 0.0
+    assert [item["modifier_id"] for item in layout_sidecar["metrics"]["modifiers"]] == [
+        "age_ge_65",
+        "female",
+    ]
+    assert [item["verdict"] for item in layout_sidecar["metrics"]["modifiers"]] == [
+        "credible",
+        "suggestive",
+    ]
+    assert any(box["box_id"] == "panel_label_A" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_id"] == "panel_label_B" for box in layout_sidecar["layout_boxes"])
+    assert any(box["box_type"] == "reference_line" for box in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    assert figure_catalog["figures"][0]["qc_result"]["status"] == "pass"
+
+
 def test_baseline_missingness_qc_panel_preserves_h_bounded_contract(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = tmp_path / "paper"

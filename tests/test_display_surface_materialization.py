@@ -11934,6 +11934,57 @@ def _make_broader_heterogeneity_summary_panel_display(display_id: str = "Figure4
     }
 
 
+def _make_interaction_effect_summary_panel_display(display_id: str = "Figure51") -> dict[str, object]:
+    return {
+        "display_id": display_id,
+        "template_id": "interaction_effect_summary_panel",
+        "title": "Interaction effect summary panel for modifier-focused heterogeneity review",
+        "caption": (
+            "Bounded interaction-effect evidence formalizes modifier-level contrast estimates together with "
+            "manuscript-facing verdicts, favored subgroup labels, and interaction P values."
+        ),
+        "estimate_panel_title": "Prespecified interaction effects",
+        "x_label": "Interaction beta (log hazard ratio difference)",
+        "reference_value": 0.0,
+        "summary_panel_title": "Interaction verdict summary",
+        "modifiers": [
+            {
+                "modifier_id": "age_ge_65",
+                "modifier_label": "Age ≥65 years",
+                "interaction_estimate": 0.18,
+                "lower": 0.05,
+                "upper": 0.31,
+                "support_n": 184,
+                "favored_group_label": "Stronger in age ≥65 years",
+                "interaction_p_value": 0.014,
+                "verdict": "credible",
+            },
+            {
+                "modifier_id": "female",
+                "modifier_label": "Female",
+                "interaction_estimate": 0.09,
+                "lower": -0.02,
+                "upper": 0.20,
+                "support_n": 201,
+                "favored_group_label": "More pronounced in female patients",
+                "interaction_p_value": 0.081,
+                "verdict": "suggestive",
+            },
+            {
+                "modifier_id": "high_risk",
+                "modifier_label": "High-risk subgroup",
+                "interaction_estimate": 0.27,
+                "lower": 0.10,
+                "upper": 0.44,
+                "support_n": 96,
+                "favored_group_label": "Largest signal in high-risk subgroup",
+                "interaction_p_value": 0.006,
+                "verdict": "credible",
+            },
+        ],
+    }
+
+
 def _make_center_transportability_governance_summary_panel_display(
     display_id: str = "Figure50",
 ) -> dict[str, object]:
@@ -12386,6 +12437,35 @@ def test_load_evidence_display_payload_rejects_missing_step_coverage_for_coeffic
             paper_root=paper_root,
             spec=spec,
             display_id="Figure48",
+        )
+
+
+def test_load_evidence_display_payload_rejects_invalid_interaction_p_value_for_interaction_effect_summary_panel(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    display_payload = _make_interaction_effect_summary_panel_display()
+    display_payload["modifiers"][1]["interaction_p_value"] = 1.4
+    dump_json(
+        paper_root / "interaction_effect_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "interaction_effect_summary_panel_inputs_v1",
+            "displays": [display_payload],
+        },
+    )
+
+    spec = module.display_registry.get_evidence_figure_spec("interaction_effect_summary_panel")
+
+    with pytest.raises(
+        ValueError,
+        match="interaction_p_value must be between 0.0 and 1.0",
+    ):
+        module._load_evidence_display_payload(
+            paper_root=paper_root,
+            spec=spec,
+            display_id="Figure51",
         )
 
 
@@ -14037,6 +14117,87 @@ def test_materialize_display_surface_generates_broader_heterogeneity_summary_pan
     assert figure_entry["renderer_family"] == "python"
     assert figure_entry["input_schema_id"] == "broader_heterogeneity_summary_panel_inputs_v1"
     assert figure_entry["qc_profile"] == "publication_broader_heterogeneity_summary_panel"
+    assert figure_entry["qc_result"]["status"] == "pass"
+
+
+def test_materialize_display_surface_generates_interaction_effect_summary_panel(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = tmp_path / "paper"
+    dump_json(
+        paper_root / "display_registry.json",
+        {
+            "schema_version": 1,
+            "source_contract_path": "paper/medical_reporting_contract.json",
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "display_kind": "figure",
+                    "requirement_key": "interaction_effect_summary_panel",
+                    "catalog_id": "F51",
+                    "shell_path": "paper/figures/Figure51.shell.json",
+                }
+            ],
+        },
+    )
+    dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    write_default_publication_display_contracts(paper_root)
+    dump_json(
+        paper_root / "display_overrides.json",
+        {
+            "schema_version": 1,
+            "displays": [
+                {
+                    "display_id": "Figure51",
+                    "template_id": "interaction_effect_summary_panel",
+                    "layout_override": {"show_figure_title": False},
+                    "readability_override": {},
+                }
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "interaction_effect_summary_panel_inputs.json",
+        {
+            "schema_version": 1,
+            "input_schema_id": "interaction_effect_summary_panel_inputs_v1",
+            "displays": [_make_interaction_effect_summary_panel_display()],
+        },
+    )
+
+    result = module.materialize_display_surface(paper_root=paper_root)
+
+    assert result["status"] == "materialized"
+    assert result["figures_materialized"] == ["F51"]
+    assert (paper_root / "figures" / "generated" / "F51_interaction_effect_summary_panel.png").exists()
+    assert (paper_root / "figures" / "generated" / "F51_interaction_effect_summary_panel.pdf").exists()
+    layout_sidecar_path = paper_root / "figures" / "generated" / "F51_interaction_effect_summary_panel.layout.json"
+    assert layout_sidecar_path.exists()
+
+    layout_sidecar = json.loads(layout_sidecar_path.read_text(encoding="utf-8"))
+    assert len(layout_sidecar["panel_boxes"]) == 2
+    assert layout_sidecar["metrics"]["reference_value"] == 0.0
+    assert [item["modifier_id"] for item in layout_sidecar["metrics"]["modifiers"]] == [
+        "age_ge_65",
+        "female",
+        "high_risk",
+    ]
+    assert [item["verdict"] for item in layout_sidecar["metrics"]["modifiers"]] == [
+        "credible",
+        "suggestive",
+        "credible",
+    ]
+    assert any(item["box_id"] == "panel_label_A" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_id"] == "panel_label_B" for item in layout_sidecar["layout_boxes"])
+    assert any(item["box_type"] == "reference_line" for item in layout_sidecar["guide_boxes"])
+
+    figure_catalog = json.loads((paper_root / "figures" / "figure_catalog.json").read_text(encoding="utf-8"))
+    figure_entry = figure_catalog["figures"][0]
+    assert figure_entry["figure_id"] == "F51"
+    assert figure_entry["template_id"] == full_id("interaction_effect_summary_panel")
+    assert figure_entry["renderer_family"] == "python"
+    assert figure_entry["input_schema_id"] == "interaction_effect_summary_panel_inputs_v1"
+    assert figure_entry["qc_profile"] == "publication_interaction_effect_summary_panel"
     assert figure_entry["qc_result"]["status"] == "pass"
 
 

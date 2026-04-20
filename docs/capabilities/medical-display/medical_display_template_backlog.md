@@ -19,10 +19,10 @@
 
 截至当前审计真相：
 
-- Evidence figure templates: `75`
+- Evidence figure templates: `76`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total audited templates: `87`
+- Total audited templates: `88`
 
 这些数字来自当前 audited guide / template catalog，而不是旧的锚点论文冻结快照。
 
@@ -48,7 +48,7 @@
 
 - `D/E/G / richer manifold or higher-order multi-view atlas follow-on beyond the current context-support lower bound`
 - `F / higher-order explanation scene beyond the current grouped-local + multigroup decision-scene composite lower bound`
-- `C/H / calibration appendix or higher-order robustness synthesis beyond the current broader-heterogeneity lower bound`
+- `C/H / calibration appendix or higher-order robustness synthesis beyond the current interaction-summary lower bound`
 
 其中：
 
@@ -56,6 +56,7 @@
 - `D/E/G / richer multi-view atlas-spatial-trajectory composite follow-on` 已在本轮正式收口为 `atlas_spatial_trajectory_context_support_panel`，并已 absorb 入当前 `main`，不再留在 backlog 候选池。
 - `C/H / compact estimate panel follow-on` 已在本轮正式 absorb 为 `compact_effect_estimate_panel`，不再保留在 backlog 候选池。
 - `C/H / broader heterogeneity summary follow-on` 已在本轮正式 absorb 为 `broader_heterogeneity_summary_panel`，不再保留在 backlog 候选池。
+- `C/H / modifier-level interaction summary follow-on` 已在本轮正式 absorb 为 `interaction_effect_summary_panel`，不再保留在 backlog 候选池。
 - `H / broader transportability and center-coverage follow-on` 已在本轮正式 absorb 为 `center_transportability_governance_summary_panel`，不再保留在 backlog 候选池。
 - `D / PHATE manifold concrete follow-on` 已在本轮正式 absorb 为 `phate_scatter_grouped`，不再保留在 backlog 候选池。
 - `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
@@ -104,7 +105,7 @@
 2. 现有 template 能渲染，但 schema / QC / submission surface 不能稳定闭环。
 3. 真实论文表达需要更清晰的正式 contract，而不是 renderer 层的临时补救。
 4. 对 `H` 而言，`center_transportability_governance_summary_panel` 已完成 absorb；后续 broader transportability / center-governance synthesis 只有在新的真实论文 demand 明确证明价值时，才重新评估。
-5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel` 与 `broader_heterogeneity_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
+5. 对 `C/H` 而言，`compact_effect_estimate_panel`、`coefficient_path_panel`、`broader_heterogeneity_summary_panel` 与 `interaction_effect_summary_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估 calibration appendix 或更高阶 robustness synthesis。
 6. 对 `F` 而言，`feature_response_support_domain_panel`、`shap_multigroup_decision_path_panel`、`shap_grouped_local_support_domain_panel` 与 `shap_multigroup_decision_path_support_domain_panel` 已经收口；后续只有在新的真实论文 demand 明确证明价值时，才重新评估更高阶 grouped-local、annotation / legend hardening 或其他 explanation scene。
 7. 对 `G/E` 而言，`gsva_ssgsea_heatmap`、`pathway_enrichment_dotplot_panel`、`omics_volcano_panel`、`oncoplot_mutation_landscape_panel`、`cnv_recurrence_summary_panel`、`genomic_alteration_landscape_panel`、`genomic_alteration_consequence_panel`、`genomic_alteration_multiomic_consequence_panel`、`genomic_alteration_pathway_integrated_composite_panel` 与 `genomic_program_governance_summary_panel` 已经形成当前最小十基线；后续只有在新的真实论文 demand 明确证明价值时，才重新评估超出当前 program-governance lower bound 的更高阶 genomic-governance scene。
 

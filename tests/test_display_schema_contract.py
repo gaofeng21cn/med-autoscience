@@ -3036,6 +3036,38 @@ def test_broader_heterogeneity_summary_panel_schema_contract_is_registered() -> 
     assert "broader_heterogeneity_summary_panel_inputs_v1" in effect_estimate_class.input_schema_ids
 
 
+def test_interaction_effect_summary_panel_schema_contract_is_registered() -> None:
+    module = importlib.import_module("med_autoscience.display_schema_contract")
+
+    interaction = module.get_input_schema_contract("interaction_effect_summary_panel_inputs_v1")
+    effect_estimate_class = next(
+        item for item in module.list_display_schema_classes() if item.class_id == "effect_estimate"
+    )
+
+    assert interaction.template_ids == (_full_id("interaction_effect_summary_panel"),)
+    assert interaction.display_name == "Interaction Effect Summary Panel"
+    assert interaction.collection_required_fields["modifiers"] == (
+        "modifier_id",
+        "modifier_label",
+        "interaction_estimate",
+        "lower",
+        "upper",
+        "support_n",
+        "favored_group_label",
+        "interaction_p_value",
+        "verdict",
+    )
+    assert "modifier_count_must_be_between_two_and_six" in interaction.additional_constraints
+    assert "modifier_ids_must_be_unique" in interaction.additional_constraints
+    assert "modifier_labels_must_be_unique" in interaction.additional_constraints
+    assert "interaction_estimates_must_be_finite" in interaction.additional_constraints
+    assert "interaction_intervals_must_wrap_estimate" in interaction.additional_constraints
+    assert "interaction_p_values_must_be_between_zero_and_one" in interaction.additional_constraints
+    assert "modifier_verdicts_must_use_controlled_vocabulary" in interaction.additional_constraints
+    assert _full_id("interaction_effect_summary_panel") in effect_estimate_class.template_ids
+    assert "interaction_effect_summary_panel_inputs_v1" in effect_estimate_class.input_schema_ids
+
+
 def test_center_transportability_governance_summary_panel_schema_contract_is_registered() -> None:
     module = importlib.import_module("med_autoscience.display_schema_contract")
 
@@ -3090,6 +3122,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert _full_id("atlas_spatial_trajectory_density_coverage_panel") in markdown
     assert _full_id("atlas_spatial_trajectory_context_support_panel") in markdown
     assert _full_id("broader_heterogeneity_summary_panel") in markdown
+    assert _full_id("interaction_effect_summary_panel") in markdown
     assert _full_id("center_transportability_governance_summary_panel") in markdown
     assert "time_dependent_roc_comparison_inputs_v1" in markdown
     assert "single_cell_atlas_overview_inputs_v1" in markdown
@@ -3098,6 +3131,7 @@ def test_render_display_template_catalog_covers_all_registered_templates() -> No
     assert "atlas_spatial_trajectory_density_coverage_panel_inputs_v1" in markdown
     assert "atlas_spatial_trajectory_context_support_panel_inputs_v1" in markdown
     assert "broader_heterogeneity_summary_panel_inputs_v1" in markdown
+    assert "interaction_effect_summary_panel_inputs_v1" in markdown
     assert "center_transportability_governance_summary_panel_inputs_v1" in markdown
     assert _full_id("time_to_event_landmark_performance_panel") in markdown
     assert "time_to_event_landmark_performance_inputs_v1" in markdown

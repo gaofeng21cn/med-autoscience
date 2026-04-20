@@ -7342,6 +7342,146 @@ def _validate_broader_heterogeneity_summary_panel_display_payload(
     }
 
 
+def _validate_interaction_effect_summary_panel_display_payload(
+    *,
+    path: Path,
+    payload: dict[str, Any],
+    expected_template_id: str,
+    expected_display_id: str,
+) -> dict[str, Any]:
+    payload_template_id = str(payload.get("template_id") or "").strip()
+    allowed_template_ids = {expected_template_id}
+    try:
+        allowed_template_ids.add(get_template_short_id(expected_template_id))
+    except ValueError:
+        pass
+    if payload_template_id not in allowed_template_ids:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must use template_id `{expected_template_id}`")
+
+    title = _require_non_empty_string(payload.get("title"), label=f"{path.name} display `{expected_display_id}` title")
+    estimate_panel_title = _require_non_empty_string(
+        payload.get("estimate_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` estimate_panel_title",
+    )
+    x_label = _require_non_empty_string(
+        payload.get("x_label"),
+        label=f"{path.name} display `{expected_display_id}` x_label",
+    )
+    reference_value = _require_numeric_value(
+        payload.get("reference_value"),
+        label=f"{path.name} display `{expected_display_id}` reference_value",
+    )
+    if not math.isfinite(reference_value):
+        raise ValueError(f"{path.name} display `{expected_display_id}` reference_value must be finite")
+    summary_panel_title = _require_non_empty_string(
+        payload.get("summary_panel_title"),
+        label=f"{path.name} display `{expected_display_id}` summary_panel_title",
+    )
+
+    modifiers_payload = payload.get("modifiers")
+    if not isinstance(modifiers_payload, list) or not modifiers_payload:
+        raise ValueError(f"{path.name} display `{expected_display_id}` must contain a non-empty modifiers list")
+    if len(modifiers_payload) < 2 or len(modifiers_payload) > 6:
+        raise ValueError(f"{path.name} display `{expected_display_id}` modifiers must contain between 2 and 6 entries")
+
+    supported_verdicts = {"credible", "suggestive", "uncertain"}
+    normalized_modifiers: list[dict[str, Any]] = []
+    seen_modifier_ids: set[str] = set()
+    seen_modifier_labels: set[str] = set()
+    for modifier_index, modifier_payload in enumerate(modifiers_payload):
+        if not isinstance(modifier_payload, dict):
+            raise ValueError(f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}] must be an object")
+        modifier_id = _require_non_empty_string(
+            modifier_payload.get("modifier_id"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].modifier_id",
+        )
+        if modifier_id in seen_modifier_ids:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].modifier_id must be unique"
+            )
+        seen_modifier_ids.add(modifier_id)
+        modifier_label = _require_non_empty_string(
+            modifier_payload.get("modifier_label"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].modifier_label",
+        )
+        if modifier_label in seen_modifier_labels:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].modifier_label must be unique"
+            )
+        seen_modifier_labels.add(modifier_label)
+        interaction_estimate = _require_numeric_value(
+            modifier_payload.get("interaction_estimate"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].interaction_estimate",
+        )
+        lower = _require_numeric_value(
+            modifier_payload.get("lower"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].lower",
+        )
+        upper = _require_numeric_value(
+            modifier_payload.get("upper"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].upper",
+        )
+        if not all(math.isfinite(value) for value in (interaction_estimate, lower, upper)):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}] values must be finite"
+            )
+        if not (lower <= interaction_estimate <= upper):
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}] must satisfy lower <= interaction_estimate <= upper"
+            )
+        support_n = _require_non_negative_int(
+            modifier_payload.get("support_n"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].support_n",
+            allow_zero=False,
+        )
+        favored_group_label = _require_non_empty_string(
+            modifier_payload.get("favored_group_label"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].favored_group_label",
+        )
+        interaction_p_value = _require_numeric_value(
+            modifier_payload.get("interaction_p_value"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].interaction_p_value",
+        )
+        if not math.isfinite(interaction_p_value) or interaction_p_value < 0.0 or interaction_p_value > 1.0:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].interaction_p_value must be between 0.0 and 1.0"
+            )
+        verdict = _require_non_empty_string(
+            modifier_payload.get("verdict"),
+            label=f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].verdict",
+        )
+        if verdict not in supported_verdicts:
+            raise ValueError(
+                f"{path.name} display `{expected_display_id}` modifiers[{modifier_index}].verdict must be one of credible, suggestive, uncertain"
+            )
+        normalized_modifiers.append(
+            {
+                "modifier_id": modifier_id,
+                "modifier_label": modifier_label,
+                "interaction_estimate": interaction_estimate,
+                "lower": lower,
+                "upper": upper,
+                "support_n": support_n,
+                "favored_group_label": favored_group_label,
+                "interaction_p_value": interaction_p_value,
+                "verdict": verdict,
+            }
+        )
+
+    return {
+        "display_id": expected_display_id,
+        "template_id": expected_template_id,
+        "title": title,
+        "caption": str(payload.get("caption") or "").strip(),
+        "paper_role": str(payload.get("paper_role") or "").strip(),
+        "estimate_panel_title": estimate_panel_title,
+        "x_label": x_label,
+        "reference_value": reference_value,
+        "summary_panel_title": summary_panel_title,
+        "modifiers": normalized_modifiers,
+    }
+
+
 def _validate_shap_summary_display_payload(
     *,
     path: Path,
@@ -11130,6 +11270,13 @@ def _load_evidence_display_payload(
         )
     if spec.input_schema_id == "broader_heterogeneity_summary_panel_inputs_v1":
         return payload_path, _validate_broader_heterogeneity_summary_panel_display_payload(
+            path=payload_path,
+            payload=matched_display,
+            expected_template_id=spec.template_id,
+            expected_display_id=display_id,
+        )
+    if spec.input_schema_id == "interaction_effect_summary_panel_inputs_v1":
+        return payload_path, _validate_interaction_effect_summary_panel_display_payload(
             path=payload_path,
             payload=matched_display,
             expected_template_id=spec.template_id,

@@ -2,6 +2,9 @@
 
 ## Unreleased - 2026-04-20
 
+- Add `interaction_effect_summary_panel` as the next audited `C/H` modifier-level interaction-summary slice in the core display pack.
+- Lock its pack-facing contract to `interaction_effect_summary_panel_inputs_v1`, `publication_interaction_effect_summary_panel`, and the Python bounded estimate-plus-verdict-summary renderer path.
+
 - Add `shap_multigroup_decision_path_support_domain_panel` as the next audited `F` multigroup decision-scene slice in the core display pack.
 - Lock its pack-facing contract to `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `publication_shap_multigroup_decision_path_support_domain_panel`, and the Python bounded `1 + 2` decision-path plus support-domain composite renderer path.
 

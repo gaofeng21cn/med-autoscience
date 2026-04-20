@@ -20,12 +20,12 @@
 
 - `A-H` 首个审计基线覆盖：`8/8`
 - 当前 strict audited inventory：
-  - 证据型模板：`75`
+  - 证据型模板：`76`
   - 插图壳层：`7`
   - 表格壳层：`5`
-  - 总模板数：`87`
+  - 总模板数：`88`
 - 最近一次已吸收完成的 capability cluster：
-  - `F / shap_multigroup_decision_path_support_domain_panel`
+  - `C/H / interaction_effect_summary_panel`
 - 当前执行模型：
   - 任一时刻只允许一个 active owner round；
   - 每一轮 owner round 使用一个独立 display worktree；
@@ -35,36 +35,37 @@
 ## 当前 Active Round
 
 - Phase：`Phase 4 / next-cluster scouting`
-- Family cluster：`reroute pending`
-- Capability cluster：`reroute after latest F absorb`
+- Family cluster：`reroute pending after latest C/H absorb`
+- Capability cluster：`reroute after latest C/H absorb`
 - Owner worktree：`not_opened`
 - 状态：`ready_for_next_owner_round`
 
 ### Fresh Mainline Result
 
-- 当前主干已吸收 `shap_multigroup_decision_path_support_domain_panel`；
+- 当前主干已吸收 `interaction_effect_summary_panel`；
 - strict audited inventory 已更新到：
-  - `Model Explanation`：`18`
-  - evidence figures：`75`
-  - total templates：`87`
-- `shap_multigroup_decision_path_support_domain_panel` 已从 concrete backlog 转为 audited inventory；
+  - `Effect Estimate`：`7`
+  - evidence figures：`76`
+  - total templates：`88`
+- `interaction_effect_summary_panel` 已从 concrete backlog 转为 audited inventory；
 - 当前 fresh verify 已完成：
-  - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py` → `93 passed`
-  - `uv run pytest -q tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_f_golden_regression.py` → `332 passed`
+  - `uv run pytest -q tests/test_display_registry.py tests/test_display_schema_contract.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_display_ch_golden_regression.py` → `423 passed`
+  - `make test-meta` → `84 passed`
+  - `scripts/verify.sh` → `1239 passed, 473 deselected`
 - 下一步是按 reroute 规则固定下一个 capability cluster，再新开唯一 owner worktree。
 
 ### 当前轮次目标
 
 当前下一轮要回答：
 
-> 在 `F` 家族 multigroup decision-scene lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
+> 在 `C/H` 家族 interaction-summary lower bound 已经 absorb 完成的前提下，下一条最值得继续扩容的 manuscript-facing capability cluster 应该是什么，以及它是否值得为新的真实论文 demand 开启唯一 owner round。
 
 ### 当前 Next Baton
 
 当前 baton 已明确：
 
-1. 最新的 `F / shap_multigroup_decision_path_support_domain_panel` owner round 已经 absorb 完成。
-2. 当前 strict audited inventory 已稳定在 `75 / 7 / 5 / 87`。
+1. 最新的 `C/H / interaction_effect_summary_panel` owner round 已经 absorb 完成。
+2. 当前 strict audited inventory 已稳定在 `76 / 7 / 5 / 88`。
 3. 当前没有打开中的 owner worktree，下一轮要先 reroute，再开唯一 owner round。
 4. `F`、`D/E/G` 与 `C/H` 的 higher-order follow-on 继续留在候选池。
 

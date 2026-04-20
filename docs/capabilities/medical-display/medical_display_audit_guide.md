@@ -94,10 +94,10 @@ These are the first-priority cross-paper regression families because they have a
 Current implemented display inventory:
 
 - Evidence figure classes: `9`
-- Implemented evidence figure templates: `75`
+- Implemented evidence figure templates: `76`
 - Illustration shells: `7`
 - Table shells: `5`
-- Total implemented display templates: `87`
+- Total implemented display templates: `88`
 
 ### Evidence Classes
 
@@ -108,7 +108,7 @@ Current implemented display inventory:
 | Time-to-Event | 10 | `binary_prediction_curve_inputs_v1`, `risk_layering_monotonic_inputs_v1`, `time_dependent_roc_comparison_inputs_v1`, `time_to_event_landmark_performance_inputs_v1`, `time_to_event_multihorizon_calibration_inputs_v1`, `time_to_event_grouped_inputs_v1`, `time_to_event_stratified_cumulative_incidence_inputs_v1`, `time_to_event_discrimination_calibration_inputs_v1` | `publication_risk_layering_bars`, `publication_survival_curve`, `publication_evidence_curve`, `publication_landmark_performance_panel`, `publication_time_to_event_multihorizon_calibration_panel` |
 | Data Geometry | 13 | `embedding_grouped_inputs_v1`, `celltype_signature_heatmap_inputs_v1`, `single_cell_atlas_overview_inputs_v1`, `atlas_spatial_bridge_panel_inputs_v1`, `spatial_niche_map_inputs_v1`, `trajectory_progression_inputs_v1`, `atlas_spatial_trajectory_storyboard_inputs_v1`, `atlas_spatial_trajectory_density_coverage_panel_inputs_v1`, `atlas_spatial_trajectory_context_support_panel_inputs_v1`, `omics_volcano_panel_inputs_v1` | `publication_embedding_scatter`, `publication_celltype_signature_panel`, `publication_single_cell_atlas_overview_panel`, `publication_atlas_spatial_bridge_panel`, `publication_spatial_niche_map_panel`, `publication_trajectory_progression_panel`, `publication_atlas_spatial_trajectory_storyboard_panel`, `publication_atlas_spatial_trajectory_density_coverage_panel`, `publication_atlas_spatial_trajectory_context_support_panel`, `publication_omics_volcano_panel` |
 | Matrix Pattern | 13 | `heatmap_group_comparison_inputs_v1`, `performance_heatmap_inputs_v1`, `correlation_heatmap_inputs_v1`, `clustered_heatmap_inputs_v1`, `gsva_ssgsea_heatmap_inputs_v1`, `pathway_enrichment_dotplot_panel_inputs_v1`, `oncoplot_mutation_landscape_panel_inputs_v1`, `cnv_recurrence_summary_panel_inputs_v1`, `genomic_alteration_landscape_panel_inputs_v1`, `genomic_alteration_consequence_panel_inputs_v1`, `genomic_alteration_multiomic_consequence_panel_inputs_v1`, `genomic_alteration_pathway_integrated_composite_panel_inputs_v1`, `genomic_program_governance_summary_panel_inputs_v1` | `publication_heatmap`, `publication_pathway_enrichment_dotplot_panel`, `publication_oncoplot_mutation_landscape_panel`, `publication_cnv_recurrence_summary_panel`, `publication_genomic_alteration_landscape_panel`, `publication_genomic_alteration_consequence_panel`, `publication_genomic_alteration_multiomic_consequence_panel`, `publication_genomic_alteration_pathway_integrated_composite_panel`, `publication_genomic_program_governance_summary_panel` |
-| Effect Estimate | 6 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel` |
+| Effect Estimate | 7 | `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`, `interaction_effect_summary_panel_inputs_v1` | `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`, `publication_interaction_effect_summary_panel` |
 | Model Explanation | 18 | `shap_summary_inputs_v1`, `shap_bar_importance_inputs_v1`, `shap_signed_importance_panel_inputs_v1`, `shap_multicohort_importance_panel_inputs_v1`, `shap_dependence_panel_inputs_v1`, `shap_waterfall_local_explanation_panel_inputs_v1`, `shap_force_like_summary_panel_inputs_v1`, `shap_grouped_local_explanation_panel_inputs_v1`, `shap_grouped_decision_path_panel_inputs_v1`, `shap_multigroup_decision_path_panel_inputs_v1`, `shap_grouped_local_support_domain_panel_inputs_v1`, `shap_multigroup_decision_path_support_domain_panel_inputs_v1`, `partial_dependence_ice_panel_inputs_v1`, `partial_dependence_interaction_contour_panel_inputs_v1`, `partial_dependence_interaction_slice_panel_inputs_v1`, `partial_dependence_subgroup_comparison_panel_inputs_v1`, `accumulated_local_effects_panel_inputs_v1`, `feature_response_support_domain_panel_inputs_v1` | `publication_shap_summary`, `publication_shap_bar_importance`, `publication_shap_signed_importance_panel`, `publication_shap_multicohort_importance_panel`, `publication_shap_dependence_panel`, `publication_shap_waterfall_local_explanation_panel`, `publication_shap_force_like_summary_panel`, `publication_shap_grouped_local_explanation_panel`, `publication_shap_grouped_decision_path_panel`, `publication_shap_multigroup_decision_path_panel`, `publication_shap_grouped_local_support_domain_panel`, `publication_shap_multigroup_decision_path_support_domain_panel`, `publication_partial_dependence_ice_panel`, `publication_partial_dependence_interaction_contour_panel`, `publication_partial_dependence_interaction_slice_panel`, `publication_partial_dependence_subgroup_comparison_panel`, `publication_accumulated_local_effects_panel`, `publication_feature_response_support_domain_panel` |
 | Model Audit | 1 | `model_complexity_audit_panel_inputs_v1` | `publication_model_complexity_audit` |
 | Generalizability | 3 | `multicenter_generalizability_inputs_v1`, `generalizability_subgroup_composite_inputs_v1`, `center_transportability_governance_summary_panel_inputs_v1` | `publication_multicenter_overview`, `publication_generalizability_subgroup_composite_panel`, `publication_center_transportability_governance_summary_panel` |
@@ -262,16 +262,17 @@ Templates:
 - `compact_effect_estimate_panel`
 - `coefficient_path_panel`
 - `broader_heterogeneity_summary_panel`
+- `interaction_effect_summary_panel`
 
 Audit purpose:
 
-- Publication-facing interval estimate display for prespecified predictors, multivariable-model coefficients, subgroups, bounded compact multi-panel effect-estimate comparisons, coefficient-path stability summaries, and row-aligned broader heterogeneity verdict synthesis under shared slice-order, row-order, and reference-line governance.
+- Publication-facing interval estimate display for prespecified predictors, multivariable-model coefficients, subgroups, bounded compact multi-panel effect-estimate comparisons, coefficient-path stability summaries, row-aligned broader heterogeneity verdict synthesis, and modifier-level interaction verdict summaries under shared row-order and reference-line governance.
 
 Authoritative contract:
 
-- Input schemas: `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`
+- Input schemas: `forest_effect_inputs_v1`, `compact_effect_estimate_panel_inputs_v1`, `coefficient_path_panel_inputs_v1`, `broader_heterogeneity_summary_panel_inputs_v1`, `interaction_effect_summary_panel_inputs_v1`
 - Renderer families: `r_ggplot2`, `python`
-- QC: `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`
+- QC: `publication_forest_plot`, `publication_compact_effect_estimate_panel`, `publication_coefficient_path_panel`, `publication_broader_heterogeneity_summary_panel`, `publication_interaction_effect_summary_panel`
 
 ### 7. Model Explanation
 

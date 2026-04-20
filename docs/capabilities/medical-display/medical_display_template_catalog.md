@@ -105,6 +105,7 @@ The current audited inventory is broader than the subset already proven against 
 | `fenggaolab.org.medical-display-core::compact_effect_estimate_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Compact Effect Estimate Panel | `python` | `compact_effect_estimate_panel_inputs_v1` | `publication_compact_effect_estimate_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::coefficient_path_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Coefficient Path Panel | `python` | `coefficient_path_panel_inputs_v1` | `publication_coefficient_path_panel` | `png`, `pdf` |
 | `fenggaolab.org.medical-display-core::broader_heterogeneity_summary_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Broader Heterogeneity Summary Panel | `python` | `broader_heterogeneity_summary_panel_inputs_v1` | `publication_broader_heterogeneity_summary_panel` | `png`, `pdf` |
+| `fenggaolab.org.medical-display-core::interaction_effect_summary_panel` | `evidence_figure` | `C. Effect Size and Heterogeneity`, `H. Cohort and Study Design Evidence` | Interaction Effect Summary Panel | `python` | `interaction_effect_summary_panel_inputs_v1` | `publication_interaction_effect_summary_panel` | `png`, `pdf` |
 
 ### Model Explanation
 
@@ -764,6 +765,21 @@ The current audited inventory is broader than the subset already proven against 
 - Required nested collection fields: `effect_rows.slice_estimates` -> `slice_id`, `estimate`, `lower`, `upper`
 - Optional nested collection fields: `effect_rows.slice_estimates` -> `support_n`
 - Additional constraints: `slices_must_be_non_empty`, `slice_count_must_be_between_two_and_five`, `slice_ids_must_be_unique`, `slice_labels_must_be_unique`, `slice_orders_must_be_strictly_increasing`, `slice_kinds_must_be_supported`, `reference_value_must_be_finite`, `effect_rows_must_be_non_empty`, `effect_row_ids_must_be_unique`, `effect_row_labels_must_be_unique`, `effect_row_verdicts_must_be_supported`, `effect_row_slice_estimates_must_be_non_empty`, `effect_row_slice_estimates_must_cover_declared_slices_exactly_once`, `effect_row_values_must_be_finite`, `effect_row_intervals_must_wrap_estimate`, `effect_row_support_n_must_be_positive_when_present`, `effect_row_detail_must_be_non_empty_when_present`
+
+### `interaction_effect_summary_panel_inputs_v1`
+
+- Display kind: `evidence_figure`
+- Display name: Interaction Effect Summary Panel
+- Templates: `fenggaolab.org.medical-display-core::interaction_effect_summary_panel`
+- Required top-level fields: `schema_version`, `input_schema_id`, `displays`
+- Optional top-level fields: None
+- Required display fields: `display_id`, `template_id`, `title`, `caption`, `estimate_panel_title`, `x_label`, `reference_value`, `summary_panel_title`, `modifiers`
+- Optional display fields: `paper_role`
+- Required collection fields: `modifiers` -> `modifier_id`, `modifier_label`, `interaction_estimate`, `lower`, `upper`, `support_n`, `favored_group_label`, `interaction_p_value`, `verdict`
+- Optional collection fields: None
+- Required nested collection fields: None
+- Optional nested collection fields: None
+- Additional constraints: `modifiers_must_be_non_empty`, `modifier_count_must_be_between_two_and_six`, `modifier_ids_must_be_unique`, `modifier_labels_must_be_unique`, `reference_value_must_be_finite`, `interaction_estimates_must_be_finite`, `interaction_intervals_must_wrap_estimate`, `modifier_support_n_must_be_positive`, `interaction_p_values_must_be_between_zero_and_one`, `favored_group_labels_must_be_non_empty`, `modifier_verdicts_must_use_controlled_vocabulary`
 
 ### `shap_summary_inputs_v1`
 

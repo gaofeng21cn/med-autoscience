@@ -10496,6 +10496,165 @@ def test_run_display_layout_qc_fails_when_broader_heterogeneity_verdict_leaves_s
     assert any(issue["rule_id"] == "verdict_box_outside_summary_panel" for issue in result["issues"])
 
 
+def test_run_display_layout_qc_passes_for_interaction_effect_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_interaction_effect_summary_panel",
+        layout_sidecar={
+            "template_id": "interaction_effect_summary_panel",
+            "render_context": {"layout_override": {"show_figure_title": False}},
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.18, y0=0.86, x1=0.43, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.91, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.18, y0=0.77, x1=0.20, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.31, y0=0.11, x1=0.49, y1=0.14),
+                make_box("modifier_label_age", "row_label", x0=0.05, y0=0.61, x1=0.17, y1=0.65),
+                make_box("modifier_label_female", "row_label", x0=0.08, y0=0.46, x1=0.17, y1=0.50),
+                make_box("estimate_age", "estimate_marker", x0=0.37, y0=0.61, x1=0.38, y1=0.65),
+                make_box("estimate_female", "estimate_marker", x0=0.44, y0=0.46, x1=0.45, y1=0.50),
+                make_box("ci_age", "ci_segment", x0=0.31, y0=0.625, x1=0.43, y1=0.635),
+                make_box("ci_female", "ci_segment", x0=0.38, y0=0.475, x1=0.50, y1=0.485),
+                make_box("verdict_age", "verdict_value", x0=0.76, y0=0.62, x1=0.87, y1=0.66),
+                make_box("detail_age", "verdict_detail", x0=0.76, y0=0.57, x1=0.92, y1=0.61),
+                make_box("verdict_female", "verdict_value", x0=0.76, y0=0.47, x1=0.89, y1=0.51),
+                make_box("detail_female", "verdict_detail", x0=0.76, y0=0.42, x1=0.93, y1=0.46),
+            ],
+            "panel_boxes": [
+                make_box("estimate_panel", "panel", x0=0.18, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 0.0,
+                "estimate_panel": {
+                    "panel_box_id": "estimate_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "modifiers": [
+                    {
+                        "modifier_id": "age_ge_65",
+                        "modifier_label": "Age ≥65 years",
+                        "interaction_estimate": 0.18,
+                        "lower": 0.05,
+                        "upper": 0.31,
+                        "support_n": 184,
+                        "favored_group_label": "Stronger in age ≥65 years",
+                        "interaction_p_value": 0.014,
+                        "verdict": "credible",
+                        "detail": "Stronger in age ≥65 years; Pinteraction=0.014",
+                        "label_box_id": "modifier_label_age",
+                        "marker_box_id": "estimate_age",
+                        "interval_box_id": "ci_age",
+                        "verdict_box_id": "verdict_age",
+                        "detail_box_id": "detail_age",
+                    },
+                    {
+                        "modifier_id": "female",
+                        "modifier_label": "Female",
+                        "interaction_estimate": 0.09,
+                        "lower": -0.02,
+                        "upper": 0.20,
+                        "support_n": 201,
+                        "favored_group_label": "More pronounced in female patients",
+                        "interaction_p_value": 0.081,
+                        "verdict": "suggestive",
+                        "detail": "More pronounced in female patients; Pinteraction=0.081",
+                        "label_box_id": "modifier_label_female",
+                        "marker_box_id": "estimate_female",
+                        "interval_box_id": "ci_female",
+                        "verdict_box_id": "verdict_female",
+                        "detail_box_id": "detail_female",
+                    },
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "pass", result
+    assert result["issues"] == []
+
+
+def test_run_display_layout_qc_fails_when_interaction_verdict_leaves_summary_panel() -> None:
+    module = importlib.import_module("med_autoscience.display_layout_qc")
+
+    result = module.run_display_layout_qc(
+        qc_profile="publication_interaction_effect_summary_panel",
+        layout_sidecar={
+            "template_id": "interaction_effect_summary_panel",
+            "device": make_device(),
+            "layout_boxes": [
+                make_box("panel_title_A", "panel_title", x0=0.18, y0=0.86, x1=0.43, y1=0.89),
+                make_box("panel_title_B", "panel_title", x0=0.73, y0=0.86, x1=0.91, y1=0.89),
+                make_box("panel_label_A", "panel_label", x0=0.18, y0=0.77, x1=0.20, y1=0.80),
+                make_box("panel_label_B", "panel_label", x0=0.73, y0=0.77, x1=0.75, y1=0.80),
+                make_box("x_axis_title_A", "subplot_x_axis_title", x0=0.31, y0=0.11, x1=0.49, y1=0.14),
+                make_box("modifier_label_age", "row_label", x0=0.05, y0=0.61, x1=0.17, y1=0.65),
+                make_box("estimate_age", "estimate_marker", x0=0.37, y0=0.61, x1=0.38, y1=0.65),
+                make_box("ci_age", "ci_segment", x0=0.31, y0=0.625, x1=0.43, y1=0.635),
+                make_box("verdict_age", "verdict_value", x0=0.95, y0=0.62, x1=0.99, y1=0.66),
+                make_box("detail_age", "verdict_detail", x0=0.76, y0=0.57, x1=0.92, y1=0.61),
+            ],
+            "panel_boxes": [
+                make_box("estimate_panel", "panel", x0=0.18, y0=0.22, x1=0.66, y1=0.80),
+                make_box("summary_panel", "panel", x0=0.73, y0=0.22, x1=0.94, y1=0.80),
+            ],
+            "guide_boxes": [
+                make_box("reference_line", "reference_line", x0=0.34, y0=0.22, x1=0.35, y1=0.80),
+            ],
+            "metrics": {
+                "reference_value": 0.0,
+                "estimate_panel": {
+                    "panel_box_id": "estimate_panel",
+                    "panel_label_box_id": "panel_label_A",
+                    "panel_title_box_id": "panel_title_A",
+                    "x_axis_title_box_id": "x_axis_title_A",
+                    "reference_line_box_id": "reference_line",
+                },
+                "summary_panel": {
+                    "panel_box_id": "summary_panel",
+                    "panel_label_box_id": "panel_label_B",
+                    "panel_title_box_id": "panel_title_B",
+                },
+                "modifiers": [
+                    {
+                        "modifier_id": "age_ge_65",
+                        "modifier_label": "Age ≥65 years",
+                        "interaction_estimate": 0.18,
+                        "lower": 0.05,
+                        "upper": 0.31,
+                        "support_n": 184,
+                        "favored_group_label": "Stronger in age ≥65 years",
+                        "interaction_p_value": 0.014,
+                        "verdict": "credible",
+                        "detail": "Stronger in age ≥65 years; Pinteraction=0.014",
+                        "label_box_id": "modifier_label_age",
+                        "marker_box_id": "estimate_age",
+                        "interval_box_id": "ci_age",
+                        "verdict_box_id": "verdict_age",
+                        "detail_box_id": "detail_age",
+                    }
+                ],
+            },
+        },
+    )
+
+    assert result["status"] == "fail"
+    assert any(issue["rule_id"] == "interaction_verdict_outside_summary_panel" for issue in result["issues"])
+
+
 def test_run_display_layout_qc_fails_when_generalizability_overview_marker_leaves_panel() -> None:
     module = importlib.import_module("med_autoscience.display_layout_qc")
 
