@@ -24,7 +24,17 @@ _CHARTER_CONTEXT_REF_ALLOWED_FIELDS = frozenset({"ref", "charter_id", "publicati
 _VERDICT_ALLOWED_FIELDS = frozenset({"overall_verdict", "primary_claim_status", "summary", "stop_loss_pressure"})
 _GAP_ALLOWED_FIELDS = frozenset({"gap_id", "gap_type", "severity", "summary", "evidence_refs"})
 _RECOMMENDED_ACTION_ALLOWED_FIELDS = frozenset(
-    {"action_id", "action_type", "priority", "reason", "evidence_refs", "requires_controller_decision"}
+    {
+        "action_id",
+        "action_type",
+        "priority",
+        "reason",
+        "route_target",
+        "route_key_question",
+        "route_rationale",
+        "evidence_refs",
+        "requires_controller_decision",
+    }
 )
 _ALLOWED_OVERALL_VERDICTS = frozenset({"promising", "mixed", "weak", "blocked"})
 _ALLOWED_PRIMARY_CLAIM_STATUSES = frozenset({"supported", "partial", "unsupported", "blocked"})
@@ -41,6 +51,21 @@ _ALLOWED_ACTION_TYPES = frozenset(
     }
 )
 _ALLOWED_ACTION_PRIORITIES = frozenset({"now", "next"})
+_ROUTE_CONTRACT_ACTION_TYPES = frozenset({"continue_same_line", "route_back_same_line", "bounded_analysis"})
+_ALLOWED_ROUTE_TARGETS = frozenset(
+    {
+        "intake-audit",
+        "scout",
+        "baseline",
+        "idea",
+        "decision",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "finalize",
+    }
+)
 _REQUIRED_RUNTIME_CONTEXT_REF_KEYS = frozenset({"runtime_escalation_ref", "main_result_ref"})
 _REQUIRED_DELIVERY_CONTEXT_REF_KEYS = frozenset({"paper_root_ref", "submission_minimal_ref"})
 
@@ -69,6 +94,12 @@ def _require_choice(label: str, field_name: str, value: Any, allowed_values: fro
         allowed = ", ".join(sorted(allowed_values))
         raise ValueError(f"{label} {field_name} must be one of: {allowed}")
     return normalized
+
+
+def _optional_text(label: str, field_name: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    return _require_text(label, field_name, value)
 
 
 def _payload_mapping(payload: dict[str, Any], field_name: str, label: str) -> dict[str, Any]:
@@ -328,6 +359,9 @@ class PublicationEvalRecommendedAction:
     priority: str
     reason: str
     evidence_refs: tuple[str, ...]
+    route_target: str | None = None
+    route_key_question: str | None = None
+    route_rationale: str | None = None
     requires_controller_decision: bool = True
 
     def __post_init__(self) -> None:
@@ -355,19 +389,59 @@ class PublicationEvalRecommendedAction:
         object.__setattr__(self, "reason", _require_text("publication eval recommended action", "reason", self.reason))
         object.__setattr__(
             self,
+            "route_target",
+            _optional_text("publication eval recommended action", "route_target", self.route_target),
+        )
+        object.__setattr__(
+            self,
+            "route_key_question",
+            _optional_text("publication eval recommended action", "route_key_question", self.route_key_question),
+        )
+        object.__setattr__(
+            self,
+            "route_rationale",
+            _optional_text("publication eval recommended action", "route_rationale", self.route_rationale),
+        )
+        object.__setattr__(
+            self,
             "evidence_refs",
             tuple(
                 _require_ref_text("publication eval recommended action", "evidence_ref", item)
                 for item in self.evidence_refs
             ),
         )
+        has_route_contract = any(
+            value is not None
+            for value in (
+                self.route_target,
+                self.route_key_question,
+                self.route_rationale,
+            )
+        )
+        if self.action_type in _ROUTE_CONTRACT_ACTION_TYPES:
+            object.__setattr__(
+                self,
+                "route_target",
+                _require_choice(
+                    "publication eval recommended action",
+                    "route_target",
+                    self.route_target,
+                    _ALLOWED_ROUTE_TARGETS,
+                ),
+            )
+            if self.route_key_question is None:
+                raise ValueError("publication eval recommended action route_key_question must be non-empty")
+            if self.route_rationale is None:
+                raise ValueError("publication eval recommended action route_rationale must be non-empty")
+        elif has_route_contract:
+            raise ValueError("publication eval recommended action route_target is only allowed for same-line actions")
         if not self.evidence_refs:
             raise ValueError("publication eval recommended action evidence_refs must not be empty")
         if self.requires_controller_decision is not True:
             raise ValueError("publication eval recommended action requires_controller_decision must be true")
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "action_id": self.action_id,
             "action_type": self.action_type,
             "priority": self.priority,
@@ -375,6 +449,11 @@ class PublicationEvalRecommendedAction:
             "evidence_refs": list(self.evidence_refs),
             "requires_controller_decision": True,
         }
+        if self.route_target is not None:
+            payload["route_target"] = self.route_target
+            payload["route_key_question"] = self.route_key_question
+            payload["route_rationale"] = self.route_rationale
+        return payload
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "PublicationEvalRecommendedAction":
@@ -390,6 +469,21 @@ class PublicationEvalRecommendedAction:
             action_type=_payload_text(payload, "action_type", "publication eval recommended action"),
             priority=_payload_text(payload, "priority", "publication eval recommended action"),
             reason=_payload_text(payload, "reason", "publication eval recommended action"),
+            route_target=_optional_text(
+                "publication eval recommended action",
+                "route_target",
+                payload.get("route_target"),
+            ),
+            route_key_question=_optional_text(
+                "publication eval recommended action",
+                "route_key_question",
+                payload.get("route_key_question"),
+            ),
+            route_rationale=_optional_text(
+                "publication eval recommended action",
+                "route_rationale",
+                payload.get("route_rationale"),
+            ),
             evidence_refs=tuple(
                 _require_ref_text("publication eval recommended action", "evidence_ref", item)
                 for item in _require_text_sequence(

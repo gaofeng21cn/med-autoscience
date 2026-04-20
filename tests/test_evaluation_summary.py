@@ -116,6 +116,9 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
                 "action_type": "bounded_analysis",
                 "priority": "next",
                 "reason": "Prepare the missing endpoint provenance note before the next gate pass.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+                "route_rationale": "The study direction remains valid; only a bounded analysis-campaign repair is needed.",
                 "evidence_refs": [
                     str(gate_report_path),
                 ],
@@ -296,6 +299,14 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
             "total": 2,
         },
         "recommended_action_types": ["return_to_controller", "bounded_analysis"],
+        "route_repair_plan": {
+            "action_id": "action-002",
+            "action_type": "bounded_analysis",
+            "priority": "next",
+            "route_target": "analysis-campaign",
+            "route_key_question": "What is the narrowest supplementary analysis needed to restore endpoint provenance support?",
+            "route_rationale": "The study direction remains valid; only a bounded analysis-campaign repair is needed.",
+        },
         "requires_controller_decision": True,
         "promotion_gate_status": {
             "status": "blocked",
@@ -358,3 +369,54 @@ def test_read_evaluation_summary_rejects_non_object_payload(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="JSON object"):
         module.read_evaluation_summary(study_root=study_root)
+
+
+def test_materialize_evaluation_summary_artifacts_prefers_now_priority_route_repair_plan(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    inputs = _stable_inputs(tmp_path)
+    study_root = inputs["study_root"]
+    publication_eval_path = inputs["publication_eval_path"]
+    gate_report_path = inputs["gate_report_path"]
+    publication_eval_payload = dict(inputs["publication_eval_payload"])
+    publication_eval_payload["recommended_actions"] = [
+        {
+            "action_id": "action-010",
+            "action_type": "bounded_analysis",
+            "priority": "next",
+            "reason": "Prepare sensitivity analysis after the main repair.",
+            "route_target": "analysis-campaign",
+            "route_key_question": "What bounded robustness check should run after the main repair?",
+            "route_rationale": "This remains a next-step bounded analysis.",
+            "evidence_refs": [str(gate_report_path)],
+            "requires_controller_decision": True,
+        },
+        {
+            "action_id": "action-011",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "reason": "Repair the manuscript claim-evidence surface first.",
+            "route_target": "write",
+            "route_key_question": "What is the narrowest paper-writing repair needed before any follow-up analysis?",
+            "route_rationale": "The current blocker sits on the write surface, so same-line repair should start there.",
+            "evidence_refs": [str(inputs["runtime_escalation_path"])],
+            "requires_controller_decision": True,
+        },
+    ]
+    _write_json(publication_eval_path, publication_eval_payload)
+
+    module.materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=str(inputs["runtime_escalation_path"]),
+        publishability_gate_report_ref=gate_report_path,
+    )
+
+    evaluation_summary_payload = module.read_evaluation_summary(study_root=study_root)
+
+    assert evaluation_summary_payload["route_repair_plan"] == {
+        "action_id": "action-011",
+        "action_type": "route_back_same_line",
+        "priority": "now",
+        "route_target": "write",
+        "route_key_question": "What is the narrowest paper-writing repair needed before any follow-up analysis?",
+        "route_rationale": "The current blocker sits on the write surface, so same-line repair should start there.",
+    }

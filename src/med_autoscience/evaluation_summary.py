@@ -23,6 +23,7 @@ __all__ = [
 STABLE_EVALUATION_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evaluation_summary/latest.json")
 STABLE_PROMOTION_GATE_RELATIVE_PATH = Path("artifacts/eval_hygiene/promotion_gate/latest.json")
 _GAP_SEVERITIES = ("must_fix", "important", "optional")
+_ROUTE_REPAIR_ACTION_TYPES = {"continue_same_line", "route_back_same_line", "bounded_analysis"}
 
 
 def stable_evaluation_summary_path(*, study_root: Path) -> Path:
@@ -240,6 +241,38 @@ def _recommended_action_types(actions: list[dict[str, Any]]) -> list[str]:
     return ordered
 
 
+def _route_repair_plan(actions: list[dict[str, Any]]) -> dict[str, str] | None:
+    prioritized_actions = sorted(
+        enumerate(actions),
+        key=lambda item: (0 if item[1].get("priority") == "now" else 1, item[0]),
+    )
+    for _, action in prioritized_actions:
+        action_type = _required_text("publication eval recommended action", "action_type", action.get("action_type"))
+        if action_type not in _ROUTE_REPAIR_ACTION_TYPES:
+            continue
+        return {
+            "action_id": _required_text("publication eval recommended action", "action_id", action.get("action_id")),
+            "action_type": action_type,
+            "priority": _required_text("publication eval recommended action", "priority", action.get("priority")),
+            "route_target": _required_text(
+                "publication eval recommended action",
+                "route_target",
+                action.get("route_target"),
+            ),
+            "route_key_question": _required_text(
+                "publication eval recommended action",
+                "route_key_question",
+                action.get("route_key_question"),
+            ),
+            "route_rationale": _required_text(
+                "publication eval recommended action",
+                "route_rationale",
+                action.get("route_rationale"),
+            ),
+        }
+    return None
+
+
 def _build_evaluation_summary_payload(
     *,
     study_root: Path,
@@ -309,6 +342,7 @@ def _build_evaluation_summary_payload(
         "publication_objective": publication_objective,
         "gap_counts": _gap_counts(gaps),
         "recommended_action_types": _recommended_action_types(actions),
+        "route_repair_plan": _route_repair_plan(actions),
         "requires_controller_decision": any(bool(action.get("requires_controller_decision")) for action in actions),
         "promotion_gate_status": {
             "status": promotion_gate_payload["status"],
@@ -440,6 +474,11 @@ def _normalized_evaluation_summary(payload: dict[str, Any]) -> dict[str, Any]:
             "evaluation summary",
             "recommended_action_types",
             payload.get("recommended_action_types"),
+        ),
+        "route_repair_plan": (
+            None
+            if payload.get("route_repair_plan") is None
+            else _required_mapping("evaluation summary", "route_repair_plan", payload.get("route_repair_plan"))
         ),
         "requires_controller_decision": _required_bool(
             "evaluation summary",

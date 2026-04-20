@@ -163,11 +163,47 @@ def test_publication_eval_record_allows_route_back_same_line_recommended_action(
     payload["recommended_actions"][0]["reason"] = (
         "Route back to the same core study line to repair ordinary publication quality gaps."
     )
+    payload["recommended_actions"][0]["route_target"] = "write"
+    payload["recommended_actions"][0]["route_key_question"] = "What is the narrowest manuscript repair needed to keep the current paper line honest?"
+    payload["recommended_actions"][0]["route_rationale"] = (
+        "The main claim line stays fixed; the next honest move is to repair the current paper-writing route."
+    )
 
     record = module.PublicationEvalRecord.from_payload(payload)
 
     assert record.recommended_actions[0].action_type == "route_back_same_line"
+    assert record.recommended_actions[0].route_target == "write"
+    assert (
+        record.recommended_actions[0].route_key_question
+        == "What is the narrowest manuscript repair needed to keep the current paper line honest?"
+    )
     assert record.to_dict()["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert record.to_dict()["recommended_actions"][0]["route_target"] == "write"
+
+
+@pytest.mark.parametrize("action_type", ["continue_same_line", "route_back_same_line", "bounded_analysis"])
+def test_publication_eval_record_requires_route_contract_for_same_line_actions(action_type: str) -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["recommended_actions"][0]["action_type"] = action_type
+    payload["recommended_actions"][0]["reason"] = "Same-line actions must say where they route and why."
+
+    with pytest.raises(ValueError, match="publication eval recommended action route_target must be non-empty"):
+        module.PublicationEvalRecord.from_payload(payload)
+
+
+def test_publication_eval_record_rejects_route_contract_on_controller_return_action() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["recommended_actions"][0]["route_target"] = "write"
+    payload["recommended_actions"][0]["route_key_question"] = "Should we keep writing?"
+    payload["recommended_actions"][0]["route_rationale"] = "Extra route data is not allowed on controller-return actions."
+
+    with pytest.raises(
+        ValueError,
+        match="publication eval recommended action route_target is only allowed for same-line actions",
+    ):
+        module.PublicationEvalRecord.from_payload(payload)
 
 
 def test_publication_eval_record_rejects_promotion_in_overall_verdict() -> None:
