@@ -6,6 +6,7 @@ route_contracts:
   scout:
     route_id: scout
     display_name: Scout
+    key_question: Is this direction worth entering the current study line?
     goal: Freeze a question-worthy study direction, evidence target, and immediate
       route recommendation.
     enter_conditions:
@@ -35,6 +36,7 @@ route_contracts:
   idea:
     route_id: idea
     display_name: Idea
+    key_question: Which study line is strongest enough to justify the next route?
     goal: Choose the strongest study line and freeze why it deserves managed execution.
     enter_conditions:
     - scout output or equivalent direction framing exists
@@ -62,6 +64,7 @@ route_contracts:
   baseline:
     route_id: baseline
     display_name: Baseline
+    key_question: Does the current claim have reproducible baseline support?
     goal: Establish the baseline, comparator, and readiness proof for the active study
       line.
     enter_conditions:
@@ -90,6 +93,7 @@ route_contracts:
   experiment:
     route_id: experiment
     display_name: Experiment
+    key_question: Does the primary result answer the current study question?
     goal: Run a primary managed experiment when the study line needs fresh main-result
       execution.
     enter_conditions:
@@ -118,6 +122,7 @@ route_contracts:
   analysis-campaign:
     route_id: analysis-campaign
     display_name: Analysis Campaign
+    key_question: Have the bounded evidence gaps been closed?
     goal: Close the bounded evidence gaps that still block claim acceptance or reviewer
       pressure.
     enter_conditions:
@@ -147,6 +152,7 @@ route_contracts:
   write:
     route_id: write
     display_name: Write
+    key_question: Does the manuscript narrative faithfully carry the current evidence?
     goal: Convert the current evidence line into a manuscript-facing narrative that
       can withstand review.
     enter_conditions:
@@ -175,6 +181,7 @@ route_contracts:
   finalize:
     route_id: finalize
     display_name: Finalize
+    key_question: Is the submission package ready for final audit?
     goal: Assemble the submission-facing package and verify that the line is ready
       for final judgment.
     enter_conditions:
@@ -202,6 +209,8 @@ route_contracts:
   decision:
     route_id: decision
     display_name: Decision
+    key_question: Should the current study line continue, route back, stop, or enter
+      a human gate?
     goal: Record the official go, stop, reroute, or human-gate judgment for the active
       study line.
     enter_conditions:
@@ -232,6 +241,8 @@ route_contracts:
   journal-resolution:
     route_id: journal-resolution
     display_name: Journal Resolution
+    key_question: Which outlet or packaging path best preserves the current claim
+      boundary?
     goal: Resolve journal-facing packaging choices before final delivery or submission
       prep.
     enter_conditions:

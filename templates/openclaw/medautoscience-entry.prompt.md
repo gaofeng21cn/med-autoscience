@@ -54,6 +54,7 @@ Runtime modes: lightweight, managed
 
 ## Route Contracts
 - scout: Scout
+  key_question: Is this direction worth entering the current study line?
   goal: Freeze a question-worthy study direction, evidence target, and immediate route recommendation.
   enter_conditions: workspace/profile available | study question or dataset context is readable | current line still needs direction framing or evidence scoping
   hard_success_gate: question framing names the study target, population, and evidence boundary | route recommendation names the next formal route with reasons | blockers and assumptions are explicit enough for controller review
@@ -62,6 +63,7 @@ Runtime modes: lightweight, managed
   next_routes: baseline | write | decision
   route_back_triggers: evidence target stays ambiguous after scouting | study question changes materially during later routes | downstream review surfaces missing direction rationale
 - idea: Idea
+  key_question: Which study line is strongest enough to justify the next route?
   goal: Choose the strongest study line and freeze why it deserves managed execution.
   enter_conditions: scout output or equivalent direction framing exists | candidate study directions can be compared on the same problem boundary | active route still needs a chosen line before baseline work
   hard_success_gate: one primary line is selected with explicit tradeoffs | execution recommendation names whether to proceed to baseline or return to decision | chosen line matches the active study charter scope
@@ -70,6 +72,7 @@ Runtime modes: lightweight, managed
   next_routes: baseline | decision
   route_back_triggers: baseline readiness is still missing | chosen line conflicts with later evidence review | controller requests a different route bias
 - baseline: Baseline
+  key_question: Does the current claim have reproducible baseline support?
   goal: Establish the baseline, comparator, and readiness proof for the active study line.
   enter_conditions: chosen study line exists | data source, cohort boundary, or reference baseline is available | startup boundary can justify managed baseline work
   hard_success_gate: baseline or comparator setup is reproducible and scoped to the active claim | baseline readout reveals whether the line is strong enough to continue | unresolved blockers are small enough for analysis-campaign or decision
@@ -78,6 +81,7 @@ Runtime modes: lightweight, managed
   next_routes: analysis-campaign | write | decision
   route_back_triggers: baseline result cannot support the active claim | comparator or cohort definition changes materially | reviewer-first scan finds missing baseline proof
 - experiment: Experiment
+  key_question: Does the primary result answer the current study question?
   goal: Run a primary managed experiment when the study line needs fresh main-result execution.
   enter_conditions: startup boundary allows compute-stage work | baseline or equivalent readiness proof exists | study line has a concrete experiment target and stop condition
   hard_success_gate: primary experiment result is recorded with reproducible run context | result answers the intended study question for the current line | next step is clear between analysis-campaign, write, and decision
@@ -86,6 +90,7 @@ Runtime modes: lightweight, managed
   next_routes: analysis-campaign | write | decision
   route_back_triggers: run outcome invalidates the current study line | result quality or reproducibility gaps block downstream review | controller boundary changes before interpretation stabilizes
 - analysis-campaign: Analysis Campaign
+  key_question: Have the bounded evidence gaps been closed?
   goal: Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.
   enter_conditions: baseline or primary result artifact exists | bounded analysis question is explicit | study charter still allows the requested follow-up analyses
   hard_success_gate: each targeted gap has a resolved outcome or explicit stop decision | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
@@ -94,6 +99,7 @@ Runtime modes: lightweight, managed
   next_routes: write | finalize | decision
   route_back_triggers: new gaps expand beyond bounded analysis scope | claim support weakens after follow-up analysis | reviewer-first scan requests a different baseline or study line
 - write: Write
+  key_question: Does the manuscript narrative faithfully carry the current evidence?
   goal: Convert the current evidence line into a manuscript-facing narrative that can withstand review.
   enter_conditions: active claim and supporting evidence package are readable | required route artifacts are linked or referenced | reviewer-first pressure can be applied against the current draft
   hard_success_gate: manuscript line states claims that match cited evidence | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons
@@ -102,6 +108,7 @@ Runtime modes: lightweight, managed
   next_routes: finalize | decision
   route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | manuscript narrative changes the claim boundary
 - finalize: Finalize
+  key_question: Is the submission package ready for final audit?
   goal: Assemble the submission-facing package and verify that the line is ready for final judgment.
   enter_conditions: manuscript-facing draft exists | claim-evidence mapping is current | remaining risks are reviewable as a bounded package
   hard_success_gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back
@@ -110,6 +117,7 @@ Runtime modes: lightweight, managed
   next_routes: decision | write
   route_back_triggers: final audit finds missing proof or inconsistent claims | submission bundle surfaces unresolved reviewer-level concerns | package assembly changes the meaning of any active claim
 - decision: Decision
+  key_question: Should the current study line continue, route back, stop, or enter a human gate?
   goal: Record the official go, stop, reroute, or human-gate judgment for the active study line.
   enter_conditions: route recommendation or blocking condition is explicit | current evidence package and risks are reviewable | controller-owned judgment point has been reached
   hard_success_gate: decision names the chosen route or terminal judgment | rationale cites the current evidence and unresolved risks | downstream owner and next action are unambiguous
@@ -118,6 +126,7 @@ Runtime modes: lightweight, managed
   next_routes: scout | baseline | analysis-campaign | write | finalize
   route_back_triggers: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record
 - journal-resolution: Journal Resolution
+  key_question: Which outlet or packaging path best preserves the current claim boundary?
   goal: Resolve journal-facing packaging choices before final delivery or submission prep.
   enter_conditions: writing line exists | target journal list or delivery target is known | packaging choices affect the current manuscript bundle
   hard_success_gate: target outlet or packaging rule is chosen with reasons | manuscript bundle requirements are reflected in the active draft plan | remaining journal-facing gaps are explicit

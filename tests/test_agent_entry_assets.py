@@ -16,6 +16,18 @@ from med_autoscience.agent_entry.renderers import (
     sync_agent_entry_assets,
 )
 
+EXPECTED_ROUTE_KEY_QUESTIONS = {
+    "scout": "Is this direction worth entering the current study line?",
+    "idea": "Which study line is strongest enough to justify the next route?",
+    "baseline": "Does the current claim have reproducible baseline support?",
+    "experiment": "Does the primary result answer the current study question?",
+    "analysis-campaign": "Have the bounded evidence gaps been closed?",
+    "write": "Does the manuscript narrative faithfully carry the current evidence?",
+    "finalize": "Is the submission package ready for final audit?",
+    "decision": "Should the current study line continue, route back, stop, or enter a human gate?",
+    "journal-resolution": "Which outlet or packaging path best preserves the current claim boundary?",
+}
+
 
 def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
     result = sync_agent_entry_assets(repo_root=tmp_path)
@@ -66,6 +78,30 @@ def test_load_entry_modes_payload_requires_route_human_gate_boundary(tmp_path: P
         load_entry_modes_payload(yaml_path)
 
 
+def test_load_entry_modes_payload_requires_route_key_question(tmp_path: Path) -> None:
+    payload = render_entry_modes_payload()
+    route_contracts = payload["route_contracts"]
+    assert isinstance(route_contracts, dict)
+    route_contracts["scout"].pop("key_question", None)
+    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"route_contracts\[scout\] missing required field: key_question"):
+        load_entry_modes_payload(yaml_path)
+
+
+def test_load_entry_modes_payload_rejects_empty_route_key_question(tmp_path: Path) -> None:
+    payload = render_entry_modes_payload()
+    route_contracts = payload["route_contracts"]
+    assert isinstance(route_contracts, dict)
+    route_contracts["scout"]["key_question"] = ""
+    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"route_contracts\[scout\] key_question must be a non-empty string"):
+        load_entry_modes_payload(yaml_path)
+
+
 def test_canonical_payload_includes_global_route_and_evidence_review_contracts() -> None:
     payload = render_entry_modes_payload()
 
@@ -79,11 +115,13 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
         "finalize",
         "decision",
     }
+    assert set(route_contracts) == set(EXPECTED_ROUTE_KEY_QUESTIONS)
 
-    for route_id in ("scout", "baseline", "analysis-campaign", "write", "finalize", "decision"):
+    for route_id, expected_key_question in EXPECTED_ROUTE_KEY_QUESTIONS.items():
         route_payload = route_contracts.get(route_id)
         assert isinstance(route_payload, dict)
         assert route_payload.get("route_id") == route_id
+        assert route_payload.get("key_question") == expected_key_question
         for field in (
             "goal",
             "enter_conditions",
@@ -147,6 +185,7 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
     for route_id, route_payload in route_contracts.items():
         assert isinstance(route_payload, dict)
         route_block = _extract_route_block(guide, route_id)
+        assert _extract_scalar_value(route_block, "key_question") == route_payload["key_question"]
         assert _extract_scalar_value(route_block, "goal") == route_payload["goal"]
         assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
         assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]
@@ -206,6 +245,7 @@ def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_p
     for route_id, route_payload in route_contracts.items():
         assert isinstance(route_payload, dict)
         route_block = _extract_prompt_route_block(prompt, route_id)
+        assert _extract_scalar_value(route_block, "key_question") == route_payload["key_question"]
         assert _extract_scalar_value(route_block, "goal") == route_payload["goal"]
         assert _extract_contract_list(route_block, "enter_conditions") == route_payload["enter_conditions"]
         assert _extract_contract_list(route_block, "hard_success_gate") == route_payload["hard_success_gate"]

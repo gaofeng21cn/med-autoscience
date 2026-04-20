@@ -63,6 +63,7 @@ def render_entry_modes_guide() -> str:
             (
                 "",
                 f"### {route_contract['route_id']} ({route_contract['display_name']})",
+                f"- key_question: {route_contract['key_question']}",
                 f"- goal: {route_contract['goal']}",
                 _render_list_line("enter_conditions", route_contract["enter_conditions"]),
                 _render_list_line("hard_success_gate", route_contract["hard_success_gate"]),
@@ -205,6 +206,7 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
         lines.extend(
             (
                 f"- {route_contract['route_id']}: {route_contract['display_name']}",
+                "  key_question: " + route_contract["key_question"],
                 "  goal: " + route_contract["goal"],
                 "  " + _render_list_line("enter_conditions", route_contract["enter_conditions"], inline=True),
                 "  " + _render_list_line("hard_success_gate", route_contract["hard_success_gate"], inline=True),

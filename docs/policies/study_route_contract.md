@@ -9,18 +9,22 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 每个 route 必须稳定提供以下字段：
 
 - `goal`
+- `key_question`
 - `enter_conditions`
 - `hard_success_gate`
 - `durable_outputs_minimum`
+- `human_gate_boundary`
 - `next_routes`
 - `route_back_triggers`
 
 字段语义固定如下：
 
 - `goal`：当前 route 唯一要完成的阶段目标
+- `key_question`：当前 route 唯一回答的高层研究问题，必须可供 agent 直接判断 route 边界，不暴露底层函数或实现细节
 - `enter_conditions`：进入该阶段前必须已经满足的前置条件
 - `hard_success_gate`：什么状态算当前阶段正式过线
 - `durable_outputs_minimum`：离开当前阶段前至少要留下的 durable surface 或可引用产物
+- `human_gate_boundary`：该 route 何时必须进入 human gate 或停止自动推进
 - `next_routes`：当前阶段过线后的正式去向
 - `route_back_triggers`：发现缺口时应回退的触发条件
 
@@ -42,6 +46,7 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 
 - route 合同统一维护在 canonical YAML，不在每个 mode 内重复定义。
 - route 名称必须稳定、短、可长期复用。
+- 每个 route 只回答一个 `key_question`；新增或调整 route 时必须先确认这个问题与已有 route 不重叠。
 - route 之间的前进、回退、治理边界应通过 `next_routes` 与 `route_back_triggers` 表达，不把阶段跳转藏在 prose 里。
 - route 产物要求以 durable surface、artifact、ledger、decision record 这类可引用对象表述。
 - 任何写作、补充分析、最终交付动作都要能回指当前 route 合同与 study charter 边界。

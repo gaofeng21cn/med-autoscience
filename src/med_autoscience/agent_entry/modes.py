@@ -33,6 +33,7 @@ REQUIRED_MODE_STRING_FIELDS = (
 REQUIRED_ROUTE_CONTRACT_STRING_FIELDS = (
     "route_id",
     "display_name",
+    "key_question",
     "goal",
 )
 REQUIRED_ROUTE_CONTRACT_LIST_FIELDS = (
@@ -198,7 +199,10 @@ def _route_contract_payload_map(value: object) -> dict[str, dict[str, Any]]:
         for field in REQUIRED_ROUTE_CONTRACT_STRING_FIELDS:
             if field not in route_payload:
                 raise ValueError(f"route_contracts[{route_id}] missing required field: {field}")
-            _string_value(route_payload, field)
+            if field == "key_question":
+                _non_empty_string_value(route_payload, field, f"route_contracts[{route_id}]")
+            else:
+                _string_value(route_payload, field)
         for field in REQUIRED_ROUTE_CONTRACT_LIST_FIELDS:
             if field not in route_payload:
                 raise ValueError(f"route_contracts[{route_id}] missing required field: {field}")
@@ -212,3 +216,10 @@ def _route_contract_payload_map(value: object) -> dict[str, dict[str, Any]]:
     if missing_route_ids:
         raise ValueError(f"route_contracts missing required route ids: {', '.join(missing_route_ids)}")
     return route_contracts
+
+
+def _non_empty_string_value(payload: dict[str, Any], key: str, label: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} {key} must be a non-empty string")
+    return value
